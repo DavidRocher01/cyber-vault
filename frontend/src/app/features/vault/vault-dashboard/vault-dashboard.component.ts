@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -18,6 +18,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { CryptoService } from '../../../core/services/crypto.service';
 import { ClipboardService } from '../../../core/services/clipboard.service';
 import { PasswordGeneratorService } from '../../../core/services/password-generator.service';
+import { AnimationService } from '../../../core/services/animation.service';
 import { VaultStore } from '../vault.store';
 import { VaultItem } from '../../../core/services/vault.service';
 
@@ -40,6 +41,16 @@ import { VaultItem } from '../../../core/services/vault.service';
   templateUrl: './vault-dashboard.component.html',
 })
 export class VaultDashboardComponent implements OnInit {
+  private store = inject(VaultStore);
+  private authService = inject(AuthService);
+  private cryptoService = inject(CryptoService);
+  private clipboardService = inject(ClipboardService);
+  private passwordGenerator = inject(PasswordGeneratorService);
+  private animationService = inject(AnimationService);
+  private toast = inject(HotToastService);
+  private router = inject(Router);
+  private fb = inject(FormBuilder);
+
   readonly loading$ = this.store.loading$;
   readonly error$ = this.store.error$;
 
@@ -65,17 +76,6 @@ export class VaultDashboardComponent implements OnInit {
 
   revealedPasswords: Record<number, string | null> = {};
   copiedId: number | null = null;
-
-  constructor(
-    private store: VaultStore,
-    private authService: AuthService,
-    private cryptoService: CryptoService,
-    private clipboardService: ClipboardService,
-    private passwordGenerator: PasswordGeneratorService,
-    private toast: HotToastService,
-    private router: Router,
-    private fb: FormBuilder
-  ) {}
 
   ngOnInit() {
     this.store.loadItems();

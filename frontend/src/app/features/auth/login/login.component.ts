@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -17,6 +17,9 @@ import { AuthStore } from '../auth.store';
   templateUrl: './login.component.html',
 })
 export class LoginComponent {
+  private fb = inject(FormBuilder);
+  private store = inject(AuthStore);
+
   readonly loading$ = this.store.loading$;
   readonly error$ = this.store.error$;
 
@@ -24,8 +27,6 @@ export class LoginComponent {
     email: ['', [Validators.required, Validators.email]],
     password: ['', Validators.required],
   });
-
-  constructor(private fb: FormBuilder, private store: AuthStore) {}
 
   submit() {
     if (this.form.valid) {

@@ -27,7 +27,7 @@
             "assets": [
               { "glob": "**/*", "input": "src/assets", "output": "assets" }
             ],
-            "styles": ["src/styles.scss"],
+            "styles": ["src/styles.scss", "node_modules/animate.css/animate.min.css"],
             "scripts": []
           },
           "configurations": {
@@ -83,5 +83,8 @@
         }
       }
     }
+  },
+  "cli": {
+    "analytics": false
   }
 }
