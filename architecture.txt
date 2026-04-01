@@ -1,0 +1,222 @@
+🏛️ Fiche d'Architecture Technique : Cyber-Vault (v4.0)
+
+PROJET : Gestionnaire de mots de passe sécurisé (Angular 17 / FastAPI / PostgreSQL)
+ENVIRONNEMENT : Windows 11 + VS Code + PostgreSQL 17 local
+DÉPÔT : https://github.com/DavidRocher01/cyber-vault (privé)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Stack Technique & Versions
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Back-end
+  - Python 3.14 (local) / 3.12 (CI GitHub Actions)
+  - FastAPI 0.111.0 + Uvicorn 0.30.1
+  - SQLAlchemy 2.0.48 (async) + Asyncpg 0.31.0
+  - Alembic 1.13.1 (migrations)
+  - Sécurité : python-jose 3.3.0 (JWT), bcrypt 5.0.0 (direct, sans passlib)
+  - Rate Limiting : SlowAPI 0.1.9
+  - Config : pydantic-settings 2.2.1 + python-dotenv 1.0.1
+  - Qualité : bandit 1.7.9 + pip-audit 2.7.3
+
+Front-end
+  - Angular 17.3.0 (architecture standalone / fonctionnelle)
+  - State Management : @ngrx/component-store 17.2.0
+  - Design : Angular Material 17.3.0 + Tailwind CSS 3.4.3
+  - UX : ngx-skeleton-loader 9.0.0 + @ngneat/hot-toast 6.0.0
+  - Chiffrement client : Web Crypto API (PBKDF2 + AES-256-GCM natif navigateur)
+  - TypeScript 5.4.0
+
+Base de données
+  - PostgreSQL 17 (local dev)
+  - PostgreSQL 16-alpine (CI Docker)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. Sécurité
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Authentification
+  - JWT access token (courte durée) + refresh token (30 jours, stocké en DB)
+  - Refresh tokens révocables (colonne revoked) avec rotation à chaque renouvellement
+  - POST /auth/refresh  → échange refresh token contre un nouveau pair
+  - POST /auth/logout   → révoque le refresh token en DB
+
+Chiffrement Zero-Knowledge
+  - Dérivation de clé : PBKDF2 (100 000 itérations, SHA-256, salt = email)
+  - Chiffrement : AES-256-GCM avec IV aléatoire (12 bytes) par entrée
+  - La clé maître ne quitte JAMAIS le navigateur
+  - Les mots de passe sont chiffrés AVANT d'être envoyés à l'API
+
+Autres
+  - Hachage mots de passe : bcrypt (direct, sans passlib)
+  - Rate limiting : 60 req/min (GET), 30 req/min (POST/PATCH/DELETE) sur /vault
+  - Presse-papiers : auto-effacement après 30 secondes
+  - Validation : min/max_length sur tous les champs (Pydantic + Angular Validators)
+  - CORS configuré via pydantic-settings (.env)
+  - AuthInterceptor : injection JWT, auto-refresh sur 401, gestion 429/500
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. Architecture Backend (/backend)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+app/
+  main.py                  → FastAPI app, CORS, rate limiter, /health
+  core/
+    config.py              → Settings (SECRET_KEY, DATABASE_URL, ALLOWED_ORIGINS…)
+    database.py            → AsyncSession, engine, Base ORM
+    security.py            → hash_password, verify_password, create_access_token,
+                             create_refresh_token, decode_access_token
+    deps.py                → get_current_user (dépendance Bearer token)
+    limiter.py             → Instance SlowAPI partagée
+  models/
+    user.py                → Table users (id, email, hashed_password, is_active)
+    refresh_token.py       → Table refresh_tokens (token, expires_at, revoked)
+    vault_item.py          → Table vault_items (title, username, password_encrypted, url, notes)
+  schemas/
+    user.py                → UserCreate, UserLogin, UserOut, TokenOut, RefreshIn
+    vault_item.py          → VaultItemCreate, VaultItemUpdate, VaultItemOut
+  api/v1/
+    router.py              → Agrège /auth et /vault
+    endpoints/auth.py      → POST /register, /login, /refresh, /logout
+    endpoints/vault.py     → GET/POST/PATCH/DELETE /vault/ (paginé, rate-limité)
+
+alembic/
+  env.py                   → Runner async, importe les 3 modèles
+  versions/                → Migrations générées (users, vault_items, refresh_tokens)
+
+tests/
+  conftest.py              → SQLite in-memory (isolation totale, aucune DB externe)
+  test_auth.py             → 4 tests : register, duplicate, login, credentials invalides
+  test_vault.py            → 4 tests : create/list, update, delete, isolation multi-user
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. Architecture Frontend (/frontend/src)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+app/
+  app.config.ts            → Providers globaux (router, HTTP, animations, hot-toast)
+  app.routes.ts            → Routes racine (/auth, /vault[authGuard+cryptoGuard])
+
+  core/
+    services/
+      auth.service.ts      → login/register/refresh/logout + gestion localStorage
+      crypto.service.ts    → deriveKey (PBKDF2), encrypt/decrypt (AES-GCM), clearKey
+      vault.service.ts     → CRUD HTTP /vault/
+      password-generator.service.ts → Génération via crypto.getRandomValues
+      clipboard.service.ts → copy() + auto-clear presse-papiers après 30s
+    interceptors/
+      auth.interceptor.ts  → Bearer token, auto-refresh 401, gestion erreurs globales
+    guards/
+      auth.guard.ts        → Redirige → /auth/login si non authentifié
+      crypto.guard.ts      → Redirige → /auth/master-password si clé absente
+
+  features/
+    auth/
+      auth.store.ts        → ComponentStore : état login, toast erreur
+      auth.routes.ts       → /login, /register, /master-password
+      login/               → Formulaire email + mot de passe
+      register/            → Formulaire inscription
+      master-password/     → Saisie mot de passe maître → dérivation clé AES
+
+    vault/
+      vault.store.ts       → ComponentStore : load/create/delete + chiffrement auto
+      vault.routes.ts      → Route dashboard lazy-loaded
+      vault-dashboard/     → Liste, recherche, afficher/masquer, copier, supprimer,
+                             générateur de mot de passe, toasts, déconnexion
+
+  environments/
+    environment.ts         → DEV : http://localhost:8000/api/v1
+    environment.prod.ts    → PROD : /api/v1 (relatif)
+
+Tests unitaires (Vitest + jsdom) — 18 tests
+  auth.service.spec.ts     → localStorage, login, logout
+  crypto.service.spec.ts   → hasKey, deriveKey, encrypt/decrypt, clearKey
+  vault.service.spec.ts    → GET/POST/PATCH/DELETE URLs
+  password-generator.spec.ts → longueur, unicité, charset
+
+Tests E2E (Playwright — Chromium)
+  e2e/auth.spec.ts         → Affichage formulaire, erreur identifiants invalides
+  e2e/vault.spec.ts        → Register→Login→MasterPassword→CRUD→Recherche
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. Scripts (/scripts)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+backup_db.py     → pg_dump avec rétention 7 jours (compatible Windows + Linux)
+seed_test_db.py  → Recrée le schéma + injecte 2 utilisateurs + 3 entrées vault
+migrate.py       → Wrapper Alembic (python scripts/migrate.py upgrade head)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. Infrastructure (/infra)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+docker-compose.yml
+  - postgres:17-alpine  → port 5432, volume persistant, healthcheck
+  - adminer:4           → port 8080 (interface web PostgreSQL)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. CI/CD (.github/workflows/ci.yml)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Déclencheurs : push sur main/develop, PR vers main
+
+Job backend (Python 3.12 + PostgreSQL 16)
+  1. pip install requirements.txt + aiosqlite
+  2. bandit -r app/ -ll       → scan sécurité statique
+  3. pip-audit                → scan vulnérabilités dépendances
+  4. pytest tests/ -v         → 8 tests (SQLite in-memory)
+
+Job frontend (Node 20)
+  1. npm ci
+  2. ng lint                  → ESLint
+  3. vitest run               → 18 tests unitaires
+  4. ng build                 → build production
+
+Job e2e (après backend + frontend)
+  1. Backend FastAPI démarré en arrière-plan
+  2. Playwright install --with-deps chromium
+  3. playwright test          → auth.spec + vault.spec
+  4. Upload rapport HTML si échec
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. Environnements de déploiement
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Env       Host              Base de données         Backup / Sécurité
+───────   ────────────────  ──────────────────────  ──────────────────────────
+Dev       Windows local     PostgreSQL 17 local     pg_dump (backup_db.py)
+CI        GitHub Actions    Docker PostgreSQL 16     Scans bandit + pip-audit
+Prod      AWS App Runner    Amazon RDS              Snapshot Auto + PITR
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9. Parcours utilisateur complet
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. /auth/register          → Création de compte
+2. /auth/login             → JWT access + refresh token stockés
+3. /auth/master-password   → Dérivation clé AES (PBKDF2, reste en mémoire)
+4. /vault                  → Dashboard : recherche, ajout (chiffrement auto),
+                             afficher/masquer, copier (auto-clear 30s),
+                             supprimer, générateur de mot de passe
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+10. Lancer le projet en local
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Backend
+  cd backend
+  source .venv/Scripts/activate        # Windows Git Bash
+  uvicorn app.main:app --reload        # http://localhost:8000
+  # Docs API : http://localhost:8000/docs
+
+Frontend
+  cd frontend
+  npm start                            # http://localhost:4200
+
+Tous les tests
+  run_tests.bat                        # Pytest → Seed → Vitest → Playwright
+
+Backup manuel
+  python scripts/backup_db.py
+
+Migration
+  python scripts/migrate.py upgrade head
