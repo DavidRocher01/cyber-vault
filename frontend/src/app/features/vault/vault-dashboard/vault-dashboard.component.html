@@ -4,10 +4,102 @@
 </mat-toolbar>
 
 <main class="mx-auto max-w-4xl p-6">
-  @if (loading) {
+
+  @if (error$ | async; as error) {
+    <p class="mb-4 rounded bg-red-900 px-4 py-2 text-sm text-red-200">{{ error }}</p>
+  }
+
+  <div class="mb-6 flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-gray-100">Mon Vault</h1>
+    <button mat-flat-button color="accent" (click)="showForm = !showForm">
+      {{ showForm ? 'Annuler' : '+ Nouvelle entrée' }}
+    </button>
+  </div>
+
+  <!-- Search -->
+  <mat-form-field appearance="outline" class="mb-4 w-full">
+    <mat-label>Rechercher…</mat-label>
+    <input matInput (input)="onSearch($any($event.target).value)" />
+    <mat-icon matSuffix>search</mat-icon>
+  </mat-form-field>
+
+  @if (showForm) {
+    <mat-card class="mb-6 p-4">
+      <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-3">
+        <mat-form-field appearance="outline">
+          <mat-label>Titre *</mat-label>
+          <input matInput formControlName="title" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Identifiant</mat-label>
+          <input matInput formControlName="username" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Mot de passe *</mat-label>
+          <input matInput type="password" formControlName="password_encrypted" />
+          <button type="button" matSuffix mat-icon-button (click)="generatePassword()"
+                  matTooltip="Générer un mot de passe">
+            <mat-icon>casino</mat-icon>
+          </button>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>URL</mat-label>
+          <input matInput formControlName="url" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Notes</mat-label>
+          <textarea matInput formControlName="notes" rows="2"></textarea>
+        </mat-form-field>
+        <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid">
+          Enregistrer
+        </button>
+      </form>
+    </mat-card>
+  }
+
+  @if (loading$ | async) {
     <ngx-skeleton-loader count="3" appearance="line" />
   } @else {
-    <h1 class="mb-4 text-2xl font-bold text-gray-100">Mon Vault</h1>
-    <p class="text-gray-400">Votre espace sécurisé est prêt.</p>
+    @let items = filteredItems$ | async;
+    @if (!items || items.length === 0) {
+      <p class="text-center text-gray-500">Aucune entrée. Ajoutez votre première entrée !</p>
+    } @else {
+      <div class="flex flex-col gap-3">
+        @for (item of items; track item.id) {
+          <mat-card class="p-4">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0 flex-1">
+                <p class="font-semibold text-gray-100">{{ item.title }}</p>
+                @if (item.username) {
+                  <p class="text-sm text-gray-400">{{ item.username }}</p>
+                }
+                @if (item.url) {
+                  <a [href]="item.url" target="_blank" rel="noopener"
+                     class="text-xs text-blue-400 hover:underline">{{ item.url }}</a>
+                }
+                @if (revealedPasswords[item.id] !== undefined) {
+                  <p class="mt-1 break-all font-mono text-sm text-green-400">
+                    {{ revealedPasswords[item.id] ?? '(erreur de déchiffrement)' }}
+                  </p>
+                }
+              </div>
+              <div class="flex shrink-0 items-center gap-1">
+                <button mat-icon-button (click)="toggleReveal(item)"
+                        [matTooltip]="revealedPasswords[item.id] !== undefined ? 'Masquer' : 'Afficher'">
+                  <mat-icon>{{ revealedPasswords[item.id] !== undefined ? 'visibility_off' : 'visibility' }}</mat-icon>
+                </button>
+                <button mat-icon-button (click)="copyPassword(item)"
+                        [matTooltip]="copiedId === item.id ? 'Copié !' : 'Copier le mot de passe'">
+                  <mat-icon>{{ copiedId === item.id ? 'check' : 'content_copy' }}</mat-icon>
+                </button>
+                <button mat-icon-button color="warn" (click)="delete(item.id)" matTooltip="Supprimer">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </div>
+          </mat-card>
+        }
+      </div>
+    }
   }
 </main>

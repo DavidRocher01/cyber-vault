@@ -1,20 +1,20 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class VaultItemCreate(BaseModel):
-    title: str
-    username: str | None = None
-    password_encrypted: str
-    url: str | None = None
-    notes: str | None = None
+    title: str = Field(min_length=1, max_length=200)
+    username: str | None = Field(default=None, max_length=200)
+    password_encrypted: str = Field(min_length=1, max_length=8192)
+    url: str | None = Field(default=None, max_length=2048)
+    notes: str | None = Field(default=None, max_length=10000)
 
 
 class VaultItemUpdate(BaseModel):
-    title: str | None = None
-    username: str | None = None
-    password_encrypted: str | None = None
-    url: str | None = None
-    notes: str | None = None
+    title: str | None = Field(default=None, max_length=200)
+    username: str | None = Field(default=None, max_length=200)
+    password_encrypted: str | None = Field(default=None, max_length=8192)
+    url: str | None = Field(default=None, max_length=2048)
+    notes: str | None = Field(default=None, max_length=10000)
 
 
 class VaultItemOut(BaseModel):

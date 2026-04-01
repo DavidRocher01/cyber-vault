@@ -33,13 +33,22 @@ async def seed():
         await conn.run_sync(Base.metadata.create_all)
 
     async with AsyncSession_() as session:
+        from app.models.vault_item import VaultItem  # noqa: F401
         users = [
             User(email="admin@cybervault.dev", hashed_password=hash_password("AdminPass123!"), is_active=True),
             User(email="user@cybervault.dev", hashed_password=hash_password("UserPass123!"), is_active=True),
         ]
         session.add_all(users)
+        await session.flush()
+
+        vault_items = [
+            VaultItem(owner_id=users[0].id, title="GitHub", username="admin", password_encrypted="enc_github_pass", url="https://github.com"),
+            VaultItem(owner_id=users[0].id, title="AWS Console", username="admin@cybervault.dev", password_encrypted="enc_aws_pass", url="https://aws.amazon.com"),
+            VaultItem(owner_id=users[1].id, title="Notion", username="user", password_encrypted="enc_notion_pass", url="https://notion.so"),
+        ]
+        session.add_all(vault_items)
         await session.commit()
-        print(f"[SEED] {len(users)} utilisateurs injectés.")
+        print(f"[SEED] {len(users)} utilisateurs + {len(vault_items)} entrées vault injectés.")
 
     await engine.dispose()
     print("[DONE] Base de test prête.")

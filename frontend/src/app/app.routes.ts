@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { cryptoGuard } from './core/guards/crypto.guard';
 
 export const routes: Routes = [
   {
@@ -9,7 +10,7 @@ export const routes: Routes = [
   {
     path: 'vault',
     loadChildren: () => import('./features/vault/vault.routes').then(m => m.VAULT_ROUTES),
-    canActivate: [authGuard],
+    canActivate: [authGuard, cryptoGuard],
   },
   { path: '', redirectTo: 'vault', pathMatch: 'full' },
   { path: '**', redirectTo: 'auth' },

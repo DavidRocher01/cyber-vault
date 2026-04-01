@@ -6,7 +6,9 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.core.config import settings
 from app.core.database import Base
-import app.models.user  # noqa: F401 — enregistre les modèles dans Base.metadata
+import app.models.user  # noqa: F401
+import app.models.vault_item  # noqa: F401
+import app.models.refresh_token  # noqa: F401
 
 config = context.config
 

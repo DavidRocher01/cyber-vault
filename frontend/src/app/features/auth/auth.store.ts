@@ -3,6 +3,7 @@ import { ComponentStore } from '@ngrx/component-store';
 import { Router } from '@angular/router';
 import { tapResponse } from '@ngrx/operators';
 import { switchMap } from 'rxjs';
+import { HotToastService } from '@ngneat/hot-toast';
 
 import { AuthService } from '../../core/services/auth.service';
 
@@ -16,7 +17,11 @@ export class AuthStore extends ComponentStore<AuthState> {
   readonly loading$ = this.select(s => s.loading);
   readonly error$ = this.select(s => s.error);
 
-  constructor(private authService: AuthService, private router: Router) {
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+    private toast: HotToastService
+  ) {
     super({ loading: false, error: null });
   }
 
@@ -28,9 +33,13 @@ export class AuthStore extends ComponentStore<AuthState> {
           tapResponse(
             () => {
               this.patchState({ loading: false });
-              this.router.navigate(['/vault']);
+              this.router.navigate(['/auth/master-password']);
             },
-            (err: any) => this.patchState({ loading: false, error: err.error?.detail ?? 'Erreur de connexion' })
+            (err: any) => {
+              const msg = err.error?.detail ?? 'Erreur de connexion';
+              this.patchState({ loading: false, error: msg });
+              this.toast.error(msg);
+            }
           )
         );
       })

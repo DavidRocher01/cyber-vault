@@ -7,11 +7,6 @@ from app.main import app
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 
-@pytest.fixture(scope="session")
-def anyio_backend():
-    return "asyncio"
-
-
 @pytest.fixture(autouse=True)
 async def setup_db():
     engine = create_async_engine(TEST_DATABASE_URL)

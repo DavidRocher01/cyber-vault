@@ -1,9 +1,12 @@
+import secrets
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
 from jose import JWTError, jwt
 
 from app.core.config import settings
+
+REFRESH_TOKEN_EXPIRE_DAYS = 30
 
 
 def hash_password(password: str) -> str:
@@ -26,3 +29,7 @@ def decode_access_token(token: str) -> str | None:
         return payload.get("sub")
     except JWTError:
         return None
+
+
+def create_refresh_token() -> str:
+    return secrets.token_urlsafe(64)
