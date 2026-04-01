@@ -5,7 +5,7 @@ WORKDIR /app
 ARG API_URL=http://localhost:8001/api/v1
 
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 COPY . .
 

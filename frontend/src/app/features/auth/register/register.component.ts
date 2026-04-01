@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -16,14 +16,16 @@ import { AuthService } from '../../../core/services/auth.service';
   templateUrl: './register.component.html',
 })
 export class RegisterComponent {
+  private fb = inject(FormBuilder);
+  private authService = inject(AuthService);
+  private router = inject(Router);
+
   form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
   });
   error: string | null = null;
   loading = false;
-
-  constructor(private fb: FormBuilder, private authService: AuthService, private router: Router) {}
 
   submit() {
     if (this.form.invalid) return;

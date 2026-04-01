@@ -65,12 +65,12 @@
   @if (loading$ | async) {
     <ngx-skeleton-loader count="3" appearance="line" />
   } @else {
-    @let items = filteredItems$ | async;
-    @if (!items || items.length === 0) {
-      <p class="text-center text-gray-500">Aucune entrée. Ajoutez votre première entrée !</p>
-    } @else {
-      <div class="flex flex-col gap-3">
-        @for (item of items; track item.id) {
+    <ng-container *ngIf="filteredItems$ | async as items">
+      @if (items.length === 0) {
+        <p class="text-center text-gray-500">Aucune entrée. Ajoutez votre première entrée !</p>
+      } @else {
+        <div class="flex flex-col gap-3">
+          @for (item of items; track item.id) {
           <mat-card class="p-4">
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0 flex-1">
@@ -103,8 +103,9 @@
               </div>
             </div>
           </mat-card>
-        }
-      </div>
-    }
+          }
+        </div>
+      }
+    </ng-container>
   }
 </main>

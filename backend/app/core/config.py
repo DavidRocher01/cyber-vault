@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str
 
-    ALLOWED_ORIGINS: list[str] = ["http://localhost:4200"]
+    ALLOWED_ORIGINS: list[str] = ["http://localhost:4200", "http://localhost:4201"]
 
     # Sécurité login
     MAX_LOGIN_ATTEMPTS: int = 5
