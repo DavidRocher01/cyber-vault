@@ -1,0 +1,30 @@
+<div class="flex min-h-screen items-center justify-center bg-gray-900">
+  <mat-card class="w-full max-w-md p-6">
+    <mat-card-title class="mb-6 text-center text-2xl font-bold">Créer un compte</mat-card-title>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
+      <mat-form-field appearance="outline">
+        <mat-label>Email</mat-label>
+        <input matInput type="email" formControlName="email" autocomplete="email" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Mot de passe</mat-label>
+        <input matInput type="password" formControlName="password" autocomplete="new-password" />
+        <mat-hint>Minimum 8 caractères</mat-hint>
+      </mat-form-field>
+
+      @if (error) {
+        <p class="text-sm text-red-500">{{ error }}</p>
+      }
+
+      <button mat-flat-button color="primary" type="submit" [disabled]="loading">
+        {{ loading ? 'Inscription...' : "S'inscrire" }}
+      </button>
+    </form>
+
+    <p class="mt-4 text-center text-sm">
+      Déjà un compte ? <a routerLink="/auth/login" class="text-blue-400 hover:underline">Se connecter</a>
+    </p>
+  </mat-card>
+</div>

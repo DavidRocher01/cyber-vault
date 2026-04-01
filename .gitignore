@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+dist/
+*.egg-info/
+.pytest_cache/
+.bandit
+.mypy_cache/
+
+# Env
+.env
+*.env.local
+
+# Backups
+backups/
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+*.js.map
+
+# Playwright
+playwright-report/
+test-results/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db

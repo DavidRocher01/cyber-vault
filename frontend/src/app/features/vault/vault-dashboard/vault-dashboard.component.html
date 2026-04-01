@@ -1,0 +1,13 @@
+<mat-toolbar color="primary" class="flex justify-between">
+  <span>Cyber-Vault</span>
+  <button mat-button (click)="logout()">Déconnexion</button>
+</mat-toolbar>
+
+<main class="mx-auto max-w-4xl p-6">
+  @if (loading) {
+    <ngx-skeleton-loader count="3" appearance="line" />
+  } @else {
+    <h1 class="mb-4 text-2xl font-bold text-gray-100">Mon Vault</h1>
+    <p class="text-gray-400">Votre espace sécurisé est prêt.</p>
+  }
+</main>
