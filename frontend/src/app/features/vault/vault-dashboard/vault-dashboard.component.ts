@@ -10,7 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { combineLatest, map } from 'rxjs';
+import { combineLatest, map, take } from 'rxjs';
 
 import { HotToastService } from '@ngneat/hot-toast';
 
@@ -128,6 +128,27 @@ export class VaultDashboardComponent implements OnInit {
     } catch {
       this.toast.error('Erreur de déchiffrement');
     }
+  }
+
+  exportVault() {
+    this.store.items$.pipe(take(1)).subscribe(items => {
+      const data = items.map(item => ({
+        title: item.title,
+        username: item.username,
+        password_encrypted: item.password_encrypted,
+        url: item.url,
+        notes: item.notes,
+        exported_at: new Date().toISOString(),
+      }));
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cyber-vault-export-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      this.toast.success('Export téléchargé (données chiffrées)');
+    });
   }
 
   logout() {

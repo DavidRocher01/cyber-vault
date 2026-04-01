@@ -40,12 +40,19 @@ jobs:
         run: pip install -r requirements.txt aiosqlite
         working-directory: backend
 
-      - name: Bandit (sécurité)
+      - name: Bandit (sécurité statique)
         run: bandit -r app/ -ll
         working-directory: backend
 
       - name: pip-audit (vulnérabilités)
         run: pip-audit
+        working-directory: backend
+
+      - name: Alembic migrations check
+        env:
+          SECRET_KEY: ci-test-secret-key
+          DATABASE_URL: postgresql+asyncpg://postgres:password@localhost:5432/cybervault_test
+        run: python -m alembic upgrade head
         working-directory: backend
 
       - name: Pytest
@@ -77,8 +84,8 @@ jobs:
         run: npm run lint
         working-directory: frontend
 
-      - name: Vitest (tests unitaires)
-        run: npm run test
+      - name: Vitest (tests unitaires + couverture)
+        run: npm run test:coverage
         working-directory: frontend
 
       - name: Build

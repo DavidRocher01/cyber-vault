@@ -1,6 +1,11 @@
 <mat-toolbar color="primary" class="flex justify-between">
   <span>Cyber-Vault</span>
-  <button mat-button (click)="logout()">Déconnexion</button>
+  <div class="flex gap-2">
+    <button type="button" mat-button (click)="exportVault()" matTooltip="Exporter le vault (JSON chiffré)">
+      <mat-icon>download</mat-icon> Export
+    </button>
+    <button type="button" mat-button (click)="logout()">Déconnexion</button>
+  </div>
 </mat-toolbar>
 
 <main class="mx-auto max-w-4xl p-6">
@@ -11,7 +16,7 @@
 
   <div class="mb-6 flex items-center justify-between">
     <h1 class="text-2xl font-bold text-gray-100">Mon Vault</h1>
-    <button mat-flat-button color="accent" (click)="showForm = !showForm">
+    <button type="button" mat-flat-button color="accent" (click)="showForm = !showForm">
       {{ showForm ? 'Annuler' : '+ Nouvelle entrée' }}
     </button>
   </div>
@@ -19,7 +24,7 @@
   <!-- Search -->
   <mat-form-field appearance="outline" class="mb-4 w-full">
     <mat-label>Rechercher…</mat-label>
-    <input matInput (input)="onSearch($any($event.target).value)" />
+    <input matInput aria-label="Rechercher dans le vault" (input)="onSearch($any($event.target).value)" />
     <mat-icon matSuffix>search</mat-icon>
   </mat-form-field>
 
@@ -28,15 +33,15 @@
       <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-3">
         <mat-form-field appearance="outline">
           <mat-label>Titre *</mat-label>
-          <input matInput formControlName="title" />
+          <input matInput aria-label="Titre" formControlName="title" />
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>Identifiant</mat-label>
-          <input matInput formControlName="username" />
+          <input matInput aria-label="Identifiant" formControlName="username" />
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>Mot de passe *</mat-label>
-          <input matInput type="password" formControlName="password_encrypted" />
+          <input matInput aria-label="Mot de passe" type="password" formControlName="password_encrypted" />
           <button type="button" matSuffix mat-icon-button (click)="generatePassword()"
                   matTooltip="Générer un mot de passe">
             <mat-icon>casino</mat-icon>
@@ -44,11 +49,11 @@
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>URL</mat-label>
-          <input matInput formControlName="url" />
+          <input matInput aria-label="URL" formControlName="url" />
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>Notes</mat-label>
-          <textarea matInput formControlName="notes" rows="2"></textarea>
+          <textarea matInput aria-label="Notes" formControlName="notes" rows="2"></textarea>
         </mat-form-field>
         <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid">
           Enregistrer
@@ -84,15 +89,15 @@
                 }
               </div>
               <div class="flex shrink-0 items-center gap-1">
-                <button mat-icon-button (click)="toggleReveal(item)"
+                <button type="button" mat-icon-button (click)="toggleReveal(item)"
                         [matTooltip]="revealedPasswords[item.id] !== undefined ? 'Masquer' : 'Afficher'">
                   <mat-icon>{{ revealedPasswords[item.id] !== undefined ? 'visibility_off' : 'visibility' }}</mat-icon>
                 </button>
-                <button mat-icon-button (click)="copyPassword(item)"
+                <button type="button" mat-icon-button (click)="copyPassword(item)"
                         [matTooltip]="copiedId === item.id ? 'Copié !' : 'Copier le mot de passe'">
                   <mat-icon>{{ copiedId === item.id ? 'check' : 'content_copy' }}</mat-icon>
                 </button>
-                <button mat-icon-button color="warn" (click)="delete(item.id)" matTooltip="Supprimer">
+                <button type="button" mat-icon-button color="warn" (click)="delete(item.id)" matTooltip="Supprimer">
                   <mat-icon>delete</mat-icon>
                 </button>
               </div>

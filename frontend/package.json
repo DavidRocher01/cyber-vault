@@ -5,6 +5,7 @@
     "start": "ng serve",
     "build": "ng build",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "lint": "ng lint",
     "format": "prettier --write \"src/**/*.{ts,html,scss}\""

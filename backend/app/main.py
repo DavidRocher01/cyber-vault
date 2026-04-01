@@ -1,17 +1,50 @@
-from fastapi import FastAPI
+import sentry_sdk
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from loguru import logger
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 
 from app.api.v1.router import api_router
 from app.core.config import settings
+from app.core.database import get_db
 from app.core.limiter import limiter
+from app.core.logging import setup_logging
+
+setup_logging(settings.APP_ENV)
+
+if settings.SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        traces_sample_rate=0.1,
+        environment=settings.APP_ENV,
+    )
+    logger.info("Sentry initialisé")
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        if settings.APP_ENV == "production":
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
+
 
 app = FastAPI(title=settings.APP_NAME, version="1.0.0")
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
@@ -24,5 +57,16 @@ app.include_router(api_router)
 
 
 @app.get("/health")
-async def health():
-    return {"status": "ok"}
+async def health(db: AsyncSession = Depends(get_db)):
+    try:
+        await db.execute(text("SELECT 1"))
+        db_status = "ok"
+    except Exception:
+        db_status = "error"
+    overall = "ok" if db_status == "ok" else "degraded"
+    return {
+        "status": overall,
+        "version": "1.0.0",
+        "environment": settings.APP_ENV,
+        "database": db_status,
+    }

@@ -12,6 +12,13 @@ class Settings(BaseSettings):
 
     ALLOWED_ORIGINS: list[str] = ["http://localhost:4200"]
 
+    # Sécurité login
+    MAX_LOGIN_ATTEMPTS: int = 5
+    LOCKOUT_MINUTES: int = 15
+
+    # Observabilité
+    SENTRY_DSN: str | None = None
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
