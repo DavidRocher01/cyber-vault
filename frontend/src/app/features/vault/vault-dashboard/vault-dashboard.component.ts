@@ -18,6 +18,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { CryptoService } from '../../../core/services/crypto.service';
 import { ClipboardService } from '../../../core/services/clipboard.service';
 import { PasswordGeneratorService } from '../../../core/services/password-generator.service';
+import { AnimationService } from '../../../core/services/animation.service';
 import { VaultStore } from '../vault.store';
 import { VaultItem } from '../../../core/services/vault.service';
 
@@ -45,6 +46,7 @@ export class VaultDashboardComponent implements OnInit {
   private cryptoService = inject(CryptoService);
   private clipboardService = inject(ClipboardService);
   private passwordGenerator = inject(PasswordGeneratorService);
+  private animationService = inject(AnimationService);
   private toast = inject(HotToastService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
