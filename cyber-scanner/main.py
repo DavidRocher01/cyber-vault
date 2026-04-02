@@ -23,6 +23,11 @@ from scanner.dns_scanner import scan_subdomains
 from scanner.cms_detector import detect_cms
 from scanner.breach_checker import check_breach
 from scanner.waf_detector import detect_waf
+from scanner.tech_fingerprint import fingerprint_tech
+from scanner.tls_auditor import audit_tls
+from scanner.subdomain_takeover import check_subdomain_takeover
+from scanner.threat_intel import get_threat_intel
+from scanner.http_methods import check_http_methods
 
 console = Console()
 
@@ -412,6 +417,133 @@ def display_waf_results(waf_result: dict[str, Any]) -> str:
     return waf_result["status"]
 
 
+def display_tech_results(tech_result: dict[str, Any]) -> str:
+    console.print("[bold white]Technology Fingerprint[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Category", style="dim", width=22)
+    table.add_column("Technologies")
+    if tech_result.get("error") and tech_result["status"] == "CRITICAL":
+        table.add_row("Status", colorize_status("CRITICAL"))
+        table.add_row("Error", f"[red]{tech_result['error']}[/red]")
+    else:
+        table.add_row("Status", colorize_status(tech_result["status"]))
+        table.add_row("Total detected", str(tech_result["total"]))
+        for cat, names in tech_result["technologies"].items():
+            table.add_row(f"[cyan]{cat}[/cyan]", ", ".join(names))
+        if tech_result.get("error"):
+            table.add_row("[yellow]Warning[/yellow]", tech_result["error"])
+    console.print(table)
+    console.print()
+    return tech_result["status"]
+
+
+def display_tls_results(tls_result: dict[str, Any]) -> str:
+    console.print("[bold white]TLS Deep Audit[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Property", style="dim", width=22)
+    table.add_column("Value")
+    if tls_result.get("error") and tls_result["status"] == "CRITICAL" and not tls_result["supported_protocols"]:
+        table.add_row("Status", colorize_status("CRITICAL"))
+        table.add_row("Error", f"[red]{tls_result['error']}[/red]")
+    else:
+        table.add_row("Status", colorize_status(tls_result["status"]))
+        protos = ", ".join(tls_result["supported_protocols"]) or "[dim]none[/dim]"
+        table.add_row("Protocols", protos)
+        weak_p = tls_result["weak_protocols"]
+        if weak_p:
+            table.add_row("Weak protocols", f"[red]{', '.join(weak_p)}[/red]")
+        hsts = tls_result["hsts"]
+        if hsts.get("present"):
+            preload = "[green]Yes[/green]" if hsts["preload"] else "[yellow]No[/yellow]"
+            table.add_row("HSTS", f"max-age={hsts['max_age']} | preload={preload}")
+        else:
+            table.add_row("HSTS", "[red]Absent[/red]")
+        weak_c = tls_result["weak_ciphers"]
+        if weak_c:
+            table.add_row("Weak ciphers", f"[red]{', '.join(weak_c)}[/red]")
+        else:
+            table.add_row("Weak ciphers", "[green]None[/green]")
+        cert = tls_result.get("certificate")
+        if cert:
+            table.add_row("Cert subject", cert.get("subject", ""))
+            table.add_row("Cert issuer",  cert.get("issuer", ""))
+    console.print(table)
+    console.print()
+    return tls_result["status"]
+
+
+def display_takeover_results(takeover_result: dict[str, Any]) -> str:
+    console.print("[bold white]Subdomain Takeover[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Property", style="dim", width=22)
+    table.add_column("Value")
+    table.add_row("Status", colorize_status(takeover_result["status"]))
+    table.add_row("Checked", str(takeover_result["total_checked"]))
+    vuln_count = takeover_result["total_vulnerable"]
+    vc = "green" if vuln_count == 0 else "red"
+    table.add_row("Vulnerable", f"[{vc}]{vuln_count}[/{vc}]")
+    for v in takeover_result["vulnerable"]:
+        table.add_row(f"[red]{v['subdomain']}[/red]", f"{v['service']} — {v['reason']}")
+    if takeover_result.get("error"):
+        table.add_row("[yellow]Info[/yellow]", takeover_result["error"])
+    console.print(table)
+    console.print()
+    return takeover_result["status"]
+
+
+def display_threat_intel_results(ti_result: dict[str, Any]) -> str:
+    console.print("[bold white]Threat Intelligence (Shodan)[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Property", style="dim", width=22)
+    table.add_column("Value")
+    if ti_result.get("error") and not ti_result.get("ip"):
+        table.add_row("Status", colorize_status("CRITICAL"))
+        table.add_row("Error", f"[red]{ti_result['error']}[/red]")
+    else:
+        table.add_row("Status", colorize_status(ti_result["status"]))
+        table.add_row("IP", str(ti_result.get("ip", "—")))
+        ports = ti_result["open_ports"]
+        table.add_row("Open ports", ", ".join(str(p) for p in ports) if ports else "[green]—[/green]")
+        cves = ti_result["cves"]
+        if cves:
+            table.add_row("CVEs", f"[red]{', '.join(cves[:5])}{'…' if len(cves) > 5 else ''}[/red]")
+        else:
+            table.add_row("CVEs", "[green]None[/green]")
+        tags = ti_result["tags"]
+        if tags:
+            table.add_row("Tags", ", ".join(tags))
+        if ti_result.get("abuse_score") is not None:
+            score = ti_result["abuse_score"]
+            sc = "green" if score < 25 else ("yellow" if score < 75 else "red")
+            table.add_row("Abuse score", f"[{sc}]{score}/100[/{sc}]")
+        if ti_result.get("error"):
+            table.add_row("[yellow]Warning[/yellow]", ti_result["error"])
+    console.print(table)
+    console.print()
+    return ti_result["status"]
+
+
+def display_http_methods_results(methods_result: dict[str, Any]) -> str:
+    console.print("[bold white]HTTP Methods[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Property", style="dim", width=22)
+    table.add_column("Value")
+    table.add_row("Status", colorize_status(methods_result["status"]))
+    declared = methods_result["options_declared"]
+    table.add_row("OPTIONS declares", ", ".join(declared) if declared else "[dim]—[/dim]")
+    dangerous = methods_result["dangerous_allowed"]
+    if dangerous:
+        table.add_row("Dangerous methods", f"[red]{', '.join(dangerous)}[/red]")
+    else:
+        table.add_row("Dangerous methods", "[green]None[/green]")
+    allowed = methods_result["allowed_methods"]
+    if allowed:
+        table.add_row("Allowed methods", ", ".join(allowed))
+    console.print(table)
+    console.print()
+    return methods_result["status"]
+
+
 def display_summary(url: str, statuses: list[str]) -> None:
     overall = get_overall_status(statuses)
     color = STATUS_COLORS.get(overall, "white")
@@ -486,9 +618,15 @@ def main() -> None:
     parser.add_argument("--skip-dns",     action="store_true", help="Skip DNS/subdomain scan")
     parser.add_argument("--skip-cms",     action="store_true", help="Skip CMS detection")
     parser.add_argument("--skip-waf",     action="store_true", help="Skip WAF detection")
-    parser.add_argument("--hibp-key",     metavar="KEY",       help="HaveIBeenPwned API key for breach check")
-    parser.add_argument("--breach-email", metavar="EMAIL",     help="Email to check for data breaches")
-    parser.add_argument("--breach-domain",metavar="DOMAIN",    help="Domain to check for data breaches")
+    parser.add_argument("--hibp-key",       metavar="KEY",    help="HaveIBeenPwned API key for breach check")
+    parser.add_argument("--breach-email",   metavar="EMAIL",  help="Email to check for data breaches")
+    parser.add_argument("--breach-domain",  metavar="DOMAIN", help="Domain to check for data breaches")
+    parser.add_argument("--skip-tech",      action="store_true", help="Skip technology fingerprinting")
+    parser.add_argument("--skip-tls",       action="store_true", help="Skip deep TLS audit")
+    parser.add_argument("--skip-takeover",  action="store_true", help="Skip subdomain takeover check")
+    parser.add_argument("--skip-threat",    action="store_true", help="Skip threat intelligence (Shodan)")
+    parser.add_argument("--skip-methods",   action="store_true", help="Skip HTTP methods check")
+    parser.add_argument("--abuseipdb-key",  metavar="KEY",    help="AbuseIPDB API key (optional, for threat intel)")
     args = parser.parse_args()
 
     url: str = args.url
@@ -616,6 +754,53 @@ def main() -> None:
     else:
         console.print("[dim]Breach check skipped (use --breach-email or --breach-domain).[/dim]\n")
 
+    # --- Tech Fingerprint ---
+    tech_result: dict[str, Any] = {}
+    if args.skip_tech:
+        console.print("[dim]Tech fingerprint skipped (--skip-tech).[/dim]\n")
+    else:
+        console.print("[dim]Running technology fingerprinting...[/dim]")
+        tech_result = fingerprint_tech(url)
+        statuses.append(display_tech_results(tech_result))
+
+    # --- TLS Deep Audit ---
+    tls_result: dict[str, Any] = {}
+    if args.skip_tls:
+        console.print("[dim]TLS audit skipped (--skip-tls).[/dim]\n")
+    else:
+        console.print("[dim]Running deep TLS audit...[/dim]")
+        tls_result = audit_tls(hostname)
+        statuses.append(display_tls_results(tls_result))
+
+    # --- Subdomain Takeover ---
+    takeover_result: dict[str, Any] = {}
+    takeover_skipped: bool = args.skip_takeover
+    if args.skip_takeover:
+        console.print("[dim]Subdomain takeover skipped (--skip-takeover).[/dim]\n")
+    else:
+        console.print("[dim]Running subdomain takeover check...[/dim]")
+        found_subs = [s["subdomain"] for s in dns_result.get("found", [])] if dns_result else []
+        takeover_result = check_subdomain_takeover(found_subs)
+        statuses.append(display_takeover_results(takeover_result))
+
+    # --- Threat Intelligence ---
+    ti_result: dict[str, Any] = {}
+    if args.skip_threat:
+        console.print("[dim]Threat intelligence skipped (--skip-threat).[/dim]\n")
+    else:
+        console.print("[dim]Running threat intelligence (Shodan InternetDB)...[/dim]")
+        ti_result = get_threat_intel(hostname, abuseipdb_key=getattr(args, "abuseipdb_key", None))
+        statuses.append(display_threat_intel_results(ti_result))
+
+    # --- HTTP Methods ---
+    methods_result: dict[str, Any] = {}
+    if args.skip_methods:
+        console.print("[dim]HTTP methods check skipped (--skip-methods).[/dim]\n")
+    else:
+        console.print("[dim]Running HTTP methods check...[/dim]")
+        methods_result = check_http_methods(url)
+        statuses.append(display_http_methods_results(methods_result))
+
     # --- Secrets Detection ---
     secrets_result: dict[str, Any] = {}
     if args.secrets:
@@ -657,6 +842,16 @@ def main() -> None:
             waf_skipped=args.skip_waf,
             breach_result=breach_result,
             breach_skipped=not bool(breach_target),
+            tech_result=tech_result,
+            tech_skipped=args.skip_tech,
+            tls_result=tls_result,
+            tls_skipped=args.skip_tls,
+            takeover_result=takeover_result,
+            takeover_skipped=takeover_skipped,
+            ti_result=ti_result,
+            ti_skipped=args.skip_threat,
+            methods_result=methods_result,
+            methods_skipped=args.skip_methods,
         )
         console.print(
             Panel.fit(
