@@ -1104,7 +1104,248 @@ def _build_breach_section(breach_result: dict[str, Any], styles: dict[str, Any],
 
 
 # ---------------------------------------------------------------------------
-# Section 14 — Recommandations
+# Section 14 — Technology Fingerprint
+# ---------------------------------------------------------------------------
+def _build_tech_section(tech_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
+    story = []
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(Paragraph("14. Technology Fingerprint", styles["section_title"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    if skipped:
+        story.append(Paragraph("Module non exécuté (--skip-tech).", styles["body"]))
+        return story
+    status = tech_result.get("status", "OK")
+    story.append(_status_badge_table(status))
+    story.append(Spacer(1, 0.3 * cm))
+    rows = [["Catégorie", "Technologies détectées"]]
+    for cat, names in tech_result.get("technologies", {}).items():
+        rows.append([cat.capitalize(), ", ".join(names)])
+    if len(rows) == 1:
+        rows.append(["—", "Aucune technologie identifiée"])
+    col_w = page_w - 4 * cm
+    t = Table(rows, colWidths=[col_w * 0.3, col_w * 0.7])
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
+        ("TEXTCOLOR",  (0, 0), (-1, 0), COLOR_WHITE),
+        ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE",   (0, 0), (-1, -1), 9),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+        ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
+        ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(t)
+    if tech_result.get("error"):
+        story.append(Spacer(1, 0.2 * cm))
+        story.append(Paragraph(f"⚠ {tech_result['error']}", styles["body"]))
+    return story
+
+
+# ---------------------------------------------------------------------------
+# Section 15 — TLS Deep Audit
+# ---------------------------------------------------------------------------
+def _build_tls_section(tls_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
+    story = []
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(Paragraph("15. Audit TLS approfondi", styles["section_title"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    if skipped:
+        story.append(Paragraph("Module non exécuté (--skip-tls).", styles["body"]))
+        return story
+    status = tls_result.get("status", "OK")
+    story.append(_status_badge_table(status))
+    story.append(Spacer(1, 0.3 * cm))
+    hsts = tls_result.get("hsts", {})
+    rows = [
+        ["Protocoles supportés", ", ".join(tls_result.get("supported_protocols", [])) or "—"],
+        ["Protocoles faibles",   ", ".join(tls_result.get("weak_protocols", [])) or "Aucun"],
+        ["Chiffrements faibles", ", ".join(tls_result.get("weak_ciphers", [])) or "Aucun"],
+        ["HSTS",                 "Présent" if hsts.get("present") else "Absent"],
+        ["HSTS max-age",         str(hsts.get("max_age", "—"))],
+        ["HSTS preload",         "Oui" if hsts.get("preload") else "Non"],
+    ]
+    cert = tls_result.get("certificate")
+    if cert:
+        rows += [
+            ["Cert subject",  cert.get("subject", "—")],
+            ["Cert issuer",   cert.get("issuer", "—")],
+            ["Cert expires",  cert.get("not_after", "—")],
+        ]
+    col_w = page_w - 4 * cm
+    t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
+    t.setStyle(TableStyle([
+        ("FONTNAME",   (0, 0), (-1, -1), "Helvetica"),
+        ("FONTSIZE",   (0, 0), (-1, -1), 9),
+        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+        ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
+        ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(t)
+    return story
+
+
+# ---------------------------------------------------------------------------
+# Section 16 — Subdomain Takeover
+# ---------------------------------------------------------------------------
+def _build_takeover_section(takeover_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
+    story = []
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(Paragraph("16. Subdomain Takeover", styles["section_title"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    if skipped:
+        story.append(Paragraph("Module non exécuté (--skip-takeover).", styles["body"]))
+        return story
+    status = takeover_result.get("status", "OK")
+    story.append(_status_badge_table(status))
+    story.append(Spacer(1, 0.3 * cm))
+    story.append(Paragraph(
+        f"Sous-domaines vérifiés : {takeover_result.get('total_checked', 0)} — "
+        f"Vulnérables : {takeover_result.get('total_vulnerable', 0)}",
+        styles["body"],
+    ))
+    vulns = takeover_result.get("vulnerable", [])
+    if vulns:
+        story.append(Spacer(1, 0.2 * cm))
+        rows = [["Sous-domaine", "Service", "Raison"]]
+        for v in vulns:
+            rows.append([v["subdomain"], v.get("service", "—"), v.get("reason", "—")])
+        col_w = page_w - 4 * cm
+        t = Table(rows, colWidths=[col_w * 0.38, col_w * 0.22, col_w * 0.40])
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), COLOR_CRITICAL),
+            ("TEXTCOLOR",  (0, 0), (-1, 0), COLOR_WHITE),
+            ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE",   (0, 0), (-1, -1), 9),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+            ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
+            ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
+        ]))
+        story.append(t)
+    if takeover_result.get("error"):
+        story.append(Spacer(1, 0.2 * cm))
+        story.append(Paragraph(takeover_result["error"], styles["body"]))
+    return story
+
+
+# ---------------------------------------------------------------------------
+# Section 17 — Threat Intelligence
+# ---------------------------------------------------------------------------
+def _build_threat_intel_section(ti_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
+    story = []
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(Paragraph("17. Threat Intelligence (Shodan)", styles["section_title"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    if skipped:
+        story.append(Paragraph("Module non exécuté (--skip-threat).", styles["body"]))
+        return story
+    status = ti_result.get("status", "OK")
+    story.append(_status_badge_table(status))
+    story.append(Spacer(1, 0.3 * cm))
+    cves  = ti_result.get("cves", [])
+    ports = ti_result.get("open_ports", [])
+    abuse = ti_result.get("abuse_score")
+    rows = [
+        ["IP",           str(ti_result.get("ip", "—"))],
+        ["Ports ouverts", ", ".join(str(p) for p in ports) if ports else "—"],
+        ["CVEs",          ", ".join(cves[:8]) + ("…" if len(cves) > 8 else "") if cves else "Aucun"],
+        ["Tags Shodan",   ", ".join(ti_result.get("tags", [])) or "—"],
+        ["Abuse score",   f"{abuse}/100" if abuse is not None else "—"],
+    ]
+    col_w = page_w - 4 * cm
+    t = Table(rows, colWidths=[col_w * 0.3, col_w * 0.7])
+    t.setStyle(TableStyle([
+        ("FONTNAME",   (0, 0), (-1, -1), "Helvetica"),
+        ("FONTSIZE",   (0, 0), (-1, -1), 9),
+        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+        ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
+        ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(t)
+    if ti_result.get("error"):
+        story.append(Spacer(1, 0.2 * cm))
+        story.append(Paragraph(f"⚠ {ti_result['error']}", styles["body"]))
+    return story
+
+
+# ---------------------------------------------------------------------------
+# Section 18 — HTTP Methods
+# ---------------------------------------------------------------------------
+def _build_http_methods_section(methods_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
+    story = []
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(Paragraph("18. Méthodes HTTP dangereuses", styles["section_title"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    if skipped:
+        story.append(Paragraph("Module non exécuté (--skip-methods).", styles["body"]))
+        return story
+    status = methods_result.get("status", "OK")
+    story.append(_status_badge_table(status))
+    story.append(Spacer(1, 0.3 * cm))
+    dangerous = methods_result.get("dangerous_allowed", [])
+    allowed   = methods_result.get("allowed_methods", [])
+    declared  = methods_result.get("options_declared", [])
+    rows = [
+        ["OPTIONS déclare",    ", ".join(declared) if declared else "—"],
+        ["Méthodes autorisées", ", ".join(allowed) if allowed else "Aucune"],
+        ["Méthodes dangereuses", ", ".join(dangerous) if dangerous else "Aucune"],
+    ]
+    col_w = page_w - 4 * cm
+    t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
+    t.setStyle(TableStyle([
+        ("FONTNAME",   (0, 0), (-1, -1), "Helvetica"),
+        ("FONTSIZE",   (0, 0), (-1, -1), 9),
+        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+        ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
+        ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(t)
+    probes = methods_result.get("probes", [])
+    if probes:
+        story.append(Spacer(1, 0.3 * cm))
+        probe_rows = [["Méthode", "Code HTTP", "Acceptée"]]
+        for p in probes:
+            code = str(p["status_code"]) if p["status_code"] else "Erreur"
+            accepted = "OUI" if p["allowed"] else "non"
+            probe_rows.append([p["method"], code, accepted])
+        t2 = Table(probe_rows, colWidths=[col_w * 0.25, col_w * 0.35, col_w * 0.40])
+        t2.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
+            ("TEXTCOLOR",  (0, 0), (-1, 0), COLOR_WHITE),
+            ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE",   (0, 0), (-1, -1), 9),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+            ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
+            ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
+        ]))
+        story.append(t2)
+    return story
+
+
+# ---------------------------------------------------------------------------
+# Section 19 — Recommandations
 # ---------------------------------------------------------------------------
 def _build_recommendations(
     ssl_result: dict[str, Any],
@@ -1118,7 +1359,7 @@ def _build_recommendations(
 ) -> list:
     story = []
     story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("14. Recommandations", styles["section_title"]))
+    story.append(Paragraph("19. Recommandations", styles["section_title"]))
     story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
 
     recommendations: list[tuple[str, str]] = []  # (priority, text)
@@ -1241,6 +1482,16 @@ def generate_report(
     waf_skipped: bool = True,
     breach_result: dict[str, Any] | None = None,
     breach_skipped: bool = True,
+    tech_result: dict[str, Any] | None = None,
+    tech_skipped: bool = True,
+    tls_result: dict[str, Any] | None = None,
+    tls_skipped: bool = True,
+    takeover_result: dict[str, Any] | None = None,
+    takeover_skipped: bool = True,
+    ti_result: dict[str, Any] | None = None,
+    ti_skipped: bool = True,
+    methods_result: dict[str, Any] | None = None,
+    methods_skipped: bool = True,
 ) -> str:
     """
     Generate a professional PDF audit report.
@@ -1302,6 +1553,16 @@ def generate_report(
         statuses["waf"] = waf_result.get("status", "OK")
     if not breach_skipped and breach_result:
         statuses["breach"] = breach_result.get("status", "OK")
+    if not tech_skipped and tech_result:
+        statuses["tech"] = tech_result.get("status", "OK")
+    if not tls_skipped and tls_result:
+        statuses["tls"] = tls_result.get("status", "OK")
+    if not takeover_skipped and takeover_result:
+        statuses["takeover"] = takeover_result.get("status", "OK")
+    if not ti_skipped and ti_result:
+        statuses["threat_intel"] = ti_result.get("status", "OK")
+    if not methods_skipped and methods_result:
+        statuses["http_methods"] = methods_result.get("status", "OK")
 
     all_status_values = list(statuses.values())
     if "CRITICAL" in all_status_values:
@@ -1329,6 +1590,11 @@ def generate_report(
     story += _build_cms_section(cms_result or {}, styles, usable_w + 4 * cm, skipped=cms_skipped)
     story += _build_waf_section(waf_result or {}, styles, usable_w + 4 * cm, skipped=waf_skipped)
     story += _build_breach_section(breach_result or {}, styles, usable_w + 4 * cm, skipped=breach_skipped)
+    story += _build_tech_section(tech_result or {}, styles, usable_w + 4 * cm, skipped=tech_skipped)
+    story += _build_tls_section(tls_result or {}, styles, usable_w + 4 * cm, skipped=tls_skipped)
+    story += _build_takeover_section(takeover_result or {}, styles, usable_w + 4 * cm, skipped=takeover_skipped)
+    story += _build_threat_intel_section(ti_result or {}, styles, usable_w + 4 * cm, skipped=ti_skipped)
+    story += _build_http_methods_section(methods_result or {}, styles, usable_w + 4 * cm, skipped=methods_skipped)
     story += _build_recommendations(ssl_result or {}, headers_result or {}, port_result or {}, styles, usable_w + 4 * cm, ports_skipped=ports_skipped, sca_result=sca_result or {}, sca_skipped=sca_skipped)
 
     doc.build(story)
