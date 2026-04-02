@@ -133,6 +133,11 @@ Tests unitaires (Vitest + jsdom) — 18 tests
   vault.service.spec.ts    → GET/POST/PATCH/DELETE URLs
   password-generator.spec.ts → longueur, unicité, charset
 
+Règle de couverture (tous projets)
+  Minimum 2 tests unitaires par fonction publique ou privée.
+  Chaque test couvre un cas distinct (nominal, erreur, edge case).
+  Aucune fonction ne peut être livrée sans au moins 2 TU associés.
+
 Tests E2E (Playwright — Chromium)
   e2e/auth.spec.ts         → Affichage formulaire, erreur identifiants invalides
   e2e/vault.spec.ts        → Register→Login→MasterPassword→CRUD→Recherche

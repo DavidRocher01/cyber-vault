@@ -11,7 +11,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { LucideAngularModule, Eye, EyeOff, Copy, Trash2, Download, LogOut, Plus, Search } from 'lucide-angular';
-import { provideRouter } from '@angular/router';
 import { VaultDashboardComponent } from './vault-dashboard.component';
 
 const meta: Meta<VaultDashboardComponent> = {
@@ -33,9 +32,7 @@ const meta: Meta<VaultDashboardComponent> = {
         NgxSkeletonLoaderModule,
         LucideAngularModule.pick({ Eye, EyeOff, Copy, Trash2, Download, LogOut, Plus, Search }),
       ],
-      providers: [
-        provideRouter([]),
-      ],
+      providers: [],
     }),
   ],
   parameters: {
