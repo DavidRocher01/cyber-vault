@@ -10,7 +10,7 @@ alembic==1.13.1
 # Sécurité
 python-jose[cryptography]==3.3.0
 bcrypt==5.0.0
-python-multipart==0.0.9
+python-multipart==0.0.22
 
 # Rate Limiting
 slowapi==0.1.9
