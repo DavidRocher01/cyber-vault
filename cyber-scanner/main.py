@@ -15,6 +15,10 @@ from scanner.secrets_checker import check_secrets
 from scanner.remediation import generate_remediation
 from scanner.report_generator import generate_report
 from scanner.constants import PORT_NAMES
+from scanner.email_checker import check_email_security
+from scanner.cookie_checker import check_cookies
+from scanner.cors_checker import check_cors
+from scanner.ip_reputation import check_ip_reputation
 
 console = Console()
 
@@ -219,6 +223,110 @@ def display_secrets_results(secrets_result: dict[str, Any]) -> str:
     return secrets_result["status"]
 
 
+def display_email_results(email_result: dict[str, Any]) -> str:
+    console.print("[bold white]Email Security (SPF / DKIM / DMARC)[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Check", style="dim", width=22)
+    table.add_column("Value")
+
+    if email_result.get("error"):
+        table.add_row("Status", colorize_status("CRITICAL"))
+        table.add_row("Error", f"[red]{email_result['error']}[/red]")
+    else:
+        table.add_row("Status", colorize_status(email_result["status"]))
+        spf = email_result["spf"]
+        table.add_row("SPF", "[green]Présent[/green]" if spf.get("found") else "[red]Absent[/red]")
+        if spf.get("found") and not spf.get("strict"):
+            table.add_row("SPF strictness", "[yellow]Non strict (~all)[/yellow]")
+        dkim = email_result["dkim"]
+        table.add_row("DKIM", f"[green]Présent (selector: {dkim['selector']})[/green]" if dkim.get("found") else "[red]Absent[/red]")
+        dmarc = email_result["dmarc"]
+        if dmarc.get("found"):
+            policy_color = "green" if dmarc["policy"] in ("reject", "quarantine") else "yellow"
+            table.add_row("DMARC", f"[{policy_color}]Présent (p={dmarc['policy']})[/{policy_color}]")
+        else:
+            table.add_row("DMARC", "[red]Absent[/red]")
+        for issue in email_result["issues"]:
+            table.add_row("[yellow]Issue[/yellow]", issue)
+
+    console.print(table)
+    console.print()
+    return email_result["status"]
+
+
+def display_cookie_results(cookie_result: dict[str, Any]) -> str:
+    console.print("[bold white]Cookie Security[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Property", style="dim", width=22)
+    table.add_column("Value")
+
+    if cookie_result.get("error"):
+        table.add_row("Status", colorize_status("CRITICAL"))
+        table.add_row("Error", f"[red]{cookie_result['error']}[/red]")
+    else:
+        table.add_row("Status", colorize_status(cookie_result["status"]))
+        table.add_row("Cookies found", str(cookie_result["total_cookies"]))
+        issues_count = cookie_result["total_issues"]
+        ic = "green" if issues_count == 0 else ("yellow" if cookie_result["status"] == "WARNING" else "red")
+        table.add_row("Issues", f"[{ic}]{issues_count}[/{ic}]")
+        for issue in cookie_result["issues"]:
+            table.add_row(f"[yellow]{issue['cookie']}[/yellow]", issue["issue"])
+
+    console.print(table)
+    console.print()
+    return cookie_result["status"]
+
+
+def display_cors_results(cors_result: dict[str, Any]) -> str:
+    console.print("[bold white]CORS Audit[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Property", style="dim", width=22)
+    table.add_column("Value")
+
+    if cors_result.get("error"):
+        table.add_row("Status", colorize_status("CRITICAL"))
+        table.add_row("Error", f"[red]{cors_result['error']}[/red]")
+    else:
+        table.add_row("Status", colorize_status(cors_result["status"]))
+        acao = cors_result["allow_origin"] or "[dim]non défini[/dim]"
+        table.add_row("Allow-Origin", acao)
+        acac = cors_result["allow_credentials"] or "[dim]non défini[/dim]"
+        table.add_row("Allow-Credentials", acac)
+        table.add_row("Vulnerable", "[red]Oui[/red]" if cors_result["vulnerable"] else "[green]Non[/green]")
+        for issue in cors_result["issues"]:
+            table.add_row("[yellow]Issue[/yellow]", issue)
+
+    console.print(table)
+    console.print()
+    return cors_result["status"]
+
+
+def display_ip_reputation_results(ip_result: dict[str, Any]) -> str:
+    console.print("[bold white]IP Reputation (DNSBL)[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Property", style="dim", width=22)
+    table.add_column("Value")
+
+    if ip_result.get("error") and not ip_result.get("ip"):
+        table.add_row("Status", colorize_status("CRITICAL"))
+        table.add_row("Error", f"[red]{ip_result['error']}[/red]")
+    else:
+        table.add_row("Status", colorize_status(ip_result["status"]))
+        table.add_row("IP", str(ip_result.get("ip", "—")))
+        if ip_result.get("error"):
+            table.add_row("Info", f"[dim]{ip_result['error']}[/dim]")
+        listed = ip_result.get("listed_in", [])
+        if listed:
+            for entry in listed:
+                table.add_row(f"[red]Listed in[/red]", f"{entry['label']} ({entry['category']})")
+        else:
+            table.add_row("Blacklists", "[green]Aucune[/green]")
+
+    console.print(table)
+    console.print()
+    return ip_result["status"]
+
+
 def display_summary(url: str, statuses: list[str]) -> None:
     overall = get_overall_status(statuses)
     color = STATUS_COLORS.get(overall, "white")
@@ -286,6 +394,10 @@ def main() -> None:
         action="store_true",
         help="Generate remediation scripts in remediation/",
     )
+    parser.add_argument("--skip-email",   action="store_true", help="Skip email security check (SPF/DKIM/DMARC)")
+    parser.add_argument("--skip-cookies", action="store_true", help="Skip cookie security check")
+    parser.add_argument("--skip-cors",    action="store_true", help="Skip CORS audit")
+    parser.add_argument("--skip-ip-rep",  action="store_true", help="Skip IP reputation check")
     args = parser.parse_args()
 
     url: str = args.url
@@ -339,6 +451,42 @@ def main() -> None:
     else:
         console.print("[dim]SCA skipped (use --requirements / --package-json to enable).[/dim]\n")
 
+    # --- Email Security ---
+    email_result: dict[str, Any] = {}
+    if args.skip_email:
+        console.print("[dim]Email security skipped (--skip-email).[/dim]\n")
+    else:
+        console.print("[dim]Running email security check (SPF/DKIM/DMARC)...[/dim]")
+        email_result = check_email_security(hostname)
+        statuses.append(display_email_results(email_result))
+
+    # --- Cookie Security ---
+    cookie_result: dict[str, Any] = {}
+    if args.skip_cookies:
+        console.print("[dim]Cookie security skipped (--skip-cookies).[/dim]\n")
+    else:
+        console.print("[dim]Running cookie security check...[/dim]")
+        cookie_result = check_cookies(url)
+        statuses.append(display_cookie_results(cookie_result))
+
+    # --- CORS Audit ---
+    cors_result: dict[str, Any] = {}
+    if args.skip_cors:
+        console.print("[dim]CORS audit skipped (--skip-cors).[/dim]\n")
+    else:
+        console.print("[dim]Running CORS audit...[/dim]")
+        cors_result = check_cors(url)
+        statuses.append(display_cors_results(cors_result))
+
+    # --- IP Reputation ---
+    ip_result: dict[str, Any] = {}
+    if args.skip_ip_rep:
+        console.print("[dim]IP reputation skipped (--skip-ip-rep).[/dim]\n")
+    else:
+        console.print("[dim]Running IP reputation check...[/dim]")
+        ip_result = check_ip_reputation(hostname)
+        statuses.append(display_ip_reputation_results(ip_result))
+
     # --- Secrets Detection ---
     secrets_result: dict[str, Any] = {}
     if args.secrets:
@@ -364,6 +512,14 @@ def main() -> None:
             ports_skipped=ports_skipped,
             sca_result=sca_result,
             sca_skipped=not sca_run,
+            email_result=email_result,
+            email_skipped=args.skip_email,
+            cookie_result=cookie_result,
+            cookie_skipped=args.skip_cookies,
+            cors_result=cors_result,
+            cors_skipped=args.skip_cors,
+            ip_result=ip_result,
+            ip_skipped=args.skip_ip_rep,
         )
         console.print(
             Panel.fit(
