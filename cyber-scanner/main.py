@@ -15,6 +15,14 @@ from scanner.secrets_checker import check_secrets
 from scanner.remediation import generate_remediation
 from scanner.report_generator import generate_report
 from scanner.constants import PORT_NAMES
+from scanner.email_checker import check_email_security
+from scanner.cookie_checker import check_cookies
+from scanner.cors_checker import check_cors
+from scanner.ip_reputation import check_ip_reputation
+from scanner.dns_scanner import scan_subdomains
+from scanner.cms_detector import detect_cms
+from scanner.breach_checker import check_breach
+from scanner.waf_detector import detect_waf
 
 console = Console()
 
@@ -219,6 +227,191 @@ def display_secrets_results(secrets_result: dict[str, Any]) -> str:
     return secrets_result["status"]
 
 
+def display_email_results(email_result: dict[str, Any]) -> str:
+    console.print("[bold white]Email Security (SPF / DKIM / DMARC)[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Check", style="dim", width=22)
+    table.add_column("Value")
+
+    if email_result.get("error"):
+        table.add_row("Status", colorize_status("CRITICAL"))
+        table.add_row("Error", f"[red]{email_result['error']}[/red]")
+    else:
+        table.add_row("Status", colorize_status(email_result["status"]))
+        spf = email_result["spf"]
+        table.add_row("SPF", "[green]Présent[/green]" if spf.get("found") else "[red]Absent[/red]")
+        if spf.get("found") and not spf.get("strict"):
+            table.add_row("SPF strictness", "[yellow]Non strict (~all)[/yellow]")
+        dkim = email_result["dkim"]
+        table.add_row("DKIM", f"[green]Présent (selector: {dkim['selector']})[/green]" if dkim.get("found") else "[red]Absent[/red]")
+        dmarc = email_result["dmarc"]
+        if dmarc.get("found"):
+            policy_color = "green" if dmarc["policy"] in ("reject", "quarantine") else "yellow"
+            table.add_row("DMARC", f"[{policy_color}]Présent (p={dmarc['policy']})[/{policy_color}]")
+        else:
+            table.add_row("DMARC", "[red]Absent[/red]")
+        for issue in email_result["issues"]:
+            table.add_row("[yellow]Issue[/yellow]", issue)
+
+    console.print(table)
+    console.print()
+    return email_result["status"]
+
+
+def display_cookie_results(cookie_result: dict[str, Any]) -> str:
+    console.print("[bold white]Cookie Security[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Property", style="dim", width=22)
+    table.add_column("Value")
+
+    if cookie_result.get("error"):
+        table.add_row("Status", colorize_status("CRITICAL"))
+        table.add_row("Error", f"[red]{cookie_result['error']}[/red]")
+    else:
+        table.add_row("Status", colorize_status(cookie_result["status"]))
+        table.add_row("Cookies found", str(cookie_result["total_cookies"]))
+        issues_count = cookie_result["total_issues"]
+        ic = "green" if issues_count == 0 else ("yellow" if cookie_result["status"] == "WARNING" else "red")
+        table.add_row("Issues", f"[{ic}]{issues_count}[/{ic}]")
+        for issue in cookie_result["issues"]:
+            table.add_row(f"[yellow]{issue['cookie']}[/yellow]", issue["issue"])
+
+    console.print(table)
+    console.print()
+    return cookie_result["status"]
+
+
+def display_cors_results(cors_result: dict[str, Any]) -> str:
+    console.print("[bold white]CORS Audit[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Property", style="dim", width=22)
+    table.add_column("Value")
+
+    if cors_result.get("error"):
+        table.add_row("Status", colorize_status("CRITICAL"))
+        table.add_row("Error", f"[red]{cors_result['error']}[/red]")
+    else:
+        table.add_row("Status", colorize_status(cors_result["status"]))
+        acao = cors_result["allow_origin"] or "[dim]non défini[/dim]"
+        table.add_row("Allow-Origin", acao)
+        acac = cors_result["allow_credentials"] or "[dim]non défini[/dim]"
+        table.add_row("Allow-Credentials", acac)
+        table.add_row("Vulnerable", "[red]Oui[/red]" if cors_result["vulnerable"] else "[green]Non[/green]")
+        for issue in cors_result["issues"]:
+            table.add_row("[yellow]Issue[/yellow]", issue)
+
+    console.print(table)
+    console.print()
+    return cors_result["status"]
+
+
+def display_ip_reputation_results(ip_result: dict[str, Any]) -> str:
+    console.print("[bold white]IP Reputation (DNSBL)[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Property", style="dim", width=22)
+    table.add_column("Value")
+
+    if ip_result.get("error") and not ip_result.get("ip"):
+        table.add_row("Status", colorize_status("CRITICAL"))
+        table.add_row("Error", f"[red]{ip_result['error']}[/red]")
+    else:
+        table.add_row("Status", colorize_status(ip_result["status"]))
+        table.add_row("IP", str(ip_result.get("ip", "—")))
+        if ip_result.get("error"):
+            table.add_row("Info", f"[dim]{ip_result['error']}[/dim]")
+        listed = ip_result.get("listed_in", [])
+        if listed:
+            for entry in listed:
+                table.add_row(f"[red]Listed in[/red]", f"{entry['label']} ({entry['category']})")
+        else:
+            table.add_row("Blacklists", "[green]Aucune[/green]")
+
+    console.print(table)
+    console.print()
+    return ip_result["status"]
+
+
+def display_dns_results(dns_result: dict[str, Any]) -> str:
+    console.print("[bold white]DNS & Subdomains[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Property", style="dim", width=22)
+    table.add_column("Value")
+    if dns_result.get("error"):
+        table.add_row("Status", colorize_status("CRITICAL"))
+        table.add_row("Error", f"[red]{dns_result['error']}[/red]")
+    else:
+        table.add_row("Status", colorize_status(dns_result["status"]))
+        table.add_row("Subdomains found", str(dns_result["total_found"]))
+        zt = dns_result.get("zone_transfer", {})
+        table.add_row("Zone Transfer", "[red]VULNERABLE[/red]" if zt.get("vulnerable") else "[green]Refusé[/green]")
+        for s in dns_result["found"]:
+            table.add_row(f"[cyan]{s['subdomain']}[/cyan]", s["ip"])
+    console.print(table)
+    console.print()
+    return dns_result["status"]
+
+
+def display_cms_results(cms_result: dict[str, Any]) -> str:
+    console.print("[bold white]CMS Detection[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Property", style="dim", width=22)
+    table.add_column("Value")
+    if cms_result.get("error"):
+        table.add_row("Status", colorize_status("CRITICAL"))
+        table.add_row("Error", f"[red]{cms_result['error']}[/red]")
+    else:
+        table.add_row("Status", colorize_status(cms_result["status"]))
+        cms = cms_result["cms"]
+        table.add_row("CMS", f"[yellow]{cms}[/yellow]" if cms != "Unknown" else "[green]Unknown[/green]")
+        if cms_result["version"]:
+            table.add_row("Version", f"[red]{cms_result['version']}[/red]")
+        table.add_row("Confidence", str(cms_result["confidence"]))
+    console.print(table)
+    console.print()
+    return cms_result["status"]
+
+
+def display_breach_results(breach_result: dict[str, Any]) -> str:
+    console.print("[bold white]Data Breach (HIBP)[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Property", style="dim", width=22)
+    table.add_column("Value")
+    if breach_result.get("error") and breach_result["status"] != "OK":
+        table.add_row("Status", colorize_status(breach_result["status"]))
+        table.add_row("Info", f"[dim]{breach_result['error']}[/dim]")
+    else:
+        table.add_row("Status", colorize_status(breach_result["status"]))
+        total = breach_result["total"]
+        tc = "green" if total == 0 else ("yellow" if breach_result["status"] == "WARNING" else "red")
+        table.add_row("Breaches found", f"[{tc}]{total}[/{tc}]")
+        for b in breach_result.get("breaches", []):
+            table.add_row(f"[red]{b['name']}[/red]", f"{b.get('breach_date','')} — {b.get('pwn_count',0):,} comptes")
+        for a in breach_result.get("accounts", []):
+            table.add_row(f"[red]{a['email']}[/red]", ", ".join(a.get("breaches", [])))
+    console.print(table)
+    console.print()
+    return breach_result["status"]
+
+
+def display_waf_results(waf_result: dict[str, Any]) -> str:
+    console.print("[bold white]WAF Detection[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Property", style="dim", width=22)
+    table.add_column("Value")
+    if waf_result.get("error"):
+        table.add_row("Status", colorize_status("WARNING"))
+        table.add_row("Error", f"[dim]{waf_result['error']}[/dim]")
+    else:
+        table.add_row("Status", colorize_status(waf_result["status"]))
+        detected = waf_result["detected"]
+        table.add_row("WAF détecté", f"[green]Oui — {waf_result['waf_name']}[/green]" if detected else "[yellow]Non détecté[/yellow]")
+        if waf_result.get("method"):
+            table.add_row("Méthode", waf_result["method"])
+    console.print(table)
+    console.print()
+    return waf_result["status"]
+
+
 def display_summary(url: str, statuses: list[str]) -> None:
     overall = get_overall_status(statuses)
     color = STATUS_COLORS.get(overall, "white")
@@ -286,6 +479,16 @@ def main() -> None:
         action="store_true",
         help="Generate remediation scripts in remediation/",
     )
+    parser.add_argument("--skip-email",   action="store_true", help="Skip email security check (SPF/DKIM/DMARC)")
+    parser.add_argument("--skip-cookies", action="store_true", help="Skip cookie security check")
+    parser.add_argument("--skip-cors",    action="store_true", help="Skip CORS audit")
+    parser.add_argument("--skip-ip-rep",  action="store_true", help="Skip IP reputation check")
+    parser.add_argument("--skip-dns",     action="store_true", help="Skip DNS/subdomain scan")
+    parser.add_argument("--skip-cms",     action="store_true", help="Skip CMS detection")
+    parser.add_argument("--skip-waf",     action="store_true", help="Skip WAF detection")
+    parser.add_argument("--hibp-key",     metavar="KEY",       help="HaveIBeenPwned API key for breach check")
+    parser.add_argument("--breach-email", metavar="EMAIL",     help="Email to check for data breaches")
+    parser.add_argument("--breach-domain",metavar="DOMAIN",    help="Domain to check for data breaches")
     args = parser.parse_args()
 
     url: str = args.url
@@ -339,6 +542,80 @@ def main() -> None:
     else:
         console.print("[dim]SCA skipped (use --requirements / --package-json to enable).[/dim]\n")
 
+    # --- Email Security ---
+    email_result: dict[str, Any] = {}
+    if args.skip_email:
+        console.print("[dim]Email security skipped (--skip-email).[/dim]\n")
+    else:
+        console.print("[dim]Running email security check (SPF/DKIM/DMARC)...[/dim]")
+        email_result = check_email_security(hostname)
+        statuses.append(display_email_results(email_result))
+
+    # --- Cookie Security ---
+    cookie_result: dict[str, Any] = {}
+    if args.skip_cookies:
+        console.print("[dim]Cookie security skipped (--skip-cookies).[/dim]\n")
+    else:
+        console.print("[dim]Running cookie security check...[/dim]")
+        cookie_result = check_cookies(url)
+        statuses.append(display_cookie_results(cookie_result))
+
+    # --- CORS Audit ---
+    cors_result: dict[str, Any] = {}
+    if args.skip_cors:
+        console.print("[dim]CORS audit skipped (--skip-cors).[/dim]\n")
+    else:
+        console.print("[dim]Running CORS audit...[/dim]")
+        cors_result = check_cors(url)
+        statuses.append(display_cors_results(cors_result))
+
+    # --- IP Reputation ---
+    ip_result: dict[str, Any] = {}
+    if args.skip_ip_rep:
+        console.print("[dim]IP reputation skipped (--skip-ip-rep).[/dim]\n")
+    else:
+        console.print("[dim]Running IP reputation check...[/dim]")
+        ip_result = check_ip_reputation(hostname)
+        statuses.append(display_ip_reputation_results(ip_result))
+
+    # --- DNS / Subdomains ---
+    dns_result: dict[str, Any] = {}
+    if args.skip_dns:
+        console.print("[dim]DNS scan skipped (--skip-dns).[/dim]\n")
+    else:
+        console.print("[dim]Running DNS & subdomain scan...[/dim]")
+        dns_result = scan_subdomains(hostname)
+        statuses.append(display_dns_results(dns_result))
+
+    # --- CMS Detection ---
+    cms_result: dict[str, Any] = {}
+    if args.skip_cms:
+        console.print("[dim]CMS detection skipped (--skip-cms).[/dim]\n")
+    else:
+        console.print("[dim]Running CMS detection...[/dim]")
+        cms_result = detect_cms(url)
+        statuses.append(display_cms_results(cms_result))
+
+    # --- WAF Detection ---
+    waf_result: dict[str, Any] = {}
+    if args.skip_waf:
+        console.print("[dim]WAF detection skipped (--skip-waf).[/dim]\n")
+    else:
+        console.print("[dim]Running WAF detection...[/dim]")
+        waf_result = detect_waf(url)
+        statuses.append(display_waf_results(waf_result))
+
+    # --- Data Breach ---
+    breach_result: dict[str, Any] = {}
+    breach_target = args.breach_email or args.breach_domain
+    breach_mode = "email" if args.breach_email else "domain"
+    if breach_target:
+        console.print("[dim]Running data breach check (HIBP)...[/dim]")
+        breach_result = check_breach(breach_target, api_key=args.hibp_key, mode=breach_mode)
+        statuses.append(display_breach_results(breach_result))
+    else:
+        console.print("[dim]Breach check skipped (use --breach-email or --breach-domain).[/dim]\n")
+
     # --- Secrets Detection ---
     secrets_result: dict[str, Any] = {}
     if args.secrets:
@@ -364,6 +641,22 @@ def main() -> None:
             ports_skipped=ports_skipped,
             sca_result=sca_result,
             sca_skipped=not sca_run,
+            email_result=email_result,
+            email_skipped=args.skip_email,
+            cookie_result=cookie_result,
+            cookie_skipped=args.skip_cookies,
+            cors_result=cors_result,
+            cors_skipped=args.skip_cors,
+            ip_result=ip_result,
+            ip_skipped=args.skip_ip_rep,
+            dns_result=dns_result,
+            dns_skipped=args.skip_dns,
+            cms_result=cms_result,
+            cms_skipped=args.skip_cms,
+            waf_result=waf_result,
+            waf_skipped=args.skip_waf,
+            breach_result=breach_result,
+            breach_skipped=not bool(breach_target),
         )
         console.print(
             Panel.fit(

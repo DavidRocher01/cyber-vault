@@ -292,12 +292,20 @@ def _build_toc(styles: dict[str, Any]) -> list:
     story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
 
     toc_entries = [
-        ("1.", "Résumé exécutif"),
-        ("2.", "SSL / TLS"),
-        ("3.", "Headers HTTP"),
-        ("4.", "Ports réseau"),
-        ("5.", "SCA — Dépendances"),
-        ("6.", "Recommandations"),
+        ("1.",  "Résumé exécutif"),
+        ("2.",  "SSL / TLS"),
+        ("3.",  "Headers HTTP"),
+        ("4.",  "Ports réseau"),
+        ("5.",  "SCA — Dépendances"),
+        ("6.",  "Email Security (SPF / DKIM / DMARC)"),
+        ("7.",  "Cookie Security"),
+        ("8.",  "CORS"),
+        ("9.",  "IP Réputation"),
+        ("10.", "DNS & Subdomains"),
+        ("11.", "CMS Detection"),
+        ("12.", "WAF Detection"),
+        ("13.", "Data Breach"),
+        ("14.", "Recommandations"),
     ]
     for num, title in toc_entries:
         story.append(Paragraph(f"<b>{num}</b>  {title}", styles["toc_entry"]))
@@ -367,10 +375,18 @@ def _build_executive_summary(
 
     rows = [[Paragraph("Module", head_style), Paragraph("Statut", head_style)]]
     module_labels = {
-        "ssl": "SSL / TLS",
+        "ssl":     "SSL / TLS",
         "headers": "Headers HTTP",
-        "ports": "Ports réseau",
-        "sca": "SCA — Dépendances",
+        "ports":   "Ports réseau",
+        "sca":     "SCA — Dépendances",
+        "email":   "Email Security",
+        "cookies": "Cookie Security",
+        "cors":    "CORS",
+        "ip_rep":  "IP Réputation",
+        "dns":     "DNS & Subdomains",
+        "cms":     "CMS Detection",
+        "waf":     "WAF Detection",
+        "breach":  "Data Breach",
     }
     for key, label in module_labels.items():
         if key in statuses:
@@ -725,7 +741,370 @@ def _build_sca_section(sca_result: dict[str, Any], styles: dict[str, Any], page_
 
 
 # ---------------------------------------------------------------------------
-# Section 6 — Recommandations
+# Section 6 — Email Security
+# ---------------------------------------------------------------------------
+def _build_email_section(email_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
+    story = []
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(Paragraph("6. Email Security (SPF / DKIM / DMARC)", styles["section_title"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+
+    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    col_w = page_w - 4 * cm
+
+    if skipped or not email_result:
+        rows = [[Paragraph("Résultat", head_style)],
+                [Paragraph("Non scanné", cell_style)]]
+        t = Table(rows, colWidths=[col_w])
+    elif email_result.get("error"):
+        rows = [[Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
+                [Paragraph("Erreur", cell_style), Paragraph(str(email_result["error"]), cell_style)]]
+        t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
+    else:
+        def flag_cell(found: bool, ok_text: str, bad_text: str) -> Paragraph:
+            if found:
+                return Paragraph(ok_text, ParagraphStyle("ok", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_OK))
+            return Paragraph(bad_text, ParagraphStyle("cr", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_CRITICAL))
+
+        spf = email_result.get("spf", {})
+        dkim = email_result.get("dkim", {})
+        dmarc = email_result.get("dmarc", {})
+        rows = [
+            [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
+            [Paragraph("Statut", cell_style), Paragraph(email_result.get("status", ""), ParagraphStyle("st", fontName="Helvetica-Bold", fontSize=10, textColor=_status_color(email_result.get("status", "OK"))))],
+            [Paragraph("SPF", cell_style), flag_cell(spf.get("found", False), f"Présent {'(strict)' if spf.get('strict') else '(~all)'}", "Absent")],
+            [Paragraph("DKIM", cell_style), flag_cell(dkim.get("found", False), f"Présent (selector: {dkim.get('selector', '?')})", "Non détecté")],
+            [Paragraph("DMARC", cell_style), flag_cell(dmarc.get("found", False), f"Présent (p={dmarc.get('policy', '?')})", "Absent")],
+        ]
+        for issue in email_result.get("issues", []):
+            rows.append([Paragraph("Issue", ParagraphStyle("is", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WARNING)), Paragraph(issue, cell_style)])
+        t = Table(rows, colWidths=[col_w * 0.3, col_w * 0.7])
+
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
+        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(t)
+    return story
+
+
+# ---------------------------------------------------------------------------
+# Section 7 — Cookie Security
+# ---------------------------------------------------------------------------
+def _build_cookie_section(cookie_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
+    story = []
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(Paragraph("7. Cookie Security", styles["section_title"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+
+    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    col_w = page_w - 4 * cm
+
+    if skipped or not cookie_result:
+        rows = [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné", cell_style)]]
+        t = Table(rows, colWidths=[col_w])
+    elif cookie_result.get("error"):
+        rows = [[Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
+                [Paragraph("Erreur", cell_style), Paragraph(str(cookie_result["error"]), cell_style)]]
+        t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
+    else:
+        issues = cookie_result.get("issues", [])
+        rows = [
+            [Paragraph("Cookie", head_style), Paragraph("Problème", head_style)],
+        ]
+        if issues:
+            for issue in issues:
+                rows.append([Paragraph(issue["cookie"], cell_style), Paragraph(issue["issue"], ParagraphStyle("warn", fontName="Helvetica", fontSize=10, textColor=COLOR_WARNING))])
+        else:
+            rows.append([Paragraph("—", cell_style), Paragraph("Tous les cookies sont correctement sécurisés", ParagraphStyle("ok", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_OK))])
+
+        summary_style = ParagraphStyle("sm", fontName="Helvetica-Bold", fontSize=10, textColor=colors.HexColor("#1E293B"))
+        total_issues = cookie_result.get("total_issues", 0)
+        ic = COLOR_OK if total_issues == 0 else (COLOR_WARNING if cookie_result.get("status") == "WARNING" else COLOR_CRITICAL)
+        rows.append([Paragraph("Total cookies", summary_style), Paragraph(str(cookie_result.get("total_cookies", 0)), cell_style)])
+        rows.append([Paragraph("Total issues", summary_style), Paragraph(str(total_issues), ParagraphStyle("tc", fontName="Helvetica-Bold", fontSize=10, textColor=ic))])
+        t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
+
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
+        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("BACKGROUND", (0, -2), (-1, -1), colors.HexColor("#E2E8F0")),
+    ]))
+    story.append(t)
+    return story
+
+
+# ---------------------------------------------------------------------------
+# Section 8 — CORS
+# ---------------------------------------------------------------------------
+def _build_cors_section(cors_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
+    story = []
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(Paragraph("8. CORS", styles["section_title"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+
+    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    col_w = page_w - 4 * cm
+
+    if skipped or not cors_result:
+        rows = [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné", cell_style)]]
+        t = Table(rows, colWidths=[col_w])
+    elif cors_result.get("error"):
+        rows = [[Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
+                [Paragraph("Erreur", cell_style), Paragraph(str(cors_result["error"]), cell_style)]]
+        t = Table(rows, colWidths=[col_w * 0.4, col_w * 0.6])
+    else:
+        vuln = cors_result.get("vulnerable", False)
+        vuln_style = ParagraphStyle("vl", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_CRITICAL if vuln else COLOR_OK)
+        rows = [
+            [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
+            [Paragraph("Statut", cell_style), Paragraph(cors_result.get("status", ""), ParagraphStyle("st", fontName="Helvetica-Bold", fontSize=10, textColor=_status_color(cors_result.get("status", "OK"))))],
+            [Paragraph("Allow-Origin", cell_style), Paragraph(cors_result.get("allow_origin") or "non défini", cell_style)],
+            [Paragraph("Allow-Credentials", cell_style), Paragraph(cors_result.get("allow_credentials") or "non défini", cell_style)],
+            [Paragraph("Vulnérable", cell_style), Paragraph("Oui" if vuln else "Non", vuln_style)],
+        ]
+        for issue in cors_result.get("issues", []):
+            rows.append([Paragraph("Issue", ParagraphStyle("is", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WARNING)), Paragraph(issue, cell_style)])
+        t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
+
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
+        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(t)
+    return story
+
+
+# ---------------------------------------------------------------------------
+# Section 9 — IP Réputation
+# ---------------------------------------------------------------------------
+def _build_ip_reputation_section(ip_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
+    story = []
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(Paragraph("9. IP Réputation (DNSBL)", styles["section_title"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+
+    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    col_w = page_w - 4 * cm
+
+    if skipped or not ip_result:
+        rows = [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné", cell_style)]]
+        t = Table(rows, colWidths=[col_w])
+    elif ip_result.get("error") and not ip_result.get("ip"):
+        rows = [[Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
+                [Paragraph("Erreur", cell_style), Paragraph(str(ip_result["error"]), cell_style)]]
+        t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
+    else:
+        listed = ip_result.get("listed_in", [])
+        rows = [
+            [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
+            [Paragraph("Statut", cell_style), Paragraph(ip_result.get("status", ""), ParagraphStyle("st", fontName="Helvetica-Bold", fontSize=10, textColor=_status_color(ip_result.get("status", "OK"))))],
+            [Paragraph("IP", cell_style), Paragraph(str(ip_result.get("ip", "—")), cell_style)],
+            [Paragraph("Blacklists", cell_style), Paragraph(str(ip_result.get("total_listed", 0)), ParagraphStyle("bl", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_CRITICAL if listed else COLOR_OK))],
+        ]
+        for entry in listed:
+            rows.append([Paragraph(entry["label"], ParagraphStyle("lb", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_CRITICAL)), Paragraph(entry["category"], cell_style)])
+        t = Table(rows, colWidths=[col_w * 0.4, col_w * 0.6])
+
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
+        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(t)
+    return story
+
+
+# ---------------------------------------------------------------------------
+# Section 10 — DNS & Subdomains
+# ---------------------------------------------------------------------------
+def _build_dns_section(dns_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
+    story = []
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(Paragraph("10. DNS & Subdomains", styles["section_title"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    col_w = page_w - 4 * cm
+
+    if skipped or not dns_result:
+        rows = [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné", cell_style)]]
+        t = Table(rows, colWidths=[col_w])
+    else:
+        zt = dns_result.get("zone_transfer", {})
+        zt_style = ParagraphStyle("zt", fontName="Helvetica-Bold", fontSize=10,
+                                   textColor=COLOR_CRITICAL if zt.get("vulnerable") else COLOR_OK)
+        rows = [
+            [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
+            [Paragraph("Statut", cell_style), Paragraph(dns_result.get("status", ""), ParagraphStyle("st", fontName="Helvetica-Bold", fontSize=10, textColor=_status_color(dns_result.get("status", "OK"))))],
+            [Paragraph("Subdomains trouvés", cell_style), Paragraph(str(dns_result.get("total_found", 0)), cell_style)],
+            [Paragraph("Zone Transfer", cell_style), Paragraph("VULNERABLE" if zt.get("vulnerable") else "Refusé", zt_style)],
+        ]
+        for s in dns_result.get("found", [])[:10]:
+            rows.append([Paragraph(s["subdomain"], ParagraphStyle("sub", fontName="Helvetica", fontSize=9, textColor=COLOR_PRIMARY)), Paragraph(s["ip"], cell_style)])
+        if dns_result.get("total_found", 0) > 10:
+            rows.append([Paragraph(f"... et {dns_result['total_found'] - 10} autres", cell_style), Paragraph("", cell_style)])
+        t = Table(rows, colWidths=[col_w * 0.55, col_w * 0.45])
+
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
+        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(t)
+    return story
+
+
+# ---------------------------------------------------------------------------
+# Section 11 — CMS Detection
+# ---------------------------------------------------------------------------
+def _build_cms_section(cms_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
+    story = []
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(Paragraph("11. CMS Detection", styles["section_title"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    col_w = page_w - 4 * cm
+
+    if skipped or not cms_result:
+        rows = [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné", cell_style)]]
+        t = Table(rows, colWidths=[col_w])
+    else:
+        cms = cms_result.get("cms", "Unknown")
+        version = cms_result.get("version")
+        cms_color = COLOR_OK if cms == "Unknown" else (COLOR_CRITICAL if version else COLOR_WARNING)
+        rows = [
+            [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
+            [Paragraph("Statut", cell_style), Paragraph(cms_result.get("status", ""), ParagraphStyle("st", fontName="Helvetica-Bold", fontSize=10, textColor=_status_color(cms_result.get("status", "OK"))))],
+            [Paragraph("CMS détecté", cell_style), Paragraph(cms, ParagraphStyle("cms", fontName="Helvetica-Bold", fontSize=10, textColor=cms_color))],
+        ]
+        if version:
+            rows.append([Paragraph("Version exposée", cell_style), Paragraph(version, ParagraphStyle("ver", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_CRITICAL))])
+        rows.append([Paragraph("Confidence", cell_style), Paragraph(str(cms_result.get("confidence", 0)), cell_style)])
+        t = Table(rows, colWidths=[col_w * 0.4, col_w * 0.6])
+
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
+        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(t)
+    return story
+
+
+# ---------------------------------------------------------------------------
+# Section 12 — WAF Detection
+# ---------------------------------------------------------------------------
+def _build_waf_section(waf_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
+    story = []
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(Paragraph("12. WAF Detection", styles["section_title"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    col_w = page_w - 4 * cm
+
+    if skipped or not waf_result:
+        rows = [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné", cell_style)]]
+        t = Table(rows, colWidths=[col_w])
+    else:
+        detected = waf_result.get("detected", False)
+        det_style = ParagraphStyle("det", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_OK if detected else COLOR_WARNING)
+        rows = [
+            [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
+            [Paragraph("Statut", cell_style), Paragraph(waf_result.get("status", ""), ParagraphStyle("st", fontName="Helvetica-Bold", fontSize=10, textColor=_status_color(waf_result.get("status", "OK"))))],
+            [Paragraph("WAF détecté", cell_style), Paragraph("Oui" if detected else "Non", det_style)],
+        ]
+        if waf_result.get("waf_name"):
+            rows.append([Paragraph("Nom", cell_style), Paragraph(waf_result["waf_name"], ParagraphStyle("wn", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_OK))])
+        if waf_result.get("method"):
+            rows.append([Paragraph("Méthode détection", cell_style), Paragraph(waf_result["method"], cell_style)])
+        t = Table(rows, colWidths=[col_w * 0.4, col_w * 0.6])
+
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
+        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(t)
+    return story
+
+
+# ---------------------------------------------------------------------------
+# Section 13 — Data Breach
+# ---------------------------------------------------------------------------
+def _build_breach_section(breach_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
+    story = []
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(Paragraph("13. Data Breach (HIBP)", styles["section_title"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    col_w = page_w - 4 * cm
+
+    if skipped or not breach_result:
+        rows = [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné (utiliser --breach-email ou --breach-domain)", cell_style)]]
+        t = Table(rows, colWidths=[col_w])
+    elif breach_result.get("error") and breach_result.get("status") == "WARNING":
+        rows = [[Paragraph("Résultat", head_style)], [Paragraph(str(breach_result["error"]), cell_style)]]
+        t = Table(rows, colWidths=[col_w])
+    else:
+        total = breach_result.get("total", 0)
+        total_color = COLOR_OK if total == 0 else (COLOR_WARNING if breach_result.get("status") == "WARNING" else COLOR_CRITICAL)
+        rows = [
+            [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
+            [Paragraph("Statut", cell_style), Paragraph(breach_result.get("status", ""), ParagraphStyle("st", fontName="Helvetica-Bold", fontSize=10, textColor=_status_color(breach_result.get("status", "OK"))))],
+            [Paragraph("Cible", cell_style), Paragraph(breach_result.get("target", ""), cell_style)],
+            [Paragraph("Fuites trouvées", cell_style), Paragraph(str(total), ParagraphStyle("tc", fontName="Helvetica-Bold", fontSize=10, textColor=total_color))],
+        ]
+        for b in breach_result.get("breaches", []):
+            rows.append([Paragraph(b["name"], ParagraphStyle("bn", fontName="Helvetica-Bold", fontSize=9, textColor=COLOR_CRITICAL)),
+                         Paragraph(f"{b.get('breach_date','')} — {b.get('pwn_count',0):,} comptes", cell_style)])
+        t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
+
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
+        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(t)
+    return story
+
+
+# ---------------------------------------------------------------------------
+# Section 14 — Recommandations
 # ---------------------------------------------------------------------------
 def _build_recommendations(
     ssl_result: dict[str, Any],
@@ -739,7 +1118,7 @@ def _build_recommendations(
 ) -> list:
     story = []
     story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("6. Recommandations", styles["section_title"]))
+    story.append(Paragraph("14. Recommandations", styles["section_title"]))
     story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
 
     recommendations: list[tuple[str, str]] = []  # (priority, text)
@@ -846,6 +1225,22 @@ def generate_report(
     ports_skipped: bool = False,
     sca_result: dict[str, Any] | None = None,
     sca_skipped: bool = True,
+    email_result: dict[str, Any] | None = None,
+    email_skipped: bool = True,
+    cookie_result: dict[str, Any] | None = None,
+    cookie_skipped: bool = True,
+    cors_result: dict[str, Any] | None = None,
+    cors_skipped: bool = True,
+    ip_result: dict[str, Any] | None = None,
+    ip_skipped: bool = True,
+    dns_result: dict[str, Any] | None = None,
+    dns_skipped: bool = True,
+    cms_result: dict[str, Any] | None = None,
+    cms_skipped: bool = True,
+    waf_result: dict[str, Any] | None = None,
+    waf_skipped: bool = True,
+    breach_result: dict[str, Any] | None = None,
+    breach_skipped: bool = True,
 ) -> str:
     """
     Generate a professional PDF audit report.
@@ -891,6 +1286,22 @@ def generate_report(
         statuses["ports"] = port_result.get("status", "OK")
     if not sca_skipped and sca_result:
         statuses["sca"] = sca_result.get("status", "OK")
+    if not email_skipped and email_result:
+        statuses["email"] = email_result.get("status", "OK")
+    if not cookie_skipped and cookie_result:
+        statuses["cookies"] = cookie_result.get("status", "OK")
+    if not cors_skipped and cors_result:
+        statuses["cors"] = cors_result.get("status", "OK")
+    if not ip_skipped and ip_result:
+        statuses["ip_rep"] = ip_result.get("status", "OK")
+    if not dns_skipped and dns_result:
+        statuses["dns"] = dns_result.get("status", "OK")
+    if not cms_skipped and cms_result:
+        statuses["cms"] = cms_result.get("status", "OK")
+    if not waf_skipped and waf_result:
+        statuses["waf"] = waf_result.get("status", "OK")
+    if not breach_skipped and breach_result:
+        statuses["breach"] = breach_result.get("status", "OK")
 
     all_status_values = list(statuses.values())
     if "CRITICAL" in all_status_values:
@@ -910,6 +1321,14 @@ def generate_report(
     story += _build_headers_section(headers_result or {}, styles, usable_w + 4 * cm)
     story += _build_ports_section(port_result or {}, styles, usable_w + 4 * cm, skipped=ports_skipped)
     story += _build_sca_section(sca_result or {}, styles, usable_w + 4 * cm, skipped=sca_skipped)
+    story += _build_email_section(email_result or {}, styles, usable_w + 4 * cm, skipped=email_skipped)
+    story += _build_cookie_section(cookie_result or {}, styles, usable_w + 4 * cm, skipped=cookie_skipped)
+    story += _build_cors_section(cors_result or {}, styles, usable_w + 4 * cm, skipped=cors_skipped)
+    story += _build_ip_reputation_section(ip_result or {}, styles, usable_w + 4 * cm, skipped=ip_skipped)
+    story += _build_dns_section(dns_result or {}, styles, usable_w + 4 * cm, skipped=dns_skipped)
+    story += _build_cms_section(cms_result or {}, styles, usable_w + 4 * cm, skipped=cms_skipped)
+    story += _build_waf_section(waf_result or {}, styles, usable_w + 4 * cm, skipped=waf_skipped)
+    story += _build_breach_section(breach_result or {}, styles, usable_w + 4 * cm, skipped=breach_skipped)
     story += _build_recommendations(ssl_result or {}, headers_result or {}, port_result or {}, styles, usable_w + 4 * cm, ports_skipped=ports_skipped, sca_result=sca_result or {}, sca_skipped=sca_skipped)
 
     doc.build(story)
