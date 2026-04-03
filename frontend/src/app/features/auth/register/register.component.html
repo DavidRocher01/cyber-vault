@@ -62,7 +62,7 @@
             }
           </mat-form-field>
           <!-- Password strength -->
-          @if (form.get('password')?.value?.length > 0) {
+          @if ((form.get('password')?.value?.length ?? 0) > 0) {
             <div class="flex gap-1 mt-1 px-1">
               @for (i of [1,2,3,4]; track i) {
                 <div class="h-1 flex-1 rounded-full transition-colors"
