@@ -87,14 +87,14 @@
               </div>
             </div>
 
-            <ul class="flex flex-col gap-2 flex-1">
+            <div class="flex flex-col gap-2 flex-1" role="list">
               @for (f of getPlanFeatures(plan); track f) {
-                <li class="flex items-center gap-2 text-sm text-gray-300">
+                <div role="listitem" class="flex items-center gap-2 text-sm text-gray-300">
                   <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">check_circle</mat-icon>
                   <span>{{ f }}</span>
-                </li>
+                </div>
               }
-            </ul>
+            </div>
 
             <button mat-flat-button
                     type="button"
