@@ -28,6 +28,11 @@ from scanner.tls_auditor import audit_tls
 from scanner.subdomain_takeover import check_subdomain_takeover
 from scanner.threat_intel import get_threat_intel
 from scanner.http_methods import check_http_methods
+from scanner.open_redirect import check_open_redirect
+from scanner.clickjacking import check_clickjacking
+from scanner.directory_listing import check_directory_listing
+from scanner.robots_sitemap import analyse_robots_sitemap
+from scanner.jwt_checker import check_jwt
 
 console = Console()
 
@@ -544,6 +549,97 @@ def display_http_methods_results(methods_result: dict[str, Any]) -> str:
     return methods_result["status"]
 
 
+def display_open_redirect_results(r: dict[str, Any]) -> str:
+    console.print("[bold white]Open Redirect[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Property", style="dim", width=22)
+    table.add_column("Value")
+    table.add_row("Status", colorize_status(r["status"]))
+    table.add_row("Probes sent", str(r["tested"]))
+    vuln_c = "green" if not r["vulnerable"] else "red"
+    table.add_row("Vulnerable", f"[{vuln_c}]{'Oui' if r['vulnerable'] else 'Non'}[/{vuln_c}]")
+    for f in r["findings"]:
+        table.add_row(f"[red]{f['param']}[/red]", f"payload: {f['payload']} → {f['location']}")
+    console.print(table)
+    console.print()
+    return r["status"]
+
+
+def display_clickjacking_results(r: dict[str, Any]) -> str:
+    console.print("[bold white]Clickjacking[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Property", style="dim", width=22)
+    table.add_column("Value")
+    if r.get("error") and not r.get("xfo"):
+        table.add_row("Status", colorize_status("CRITICAL"))
+        table.add_row("Error", f"[red]{r['error']}[/red]")
+    else:
+        table.add_row("Status", colorize_status(r["status"]))
+        xfo = r["xfo"]
+        table.add_row("X-Frame-Options", f"[green]{xfo['value']}[/green]" if xfo.get("protected") else f"[red]{xfo.get('value') or 'Absent'}[/red]")
+        csp = r["csp_frame_ancestors"]
+        table.add_row("CSP frame-ancestors", f"[green]{csp['value']}[/green]" if csp.get("protected") else f"[red]{csp.get('value') or 'Absent'}[/red]")
+        table.add_row("Vulnerable", "[red]Oui[/red]" if r["vulnerable"] else "[green]Non[/green]")
+    console.print(table)
+    console.print()
+    return r["status"]
+
+
+def display_directory_listing_results(r: dict[str, Any]) -> str:
+    console.print("[bold white]Directory Listing & Sensitive Paths[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Property", style="dim", width=22)
+    table.add_column("Value")
+    table.add_row("Status", colorize_status(r["status"]))
+    table.add_row("Critical findings", f"[{'red' if r['total_critical'] else 'green'}]{r['total_critical']}[/{'red' if r['total_critical'] else 'green'}]")
+    table.add_row("Warning findings",  f"[{'yellow' if r['total_warning'] else 'green'}]{r['total_warning']}[/{'yellow' if r['total_warning'] else 'green'}]")
+    for f in r["findings"]:
+        sev_c = "red" if f["severity"] == "CRITICAL" else "yellow"
+        table.add_row(f"[{sev_c}]{f['path']}[/{sev_c}]", f"{f['category']} — HTTP {f['status_code']}")
+    console.print(table)
+    console.print()
+    return r["status"]
+
+
+def display_robots_results(r: dict[str, Any]) -> str:
+    console.print("[bold white]Robots.txt & Sitemap[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Property", style="dim", width=22)
+    table.add_column("Value")
+    table.add_row("Status", colorize_status(r["status"]))
+    table.add_row("robots.txt", "[green]Trouvé[/green]" if r["robots_found"] else "[dim]Absent[/dim]")
+    table.add_row("Disallow entries", str(len(r["disallowed_paths"])))
+    sensitive = r["sensitive_disallowed"]
+    if sensitive:
+        table.add_row("[yellow]Chemins sensibles[/yellow]", "\n".join(sensitive[:5]))
+    table.add_row("Sitemap", "[green]Trouvé[/green]" if r["sitemap_found"] else "[dim]Absent[/dim]")
+    if r["sitemap_found"]:
+        table.add_row("URLs sitemap", str(r["sitemap_url_count"]))
+    console.print(table)
+    console.print()
+    return r["status"]
+
+
+def display_jwt_results(r: dict[str, Any]) -> str:
+    console.print("[bold white]JWT Security[/bold white]")
+    table = Table(box=box.ROUNDED, show_header=True, header_style="bold magenta")
+    table.add_column("Property", style="dim", width=22)
+    table.add_column("Value")
+    if r.get("error") and r["status"] == "CRITICAL" and r["tokens_found"] == 0:
+        table.add_row("Status", colorize_status("CRITICAL"))
+        table.add_row("Error", f"[red]{r['error']}[/red]")
+    else:
+        table.add_row("Status", colorize_status(r["status"]))
+        table.add_row("Tokens détectés", str(r["tokens_found"]))
+        for a in r["analyses"]:
+            sev_c = "red" if a["severity"] == "CRITICAL" else ("yellow" if a["severity"] == "WARNING" else "green")
+            issues_str = ", ".join(a["issues"]) if a["issues"] else "OK"
+            table.add_row(f"[{sev_c}]{a['token'][:40]}…[/{sev_c}]", issues_str)
+    console.print(table)
+    console.print()
+    return r["status"]
+
+
 def display_summary(url: str, statuses: list[str]) -> None:
     overall = get_overall_status(statuses)
     color = STATUS_COLORS.get(overall, "white")
@@ -626,7 +722,12 @@ def main() -> None:
     parser.add_argument("--skip-takeover",  action="store_true", help="Skip subdomain takeover check")
     parser.add_argument("--skip-threat",    action="store_true", help="Skip threat intelligence (Shodan)")
     parser.add_argument("--skip-methods",   action="store_true", help="Skip HTTP methods check")
-    parser.add_argument("--abuseipdb-key",  metavar="KEY",    help="AbuseIPDB API key (optional, for threat intel)")
+    parser.add_argument("--abuseipdb-key",    metavar="KEY",  help="AbuseIPDB API key (optional, for threat intel)")
+    parser.add_argument("--skip-redirects",   action="store_true", help="Skip open redirect check")
+    parser.add_argument("--skip-clickjacking",action="store_true", help="Skip clickjacking check")
+    parser.add_argument("--skip-dirlist",     action="store_true", help="Skip directory listing check")
+    parser.add_argument("--skip-robots",      action="store_true", help="Skip robots.txt / sitemap analysis")
+    parser.add_argument("--skip-jwt",         action="store_true", help="Skip JWT security check")
     args = parser.parse_args()
 
     url: str = args.url
@@ -801,6 +902,51 @@ def main() -> None:
         methods_result = check_http_methods(url)
         statuses.append(display_http_methods_results(methods_result))
 
+    # --- Open Redirect ---
+    redirect_result: dict[str, Any] = {}
+    if args.skip_redirects:
+        console.print("[dim]Open redirect skipped (--skip-redirects).[/dim]\n")
+    else:
+        console.print("[dim]Running open redirect check...[/dim]")
+        redirect_result = check_open_redirect(url)
+        statuses.append(display_open_redirect_results(redirect_result))
+
+    # --- Clickjacking ---
+    clickjacking_result: dict[str, Any] = {}
+    if args.skip_clickjacking:
+        console.print("[dim]Clickjacking check skipped (--skip-clickjacking).[/dim]\n")
+    else:
+        console.print("[dim]Running clickjacking check...[/dim]")
+        clickjacking_result = check_clickjacking(url)
+        statuses.append(display_clickjacking_results(clickjacking_result))
+
+    # --- Directory Listing ---
+    dirlist_result: dict[str, Any] = {}
+    if args.skip_dirlist:
+        console.print("[dim]Directory listing skipped (--skip-dirlist).[/dim]\n")
+    else:
+        console.print("[dim]Running directory listing & sensitive path check...[/dim]")
+        dirlist_result = check_directory_listing(url)
+        statuses.append(display_directory_listing_results(dirlist_result))
+
+    # --- Robots / Sitemap ---
+    robots_result: dict[str, Any] = {}
+    if args.skip_robots:
+        console.print("[dim]Robots/sitemap skipped (--skip-robots).[/dim]\n")
+    else:
+        console.print("[dim]Running robots.txt & sitemap analysis...[/dim]")
+        robots_result = analyse_robots_sitemap(url)
+        statuses.append(display_robots_results(robots_result))
+
+    # --- JWT ---
+    jwt_result: dict[str, Any] = {}
+    if args.skip_jwt:
+        console.print("[dim]JWT check skipped (--skip-jwt).[/dim]\n")
+    else:
+        console.print("[dim]Running JWT security check...[/dim]")
+        jwt_result = check_jwt(url)
+        statuses.append(display_jwt_results(jwt_result))
+
     # --- Secrets Detection ---
     secrets_result: dict[str, Any] = {}
     if args.secrets:
@@ -852,6 +998,16 @@ def main() -> None:
             ti_skipped=args.skip_threat,
             methods_result=methods_result,
             methods_skipped=args.skip_methods,
+            redirect_result=redirect_result,
+            redirect_skipped=args.skip_redirects,
+            clickjacking_result=clickjacking_result,
+            clickjacking_skipped=args.skip_clickjacking,
+            dirlist_result=dirlist_result,
+            dirlist_skipped=args.skip_dirlist,
+            robots_result=robots_result,
+            robots_skipped=args.skip_robots,
+            jwt_result=jwt_result,
+            jwt_skipped=args.skip_jwt,
         )
         console.print(
             Panel.fit(
