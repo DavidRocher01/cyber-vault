@@ -104,6 +104,63 @@
     </div>
   </section>
 
+  <!-- Audits ponctuels -->
+  <section id="audits" class="px-8 py-20 border-t border-gray-800">
+    <h2 class="text-3xl font-bold text-center mb-3">Audits à la demande</h2>
+    <p class="text-gray-400 text-center mb-12">Des diagnostics complets, réalisés par un expert, avec rapport détaillé et plan d'action</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+      @for (offer of auditOffers; track offer.name) {
+        <div class="relative rounded-2xl border p-8 flex flex-col gap-5 transition-all"
+             [class.border-cyan-500]="offer.featured"
+             [class.border-gray-700]="!offer.featured"
+             [class.scale-105]="offer.featured"
+             [class.bg-gray-800]="!offer.featured"
+             [class.bg-gray-800\/80]="offer.featured">
+
+          @if (offer.badge) {
+            <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-500 text-gray-900 text-xs font-bold px-3 py-1 rounded-full">
+              {{ offer.badge }}
+            </div>
+          }
+
+          <div class="flex items-center gap-3">
+            <mat-icon class="text-cyan-400 !text-[1.5rem] !w-[1.5rem] !h-[1.5rem]">{{ offer.icon }}</mat-icon>
+            <h3 class="text-xl font-bold">{{ offer.name }}</h3>
+          </div>
+
+          <div>
+            <div class="flex items-end gap-2 mb-1">
+              <span class="text-4xl font-extrabold text-cyan-400">{{ offer.price }}</span>
+              <span class="text-gray-400 mb-1">HT</span>
+            </div>
+            <p class="text-xs text-gray-500">{{ offer.duration }} de travail · {{ offer.target }}</p>
+          </div>
+
+          <div class="flex flex-col gap-2 flex-1" role="list">
+            @for (item of offer.items; track item) {
+              <div role="listitem" class="flex items-start gap-2 text-sm text-gray-300">
+                <mat-icon class="text-cyan-400 !text-[1rem] !w-[1rem] !h-[1rem] mt-0.5 flex-shrink-0">check_circle</mat-icon>
+                <span>{{ item }}</span>
+              </div>
+            }
+          </div>
+
+          <a href="mailto:contact@cyberscan.fr?subject=Demande audit {{ offer.name }}"
+             mat-flat-button
+             [color]="offer.featured ? 'primary' : undefined"
+             [class.bg-gray-700]="!offer.featured"
+             [class.text-white]="!offer.featured"
+             class="w-full py-3 rounded-lg font-semibold text-center">
+            Demander un devis
+          </a>
+        </div>
+      }
+    </div>
+    <p class="text-center text-gray-500 text-sm mt-8">
+      Tarifs indicatifs HT. Devis gratuit sous 24h. Audit réalisé à distance ou sur site.
+    </p>
+  </section>
+
   <!-- Pricing -->
   <section id="pricing" class="px-8 py-20 bg-gray-800/30">
     <h2 class="text-3xl font-bold text-center mb-4">Tarifs simples et transparents</h2>
@@ -216,6 +273,31 @@
     </div>
   </section>
 
+  <!-- Newsletter -->
+  <section class="px-8 py-16 bg-gray-800/50 border-t border-gray-800">
+    <div class="max-w-3xl mx-auto text-center">
+      <div class="inline-flex items-center gap-2 bg-cyan-900/30 text-cyan-400 px-3 py-1 rounded-full text-xs font-medium border border-cyan-800 mb-5">
+        Bientôt disponible
+      </div>
+      <h2 class="text-3xl font-bold mb-3">Le Radar Cyber</h2>
+      <p class="text-gray-400 mb-10 max-w-xl mx-auto">
+        Le brief hebdomadaire pour comprendre les menaces mondiales et protéger votre entreprise — en 5 minutes de lecture.
+      </p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-left mb-10">
+        @for (item of newsletterItems; track item.title) {
+          <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+            <mat-icon class="text-cyan-400 mb-3 !text-[1.5rem] !w-[1.5rem] !h-[1.5rem]">{{ item.icon }}</mat-icon>
+            <h3 class="font-semibold text-sm mb-1">{{ item.title }}</h3>
+            <p class="text-gray-400 text-xs leading-relaxed">{{ item.desc }}</p>
+          </div>
+        }
+      </div>
+      <button type="button" mat-flat-button color="primary" disabled class="opacity-50 px-8 py-3">
+        S'abonner — Prochainement
+      </button>
+    </div>
+  </section>
+
   <!-- FAQ -->
   <section class="px-8 py-16">
     <h2 class="text-3xl font-bold text-center mb-12">Questions fréquentes</h2>
@@ -241,9 +323,36 @@
   </section>
 
   <!-- Footer -->
-  <footer class="border-t border-gray-800 px-8 py-8 text-center text-gray-500 text-sm">
-    <p>© 2025 CyberScan. Tous droits réservés.</p>
-    <p class="mt-1">Les scans sont réalisés de manière non intrusive sur vos propres domaines.</p>
+  <footer class="border-t border-gray-800 px-8 py-10 text-gray-500 text-sm">
+    <div class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+      <div>
+        <div class="flex items-center gap-2 mb-3">
+          <mat-icon class="text-cyan-400">shield</mat-icon>
+          <span class="font-bold text-cyan-400">CyberScan</span>
+        </div>
+        <p class="text-xs leading-relaxed">Audit de sécurité web automatisé. Les scans sont réalisés de manière non intrusive sur vos propres domaines.</p>
+      </div>
+      <div>
+        <p class="font-semibold text-gray-400 mb-3">Ressources</p>
+        <div class="flex flex-col gap-2 text-xs">
+          <a routerLink="/cyberscan/ressources" class="hover:text-cyan-400 transition-colors">Liens & Outils utiles</a>
+          <a routerLink="/cyberscan/bonnes-pratiques" class="hover:text-cyan-400 transition-colors">Bonnes pratiques</a>
+          <a href="#audits" class="hover:text-cyan-400 transition-colors">Offres d'audit</a>
+          <a href="#pricing" class="hover:text-cyan-400 transition-colors">Abonnements</a>
+        </div>
+      </div>
+      <div>
+        <p class="font-semibold text-gray-400 mb-3">Compte</p>
+        <div class="flex flex-col gap-2 text-xs">
+          <a routerLink="/auth/login" class="hover:text-cyan-400 transition-colors">Connexion</a>
+          <a routerLink="/auth/register" class="hover:text-cyan-400 transition-colors">Créer un compte</a>
+          <a routerLink="/cyberscan/dashboard" class="hover:text-cyan-400 transition-colors">Dashboard</a>
+        </div>
+      </div>
+    </div>
+    <div class="border-t border-gray-800 pt-6 text-center text-xs">
+      © 2025 CyberScan. Tous droits réservés.
+    </div>
   </footer>
 
 </div>

@@ -107,6 +107,65 @@ export class LandingComponent implements OnInit {
     },
   ];
 
+  auditOffers = [
+    {
+      icon: 'flash_on',
+      name: 'Flash',
+      target: 'Sites vitrines, blogs, indépendants',
+      price: '490 €',
+      duration: '0,5 jour',
+      badge: '',
+      featured: false,
+      items: [
+        'Scan de vulnérabilités externes (OWASP ZAP)',
+        'Analyse SSL/TLS (SSL Labs)',
+        'Vérification des headers HTTP',
+        'Scan de ports (Nmap)',
+        'Rapport synthétique 3-5 pages (score A→F)',
+      ],
+    },
+    {
+      icon: 'code',
+      name: 'App-Check',
+      target: 'Startups, SaaS, applications métiers',
+      price: '1 450 €',
+      duration: '1,5 jours',
+      badge: 'Recommandé',
+      featured: true,
+      items: [
+        'Tout l\'audit Flash inclus',
+        'Audit de code statique (SAST)',
+        'Scan de dépendances (SCA) — package.json & requirements.txt',
+        'Recherche de secrets dans le code',
+        'Audit des droits PostgreSQL',
+        'Rapport détaillé 10-15 pages + plan d\'action',
+      ],
+    },
+    {
+      icon: 'security',
+      name: 'Pentest Léger',
+      target: 'E-commerce, santé, finance, données sensibles',
+      price: '3 800 €',
+      duration: '4 jours',
+      badge: 'Haut de gamme',
+      featured: false,
+      items: [
+        'Tout l\'audit App-Check inclus',
+        'Tests d\'intrusion manuels (SQLi, JWT, auth bypass)',
+        'Test de logique métier (IDOR, escalade de privilèges)',
+        'Audit configuration Cloud (AWS / Azure / OVH)',
+        'Rapport complet avec preuves d\'exploitation',
+        'Recommandations de code précises',
+      ],
+    },
+  ];
+
+  newsletterItems = [
+    { icon: 'public', title: 'Flash International', desc: 'Une cyberattaque majeure décryptée chaque semaine avec le risque local estimé' },
+    { icon: 'lightbulb', title: 'Le Bon Réflexe', desc: 'Une pratique simple en 2 minutes qui bloque 80% des attaques basiques' },
+    { icon: 'gavel', title: 'Coin des Dirigeants', desc: 'Réglementation française, lois et conseils pour sensibiliser vos équipes' },
+  ];
+
   comparisonRows = [
     { label: 'Sites surveillés', starter: '1', pro: '3', business: '10' },
     { label: 'Fréquence des scans', starter: 'Mensuel', pro: 'Mensuel', business: 'Hebdomadaire' },
