@@ -69,9 +69,8 @@
           <div class="relative rounded-2xl border p-8 flex flex-col gap-6 transition-all"
                [class.border-cyan-500]="plan.name === 'pro'"
                [class.border-gray-700]="plan.name !== 'pro'"
-               [class.bg-gray-800]="plan.name !== 'pro'"
-               [class.bg-gray-800/80]="plan.name === 'pro'"
-               [class.scale-105]="plan.name === 'pro'">
+               [class.scale-105]="plan.name === 'pro'"
+               [ngClass]="plan.name === 'pro' ? 'bg-gray-800/80' : 'bg-gray-800'">
 
             @if (getPlanBadge(plan)) {
               <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-500 text-gray-900 text-xs font-bold px-3 py-1 rounded-full">
