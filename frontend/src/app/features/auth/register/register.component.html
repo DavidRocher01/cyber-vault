@@ -1,30 +1,120 @@
-<div class="flex min-h-screen items-center justify-center bg-gray-900">
-  <mat-card class="w-full max-w-md p-6">
-    <mat-card-title class="mb-6 text-center text-2xl font-bold">Créer un compte</mat-card-title>
+<div class="flex min-h-screen bg-gray-900 text-white">
 
-    <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
-      <mat-form-field appearance="outline">
-        <mat-label>Email</mat-label>
-        <input matInput type="email" formControlName="email" autocomplete="email" title="Email" placeholder="exemple@email.com" />
-      </mat-form-field>
+  <!-- Left panel — branding -->
+  <div class="hidden lg:flex flex-col justify-between w-1/2 bg-gray-800/60 border-r border-gray-700 px-16 py-12">
+    <a routerLink="/cyberscan" class="flex items-center gap-2">
+      <mat-icon class="text-cyan-400 !text-[1.8rem] !w-[1.8rem] !h-[1.8rem]">shield</mat-icon>
+      <span class="text-2xl font-bold text-cyan-400">CyberScan</span>
+    </a>
+    <div>
+      <h2 class="text-3xl font-bold mb-4 leading-snug">
+        Votre premier scan en<br /><span class="text-cyan-400">moins de 2 minutes</span>
+      </h2>
+      <div class="flex flex-col gap-4 mt-8">
+        @for (item of benefits; track item.icon) {
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-cyan-900/50 border border-cyan-700 flex items-center justify-center flex-shrink-0">
+              <mat-icon class="text-cyan-400 !text-[1rem] !w-[1rem] !h-[1rem]">{{ item.icon }}</mat-icon>
+            </div>
+            <span class="text-gray-300 text-sm">{{ item.text }}</span>
+          </div>
+        }
+      </div>
+    </div>
+    <p class="text-gray-600 text-xs">© 2025 CyberScan. Scans non intrusifs sur vos propres domaines.</p>
+  </div>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Mot de passe</mat-label>
-        <input matInput type="password" formControlName="password" autocomplete="new-password" title="Mot de passe" placeholder="••••••••" />
-        <mat-hint>Minimum 8 caractères</mat-hint>
-      </mat-form-field>
+  <!-- Right panel — form -->
+  <div class="flex flex-col justify-center items-center flex-1 px-6 py-12">
+    <div class="w-full max-w-md">
 
-      @if (error) {
-        <p class="text-sm text-red-500">{{ error }}</p>
-      }
+      <!-- Logo mobile -->
+      <a routerLink="/cyberscan" class="flex items-center gap-2 mb-8 lg:hidden">
+        <mat-icon class="text-cyan-400">shield</mat-icon>
+        <span class="text-xl font-bold text-cyan-400">CyberScan</span>
+      </a>
 
-      <button mat-flat-button color="primary" type="submit" [disabled]="loading">
-        {{ loading ? 'Inscription...' : "S'inscrire" }}
-      </button>
-    </form>
+      <h1 class="text-2xl font-bold mb-1">Créer un compte</h1>
+      <p class="text-gray-400 text-sm mb-8">Pas de carte bancaire requise</p>
 
-    <p class="mt-4 text-center text-sm">
-      Déjà un compte ? <a routerLink="/auth/login" class="text-blue-400 hover:underline">Se connecter</a>
-    </p>
-  </mat-card>
+      <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-5">
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Email</mat-label>
+          <input matInput type="email" formControlName="email"
+                 autocomplete="email" placeholder="vous@exemple.com" />
+          <mat-icon matSuffix class="text-gray-500">mail</mat-icon>
+          @if (form.get('email')?.invalid && form.get('email')?.touched) {
+            <mat-error>Adresse email invalide</mat-error>
+          }
+        </mat-form-field>
+
+        <div>
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Mot de passe</mat-label>
+            <input matInput [type]="showPassword ? 'text' : 'password'"
+                   formControlName="password" autocomplete="new-password" placeholder="••••••••" />
+            <button type="button" mat-icon-button matSuffix (click)="showPassword = !showPassword" class="text-gray-400">
+              <mat-icon>{{ showPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            @if (form.get('password')?.invalid && form.get('password')?.touched) {
+              <mat-error>Minimum 8 caractères</mat-error>
+            }
+          </mat-form-field>
+          <!-- Password strength -->
+          @if (form.get('password')?.value?.length > 0) {
+            <div class="flex gap-1 mt-1 px-1">
+              @for (i of [1,2,3,4]; track i) {
+                <div class="h-1 flex-1 rounded-full transition-colors"
+                     [class.bg-red-500]="passwordStrength < 2 && i <= passwordStrength"
+                     [class.bg-yellow-500]="passwordStrength === 2 && i <= passwordStrength"
+                     [class.bg-green-500]="passwordStrength >= 3 && i <= passwordStrength"
+                     [class.bg-gray-700]="i > passwordStrength"></div>
+              }
+            </div>
+            <p class="text-xs mt-1 px-1"
+               [class.text-red-400]="passwordStrength < 2"
+               [class.text-yellow-400]="passwordStrength === 2"
+               [class.text-green-400]="passwordStrength >= 3">
+              {{ strengthLabel }}
+            </p>
+          }
+        </div>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Confirmer le mot de passe</mat-label>
+          <input matInput [type]="showPassword ? 'text' : 'password'"
+                 formControlName="confirmPassword" autocomplete="new-password" placeholder="••••••••" />
+          @if (form.get('confirmPassword')?.touched && form.hasError('mismatch')) {
+            <mat-error>Les mots de passe ne correspondent pas</mat-error>
+          }
+        </mat-form-field>
+
+        @if (error) {
+          <div class="flex items-center gap-2 bg-red-900/30 border border-red-700 rounded-lg px-4 py-3 text-sm text-red-400">
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">error_outline</mat-icon>
+            {{ error }}
+          </div>
+        }
+
+        <button mat-flat-button color="primary" type="submit"
+                [disabled]="loading || form.invalid"
+                class="w-full py-3 text-base font-semibold">
+          @if (loading) {
+            <mat-spinner diameter="20" class="mx-auto"></mat-spinner>
+          } @else {
+            Créer mon compte
+          }
+        </button>
+
+      </form>
+
+      <p class="mt-6 text-center text-sm text-gray-400">
+        Déjà un compte ?
+        <a routerLink="/auth/login" class="text-cyan-400 hover:text-cyan-300 font-medium transition-colors">Se connecter</a>
+      </p>
+
+    </div>
+  </div>
+
 </div>
