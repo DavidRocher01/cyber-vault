@@ -26,3 +26,21 @@ html.light-mode .text-gray-400 { color: #475569 !important; }
 html.light-mode .text-gray-300 { color: #334155 !important; }
 html.light-mode .text-gray-500 { color: #64748b !important; }
 html.light-mode .text-white { color: #0f172a !important; }
+
+/* FAQ — Material expansion panels dark mode */
+mat-expansion-panel.!bg-gray-800 {
+  background-color: #1f2937 !important; /* gray-800 */
+  color: #f9fafb !important;
+}
+mat-expansion-panel.!bg-gray-800 .mat-expansion-panel-header {
+  background-color: #1f2937 !important;
+}
+mat-expansion-panel.!bg-gray-800 .mat-expansion-panel-header:hover {
+  background-color: #374151 !important; /* gray-700 */
+}
+mat-expansion-panel.!bg-gray-800 .mat-expansion-indicator::after {
+  color: #22d3ee !important; /* cyan-400 */
+}
+mat-expansion-panel.!bg-gray-800.mat-expanded {
+  border-left: 3px solid #22d3ee !important; /* cyan-400 */
+}

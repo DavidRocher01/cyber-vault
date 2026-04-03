@@ -42,9 +42,9 @@ export class LandingComponent implements OnInit {
   checkoutLoading: number | null = null;
 
   counters = [
-    { label: 'sites scannés', target: 500, current: signal(0), suffix: '+' },
-    { label: 'vulnérabilités détectées', target: 12000, current: signal(0), suffix: '+' },
-    { label: 'disponibilité', target: 99, current: signal(0), suffix: '%' },
+    { label: 'sites scannés', icon: 'language', target: 500, current: signal(0), suffix: '+' },
+    { label: 'vulnérabilités détectées', icon: 'bug_report', target: 12000, current: signal(0), suffix: '+' },
+    { label: 'disponibilité', icon: 'verified', target: 99, current: signal(0), suffix: '%' },
   ];
 
   features = [
