@@ -9,6 +9,10 @@ from app.core.database import Base
 import app.models.user  # noqa: F401
 import app.models.vault_item  # noqa: F401
 import app.models.refresh_token  # noqa: F401
+import app.models.plan  # noqa: F401
+import app.models.subscription  # noqa: F401
+import app.models.site  # noqa: F401
+import app.models.scan  # noqa: F401
 
 config = context.config
 

@@ -1,0 +1,125 @@
+<div class="min-h-screen bg-gray-900 text-white">
+
+  <!-- Navbar -->
+  <nav class="flex items-center justify-between px-8 py-4 border-b border-gray-800">
+    <div class="flex items-center gap-2">
+      <mat-icon class="text-cyan-400">shield</mat-icon>
+      <span class="text-xl font-bold text-cyan-400">CyberScan</span>
+    </div>
+    <div class="flex items-center gap-4">
+      @if (isLoggedIn) {
+        <a routerLink="/cyberscan/dashboard" mat-button class="text-gray-300">Dashboard</a>
+      } @else {
+        <a routerLink="/auth/login" mat-button class="text-gray-300">Connexion</a>
+        <a routerLink="/auth/register" mat-flat-button color="primary">S'inscrire</a>
+      }
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="flex flex-col items-center text-center px-8 py-24 gap-6">
+    <div class="inline-flex items-center gap-2 bg-cyan-900/40 text-cyan-400 px-4 py-1 rounded-full text-sm font-medium border border-cyan-700">
+      <mat-icon class="text-sm">verified_user</mat-icon>
+      Audit de sécurité automatisé
+    </div>
+    <h1 class="text-5xl font-extrabold leading-tight max-w-3xl">
+      Scannez votre site web,<br />
+      <span class="text-cyan-400">protégez votre réputation</span>
+    </h1>
+    <p class="text-gray-400 text-xl max-w-2xl">
+      CyberScan surveille en continu vos sites web : vulnérabilités SSL, headers HTTP,
+      threat intelligence, fuites de données et bien plus — avec rapport PDF complet.
+    </p>
+    <div class="flex gap-4 mt-4">
+      <a routerLink="/auth/register" mat-flat-button color="primary" class="text-lg px-8 py-3">
+        Commencer gratuitement
+      </a>
+      <a href="#pricing" mat-stroked-button class="text-lg px-8 py-3 border-gray-600 text-gray-300">
+        Voir les tarifs
+      </a>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="px-8 py-16 bg-gray-800/50">
+    <h2 class="text-3xl font-bold text-center mb-12">Ce que nous analysons</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+      @for (feature of features; track feature.title) {
+        <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 hover:border-cyan-700 transition-colors">
+          <mat-icon class="text-cyan-400 mb-3 !text-[2rem] !w-[2rem] !h-[2rem]">{{ feature.icon }}</mat-icon>
+          <h3 class="text-lg font-semibold mb-2">{{ feature.title }}</h3>
+          <p class="text-gray-400 text-sm">{{ feature.desc }}</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section id="pricing" class="px-8 py-20">
+    <h2 class="text-3xl font-bold text-center mb-4">Tarifs simples et transparents</h2>
+    <p class="text-gray-400 text-center mb-12">Choisissez le plan adapté à vos besoins</p>
+
+    @if (loading) {
+      <div class="flex justify-center">
+        <mat-spinner diameter="48"></mat-spinner>
+      </div>
+    } @else {
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        @for (plan of plans; track plan.id) {
+          <div class="relative rounded-2xl border p-8 flex flex-col gap-6 transition-all"
+               [class.border-cyan-500]="plan.name === 'pro'"
+               [class.border-gray-700]="plan.name !== 'pro'"
+               [class.bg-gray-800]="plan.name !== 'pro'"
+               [class.bg-gray-800/80]="plan.name === 'pro'"
+               [class.scale-105]="plan.name === 'pro'">
+
+            @if (getPlanBadge(plan)) {
+              <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-500 text-gray-900 text-xs font-bold px-3 py-1 rounded-full">
+                {{ getPlanBadge(plan) }}
+              </div>
+            }
+
+            <div>
+              <h3 class="text-xl font-bold mb-1">{{ plan.display_name }}</h3>
+              <div class="flex items-end gap-1">
+                <span class="text-4xl font-extrabold text-cyan-400">{{ formatPrice(plan.price_eur) }}</span>
+                <span class="text-gray-400 mb-1">/mois</span>
+              </div>
+            </div>
+
+            <ul class="flex flex-col gap-2 flex-1">
+              @for (f of getPlanFeatures(plan); track f) {
+                <li class="flex items-center gap-2 text-sm text-gray-300">
+                  <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">check_circle</mat-icon>
+                  <span>{{ f }}</span>
+                </li>
+              }
+            </ul>
+
+            <button mat-flat-button
+                    type="button"
+                    [color]="plan.name === 'pro' ? 'primary' : undefined"
+                    [class.bg-gray-700]="plan.name !== 'pro'"
+                    [class.text-white]="plan.name !== 'pro'"
+                    [disabled]="checkoutLoading === plan.id"
+                    (click)="subscribe(plan)"
+                    class="w-full py-3 rounded-lg font-semibold">
+              @if (checkoutLoading === plan.id) {
+                <mat-spinner diameter="20" class="mx-auto"></mat-spinner>
+              } @else {
+                Choisir {{ plan.display_name }}
+              }
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-gray-800 px-8 py-8 text-center text-gray-500 text-sm">
+    <p>© 2025 CyberScan. Tous droits réservés.</p>
+    <p class="mt-1">Les scans sont réalisés de manière non intrusive sur vos propres domaines.</p>
+  </footer>
+
+</div>
