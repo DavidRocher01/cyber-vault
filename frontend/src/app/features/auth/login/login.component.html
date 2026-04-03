@@ -5,12 +5,12 @@
     <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
       <mat-form-field appearance="outline">
         <mat-label>Email</mat-label>
-        <input matInput type="email" formControlName="email" autocomplete="email" />
+        <input matInput type="email" formControlName="email" autocomplete="email" title="Email" placeholder="exemple@email.com" />
       </mat-form-field>
 
       <mat-form-field appearance="outline">
         <mat-label>Mot de passe</mat-label>
-        <input matInput type="password" formControlName="password" autocomplete="current-password" />
+        <input matInput type="password" formControlName="password" autocomplete="current-password" title="Mot de passe" placeholder="••••••••" />
       </mat-form-field>
 
       @if (error$ | async; as error) {

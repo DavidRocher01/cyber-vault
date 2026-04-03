@@ -1,0 +1,256 @@
+<div class="min-h-screen bg-gray-900 text-white">
+
+  <!-- Navbar -->
+  <nav class="flex items-center justify-between px-8 py-4 border-b border-gray-800">
+    <div class="flex items-center gap-2">
+      <mat-icon class="text-cyan-400">shield</mat-icon>
+      <span class="text-xl font-bold text-cyan-400">CyberScan</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <a routerLink="/cyberscan" mat-button class="text-gray-400">{{ i18n.t('nav.home') }}</a>
+      <a routerLink="/cyberscan/profile" mat-button class="text-gray-400">
+        <mat-icon class="mr-1">person</mat-icon>{{ i18n.t('nav.profile') }}
+      </a>
+      <a routerLink="/auth/login" mat-button class="text-gray-400">{{ i18n.t('nav.logout') }}</a>
+    </div>
+  </nav>
+
+  <div class="max-w-6xl mx-auto px-6 py-10">
+
+    <!-- Subscription Banner — skeleton -->
+    @if (loading()) {
+      <div class="mb-8 flex flex-col gap-3">
+        <app-skeleton height="5rem" cssClass="rounded-xl"></app-skeleton>
+      </div>
+    }
+
+    <!-- Subscription Banner -->
+    @if (!loading()) {
+      @if (subscription(); as sub) {
+        <div class="flex items-center justify-between bg-gray-800 border border-gray-700 rounded-xl px-6 py-4 mb-8 flex-wrap gap-4">
+          <div class="flex items-center gap-3">
+            <mat-icon class="text-cyan-400">workspace_premium</mat-icon>
+            <div>
+              <p class="font-semibold">Plan <span class="text-cyan-400">{{ sub.plan.display_name }}</span></p>
+              <p class="text-sm text-gray-400">
+                {{ sites().length }} / {{ sub.plan.max_sites }} site{{ sub.plan.max_sites > 1 ? 's' : '' }} —
+                Scan tous les {{ sub.plan.scan_interval_days }} jours
+              </p>
+            </div>
+          </div>
+          <button mat-stroked-button type="button" (click)="openBillingPortal()" class="border-gray-600 text-gray-300">
+            <mat-icon class="mr-1">manage_accounts</mat-icon>
+            {{ i18n.t('plan.manage') }}
+          </button>
+        </div>
+      } @else {
+        <div class="flex items-center justify-between bg-yellow-900/30 border border-yellow-700 rounded-xl px-6 py-4 mb-8">
+          <div class="flex items-center gap-3">
+            <mat-icon class="text-yellow-400">warning</mat-icon>
+            <p class="text-yellow-300">Aucun abonnement actif. Choisissez un plan pour commencer à scanner.</p>
+          </div>
+          <a routerLink="/cyberscan" mat-flat-button color="primary">Voir les plans</a>
+        </div>
+      }
+    }
+
+    <!-- Sites Header -->
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-4">
+      <h2 class="text-2xl font-bold">{{ i18n.t('dashboard.sites') }}</h2>
+      <div class="flex items-center gap-3 flex-wrap">
+        <!-- Filter -->
+        <div class="flex items-center gap-1 bg-gray-800 border border-gray-700 rounded-lg p-1 text-sm">
+          <button type="button" (click)="scanFilter.set('all')" class="px-3 py-1 rounded-md transition-colors"
+                  [class.bg-cyan-600]="scanFilter() === 'all'" [class.text-white]="scanFilter() === 'all'"
+                  [class.text-gray-400]="scanFilter() !== 'all'">{{ i18n.t('scan.all') }}</button>
+          <button type="button" (click)="scanFilter.set('done')" class="px-3 py-1 rounded-md transition-colors"
+                  [class.bg-cyan-600]="scanFilter() === 'done'" [class.text-white]="scanFilter() === 'done'"
+                  [class.text-gray-400]="scanFilter() !== 'done'">{{ i18n.t('scan.done') }}</button>
+          <button type="button" (click)="scanFilter.set('running')" class="px-3 py-1 rounded-md transition-colors"
+                  [class.bg-cyan-600]="scanFilter() === 'running'" [class.text-white]="scanFilter() === 'running'"
+                  [class.text-gray-400]="scanFilter() !== 'running'">{{ i18n.t('scan.running') }}</button>
+          <button type="button" (click)="scanFilter.set('error')" class="px-3 py-1 rounded-md transition-colors"
+                  [class.bg-cyan-600]="scanFilter() === 'error'" [class.text-white]="scanFilter() === 'error'"
+                  [class.text-gray-400]="scanFilter() !== 'error'">{{ i18n.t('scan.error') }}</button>
+        </div>
+        @if (canAddSite) {
+          <button mat-flat-button type="button" color="primary" (click)="showAddForm.set(!showAddForm())">
+            <mat-icon class="mr-1">add</mat-icon>{{ i18n.t('dashboard.add') }}
+          </button>
+        } @else if (maxSites > 0) {
+          <span class="text-sm text-gray-500">Quota atteint ({{ maxSites }}/{{ maxSites }})</span>
+        }
+      </div>
+    </div>
+
+    <!-- Add Site Form -->
+    @if (showAddForm()) {
+      <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-6">
+        <h3 class="text-lg font-semibold mb-4">Nouveau site</h3>
+        <form [formGroup]="siteForm" (ngSubmit)="addSite()" class="flex flex-col gap-4">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>URL (https://...)</mat-label>
+            <input matInput formControlName="url" title="URL du site" placeholder="https://monsite.com" />
+            @if (siteForm.controls.url.invalid && siteForm.controls.url.touched) {
+              <mat-error>URL valide requise (https://...)</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Nom du site</mat-label>
+            <input matInput formControlName="name" title="Nom du site" placeholder="Mon Site" />
+          </mat-form-field>
+          <div class="flex gap-3">
+            <button mat-flat-button color="primary" type="submit" [disabled]="siteForm.invalid || addingSite()">
+              @if (addingSite()) { <mat-spinner diameter="18" class="mr-2"></mat-spinner> }
+              Ajouter
+            </button>
+            <button mat-button type="button" (click)="showAddForm.set(false)">Annuler</button>
+          </div>
+        </form>
+      </div>
+    }
+
+    <!-- Skeleton sites -->
+    @if (loading()) {
+      <div class="flex flex-col gap-6">
+        @for (i of [1,2]; track i) {
+          <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 flex flex-col gap-4">
+            <app-skeleton height="1.5rem" width="40%"></app-skeleton>
+            <app-skeleton height="1rem" width="60%"></app-skeleton>
+            <app-skeleton height="8rem"></app-skeleton>
+          </div>
+        }
+      </div>
+    }
+
+    @if (!loading() && sites().length === 0) {
+      <div class="text-center py-16 text-gray-500">
+        <mat-icon class="mb-4 !text-[3rem] !w-[3rem] !h-[3rem]">language</mat-icon>
+        <p class="text-lg">{{ i18n.t('dashboard.noSites') }}</p>
+        <p class="text-sm mt-1">Ajoutez votre premier site pour lancer un scan</p>
+      </div>
+    }
+
+    <!-- Sites List -->
+    <div class="flex flex-col gap-6">
+      @for (site of sites(); track site.id) {
+        <div class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+
+          <!-- Site Header -->
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-700 flex-wrap gap-3">
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <mat-icon class="text-cyan-400">language</mat-icon>
+                <p class="font-semibold">{{ site.name }}</p>
+                <span class="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border"
+                      [class]="siteBadgeClass(site.id)">
+                  <mat-icon class="!text-[0.75rem] !w-[0.75rem] !h-[0.75rem]">{{ siteBadgeIcon(site.id) }}</mat-icon>
+                  {{ siteBadgeLabel(site.id) }}
+                </span>
+              </div>
+              <a [href]="site.url" target="_blank" class="text-sm text-cyan-500 hover:underline ml-6">{{ site.url }}</a>
+            </div>
+            <div class="flex items-center gap-2">
+              <button mat-flat-button type="button" color="primary"
+                      [disabled]="isTriggeringScans(site.id)"
+                      (click)="triggerScan(site.id)">
+                @if (isTriggeringScans(site.id)) {
+                  <mat-spinner diameter="18" class="mr-2"></mat-spinner>
+                } @else {
+                  <mat-icon class="mr-1">play_arrow</mat-icon>
+                }
+                {{ i18n.t('dashboard.scan') }}
+              </button>
+              <button mat-icon-button type="button" title="Exporter CSV" (click)="exportCsv(site.id)" class="text-gray-400 hover:text-cyan-400">
+                <mat-icon>download</mat-icon>
+              </button>
+              <button mat-icon-button type="button" (click)="confirmDeleteSite(site)" class="text-gray-500 hover:text-red-400">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <!-- Progress bar -->
+          @if (hasActiveScans(site.id)) {
+            <div class="h-1 w-full bg-gray-700">
+              <div class="h-full bg-cyan-500 animate-pulse w-full"></div>
+            </div>
+          }
+
+          <!-- Scans -->
+          <div class="px-6 py-4">
+            @if (isLoadingScans(site.id)) {
+              <div class="flex flex-col gap-3 py-2">
+                <app-skeleton height="1rem"></app-skeleton>
+                <app-skeleton height="1rem" width="80%"></app-skeleton>
+                <app-skeleton height="1rem" width="60%"></app-skeleton>
+              </div>
+            } @else if (getScans(site.id).length === 0) {
+              <p class="text-sm text-gray-500 text-center py-4">
+                {{ scanFilter() === 'all' ? 'Aucun scan pour ce site' : 'Aucun scan correspondant au filtre' }}
+              </p>
+            } @else {
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="text-gray-500 border-b border-gray-700">
+                    <th class="text-left py-2 pb-3">Date</th>
+                    <th class="text-left py-2 pb-3">Statut</th>
+                    <th class="text-left py-2 pb-3">Résultat</th>
+                    <th class="text-right py-2 pb-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (scan of getScans(site.id); track scan.id) {
+                    <tr class="border-b border-gray-700/50 last:border-0">
+                      <td class="py-3 text-gray-300">{{ formatDate(scan.created_at) }}</td>
+                      <td class="py-3">
+                        <span class="flex items-center gap-1" [class]="statusColor(scan.status)">
+                          <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">{{ statusIcon(scan.status) }}</mat-icon>
+                          {{ scan.status }}
+                        </span>
+                      </td>
+                      <td class="py-3">
+                        @if (scan.overall_status) {
+                          <span class="flex items-center gap-1 font-semibold" [class]="statusColor(scan.overall_status)">
+                            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">{{ statusIcon(scan.overall_status) }}</mat-icon>
+                            {{ scan.overall_status }}
+                          </span>
+                        } @else {
+                          <span class="text-gray-500">—</span>
+                        }
+                      </td>
+                      <td class="py-3 text-right">
+                        <a [routerLink]="['/cyberscan/scan', scan.id]" mat-icon-button class="text-gray-400 hover:text-cyan-400">
+                          <mat-icon>open_in_new</mat-icon>
+                        </a>
+                        @if (scan.pdf_path) {
+                          <button mat-icon-button type="button" (click)="downloadPdf(scan.id)" class="text-cyan-400">
+                            <mat-icon>picture_as_pdf</mat-icon>
+                          </button>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+
+              <!-- Pagination -->
+              @if (getTotal(site.id) > getPerPage(site.id)) {
+                <mat-paginator
+                  [length]="getTotal(site.id)"
+                  [pageSize]="getPerPage(site.id)"
+                  [pageIndex]="getCurrentPage(site.id)"
+                  [pageSizeOptions]="[10, 20]"
+                  (page)="onPageChange(site.id, $event)"
+                  class="bg-transparent text-gray-400 mt-2">
+                </mat-paginator>
+              }
+            }
+          </div>
+
+        </div>
+      }
+    </div>
+
+  </div>
+</div>

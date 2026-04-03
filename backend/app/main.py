@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.limiter import limiter
 from app.core.logging import setup_logging
+from app.services.scheduler import start_scheduler, stop_scheduler
 
 setup_logging(settings.APP_ENV)
 
@@ -39,7 +40,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
-app = FastAPI(title=settings.APP_NAME, version="1.0.0")
+app = FastAPI(
+    title=settings.APP_NAME,
+    version="1.0.0",
+    on_startup=[start_scheduler],
+    on_shutdown=[stop_scheduler],
+)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
