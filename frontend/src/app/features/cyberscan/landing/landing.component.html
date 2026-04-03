@@ -178,9 +178,7 @@
                [class.border-cyan-500]="plan.name === 'pro'"
                [class.border-gray-700]="plan.name !== 'pro'"
                [class.scale-105]="plan.name === 'pro'"
-               [class.shadow-xl]="plan.name === 'pro'"
-               [class.shadow-cyan-900\/30]="plan.name === 'pro'"
-               [ngClass]="plan.name === 'pro' ? 'bg-gray-800/80' : 'bg-gray-800'">
+               [ngClass]="plan.name === 'pro' ? 'bg-gray-800/80 shadow-xl shadow-cyan-900/30' : 'bg-gray-800'">
 
             @if (getPlanBadge(plan)) {
               <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-500 text-gray-900 text-xs font-bold px-3 py-1 rounded-full">
@@ -242,7 +240,8 @@
         <tbody>
           @for (row of comparisonRows; track row.label; let odd = $odd) {
             <tr class="border-b border-gray-700/50 hover:bg-gray-700/20 transition-colors"
-                [class.bg-gray-800\/30]="odd">
+                [ngClass]="odd ? 'bg-gray-800/30' : ''"
+            >
               <td class="py-3 px-4 text-gray-200">{{ row.label }}</td>
               <td class="py-3 px-4 text-center">
                 @if (row.starter === true) {
@@ -309,7 +308,7 @@
         </div>
         @for (row of newsletterSchedule; track row.week; let odd = $odd) {
           <div class="px-5 py-3 border-b border-gray-700/50 text-sm grid grid-cols-3 gap-4 hover:bg-gray-700/30 transition-colors"
-               [class.bg-gray-800\/50]="odd">
+               [ngClass]="odd ? 'bg-gray-800/50' : ''">
             <span class="text-cyan-400 font-mono">S{{ row.week }}</span>
             <span class="text-gray-300">{{ row.actu }}</span>
             <span class="text-gray-400">{{ row.reflex }}</span>
