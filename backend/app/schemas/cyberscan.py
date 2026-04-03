@@ -67,3 +67,11 @@ class ScanOut(BaseModel):
 class ScanTriggerOut(BaseModel):
     scan_id: int
     message: str
+
+
+class PaginatedScans(BaseModel):
+    items: list[ScanOut]
+    total: int
+    page: int
+    per_page: int
+    pages: int

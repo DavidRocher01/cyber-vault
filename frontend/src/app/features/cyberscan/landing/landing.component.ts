@@ -9,6 +9,9 @@ import { MatExpansionModule } from '@angular/material/expansion';
 
 import { CyberscanService, Plan } from '../services/cyberscan.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ThemeService } from '../../../core/services/theme.service';
+import { I18nService } from '../../../core/services/i18n.service';
+import { Title, Meta } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-cyberscan-landing',
@@ -29,6 +32,10 @@ export class LandingComponent implements OnInit {
   private cyberscan = inject(CyberscanService);
   private auth = inject(AuthService);
   private router = inject(Router);
+  private titleService = inject(Title);
+  private meta = inject(Meta);
+  readonly themeService = inject(ThemeService);
+  readonly i18n = inject(I18nService);
 
   plans: Plan[] = [];
   loading = true;
@@ -100,7 +107,21 @@ export class LandingComponent implements OnInit {
     },
   ];
 
+  comparisonRows = [
+    { label: 'Sites surveillés', starter: '1', pro: '3', business: '10' },
+    { label: 'Fréquence des scans', starter: 'Mensuel', pro: 'Mensuel', business: 'Hebdomadaire' },
+    { label: 'Rapport PDF', starter: true, pro: true, business: true },
+    { label: 'Headers & SSL', starter: true, pro: true, business: true },
+    { label: 'TLS audit / Threat Intel', starter: false, pro: true, business: true },
+    { label: 'JWT / Clickjacking / Redirects', starter: false, pro: false, business: true },
+    { label: 'Alerte email CRITICAL', starter: false, pro: true, business: true },
+    { label: 'Support prioritaire', starter: false, pro: false, business: true },
+  ];
+
   ngOnInit() {
+    this.titleService.setTitle('CyberScan — Audit de sécurité web automatisé');
+    this.meta.updateTag({ name: 'description', content: 'Scannez vos sites web, détectez les vulnérabilités et recevez des rapports PDF complets. Plans à partir de 9€/mois.' });
+    this.themeService.apply();
     this.cyberscan.getPlans().subscribe({
       next: plans => { this.plans = plans; this.loading = false; },
       error: () => { this.loading = false; },

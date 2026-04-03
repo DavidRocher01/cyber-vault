@@ -66,7 +66,7 @@ async def create_checkout(
                 current_period_end=now + timedelta(days=plan.scan_interval_days * 2),
             ))
         await db.commit()
-        return {"checkout_url": f"{FRONTEND_URL}/cyberscan/dashboard?subscribed=true"}
+        return {"checkout_url": f"{FRONTEND_URL}/cyberscan/success"}
 
     # Production: real Stripe flow
     if not plan.stripe_price_id:
