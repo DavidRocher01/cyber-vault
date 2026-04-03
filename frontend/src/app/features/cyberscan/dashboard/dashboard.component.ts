@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink, ActivatedRoute } from '@angular/router';
@@ -9,11 +9,14 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatExpansionModule } from '@angular/material/expansion';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { Subscription, interval } from 'rxjs';
+import { switchMap, takeWhile } from 'rxjs/operators';
 
-import { CyberscanService, Site, Scan, Subscription } from '../services/cyberscan.service';
+import { CyberscanService, Site, Scan, Subscription as UserSubscription } from '../services/cyberscan.service';
+
+type ScanFilter = 'all' | 'done' | 'running' | 'error';
 
 @Component({
   selector: 'app-cyberscan-dashboard',
@@ -29,23 +32,24 @@ import { CyberscanService, Site, Scan, Subscription } from '../services/cybersca
     MatFormFieldModule,
     MatInputModule,
     MatChipsModule,
-    MatExpansionModule,
-    MatDialogModule,
+    MatSelectModule,
     MatSnackBarModule,
   ],
   templateUrl: './dashboard.component.html',
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   private cyberscan = inject(CyberscanService);
   private fb = inject(FormBuilder);
   private snack = inject(MatSnackBar);
   private route = inject(ActivatedRoute);
+  private pollingMap: Record<number, Subscription> = {};
 
-  subscription = signal<Subscription | null>(null);
+  subscription = signal<UserSubscription | null>(null);
   sites = signal<Site[]>([]);
   scansMap = signal<Record<number, Scan[]>>({});
   loadingScans = signal<Record<number, boolean>>({});
   triggeringScans = signal<Record<number, boolean>>({});
+  scanFilter = signal<ScanFilter>('all');
 
   loading = signal(true);
   addingSite = signal(false);
@@ -63,6 +67,10 @@ export class DashboardComponent implements OnInit {
       }
     });
     this.loadDashboard();
+  }
+
+  ngOnDestroy() {
+    Object.values(this.pollingMap).forEach(sub => sub.unsubscribe());
   }
 
   loadDashboard() {
@@ -87,8 +95,23 @@ export class DashboardComponent implements OnInit {
       next: scans => {
         this.scansMap.update(m => ({ ...m, [siteId]: scans }));
         this.loadingScans.update(m => ({ ...m, [siteId]: false }));
+        this.maybeStartPolling(siteId, scans);
       },
       error: () => this.loadingScans.update(m => ({ ...m, [siteId]: false })),
+    });
+  }
+
+  maybeStartPolling(siteId: number, scans: Scan[]) {
+    const hasActive = scans.some(s => s.status === 'pending' || s.status === 'running');
+    if (!hasActive || this.pollingMap[siteId]) return;
+
+    this.pollingMap[siteId] = interval(4000).pipe(
+      switchMap(() => this.cyberscan.getSiteScans(siteId)),
+      takeWhile(s => s.some(x => x.status === 'pending' || x.status === 'running'), true),
+    ).subscribe(scans => {
+      this.scansMap.update(m => ({ ...m, [siteId]: scans }));
+      const stillActive = scans.some(s => s.status === 'pending' || s.status === 'running');
+      if (!stillActive) delete this.pollingMap[siteId];
     });
   }
 
@@ -106,8 +129,7 @@ export class DashboardComponent implements OnInit {
       },
       error: err => {
         this.addingSite.set(false);
-        const msg = err.error?.detail || 'Erreur lors de l\'ajout';
-        this.snack.open(msg, 'Fermer', { duration: 5000 });
+        this.snack.open(err.error?.detail || "Erreur lors de l'ajout", 'Fermer', { duration: 5000 });
       },
     });
   }
@@ -125,15 +147,14 @@ export class DashboardComponent implements OnInit {
   triggerScan(siteId: number) {
     this.triggeringScans.update(m => ({ ...m, [siteId]: true }));
     this.cyberscan.triggerScan(siteId).subscribe({
-      next: res => {
+      next: () => {
         this.triggeringScans.update(m => ({ ...m, [siteId]: false }));
-        this.snack.open('Scan lancé — le rapport sera disponible dans quelques instants', 'OK', { duration: 6000 });
-        setTimeout(() => this.loadScans(siteId), 3000);
+        this.snack.open('Scan lancé — mise à jour automatique en cours', 'OK', { duration: 5000 });
+        this.loadScans(siteId);
       },
       error: err => {
         this.triggeringScans.update(m => ({ ...m, [siteId]: false }));
-        const msg = err.error?.detail || 'Erreur lors du lancement du scan';
-        this.snack.open(msg, 'Fermer', { duration: 5000 });
+        this.snack.open(err.error?.detail || 'Erreur lors du lancement', 'Fermer', { duration: 5000 });
       },
     });
   }
@@ -149,7 +170,11 @@ export class DashboardComponent implements OnInit {
   }
 
   getScans(siteId: number): Scan[] {
-    return this.scansMap()[siteId] || [];
+    const all = this.scansMap()[siteId] || [];
+    const f = this.scanFilter();
+    if (f === 'all') return all;
+    if (f === 'running') return all.filter(s => s.status === 'pending' || s.status === 'running');
+    return all.filter(s => s.status === f);
   }
 
   isLoadingScans(siteId: number): boolean {
@@ -158,6 +183,40 @@ export class DashboardComponent implements OnInit {
 
   isTriggeringScans(siteId: number): boolean {
     return this.triggeringScans()[siteId] || false;
+  }
+
+  hasActiveScans(siteId: number): boolean {
+    return (this.scansMap()[siteId] || []).some(s => s.status === 'pending' || s.status === 'running');
+  }
+
+  lastScanStatus(siteId: number): string | null {
+    return (this.scansMap()[siteId] || [])[0]?.overall_status ?? null;
+  }
+
+  siteBadgeClass(siteId: number): string {
+    const status = this.lastScanStatus(siteId);
+    if (this.hasActiveScans(siteId)) return 'bg-blue-500/20 text-blue-300 border-blue-600';
+    switch (status) {
+      case 'OK': return 'bg-green-500/20 text-green-300 border-green-600';
+      case 'WARNING': return 'bg-yellow-500/20 text-yellow-300 border-yellow-600';
+      case 'CRITICAL': return 'bg-red-500/20 text-red-300 border-red-600';
+      default: return 'bg-gray-700 text-gray-400 border-gray-600';
+    }
+  }
+
+  siteBadgeLabel(siteId: number): string {
+    if (this.hasActiveScans(siteId)) return 'En cours...';
+    return this.lastScanStatus(siteId) ?? 'Aucun scan';
+  }
+
+  siteBadgeIcon(siteId: number): string {
+    if (this.hasActiveScans(siteId)) return 'sync';
+    switch (this.lastScanStatus(siteId)) {
+      case 'OK': return 'verified_user';
+      case 'WARNING': return 'warning';
+      case 'CRITICAL': return 'gpp_bad';
+      default: return 'help_outline';
+    }
   }
 
   statusColor(status: string | null): string {
@@ -175,9 +234,9 @@ export class DashboardComponent implements OnInit {
 
   statusIcon(status: string | null): string {
     switch (status) {
-      case 'OK': return 'check_circle';
+      case 'OK': return 'verified_user';
       case 'WARNING': return 'warning';
-      case 'CRITICAL': return 'error';
+      case 'CRITICAL': return 'gpp_bad';
       case 'done': return 'check_circle';
       case 'pending': return 'schedule';
       case 'running': return 'sync';
