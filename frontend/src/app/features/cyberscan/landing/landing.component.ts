@@ -160,6 +160,21 @@ export class LandingComponent implements OnInit {
     },
   ];
 
+  newsletterItems = [
+    { icon: 'public', title: 'Flash International', desc: 'Une cyberattaque majeure décryptée chaque semaine avec l\'impact estimé et le risque local' },
+    { icon: 'lightbulb', title: 'Le Bon Réflexe', desc: 'Une pratique simple en 2 minutes qui bloque 80% des attaques basiques' },
+    { icon: 'gavel', title: 'Coin des Dirigeants', desc: 'Réglementation française, lois cyber et conseils pour sensibiliser vos équipes' },
+  ];
+
+  newsletterSchedule = [
+    { week: '01', actu: 'Piratage d\'un hôpital aux USA', reflex: 'Activer la Double Authentification (MFA)' },
+    { week: '02', actu: 'Vol de données massif en Corée', reflex: 'Utiliser un gestionnaire de mots de passe' },
+    { week: '03', actu: 'Deepfake vocal d\'un PDG à Londres', reflex: 'Créer un "mot de passe verbal" pour les virements' },
+    { week: '04', actu: 'Failles dans les objets connectés (IoT)', reflex: 'Changer le mot de passe par défaut de sa box/caméra' },
+    { week: '05', actu: 'Ransomware sur une mairie en Espagne', reflex: 'Vérifier que sa sauvegarde est "hors-ligne"' },
+    { week: '06', actu: 'Fraude aux faux QR codes au Japon', reflex: 'Ne jamais scanner un QR code public sans douter' },
+  ];
+
   comparisonRows = [
     { label: 'Sites surveillés', starter: '1', pro: '3', business: '10' },
     { label: 'Fréquence des scans', starter: 'Mensuel', pro: 'Mensuel', business: 'Hebdomadaire' },

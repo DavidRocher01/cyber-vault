@@ -268,6 +268,52 @@
     </div>
   </section>
 
+  <!-- Newsletter -->
+  <section class="px-8 py-16 bg-gray-800/50 border-t border-gray-800">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-10">
+        <div class="inline-flex items-center gap-2 bg-cyan-900/30 text-cyan-400 px-3 py-1 rounded-full text-xs font-medium border border-cyan-800 mb-4">
+          Bientôt disponible
+        </div>
+        <h2 class="text-3xl font-bold mb-3">🛰️ Le Radar Cyber</h2>
+        <p class="text-gray-400 max-w-xl mx-auto">
+          Le brief hebdomadaire pour comprendre les menaces mondiales et protéger votre entreprise — en 5 minutes de lecture.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+        @for (item of newsletterItems; track item.title) {
+          <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 text-left">
+            <mat-icon class="text-cyan-400 mb-3 !text-[1.5rem] !w-[1.5rem] !h-[1.5rem]">{{ item.icon }}</mat-icon>
+            <h3 class="font-semibold text-sm mb-1">{{ item.title }}</h3>
+            <p class="text-gray-400 text-xs leading-relaxed">{{ item.desc }}</p>
+          </div>
+        }
+      </div>
+
+      <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden mb-8">
+        <div class="px-5 py-3 border-b border-gray-700 text-xs font-semibold text-gray-400 grid grid-cols-3 gap-4">
+          <span>Semaine</span>
+          <span>Actualité Monde</span>
+          <span>Bon Réflexe</span>
+        </div>
+        @for (row of newsletterSchedule; track row.week) {
+          <div class="px-5 py-3 border-b border-gray-700/50 text-sm grid grid-cols-3 gap-4 hover:bg-gray-700/30 transition-colors">
+            <span class="text-cyan-400 font-mono">S{{ row.week }}</span>
+            <span class="text-gray-300">{{ row.actu }}</span>
+            <span class="text-gray-400">{{ row.reflex }}</span>
+          </div>
+        }
+      </div>
+
+      <div class="text-center">
+        <button type="button" mat-flat-button color="primary" disabled class="opacity-50 px-8 py-3">
+          S'abonner — Prochainement
+        </button>
+      </div>
+    </div>
+  </section>
+
   <!-- FAQ -->
   <section class="px-8 py-16">
     <h2 class="text-3xl font-bold text-center mb-12">Questions fréquentes</h2>
