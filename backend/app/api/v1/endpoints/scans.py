@@ -1,15 +1,16 @@
-import asyncio
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from fastapi.responses import FileResponse
+import csv
+import io
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from app.core.database import get_db, AsyncSessionLocal
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.models.site import Site
 from app.models.scan import Scan
-from app.schemas.cyberscan import ScanOut, ScanTriggerOut
+from app.schemas.cyberscan import ScanOut, ScanTriggerOut, PaginatedScans
 from app.services.scan_service import run_scan
 
 router = APIRouter(prefix="/scans", tags=["scans"])
@@ -27,7 +28,6 @@ async def trigger_scan(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Trigger a manual scan for a site."""
     result = await db.execute(
         select(Site).where(Site.id == site_id, Site.user_id == current_user.id, Site.is_active == True)
     )
@@ -44,23 +44,82 @@ async def trigger_scan(
     return {"scan_id": scan.id, "message": "Scan lancé en arrière-plan"}
 
 
-@router.get("/site/{site_id}", response_model=list[ScanOut])
+@router.get("/site/{site_id}", response_model=PaginatedScans)
 async def list_scans(
     site_id: int,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(10, ge=1, le=50),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List all scans for a site."""
     result = await db.execute(
         select(Site).where(Site.id == site_id, Site.user_id == current_user.id)
     )
     if not result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Site non trouvé")
 
-    scans_result = await db.execute(
-        select(Scan).where(Scan.site_id == site_id).order_by(Scan.created_at.desc()).limit(20)
+    total_result = await db.execute(
+        select(func.count()).where(Scan.site_id == site_id)
     )
-    return scans_result.scalars().all()
+    total = total_result.scalar_one()
+
+    scans_result = await db.execute(
+        select(Scan)
+        .where(Scan.site_id == site_id)
+        .order_by(Scan.created_at.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    )
+    items = scans_result.scalars().all()
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "pages": max(1, -(-total // per_page)),  # ceiling division
+    }
+
+
+@router.get("/site/{site_id}/export")
+async def export_scans_csv(
+    site_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Export scan history as CSV."""
+    result = await db.execute(
+        select(Site).where(Site.id == site_id, Site.user_id == current_user.id)
+    )
+    site = result.scalar_one_or_none()
+    if not site:
+        raise HTTPException(status_code=404, detail="Site non trouvé")
+
+    scans_result = await db.execute(
+        select(Scan).where(Scan.site_id == site_id).order_by(Scan.created_at.desc())
+    )
+    scans = scans_result.scalars().all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "Site", "Statut", "Résultat", "Créé le", "Terminé le", "Durée (s)"])
+    for s in scans:
+        duration = ""
+        if s.started_at and s.finished_at:
+            duration = str(int((s.finished_at - s.started_at).total_seconds()))
+        writer.writerow([
+            s.id, site.url, s.status, s.overall_status or "",
+            s.created_at.strftime("%Y-%m-%d %H:%M") if s.created_at else "",
+            s.finished_at.strftime("%Y-%m-%d %H:%M") if s.finished_at else "",
+            duration,
+        ])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=cyberscan_site_{site_id}.csv"},
+    )
 
 
 @router.get("/{scan_id}", response_model=ScanOut)
@@ -86,7 +145,6 @@ async def download_pdf(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Download the PDF report for a completed scan."""
     result = await db.execute(
         select(Scan)
         .join(Site, Site.id == Scan.site_id)

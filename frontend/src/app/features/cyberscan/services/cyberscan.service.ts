@@ -51,6 +51,14 @@ export interface Scan {
   error_message: string | null;
 }
 
+export interface PaginatedScans {
+  items: Scan[];
+  total: number;
+  page: number;
+  per_page: number;
+  pages: number;
+}
+
 const API = '/api/v1';
 
 @Injectable({ providedIn: 'root' })
@@ -89,8 +97,8 @@ export class CyberscanService {
     return this.http.post<{ scan_id: number; message: string }>(`${API}/scans/trigger/${siteId}`, {});
   }
 
-  getSiteScans(siteId: number): Observable<Scan[]> {
-    return this.http.get<Scan[]>(`${API}/scans/site/${siteId}`);
+  getSiteScans(siteId: number, page = 1, perPage = 10): Observable<PaginatedScans> {
+    return this.http.get<PaginatedScans>(`${API}/scans/site/${siteId}?page=${page}&per_page=${perPage}`);
   }
 
   getScan(scanId: number): Observable<Scan> {
@@ -99,5 +107,9 @@ export class CyberscanService {
 
   downloadPdf(scanId: number): string {
     return `${API}/scans/${scanId}/pdf`;
+  }
+
+  exportCsv(siteId: number): string {
+    return `${API}/scans/site/${siteId}/export`;
   }
 }

@@ -170,10 +170,27 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
         scan.pdf_path       = pdf_path
         scan.results_json   = json.dumps({"ssl": ssl_result, "headers": headers_result})
         scan.finished_at    = datetime.utcnow()
+        await db.commit()
+
+        # Email alert on CRITICAL (manual scans)
+        if overall == "CRITICAL" and pdf_path:
+            try:
+                from app.models.user import User
+                from app.services.email_service import send_scan_report
+                user_result = await db.execute(select(User).where(User.id == site.user_id))
+                user = user_result.scalar_one_or_none()
+                if user:
+                    send_scan_report(
+                        to_email=user.email,
+                        site_url=site.url,
+                        overall_status="CRITICAL",
+                        pdf_path=pdf_path,
+                    )
+            except Exception:
+                pass  # Ne pas bloquer si l'email échoue
 
     except Exception as exc:
         scan.status        = "failed"
         scan.error_message = str(exc)[:500]
         scan.finished_at   = datetime.utcnow()
-
-    await db.commit()
+        await db.commit()

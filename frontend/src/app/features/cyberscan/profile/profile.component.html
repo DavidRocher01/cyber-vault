@@ -1,0 +1,75 @@
+<div class="min-h-screen bg-gray-900 text-white">
+  <nav class="flex items-center justify-between px-8 py-4 border-b border-gray-800">
+    <div class="flex items-center gap-2">
+      <mat-icon class="text-cyan-400">shield</mat-icon>
+      <span class="text-xl font-bold text-cyan-400">CyberScan</span>
+    </div>
+    <a routerLink="/cyberscan/dashboard" mat-button class="text-gray-400">
+      <mat-icon class="mr-1">arrow_back</mat-icon>
+      Dashboard
+    </a>
+  </nav>
+
+  <div class="max-w-2xl mx-auto px-6 py-10">
+    <h1 class="text-3xl font-bold mb-8">Mon profil</h1>
+
+    @if (loading()) {
+      <div class="flex flex-col gap-4">
+        <div class="animate-pulse bg-gray-700 rounded-xl h-48"></div>
+        <div class="animate-pulse bg-gray-700 rounded-xl h-56"></div>
+      </div>
+    }
+
+    @if (!loading()) {
+      <!-- Email -->
+      <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-6">
+        <div class="flex items-center gap-2 mb-4">
+          <mat-icon class="text-cyan-400">email</mat-icon>
+          <h2 class="text-lg font-semibold">Adresse email</h2>
+        </div>
+        <p class="text-sm text-gray-400 mb-4">Email actuel : <span class="text-white font-medium">{{ profile()?.email }}</span></p>
+        <form [formGroup]="emailForm" (ngSubmit)="updateEmail()" class="flex flex-col gap-4">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Nouvel email</mat-label>
+            <input matInput type="email" formControlName="email" title="Nouvel email" placeholder="nouvel@email.com" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Mot de passe actuel</mat-label>
+            <input matInput type="password" formControlName="current_password" title="Mot de passe actuel" placeholder="••••••••" />
+          </mat-form-field>
+          <button mat-flat-button color="primary" type="submit" [disabled]="emailForm.invalid || savingEmail()">
+            @if (savingEmail()) { <mat-spinner diameter="18" class="mr-2"></mat-spinner> }
+            Mettre à jour l'email
+          </button>
+        </form>
+      </div>
+
+      <!-- Password -->
+      <div class="bg-gray-800 border border-gray-700 rounded-xl p-6">
+        <div class="flex items-center gap-2 mb-4">
+          <mat-icon class="text-cyan-400">lock</mat-icon>
+          <h2 class="text-lg font-semibold">Mot de passe</h2>
+        </div>
+        <form [formGroup]="passwordForm" (ngSubmit)="updatePassword()" class="flex flex-col gap-4">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Mot de passe actuel</mat-label>
+            <input matInput type="password" formControlName="current_password" title="Mot de passe actuel" placeholder="••••••••" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Nouveau mot de passe</mat-label>
+            <input matInput type="password" formControlName="new_password" title="Nouveau mot de passe" placeholder="••••••••" />
+            <mat-hint>Minimum 8 caractères</mat-hint>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Confirmer le mot de passe</mat-label>
+            <input matInput type="password" formControlName="confirm_password" title="Confirmer le mot de passe" placeholder="••••••••" />
+          </mat-form-field>
+          <button mat-flat-button color="primary" type="submit" [disabled]="passwordForm.invalid || savingPassword()">
+            @if (savingPassword()) { <mat-spinner diameter="18" class="mr-2"></mat-spinner> }
+            Changer le mot de passe
+          </button>
+        </form>
+      </div>
+    }
+  </div>
+</div>

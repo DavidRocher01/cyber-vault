@@ -1,0 +1,78 @@
+<div class="min-h-screen bg-gray-900 text-white flex flex-col items-center px-6 py-12">
+
+  <div class="flex items-center gap-2 mb-10">
+    <mat-icon class="text-cyan-400 !text-[2rem] !w-[2rem] !h-[2rem]">shield</mat-icon>
+    <span class="text-2xl font-bold text-cyan-400">CyberScan</span>
+  </div>
+
+  <div class="w-full max-w-2xl">
+    <mat-stepper orientation="vertical" #stepper class="bg-gray-800 rounded-2xl border border-gray-700">
+
+      <!-- Étape 1 : Plan -->
+      <mat-step label="Choisissez votre plan">
+        <div class="py-4 flex flex-col gap-4">
+          <p class="text-gray-400 text-sm mb-2">Sélectionnez le plan adapté à vos besoins.</p>
+          @for (plan of plans(); track plan.id) {
+            <div class="flex items-center justify-between bg-gray-700 border border-gray-600 rounded-xl px-5 py-4 cursor-pointer hover:border-cyan-500 transition-colors"
+                 [class.border-cyan-500]="selectedPlan()?.id === plan.id"
+                 (click)="selectPlan(plan)">
+              <div>
+                <p class="font-semibold">{{ plan.display_name }}</p>
+                <p class="text-sm text-gray-400">{{ plan.max_sites }} site{{ plan.max_sites > 1 ? 's' : '' }} · {{ plan.scan_interval_days }}j</p>
+              </div>
+              <div class="text-right">
+                <p class="text-xl font-bold text-cyan-400">{{ formatPrice(plan.price_eur) }}<span class="text-sm text-gray-400">/mois</span></p>
+                @if (checkoutLoading() && selectedPlan()?.id === plan.id) {
+                  <mat-spinner diameter="20" class="mt-1 ml-auto"></mat-spinner>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </mat-step>
+
+      <!-- Étape 2 : Site -->
+      <mat-step label="Ajoutez votre premier site" [stepControl]="siteForm">
+        <div class="py-4 flex flex-col gap-4">
+          <p class="text-gray-400 text-sm mb-2">Entrez l'URL du site que vous souhaitez surveiller.</p>
+          <form [formGroup]="siteForm" class="flex flex-col gap-4">
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>URL</mat-label>
+              <input matInput formControlName="url" title="URL" placeholder="https://monsite.com" />
+              @if (siteForm.controls.url.invalid && siteForm.controls.url.touched) {
+                <mat-error>URL valide requise (https://...)</mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Nom du site</mat-label>
+              <input matInput formControlName="name" title="Nom" placeholder="Mon Site" />
+            </mat-form-field>
+          </form>
+          <div class="flex gap-3">
+            <button mat-flat-button color="primary" type="button"
+                    [disabled]="siteForm.invalid || addingSite()"
+                    (click)="addSiteAndScan(stepper)">
+              @if (addingSite()) { <mat-spinner diameter="18" class="mr-2"></mat-spinner> }
+              Ajouter et lancer un scan
+            </button>
+            <button mat-button type="button" matStepperPrevious>Retour</button>
+          </div>
+        </div>
+      </mat-step>
+
+      <!-- Étape 3 : Terminé -->
+      <mat-step label="C'est parti !">
+        <div class="py-8 flex flex-col items-center gap-4 text-center">
+          <mat-icon class="text-green-400 !text-[4rem] !w-[4rem] !h-[4rem]">check_circle</mat-icon>
+          <h2 class="text-2xl font-bold">Votre site est en cours de scan !</h2>
+          <p class="text-gray-400 max-w-sm">Le rapport sera disponible dans votre dashboard dans quelques minutes.</p>
+          <button mat-flat-button color="primary" type="button" (click)="goToDashboard()" class="mt-4 px-8">
+            Aller au dashboard
+          </button>
+        </div>
+      </mat-step>
+
+    </mat-stepper>
+  </div>
+
+</div>
