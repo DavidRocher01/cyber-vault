@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router, RouterLink } from '@angular/router';
+import { switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -71,7 +72,9 @@ export class RegisterComponent {
     if (this.form.invalid) return;
     this.loading = true;
     const { email, password } = this.form.getRawValue();
-    this.authService.register(email, password).subscribe({
+    this.authService.register(email, password).pipe(
+      switchMap(() => this.authService.login(email, password))
+    ).subscribe({
       next: () => this.router.navigate(['/cyberscan/onboarding']),
       error: err => { this.error = err.error?.detail ?? 'Erreur inscription'; this.loading = false; },
     });
