@@ -12,6 +12,10 @@ export const routes: Routes = [
     loadChildren: () => import('./features/vault/vault.routes').then(m => m.VAULT_ROUTES),
     canActivate: [authGuard, cryptoGuard],
   },
-  { path: '', redirectTo: 'vault', pathMatch: 'full' },
-  { path: '**', redirectTo: 'auth' },
+  {
+    path: 'cyberscan',
+    loadChildren: () => import('./features/cyberscan/cyberscan.routes').then(m => m.CYBERSCAN_ROUTES),
+  },
+  { path: '', redirectTo: 'cyberscan', pathMatch: 'full' },
+  { path: '**', redirectTo: 'cyberscan' },
 ];

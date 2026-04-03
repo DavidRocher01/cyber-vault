@@ -33,5 +33,9 @@ aiosqlite==0.22.1
 bandit==1.7.9
 pip-audit==2.7.3
 
+# CyberScan SaaS
+stripe==10.5.0
+apscheduler==3.10.4
+
 # Dev
 pre-commit==3.7.1
