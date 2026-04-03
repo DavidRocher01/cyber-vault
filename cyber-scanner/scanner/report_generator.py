@@ -1345,7 +1345,203 @@ def _build_http_methods_section(methods_result: dict[str, Any], styles: dict[str
 
 
 # ---------------------------------------------------------------------------
-# Section 19 — Recommandations
+# Section 19 — Open Redirect
+# ---------------------------------------------------------------------------
+def _build_open_redirect_section(r: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
+    story = []
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(Paragraph("19. Open Redirect", styles["section_title"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    if skipped:
+        story.append(Paragraph("Module non exécuté (--skip-redirects).", styles["body"]))
+        return story
+    story.append(_status_badge_table(r.get("status", "OK")))
+    story.append(Spacer(1, 0.3 * cm))
+    col_w = page_w - 4 * cm
+    rows = [
+        ["Probes envoyées", str(r.get("tested", 0))],
+        ["Vulnérable",      "OUI" if r.get("vulnerable") else "Non"],
+    ]
+    findings = r.get("findings", [])
+    for f in findings:
+        rows.append([f"Param: {f['param']}", f"→ {f['location'][:60]}"])
+    t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
+    t.setStyle(TableStyle([
+        ("FONTNAME",  (0, 0), (-1, -1), "Helvetica"),
+        ("FONTSIZE",  (0, 0), (-1, -1), 9),
+        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+        ("BOX",       (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
+        ("INNERGRID", (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("VALIGN",    (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(t)
+    return story
+
+
+# ---------------------------------------------------------------------------
+# Section 20 — Clickjacking
+# ---------------------------------------------------------------------------
+def _build_clickjacking_section(r: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
+    story = []
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(Paragraph("20. Clickjacking", styles["section_title"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    if skipped:
+        story.append(Paragraph("Module non exécuté (--skip-clickjacking).", styles["body"]))
+        return story
+    story.append(_status_badge_table(r.get("status", "OK")))
+    story.append(Spacer(1, 0.3 * cm))
+    xfo = r.get("xfo", {})
+    csp = r.get("csp_frame_ancestors", {})
+    col_w = page_w - 4 * cm
+    rows = [
+        ["X-Frame-Options",      xfo.get("value") or "Absent"],
+        ["XFO protégé",          "Oui" if xfo.get("protected") else "Non"],
+        ["CSP frame-ancestors",  csp.get("value") or "Absent"],
+        ["CSP protégé",          "Oui" if csp.get("protected") else "Non"],
+        ["Vulnérable clickjacking", "OUI" if r.get("vulnerable") else "Non"],
+    ]
+    t = Table(rows, colWidths=[col_w * 0.4, col_w * 0.6])
+    t.setStyle(TableStyle([
+        ("FONTNAME",  (0, 0), (-1, -1), "Helvetica"),
+        ("FONTSIZE",  (0, 0), (-1, -1), 9),
+        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+        ("BOX",       (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
+        ("INNERGRID", (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("VALIGN",    (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(t)
+    return story
+
+
+# ---------------------------------------------------------------------------
+# Section 21 — Directory Listing
+# ---------------------------------------------------------------------------
+def _build_dirlist_section(r: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
+    story = []
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(Paragraph("21. Directory Listing & Chemins sensibles", styles["section_title"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    if skipped:
+        story.append(Paragraph("Module non exécuté (--skip-dirlist).", styles["body"]))
+        return story
+    story.append(_status_badge_table(r.get("status", "OK")))
+    story.append(Spacer(1, 0.3 * cm))
+    findings = r.get("findings", [])
+    if not findings:
+        story.append(Paragraph("Aucun chemin sensible exposé.", styles["body"]))
+        return story
+    col_w = page_w - 4 * cm
+    rows = [["Chemin", "Catégorie", "Sévérité", "HTTP"]]
+    for f in findings:
+        rows.append([f["path"], f["category"], f["severity"], str(f["status_code"])])
+    t = Table(rows, colWidths=[col_w * 0.38, col_w * 0.22, col_w * 0.22, col_w * 0.18])
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
+        ("TEXTCOLOR",  (0, 0), (-1, 0), COLOR_WHITE),
+        ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE",   (0, 0), (-1, -1), 9),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+        ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
+        ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(t)
+    return story
+
+
+# ---------------------------------------------------------------------------
+# Section 22 — Robots & Sitemap
+# ---------------------------------------------------------------------------
+def _build_robots_section(r: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
+    story = []
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(Paragraph("22. Robots.txt & Sitemap", styles["section_title"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    if skipped:
+        story.append(Paragraph("Module non exécuté (--skip-robots).", styles["body"]))
+        return story
+    story.append(_status_badge_table(r.get("status", "OK")))
+    story.append(Spacer(1, 0.3 * cm))
+    col_w = page_w - 4 * cm
+    sensitive = r.get("sensitive_disallowed", [])
+    rows = [
+        ["robots.txt",         "Trouvé" if r.get("robots_found") else "Absent"],
+        ["Disallow entries",   str(len(r.get("disallowed_paths", [])))],
+        ["Chemins sensibles",  ", ".join(sensitive[:6]) if sensitive else "Aucun"],
+        ["Sitemap",            "Trouvé" if r.get("sitemap_found") else "Absent"],
+        ["URLs sitemap",       str(r.get("sitemap_url_count", 0))],
+    ]
+    t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
+    t.setStyle(TableStyle([
+        ("FONTNAME",  (0, 0), (-1, -1), "Helvetica"),
+        ("FONTSIZE",  (0, 0), (-1, -1), 9),
+        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+        ("BOX",       (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
+        ("INNERGRID", (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("VALIGN",    (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(t)
+    return story
+
+
+# ---------------------------------------------------------------------------
+# Section 23 — JWT Security
+# ---------------------------------------------------------------------------
+def _build_jwt_section(r: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
+    story = []
+    story.append(Spacer(1, 0.6 * cm))
+    story.append(Paragraph("23. Sécurité JWT", styles["section_title"]))
+    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    if skipped:
+        story.append(Paragraph("Module non exécuté (--skip-jwt).", styles["body"]))
+        return story
+    story.append(_status_badge_table(r.get("status", "OK")))
+    story.append(Spacer(1, 0.3 * cm))
+    col_w = page_w - 4 * cm
+    analyses = r.get("analyses", [])
+    if not analyses:
+        story.append(Paragraph(
+            f"Tokens détectés : {r.get('tokens_found', 0)} — Aucune vulnérabilité JWT exposée.",
+            styles["body"],
+        ))
+        return story
+    rows = [["Token (début)", "Problèmes", "Sévérité"]]
+    for a in analyses:
+        issues = ", ".join(a["issues"]) if a["issues"] else "OK"
+        rows.append([a["token"][:40], issues, a["severity"]])
+    t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.45, col_w * 0.20])
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
+        ("TEXTCOLOR",  (0, 0), (-1, 0), COLOR_WHITE),
+        ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE",   (0, 0), (-1, -1), 9),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+        ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
+        ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(t)
+    return story
+
+
+# ---------------------------------------------------------------------------
+# Section 24 — Recommandations
 # ---------------------------------------------------------------------------
 def _build_recommendations(
     ssl_result: dict[str, Any],
@@ -1359,7 +1555,7 @@ def _build_recommendations(
 ) -> list:
     story = []
     story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("19. Recommandations", styles["section_title"]))
+    story.append(Paragraph("24. Recommandations", styles["section_title"]))
     story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
 
     recommendations: list[tuple[str, str]] = []  # (priority, text)
@@ -1492,6 +1688,16 @@ def generate_report(
     ti_skipped: bool = True,
     methods_result: dict[str, Any] | None = None,
     methods_skipped: bool = True,
+    redirect_result: dict[str, Any] | None = None,
+    redirect_skipped: bool = True,
+    clickjacking_result: dict[str, Any] | None = None,
+    clickjacking_skipped: bool = True,
+    dirlist_result: dict[str, Any] | None = None,
+    dirlist_skipped: bool = True,
+    robots_result: dict[str, Any] | None = None,
+    robots_skipped: bool = True,
+    jwt_result: dict[str, Any] | None = None,
+    jwt_skipped: bool = True,
 ) -> str:
     """
     Generate a professional PDF audit report.
@@ -1563,6 +1769,16 @@ def generate_report(
         statuses["threat_intel"] = ti_result.get("status", "OK")
     if not methods_skipped and methods_result:
         statuses["http_methods"] = methods_result.get("status", "OK")
+    if not redirect_skipped and redirect_result:
+        statuses["open_redirect"] = redirect_result.get("status", "OK")
+    if not clickjacking_skipped and clickjacking_result:
+        statuses["clickjacking"] = clickjacking_result.get("status", "OK")
+    if not dirlist_skipped and dirlist_result:
+        statuses["dir_listing"] = dirlist_result.get("status", "OK")
+    if not robots_skipped and robots_result:
+        statuses["robots"] = robots_result.get("status", "OK")
+    if not jwt_skipped and jwt_result:
+        statuses["jwt"] = jwt_result.get("status", "OK")
 
     all_status_values = list(statuses.values())
     if "CRITICAL" in all_status_values:
@@ -1595,6 +1811,11 @@ def generate_report(
     story += _build_takeover_section(takeover_result or {}, styles, usable_w + 4 * cm, skipped=takeover_skipped)
     story += _build_threat_intel_section(ti_result or {}, styles, usable_w + 4 * cm, skipped=ti_skipped)
     story += _build_http_methods_section(methods_result or {}, styles, usable_w + 4 * cm, skipped=methods_skipped)
+    story += _build_open_redirect_section(redirect_result or {}, styles, usable_w + 4 * cm, skipped=redirect_skipped)
+    story += _build_clickjacking_section(clickjacking_result or {}, styles, usable_w + 4 * cm, skipped=clickjacking_skipped)
+    story += _build_dirlist_section(dirlist_result or {}, styles, usable_w + 4 * cm, skipped=dirlist_skipped)
+    story += _build_robots_section(robots_result or {}, styles, usable_w + 4 * cm, skipped=robots_skipped)
+    story += _build_jwt_section(jwt_result or {}, styles, usable_w + 4 * cm, skipped=jwt_skipped)
     story += _build_recommendations(ssl_result or {}, headers_result or {}, port_result or {}, styles, usable_w + 4 * cm, ports_skipped=ports_skipped, sca_result=sca_result or {}, sca_skipped=sca_skipped)
 
     doc.build(story)
