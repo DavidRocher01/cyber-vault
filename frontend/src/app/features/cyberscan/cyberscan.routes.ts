@@ -37,4 +37,9 @@ export const CYBERSCAN_ROUTES: Routes = [
     canActivate: [authGuard],
     title: 'Abonnement activé — CyberScan',
   },
+  {
+    path: 'bonnes-pratiques',
+    loadComponent: () => import('./bonnes-pratiques/bonnes-pratiques.component').then(m => m.BonnesPratiquesComponent),
+    title: 'Bonnes pratiques — CyberScan',
+  },
 ];
