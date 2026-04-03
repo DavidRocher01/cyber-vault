@@ -9,6 +9,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Title } from '@angular/platform-browser';
 
 import { UserService, UserProfile } from '../services/user.service';
@@ -19,7 +20,7 @@ import { UserService, UserProfile } from '../services/user.service';
   imports: [
     CommonModule, ReactiveFormsModule, RouterLink,
     MatButtonModule, MatCardModule, MatIconModule,
-    MatFormFieldModule, MatInputModule, MatSnackBarModule, MatDividerModule,
+    MatFormFieldModule, MatInputModule, MatSnackBarModule, MatDividerModule, MatProgressSpinnerModule,
   ],
   templateUrl: './profile.component.html',
 })
