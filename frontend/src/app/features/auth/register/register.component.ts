@@ -32,7 +32,7 @@ export class RegisterComponent {
     this.loading = true;
     const { email, password } = this.form.getRawValue();
     this.authService.register(email, password).subscribe({
-      next: () => this.router.navigate(['/auth/login']),
+      next: () => this.router.navigate(['/cyberscan/dashboard']),
       error: err => { this.error = err.error?.detail ?? 'Erreur inscription'; this.loading = false; },
     });
   }

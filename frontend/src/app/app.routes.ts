@@ -17,5 +17,8 @@ export const routes: Routes = [
     loadChildren: () => import('./features/cyberscan/cyberscan.routes').then(m => m.CYBERSCAN_ROUTES),
   },
   { path: '', redirectTo: 'cyberscan', pathMatch: 'full' },
-  { path: '**', redirectTo: 'cyberscan' },
+  {
+    path: '**',
+    loadComponent: () => import('./features/not-found/not-found.component').then(m => m.NotFoundComponent),
+  },
 ];

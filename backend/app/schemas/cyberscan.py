@@ -52,9 +52,12 @@ class SiteOut(BaseModel):
 
 class ScanOut(BaseModel):
     id: int
+    site_id: int
     status: str
     overall_status: str | None
+    pdf_path: str | None
     created_at: datetime
+    started_at: datetime | None
     finished_at: datetime | None
     error_message: str | None
 

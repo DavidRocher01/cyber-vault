@@ -45,10 +45,10 @@ export interface Scan {
   status: string;
   overall_status: string | null;
   pdf_path: string | null;
-  error_message: string | null;
   created_at: string;
   started_at: string | null;
   finished_at: string | null;
+  error_message: string | null;
 }
 
 const API = '/api/v1';

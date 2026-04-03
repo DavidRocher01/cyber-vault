@@ -43,17 +43,34 @@
       </div>
     }
 
-    <!-- Sites Section -->
-    <div class="flex items-center justify-between mb-6">
+    <!-- Sites Header -->
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-4">
       <h2 class="text-2xl font-bold">Mes sites</h2>
-      @if (canAddSite) {
-        <button mat-flat-button type="button" color="primary" (click)="showAddForm.set(!showAddForm())">
-          <mat-icon class="mr-1">add</mat-icon>
-          Ajouter un site
-        </button>
-      } @else if (maxSites > 0) {
-        <span class="text-sm text-gray-500">Quota atteint ({{ maxSites }} / {{ maxSites }})</span>
-      }
+      <div class="flex items-center gap-3 flex-wrap">
+        <!-- Scan Filter -->
+        <div class="flex items-center gap-1 bg-gray-800 border border-gray-700 rounded-lg p-1 text-sm">
+          <button type="button" (click)="scanFilter.set('all')" class="px-3 py-1 rounded-md transition-colors"
+                  [class.bg-cyan-600]="scanFilter() === 'all'" [class.text-white]="scanFilter() === 'all'"
+                  [class.text-gray-400]="scanFilter() !== 'all'">Tous</button>
+          <button type="button" (click)="scanFilter.set('done')" class="px-3 py-1 rounded-md transition-colors"
+                  [class.bg-cyan-600]="scanFilter() === 'done'" [class.text-white]="scanFilter() === 'done'"
+                  [class.text-gray-400]="scanFilter() !== 'done'">Terminés</button>
+          <button type="button" (click)="scanFilter.set('running')" class="px-3 py-1 rounded-md transition-colors"
+                  [class.bg-cyan-600]="scanFilter() === 'running'" [class.text-white]="scanFilter() === 'running'"
+                  [class.text-gray-400]="scanFilter() !== 'running'">En cours</button>
+          <button type="button" (click)="scanFilter.set('error')" class="px-3 py-1 rounded-md transition-colors"
+                  [class.bg-cyan-600]="scanFilter() === 'error'" [class.text-white]="scanFilter() === 'error'"
+                  [class.text-gray-400]="scanFilter() !== 'error'">Erreurs</button>
+        </div>
+        @if (canAddSite) {
+          <button mat-flat-button type="button" color="primary" (click)="showAddForm.set(!showAddForm())">
+            <mat-icon class="mr-1">add</mat-icon>
+            Ajouter un site
+          </button>
+        } @else if (maxSites > 0) {
+          <span class="text-sm text-gray-500">Quota atteint ({{ maxSites }}/{{ maxSites }})</span>
+        }
+      </div>
     </div>
 
     <!-- Add Site Form -->
@@ -63,14 +80,14 @@
         <form [formGroup]="siteForm" (ngSubmit)="addSite()" class="flex flex-col gap-4">
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>URL (https://...)</mat-label>
-            <input matInput formControlName="url" placeholder="https://monsite.com" />
+            <input matInput formControlName="url" title="URL du site" placeholder="https://monsite.com" />
             @if (siteForm.controls.url.invalid && siteForm.controls.url.touched) {
               <mat-error>URL valide requise (https://...)</mat-error>
             }
           </mat-form-field>
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>Nom du site</mat-label>
-            <input matInput formControlName="name" placeholder="Mon Site" />
+            <input matInput formControlName="name" title="Nom du site" placeholder="Mon Site" />
           </mat-form-field>
           <div class="flex gap-3">
             <button mat-flat-button color="primary" type="submit" [disabled]="siteForm.invalid || addingSite()">
@@ -83,14 +100,12 @@
       </div>
     }
 
-    <!-- Loading -->
     @if (loading()) {
       <div class="flex justify-center py-16">
         <mat-spinner diameter="48"></mat-spinner>
       </div>
     }
 
-    <!-- Sites List -->
     @if (!loading() && sites().length === 0) {
       <div class="text-center py-16 text-gray-500">
         <mat-icon class="mb-4 !text-[3rem] !w-[3rem] !h-[3rem]">language</mat-icon>
@@ -99,17 +114,26 @@
       </div>
     }
 
+    <!-- Sites List -->
     <div class="flex flex-col gap-6">
       @for (site of sites(); track site.id) {
         <div class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
 
           <!-- Site Header -->
-          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-700">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-700 flex-wrap gap-3">
             <div class="flex items-center gap-3">
-              <mat-icon class="text-cyan-400">language</mat-icon>
-              <div>
-                <p class="font-semibold">{{ site.name }}</p>
-                <a [href]="site.url" target="_blank" class="text-sm text-cyan-500 hover:underline">{{ site.url }}</a>
+              <div class="flex flex-col gap-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <mat-icon class="text-cyan-400">language</mat-icon>
+                  <p class="font-semibold">{{ site.name }}</p>
+                  <!-- Status Badge -->
+                  <span class="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border"
+                        [class]="siteBadgeClass(site.id)">
+                    <mat-icon class="!text-[0.75rem] !w-[0.75rem] !h-[0.75rem]">{{ siteBadgeIcon(site.id) }}</mat-icon>
+                    {{ siteBadgeLabel(site.id) }}
+                  </span>
+                </div>
+                <a [href]="site.url" target="_blank" class="text-sm text-cyan-500 hover:underline ml-6">{{ site.url }}</a>
               </div>
             </div>
             <div class="flex items-center gap-2">
@@ -129,6 +153,13 @@
             </div>
           </div>
 
+          <!-- Active scan progress bar -->
+          @if (hasActiveScans(site.id)) {
+            <div class="h-1 w-full bg-gray-700">
+              <div class="h-full bg-cyan-500 animate-pulse w-full"></div>
+            </div>
+          }
+
           <!-- Scans List -->
           <div class="px-6 py-4">
             @if (isLoadingScans(site.id)) {
@@ -136,7 +167,9 @@
                 <mat-spinner diameter="32"></mat-spinner>
               </div>
             } @else if (getScans(site.id).length === 0) {
-              <p class="text-sm text-gray-500 text-center py-4">Aucun scan pour ce site</p>
+              <p class="text-sm text-gray-500 text-center py-4">
+                {{ scanFilter() === 'all' ? 'Aucun scan pour ce site' : 'Aucun scan correspondant au filtre' }}
+              </p>
             } @else {
               <table class="w-full text-sm">
                 <thead>
@@ -144,7 +177,7 @@
                     <th class="text-left py-2 pb-3">Date</th>
                     <th class="text-left py-2 pb-3">Statut</th>
                     <th class="text-left py-2 pb-3">Résultat</th>
-                    <th class="text-right py-2 pb-3">Rapport</th>
+                    <th class="text-right py-2 pb-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -168,12 +201,13 @@
                         }
                       </td>
                       <td class="py-3 text-right">
+                        <a [routerLink]="['/cyberscan/scan', scan.id]" mat-icon-button class="text-gray-400 hover:text-cyan-400">
+                          <mat-icon>open_in_new</mat-icon>
+                        </a>
                         @if (scan.pdf_path) {
                           <button mat-icon-button type="button" (click)="downloadPdf(scan.id)" class="text-cyan-400">
                             <mat-icon>picture_as_pdf</mat-icon>
                           </button>
-                        } @else {
-                          <span class="text-gray-600">—</span>
                         }
                       </td>
                     </tr>

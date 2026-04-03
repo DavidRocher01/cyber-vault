@@ -30,13 +30,27 @@
       CyberScan surveille en continu vos sites web : vulnérabilités SSL, headers HTTP,
       threat intelligence, fuites de données et bien plus — avec rapport PDF complet.
     </p>
-    <div class="flex gap-4 mt-4">
+    <div class="flex gap-4 mt-4 flex-wrap justify-center">
       <a routerLink="/auth/register" mat-flat-button color="primary" class="text-lg px-8 py-3">
         Commencer gratuitement
       </a>
       <a href="#pricing" mat-stroked-button class="text-lg px-8 py-3 border-gray-600 text-gray-300">
         Voir les tarifs
       </a>
+    </div>
+  </section>
+
+  <!-- Animated Counters -->
+  <section class="bg-cyan-900/20 border-y border-cyan-900/40 px-8 py-12">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto text-center">
+      @for (counter of counters; track counter.label) {
+        <div>
+          <p class="text-5xl font-extrabold text-cyan-400">
+            {{ counter.current() }}{{ counter.suffix }}
+          </p>
+          <p class="text-gray-400 mt-2">{{ counter.label }}</p>
+        </div>
+      }
     </div>
   </section>
 
@@ -54,8 +68,35 @@
     </div>
   </section>
 
+  <!-- Testimonials -->
+  <section class="px-8 py-16">
+    <h2 class="text-3xl font-bold text-center mb-4">Ils nous font confiance</h2>
+    <p class="text-gray-400 text-center mb-12">Des équipes qui protègent leurs assets avec CyberScan</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+      @for (t of testimonials; track t.name) {
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 flex flex-col gap-4">
+          <div class="flex gap-1">
+            @for (s of [1,2,3,4,5]; track s) {
+              <mat-icon class="text-yellow-400 !text-[1rem] !w-[1rem] !h-[1rem]">star</mat-icon>
+            }
+          </div>
+          <p class="text-gray-300 text-sm leading-relaxed">"{{ t.text }}"</p>
+          <div class="flex items-center gap-3 mt-auto">
+            <div class="w-9 h-9 rounded-full bg-cyan-600 flex items-center justify-center font-bold text-sm">
+              {{ t.avatar }}
+            </div>
+            <div>
+              <p class="font-semibold text-sm">{{ t.name }}</p>
+              <p class="text-gray-500 text-xs">{{ t.role }}</p>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
   <!-- Pricing -->
-  <section id="pricing" class="px-8 py-20">
+  <section id="pricing" class="px-8 py-20 bg-gray-800/30">
     <h2 class="text-3xl font-bold text-center mb-4">Tarifs simples et transparents</h2>
     <p class="text-gray-400 text-center mb-12">Choisissez le plan adapté à vos besoins</p>
 
@@ -113,6 +154,30 @@
         }
       </div>
     }
+  </section>
+
+  <!-- FAQ -->
+  <section class="px-8 py-16">
+    <h2 class="text-3xl font-bold text-center mb-12">Questions fréquentes</h2>
+    <div class="max-w-3xl mx-auto flex flex-col gap-2">
+      @for (faq of faqs; track faq.q) {
+        <mat-expansion-panel class="bg-gray-800 border border-gray-700 rounded-xl shadow-none">
+          <mat-expansion-panel-header>
+            <mat-panel-title class="font-semibold text-white">{{ faq.q }}</mat-panel-title>
+          </mat-expansion-panel-header>
+          <p class="text-gray-400 text-sm leading-relaxed pt-2">{{ faq.a }}</p>
+        </mat-expansion-panel>
+      }
+    </div>
+  </section>
+
+  <!-- CTA final -->
+  <section class="px-8 py-20 text-center bg-cyan-900/20 border-t border-cyan-900/40">
+    <h2 class="text-3xl font-bold mb-4">Prêt à sécuriser votre site ?</h2>
+    <p class="text-gray-400 mb-8">Commencez en moins de 2 minutes. Sans carte bancaire pour démarrer.</p>
+    <a routerLink="/auth/register" mat-flat-button color="primary" class="text-lg px-10 py-4">
+      Démarrer gratuitement
+    </a>
   </section>
 
   <!-- Footer -->

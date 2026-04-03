@@ -1,10 +1,11 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule, NgClass } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatExpansionModule } from '@angular/material/expansion';
 
 import { CyberscanService, Plan } from '../services/cyberscan.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -20,6 +21,7 @@ import { AuthService } from '../../../core/services/auth.service';
     MatCardModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatExpansionModule,
   ],
   templateUrl: './landing.component.html',
 })
@@ -32,6 +34,12 @@ export class LandingComponent implements OnInit {
   loading = true;
   checkoutLoading: number | null = null;
 
+  counters = [
+    { label: 'sites scannés', target: 500, current: signal(0), suffix: '+' },
+    { label: 'vulnérabilités détectées', target: 12000, current: signal(0), suffix: '+' },
+    { label: 'disponibilité', target: 99, current: signal(0), suffix: '%' },
+  ];
+
   features = [
     { icon: 'security', title: 'Analyse SSL/TLS', desc: 'Audit complet des protocoles, chiffrements et certificats' },
     { icon: 'bug_report', title: 'Détection de vulnérabilités', desc: 'Headers HTTP, injections, XSS, CSRF et plus' },
@@ -41,10 +49,75 @@ export class LandingComponent implements OnInit {
     { icon: 'picture_as_pdf', title: 'Rapport PDF', desc: 'Rapport complet avec score de risque et recommandations' },
   ];
 
+  testimonials = [
+    {
+      name: 'Sophie M.',
+      role: 'CTO, StartupTech',
+      avatar: 'S',
+      text: 'CyberScan nous a permis de détecter une fuite de configuration en production avant qu\'elle ne soit exploitée. Indispensable.',
+      stars: 5,
+    },
+    {
+      name: 'Thomas R.',
+      role: 'Développeur indépendant',
+      avatar: 'T',
+      text: 'J\'utilise le plan Starter pour mes clients. Les rapports PDF sont clairs et je peux les transmettre directement sans explication.',
+      stars: 5,
+    },
+    {
+      name: 'Lucie B.',
+      role: 'RSSI, PME industrielle',
+      avatar: 'L',
+      text: 'Le scan hebdomadaire Business nous donne une visibilité continue sur nos 8 sites. La détection TLS est particulièrement précise.',
+      stars: 5,
+    },
+  ];
+
+  faqs = [
+    {
+      q: 'Qu\'est-ce que CyberScan analyse exactement ?',
+      a: 'CyberScan effectue une analyse non intrusive de votre site : headers de sécurité, configuration SSL/TLS, technologies exposées, JWT, redirections ouvertes, clickjacking, threat intelligence (Shodan, CVE) et bien d\'autres vérifications selon votre plan.',
+    },
+    {
+      q: 'Les scans sont-ils intrusifs ou dangereux pour mon site ?',
+      a: 'Non. Tous les scans sont passifs et non destructifs. Nous analysons les réponses publiques de votre serveur, sans jamais tenter d\'exploiter une vulnérabilité.',
+    },
+    {
+      q: 'Comment puis-je recevoir mon rapport ?',
+      a: 'Chaque scan génère un rapport PDF téléchargeable depuis votre dashboard. Pour les plans Pro et Business, le rapport est également envoyé automatiquement par email.',
+    },
+    {
+      q: 'Puis-je changer de plan à tout moment ?',
+      a: 'Oui. Vous pouvez upgrader ou downgrader votre plan depuis le portail de gestion Stripe accessible dans votre dashboard. Le changement prend effet immédiatement.',
+    },
+    {
+      q: 'Que se passe-t-il si une vulnérabilité critique est détectée ?',
+      a: 'Le rapport indique clairement le niveau de criticité (OK / WARNING / CRITICAL) avec des recommandations de remédiation pour chaque finding. Pour le plan Business, un email d\'alerte est envoyé immédiatement.',
+    },
+    {
+      q: 'Comment fonctionne la facturation ?',
+      a: 'La facturation est mensuelle, sans engagement, via Stripe. Vous pouvez résilier à tout moment depuis votre portail de gestion. Aucune donnée de paiement n\'est stockée sur nos serveurs.',
+    },
+  ];
+
   ngOnInit() {
     this.cyberscan.getPlans().subscribe({
       next: plans => { this.plans = plans; this.loading = false; },
       error: () => { this.loading = false; },
+    });
+    this.animateCounters();
+  }
+
+  animateCounters() {
+    this.counters.forEach(counter => {
+      const steps = 60;
+      const step = counter.target / steps;
+      let current = 0;
+      const timer = setInterval(() => {
+        current = Math.min(current + step, counter.target);
+        counter.current.set(Math.floor(current));
+        if (current >= counter.target) clearInterval(timer);
+      }, 30);
     });
   }
 

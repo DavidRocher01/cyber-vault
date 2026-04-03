@@ -1,0 +1,96 @@
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { interval } from 'rxjs';
+import { switchMap, takeWhile } from 'rxjs/operators';
+
+import { CyberscanService, Scan } from '../services/cyberscan.service';
+
+@Component({
+  selector: 'app-scan-detail',
+  standalone: true,
+  imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+  templateUrl: './scan-detail.component.html',
+})
+export class ScanDetailComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private cyberscan = inject(CyberscanService);
+
+  scan = signal<Scan | null>(null);
+  loading = signal(true);
+  error = signal<string | null>(null);
+
+  ngOnInit() {
+    const id = Number(this.route.snapshot.paramMap.get('id'));
+    this.loadScan(id);
+  }
+
+  loadScan(id: number) {
+    this.cyberscan.getScan(id).subscribe({
+      next: scan => {
+        this.scan.set(scan);
+        this.loading.set(false);
+        if (scan.status === 'pending' || scan.status === 'running') {
+          this.startPolling(id);
+        }
+      },
+      error: () => {
+        this.error.set('Scan introuvable');
+        this.loading.set(false);
+      },
+    });
+  }
+
+  startPolling(id: number) {
+    interval(4000).pipe(
+      switchMap(() => this.cyberscan.getScan(id)),
+      takeWhile(s => s.status === 'pending' || s.status === 'running', true),
+    ).subscribe(scan => this.scan.set(scan));
+  }
+
+  downloadPdf() {
+    const s = this.scan();
+    if (s) window.open(this.cyberscan.downloadPdf(s.id), '_blank');
+  }
+
+  get duration(): string {
+    const s = this.scan();
+    if (!s?.started_at || !s?.finished_at) return '—';
+    const ms = new Date(s.finished_at).getTime() - new Date(s.started_at).getTime();
+    const secs = Math.round(ms / 1000);
+    return secs < 60 ? `${secs}s` : `${Math.floor(secs / 60)}m ${secs % 60}s`;
+  }
+
+  statusColor(status: string | null): string {
+    switch (status) {
+      case 'OK': return 'text-green-400 bg-green-400/10 border-green-600';
+      case 'WARNING': return 'text-yellow-400 bg-yellow-400/10 border-yellow-600';
+      case 'CRITICAL': return 'text-red-400 bg-red-400/10 border-red-600';
+      default: return 'text-gray-400 bg-gray-400/10 border-gray-600';
+    }
+  }
+
+  statusIcon(status: string | null): string {
+    switch (status) {
+      case 'OK': return 'verified_user';
+      case 'WARNING': return 'warning';
+      case 'CRITICAL': return 'gpp_bad';
+      case 'done': return 'check_circle';
+      case 'pending': return 'schedule';
+      case 'running': return 'sync';
+      case 'error': return 'cancel';
+      default: return 'help_outline';
+    }
+  }
+
+  formatDate(d: string | null): string {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('fr-FR', {
+      day: '2-digit', month: 'long', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  }
+}
