@@ -7,6 +7,7 @@
       <span class="text-xl font-bold text-cyan-400">CyberScan</span>
     </div>
     <div class="flex items-center gap-2">
+      <a routerLink="/cyberscan/ressources" mat-button class="text-gray-300 hidden md:inline-flex">Ressources</a>
       <!-- Lang toggle -->
       <button type="button" mat-icon-button (click)="i18n.toggle()" title="Changer la langue" class="text-gray-400">
         <span class="text-sm font-bold">{{ i18n.lang() === 'fr' ? 'EN' : 'FR' }}</span>
