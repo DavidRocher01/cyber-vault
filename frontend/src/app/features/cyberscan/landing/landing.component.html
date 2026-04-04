@@ -23,7 +23,15 @@
   </nav>
 
   <!-- Hero -->
-  <section class="flex flex-col items-center text-center px-8 py-24 gap-6">
+  <section class="relative flex flex-col items-center text-center px-8 py-24 gap-6 overflow-hidden min-h-[600px]">
+    <!-- Globe background -->
+    <div class="absolute inset-0 z-0">
+      <app-globe class="block w-full h-full"></app-globe>
+    </div>
+    <!-- Gradient overlay for readability -->
+    <div class="absolute inset-0 z-10 bg-gradient-to-b from-gray-900/60 via-gray-900/30 to-gray-900/80 pointer-events-none"></div>
+    <!-- Content -->
+    <div class="relative z-20 flex flex-col items-center gap-6">
     <div class="inline-flex items-center gap-2 bg-cyan-900/40 text-cyan-400 px-5 py-2 rounded-full text-sm font-medium border border-cyan-700">
       <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">verified_user</mat-icon>
       Audit de sécurité automatisé
@@ -45,6 +53,7 @@
       </a>
     </div>
     <p class="text-gray-500 text-sm mt-1">Pas de carte bancaire requise · Scan complet en 2 minutes</p>
+    </div>
   </section>
 
   <!-- Animated Counters -->

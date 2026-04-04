@@ -8,6 +8,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatExpansionModule } from '@angular/material/expansion';
 
 import { CyberscanService, Plan } from '../services/cyberscan.service';
+import { GlobeComponent } from '../../../shared/globe/globe.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { I18nService } from '../../../core/services/i18n.service';
@@ -25,6 +26,7 @@ import { Title, Meta } from '@angular/platform-browser';
     MatIconModule,
     MatProgressSpinnerModule,
     MatExpansionModule,
+    GlobeComponent,
   ],
   templateUrl: './landing.component.html',
 })
