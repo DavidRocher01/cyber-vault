@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { Title } from '@angular/platform-browser';
+import { Title, Meta } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-bonnes-pratiques',
@@ -12,9 +12,13 @@ import { Title } from '@angular/platform-browser';
 })
 export class BonnesPratiquesComponent {
   private titleService = inject(Title);
+  private meta = inject(Meta);
 
   constructor() {
-    this.titleService.setTitle('Bonnes pratiques — CyberScan');
+    this.titleService.setTitle('Bonnes pratiques cybersécurité — CyberScan');
+    this.meta.updateTag({ name: 'description', content: 'Conseils pratiques pour renforcer votre sécurité : mots de passe, MFA, phishing, Wi-Fi public, sécurité physique. Accessibles à tous.' });
+    this.meta.updateTag({ property: 'og:title', content: 'Bonnes pratiques cybersécurité — CyberScan' });
+    this.meta.updateTag({ property: 'og:description', content: 'Mots de passe, MFA, phishing, Wi-Fi — les fondamentaux de la cybersécurité.' });
   }
 
   sections = [
