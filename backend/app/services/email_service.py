@@ -60,3 +60,31 @@ CyberScan — Cybersécurité as a Service
     with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, context=context) as server:
         server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
         server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
+
+
+def send_password_reset(to_email: str, reset_url: str) -> None:
+    """Send a password-reset link to the user."""
+    msg = MIMEMultipart()
+    msg["From"] = settings.SMTP_FROM
+    msg["To"] = to_email
+    msg["Subject"] = "[CyberScan] Réinitialisation de votre mot de passe"
+
+    body = f"""Bonjour,
+
+Vous avez demandé la réinitialisation de votre mot de passe CyberScan.
+
+Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe (valable 30 minutes) :
+
+{reset_url}
+
+Si vous n'avez pas fait cette demande, ignorez cet email — votre mot de passe reste inchangé.
+
+---
+CyberScan — Cybersécurité as a Service
+"""
+    msg.attach(MIMEText(body, "plain", "utf-8"))
+
+    context = ssl.create_default_context()
+    with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, context=context) as server:
+        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+        server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
