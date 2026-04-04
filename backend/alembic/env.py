@@ -13,6 +13,7 @@ import app.models.plan  # noqa: F401
 import app.models.subscription  # noqa: F401
 import app.models.site  # noqa: F401
 import app.models.scan  # noqa: F401
+import app.models.password_reset_token  # noqa: F401
 
 config = context.config
 
