@@ -23,13 +23,13 @@
   </nav>
 
   <!-- Hero -->
-  <section class="relative flex flex-col items-center text-center px-8 py-24 gap-6 overflow-hidden min-h-[600px]">
+  <section class="relative flex flex-col items-center text-center px-8 py-28 gap-6 overflow-hidden min-h-[680px]">
     <!-- Globe background -->
-    <div class="absolute inset-0 z-0">
+    <div class="absolute inset-0 z-0 pointer-events-none">
       <app-globe class="block w-full h-full"></app-globe>
     </div>
-    <!-- Gradient overlay for readability -->
-    <div class="absolute inset-0 z-10 bg-gradient-to-b from-gray-900/60 via-gray-900/30 to-gray-900/80 pointer-events-none"></div>
+    <!-- Bottom fade -->
+    <div class="absolute bottom-0 left-0 right-0 h-32 z-10 bg-gradient-to-t from-gray-900 to-transparent pointer-events-none"></div>
     <!-- Content -->
     <div class="relative z-20 flex flex-col items-center gap-6">
     <div class="inline-flex items-center gap-2 bg-cyan-900/40 text-cyan-400 px-5 py-2 rounded-full text-sm font-medium border border-cyan-700">
