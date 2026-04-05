@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatStepperModule } from '@angular/material/stepper';
@@ -17,7 +17,7 @@ import { CyberscanService, Plan } from '../services/cyberscan.service';
   selector: 'app-onboarding',
   standalone: true,
   imports: [
-    CommonModule, ReactiveFormsModule, RouterLink,
+    CommonModule, ReactiveFormsModule,
     MatButtonModule, MatIconModule, MatStepperModule,
     MatFormFieldModule, MatInputModule, MatProgressSpinnerModule, MatSnackBarModule,
   ],
