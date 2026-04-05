@@ -1,42 +1,46 @@
 <div class="min-h-screen bg-gray-900 text-white">
 
   <!-- Navbar -->
-  <nav class="flex items-center justify-between px-8 py-4 border-b border-gray-800">
-    <div class="flex items-center gap-2">
+  <nav class="flex items-center justify-between px-4 md:px-8 py-4 border-b border-gray-800 gap-2">
+    <a routerLink="/cyberscan" class="flex items-center gap-2 flex-shrink-0">
       <mat-icon class="text-cyan-400">shield</mat-icon>
       <span class="text-xl font-bold text-cyan-400">CyberScan</span>
-    </div>
-    <div class="flex items-center gap-2">
-      <a routerLink="/cyberscan/ressources" mat-button class="text-gray-300 hidden md:inline-flex">Ressources</a>
-      <a routerLink="/cyberscan/bonnes-pratiques" mat-button class="text-gray-300 hidden md:inline-flex">Bonnes pratiques</a>
+    </a>
+    <div class="flex items-center gap-1 md:gap-2">
+      <a routerLink="/cyberscan/ressources" mat-button class="!text-white font-medium hidden lg:inline-flex">Ressources</a>
+      <a routerLink="/cyberscan/bonnes-pratiques" mat-button class="!text-white font-medium hidden lg:inline-flex">Bonnes pratiques</a>
       <!-- Lang toggle -->
-      <button type="button" mat-icon-button (click)="i18n.toggle()" title="Changer la langue" class="text-gray-400">
+      <button type="button" mat-button (click)="i18n.toggle()" title="Changer la langue" class="!text-white font-medium hidden sm:inline-flex">
         <span class="text-sm font-bold">{{ i18n.lang() === 'fr' ? 'EN' : 'FR' }}</span>
       </button>
-      <!-- Theme toggle -->
-      <button type="button" mat-icon-button (click)="themeService.toggle()" title="Changer le thème" class="text-gray-400">
-        <mat-icon>{{ themeService.theme() === 'dark' ? 'light_mode' : 'dark_mode' }}</mat-icon>
-      </button>
       @if (isLoggedIn) {
-        <a routerLink="/cyberscan/dashboard" mat-button class="text-gray-300">{{ i18n.t('nav.dashboard') }}</a>
+        <a routerLink="/cyberscan/dashboard" mat-button class="!text-white font-medium">Dashboard</a>
       } @else {
-        <a routerLink="/auth/login" mat-button class="text-gray-300">Connexion</a>
-        <a routerLink="/auth/register" mat-flat-button color="primary">S'inscrire</a>
+        <a routerLink="/auth/login" mat-button class="!text-white font-medium">Connexion</a>
+        <a routerLink="/auth/register" mat-flat-button color="primary" class="flex-shrink-0">S'inscrire</a>
       }
     </div>
   </nav>
 
   <!-- Hero -->
-  <section class="flex flex-col items-center text-center px-8 py-24 gap-6">
-    <div class="inline-flex items-center gap-2 bg-cyan-900/40 text-cyan-400 px-4 py-1 rounded-full text-sm font-medium border border-cyan-700">
-      <mat-icon class="text-sm">verified_user</mat-icon>
+  <section class="relative flex flex-col items-center text-center px-8 py-28 gap-6 overflow-hidden min-h-[680px]">
+    <!-- Globe background -->
+    <div class="absolute inset-0 z-0 pointer-events-none">
+      <app-globe class="block w-full h-full"></app-globe>
+    </div>
+    <!-- Bottom fade -->
+    <div class="absolute bottom-0 left-0 right-0 h-32 z-10 bg-gradient-to-t from-gray-900 to-transparent pointer-events-none"></div>
+    <!-- Content -->
+    <div class="relative z-20 flex flex-col items-center gap-6">
+    <div class="inline-flex items-center gap-2 bg-cyan-900/40 text-cyan-400 px-5 py-2 rounded-full text-sm font-medium border border-cyan-700">
+      <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">verified_user</mat-icon>
       Audit de sécurité automatisé
     </div>
-    <h1 class="text-5xl font-extrabold leading-tight max-w-3xl">
+    <h1 class="text-5xl font-extrabold leading-[1.1] max-w-3xl">
       Scannez votre site web,<br />
       <span class="text-cyan-400">protégez votre réputation</span>
     </h1>
-    <p class="text-gray-400 text-xl max-w-2xl">
+    <p class="text-gray-300 text-xl max-w-2xl">
       CyberScan surveille en continu vos sites web : vulnérabilités SSL, headers HTTP,
       threat intelligence, fuites de données et bien plus — avec rapport PDF complet.
     </p>
@@ -44,21 +48,24 @@
       <a routerLink="/auth/register" mat-flat-button color="primary" class="text-lg px-8 py-3">
         Commencer gratuitement
       </a>
-      <a href="#pricing" mat-stroked-button class="text-lg px-8 py-3 border-gray-600 text-gray-300">
+      <a href="#pricing" mat-stroked-button class="text-lg px-8 py-3 !border-gray-400 text-gray-200">
         Voir les tarifs
       </a>
+    </div>
+    <p class="text-gray-500 text-sm mt-1">Pas de carte bancaire requise · Scan complet en 2 minutes</p>
     </div>
   </section>
 
   <!-- Animated Counters -->
-  <section class="bg-cyan-900/20 border-y border-cyan-900/40 px-8 py-12">
+  <section class="bg-cyan-900/20 border-y border-cyan-900/40 px-8 py-14">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto text-center">
       @for (counter of counters; track counter.label) {
         <div>
+          <mat-icon class="text-cyan-400 mb-2 !text-[2rem] !w-[2rem] !h-[2rem]">{{ counter.icon }}</mat-icon>
           <p class="text-5xl font-extrabold text-cyan-400">
             {{ counter.current() }}{{ counter.suffix }}
           </p>
-          <p class="text-gray-400 mt-2">{{ counter.label }}</p>
+          <p class="text-gray-300 mt-2">{{ counter.label }}</p>
         </div>
       }
     </div>
@@ -67,12 +74,15 @@
   <!-- Features -->
   <section class="px-8 py-16 bg-gray-800/50">
     <h2 class="text-3xl font-bold text-center mb-12">Ce que nous analysons</h2>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
       @for (feature of features; track feature.title) {
-        <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 hover:border-cyan-700 transition-colors">
+        <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 hover:border-cyan-600 hover:shadow-lg hover:shadow-cyan-900/20 transition-all cursor-default">
           <mat-icon class="text-cyan-400 mb-3 !text-[2rem] !w-[2rem] !h-[2rem]">{{ feature.icon }}</mat-icon>
-          <h3 class="text-lg font-semibold mb-2">{{ feature.title }}</h3>
-          <p class="text-gray-400 text-sm">{{ feature.desc }}</p>
+          <h3 class="text-lg font-semibold mb-2 flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block flex-shrink-0"></span>
+            {{ feature.title }}
+          </h3>
+          <p class="text-gray-300 text-sm leading-relaxed">{{ feature.desc }}</p>
         </div>
       }
     </div>
@@ -80,8 +90,8 @@
 
   <!-- Testimonials -->
   <section class="px-8 py-16">
-    <h2 class="text-3xl font-bold text-center mb-4">Ils nous font confiance</h2>
-    <p class="text-gray-400 text-center mb-12">Des équipes qui protègent leurs assets avec CyberScan</p>
+    <h2 class="text-3xl font-bold text-center mb-2">Ils nous font confiance</h2>
+    <p class="text-gray-300 text-center mb-10">Des équipes qui protègent leurs assets avec CyberScan</p>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
       @for (t of testimonials; track t.name) {
         <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 flex flex-col gap-4">
@@ -92,12 +102,12 @@
           </div>
           <p class="text-gray-300 text-sm leading-relaxed">"{{ t.text }}"</p>
           <div class="flex items-center gap-3 mt-auto">
-            <div class="w-9 h-9 rounded-full bg-cyan-600 flex items-center justify-center font-bold text-sm">
+            <div class="w-9 h-9 rounded-full bg-cyan-600 flex items-center justify-center font-bold text-sm flex-shrink-0">
               {{ t.avatar }}
             </div>
             <div>
               <p class="font-semibold text-sm">{{ t.name }}</p>
-              <p class="text-gray-500 text-xs">{{ t.role }}</p>
+              <p class="text-gray-400 text-xs">{{ t.role }}</p>
             </div>
           </div>
         </div>
@@ -108,35 +118,30 @@
   <!-- Audits ponctuels -->
   <section id="audits" class="px-8 py-20 border-t border-gray-800">
     <h2 class="text-3xl font-bold text-center mb-3">Audits à la demande</h2>
-    <p class="text-gray-400 text-center mb-12">Des diagnostics complets, réalisés par un expert, avec rapport détaillé et plan d'action</p>
+    <p class="text-gray-300 text-center mb-12">Des diagnostics complets, réalisés par un expert, avec rapport détaillé et plan d'action</p>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
       @for (offer of auditOffers; track offer.name) {
         <div class="relative rounded-2xl border p-8 flex flex-col gap-5 transition-all"
              [class.border-cyan-500]="offer.featured"
              [class.border-gray-700]="!offer.featured"
              [class.scale-105]="offer.featured"
-             [class.bg-gray-800]="!offer.featured"
-             [class.bg-gray-800\/80]="offer.featured">
-
+             [ngClass]="offer.featured ? 'bg-gray-800/80' : 'bg-gray-800'">
           @if (offer.badge) {
             <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-500 text-gray-900 text-xs font-bold px-3 py-1 rounded-full">
               {{ offer.badge }}
             </div>
           }
-
           <div class="flex items-center gap-3">
             <mat-icon class="text-cyan-400 !text-[1.5rem] !w-[1.5rem] !h-[1.5rem]">{{ offer.icon }}</mat-icon>
             <h3 class="text-xl font-bold">{{ offer.name }}</h3>
           </div>
-
           <div>
             <div class="flex items-end gap-2 mb-1">
               <span class="text-4xl font-extrabold text-cyan-400">{{ offer.price }}</span>
               <span class="text-gray-400 mb-1">HT</span>
             </div>
-            <p class="text-xs text-gray-500">{{ offer.duration }} de travail · {{ offer.target }}</p>
+            <p class="text-xs text-gray-400">{{ offer.duration }} de travail · {{ offer.target }}</p>
           </div>
-
           <div class="flex flex-col gap-2 flex-1" role="list">
             @for (item of offer.items; track item) {
               <div role="listitem" class="flex items-start gap-2 text-sm text-gray-300">
@@ -145,7 +150,6 @@
               </div>
             }
           </div>
-
           <a href="mailto:contact@cyberscan.fr?subject=Demande audit {{ offer.name }}"
              mat-flat-button
              [color]="offer.featured ? 'primary' : undefined"
@@ -164,8 +168,8 @@
 
   <!-- Pricing -->
   <section id="pricing" class="px-8 py-20 bg-gray-800/30">
-    <h2 class="text-3xl font-bold text-center mb-4">Tarifs simples et transparents</h2>
-    <p class="text-gray-400 text-center mb-12">Choisissez le plan adapté à vos besoins</p>
+    <h2 class="text-3xl font-bold text-center mb-3">Tarifs simples et transparents</h2>
+    <p class="text-gray-300 text-center mb-12">Choisissez le plan adapté à vos besoins</p>
 
     @if (loading) {
       <div class="flex justify-center">
@@ -178,7 +182,7 @@
                [class.border-cyan-500]="plan.name === 'pro'"
                [class.border-gray-700]="plan.name !== 'pro'"
                [class.scale-105]="plan.name === 'pro'"
-               [ngClass]="plan.name === 'pro' ? 'bg-gray-800/80' : 'bg-gray-800'">
+               [ngClass]="plan.name === 'pro' ? 'bg-gray-800/80 shadow-xl shadow-cyan-900/30' : 'bg-gray-800'">
 
             @if (getPlanBadge(plan)) {
               <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-500 text-gray-900 text-xs font-bold px-3 py-1 rounded-full">
@@ -225,46 +229,49 @@
 
   <!-- Comparison Table -->
   <section class="px-8 py-16 bg-gray-800/30">
-    <h2 class="text-3xl font-bold text-center mb-12">Comparez les plans</h2>
+    <h2 class="text-3xl font-bold text-center mb-3">Comparez les plans</h2>
+    <p class="text-gray-400 text-center mb-10">Toutes les fonctionnalités en un coup d'œil</p>
     <div class="max-w-4xl mx-auto overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-gray-700">
-            <th class="text-left py-3 px-4 text-gray-400 w-1/2">Fonctionnalité</th>
-            <th class="text-center py-3 px-4 font-bold">Starter</th>
-            <th class="text-center py-3 px-4 font-bold text-cyan-400">Pro</th>
-            <th class="text-center py-3 px-4 font-bold">Business</th>
+          <tr class="border-b-2 border-gray-700">
+            <th class="text-left py-4 px-4 text-gray-300 uppercase text-xs tracking-wider w-1/2">Fonctionnalité</th>
+            <th class="text-center py-4 px-4 font-bold uppercase text-xs tracking-wider">Starter</th>
+            <th class="text-center py-4 px-4 font-bold uppercase text-xs tracking-wider text-cyan-400 bg-cyan-900/10">Pro</th>
+            <th class="text-center py-4 px-4 font-bold uppercase text-xs tracking-wider">Business</th>
           </tr>
         </thead>
         <tbody>
-          @for (row of comparisonRows; track row.label) {
-            <tr class="border-b border-gray-700/50 hover:bg-gray-800/50 transition-colors">
-              <td class="py-3 px-4 text-gray-300">{{ row.label }}</td>
+          @for (row of comparisonRows; track row.label; let odd = $odd) {
+            <tr class="border-b border-gray-700/50 hover:bg-gray-700/20 transition-colors"
+                [ngClass]="odd ? 'bg-gray-800/30' : ''"
+            >
+              <td class="py-3 px-4 text-gray-200">{{ row.label }}</td>
               <td class="py-3 px-4 text-center">
                 @if (row.starter === true) {
-                  <mat-icon class="text-green-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">check_circle</mat-icon>
+                  <mat-icon class="text-green-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">check_circle</mat-icon>
                 } @else if (row.starter === false) {
-                  <mat-icon class="text-gray-600 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">remove</mat-icon>
+                  <mat-icon class="text-gray-600 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">remove_circle_outline</mat-icon>
                 } @else {
-                  <span class="text-gray-300">{{ row.starter }}</span>
+                  <span class="text-gray-300 font-medium">{{ row.starter }}</span>
                 }
               </td>
               <td class="py-3 px-4 text-center bg-cyan-900/10">
                 @if (row.pro === true) {
-                  <mat-icon class="text-green-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">check_circle</mat-icon>
+                  <mat-icon class="text-green-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">check_circle</mat-icon>
                 } @else if (row.pro === false) {
-                  <mat-icon class="text-gray-600 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">remove</mat-icon>
+                  <mat-icon class="text-gray-600 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">remove_circle_outline</mat-icon>
                 } @else {
-                  <span class="text-gray-300">{{ row.pro }}</span>
+                  <span class="text-gray-300 font-medium">{{ row.pro }}</span>
                 }
               </td>
               <td class="py-3 px-4 text-center">
                 @if (row.business === true) {
-                  <mat-icon class="text-green-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">check_circle</mat-icon>
+                  <mat-icon class="text-green-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">check_circle</mat-icon>
                 } @else if (row.business === false) {
-                  <mat-icon class="text-gray-600 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">remove</mat-icon>
+                  <mat-icon class="text-gray-600 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">remove_circle_outline</mat-icon>
                 } @else {
-                  <span class="text-gray-300">{{ row.business }}</span>
+                  <span class="text-gray-300 font-medium">{{ row.business }}</span>
                 }
               </td>
             </tr>
@@ -274,67 +281,196 @@
     </div>
   </section>
 
-  <!-- Newsletter -->
-  <section class="px-8 py-16 bg-gray-800/50 border-t border-gray-800">
-    <div class="max-w-3xl mx-auto text-center">
-      <div class="inline-flex items-center gap-2 bg-cyan-900/30 text-cyan-400 px-3 py-1 rounded-full text-xs font-medium border border-cyan-800 mb-5">
-        Bientôt disponible
+  <!-- FAQ -->
+  <section class="px-8 py-20 bg-gray-900 relative overflow-hidden">
+    <!-- Decorative glow -->
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-1 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
+
+    <div class="max-w-3xl mx-auto">
+      <!-- Header -->
+      <div class="text-center mb-12">
+        <div class="inline-flex items-center gap-2 bg-cyan-900/30 text-cyan-400 px-3 py-1 rounded-full text-xs font-medium border border-cyan-800 mb-4">
+          <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">help_outline</mat-icon>
+          FAQ
+        </div>
+        <h2 class="text-3xl font-bold mb-3">Questions fréquentes</h2>
+        <p class="text-gray-400 text-sm">Tout ce que vous devez savoir avant de commencer</p>
       </div>
-      <h2 class="text-3xl font-bold mb-3">Le Radar Cyber</h2>
-      <p class="text-gray-400 mb-10 max-w-xl mx-auto">
-        Le brief hebdomadaire pour comprendre les menaces mondiales et protéger votre entreprise — en 5 minutes de lecture.
-      </p>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-left mb-10">
-        @for (item of newsletterItems; track item.title) {
-          <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
-            <mat-icon class="text-cyan-400 mb-3 !text-[1.5rem] !w-[1.5rem] !h-[1.5rem]">{{ item.icon }}</mat-icon>
-            <h3 class="font-semibold text-sm mb-1">{{ item.title }}</h3>
-            <p class="text-gray-400 text-xs leading-relaxed">{{ item.desc }}</p>
+
+      <!-- Accordion -->
+      <div class="flex flex-col gap-3">
+        @for (faq of faqs; track faq.q; let i = $index) {
+          <div class="rounded-2xl border transition-all duration-200 overflow-hidden"
+               [ngClass]="openFaqIndex() === i
+                 ? 'border-cyan-700 bg-gray-800'
+                 : 'border-gray-700 bg-gray-800/40'">
+
+            <!-- Question row -->
+            <button type="button"
+                    (click)="toggleFaq(i)"
+                    class="w-full flex items-center justify-between gap-4 px-6 py-5 text-left group">
+              <div class="flex items-center gap-4">
+                <span class="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors"
+                      [class.bg-cyan-500]="openFaqIndex() === i"
+                      [class.text-gray-900]="openFaqIndex() === i"
+                      [class.bg-gray-700]="openFaqIndex() !== i"
+                      [class.text-gray-400]="openFaqIndex() !== i">
+                  {{ i + 1 }}
+                </span>
+                <span class="font-semibold text-sm md:text-base leading-snug"
+                      [class.text-white]="openFaqIndex() === i"
+                      [class.text-gray-200]="openFaqIndex() !== i">
+                  {{ faq.q }}
+                </span>
+              </div>
+              <mat-icon class="flex-shrink-0 transition-transform duration-300 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]"
+                        [class.text-cyan-400]="openFaqIndex() === i"
+                        [class.text-gray-500]="openFaqIndex() !== i"
+                        [class.rotate-45]="openFaqIndex() === i">
+                add
+              </mat-icon>
+            </button>
+
+            <!-- Answer -->
+            @if (openFaqIndex() === i) {
+              <div class="px-6 pb-5 pl-[4.25rem]">
+                <p class="text-gray-300 text-sm leading-relaxed">{{ faq.a }}</p>
+              </div>
+            }
+
           </div>
         }
       </div>
-      <button type="button" mat-flat-button color="primary" disabled class="opacity-50 px-8 py-3">
-        S'abonner — Prochainement
-      </button>
+
+      <!-- Bottom CTA -->
+      <p class="text-center text-gray-500 text-sm mt-10">
+        Une autre question ?
+        <a href="mailto:contact@cyberscan.fr" class="text-cyan-400 hover:text-cyan-300 transition-colors ml-1">Contactez-nous</a>
+      </p>
     </div>
   </section>
 
-  <!-- FAQ -->
-  <section class="px-8 py-16">
-    <h2 class="text-3xl font-bold text-center mb-12">Questions fréquentes</h2>
-    <div class="max-w-3xl mx-auto flex flex-col gap-2">
-      @for (faq of faqs; track faq.q) {
-        <mat-expansion-panel class="bg-gray-800 border border-gray-700 rounded-xl shadow-none">
-          <mat-expansion-panel-header>
-            <mat-panel-title class="font-semibold text-white">{{ faq.q }}</mat-panel-title>
-          </mat-expansion-panel-header>
-          <p class="text-gray-400 text-sm leading-relaxed pt-2">{{ faq.a }}</p>
-        </mat-expansion-panel>
+  <!-- Newsletter -->
+  <section class="px-8 py-16 bg-gray-800/50 border-t border-gray-800">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-10">
+        <div class="inline-flex items-center gap-2 bg-cyan-900/30 text-cyan-400 px-3 py-1 rounded-full text-xs font-medium border border-cyan-800 mb-4">
+          Gratuit · Toutes les 2 semaines
+        </div>
+        <h2 class="text-3xl font-bold mb-3">Le Radar Cyber</h2>
+        <p class="text-gray-300 max-w-xl mx-auto">
+          Le brief bimensuel pour comprendre les menaces mondiales et protéger votre entreprise — en 5 minutes de lecture.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+        @for (item of newsletterItems; track item.title) {
+          <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 text-left">
+            <mat-icon class="text-cyan-400 mb-3 !text-[1.5rem] !w-[1.5rem] !h-[1.5rem]">{{ item.icon }}</mat-icon>
+            <h3 class="font-semibold text-sm mb-1">{{ item.title }}</h3>
+            <p class="text-gray-300 text-xs leading-relaxed">{{ item.desc }}</p>
+          </div>
+        }
+      </div>
+
+      <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden mb-8">
+        <div class="px-5 py-3 border-b border-gray-700 text-xs font-bold text-gray-300 uppercase tracking-wider grid grid-cols-3 gap-4">
+          <span>Semaine</span>
+          <span>Actualité Monde</span>
+          <span>Bon Réflexe</span>
+        </div>
+        @for (row of newsletterSchedule; track row.week; let odd = $odd) {
+          <div class="px-5 py-3 border-b border-gray-700/50 text-sm grid grid-cols-3 gap-4 hover:bg-gray-700/30 transition-colors"
+               [ngClass]="odd ? 'bg-gray-800/50' : ''">
+            <span class="text-cyan-400 font-mono">S{{ row.week }}</span>
+            <span class="text-gray-300">{{ row.actu }}</span>
+            <span class="text-gray-400">{{ row.reflex }}</span>
+          </div>
+        }
+      </div>
+
+      <!-- Formulaire d'inscription -->
+      @if (newsletterSent) {
+        <div class="flex flex-col items-center gap-3 text-center py-8">
+          <div class="w-16 h-16 rounded-full bg-green-900/40 border border-green-700 flex items-center justify-center mx-auto">
+            <mat-icon class="text-green-400 !text-[2rem] !w-[2rem] !h-[2rem]">mark_email_read</mat-icon>
+          </div>
+          <p class="text-xl font-semibold text-white">C'est dans la boîte !</p>
+          <p class="text-gray-400 text-sm max-w-xs">Vérifiez votre boîte mail. La prochaine édition arrive dans moins de deux semaines.</p>
+        </div>
+      } @else {
+        <form [formGroup]="newsletterForm" (ngSubmit)="subscribeNewsletter()" class="max-w-lg mx-auto">
+          <!-- Capsule input + bouton -->
+          <div class="flex items-center bg-gray-900 border rounded-2xl overflow-hidden transition-all focus-within:ring-2 focus-within:ring-cyan-500"
+               [class.border-red-600]="newsletterForm.get('email')?.invalid && newsletterForm.get('email')?.touched"
+               [class.border-gray-700]="!(newsletterForm.get('email')?.invalid && newsletterForm.get('email')?.touched)">
+            <mat-icon class="text-gray-500 ml-4 flex-shrink-0 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">mail</mat-icon>
+            <input
+              type="email"
+              formControlName="email"
+              placeholder="votre@email.com"
+              autocomplete="email"
+              class="flex-1 bg-transparent px-4 py-4 text-sm text-white placeholder-gray-500 outline-none"
+            />
+            <button
+              type="submit"
+              [disabled]="newsletterLoading || newsletterForm.invalid"
+              class="m-1.5 px-5 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 font-semibold text-sm flex-shrink-0 transition-colors flex items-center gap-2">
+              @if (newsletterLoading) {
+                <mat-spinner diameter="16" class="!text-gray-900"></mat-spinner>
+              } @else {
+                S'abonner
+                <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_forward</mat-icon>
+              }
+            </button>
+          </div>
+
+          @if (newsletterError) {
+            <p class="text-sm mt-2 px-1"
+               [class.text-yellow-400]="newsletterError.includes('déjà')"
+               [class.text-red-400]="!newsletterError.includes('déjà')">
+              {{ newsletterError }}
+            </p>
+          }
+        </form>
+
+        <p class="text-center text-xs text-gray-500 mt-4">
+          Toutes les 2 semaines · Désabonnement en 1 clic · Aucun spam
+        </p>
       }
     </div>
   </section>
 
   <!-- CTA final -->
-  <section class="px-8 py-20 text-center bg-cyan-900/20 border-t border-cyan-900/40">
-    <h2 class="text-3xl font-bold mb-4">Prêt à sécuriser votre site ?</h2>
-    <p class="text-gray-400 mb-8">Commencez en moins de 2 minutes. Sans carte bancaire pour démarrer.</p>
-    <a routerLink="/auth/register" mat-flat-button color="primary" class="text-lg px-10 py-4">
-      Démarrer gratuitement
-    </a>
+  <section class="px-8 py-20 text-center bg-cyan-900/20 border-t border-cyan-900/40 relative overflow-hidden">
+    <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5">
+      <mat-icon class="!text-[20rem] !w-[20rem] !h-[20rem] text-cyan-400">shield</mat-icon>
+    </div>
+    <div class="relative z-10">
+      <h2 class="text-3xl font-bold mb-4">Prêt à sécuriser votre site ?</h2>
+      <p class="text-gray-300 mb-8">Commencez en moins de 2 minutes. Sans carte bancaire pour démarrer.</p>
+      <a routerLink="/auth/register" mat-flat-button color="primary"
+         class="text-lg px-10 py-4 shadow-lg shadow-cyan-900/50">
+        Démarrer gratuitement
+      </a>
+      <p class="text-gray-500 text-sm mt-4">Pas de carte bancaire requise · Annulation à tout moment</p>
+    </div>
   </section>
 
   <!-- Footer -->
-  <footer class="border-t border-gray-800 px-8 py-10 text-gray-500 text-sm">
+  <footer class="border-t border-gray-800 px-8 py-10 text-gray-400 text-sm">
     <div class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
       <div>
         <div class="flex items-center gap-2 mb-3">
           <mat-icon class="text-cyan-400">shield</mat-icon>
           <span class="font-bold text-cyan-400">CyberScan</span>
         </div>
-        <p class="text-xs leading-relaxed">Audit de sécurité web automatisé. Les scans sont réalisés de manière non intrusive sur vos propres domaines.</p>
+        <p class="text-xs leading-relaxed text-gray-400">
+          Audit de sécurité web automatisé. Les scans sont réalisés de manière non intrusive sur vos propres domaines.
+        </p>
       </div>
       <div>
-        <p class="font-semibold text-gray-400 mb-3">Ressources</p>
+        <p class="font-semibold text-gray-300 mb-3">Ressources</p>
         <div class="flex flex-col gap-2 text-xs">
           <a routerLink="/cyberscan/ressources" class="hover:text-cyan-400 transition-colors">Liens & Outils utiles</a>
           <a routerLink="/cyberscan/bonnes-pratiques" class="hover:text-cyan-400 transition-colors">Bonnes pratiques</a>
@@ -343,16 +479,18 @@
         </div>
       </div>
       <div>
-        <p class="font-semibold text-gray-400 mb-3">Compte</p>
+        <p class="font-semibold text-gray-300 mb-3">Légal & Contact</p>
         <div class="flex flex-col gap-2 text-xs">
           <a routerLink="/auth/login" class="hover:text-cyan-400 transition-colors">Connexion</a>
           <a routerLink="/auth/register" class="hover:text-cyan-400 transition-colors">Créer un compte</a>
-          <a routerLink="/cyberscan/dashboard" class="hover:text-cyan-400 transition-colors">Dashboard</a>
+          <a href="mailto:contact@cyberscan.fr" class="hover:text-cyan-400 transition-colors">Contact</a>
+          <a routerLink="/cyberscan/mentions-legales" class="hover:text-cyan-400 transition-colors">Mentions légales</a>
+          <a routerLink="/cyberscan/cgu" class="hover:text-cyan-400 transition-colors">CGU</a>
         </div>
       </div>
     </div>
-    <div class="border-t border-gray-800 pt-6 text-center text-xs">
-      © 2025 CyberScan. Tous droits réservés.
+    <div class="border-t border-gray-800 pt-6 text-center text-xs text-gray-500">
+      © 2025 CyberScan. Tous droits réservés. Les scans sont passifs et non intrusifs.
     </div>
   </footer>
 

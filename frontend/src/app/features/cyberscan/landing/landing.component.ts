@@ -1,13 +1,18 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule, NgClass } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatExpansionModule } from '@angular/material/expansion';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { environment } from '../../../../environments/environment';
 
 import { CyberscanService, Plan } from '../services/cyberscan.service';
+import { GlobeComponent } from '../../../shared/globe/globe.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { I18nService } from '../../../core/services/i18n.service';
@@ -20,11 +25,14 @@ import { Title, Meta } from '@angular/platform-browser';
     CommonModule,
     NgClass,
     RouterLink,
+    ReactiveFormsModule,
     MatButtonModule,
     MatCardModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatExpansionModule,
+    GlobeComponent,
+    MatFormFieldModule,
+    MatInputModule,
   ],
   templateUrl: './landing.component.html',
 })
@@ -32,6 +40,8 @@ export class LandingComponent implements OnInit {
   private cyberscan = inject(CyberscanService);
   private auth = inject(AuthService);
   private router = inject(Router);
+  private http = inject(HttpClient);
+  private fb = inject(FormBuilder);
   private titleService = inject(Title);
   private meta = inject(Meta);
   readonly themeService = inject(ThemeService);
@@ -40,11 +50,37 @@ export class LandingComponent implements OnInit {
   plans: Plan[] = [];
   loading = true;
   checkoutLoading: number | null = null;
+  openFaqIndex = signal<number | null>(null);
+
+  toggleFaq(index: number) {
+    this.openFaqIndex.update(i => (i === index ? null : index));
+  }
+
+  // Newsletter
+  newsletterForm = this.fb.nonNullable.group({
+    email: ['', [Validators.required, Validators.email]],
+  });
+  newsletterLoading = false;
+  newsletterSent = false;
+  newsletterError: string | null = null;
+
+  subscribeNewsletter() {
+    if (this.newsletterForm.invalid) return;
+    this.newsletterLoading = true;
+    this.newsletterError = null;
+    this.http.post(`${environment.apiUrl}/newsletter/subscribe`, this.newsletterForm.getRawValue()).subscribe({
+      next: () => { this.newsletterSent = true; this.newsletterLoading = false; },
+      error: err => {
+        this.newsletterError = err.status === 409 ? 'Vous êtes déjà abonné(e) !' : 'Une erreur est survenue. Réessayez.';
+        this.newsletterLoading = false;
+      },
+    });
+  }
 
   counters = [
-    { label: 'sites scannés', target: 500, current: signal(0), suffix: '+' },
-    { label: 'vulnérabilités détectées', target: 12000, current: signal(0), suffix: '+' },
-    { label: 'disponibilité', target: 99, current: signal(0), suffix: '%' },
+    { label: 'sites scannés', icon: 'language', target: 500, current: signal(0), suffix: '+' },
+    { label: 'vulnérabilités détectées', icon: 'bug_report', target: 12000, current: signal(0), suffix: '+' },
+    { label: 'disponibilité', icon: 'verified', target: 99, current: signal(0), suffix: '%' },
   ];
 
   features = [
@@ -161,9 +197,18 @@ export class LandingComponent implements OnInit {
   ];
 
   newsletterItems = [
-    { icon: 'public', title: 'Flash International', desc: 'Une cyberattaque majeure décryptée chaque semaine avec le risque local estimé' },
+    { icon: 'public', title: 'Flash International', desc: 'Une cyberattaque majeure décryptée chaque semaine avec l\'impact estimé et le risque local' },
     { icon: 'lightbulb', title: 'Le Bon Réflexe', desc: 'Une pratique simple en 2 minutes qui bloque 80% des attaques basiques' },
-    { icon: 'gavel', title: 'Coin des Dirigeants', desc: 'Réglementation française, lois et conseils pour sensibiliser vos équipes' },
+    { icon: 'gavel', title: 'Coin des Dirigeants', desc: 'Réglementation française, lois cyber et conseils pour sensibiliser vos équipes' },
+  ];
+
+  newsletterSchedule = [
+    { week: '01', actu: 'Piratage d\'un hôpital aux USA', reflex: 'Activer la Double Authentification (MFA)' },
+    { week: '02', actu: 'Vol de données massif en Corée', reflex: 'Utiliser un gestionnaire de mots de passe' },
+    { week: '03', actu: 'Deepfake vocal d\'un PDG à Londres', reflex: 'Créer un "mot de passe verbal" pour les virements' },
+    { week: '04', actu: 'Failles dans les objets connectés (IoT)', reflex: 'Changer le mot de passe par défaut de sa box/caméra' },
+    { week: '05', actu: 'Ransomware sur une mairie en Espagne', reflex: 'Vérifier que sa sauvegarde est "hors-ligne"' },
+    { week: '06', actu: 'Fraude aux faux QR codes au Japon', reflex: 'Ne jamais scanner un QR code public sans douter' },
   ];
 
   comparisonRows = [

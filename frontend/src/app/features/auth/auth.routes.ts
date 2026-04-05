@@ -11,6 +11,16 @@ export const AUTH_ROUTES: Routes = [
     loadComponent: () => import('./register/register.component').then(m => m.RegisterComponent),
   },
   {
+    path: 'forgot-password',
+    loadComponent: () => import('./forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent),
+    title: 'Mot de passe oublié — CyberScan',
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () => import('./reset-password/reset-password.component').then(m => m.ResetPasswordComponent),
+    title: 'Nouveau mot de passe — CyberScan',
+  },
+  {
     path: 'master-password',
     canActivate: [authGuard],
     loadComponent: () =>

@@ -1,0 +1,159 @@
+Offres audit
+
+
+1. Solution "FLASH" (L'entrée de gamme)
+
+Cible : Indépendants, petits sites vitrines ou blogs.
+C'est un diagnostic rapide, presque entièrement automatisé, qui sert de "prise de conscience" pour le client.
+
+    Contenu technique :
+
+        Scan de vulnérabilités externes (OWASP ZAP / Nuclei).
+
+        Analyse de la configuration SSL/TLS (SSL Labs).
+
+        Vérification des headers HTTP de base.
+
+        Scan de ports (Nmap) pour vérifier l'exposition du serveur.
+
+    Livrable : Un rapport synthétique de 3-5 pages avec un score de sécurité (A à F).
+
+    Temps de travail : ~2 à 3 heures.
+
+    Prix conseillé : 450 € à 600 € HT.
+
+2. Solution "APP-CHECK" (Spécialité Angular/FastAPI)
+
+Cible : Startups, SaaS, applications métiers avec espace client.
+C'est ici que tu valorises ton expertise de développeur. Tu ne regardes pas seulement la "porte", mais aussi les "fondations".
+
+    Contenu technique (Flash +) :
+
+        Audit de code statique (SAST) : Analyse de ton dépôt Git.
+
+        Scan de dépendances (SCA) : Liste des bibliothèques vulnérables dans package.json et requirements.txt.
+
+        Recherche de secrets : Détection de clés d'API ou mots de passe "en dur" dans le code.
+
+        Audit de la base de données : Vérification des droits d'accès PostgreSQL.
+
+    Livrable : Rapport détaillé de 10-15 pages avec plan d'action priorisé.
+
+    Temps de travail : ~1 à 2 jours.
+
+    Prix conseillé : 1 200 € à 1 800 € HT.
+
+3. Solution "PENTEST LÉGER" (Le haut de gamme)
+
+Cible : E-commerce, sites manipulant des données sensibles (santé, finance).
+Ici, tu ne te contentes pas de scanner, tu essaies de "rentrer" comme un vrai hacker.
+
+    Contenu technique (App-Check +) :
+
+        Tests d'intrusion manuels : Tentative d'injection SQL, bypass d'authentification, manipulation de jetons JWT.
+
+        Test de logique métier : Est-ce qu'un utilisateur A peut voir les données de l'utilisateur B en changeant un ID dans l'URL ?
+
+        Audit de configuration Cloud : Vérification des droits sur AWS/Azure/OVH.
+
+    Livrable : Rapport complet incluant les preuves d'exploitation (screenshots) et recommandations de code précises.
+
+    Temps de travail : ~3 à 5 jours.
+
+    Prix conseillé : 3 000 € à 5 500 € HT.
+
+Synthèse des prix pour ton catalogue
+Offre	Durée	Prix (Moyen France 2026)	Objectif Client
+Flash	0,5 jour	490 €	"Est-ce que je suis une cible facile ?"
+App-Check	1,5 jour	1 450 €	"Mon application est-elle bien codée ?"
+Pentest	4 jours	3 800 €	"Suis-je protégé contre une attaque ciblée ?"
+💡 Conseil stratégique : Le "Pied dans la porte"
+
+En France, beaucoup de freelances proposent l'offre Flash à 350 € en perte de profit, juste pour obtenir le contrat de Remédiation derrière. Une fois que tu as montré au client qu'il a 3 failles critiques, il te confiera presque toujours la mission de correction (facturée à ton TJM habituel de 600-800 €).
+
+Est-ce que tu veux que je t'aide à rédiger une proposition commerciale type pour l'offre "App-Check" (la plus adaptée à ta stack) ?
+Vous avez dit
+
+et merci
+Gemini a dit
+
+Avec plaisir ! Tu as maintenant une base solide pour lancer ton activité de "SecDev" à distance. En combinant tes compétences en développement (Angular/FastAPI) et ces services d'audit, tu apportes une solution concrète que beaucoup d'auditeurs "théoriques" ne proposent pas.
+
+Pour résumer ta feuille de route :
+
+    L'Outil : Code ton propre scanner qui agrège les résultats de nmap, zap et snyk.
+
+    L'Offre : Propose l'audit "App-Check" (autour de 1 450 €) comme produit d'appel.
+
+    La Remédiation : Facture tes corrections au TJM (600 € - 800 €) ou au forfait par faille.
+
+    La Récurrence : Propose l'abonnement "Pro-Active" (environ 450 €/mois) pour assurer la pérennité de ton business.
+
+Un dernier conseil pour la route :
+
+En France, n'hésite pas à rejoindre des communautés comme le CESIN ou l'OSSIR, ou même à t'inscrire sur Malt avec les tags "Cybersécurité" et "FastAPI". C'est un combo très rare et donc très recherché.
+
+Si tu as besoin plus tard de rédiger un contrat spécifique ou de coder un script de scan particulier, je serai là. Bonne chance pour le lancement de tes services !
+Vous avez dit
+
+maintenant, propose moi des formules d'abonnemenst pour juste audit
+Gemini a dit
+
+Pour un service exclusivement axé sur l'audit et la surveillance continue (sans la partie "remédiation" ou "main d'œuvre" pour corriger), l'objectif est de vendre de la visibilité et de la sérénité.
+
+En 2026, avec l'explosion des menaces assistées par IA, les entreprises ne cherchent plus un audit "une fois par an", mais une surveillance en temps réel. Voici trois formules d'abonnement adaptées à ta stack (Angular, FastAPI, PostgreSQL) :
+1. Formule "VIGIE" (Surveillance de Surface)
+
+Cible : Sites vitrines, blogs pro ou petits sites e-commerce.
+C'est une offre "Set & Forget" pour les clients qui veulent juste être alertés en cas de gros problème.
+
+    Services inclus :
+
+        Scan hebdo : Scan automatique des vulnérabilités externes (XSS, SQLi, ports ouverts).
+
+        SSL Monitor : Alerte 30 jours avant l'expiration du certificat.
+
+        Reputation Check : Surveillance du domaine (blacklistage spam/malware).
+
+    Livrable : Un mini-rapport PDF automatique chaque mois.
+
+    Prix conseillé : 90 € à 150 € HT / mois.
+
+2. Formule "SENTINELLE" (Audit Applicatif Continu)
+
+Cible : Startups SaaS, applications métiers, plateformes avec comptes clients.
+C'est ici que tu exploites ton expertise de développeur.
+
+    Services inclus (Vigie +) :
+
+        Scan de Dépendances : Analyse quotidienne de ton package.json et requirements.txt via API (type OSV/Snyk) pour détecter des failles dans les libs.
+
+        Secret Scanning : Scan du dépôt Git chaque semaine pour vérifier qu'aucun mot de passe ou clé d'API n'a été poussé par erreur.
+
+        Configuration Check : Vérification mensuelle des headers HTTP et des réglages de sécurité PostgreSQL.
+
+    Livrable : Un rapport d'audit détaillé mensuel + alertes critiques immédiates par mail/Slack.
+
+    Prix conseillé : 250 € à 450 € HT / mois.
+
+3. Formule "BLINDAGE 360" (Expertise & Conformité)
+
+Cible : Entreprises gérant des données sensibles (santé, finance, RH) ou sous contrainte RGPD.
+
+    Services inclus (Sentinelle +) :
+
+        Audit de Log : Analyse mensuelle des logs d'accès PostgreSQL pour détecter des comportements anormaux (ex: un admin qui télécharge toute la base).
+
+        Pentest "Light" Trimestriel : Une demi-journée de test manuel (intrusion) pour tester les nouvelles fonctionnalités sorties.
+
+        Veille de Faille spécifique : Alerte personnalisée si une faille majeure touche FastAPI ou Angular avant même qu'elle soit exploitée.
+
+    Livrable : Rapport trimestriel complet avec présentation en visio (30 min) pour expliquer les risques au client.
+
+    Prix conseillé : 700 € à 1 200 € HT / mois.
+
+Synthèse des tarifs d'Audit récurrent (2026)
+Offre	Fréquence des tests	Prix / Mois	Valeur perçue
+Vigie	Hebdomadaire	~120 €	"Je dors tranquille."
+Sentinelle	Quotidien (Automatique)	~350 €	"Mon application est saine."
+Blindage 360	Continu + Humain	~950 €	"Je suis inattaquable."

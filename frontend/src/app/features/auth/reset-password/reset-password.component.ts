@@ -1,16 +1,14 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AbstractControl, ReactiveFormsModule, FormBuilder, ValidationErrors, Validators } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { Router, RouterLink } from '@angular/router';
-import { switchMap } from 'rxjs';
-
-import { AuthService } from '../../../core/services/auth.service';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../environments/environment';
 
 function passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
   const password = control.get('password')?.value;
@@ -19,36 +17,34 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
 }
 
 @Component({
-  selector: 'app-register',
+  selector: 'app-reset-password',
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule, RouterLink,
-    MatCardModule, MatFormFieldModule, MatInputModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule,
+    MatFormFieldModule, MatInputModule, MatButtonModule,
+    MatIconModule, MatProgressSpinnerModule,
   ],
-  templateUrl: './register.component.html',
+  templateUrl: './reset-password.component.html',
 })
-export class RegisterComponent {
+export class ResetPasswordComponent implements OnInit {
+  private http = inject(HttpClient);
   private fb = inject(FormBuilder);
-  private authService = inject(AuthService);
-  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
+  token: string | null = null;
+  showPassword = false;
+  loading = false;
+  done = false;
+  error: string | null = null;
 
   form = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
     confirmPassword: ['', Validators.required],
   }, { validators: passwordMatchValidator });
 
-  error: string | null = null;
-  loading = false;
-  showPassword = false;
-
-  benefits = [
-    { icon: 'security', text: 'Scan SSL, headers HTTP, CVE — non intrusif' },
-    { icon: 'picture_as_pdf', text: 'Rapport PDF complet après chaque scan' },
-    { icon: 'notifications_active', text: 'Alerte email si vulnérabilité critique détectée' },
-    { icon: 'lock', text: 'Vos données ne quittent jamais nos serveurs' },
-  ];
+  ngOnInit() {
+    this.token = this.route.snapshot.queryParamMap.get('token');
+  }
 
   get passwordStrength(): number {
     const pw = this.form.get('password')?.value ?? '';
@@ -69,14 +65,18 @@ export class RegisterComponent {
   }
 
   submit() {
-    if (this.form.invalid) return;
+    if (this.form.invalid || !this.token) return;
     this.loading = true;
-    const { email, password } = this.form.getRawValue();
-    this.authService.register(email, password).pipe(
-      switchMap(() => this.authService.login(email, password))
-    ).subscribe({
-      next: () => this.router.navigate(['/cyberscan/onboarding']),
-      error: err => { this.error = err.error?.detail ?? 'Erreur inscription'; this.loading = false; },
+    this.error = null;
+    this.http.post(`${environment.apiUrl}/auth/reset-password`, {
+      token: this.token,
+      password: this.form.get('password')!.value,
+    }).subscribe({
+      next: () => { this.done = true; this.loading = false; },
+      error: err => {
+        this.error = err.error?.detail ?? 'Lien invalide ou expiré.';
+        this.loading = false;
+      },
     });
   }
 }

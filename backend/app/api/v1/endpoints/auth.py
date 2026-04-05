@@ -1,6 +1,7 @@
+import asyncio
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,9 +15,11 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
+from app.models.password_reset_token import PasswordResetToken
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
-from app.schemas.user import RefreshIn, TokenOut, UserCreate, UserLogin, UserOut
+from app.schemas.user import ForgotPasswordIn, RefreshIn, ResetPasswordIn, TokenOut, UserCreate, UserLogin, UserOut
+from app.services.email_service import send_password_reset
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -106,3 +109,54 @@ async def logout(payload: RefreshIn, db: AsyncSession = Depends(get_db)):
     if stored and not stored.revoked:
         stored.revoked = True
         await db.flush()
+
+
+RESET_TOKEN_EXPIRE_MINUTES = 30
+
+
+@router.post("/forgot-password", status_code=status.HTTP_202_ACCEPTED)
+async def forgot_password(
+    payload: ForgotPasswordIn,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(User).where(User.email == payload.email))
+    user = result.scalar_one_or_none()
+    # Always return 202 to avoid user enumeration
+    if not user:
+        return
+
+    raw_token = create_refresh_token()
+    expires = datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
+    db.add(PasswordResetToken(user_id=user.id, token=raw_token, expires_at=expires))
+    await db.flush()
+
+    reset_url = f"{settings.FRONTEND_URL}/auth/reset-password?token={raw_token}"
+    background_tasks.add_task(send_password_reset, user.email, reset_url)
+    logger.info(f"Password reset requested for: {user.email}")
+
+
+@router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
+async def reset_password(payload: ResetPasswordIn, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(PasswordResetToken).where(PasswordResetToken.token == payload.token)
+    )
+    stored = result.scalar_one_or_none()
+
+    invalid_exc = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Lien invalide ou expiré",
+    )
+
+    if not stored or stored.used or stored.expires_at < datetime.now(timezone.utc):
+        raise invalid_exc
+
+    user_result = await db.execute(select(User).where(User.id == stored.user_id))
+    user = user_result.scalar_one_or_none()
+    if not user:
+        raise invalid_exc
+
+    user.hashed_password = hash_password(payload.password)
+    stored.used = True
+    await db.flush()
+    logger.info(f"Password reset completed for user_id={user.id}")

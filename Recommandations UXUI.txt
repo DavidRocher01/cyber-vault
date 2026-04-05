@@ -1,0 +1,124 @@
+Recommandations UX/UI
+
+
+1. Hiérarchie Visuelle et Lisibilité
+
+    Contraste du texte secondaire : Le texte sous le titre principal et les labels sous les chiffres (ex: "sites scannés") sont très sombres sur fond foncé. Pour l'accessibilité (normes WCAG), il faudrait éclaircir ce gris pour qu'il soit plus lisible.
+
+    Bouton secondaire : Le bouton "Voir les tarifs" est presque invisible à côté du bouton bleu. C'est bien de prioriser le bouton principal, mais ici, l'utilisateur risque de ne même pas voir qu'il y a une option pour les tarifs. Donnez-lui au moins une bordure légère (outline).
+
+    Le Badge supérieur : Le petit texte "Audit de sécurité automatisé" dans la pilule tout en haut semble un peu écrasé. Augmentez légèrement le padding interne et assurez-vous que la couleur du texte contraste suffisamment avec le fond de la pilule.
+
+2. Header (Navigation)
+
+    Espacement : Les éléments à droite (Bonnes pratiques, EN, Connexion, S'inscrire) sont très proches les uns des autres alors que l'espace global est immense. Donnez-leur plus d'espace pour respirer.
+
+    Sélecteur de langue : "EN" semble flotter. Un petit chevron (flèche vers le bas) aiderait à comprendre qu'il s'agit d'un menu déroulant.
+
+    Alignement : Vérifiez que le logo à gauche et le bouton "S'inscrire" à droite ont les mêmes marges latérales (padding horizontal) par rapport au bord de l'écran.
+
+3. Section "Social Proof" (Les chiffres)
+
+    Équilibre : Les chiffres (500+, 12000+, 99%) sont très grands et impactants, c'est top. Par contre, ils semblent un peu "perdus" dans la bande foncée du bas.
+
+    Icônes : Pour rendre cette section plus vivante, vous pourriez ajouter une petite icône stylisée au-dessus de chaque chiffre (ex: un bouclier, une loupe, un serveur).
+
+4. Expérience Utilisateur (UX)
+
+    Rassurer l'utilisateur : En cybersécurité, la confiance est la clé. Sous le bouton "Commencer gratuitement", vous pourriez ajouter une petite mention en micro-copie du type : "Pas de carte bancaire requise" ou "Scan complet en 2 minutes".
+
+    Le titre : "Scannez votre site web, protégez votre réputation" est efficace. Pour l'UI, essayez de réduire légèrement l'espacement entre les lignes (line-height) du titre pour qu'il paraisse plus compact et "solide".
+
+Un petit détail technique : Sur la capture, le logo en haut à gauche semble légèrement tronqué ou coupé sur le bord gauche ("shie..."). Vérifiez vos marges d'affichage sur les différents formats d'écran.
+
+5. Le problème des "lettres coupées" (UI)
+
+C’est le point le plus critique : les grandes lettres bleues en arrière-plan (ex: "se", "hu", "dr") sont tronquées par le bord des cartes.
+
+    L'effet voulu : Je suppose que vous cherchez un effet de design moderne avec du texte décoratif en fond.
+
+    Le problème : Ici, cela donne une impression de bug d'affichage ou d'élément mal intégré.
+
+    Solution : Soit vous réduisez la taille de ces lettres pour qu'elles rentrent entièrement dans la carte (en jouant sur une opacité très faible, genre 5-10%), soit vous les remplacez par des icônes filaires (outline icons) en bleu électrique. Les icônes sont souvent plus parlantes que deux lettres pour illustrer un concept technique.
+
+6. Contraste et Accessibilité (UX)
+
+    Description des cartes : Comme pour la section précédente, le texte gris foncé sur fond bleu nuit est trop difficile à lire. Un utilisateur qui survole rapidement la page ne fera pas l'effort de déchiffrer les détails de l'audit JWT ou de la Threat Intelligence. Éclaircissez ce texte vers un gris plus proche de l'argent ou du blanc cassé.
+
+    Interactivité : On ne sait pas si ces cartes sont cliquables. Si elles mènent à des pages de détails, ajoutez un petit effet au survol (hover) : une bordure qui s'illumine ou une légère élévation de la carte.
+
+7. Hiérarchie et Alignement
+
+    Titres des cartes : Ils sont bien, mais vous pourriez les faire ressortir davantage. Un petit point bleu ou un tiret devant chaque titre pourrait renforcer l'aspect "liste de fonctionnalités".
+
+    Section "Ils nous font confiance" : * Les étoiles des témoignages semblent être du texte (* * * * *). Je vous conseille d'utiliser de vrais composants d'icônes d'étoiles pour un rendu plus pro.
+
+        L'espacement entre le titre "Ils nous font confiance" et le sous-titre est un peu grand par rapport à l'espace entre le sous-titre et les cartes. Essayez de regrouper visuellement les textes ensemble.
+
+8. Rythme de la page
+
+    L'alternance des fonds : Vous avez une coupure nette entre le fond très sombre et un fond légèrement plus clair en bas. C'est une bonne pratique pour casser la monotonie, mais assurez-vous que la transition soit volontaire.
+
+    Suggestion : Pour la section "Ce que nous analysons", vous pourriez essayer une grille de 3 colonnes sur 2 lignes (comme vous l'avez fait), mais en centrant la grille pour qu'elle ne paraisse pas trop large sur les très grands écrans.
+
+
+
+
+9. Le "Missing Link" : Où sont les prix ?
+
+C'est le point le plus important : on ne voit pas les prix.
+
+    UX : L'utilisateur s'attend à voir des cartes de tarifs (Starter : 0€, Pro : X€, Business : Y€) avant le tableau de comparaison détaillé.
+
+    Solution : Ajoutez 3 cartes de prix au-dessus du tableau "Comparez les plans". Le tableau ne doit servir qu'à lever les doutes techniques, pas à annoncer le prix pour la première fois.
+
+10. Lisibilité du Tableau (UI/UX)
+
+    Les indicateurs (ch / re) : Actuellement, vous utilisez du texte coupé ("ch" pour check, "re" pour refusé ?). C'est très déstabilisant visuellement.
+
+        Remplacez-les par des icônes : Une coche verte (check) et une croix rouge ou grise (x). C'est universel et se comprend en une fraction de seconde sans lire.
+
+    Alternance des lignes (Zebra Stripes) : Pour un tableau de cette longueur, ajoutez un fond légèrement différent une ligne sur deux (ou au survol de la souris). Cela aide l'œil à ne pas se perdre entre la fonctionnalité à gauche et sa valeur à droite.
+
+    Alignement : Les valeurs ("1", "Mensuel", "ch") devraient idéalement être centrées sous le nom du plan (Starter, Pro, Business) pour créer des colonnes bien nettes.
+
+11. Hiérarchie des Plans
+
+    Mise en avant : Actuellement, les trois plans ont la même importance visuelle.
+
+    Astuce Marketing : Mettez en avant le plan "Pro". Ajoutez-lui une bordure bleu électrique, une petite étiquette "Populaire" au-dessus, et faites en sorte que sa colonne soit légèrement plus large ou plus lumineuse. C'est là que vous voulez que vos clients cliquent.
+
+12. Micro-détails UI
+
+    L'en-tête du tableau : "Fonctionnalité", "Starter", etc., mériteraient d'être en majuscules ou avec un poids de police (bold) plus important pour bien séparer l'en-tête des données.
+
+    Le texte "Comparez les plans" : Il est très proche du tableau. Donnez-lui un peu plus de marge (margin-bottom) pour laisser respirer l'interface.
+
+
+13. Le Style de la FAQ (UI)
+
+    Le contraste "Flash" : Passer du fond bleu nuit à des barres 100% blanches est un peu agressif pour l'œil (effet éblouissement).
+
+        Solution : Gardez le fond sombre. Utilisez des bordures légères ou un fond gris très foncé (comme vos cartes de fonctionnalités) pour les accordéons. Le texte des questions doit être en blanc ou gris clair.
+
+    Les Chevrons : Les petites flèches à droite sont très claires (presque invisibles). Donnez-leur la couleur bleue de votre marque pour indiquer que c'est interactif.
+
+    L'état "Ouvert" : Prévoyez un style différent quand une question est dépliée (par exemple, une bordure bleue sur le côté gauche) pour bien séparer la réponse de la question suivante.
+
+14. Le CTA Final (Conversion)
+
+    Impact visuel : Le bouton "Démarrer gratuitement" est un peu perdu dans tout ce vide sombre.
+
+        Suggestion : Ajoutez un dégradé subtil ou une lueur (glow) derrière le bouton ou la section pour attirer l'œil. Vous pouvez aussi réutiliser un rappel visuel (comme une icône de bouclier ou de scan en filigrane).
+
+    Réassurance : Vous avez inclus "Sans carte bancaire pour démarrer", c'est excellent. C'est l'un des meilleurs arguments UX pour réduire la friction.
+
+15. Le Footer (Accessibilité)
+
+    Lisibilité : Le texte du copyright et la mention sur les scans non-intrusifs sont beaucoup trop sombres. Sur certains écrans, on ne verra absolument rien.
+
+        Action : Augmentez la luminosité de ce gris. Même si c'est du texte secondaire, il doit rester lisible pour des raisons légales et de confiance.
+
+    Liens manquants : Il manque les liens classiques (Mentions légales, CGU, Contact). Même s'ils sont discrets, ils sont rassurants pour un service de sécurité.
+
+

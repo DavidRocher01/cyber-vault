@@ -45,6 +45,7 @@ export interface Scan {
   status: string;
   overall_status: string | null;
   pdf_path: string | null;
+  results_json: string | null;
   created_at: string;
   started_at: string | null;
   finished_at: string | null;

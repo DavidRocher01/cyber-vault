@@ -47,4 +47,14 @@ export const CYBERSCAN_ROUTES: Routes = [
     loadComponent: () => import('./bonnes-pratiques/bonnes-pratiques.component').then(m => m.BonnesPratiquesComponent),
     title: 'Bonnes pratiques — CyberScan',
   },
+  {
+    path: 'cgu',
+    loadComponent: () => import('./cgu/cgu.component').then(m => m.CguComponent),
+    title: 'CGU — CyberScan',
+  },
+  {
+    path: 'mentions-legales',
+    loadComponent: () => import('./mentions-legales/mentions-legales.component').then(m => m.MentionsLegalesComponent),
+    title: 'Mentions légales — CyberScan',
+  },
 ];

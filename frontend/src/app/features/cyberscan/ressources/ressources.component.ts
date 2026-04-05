@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { Title } from '@angular/platform-browser';
+import { Title, Meta } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-ressources',
@@ -12,9 +12,13 @@ import { Title } from '@angular/platform-browser';
 })
 export class RessourcesComponent {
   private titleService = inject(Title);
+  private meta = inject(Meta);
 
   constructor() {
-    this.titleService.setTitle('Ressources — CyberScan');
+    this.titleService.setTitle('Ressources cybersécurité — CyberScan');
+    this.meta.updateTag({ name: 'description', content: 'Outils, plateformes et chaînes YouTube sélectionnés pour approfondir vos connaissances en cybersécurité : audits, gouvernance, RGPD, CTF.' });
+    this.meta.updateTag({ property: 'og:title', content: 'Ressources cybersécurité — CyberScan' });
+    this.meta.updateTag({ property: 'og:description', content: 'Outils, plateformes et chaînes YouTube pour la cybersécurité.' });
   }
 
   categories = [

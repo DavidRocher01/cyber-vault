@@ -1,0 +1,46 @@
+Nouvel onglet bonnes pratiques
+
+
+1. La Gestion des Identités (Mots de passe & MFA)
+
+C'est la base de l'hygiène numérique. L'objectif est de supprimer la mémorisation humaine, source d'erreurs.
+
+    Utiliser un gestionnaire de mots de passe : Recommandez des outils comme Bitwarden ou KeePassXC. Cela permet d'avoir des mots de passe uniques et complexes sans effort.
+
+    Activer la Double Authentification (MFA/2FA) : Expliquez que même si un mot de passe est volé, l'accès reste protégé.
+
+        Lien utile : 2FA Directory (pour savoir quels sites supportent le MFA).
+
+2. Détecter le Phishing (Ingénierie Sociale)
+
+L'humain se fait piéger par l'urgence ou la curiosité.
+
+    Vérifier avant de cliquer : Apprendre à survoler un lien avec la souris pour voir l'URL réelle.
+
+    Le test du "Canal Secondaire" : Si une demande est suspecte (virement urgent, changement de RIB), toujours confirmer par un autre moyen (appel téléphonique, message interne) sans utiliser les coordonnées fournies dans l'email suspect.
+
+        Lien utile : PhishTank (base de données des sites de phishing signalés).
+
+3. Sécurité Physique et Environnementale
+
+Même à l'ère du cloud, le monde physique présente des risques.
+
+    Le verrouillage automatique (Win+L / Cmd+Ctrl+Q) : Prendre l'habitude de verrouiller son écran dès qu'on quitte son poste, même pour 30 secondes.
+
+    Méfiance vis-à-vis des périphériques inconnus : Ne jamais brancher une clé USB trouvée "par hasard" (attaque par Rubber Ducky).
+
+    Filtres de confidentialité : Indispensables pour le travail en espaces publics ou transports.
+
+4. Protection des Données en Mobilité
+
+    Éviter les Wi-Fi publics ouverts : Utiliser le partage de connexion mobile ou un VPN de confiance.
+
+    Le "Clean Desk" : Ne pas laisser de post-it avec des codes ou des documents sensibles sur le bureau.
+
+Tableau de Synthèse : "Réflexes Cyber"
+Risque	Mauvaise pratique	Le bon réflexe
+Accès	"123456" ou le même partout	Un coffre-fort numérique
+Email	Cliquer par peur ou urgence	Analyser l'expéditeur et le lien
+Bureau	Écran allumé en pause café	Raccourci de verrouillage écran
+Public	Connexion au Wi-Fi "Gare_Gratuit"	Utilisation de la 4G/5G ou VPN
+

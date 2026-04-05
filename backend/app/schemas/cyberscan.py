@@ -56,6 +56,7 @@ class ScanOut(BaseModel):
     status: str
     overall_status: str | None
     pdf_path: str | None
+    results_json: str | None
     created_at: datetime
     started_at: datetime | None
     finished_at: datetime | None
