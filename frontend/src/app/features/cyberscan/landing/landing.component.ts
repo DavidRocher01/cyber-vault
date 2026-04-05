@@ -1,11 +1,16 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule, NgClass } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { environment } from '../../../../environments/environment';
 
 import { CyberscanService, Plan } from '../services/cyberscan.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -20,11 +25,14 @@ import { Title, Meta } from '@angular/platform-browser';
     CommonModule,
     NgClass,
     RouterLink,
+    ReactiveFormsModule,
     MatButtonModule,
     MatCardModule,
     MatIconModule,
     MatProgressSpinnerModule,
     MatExpansionModule,
+    MatFormFieldModule,
+    MatInputModule,
   ],
   templateUrl: './landing.component.html',
 })
@@ -32,6 +40,8 @@ export class LandingComponent implements OnInit {
   private cyberscan = inject(CyberscanService);
   private auth = inject(AuthService);
   private router = inject(Router);
+  private http = inject(HttpClient);
+  private fb = inject(FormBuilder);
   private titleService = inject(Title);
   private meta = inject(Meta);
   readonly themeService = inject(ThemeService);
@@ -40,6 +50,27 @@ export class LandingComponent implements OnInit {
   plans: Plan[] = [];
   loading = true;
   checkoutLoading: number | null = null;
+
+  // Newsletter
+  newsletterForm = this.fb.nonNullable.group({
+    email: ['', [Validators.required, Validators.email]],
+  });
+  newsletterLoading = false;
+  newsletterSent = false;
+  newsletterError: string | null = null;
+
+  subscribeNewsletter() {
+    if (this.newsletterForm.invalid) return;
+    this.newsletterLoading = true;
+    this.newsletterError = null;
+    this.http.post(`${environment.apiUrl}/newsletter/subscribe`, this.newsletterForm.getRawValue()).subscribe({
+      next: () => { this.newsletterSent = true; this.newsletterLoading = false; },
+      error: err => {
+        this.newsletterError = err.status === 409 ? 'Vous êtes déjà abonné(e) !' : 'Une erreur est survenue. Réessayez.';
+        this.newsletterLoading = false;
+      },
+    });
+  }
 
   counters = [
     { label: 'sites scannés', target: 500, current: signal(0), suffix: '+' },
