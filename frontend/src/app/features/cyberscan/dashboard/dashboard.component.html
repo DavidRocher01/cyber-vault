@@ -54,6 +54,42 @@
       }
     }
 
+    <!-- Global score summary -->
+    @if (!loading() && sites().length > 0 && averageScore !== null) {
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 flex items-center gap-4 col-span-2 md:col-span-1">
+          <div class="w-16 h-16 flex-shrink-0">
+            <app-score-gauge [score]="averageScore"></app-score-gauge>
+          </div>
+          <div>
+            <p class="text-xs text-gray-500 uppercase tracking-wider">Score moyen</p>
+            <p class="text-sm font-semibold text-white mt-0.5">{{ getGrade(averageScore) }} — {{ averageScore }}/100</p>
+          </div>
+        </div>
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 flex items-center gap-3">
+          <mat-icon class="text-cyan-400 !text-[1.8rem] !w-[1.8rem] !h-[1.8rem]">language</mat-icon>
+          <div>
+            <p class="text-2xl font-bold">{{ sites().length }}</p>
+            <p class="text-xs text-gray-500">site{{ sites().length > 1 ? 's' : '' }} surveillé{{ sites().length > 1 ? 's' : '' }}</p>
+          </div>
+        </div>
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 flex items-center gap-3">
+          <mat-icon class="text-green-400 !text-[1.8rem] !w-[1.8rem] !h-[1.8rem]">analytics</mat-icon>
+          <div>
+            <p class="text-2xl font-bold">{{ totalScans }}</p>
+            <p class="text-xs text-gray-500">scans effectués</p>
+          </div>
+        </div>
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 flex items-center gap-3">
+          <mat-icon class="text-yellow-400 !text-[1.8rem] !w-[1.8rem] !h-[1.8rem]">schedule</mat-icon>
+          <div>
+            <p class="text-2xl font-bold">{{ subscription()?.plan?.scan_interval_days ?? '—' }}</p>
+            <p class="text-xs text-gray-500">jours entre scans</p>
+          </div>
+        </div>
+      </div>
+    }
+
     <!-- Sites Header -->
     <div class="flex items-center justify-between mb-4 flex-wrap gap-4">
       <h2 class="text-2xl font-bold">{{ i18n.t('dashboard.sites') }}</h2>
@@ -138,17 +174,38 @@
 
           <!-- Site Header -->
           <div class="flex items-center justify-between px-6 py-4 border-b border-gray-700 flex-wrap gap-3">
-            <div class="flex flex-col gap-1">
-              <div class="flex items-center gap-2 flex-wrap">
-                <mat-icon class="text-cyan-400">language</mat-icon>
-                <p class="font-semibold">{{ site.name }}</p>
-                <span class="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border"
-                      [class]="siteBadgeClass(site.id)">
-                  <mat-icon class="!text-[0.75rem] !w-[0.75rem] !h-[0.75rem]">{{ siteBadgeIcon(site.id) }}</mat-icon>
-                  {{ siteBadgeLabel(site.id) }}
-                </span>
+            <div class="flex items-center gap-4">
+              <!-- Score gauge -->
+              @if (getLastScore(site.id); as score) {
+                <div class="flex flex-col items-center gap-1 flex-shrink-0">
+                  <div class="w-14 h-14">
+                    <app-score-gauge [score]="score"></app-score-gauge>
+                  </div>
+                  @if (getTrend(site.id); as trend) {
+                    <span class="text-[10px] font-bold flex items-center gap-0.5"
+                          [class.text-green-400]="trend > 0"
+                          [class.text-red-400]="trend < 0"
+                          [class.text-gray-500]="trend === 0">
+                      <mat-icon class="!text-[0.7rem] !w-[0.7rem] !h-[0.7rem]">
+                        {{ trend > 0 ? 'trending_up' : trend < 0 ? 'trending_down' : 'trending_flat' }}
+                      </mat-icon>
+                      {{ trend > 0 ? '+' : '' }}{{ trend }}
+                    </span>
+                  }
+                </div>
+              }
+              <div class="flex flex-col gap-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <mat-icon class="text-cyan-400">language</mat-icon>
+                  <p class="font-semibold">{{ site.name }}</p>
+                  <span class="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border"
+                        [class]="siteBadgeClass(site.id)">
+                    <mat-icon class="!text-[0.75rem] !w-[0.75rem] !h-[0.75rem]">{{ siteBadgeIcon(site.id) }}</mat-icon>
+                    {{ siteBadgeLabel(site.id) }}
+                  </span>
+                </div>
+                <a [href]="site.url" target="_blank" class="text-sm text-cyan-500 hover:underline ml-6">{{ site.url }}</a>
               </div>
-              <a [href]="site.url" target="_blank" class="text-sm text-cyan-500 hover:underline ml-6">{{ site.url }}</a>
             </div>
             <div class="flex items-center gap-2">
               <button mat-flat-button type="button" color="primary"
@@ -196,6 +253,7 @@
                     <th class="text-left py-2 pb-3">Date</th>
                     <th class="text-left py-2 pb-3">Statut</th>
                     <th class="text-left py-2 pb-3">Résultat</th>
+                    <th class="text-left py-2 pb-3">Score</th>
                     <th class="text-right py-2 pb-3">Actions</th>
                   </tr>
                 </thead>
@@ -217,6 +275,15 @@
                           </span>
                         } @else {
                           <span class="text-gray-500">—</span>
+                        }
+                      </td>
+                      <td class="py-3">
+                        @if (getScanScore(scan); as score) {
+                          <span class="font-bold text-sm" [style.color]="getScoreColor(score)">
+                            {{ score }}<span class="text-gray-500 font-normal text-xs">/100</span>
+                          </span>
+                        } @else {
+                          <span class="text-gray-600">—</span>
                         }
                       </td>
                       <td class="py-3 text-right">
