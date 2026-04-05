@@ -165,10 +165,36 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
         else:
             overall = "OK"
 
+        results = {
+            "ssl":          ssl_result,
+            "headers":      headers_result,
+            "email":        email_result,
+            "cookies":      cookie_result,
+            "cors":         cors_result,
+            "ip":           ip_result,
+            "dns":          dns_result,
+            "cms":          cms_result,
+            "waf":          waf_result,
+            "tech":         tech_result,
+            "tls":          tls_result,
+            "takeover":     takeover_result,
+            "threat_intel": ti_result,
+            "http_methods": methods_result,
+            "open_redirect":    redirect_result,
+            "clickjacking":     clickjacking_result,
+            "directory_listing": dirlist_result,
+            "robots":           robots_result,
+            "jwt":              jwt_result,
+            "_meta": {
+                "tier": tier,
+                "url":  url,
+            },
+        }
+
         scan.status         = "done"
         scan.overall_status = overall
         scan.pdf_path       = pdf_path
-        scan.results_json   = json.dumps({"ssl": ssl_result, "headers": headers_result})
+        scan.results_json   = json.dumps(results, default=str)
         scan.finished_at    = datetime.utcnow()
         await db.commit()
 

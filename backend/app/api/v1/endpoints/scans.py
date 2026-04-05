@@ -1,5 +1,6 @@
 import csv
 import io
+from datetime import datetime
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +11,8 @@ from app.core.deps import get_current_user
 from app.models.user import User
 from app.models.site import Site
 from app.models.scan import Scan
+from app.models.subscription import Subscription
+from app.models.plan import Plan
 from app.schemas.cyberscan import ScanOut, ScanTriggerOut, PaginatedScans
 from app.services.scan_service import run_scan
 
@@ -34,6 +37,32 @@ async def trigger_scan(
     site = result.scalar_one_or_none()
     if not site:
         raise HTTPException(status_code=404, detail="Site non trouvé")
+
+    # Enforce scan frequency based on active subscription plan
+    plan_result = await db.execute(
+        select(Plan)
+        .join(Subscription, Subscription.plan_id == Plan.id)
+        .where(Subscription.user_id == current_user.id, Subscription.status == "active")
+    )
+    plan = plan_result.scalar_one_or_none()
+    interval_days = plan.scan_interval_days if plan else 30
+
+    last_result = await db.execute(
+        select(Scan)
+        .where(Scan.site_id == site_id, Scan.status == "done")
+        .order_by(Scan.finished_at.desc())
+        .limit(1)
+    )
+    last_scan = last_result.scalar_one_or_none()
+
+    if last_scan and last_scan.finished_at:
+        days_since = (datetime.utcnow() - last_scan.finished_at).days
+        if days_since < interval_days:
+            days_left = interval_days - days_since
+            raise HTTPException(
+                status_code=429,
+                detail=f"Scan trop récent. Prochain scan disponible dans {days_left} jour(s) selon votre plan.",
+            )
 
     scan = Scan(site_id=site_id, status="pending")
     db.add(scan)

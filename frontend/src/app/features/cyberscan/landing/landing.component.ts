@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule, NgClass } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
@@ -7,7 +7,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { environment } from '../../../../environments/environment';
@@ -31,7 +30,6 @@ import { Title, Meta } from '@angular/platform-browser';
     MatCardModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatExpansionModule,
     GlobeComponent,
     MatFormFieldModule,
     MatInputModule,
@@ -52,6 +50,11 @@ export class LandingComponent implements OnInit {
   plans: Plan[] = [];
   loading = true;
   checkoutLoading: number | null = null;
+  openFaqIndex = signal<number | null>(null);
+
+  toggleFaq(index: number) {
+    this.openFaqIndex.update(i => (i === index ? null : index));
+  }
 
   // Newsletter
   newsletterForm = this.fb.nonNullable.group({
