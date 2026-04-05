@@ -8,6 +8,9 @@ import { interval } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 
 import { CyberscanService, Scan } from '../services/cyberscan.service';
+import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
+import { RadarChartComponent } from '../../../shared/radar-chart/radar-chart.component';
+import { computeScore, getGrade, getScoreColor, getCategoryScores, RADAR_CATEGORIES } from '../../../shared/score-utils';
 
 export interface Finding {
   key: string;
@@ -150,7 +153,7 @@ function extractSummary(key: string, d: Record<string, unknown>): { label: strin
 @Component({
   selector: 'app-scan-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule, MatProgressSpinnerModule, ScoreGaugeComponent, RadarChartComponent],
   templateUrl: './scan-detail.component.html',
 })
 export class ScanDetailComponent implements OnInit {
@@ -213,6 +216,12 @@ export class ScanDetailComponent implements OnInit {
       };
     });
   }
+
+  get score(): number | null { return computeScore(this.scan()?.results_json ?? null); }
+  get grade(): string { return this.score !== null ? getGrade(this.score) : '—'; }
+  get scoreColor(): string { return this.score !== null ? getScoreColor(this.score) : '#6b7280'; }
+  get radarScores(): number[] { return getCategoryScores(this.scan()?.results_json ?? null); }
+  get radarLabels(): string[] { return RADAR_CATEGORIES.map(c => c.label); }
 
   get criticalCount(): number {
     return this.findings.filter(f => f.status === 'CRITICAL').length;

@@ -21,6 +21,8 @@ import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { ThemeService } from '../../../core/services/theme.service';
 import { I18nService } from '../../../core/services/i18n.service';
+import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
+import { computeScore, getGrade, getScoreColor } from '../../../shared/score-utils';
 
 type ScanFilter = 'all' | 'done' | 'running' | 'error';
 
@@ -39,7 +41,7 @@ interface PaginatedScans {
     CommonModule, ReactiveFormsModule, RouterLink,
     MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule,
     MatFormFieldModule, MatInputModule, MatChipsModule, MatSnackBarModule,
-    MatDialogModule, MatPaginatorModule, SkeletonComponent,
+    MatDialogModule, MatPaginatorModule, SkeletonComponent, ScoreGaugeComponent,
   ],
   templateUrl: './dashboard.component.html',
 })
@@ -264,4 +266,39 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   get maxSites(): number { return this.subscription()?.plan?.max_sites ?? 0; }
   get canAddSite(): boolean { return this.sites().length < this.maxSites; }
+
+  // --- Score & trend ---
+  getScanScore(scan: Scan): number | null { return computeScore(scan.results_json ?? null); }
+
+  getLastScore(siteId: number): number | null {
+    const done = (this.scansMap()[siteId]?.items ?? []).find(s => s.status === 'done' && s.results_json);
+    return done ? computeScore(done.results_json ?? null) : null;
+  }
+
+  getPrevScore(siteId: number): number | null {
+    const done = (this.scansMap()[siteId]?.items ?? []).filter(s => s.status === 'done' && s.results_json);
+    return done.length >= 2 ? computeScore(done[1].results_json ?? null) : null;
+  }
+
+  getTrend(siteId: number): number | null {
+    const last = this.getLastScore(siteId);
+    const prev = this.getPrevScore(siteId);
+    if (last === null || prev === null) return null;
+    return last - prev;
+  }
+
+  getGrade(score: number): string { return getGrade(score); }
+  getScoreColor(score: number): string { return getScoreColor(score); }
+
+  get totalScans(): number {
+    return Object.values(this.scansMap()).reduce((sum, p) => sum + (p?.total ?? 0), 0);
+  }
+
+  get averageScore(): number | null {
+    const scores = this.sites()
+      .map(s => this.getLastScore(s.id))
+      .filter((s): s is number => s !== null);
+    if (scores.length === 0) return null;
+    return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+  }
 }
