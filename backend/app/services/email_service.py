@@ -62,6 +62,62 @@ CyberScan — Cybersécurité as a Service
         server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
 
 
+def send_url_scan_alert(
+    to_email: str,
+    scanned_url: str,
+    verdict: str,
+    threat_score: int,
+    threat_type: str | None,
+    findings: list[dict],
+    dashboard_url: str,
+) -> None:
+    """Send an alert email after a suspicious URL scan completes."""
+    verdict_emoji = {"safe": "✅", "suspicious": "⚠️", "malicious": "🚨"}.get(verdict, "📋")
+    verdict_fr = {"safe": "Sûr", "suspicious": "Suspect", "malicious": "Malveillant"}.get(verdict, verdict)
+    threat_fr = {
+        "phishing": "Phishing",
+        "malware": "Malware / Script malveillant",
+        "redirect": "Redirection suspecte",
+        "tracker": "Tracker / Iframe externe",
+        "malicious_domain": "Domaine malveillant",
+    }.get(threat_type or "", "Inconnu")
+
+    findings_lines = ""
+    for f in findings[:8]:
+        sev = {"critical": "🔴", "high": "🟠", "medium": "🟡"}.get(f.get("severity", ""), "⚪")
+        findings_lines += f"  {sev} {f.get('detail', '')}\n"
+
+    body = f"""Bonjour,
+
+L'analyse de l'URL suivante vient de se terminer :
+
+  URL analysée : {scanned_url}
+  Verdict      : {verdict_fr} {verdict_emoji}
+  Score        : {threat_score}/100
+  Type         : {threat_fr if threat_type else '—'}
+
+━━━ Comportements détectés ━━━
+{findings_lines if findings_lines else '  Aucun comportement suspect détecté.'}
+
+━━━ Actions rapides ━━━
+  Accéder au rapport complet : {dashboard_url}
+
+---
+CyberScan — Cybersécurité as a Service
+"""
+
+    msg = MIMEMultipart()
+    msg["From"] = settings.SMTP_FROM
+    msg["To"] = to_email
+    msg["Subject"] = f"[ScanURL] {verdict_emoji} {verdict_fr} — Score {threat_score}/100 — {scanned_url[:60]}"
+    msg.attach(MIMEText(body, "plain", "utf-8"))
+
+    context = ssl.create_default_context()
+    with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, context=context) as server:
+        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+        server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
+
+
 def send_password_reset(to_email: str, reset_url: str) -> None:
     """Send a password-reset link to the user."""
     msg = MIMEMultipart()
