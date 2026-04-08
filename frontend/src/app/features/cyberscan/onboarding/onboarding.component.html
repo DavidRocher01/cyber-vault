@@ -1,78 +1,189 @@
-<div class="min-h-screen bg-gray-900 text-white flex flex-col items-center px-6 py-12">
+<div class="min-h-screen flex flex-col items-center justify-center px-4 py-12 onboarding-bg">
 
-  <div class="flex items-center gap-2 mb-10">
+  <!-- Logo -->
+  <a routerLink="/cyberscan" class="flex items-center gap-2.5 mb-10">
     <mat-icon class="text-cyan-400 !text-[2rem] !w-[2rem] !h-[2rem]">shield</mat-icon>
-    <span class="text-2xl font-bold text-cyan-400">CyberScan</span>
-  </div>
+    <span class="text-2xl font-bold text-cyan-400 tracking-tight">CyberScan</span>
+  </a>
 
-  <div class="w-full max-w-2xl">
-    <mat-stepper orientation="vertical" #stepper class="bg-gray-800 rounded-2xl border border-gray-700">
-
-      <!-- Étape 1 : Plan -->
-      <mat-step label="Choisissez votre plan">
-        <div class="py-4 flex flex-col gap-4">
-          <p class="text-gray-400 text-sm mb-2">Sélectionnez le plan adapté à vos besoins.</p>
-          @for (plan of plans(); track plan.id) {
-            <div class="flex items-center justify-between bg-gray-700 border border-gray-600 rounded-xl px-5 py-4 cursor-pointer hover:border-cyan-500 transition-colors"
-                 [class.border-cyan-500]="selectedPlan()?.id === plan.id"
-                 (click)="selectPlan(plan)">
-              <div>
-                <p class="font-semibold">{{ plan.display_name }}</p>
-                <p class="text-sm text-gray-400">{{ plan.max_sites }} site{{ plan.max_sites > 1 ? 's' : '' }} · {{ plan.scan_interval_days }}j</p>
-              </div>
-              <div class="text-right">
-                <p class="text-xl font-bold text-cyan-400">{{ formatPrice(plan.price_eur) }}<span class="text-sm text-gray-400">/mois</span></p>
-                @if (checkoutLoading() && selectedPlan()?.id === plan.id) {
-                  <mat-spinner diameter="20" class="mt-1 ml-auto"></mat-spinner>
-                }
-              </div>
-            </div>
+  <!-- Stepper header -->
+  <div class="flex items-center gap-0 mb-10 w-full max-w-sm">
+    @for (step of steps; track step.n; let last = $last) {
+      <div class="flex flex-col items-center flex-1">
+        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 border-2"
+             [class.bg-cyan-500]="currentStep() >= step.n"
+             [class.border-cyan-500]="currentStep() >= step.n"
+             [class.text-white]="currentStep() >= step.n"
+             [class.bg-transparent]="currentStep() < step.n"
+             [class.border-gray-700]="currentStep() < step.n"
+             [class.text-gray-600]="currentStep() < step.n">
+          @if (currentStep() > step.n) {
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">check</mat-icon>
+          } @else {
+            {{ step.n }}
           }
         </div>
-      </mat-step>
+        <span class="text-xs mt-1.5 font-medium"
+              [class.text-cyan-400]="currentStep() >= step.n"
+              [class.text-gray-600]="currentStep() < step.n">
+          {{ step.label }}
+        </span>
+      </div>
+      @if (!last) {
+        <div class="flex-1 h-px mb-5 transition-colors duration-300"
+             [class.bg-cyan-500]="currentStep() > step.n"
+             [class.bg-gray-700]="currentStep() <= step.n"></div>
+      }
+    }
+  </div>
 
-      <!-- Étape 2 : Site -->
-      <mat-step label="Ajoutez votre premier site" [stepControl]="siteForm">
-        <div class="py-4 flex flex-col gap-4">
-          <p class="text-gray-400 text-sm mb-2">Entrez l'URL du site que vous souhaitez surveiller.</p>
-          <form [formGroup]="siteForm" class="flex flex-col gap-4">
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>URL</mat-label>
-              <input matInput formControlName="url" title="URL" placeholder="https://monsite.com" />
-              @if (siteForm.controls.url.invalid && siteForm.controls.url.touched) {
-                <mat-error>URL valide requise (https://...)</mat-error>
+  <!-- Card -->
+  <div class="w-full max-w-lg onboarding-card rounded-2xl p-8">
+
+    <!-- ── Étape 1 : Plan ── -->
+    @if (currentStep() === 1) {
+      <div>
+        <h1 class="text-2xl font-bold text-white mb-1">Choisissez votre plan</h1>
+        <p class="text-gray-400 text-sm mb-6">Sélectionnez le plan adapté à vos besoins. Changeable à tout moment.</p>
+
+        <div class="flex flex-col gap-3">
+          @for (plan of plans(); track plan.id) {
+            <button type="button"
+                    class="w-full text-left rounded-xl border-2 px-5 py-4 transition-all duration-200 cursor-pointer group relative overflow-hidden"
+                    [class.border-cyan-500]="selectedPlan()?.id === plan.id"
+                    [class.bg-cyan-950]="selectedPlan()?.id === plan.id"
+                    [class.border-gray-700]="selectedPlan()?.id !== plan.id"
+                    [class.bg-gray-800]="selectedPlan()?.id !== plan.id"
+                    [class.hover:border-gray-500]="selectedPlan()?.id !== plan.id"
+                    (click)="selectPlan(plan)">
+
+              <div class="flex items-start justify-between">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <p class="font-bold text-white text-base">{{ plan.display_name }}</p>
+                    @if (plan.scan_interval_days <= 7) {
+                      <span class="text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded-full">Populaire</span>
+                    }
+                  </div>
+                  <div class="flex flex-wrap gap-x-3 gap-y-0.5 mt-2">
+                    @for (feat of planFeatures(plan); track feat) {
+                      <span class="flex items-center gap-1 text-xs text-gray-400">
+                        <mat-icon class="!text-[0.7rem] !w-[0.7rem] !h-[0.7rem] text-cyan-500">check_circle</mat-icon>
+                        {{ feat }}
+                      </span>
+                    }
+                  </div>
+                </div>
+                <div class="text-right ml-4 flex-shrink-0">
+                  <p class="text-xl font-extrabold text-cyan-400">{{ formatPrice(plan.price_eur) }}</p>
+                  <p class="text-xs text-gray-500">/mois</p>
+                  @if (checkoutLoading() && selectedPlan()?.id === plan.id) {
+                    <mat-spinner diameter="18" class="mt-2 ml-auto"></mat-spinner>
+                  }
+                </div>
+              </div>
+
+              @if (selectedPlan()?.id === plan.id) {
+                <div class="absolute top-3 right-3 w-5 h-5 rounded-full bg-cyan-500 flex items-center justify-center">
+                  <mat-icon class="!text-[0.75rem] !w-[0.75rem] !h-[0.75rem] text-white">check</mat-icon>
+                </div>
               }
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Nom du site</mat-label>
-              <input matInput formControlName="name" title="Nom" placeholder="Mon Site" />
-            </mat-form-field>
-          </form>
-          <div class="flex gap-3">
-            <button mat-flat-button color="primary" type="button"
-                    [disabled]="siteForm.invalid || addingSite()"
-                    (click)="addSiteAndScan(stepper)">
-              @if (addingSite()) { <mat-spinner diameter="18" class="mr-2"></mat-spinner> }
-              Ajouter et lancer un scan
             </button>
-            <button mat-button type="button" matStepperPrevious>Retour</button>
-          </div>
+          }
         </div>
-      </mat-step>
 
-      <!-- Étape 3 : Terminé -->
-      <mat-step label="C'est parti !">
-        <div class="py-8 flex flex-col items-center gap-4 text-center">
-          <mat-icon class="text-green-400 !text-[4rem] !w-[4rem] !h-[4rem]">check_circle</mat-icon>
-          <h2 class="text-2xl font-bold">Votre site est en cours de scan !</h2>
-          <p class="text-gray-400 max-w-sm">Le rapport sera disponible dans votre dashboard dans quelques minutes.</p>
-          <button mat-flat-button color="primary" type="button" (click)="goToDashboard()" class="mt-4 px-8">
-            Aller au dashboard
+        <p class="text-center text-xs text-gray-600 mt-5">
+          Vous serez redirigé vers Stripe pour le paiement sécurisé.
+        </p>
+      </div>
+    }
+
+    <!-- ── Étape 2 : Site ── -->
+    @if (currentStep() === 2) {
+      <div>
+        <h1 class="text-2xl font-bold text-white mb-1">Ajoutez votre premier site</h1>
+        <p class="text-gray-400 text-sm mb-6">Entrez l'URL du site que vous souhaitez surveiller en continu.</p>
+
+        <form [formGroup]="siteForm" class="flex flex-col gap-4">
+
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">URL du site</label>
+            <div class="flex items-center rounded-xl border transition-all bg-gray-800/50"
+                 [class.border-cyan-500]="siteForm.controls.url.touched && siteForm.controls.url.valid"
+                 [class.border-red-600]="siteForm.controls.url.touched && siteForm.controls.url.invalid"
+                 [class.border-gray-700]="!siteForm.controls.url.touched">
+              <span class="pl-4 text-gray-600 text-sm select-none flex-shrink-0">https://</span>
+              <input type="url" formControlName="url" placeholder="monsite.com"
+                     class="flex-1 bg-transparent px-2 py-3.5 text-sm placeholder-gray-600 outline-none text-white" />
+              <mat-icon class="text-gray-600 mr-4 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">language</mat-icon>
+            </div>
+            @if (siteForm.controls.url.invalid && siteForm.controls.url.touched) {
+              <p class="text-xs text-red-400 pl-1">URL valide requise (https://...)</p>
+            }
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Nom du site</label>
+            <div class="flex items-center rounded-xl border transition-all bg-gray-800/50"
+                 [class.border-cyan-500]="siteForm.controls.name.touched && siteForm.controls.name.valid"
+                 [class.border-red-600]="siteForm.controls.name.touched && siteForm.controls.name.invalid"
+                 [class.border-gray-700]="!siteForm.controls.name.touched">
+              <input type="text" formControlName="name" placeholder="Mon site vitrine"
+                     class="flex-1 bg-transparent px-4 py-3.5 text-sm placeholder-gray-600 outline-none text-white" />
+              <mat-icon class="text-gray-600 mr-4 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">label</mat-icon>
+            </div>
+          </div>
+
+        </form>
+
+        <div class="flex gap-3 mt-6">
+          <button type="button" (click)="currentStep.set(1)"
+                  class="px-5 py-3 rounded-xl text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 transition-colors">
+            Retour
+          </button>
+          <button type="button" (click)="addSiteAndScan()"
+                  [disabled]="siteForm.invalid || addingSite()"
+                  class="flex-1 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 onboarding-btn"
+                  [class.opacity-50]="siteForm.invalid || addingSite()"
+                  [class.cursor-not-allowed]="siteForm.invalid || addingSite()">
+            @if (addingSite()) {
+              <mat-spinner diameter="18"></mat-spinner>
+              Création en cours…
+            } @else {
+              Ajouter et lancer le scan
+              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_forward</mat-icon>
+            }
           </button>
         </div>
-      </mat-step>
+      </div>
+    }
 
-    </mat-stepper>
+    <!-- ── Étape 3 : Succès ── -->
+    @if (currentStep() === 3) {
+      <div class="flex flex-col items-center text-center py-4 gap-5">
+        <div class="w-20 h-20 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center">
+          <mat-icon class="text-green-400 !text-[2.5rem] !w-[2.5rem] !h-[2.5rem]">check_circle</mat-icon>
+        </div>
+        <div>
+          <h2 class="text-2xl font-bold text-white mb-2">Votre site est en cours de scan !</h2>
+          <p class="text-gray-400 text-sm max-w-sm">Le premier rapport sera disponible dans votre dashboard dans quelques minutes.</p>
+        </div>
+
+        <div class="w-full bg-gray-800/60 border border-gray-700 rounded-xl px-5 py-4 flex items-center gap-3 text-left">
+          <div class="w-9 h-9 rounded-xl bg-cyan-950 border border-cyan-800/60 flex items-center justify-center flex-shrink-0">
+            <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">notifications</mat-icon>
+          </div>
+          <p class="text-sm text-gray-300">Vous recevrez une notification dès que le scan est terminé.</p>
+        </div>
+
+        <button type="button" (click)="goToDashboard()"
+                class="w-full mt-2 py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 onboarding-btn">
+          Aller au dashboard
+          <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_forward</mat-icon>
+        </button>
+      </div>
+    }
+
   </div>
 
 </div>
