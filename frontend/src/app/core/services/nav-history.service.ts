@@ -1,50 +1,54 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
+import { Location } from '@angular/common';
 import { filter } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class NavHistoryService {
-  private history: string[] = [];
-  private navigating = false;
+  private stack: string[] = [];
+  private pos = signal(0);
+  private jumping = false;
 
-  private _cursor = signal(-1);
+  readonly canGoBack    = computed(() => this.pos() > 0);
+  readonly canGoForward = computed(() => this.pos() < this.stack.length - 1);
 
-  readonly canGoBack  = computed(() => this._cursor() > 0);
-  readonly canGoForward = computed(() => this._cursor() < this.history.length - 1);
-
-  constructor(private router: Router) {
-    if (this.router.url) {
-      this.history.push(this.router.url);
-      this._cursor.set(0);
-    }
+  constructor(private router: Router, private location: Location) {
+    // Seed with initial URL
+    const initial = this.router.url || '/';
+    this.stack.push(initial);
+    this.pos.set(0);
 
     this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))
       .subscribe((e: any) => {
-        if (this.navigating) return;
-        const cursor = this._cursor();
-        if (this.history[cursor] === e.urlAfterRedirects) return;
-        this.history = this.history.slice(0, cursor + 1);
-        this.history.push(e.urlAfterRedirects);
-        this._cursor.set(this.history.length - 1);
+        if (this.jumping) return;
+        const url = e.urlAfterRedirects as string;
+        const current = this.stack[this.pos()];
+        if (current === url) return;                         // same page, skip
+        const newStack = this.stack.slice(0, this.pos() + 1);
+        newStack.push(url);
+        this.stack = newStack;
+        this.pos.set(this.stack.length - 1);
       });
   }
 
   back() {
     if (!this.canGoBack()) return;
-    this.navigating = true;
-    this._cursor.update(c => c - 1);
-    this.router.navigateByUrl(this.history[this._cursor()]).then(() => {
-      this.navigating = false;
+    this.jumping = true;
+    const next = this.pos() - 1;
+    this.pos.set(next);
+    this.router.navigateByUrl(this.stack[next]).finally(() => {
+      this.jumping = false;
     });
   }
 
   forward() {
     if (!this.canGoForward()) return;
-    this.navigating = true;
-    this._cursor.update(c => c + 1);
-    this.router.navigateByUrl(this.history[this._cursor()]).then(() => {
-      this.navigating = false;
+    this.jumping = true;
+    const next = this.pos() + 1;
+    this.pos.set(next);
+    this.router.navigateByUrl(this.stack[next]).finally(() => {
+      this.jumping = false;
     });
   }
 }
