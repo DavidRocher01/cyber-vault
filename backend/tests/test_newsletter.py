@@ -303,3 +303,73 @@ async def test_admin_send_issue_no_key_returns_403():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             r = await c.post(f"{BASE}/newsletter/admin/send-issue", json=issue_payload)
     assert r.status_code == 403
+
+
+# ── Schedule ───────────────────────────────────────────────────────────────────
+
+_SCHEDULE_PAYLOAD = [
+    {
+        "position": 1,
+        "actu_title": "Faille critique OpenSSH — CVE-2025-1234",
+        "actu_url": "https://www.bleepingcomputer.com/news/security/openssh-cve-2025-1234/",
+        "actu_source": "BleepingComputer",
+        "reflex": "Mettre à jour OpenSSH immédiatement",
+    },
+    {
+        "position": 2,
+        "actu_title": "Ransomware sur Change Healthcare",
+        "actu_url": "https://techcrunch.com/2025/01/27/change-healthcare/",
+        "actu_source": "TechCrunch",
+        "reflex": "Activer la Double Authentification (MFA)",
+    },
+]
+
+
+@pytest.mark.asyncio
+async def test_get_schedule_returns_list():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/newsletter/schedule")
+    assert r.status_code == 200
+    assert isinstance(r.json(), list)
+
+
+@pytest.mark.asyncio
+async def test_admin_update_schedule_replaces_items():
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.put(
+                f"{BASE}/newsletter/admin/schedule",
+                json=_SCHEDULE_PAYLOAD,
+                headers={"x-admin-key": "test-secret-key"},
+            )
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data) == 2
+    assert data[0]["position"] == 1
+    assert data[0]["actu_title"] == "Faille critique OpenSSH — CVE-2025-1234"
+    assert data[0]["actu_source"] == "BleepingComputer"
+    assert "updated_at" in data[0]
+
+
+@pytest.mark.asyncio
+async def test_admin_update_schedule_no_key_returns_403():
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.put(f"{BASE}/newsletter/admin/schedule", json=_SCHEDULE_PAYLOAD)
+    assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_admin_update_schedule_duplicate_positions_returns_422():
+    bad_payload = [
+        {**_SCHEDULE_PAYLOAD[0]},
+        {**_SCHEDULE_PAYLOAD[0], "actu_title": "Duplicate"},  # same position=1
+    ]
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.put(
+                f"{BASE}/newsletter/admin/schedule",
+                json=bad_payload,
+                headers={"x-admin-key": "test-secret-key"},
+            )
+    assert r.status_code == 422
