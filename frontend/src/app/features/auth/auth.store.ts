@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { ComponentStore } from '@ngrx/component-store';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { tapResponse } from '@ngrx/operators';
 import { switchMap } from 'rxjs';
 import { HotToastService } from '@ngneat/hot-toast';
@@ -24,9 +24,14 @@ export class AuthStore extends ComponentStore<AuthState> {
   constructor(
     private authService: AuthService,
     private router: Router,
+    private route: ActivatedRoute,
     private toast: HotToastService
   ) {
     super({ loading: false, error: null, requires2fa: false, pendingEmail: null, pendingPassword: null });
+  }
+
+  private get returnUrl(): string {
+    return this.route.snapshot.queryParamMap.get('returnUrl') || '/auth/master-password';
   }
 
   readonly login = this.effect<{ email: string; password: string }>(credentials$ =>
@@ -40,7 +45,7 @@ export class AuthStore extends ComponentStore<AuthState> {
                 this.patchState({ loading: false, requires2fa: true, pendingEmail: email, pendingPassword: password });
               } else {
                 this.patchState({ loading: false, requires2fa: false });
-                this.router.navigate(['/auth/master-password']);
+                this.router.navigateByUrl(this.returnUrl);
               }
             },
             (err: any) => {
@@ -64,7 +69,7 @@ export class AuthStore extends ComponentStore<AuthState> {
           tapResponse(
             () => {
               this.patchState({ loading: false, requires2fa: false, pendingEmail: null, pendingPassword: null });
-              this.router.navigate(['/auth/master-password']);
+              this.router.navigateByUrl(this.returnUrl);
             },
             (err: any) => {
               const msg = err.error?.detail ?? 'Code invalide';
