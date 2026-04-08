@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { NavHistoryService } from './core/services/nav-history.service';
 
 @Component({
   selector: 'app-root',
@@ -7,4 +8,7 @@ import { RouterOutlet } from '@angular/router';
   imports: [RouterOutlet],
   template: '<router-outlet />',
 })
-export class AppComponent {}
+export class AppComponent {
+  // Eagerly instantiate so it captures ALL navigation events from app start
+  constructor() { inject(NavHistoryService); }
+}
