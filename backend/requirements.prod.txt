@@ -1,0 +1,32 @@
+# Web Framework
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+
+# Base de données
+sqlalchemy==2.0.48
+asyncpg==0.31.0
+alembic==1.13.1
+
+# Sécurité
+python-jose[cryptography]==3.3.0
+bcrypt==5.0.0
+python-multipart==0.0.22
+
+# Rate Limiting
+slowapi==0.1.9
+
+# Config & utilitaires
+pydantic-settings==2.2.1
+python-dotenv==1.2.2
+
+# Observabilité
+loguru==0.7.2
+sentry-sdk[fastapi]==2.8.0
+
+# CyberScan SaaS
+stripe==10.5.0
+apscheduler==3.10.4
+
+# 2FA
+pyotp==2.9.0
+qrcode[pil]==7.4.2
