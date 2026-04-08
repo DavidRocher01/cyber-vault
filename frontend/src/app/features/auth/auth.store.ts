@@ -10,19 +10,23 @@ import { AuthService } from '../../core/services/auth.service';
 interface AuthState {
   loading: boolean;
   error: string | null;
+  requires2fa: boolean;
+  pendingEmail: string | null;
+  pendingPassword: string | null;
 }
 
 @Injectable()
 export class AuthStore extends ComponentStore<AuthState> {
   readonly loading$ = this.select(s => s.loading);
   readonly error$ = this.select(s => s.error);
+  readonly requires2fa$ = this.select(s => s.requires2fa);
 
   constructor(
     private authService: AuthService,
     private router: Router,
     private toast: HotToastService
   ) {
-    super({ loading: false, error: null });
+    super({ loading: false, error: null, requires2fa: false, pendingEmail: null, pendingPassword: null });
   }
 
   readonly login = this.effect<{ email: string; password: string }>(credentials$ =>
@@ -31,9 +35,13 @@ export class AuthStore extends ComponentStore<AuthState> {
         this.patchState({ loading: true, error: null });
         return this.authService.login(email, password).pipe(
           tapResponse(
-            () => {
-              this.patchState({ loading: false });
-              this.router.navigate(['/auth/master-password']);
+            (res) => {
+              if ('requires_2fa' in res) {
+                this.patchState({ loading: false, requires2fa: true, pendingEmail: email, pendingPassword: password });
+              } else {
+                this.patchState({ loading: false, requires2fa: false });
+                this.router.navigate(['/auth/master-password']);
+              }
             },
             (err: any) => {
               const msg = err.error?.detail ?? 'Erreur de connexion';
@@ -45,4 +53,31 @@ export class AuthStore extends ComponentStore<AuthState> {
       })
     )
   );
+
+  readonly loginWith2FA = this.effect<{ totpCode: string }>(payload$ =>
+    payload$.pipe(
+      switchMap(({ totpCode }) => {
+        const { pendingEmail, pendingPassword } = this.get();
+        if (!pendingEmail || !pendingPassword) return [];
+        this.patchState({ loading: true, error: null });
+        return this.authService.login(pendingEmail, pendingPassword, totpCode).pipe(
+          tapResponse(
+            () => {
+              this.patchState({ loading: false, requires2fa: false, pendingEmail: null, pendingPassword: null });
+              this.router.navigate(['/auth/master-password']);
+            },
+            (err: any) => {
+              const msg = err.error?.detail ?? 'Code invalide';
+              this.patchState({ loading: false, error: msg });
+              this.toast.error(msg);
+            }
+          )
+        );
+      })
+    )
+  );
+
+  cancelTwoFa() {
+    this.patchState({ requires2fa: false, pendingEmail: null, pendingPassword: null, error: null });
+  }
 }

@@ -13,7 +13,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Title } from '@angular/platform-browser';
 
-import { UserService, UserProfile } from '../services/user.service';
+import { UserService, UserProfile, TwoFactorSetup } from '../services/user.service';
 
 @Component({
   selector: 'app-profile',
@@ -40,6 +40,14 @@ export class ProfileComponent implements OnInit {
   showNewPw = signal(false);
   showConfirmPw = signal(false);
   showEmailPw = signal(false);
+
+  // 2FA state
+  twoFaSetup = signal<TwoFactorSetup | null>(null);
+  twoFaStep = signal<'idle' | 'setup' | 'confirm' | 'disable'>('idle');
+  twoFaLoading = signal(false);
+  twoFaCode = signal('');
+  twoFaDisablePw = signal('');
+  twoFaDisableCode = signal('');
 
   get initials(): string {
     const email = this.profile()?.email ?? '';
@@ -100,6 +108,67 @@ export class ProfileComponent implements OnInit {
         this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
       },
     });
+  }
+
+  startSetup2FA() {
+    this.twoFaLoading.set(true);
+    this.userService.setup2FA().subscribe({
+      next: setup => {
+        this.twoFaSetup.set(setup);
+        this.twoFaStep.set('confirm');
+        this.twoFaLoading.set(false);
+      },
+      error: () => {
+        this.twoFaLoading.set(false);
+        this.snack.open('Erreur lors de la configuration', 'Fermer', { duration: 4000 });
+      },
+    });
+  }
+
+  confirm2FA() {
+    if (this.twoFaCode().length !== 6) return;
+    this.twoFaLoading.set(true);
+    this.userService.enable2FA(this.twoFaCode()).subscribe({
+      next: p => {
+        this.profile.set(p);
+        this.twoFaStep.set('idle');
+        this.twoFaSetup.set(null);
+        this.twoFaCode.set('');
+        this.twoFaLoading.set(false);
+        this.snack.open('Double authentification activée ✅', 'OK', { duration: 4000 });
+      },
+      error: err => {
+        this.twoFaLoading.set(false);
+        this.snack.open(err.error?.detail || 'Code invalide', 'Fermer', { duration: 4000 });
+      },
+    });
+  }
+
+  disable2FA() {
+    if (!this.twoFaDisablePw() || this.twoFaDisableCode().length !== 6) return;
+    this.twoFaLoading.set(true);
+    this.userService.disable2FA(this.twoFaDisablePw(), this.twoFaDisableCode()).subscribe({
+      next: p => {
+        this.profile.set(p);
+        this.twoFaStep.set('idle');
+        this.twoFaDisablePw.set('');
+        this.twoFaDisableCode.set('');
+        this.twoFaLoading.set(false);
+        this.snack.open('Double authentification désactivée', 'OK', { duration: 4000 });
+      },
+      error: err => {
+        this.twoFaLoading.set(false);
+        this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
+      },
+    });
+  }
+
+  cancelTwoFa() {
+    this.twoFaStep.set('idle');
+    this.twoFaSetup.set(null);
+    this.twoFaCode.set('');
+    this.twoFaDisablePw.set('');
+    this.twoFaDisableCode.set('');
   }
 
   updatePassword() {

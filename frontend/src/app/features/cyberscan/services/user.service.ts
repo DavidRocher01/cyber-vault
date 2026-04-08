@@ -6,6 +6,12 @@ export interface UserProfile {
   id: number;
   email: string;
   is_active: boolean;
+  totp_enabled: boolean;
+}
+
+export interface TwoFactorSetup {
+  qr_code_b64: string;
+  secret: string;
 }
 
 const API = '/api/v1';
@@ -24,5 +30,17 @@ export class UserService {
 
   updatePassword(currentPassword: string, newPassword: string): Observable<void> {
     return this.http.put<void>(`${API}/users/me/password`, { current_password: currentPassword, new_password: newPassword });
+  }
+
+  setup2FA(): Observable<TwoFactorSetup> {
+    return this.http.post<TwoFactorSetup>(`${API}/users/me/2fa/setup`, {});
+  }
+
+  enable2FA(code: string): Observable<UserProfile> {
+    return this.http.post<UserProfile>(`${API}/users/me/2fa/enable`, { code });
+  }
+
+  disable2FA(password: string, code: string): Observable<UserProfile> {
+    return this.http.post<UserProfile>(`${API}/users/me/2fa/disable`, { password, code });
   }
 }

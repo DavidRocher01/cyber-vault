@@ -18,7 +18,7 @@ from app.core.security import (
 from app.models.password_reset_token import PasswordResetToken
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
-from app.schemas.user import ForgotPasswordIn, RefreshIn, ResetPasswordIn, TokenOut, UserCreate, UserLogin, UserOut
+from app.schemas.user import ForgotPasswordIn, RefreshIn, ResetPasswordIn, TokenOut, UserCreate, UserLogin, UserOut, LoginOut
 from app.services.email_service import send_password_reset
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -37,7 +37,7 @@ async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)):
     return user
 
 
-@router.post("/login", response_model=TokenOut)
+@router.post("/login")
 async def login(payload: UserLogin, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == payload.email))
     user = result.scalar_one_or_none()
@@ -74,6 +74,16 @@ async def login(payload: UserLogin, db: AsyncSession = Depends(get_db)):
 
     user.failed_login_attempts = 0
     user.locked_until = None
+
+    # 2FA check
+    if user.totp_enabled and user.totp_secret:
+        if not payload.totp_code:
+            await db.commit()
+            return {"requires_2fa": True}
+        import pyotp
+        totp = pyotp.TOTP(user.totp_secret)
+        if not totp.verify(payload.totp_code, valid_window=1):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Code 2FA invalide")
 
     access_token = create_access_token(subject=str(user.id))
     raw_refresh = create_refresh_token()

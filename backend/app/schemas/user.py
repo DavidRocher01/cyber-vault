@@ -9,12 +9,19 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+    totp_code: str | None = None
+
+
+class LoginOut(BaseModel):
+    """Returned when 2FA is required before issuing tokens."""
+    requires_2fa: bool = True
 
 
 class UserOut(BaseModel):
     id: int
     email: EmailStr
     is_active: bool
+    totp_enabled: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -36,3 +43,17 @@ class ForgotPasswordIn(BaseModel):
 class ResetPasswordIn(BaseModel):
     token: str
     password: str = Field(min_length=8, max_length=128)
+
+
+class TwoFactorSetupOut(BaseModel):
+    qr_code_b64: str   # base64 PNG
+    secret: str        # manual entry fallback
+
+
+class TwoFactorVerifyIn(BaseModel):
+    code: str          # 6-digit TOTP code
+
+
+class TwoFactorDisableIn(BaseModel):
+    password: str
+    code: str          # TOTP code required to disable
