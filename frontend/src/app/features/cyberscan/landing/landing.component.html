@@ -351,17 +351,17 @@
   </section>
 
   <!-- ── Newsletter ── -->
-  <section id="newsletter" class="relative overflow-hidden border-t border-gray-800" style="background:linear-gradient(180deg,#0f172a 0%,#0c1a2e 100%);">
+  <section id="newsletter" class="nl-section relative overflow-hidden border-t border-gray-800">
 
     <!-- Glow background -->
-    <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(6,182,212,0.07) 0%,transparent 70%);"></div>
+    <div class="nl-glow absolute inset-0 pointer-events-none"></div>
 
     <div class="relative max-w-5xl mx-auto px-8 py-20">
 
       <!-- Header -->
       <div class="text-center mb-14">
         <div class="inline-flex items-center gap-2 bg-cyan-900/30 text-cyan-400 px-4 py-1.5 rounded-full text-xs font-semibold border border-cyan-800/60 mb-5 tracking-wider uppercase">
-          <span style="width:6px;height:6px;border-radius:50%;background:#22d3ee;display:inline-block;animation:pulse 2s infinite;"></span>
+          <span class="nl-pulse-dot"></span>
           Gratuit · Toutes les 2 semaines
         </div>
         <h2 class="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight">
@@ -391,11 +391,10 @@
         <!-- Left: content cards -->
         <div class="space-y-4">
           @for (item of newsletterItems; track item.title) {
-            <div class="flex gap-4 p-4 rounded-xl border transition-all"
-                 style="background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.08);">
+            <div class="nl-item-card flex gap-4 p-4 rounded-xl border transition-all">
               <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
                    [style.background]="item.bg">
-                <span style="font-size:18px;">{{ item.emoji }}</span>
+                <span class="nl-icon">{{ item.emoji }}</span>
               </div>
               <div>
                 <p class="font-semibold text-sm text-white mb-0.5">{{ item.title }}</p>
@@ -405,16 +404,14 @@
           }
 
           <!-- Sample schedule -->
-          <div class="rounded-xl overflow-hidden border mt-2" style="border-color:rgba(255,255,255,0.08);">
-            <div class="px-4 py-2.5 text-xs font-bold text-gray-500 uppercase tracking-wider grid grid-cols-2 gap-4"
-                 style="background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.06);">
+          <div class="nl-schedule rounded-xl overflow-hidden border mt-2">
+            <div class="nl-schedule-header px-4 py-2.5 text-xs font-bold text-gray-500 uppercase tracking-wider grid grid-cols-2 gap-4">
               <span>Actualité Monde</span>
               <span>Bon Réflexe</span>
             </div>
             @for (row of newsletterSchedule.slice(0, 4); track row.week; let odd = $odd) {
-              <div class="px-4 py-2.5 text-xs grid grid-cols-2 gap-4 border-b"
-                   style="border-color:rgba(255,255,255,0.05);"
-                   [style.background]="odd ? 'rgba(255,255,255,0.02)' : 'transparent'">
+              <div class="nl-schedule-row px-4 py-2.5 text-xs grid grid-cols-2 gap-4 border-b"
+                   [class.nl-schedule-row-odd]="odd">
                 <span class="text-gray-300">{{ row.actu }}</span>
                 <span class="text-cyan-500/80">{{ row.reflex }}</span>
               </div>
@@ -423,12 +420,11 @@
         </div>
 
         <!-- Right: form -->
-        <div class="rounded-2xl p-8" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+        <div class="nl-form-card rounded-2xl p-8">
 
           @if (newsletterSent) {
             <div class="text-center py-6">
-              <div class="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"
-                   style="background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);">
+              <div class="nl-success-icon w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
                 <mat-icon class="text-green-400 !text-[2rem] !w-[2rem] !h-[2rem]">mark_email_read</mat-icon>
               </div>
               <p class="text-xl font-bold text-white mb-2">Email de confirmation envoyé !</p>
@@ -445,8 +441,7 @@
             <form [formGroup]="newsletterForm" (ngSubmit)="subscribeNewsletter()" class="space-y-3">
 
               <!-- Email input -->
-              <div class="flex items-center rounded-xl overflow-hidden transition-all focus-within:ring-2 focus-within:ring-cyan-500/50"
-                   style="background:#0f172a;border:1px solid rgba(255,255,255,0.1);">
+              <div class="nl-input-wrap flex items-center rounded-xl overflow-hidden transition-all focus-within:ring-2 focus-within:ring-cyan-500/50">
                 <mat-icon class="text-gray-500 ml-4 flex-shrink-0 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">mail</mat-icon>
                 <input
                   type="email"
@@ -465,8 +460,7 @@
               <button
                 type="submit"
                 [disabled]="newsletterLoading || newsletterForm.invalid"
-                class="w-full py-3.5 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                style="background:linear-gradient(135deg,#0891b2,#0e7490);color:white;">
+                class="nl-submit-btn w-full py-3.5 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                 @if (newsletterLoading) {
                   <mat-spinner diameter="18"></mat-spinner>
                 } @else {
