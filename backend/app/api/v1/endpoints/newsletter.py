@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
+from app.core.limiter import limiter
 from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,7 +42,9 @@ def _require_admin(x_admin_key: str = Header(default="")) -> None:
 # ── Public endpoints ───────────────────────────────────────────────────────────
 
 @router.post("/subscribe", response_model=NewsletterSubscribeOut, status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/minute")
 async def subscribe(
+    request: Request,
     payload: NewsletterSubscribeIn,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),

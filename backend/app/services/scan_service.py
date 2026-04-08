@@ -76,6 +76,8 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
         from urllib.parse import urlparse
         hostname = urlparse(url).hostname or url
 
+        from scanner.port_scanner import scan_ports
+
         ssl_result      = check_ssl(hostname)
         headers_result  = check_headers(url)
         email_result    = check_email_security(hostname)
@@ -85,6 +87,7 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
         dns_result      = scan_subdomains(hostname)
         cms_result      = detect_cms(url)
         waf_result      = detect_waf(url)
+        port_result     = scan_ports(hostname)
 
         # Tier 3+ modules
         tech_result = tls_result = takeover_result = ti_result = methods_result = {}
@@ -124,7 +127,7 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
             target_url=url,
             ssl_result=ssl_result,
             headers_result=headers_result,
-            port_result={}, ports_skipped=True,
+            port_result=port_result, ports_skipped=False,
             sca_result={},  sca_skipped=True,
             email_result=email_result,    email_skipped=False,
             cookie_result=cookie_result,  cookie_skipped=False,
@@ -152,6 +155,7 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
             email_result.get("status"), cookie_result.get("status"),
             cors_result.get("status"), ip_result.get("status"),
             dns_result.get("status"), cms_result.get("status"), waf_result.get("status"),
+            port_result.get("status"),
         ]
         if tier >= 3:
             all_statuses += [tech_result.get("status"), tls_result.get("status"), ti_result.get("status"), methods_result.get("status")]
@@ -165,6 +169,19 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
         else:
             overall = "OK"
 
+        # Remediation scripts
+        remediation_dir = str(pdf_dir / f"remediation_{scan_id}")
+        try:
+            from scanner.remediation import generate_remediation
+            remediation_paths = generate_remediation(
+                target_url=url,
+                port_result=port_result,
+                headers_result=headers_result,
+                output_dir=remediation_dir,
+            )
+        except Exception:
+            remediation_paths = {}
+
         results = {
             "ssl":          ssl_result,
             "headers":      headers_result,
@@ -175,6 +192,7 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
             "dns":          dns_result,
             "cms":          cms_result,
             "waf":          waf_result,
+            "ports":        port_result,
             "tech":         tech_result,
             "tls":          tls_result,
             "takeover":     takeover_result,
@@ -188,6 +206,7 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
             "_meta": {
                 "tier": tier,
                 "url":  url,
+                "remediation_scripts": remediation_paths,
             },
         }
 

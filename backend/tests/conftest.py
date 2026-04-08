@@ -51,6 +51,10 @@ async def setup_db():
     await engine.dispose()
     app.dependency_overrides.clear()
 
+    # Reset rate limiter storage so each test starts with a clean slate
+    from app.core.limiter import limiter
+    limiter._storage.reset()
+
 
 @pytest.fixture
 def client():
