@@ -2,7 +2,7 @@
 URL Scan endpoints — trigger and consult suspicious URL analyses.
 """
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
@@ -12,6 +12,7 @@ from app.models.user import User
 from app.models.url_scan import UrlScan
 from app.schemas.url_scan import UrlScanCreate, UrlScanOut, PaginatedUrlScans
 from app.services.url_scan_service import run_url_scan
+from app.core.limiter import limiter
 
 router = APIRouter(prefix="/url-scans", tags=["url-scans"])
 
@@ -22,7 +23,9 @@ async def _run_url_scan_background(url_scan_id: int) -> None:
 
 
 @router.post("", response_model=UrlScanOut, status_code=202)
+@limiter.limit("10/minute")
 async def trigger_url_scan(
+    request: Request,
     payload: UrlScanCreate,
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
