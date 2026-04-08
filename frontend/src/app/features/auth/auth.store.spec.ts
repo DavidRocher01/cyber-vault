@@ -14,7 +14,7 @@ import { describe, it, expect } from 'vitest';
 // Reproduit exactement le getter privé de AuthStore
 
 function resolveReturnUrl(queryParamValue: string | null): string {
-  return queryParamValue || '/auth/master-password';
+  return queryParamValue || '/cyberscan/dashboard';
 }
 
 describe('AuthStore — returnUrl resolution', () => {
@@ -22,12 +22,12 @@ describe('AuthStore — returnUrl resolution', () => {
     expect(resolveReturnUrl('/cyberscan/dashboard')).toBe('/cyberscan/dashboard');
   });
 
-  it('utilise /auth/master-password quand returnUrl est null', () => {
-    expect(resolveReturnUrl(null)).toBe('/auth/master-password');
+  it('utilise /cyberscan/dashboard quand returnUrl est null', () => {
+    expect(resolveReturnUrl(null)).toBe('/cyberscan/dashboard');
   });
 
-  it('utilise /auth/master-password quand returnUrl est une chaîne vide', () => {
-    expect(resolveReturnUrl('')).toBe('/auth/master-password');
+  it('utilise /cyberscan/dashboard quand returnUrl est une chaîne vide', () => {
+    expect(resolveReturnUrl('')).toBe('/cyberscan/dashboard');
   });
 
   it('préserve les chemins avec query params', () => {
