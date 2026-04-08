@@ -373,7 +373,6 @@
         } @else {
           <div class="flex flex-col gap-3">
             @for (scan of pdfScans; track scan.id) {
-              @let score = getScanScore(scan);
               <div class="bg-gray-800 border border-gray-700 rounded-xl px-5 py-4 flex items-center gap-5">
 
                 <!-- PDF icon -->
@@ -385,8 +384,8 @@
                 <div class="flex-1 min-w-0">
                   <p class="font-medium text-gray-200">Rapport du {{ formatDate(scan.finished_at) }}</p>
                   <div class="flex items-center gap-4 mt-1">
-                    @if (score !== null) {
-                      <span class="text-xs text-gray-400">Score : <span class="font-semibold text-white">{{ score }}/100</span></span>
+                    @if (getScanScore(scan) !== null) {
+                      <span class="text-xs text-gray-400">Score : <span class="font-semibold text-white">{{ getScanScore(scan) }}/100</span></span>
                     }
                     @if (scan.overall_status) {
                       <span class="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded border"
