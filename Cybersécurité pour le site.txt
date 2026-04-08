@@ -1,0 +1,217 @@
+Cybersécurité pour le site
+
+1. Le Label "ExpertCyber"
+
+Cible : Prestataires de services informatiques (TPE/PME) qui souhaitent prouver leur compétence auprès des entreprises et collectivités.
+
+Ce label est piloté par Cybermalveillance.gouv.fr.
+
+    Critères : Vous devez démontrer votre expertise dans trois domaines : installation/maintenance, conseil, et remédiation suite à un incident.
+
+    La démarche :
+
+        Dépôt du dossier : Tout se passe sur la plateforme de l'AFNOR.
+
+        Examen documentaire : Justificatifs de compétences (certifications techniques, exemples de rapports d'intervention).
+
+        Audit aléatoire : Un audit peut être déclenché pour vérifier la véracité des interventions déclarées.
+
+    Coût : Environ 1 000 € à 1 500 € pour deux ans (frais de dossier et d'instruction).
+
+
+
+2. Le Label "France Cybersecurity"
+
+Cible : Entreprises proposant des produits ou services de cybersécurité conçus en France.
+
+    Critères : La solution doit être développée en France, les données hébergées en UE, et la qualité technique doit être attestée.
+
+    La démarche :
+
+        Candidature : Dossier à déposer auprès de l'association qui gère le label.
+
+        Passage en commission : Un jury composé de représentants de l'État (ANSSI, DGA) et d'industriels valide l'éligibilité.
+
+    Périodicité : Trois sessions d'attribution par an.
+
+
+
+Résumé des étapes clés pour tout label :
+Étape	Action
+1. Auto-évaluation	Vérifiez que votre infrastructure actuelle respecte les exigences (chiffrement, accès, logs).
+2. Documentation	Rédigez vos procédures (gestion des incidents, politique de confidentialité).
+3. Certification	Déposez le dossier auprès de l'organisme certificateur (AFNOR, LSTI, etc.).
+4. Maintenance	Le label n'est jamais acquis à vie (souvent 2 ou 3 ans) ; gardez vos logs à jour.
+
+
+
+4. La Conformité et l'Hébergement
+
+Si vous analysez des données tierces, la loi vous impose des garanties strictes sur le stockage :
+
+    Hébergement Souverain : Pour rassurer vos clients français (surtout publics ou sensibles), privilégiez un hébergeur SecNumCloud (ex: OVHcloud, Outscale) ou au minimum ISO 27001.
+
+    RGPD : Un registre des traitements et une politique de confidentialité claire. Si vous traitez des données de santé, la certification HDS (Hébergeur de Données de Santé) est obligatoire.
+
+    Directive NIS 2 : Vérifiez si votre service entre dans le champ d'application de NIS 2 (entités "essentielles" ou "importantes"). Si oui, vous avez des obligations de signalement d'incidents sous 24h.
+
+
+5. Sécurité de l'Architecture (Angular / FastAPI)
+
+L'analyse à distance est une cible de choix pour l'exfiltration de données. Votre stack nécessite :
+
+    Authentification Forte (MFA) : Obligatoire pour vos utilisateurs, idéalement via des protocoles comme WebAuthn ou des solutions de SSO (SAML, OpenID Connect).
+
+    Sécurisation des API (FastAPI) :
+
+        Validation stricte des entrées (Pydantic) pour éviter les injections.
+
+        Mise en place de Rate Limiting pour contrer les attaques par déni de service.
+
+        Chiffrement des données au repos (dans PostgreSQL) et en transit (TLS 1.3).
+
+    Isolation des analyses : Si vous exécutez du code ou des calculs lourds, utilisez des conteneurs isolés (Docker/Sandboxing) pour que l'analyse d'un client ne puisse jamais accéder aux données d'un autre.
+
+6. Sécurisation du "Pipeline" d'analyse
+
+Puisque vous recevez des données pour les analyser, vous devez vous assurer que ces données ne contiennent pas de code malveillant qui pourrait s'exécuter sur votre serveur.
+
+    Sandboxing : L'analyse doit idéalement s'exécuter dans un environnement isolé (un conteneur éphémère qui meurt après l'analyse).
+
+    Nettoyage (Sanitization) : Tout fichier entrant doit être passé au scan avant d'être traité par votre backend Python.
+
+7. Étanchéité des données (Isolation)
+
+C'est le point le plus surveillé lors d'un audit de type SOC 2 ou ISO 27001 pour les services à distance.
+
+    Logical Separation : Dans votre base PostgreSQL, chaque ligne de donnée doit être strictement liée à un tenant_id (identifiant client). Vos requêtes FastAPI doivent systématiquement filtrer par cet ID.
+
+    Chiffrement de bout en bout : Les données doivent être chiffrées lors de l'upload depuis Angular, pendant le stockage, et lors de la consultation des résultats.
+
+
+8. La Gestion de l'Historique (RGPD & Rétention)
+
+L'historique est une donnée sensible car il révèle la stratégie de vos clients (quelles URL ils surveillent).
+
+    Durée de conservation : En 2026, la règle d'or est la "limitation de la conservation". Ne gardez pas les rapports indéfiniment par défaut. Proposez une option : "Conserver mes analyses 3 mois / 1 an / indéfiniment".
+
+    Droit à l'oubli : Votre interface Angular doit permettre à l'utilisateur de supprimer un scan (et donc la ligne correspondante dans PostgreSQL) en un clic.
+
+    Sécurité de la base : Puisque vous stockez des URL potentiellement privées ou de pré-production, votre base RDS sur AWS doit être chiffrée avec vos propres clés (KMS).
+
+
+
+9. Les Obligations "Invisibles" de 2026
+
+Même sans label, deux points sont devenus quasi-obligatoires pour les services payants cette année :
+
+    Le Signalement d'Incident : Si votre base AWS est compromise, vous avez l'obligation légale (RGPD/NIS 2) de prévenir vos clients payants sous 72h (et parfois l'ANSSI/CNIL sous 24h si l'impact est majeur).
+
+    L'Assurance RC Pro Cyber : C'est le "label de secours". Pour un service payant, elle coûte environ 400€ à 600€ par an en 2026. Elle est votre meilleure alliée si un client vous poursuit parce que votre scan a fait "planter" son site ou n'a pas vu une faille critique.
+
+ Remplacer les Labels par la "Transparence Technique"
+
+Puisque vous n'avez pas encore l'ISO 27001 ou le Cyberscore, jouez la carte de la Documentation de Confiance :
+Ce que le client demande	Votre réponse "Expert" (Sans label)
+Où sont mes données ?	"Hébergées exclusivement sur AWS Paris (eu-west-3), France."
+C'est sécurisé ?	"Score A+ sur Mozilla Observatory et chiffrement AES-256."
+Qui accède à mon historique ?	"Accès restreint par IAM (Identity Access Management) avec MFA."
+Et si ça bug ?	"Nous garantissons un support sous 24h pour nos abonnés."
+
+
+
+Résumé des changements
+Aspect	Scan d'URL (Public)	Analyse de Code (Privé)
+Risque de fuite	Faible (URL publique)	Critique (Secret industriel)
+Sécurité AWS	VPC Standard	Isolation forte / Chiffrement dédié
+Contrat	CGU standards	NDA & Contrat de service spécifique
+Valeur ajoutée	Diagnostic rapide	Audit profond / Expert
+
+
+
+10. L'architecture de scan "Isolation Totale"
+
+Pour rassurer vos clients (et protéger votre propre infrastructure), vous devez isoler l'exécution de l'analyse.
+
+    Le flux : Votre API FastAPI ne doit pas analyser le code directement sur le serveur principal.
+
+    L'outil : Utilisez AWS Lambda ou AWS Fargate.
+
+    Le principe : Pour chaque scan, vous lancez un conteneur éphémère qui :
+
+        Télécharge le code (via le token OAuth GitHub).
+
+        Exécute vos scripts d'analyse (ex: Bandit pour Python, Semgrep pour le multi-langage).
+
+        Envoie le résultat JSON à votre base PostgreSQL.
+
+        S'autodétruit instantanément.
+
+ Ce qu'il faut mettre dans votre rapport (Vue Angular)
+
+Pour 30 €/mois, l'utilisateur veut de la clarté. Votre interface Angular doit afficher :
+
+    Le Score Global : Une note (A à F) ou un indice de risque.
+
+    La Liste des Failles : Classées par sévérité (Critique, Haute, Moyenne, Info).
+
+    Le Snippet de Code : Affichez la ligne fautive (en lecture seule) avec une explication pédagogique.
+
+    Le Conseil de Correction : Un bloc "Comment corriger" avec un exemple de code sain.
+
+ Votre "Kit de Confiance" (Sans label)
+
+Puisque vous n'avez pas encore de label, votre site doit respirer le sérieux technique :
+
+    Transparence sur les données : Une mention claire : "Votre code est analysé dans une mémoire vive isolée et n'est jamais écrit sur un disque permanent."
+
+    Sécurité des Tokens : Précisez que vous utilisez le chiffrement matériel (AWS KMS) pour protéger leurs accès GitHub.
+
+    Rapports PDF : Permettez de télécharger l'audit en PDF propre avec votre logo. C'est ce que les clients montrent à leurs propres patrons pour justifier les 30 €.
+
+
+
+
+Synthèse
+
+1. La répartition intelligente du budget (Estimation 2026)
+Poste de dépense	Service AWS	Coût estimé	Pourquoi ce choix ?
+Base de données	RDS PostgreSQL (t4g.micro)	16 €	Indispensable pour l'historique et la gestion des crédits.
+Backend API	App Runner (ou Fargate)	12 €	Plus simple qu'un Load Balancer + EC2, et très sécurisé.
+Analyseur	AWS Lambda	2 €	Coût dérisoire car payé uniquement à la seconde de scan.
+Sécurité/Secrets	KMS + Secrets Manager	5 €	Pour dire à vos clients : "Vos clés GitHub sont chiffrées physiquement".
+Stockage	S3 + CloudWatch	5 €	Pour les rapports PDF et les logs d'audit.
+Réseau	Route 53 + CloudFront	5 €	Pour que votre site Angular soit rapide et en HTTPS partout.
+Marge de sécurité	-	5 €	Pour les variations de trafic.
+
+Total : ~50 € / mois.
+2. Le "Hack" pour économiser (AWS Activate)
+
+Puisque vous lancez un nouveau service, ne payez pas tout de suite de votre poche !
+
+    Recherchez "AWS Activate Founders". C'est un programme pour les startups non financées.
+
+    Ils offrent souvent 1 000 $ de crédits gratuits valables 2 ans.
+
+    Avec ça, vos 50 €/mois sont couverts pendant 20 mois. C'est le meilleur moyen de tester votre offre à 30 €/mois sans risque financier.
+
+3. Les 3 "Lignes Rouges" à ne pas franchir
+
+Même avec un budget serré, ne faites jamais d'économies sur ces points :
+
+    Le compartimentage : Ne faites jamais tourner le scan sur le même serveur que votre API FastAPI. Si le code du client contient un virus, il pourrait infecter toute votre base de données. Utilisez toujours une Lambda isolée pour le scan.
+
+    L'accès DB : Votre site Angular ne doit jamais parler directement à PostgreSQL. Tout passe par FastAPI avec une authentification forte.
+
+    Les Backups : Activez les sauvegardes automatiques sur RDS. Perdre l'historique d'un client qui paie 30 €, c'est perdre le client.
+
+
+Pour compenser l'absence de WAF (le pare-feu cher d'AWS), utilise Cloudflare (version gratuite) devant ton site Angular.
+
+    Cela masquera l'adresse IP de ton infrastructure AWS.
+
+    Cela bloquera les attaques de base (bots, injections simples).
+
+    C'est 0 € et cela booste ta sécurité immédiatement.
+
+Aucune faille dans les endpoints

@@ -1,0 +1,56 @@
+Page dédiées par client 
+
+- historisation des diagnostiques
+
+- historisation des failles découvertes
+
+- historisation des rapports PDF générés
+
+Cas pratique:
+
+jour du diagnostiques - tableau de bord de ce qui a été trouvé - PDF téléchargeable - si faille, une ligne par faille détectée avec criticité
+
+
+1. La connexion aux outils du client via MCP
+
+Le protocole MCP permet à Claude de se connecter à des services tiers sans que vous ayez à coder une intégration complexe.
+
+    Si le client utilise Jira ou Linear : Vous installez le "serveur MCP" correspondant. Claude pourra alors lire les tickets du client, en créer de nouveaux après un scan, et même mettre à jour le statut du ticket une fois la faille corrigée.
+
+    Si le client utilise GitHub Issues : C'est encore plus simple, car Claude Code possède une intégration native. Il peut scanner le repo, détecter une faille, et ouvrir automatiquement une Issue avec le label security.
+
+    Installer autant de MCP que possible pour gérer 100% des cas	
+
+2. Le workflow "Zéro Friction"
+
+Voici le schéma type d'une intervention sur le projet d'un client :
+
+    Le Scan : Vous lancez un scan sur le repo Angular/FastAPI du client.
+
+    La Synchronisation : Claude identifie 3 failles. Il utilise son accès au gestionnaire de tickets (Jira, GitHub, etc.) pour créer 3 tickets détaillés, chez le client et sur sa page dédiée sur le site
+
+    La Validation Client : Le client reçoit une notification. Dans le ticket, Claude a déjà pré-rédigé la solution.
+
+    Le client reçoit une estimation de la sévérité de la faille et du temps de correction	
+
+    Le bouton "Corriger" : Si le client donne son accord (ou si vous le faites pour lui), vous tapez claude fix issue #123. Claude applique le patch, vérifie avec Pytest et Vitest, et pousse le code.
+
+3. Comment gérer l'accès en pratique ?
+
+Pour une micro-entreprise, il y a deux manières de gérer les accès :
+
+    L'accès direct (Le plus courant) : Le client vous ajoute comme collaborateur sur son projet GitHub ou son instance Jira. Vous configurez vos clés API dans votre instance Claude. C'est transparent pour le client.
+
+    L'Agent Dédié : Certaines entreprises déploient un "Agent Claude" directement sur leur infrastructure. Vous n'avez plus besoin d'accès personnel ; vous communiquez avec l'agent qui a déjà les droits de lecture/écriture sur les tickets et le code.
+
+4. Les avantages pour votre micro-entreprise
+
+    Professionnalisme : Vous ne rapportez pas juste des bugs, vous rapportez des tickets déjà documentés avec une solution prête à être fusionnée.
+
+    Rapidité : Vous passez moins de temps à faire des rapports manuels.
+
+    Sécurité : En utilisant des outils comme Snyk ou GitHub Advanced Security couplés à Claude, vous offrez une prestation de "DevSecOps" de haut niveau, normalement réservée aux grandes agences.
+
+5. Une fois les corrections faites, le client peut relancer le scan et générer un nouveau PDF 
+
+
