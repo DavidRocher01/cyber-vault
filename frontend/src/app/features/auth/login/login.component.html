@@ -187,7 +187,8 @@
 
         <p class="text-center text-sm text-gray-500">
           Pas de compte ?
-          <a routerLink="/auth/register" class="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors ml-1">
+          <a routerLink="/auth/register" [queryParams]="returnUrl ? { returnUrl } : {}"
+             class="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors ml-1">
             S'inscrire gratuitement
           </a>
         </p>

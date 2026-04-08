@@ -7,7 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { AuthStore } from '../auth.store';
 
@@ -25,7 +25,12 @@ import { AuthStore } from '../auth.store';
 })
 export class LoginComponent {
   private fb = inject(FormBuilder);
+  private route = inject(ActivatedRoute);
   readonly store = inject(AuthStore);
+
+  get returnUrl(): string {
+    return this.route.snapshot.queryParamMap.get('returnUrl') || '';
+  }
 
   readonly loading$ = this.store.loading$;
   readonly error$ = this.store.error$;

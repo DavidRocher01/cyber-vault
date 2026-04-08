@@ -7,7 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth.service';
@@ -32,6 +32,11 @@ export class RegisterComponent {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
+  get returnUrl(): string | null {
+    return this.route.snapshot.queryParamMap.get('returnUrl');
+  }
 
   form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -75,7 +80,7 @@ export class RegisterComponent {
     this.authService.register(email, password).pipe(
       switchMap(() => this.authService.login(email, password))
     ).subscribe({
-      next: () => this.router.navigate(['/cyberscan/onboarding']),
+      next: () => this.router.navigateByUrl(this.returnUrl ?? '/cyberscan/onboarding'),
       error: err => { this.error = err.error?.detail ?? 'Erreur inscription'; this.loading = false; },
     });
   }
