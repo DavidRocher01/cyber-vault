@@ -21,6 +21,7 @@ import { AuthStore } from '../auth.store';
   ],
   providers: [AuthStore],
   templateUrl: './login.component.html',
+  styleUrl: './login.component.scss',
 })
 export class LoginComponent {
   private fb = inject(FormBuilder);
