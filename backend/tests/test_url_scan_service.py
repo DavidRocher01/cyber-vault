@@ -6,9 +6,11 @@ Covers: _validate_url, _analyze_url (mocked httpx), verdict/scoring logic,
 
 import pytest
 import httpx
-from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.services.url_scan_service import _validate_url, _analyze_url
+from unittest.mock import AsyncMock, MagicMock, patch, call
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.services.url_scan_service import _validate_url, _analyze_url, run_url_scan
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -297,3 +299,108 @@ class TestAnalyzeUrl:
         types = [f["type"] for f in result["findings"]]
         # suspicious_tld (.xyz) + phishing_keyword
         assert "suspicious_tld" in types or "phishing_keyword" in types
+
+
+    @pytest.mark.asyncio
+    async def test_ssl_retry_also_fails_continues_with_empty_html(self):
+        """When the SSL retry (verify=False) also raises, the scan continues with
+        html='' and produces a result (no raise — the caller decides what to do)."""
+        fail_ctx = MagicMock()
+        fail_ctx.__aenter__ = AsyncMock(side_effect=Exception("network error"))
+        fail_ctx.__aexit__ = AsyncMock(return_value=False)
+
+        ssl_ctx = MagicMock()
+        ssl_ctx.__aenter__ = AsyncMock(
+            side_effect=httpx.ConnectError("SSL certificate verify failed")
+        )
+        ssl_ctx.__aexit__ = AsyncMock(return_value=False)
+
+        call_count = 0
+
+        def side_effect(**kwargs):
+            nonlocal call_count
+            call_count += 1
+            return ssl_ctx if call_count == 1 else fail_ctx
+
+        with patch("app.services.url_scan_service.httpx.AsyncClient", side_effect=side_effect):
+            result = await _analyze_url("https://bad-cert-and-down.com")
+
+        # Should still return a result dict with ssl_error finding and empty html analysis
+        assert isinstance(result, dict)
+        assert result["ssl_valid"] is False
+        types = [f["type"] for f in result["findings"]]
+        assert "ssl_error" in types
+
+
+# ── run_url_scan (background task) ────────────────────────────────────────────
+
+class TestRunUrlScan:
+
+    def _make_db(self, url_scan_obj):
+        """Return a minimal async mock DB session."""
+        db = AsyncMock(spec=AsyncSession)
+        result = MagicMock()
+        result.scalar_one_or_none.return_value = url_scan_obj
+        db.execute = AsyncMock(return_value=result)
+        db.commit = AsyncMock()
+        db.add = MagicMock()
+        return db
+
+    @pytest.mark.asyncio
+    async def test_missing_scan_returns_early(self):
+        db = AsyncMock(spec=AsyncSession)
+        result = MagicMock()
+        result.scalar_one_or_none.return_value = None
+        db.execute = AsyncMock(return_value=result)
+
+        # Should return without error
+        await run_url_scan(999, db)
+        db.commit.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_successful_scan_sets_done(self):
+        from unittest.mock import MagicMock
+
+        url_scan = MagicMock()
+        url_scan.id = 1
+        url_scan.url = "https://example.com"
+        url_scan.user_id = 42
+
+        db = self._make_db(url_scan)
+
+        analysis = {
+            "verdict": "safe",
+            "threat_type": None,
+            "threat_score": 0,
+            "findings": [],
+            "redirect_chain": [],
+            "redirect_count": 0,
+            "ssl_valid": True,
+            "final_url": "https://example.com",
+        }
+
+        with patch("app.services.url_scan_service._analyze_url", new=AsyncMock(return_value=analysis)), \
+             patch("app.services.url_scan_service.select"), \
+             patch("app.services.email_service.send_url_scan_alert", side_effect=Exception("smtp")):
+            await run_url_scan(1, db)
+
+        assert url_scan.status == "done"
+        assert url_scan.verdict == "safe"
+        assert url_scan.threat_score == 0
+
+    @pytest.mark.asyncio
+    async def test_analyze_error_sets_error_status(self):
+        url_scan = MagicMock()
+        url_scan.id = 1
+        url_scan.url = "https://broken.com"
+        url_scan.user_id = 42
+
+        db = self._make_db(url_scan)
+
+        with patch("app.services.url_scan_service._analyze_url",
+                   new=AsyncMock(side_effect=ValueError("réseau indisponible"))), \
+             patch("app.services.url_scan_service.select"):
+            await run_url_scan(1, db)
+
+        assert url_scan.status == "error"
+        assert "réseau" in url_scan.error_message

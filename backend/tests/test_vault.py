@@ -2,6 +2,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
+from app.schemas.vault_item import VaultItemCreate, VaultItemUpdate
 
 BASE = "/api/v1"
 
@@ -72,3 +73,48 @@ async def test_cannot_access_other_user_item():
 
         r = await client.get(f"{BASE}/vault/{item_id}", headers=h2)
         assert r.status_code == 404
+
+
+def test_create_invalid_category_defaults_to_login():
+    item = VaultItemCreate(title="Test", password_encrypted="enc", category="invalid_cat")
+    assert item.category == "login"
+
+
+def test_update_invalid_category_defaults_to_login():
+    item = VaultItemUpdate(category="hacker")
+    assert item.category == "login"
+
+
+def test_update_valid_category_preserved():
+    item = VaultItemUpdate(category="card")
+    assert item.category == "card"
+
+
+def test_create_with_category():
+    item = VaultItemCreate(title="Netflix", password_encrypted="enc", category="login")
+    assert item.category == "login"
+
+
+@pytest.mark.asyncio
+async def test_create_with_category_endpoint():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        headers = await _auth_headers(client)
+        r = await client.post(f"{BASE}/vault/", json={
+            "title": "Card", "password_encrypted": "enc", "category": "card"
+        }, headers=headers)
+        assert r.status_code == 201
+        assert r.json()["category"] == "card"
+
+
+@pytest.mark.asyncio
+async def test_update_category():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        headers = await _auth_headers(client)
+        r = await client.post(f"{BASE}/vault/", json={
+            "title": "Entry", "password_encrypted": "enc", "category": "login"
+        }, headers=headers)
+        item_id = r.json()["id"]
+
+        r = await client.patch(f"{BASE}/vault/{item_id}", json={"category": "wifi"}, headers=headers)
+        assert r.status_code == 200
+        assert r.json()["category"] == "wifi"
