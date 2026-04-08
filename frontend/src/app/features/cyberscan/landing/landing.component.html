@@ -666,18 +666,33 @@
 
     <!-- Close -->
     <button type="button" class="auth-modal-close" (click)="closeAuth()" aria-label="Fermer">
-      <mat-icon>close</mat-icon>
+      <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">close</mat-icon>
     </button>
 
+    <!-- Header -->
+    <div class="auth-modal-header">
+      <div class="auth-modal-icon">
+        <mat-icon class="!text-[1.3rem] !w-[1.3rem] !h-[1.3rem] text-cyan-400">
+          {{ authPanel() === 'login' ? 'lock_open' : 'person_add' }}
+        </mat-icon>
+      </div>
+      <h2 class="auth-modal-title">
+        {{ authPanel() === 'login' ? 'Bon retour !' : 'Créer un compte' }}
+      </h2>
+      <p class="auth-modal-subtitle">
+        {{ authPanel() === 'login' ? 'Connectez-vous pour accéder à votre espace.' : 'Gratuit · Sans carte bancaire · Scan en 2 min.' }}
+      </p>
+    </div>
+
     <!-- Tabs -->
-    <div class="flex gap-1 p-1 auth-modal-tabs mb-6">
-      <button type="button" class="flex-1 py-2 rounded-lg text-sm font-semibold transition-all"
+    <div class="auth-modal-tabs mb-6">
+      <button type="button" class="auth-tab"
               [class.auth-tab-active]="authPanel() === 'register'"
               [class.auth-tab-inactive]="authPanel() !== 'register'"
               (click)="openAuth('register')">
         Créer un compte
       </button>
-      <button type="button" class="flex-1 py-2 rounded-lg text-sm font-semibold transition-all"
+      <button type="button" class="auth-tab"
               [class.auth-tab-active]="authPanel() === 'login'"
               [class.auth-tab-inactive]="authPanel() !== 'login'"
               (click)="openAuth('login')">
@@ -687,7 +702,7 @@
 
     <!-- Error -->
     @if (authError) {
-      <div class="flex items-center gap-2 bg-red-900/30 border border-red-700/60 rounded-xl px-4 py-3 text-sm text-red-400 mb-4">
+      <div class="auth-error mb-4">
         <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] flex-shrink-0">error_outline</mat-icon>
         {{ authError }}
       </div>
@@ -697,70 +712,65 @@
     @if (authPanel() === 'register') {
       <form [formGroup]="registerForm" (ngSubmit)="submitRegister()" class="flex flex-col gap-4">
 
-        <div class="flex flex-col gap-1.5">
-          <label class="auth-label">Email</label>
+        <div class="auth-field">
+          <label class="auth-label">Adresse email</label>
           <div class="auth-input-wrap" [class.auth-input-valid]="registerForm.controls.email.touched && registerForm.controls.email.valid"
                [class.auth-input-error]="registerForm.controls.email.touched && registerForm.controls.email.invalid">
+            <mat-icon class="auth-input-icon">mail_outline</mat-icon>
             <input type="email" formControlName="email" placeholder="vous@exemple.com" autocomplete="email"
-                   class="flex-1 bg-transparent px-4 py-3 text-sm placeholder-gray-600 outline-none text-white" />
-            <mat-icon class="text-gray-600 mr-3 !text-[1rem] !w-[1rem] !h-[1rem]">mail</mat-icon>
+                   class="auth-input" />
           </div>
         </div>
 
-        <div class="flex flex-col gap-1.5">
+        <div class="auth-field">
           <label class="auth-label">Mot de passe</label>
           <div class="auth-input-wrap" [class.auth-input-valid]="registerForm.controls.password.touched && registerForm.controls.password.valid"
                [class.auth-input-error]="registerForm.controls.password.touched && registerForm.controls.password.invalid">
+            <mat-icon class="auth-input-icon">lock_outline</mat-icon>
             <input [type]="showAuthPassword ? 'text' : 'password'" formControlName="password"
                    placeholder="8 caractères minimum" autocomplete="new-password"
-                   class="flex-1 bg-transparent px-4 py-3 text-sm placeholder-gray-600 outline-none text-white" />
-            <button type="button" class="mr-3 text-gray-600 hover:text-gray-300 transition-colors flex-shrink-0"
-                    (click)="showAuthPassword = !showAuthPassword">
+                   class="auth-input" />
+            <button type="button" class="auth-eye-btn" (click)="showAuthPassword = !showAuthPassword">
               <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ showAuthPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
             </button>
           </div>
           @if ((registerForm.get('password')?.value?.length ?? 0) > 0) {
-            <div class="flex gap-1 mt-1">
+            <div class="auth-strength-bar mt-2">
               @for (i of [1,2,3,4]; track i) {
-                <div class="h-1 flex-1 rounded-full transition-colors"
-                     [class.bg-red-500]="registerPasswordStrength < 2 && i <= registerPasswordStrength"
-                     [class.bg-yellow-500]="registerPasswordStrength === 2 && i <= registerPasswordStrength"
-                     [class.bg-green-500]="registerPasswordStrength >= 3 && i <= registerPasswordStrength"
-                     [class.bg-gray-700]="i > registerPasswordStrength"></div>
+                <div class="auth-strength-seg"
+                     [style.background]="i > registerPasswordStrength ? 'rgba(255,255,255,0.1)' :
+                       registerPasswordStrength < 2 ? '#ef4444' :
+                       registerPasswordStrength === 2 ? '#facc15' : '#34d399'"></div>
               }
             </div>
-            <p class="text-xs"
+            <p class="text-[11px] mt-1"
                [class.text-red-400]="registerPasswordStrength < 2"
                [class.text-yellow-400]="registerPasswordStrength === 2"
-               [class.text-green-400]="registerPasswordStrength >= 3">{{ registerStrengthLabel }}</p>
+               [class.text-emerald-400]="registerPasswordStrength >= 3">{{ registerStrengthLabel }}</p>
           }
         </div>
 
-        <div class="flex flex-col gap-1.5">
+        <div class="auth-field">
           <label class="auth-label">Confirmer le mot de passe</label>
           <div class="auth-input-wrap"
                [class.auth-input-error]="registerForm.get('confirmPassword')?.touched && registerForm.hasError('mismatch')"
                [class.auth-input-valid]="registerForm.get('confirmPassword')?.touched && !registerForm.hasError('mismatch') && registerForm.get('confirmPassword')?.value">
+            <mat-icon class="auth-input-icon">lock_outline</mat-icon>
             <input [type]="showAuthPassword ? 'text' : 'password'" formControlName="confirmPassword"
-                   placeholder="••••••••" autocomplete="new-password"
-                   class="flex-1 bg-transparent px-4 py-3 text-sm placeholder-gray-600 outline-none text-white" />
-            <mat-icon class="text-gray-600 mr-3 !text-[1rem] !w-[1rem] !h-[1rem]">lock</mat-icon>
+                   placeholder="Répétez votre mot de passe" autocomplete="new-password"
+                   class="auth-input" />
           </div>
           @if (registerForm.get('confirmPassword')?.touched && registerForm.hasError('mismatch')) {
-            <p class="text-xs text-red-400">Les mots de passe ne correspondent pas</p>
+            <p class="text-[11px] text-red-400 mt-1">Les mots de passe ne correspondent pas</p>
           }
         </div>
 
         <button type="submit" [disabled]="authLoading || registerForm.invalid"
-                class="auth-modal-btn mt-1" [class.opacity-50]="authLoading || registerForm.invalid">
-          @if (authLoading) { <mat-spinner diameter="20"></mat-spinner> }
-          @else {
-            Créer mon compte
-            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_forward</mat-icon>
-          }
+                class="auth-modal-btn" [class.auth-modal-btn-disabled]="authLoading || registerForm.invalid">
+          @if (authLoading) { <mat-spinner diameter="18" class="!text-white"></mat-spinner> }
+          @else { Créer mon compte <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_forward</mat-icon> }
         </button>
 
-        <p class="text-center text-xs text-gray-600 mt-1">Sans carte bancaire · Scan complet en 2 min</p>
       </form>
     }
 
@@ -768,41 +778,41 @@
     @if (authPanel() === 'login') {
       <form [formGroup]="loginForm" (ngSubmit)="submitLogin()" class="flex flex-col gap-4">
 
-        <div class="flex flex-col gap-1.5">
-          <label class="auth-label">Email</label>
+        <div class="auth-field">
+          <label class="auth-label">Adresse email</label>
           <div class="auth-input-wrap" [class.auth-input-valid]="loginForm.controls.email.touched && loginForm.controls.email.valid"
                [class.auth-input-error]="loginForm.controls.email.touched && loginForm.controls.email.invalid">
+            <mat-icon class="auth-input-icon">mail_outline</mat-icon>
             <input type="email" formControlName="email" placeholder="vous@exemple.com" autocomplete="email"
-                   class="flex-1 bg-transparent px-4 py-3 text-sm placeholder-gray-600 outline-none text-white" />
-            <mat-icon class="text-gray-600 mr-3 !text-[1rem] !w-[1rem] !h-[1rem]">mail</mat-icon>
+                   class="auth-input" />
           </div>
         </div>
 
-        <div class="flex flex-col gap-1.5">
-          <label class="auth-label">Mot de passe</label>
+        <div class="auth-field">
+          <div class="flex items-center justify-between">
+            <label class="auth-label">Mot de passe</label>
+            <a routerLink="/auth/forgot-password" class="text-[11px] text-gray-500 hover:text-cyan-400 transition-colors">
+              Mot de passe oublié ?
+            </a>
+          </div>
           <div class="auth-input-wrap" [class.auth-input-valid]="loginForm.controls.password.touched && loginForm.controls.password.valid"
                [class.auth-input-error]="loginForm.controls.password.touched && loginForm.controls.password.invalid">
+            <mat-icon class="auth-input-icon">lock_outline</mat-icon>
             <input [type]="showAuthPassword ? 'text' : 'password'" formControlName="password"
-                   placeholder="••••••••" autocomplete="current-password"
-                   class="flex-1 bg-transparent px-4 py-3 text-sm placeholder-gray-600 outline-none text-white" />
-            <button type="button" class="mr-3 text-gray-600 hover:text-gray-300 transition-colors flex-shrink-0"
-                    (click)="showAuthPassword = !showAuthPassword">
+                   placeholder="Votre mot de passe" autocomplete="current-password"
+                   class="auth-input" />
+            <button type="button" class="auth-eye-btn" (click)="showAuthPassword = !showAuthPassword">
               <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ showAuthPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
             </button>
           </div>
-          <a routerLink="/auth/forgot-password" class="text-xs text-gray-600 hover:text-cyan-400 transition-colors self-end mt-0.5">
-            Mot de passe oublié ?
-          </a>
         </div>
 
         <button type="submit" [disabled]="authLoading || loginForm.invalid"
-                class="auth-modal-btn mt-1" [class.opacity-50]="authLoading || loginForm.invalid">
-          @if (authLoading) { <mat-spinner diameter="20"></mat-spinner> }
-          @else {
-            Se connecter
-            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_forward</mat-icon>
-          }
+                class="auth-modal-btn" [class.auth-modal-btn-disabled]="authLoading || loginForm.invalid">
+          @if (authLoading) { <mat-spinner diameter="18" class="!text-white"></mat-spinner> }
+          @else { Se connecter <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_forward</mat-icon> }
         </button>
+
       </form>
     }
 
