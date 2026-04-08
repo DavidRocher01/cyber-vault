@@ -1,13 +1,14 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.limiter import limiter
 from app.core.security import (
     REFRESH_TOKEN_EXPIRE_DAYS,
     create_access_token,
@@ -25,7 +26,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def register(request: Request, payload: UserCreate, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == payload.email))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
@@ -33,12 +35,13 @@ async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)):
     db.add(user)
     await db.flush()
     await db.refresh(user)
-    logger.info(f"New user registered: {user.email}")
+    logger.info("New user registered (id={})", user.id)
     return user
 
 
 @router.post("/login")
-async def login(payload: UserLogin, db: AsyncSession = Depends(get_db)):
+@limiter.limit("10/minute")
+async def login(request: Request, payload: UserLogin, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == payload.email))
     user = result.scalar_one_or_none()
 
@@ -90,7 +93,7 @@ async def login(payload: UserLogin, db: AsyncSession = Depends(get_db)):
     expires = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     db.add(RefreshToken(user_id=user.id, token=raw_refresh, expires_at=expires))
     await db.flush()
-    logger.info(f"User logged in: {user.email}")
+    logger.info("User logged in (id={})", user.id)
     return TokenOut(access_token=access_token, refresh_token=raw_refresh)
 
 
@@ -125,7 +128,7 @@ async def logout(payload: RefreshIn, db: AsyncSession = Depends(get_db)):
     stored = result.scalar_one_or_none()
     if stored and not stored.revoked:
         stored.revoked = True
-        await db.flush()
+        await db.commit()
 
 
 RESET_TOKEN_EXPIRE_MINUTES = 30
