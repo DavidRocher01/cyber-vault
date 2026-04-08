@@ -93,32 +93,36 @@ async def _analyze_url(url: str) -> dict:
             redirect_chain = [str(r.url) for r in resp.history]
             html = resp.text[:200_000]  # cap at 200 KB
 
-    except httpx.SSLError:
-        ssl_valid = False
-        score += 20
-        findings.append({
-            "type": "ssl_error",
-            "severity": "high",
-            "time_ms": None,
-            "detail": "Certificat SSL invalide ou expiré",
-        })
-        # Retry without SSL verification to still analyze content
-        try:
-            async with httpx.AsyncClient(
-                follow_redirects=True,
-                timeout=15.0,
-                verify=False,
-                headers=HEADERS,
-            ) as client:
-                resp = await client.get(url)
-                final_url = str(resp.url)
-                redirect_chain = [str(r.url) for r in resp.history]
-                html = resp.text[:200_000]
-        except Exception:
-            html = ""
-
     except httpx.TimeoutException:
         raise ValueError("L'URL ne répond pas (timeout 15s)")
+    except httpx.ConnectError as exc:
+        # httpx raises ConnectError for SSL failures; check the message to distinguish
+        exc_str = str(exc).lower()
+        if any(t in exc_str for t in ("ssl", "certificate", "tls", "handshake", "verify")):
+            ssl_valid = False
+            score += 20
+            findings.append({
+                "type": "ssl_error",
+                "severity": "high",
+                "time_ms": None,
+                "detail": "Certificat SSL invalide ou expiré",
+            })
+            # Retry without SSL verification to still analyze content
+            try:
+                async with httpx.AsyncClient(
+                    follow_redirects=True,
+                    timeout=15.0,
+                    verify=False,
+                    headers=HEADERS,
+                ) as client:
+                    resp = await client.get(url)
+                    final_url = str(resp.url)
+                    redirect_chain = [str(r.url) for r in resp.history]
+                    html = resp.text[:200_000]
+            except Exception:
+                html = ""
+        else:
+            raise ValueError(f"Erreur réseau : {exc}")
     except httpx.RequestError as exc:
         raise ValueError(f"Erreur réseau : {exc}")
 

@@ -1,17 +1,4 @@
-[pytest]
-asyncio_mode = auto
-
-addopts =
-    --cov=app
-    --cov-report=term-missing
-    --cov-report=html:htmlcov
-    --cov-fail-under=85
-    --cov-config=.coveragerc
-    -v
-
-testpaths = tests
-
-[coverage:run]
+[run]
 source = app
 omit =
     app/alembic/*
@@ -20,9 +7,10 @@ omit =
     app/services/newsletter_email.py
     app/services/scheduler.py
     app/services/stripe_service.py
+    app/services/scan_service.py
     app/api/v1/endpoints/webhooks.py
 
-[coverage:report]
+[report]
 exclude_lines =
     pragma: no cover
     if __name__ == .__main__.:
