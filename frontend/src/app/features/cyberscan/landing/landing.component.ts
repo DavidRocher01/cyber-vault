@@ -217,13 +217,13 @@ export class LandingComponent implements OnInit {
     { emoji: '⚖️', bg: 'rgba(168,85,247,0.15)', title: 'Coin des Dirigeants', desc: 'Réglementation française, NIS2, RGPD — ce que vous devez savoir chaque mois' },
   ];
 
-  newsletterSchedule = [
-    { week: '01', actu: 'Piratage d\'un hôpital aux USA', reflex: 'Activer la Double Authentification (MFA)' },
-    { week: '02', actu: 'Vol de données massif en Corée', reflex: 'Utiliser un gestionnaire de mots de passe' },
-    { week: '03', actu: 'Deepfake vocal d\'un PDG à Londres', reflex: 'Créer un "mot de passe verbal" pour les virements' },
-    { week: '04', actu: 'Failles dans les objets connectés (IoT)', reflex: 'Changer le mot de passe par défaut de sa box/caméra' },
-    { week: '05', actu: 'Ransomware sur une mairie en Espagne', reflex: 'Vérifier que sa sauvegarde est "hors-ligne"' },
-    { week: '06', actu: 'Fraude aux faux QR codes au Japon', reflex: 'Ne jamais scanner un QR code public sans douter' },
+  newsletterSchedule: { actu_title: string; actu_url: string; actu_source: string; reflex: string }[] = [
+    { actu_title: 'L\'IA accélère les cyberattaques : une faille exploitée en seulement 72 minutes', actu_url: 'https://www.lemondeinformatique.fr/actualites/lire-l-ia-accelere-la-vitesse-des-cyberattaques-99405.html', actu_source: 'Le Monde Informatique', reflex: 'Réduire le délai de détection grâce à un EDR/SIEM' },
+    { actu_title: 'Piratage du fichier SIA : 41 000 détenteurs d\'armes exposés en France', actu_url: 'https://korben.info/fuite-sia-armes-ministere-interieur.html', actu_source: 'Korben', reflex: 'Activer la double authentification sur tous vos comptes' },
+    { actu_title: 'Axios compromis : l\'impact d\'une intrusion nord-coréenne sur la chaîne logistique', actu_url: 'https://www.lemagit.fr/actualites/366641121/Axios-compromis-limpact-dune-intrusion-nord-coreenne-sur-la-chaine-logisitique', actu_source: 'LeMagIT', reflex: 'Auditer ses dépendances open source avant mise en prod' },
+    { actu_title: 'Europa.eu cyberattaquée par ShinyHunters : Bruxelles minimise l\'impact', actu_url: 'https://www.zataz.com/cyber-actualites-zataz-de-la-semaine-du-30-mars-au-4-avril-2026/', actu_source: 'ZATAZ', reflex: 'Ne jamais minimiser une alerte de sécurité — toujours investiguer' },
+    { actu_title: 'Exposition de 16 milliards d\'identifiants et mots de passe : que faire ?', actu_url: 'https://www.cnil.fr/fr/exposition-de-16-milliards-didentifiants-et-des-mots-de-passe-que-faire', actu_source: 'CNIL', reflex: 'Vérifier ses comptes sur haveibeenpwned.com et changer ses mots de passe' },
+    { actu_title: '17Cyber : le nouveau réflexe officiel pour signaler une cyberattaque en France', actu_url: 'https://www.gendarmerie.interieur.gouv.fr/gendinfo/actualites/2026/17cyber-le-reflexe-cyber-pour-tous', actu_source: 'Gendarmerie nationale', reflex: 'Signaler toute cyberattaque sur 17cyber.gouv.fr' },
   ];
 
   comparisonRows = [
@@ -244,6 +244,12 @@ export class LandingComponent implements OnInit {
     this.cyberscan.getPlans().subscribe({
       next: plans => { this.plans = plans; this.loading = false; },
       error: () => { this.loading = false; },
+    });
+    this.http.get<{ actu_title: string; actu_url: string; actu_source: string; reflex: string }[]>(
+      `${environment.apiUrl}/newsletter/schedule`
+    ).subscribe({
+      next: items => { this.newsletterSchedule = items; },
+      error: () => { /* keep hardcoded fallback */ },
     });
     this.animateCounters();
   }

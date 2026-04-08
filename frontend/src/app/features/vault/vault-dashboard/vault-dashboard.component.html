@@ -2,10 +2,10 @@
 
   <!-- ── Navbar ── -->
   <header class="border-b border-gray-800/60 px-6 py-4 flex items-center justify-between sticky top-0 z-20 bg-[#080d1a]/90 backdrop-blur-sm">
-    <div class="flex items-center gap-2.5">
+    <a routerLink="/cyberscan" class="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
       <mat-icon class="text-cyan-400 !text-[1.8rem] !w-[1.8rem] !h-[1.8rem]">lock</mat-icon>
       <span class="text-xl font-bold tracking-tight">Cyber<span class="text-cyan-400">Vault</span></span>
-    </div>
+    </a>
     <div class="flex items-center gap-2">
       <button type="button" (click)="exportVault()"
               class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
