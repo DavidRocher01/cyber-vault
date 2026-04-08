@@ -10,6 +10,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Title } from '@angular/platform-browser';
 
 import { UserService, UserProfile } from '../services/user.service';
@@ -20,7 +21,7 @@ import { UserService, UserProfile } from '../services/user.service';
   imports: [
     CommonModule, ReactiveFormsModule, RouterLink,
     MatButtonModule, MatCardModule, MatIconModule,
-    MatFormFieldModule, MatInputModule, MatSnackBarModule, MatDividerModule, MatProgressSpinnerModule,
+    MatFormFieldModule, MatInputModule, MatSnackBarModule, MatDividerModule, MatProgressSpinnerModule, MatTooltipModule,
   ],
   templateUrl: './profile.component.html',
 })
@@ -34,6 +35,31 @@ export class ProfileComponent implements OnInit {
   loading = signal(true);
   savingEmail = signal(false);
   savingPassword = signal(false);
+
+  showCurrentPw = signal(false);
+  showNewPw = signal(false);
+  showConfirmPw = signal(false);
+  showEmailPw = signal(false);
+
+  get initials(): string {
+    const email = this.profile()?.email ?? '';
+    return email.slice(0, 2).toUpperCase();
+  }
+
+  get passwordStrength(): { label: string; width: string; color: string } {
+    const pw = this.passwordForm.controls.new_password.value ?? '';
+    if (pw.length === 0) return { label: '', width: '0%', color: '' };
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (pw.length >= 12) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    if (score <= 1) return { label: 'Faible', width: '20%', color: 'bg-red-500' };
+    if (score <= 2) return { label: 'Moyen', width: '50%', color: 'bg-yellow-500' };
+    if (score <= 3) return { label: 'Bon', width: '75%', color: 'bg-blue-500' };
+    return { label: 'Fort', width: '100%', color: 'bg-green-500' };
+  }
 
   emailForm = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
