@@ -202,7 +202,6 @@ export class VaultDashboardComponent implements OnInit {
       this.toast.success('Entrée mise à jour');
     } else {
       this.store.createItem({ ...base, password_encrypted: secret });
-      this.toast.success('Entrée ajoutée');
     }
     this.closeForm();
   }
@@ -210,7 +209,6 @@ export class VaultDashboardComponent implements OnInit {
   delete(id: number) {
     this.store.deleteItem(id);
     delete this.revealedPasswords[id];
-    this.toast.success('Entrée supprimée');
   }
 
   async toggleReveal(item: VaultItem) {
