@@ -216,6 +216,32 @@
         </div>
       }
 
+      <!-- Remediation scripts -->
+      @if (remediationScripts.length > 0) {
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-8">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center">
+              <mat-icon class="text-cyan-400 !text-[1rem] !w-[1rem] !h-[1rem]">build</mat-icon>
+            </div>
+            <div>
+              <h2 class="text-lg font-bold">Scripts de remédiation</h2>
+              <p class="text-xs text-gray-400">Téléchargez les scripts auto-générés pour corriger les failles détectées.</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            @for (script of remediationScripts; track script.key) {
+              <button mat-stroked-button type="button"
+                      (click)="downloadRemediation(script.key)"
+                      class="!border-gray-600 !text-gray-200 !justify-start !px-4 !py-3 !h-auto !rounded-xl hover:!border-cyan-500/50 hover:!text-cyan-300 transition-colors">
+                <mat-icon class="mr-2 text-cyan-400">{{ script.icon }}</mat-icon>
+                <span class="text-sm font-medium">{{ script.label }}</span>
+                <mat-icon class="ml-auto !text-[0.9rem] !w-[0.9rem] !h-[0.9rem] text-gray-500">download</mat-icon>
+              </button>
+            }
+          </div>
+        </div>
+      }
+
       <!-- Timestamps -->
       <div class="bg-gray-800 border border-gray-700 rounded-xl p-6">
         <h2 class="text-lg font-semibold mb-4 text-gray-300">Détails techniques</h2>

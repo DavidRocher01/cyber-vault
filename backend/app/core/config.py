@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     # Admin
     ADMIN_API_KEY: str = ""
 
+    # HaveIBeenPwned API (breach checker)
+    HIBP_API_KEY: str = ""
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

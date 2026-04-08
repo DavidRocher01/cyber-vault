@@ -149,6 +149,10 @@ export class CyberscanService {
     return `${API}/scans/${scanId}/pdf`;
   }
 
+  downloadRemediation(scanId: number, scriptKey: string): string {
+    return `${API}/scans/${scanId}/remediation/${scriptKey}`;
+  }
+
   exportCsv(siteId: number): string {
     return `${API}/scans/site/${siteId}/export`;
   }

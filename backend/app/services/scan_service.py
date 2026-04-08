@@ -77,6 +77,7 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
         hostname = urlparse(url).hostname or url
 
         from scanner.port_scanner import scan_ports
+        from app.core.config import settings
 
         ssl_result      = check_ssl(hostname)
         headers_result  = check_headers(url)
@@ -88,6 +89,12 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
         cms_result      = detect_cms(url)
         waf_result      = detect_waf(url)
         port_result     = scan_ports(hostname)
+
+        # Breach checker (requires HIBP_API_KEY in .env)
+        breach_result: dict = {}
+        if settings.HIBP_API_KEY:
+            from scanner.breach_checker import check_breach
+            breach_result = check_breach(hostname, api_key=settings.HIBP_API_KEY, mode="domain")
 
         # Tier 3+ modules
         tech_result = tls_result = takeover_result = ti_result = methods_result = {}
@@ -156,6 +163,7 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
             cors_result.get("status"), ip_result.get("status"),
             dns_result.get("status"), cms_result.get("status"), waf_result.get("status"),
             port_result.get("status"),
+            breach_result.get("status") if breach_result and not breach_result.get("error") else None,
         ]
         if tier >= 3:
             all_statuses += [tech_result.get("status"), tls_result.get("status"), ti_result.get("status"), methods_result.get("status")]
@@ -193,6 +201,7 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
             "cms":          cms_result,
             "waf":          waf_result,
             "ports":        port_result,
+            "breach":       breach_result,
             "tech":         tech_result,
             "tls":          tls_result,
             "takeover":     takeover_result,
