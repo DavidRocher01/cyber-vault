@@ -1,0 +1,422 @@
+<div class="min-h-screen bg-gray-900 text-white">
+
+  <!-- Navbar -->
+  <nav class="flex items-center justify-between px-8 py-4 border-b border-gray-800">
+    <a routerLink="/cyberscan" class="flex items-center gap-2">
+      <mat-icon class="text-cyan-400">shield</mat-icon>
+      <span class="text-xl font-bold text-cyan-400">CyberScan</span>
+    </a>
+    <a routerLink="/cyberscan/dashboard" mat-button class="text-gray-400">
+      <mat-icon class="mr-1">arrow_back</mat-icon>
+      Dashboard
+    </a>
+  </nav>
+
+  <div class="max-w-5xl mx-auto px-6 py-10">
+
+    @if (loading()) {
+      <div class="flex justify-center py-24">
+        <mat-spinner diameter="56"></mat-spinner>
+      </div>
+    }
+
+    @if (!loading() && !site()) {
+      <div class="text-center py-24 text-gray-500">
+        <mat-icon class="!text-[3rem] !w-[3rem] !h-[3rem] mb-4">error_outline</mat-icon>
+        <p class="text-xl">Site introuvable</p>
+        <a routerLink="/cyberscan/dashboard" mat-flat-button color="primary" class="mt-6">Retour au dashboard</a>
+      </div>
+    }
+
+    @if (!loading() && site()) {
+
+      <!-- ── Hero / Site header ── -->
+      <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6 mb-6">
+        <div class="flex flex-col md:flex-row items-start md:items-center gap-6">
+
+          <!-- Score gauge -->
+          @if (latestScore !== null) {
+            <div class="w-20 h-20 flex-shrink-0">
+              <app-score-gauge [score]="latestScore"></app-score-gauge>
+            </div>
+          } @else {
+            <div class="w-20 h-20 rounded-full border-2 border-gray-600 flex items-center justify-center flex-shrink-0">
+              <mat-icon class="text-gray-500 !text-[2rem] !w-[2rem] !h-[2rem]">language</mat-icon>
+            </div>
+          }
+
+          <!-- Site info -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-3 flex-wrap mb-1">
+              <h1 class="text-2xl font-bold truncate">{{ site()!.name }}</h1>
+              @if (latestScore !== null) {
+                <span class="text-sm font-bold px-2 py-0.5 rounded-lg"
+                      [style.color]="latestScoreColor"
+                      [style.background-color]="latestScoreColor + '20'"
+                      [style.border]="'1px solid ' + latestScoreColor + '50'">
+                  {{ latestGrade }} — {{ latestScore }}/100
+                </span>
+              }
+            </div>
+            <a [href]="site()!.url" target="_blank"
+               class="text-cyan-400 hover:text-cyan-300 text-sm flex items-center gap-1 transition-colors w-fit">
+              <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">open_in_new</mat-icon>
+              {{ site()!.url }}
+            </a>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center gap-3 flex-shrink-0">
+            <button mat-stroked-button type="button" (click)="exportCsv()"
+                    class="border-gray-600 text-gray-300">
+              <mat-icon class="mr-1">download</mat-icon>
+              CSV
+            </button>
+            <button mat-flat-button color="primary" type="button"
+                    [disabled]="triggering() || hasActiveScans"
+                    (click)="triggerScan()">
+              @if (triggering() || hasActiveScans) {
+                <mat-spinner diameter="18" class="mr-2"></mat-spinner>
+                En cours...
+              } @else {
+                <mat-icon class="mr-1">play_arrow</mat-icon>
+                Lancer un scan
+              }
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats bar -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-5 border-t border-gray-700">
+          <div>
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Total scans</p>
+            <p class="text-xl font-bold">{{ scans()?.total ?? 0 }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Dernier scan</p>
+            <p class="text-sm font-medium">{{ formatDateShort(latestDoneScan?.finished_at ?? null) }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Critiques</p>
+            <p class="text-xl font-bold text-red-400">{{ criticalFindings.length }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Warnings</p>
+            <p class="text-xl font-bold text-yellow-400">{{ warningFindings.length }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Tabs ── -->
+      <div class="flex gap-1 bg-gray-800/60 border border-gray-700 rounded-xl p-1 mb-6">
+        @for (tab of [{id:'failles', label:'Failles détectées', icon:'bug_report'}, {id:'historique', label:'Historique des scans', icon:'history'}, {id:'rapports', label:'Rapports PDF', icon:'picture_as_pdf'}]; track tab.id) {
+          <button type="button"
+                  class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all"
+                  [class]="activeTab() === tab.id ? 'bg-cyan-600 text-white shadow' : 'text-gray-400 hover:text-white'"
+                  (click)="activeTab.set($any(tab.id))">
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">{{ tab.icon }}</mat-icon>
+            {{ tab.label }}
+          </button>
+        }
+      </div>
+
+      <!-- ── Tab: Failles détectées ── -->
+      @if (activeTab() === 'failles') {
+
+        @if (!latestDoneScan) {
+          <div class="text-center py-16 text-gray-500">
+            <mat-icon class="!text-[3rem] !w-[3rem] !h-[3rem] mb-3">radar</mat-icon>
+            <p class="text-lg">Aucun scan terminé pour ce site.</p>
+            <p class="text-sm mt-1">Lancez votre premier scan pour voir les résultats ici.</p>
+          </div>
+        } @else {
+
+          <!-- Scan reference header -->
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <p class="text-sm text-gray-500">Résultats du scan du {{ formatDateShort(latestDoneScan.finished_at) }}</p>
+              <p class="text-xs text-gray-600 mt-0.5">Scan #{{ latestDoneScan.id }}</p>
+            </div>
+            <a [routerLink]="['/cyberscan/scan', latestDoneScan.id]"
+               mat-stroked-button class="border-gray-600 text-gray-300 text-sm">
+              <mat-icon class="mr-1">open_in_new</mat-icon>
+              Rapport complet
+            </a>
+          </div>
+
+          @if (alertFindings.length === 0) {
+            <div class="bg-green-900/20 border border-green-700 rounded-xl px-6 py-8 text-center">
+              <mat-icon class="text-green-400 !text-[3rem] !w-[3rem] !h-[3rem] mb-3">verified_user</mat-icon>
+              <p class="text-lg font-bold text-green-400">Aucune faille détectée</p>
+              <p class="text-sm text-gray-400 mt-1">Tous les modules analysés sont en ordre.</p>
+            </div>
+          } @else {
+
+            <!-- Criticals -->
+            @if (criticalFindings.length > 0) {
+              <div class="mb-6">
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                  <h3 class="text-sm font-semibold text-red-400 uppercase tracking-wider">
+                    {{ criticalFindings.length }} faille{{ criticalFindings.length > 1 ? 's' : '' }} critique{{ criticalFindings.length > 1 ? 's' : '' }}
+                  </h3>
+                </div>
+                <div class="flex flex-col gap-2">
+                  @for (f of criticalFindings; track f.key) {
+                    <div class="bg-red-400/5 border border-red-700/50 rounded-xl px-5 py-4 flex items-start gap-4">
+                      <div class="w-9 h-9 rounded-lg bg-red-900/40 border border-red-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <mat-icon class="text-red-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ f.icon }}</mat-icon>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <span class="font-semibold text-white">{{ f.label }}</span>
+                          <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-red-600 text-red-400">CRITIQUE</span>
+                        </div>
+                        @if (f.summary.length > 0) {
+                          <div class="flex flex-wrap gap-x-4 gap-y-1">
+                            @for (s of f.summary; track s.label) {
+                              <span class="text-xs text-gray-400">
+                                <span class="opacity-60">{{ s.label }} :</span>
+                                <span class="text-gray-200 ml-1">{{ s.value }}</span>
+                              </span>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Warnings -->
+            @if (warningFindings.length > 0) {
+              <div>
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
+                  <h3 class="text-sm font-semibold text-yellow-400 uppercase tracking-wider">
+                    {{ warningFindings.length }} warning{{ warningFindings.length > 1 ? 's' : '' }}
+                  </h3>
+                </div>
+                <div class="flex flex-col gap-2">
+                  @for (f of warningFindings; track f.key) {
+                    <div class="bg-yellow-400/5 border border-yellow-700/50 rounded-xl px-5 py-4 flex items-start gap-4">
+                      <div class="w-9 h-9 rounded-lg bg-yellow-900/30 border border-yellow-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <mat-icon class="text-yellow-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ f.icon }}</mat-icon>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <span class="font-semibold text-white">{{ f.label }}</span>
+                          <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-yellow-600 text-yellow-400">WARNING</span>
+                        </div>
+                        @if (f.summary.length > 0) {
+                          <div class="flex flex-wrap gap-x-4 gap-y-1">
+                            @for (s of f.summary; track s.label) {
+                              <span class="text-xs text-gray-400">
+                                <span class="opacity-60">{{ s.label }} :</span>
+                                <span class="text-gray-200 ml-1">{{ s.value }}</span>
+                              </span>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+          }
+
+          <!-- CTA: relaunch scan -->
+          <div class="mt-8 bg-cyan-900/20 border border-cyan-800/50 rounded-xl px-6 py-5 flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p class="font-semibold text-cyan-300">Corrections effectuées ?</p>
+              <p class="text-sm text-gray-400 mt-0.5">Relancez un scan pour vérifier les améliorations et générer un nouveau rapport PDF.</p>
+            </div>
+            <button mat-flat-button color="primary" type="button"
+                    [disabled]="triggering() || hasActiveScans"
+                    (click)="triggerScan()">
+              <mat-icon class="mr-1">refresh</mat-icon>
+              Nouveau scan
+            </button>
+          </div>
+        }
+      }
+
+      <!-- ── Tab: Historique des scans ── -->
+      @if (activeTab() === 'historique') {
+
+        @if (loadingScans()) {
+          <div class="flex justify-center py-12"><mat-spinner diameter="40"></mat-spinner></div>
+        } @else if (!scans()?.items?.length) {
+          <div class="text-center py-16 text-gray-500">
+            <mat-icon class="!text-[3rem] !w-[3rem] !h-[3rem] mb-3">history</mat-icon>
+            <p>Aucun scan pour ce site.</p>
+          </div>
+        } @else {
+
+          <!-- Table header -->
+          <div class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+            <div class="grid grid-cols-[1fr_80px_120px_60px_60px_auto] gap-4 px-5 py-3 border-b border-gray-700 text-xs text-gray-500 uppercase tracking-wider font-semibold">
+              <span>Date</span>
+              <span class="text-center">Score</span>
+              <span class="text-center">Résultat</span>
+              <span class="text-center">Crit.</span>
+              <span class="text-center">Warn.</span>
+              <span class="text-center">Actions</span>
+            </div>
+
+            @for (scan of scans()!.items; track scan.id) {
+              <div class="grid grid-cols-[1fr_80px_120px_60px_60px_auto] gap-4 px-5 py-4 items-center border-b border-gray-700/50 last:border-0 hover:bg-gray-700/20 transition-colors">
+
+                <!-- Date -->
+                <div>
+                  <p class="text-sm text-gray-200">{{ formatDateShort(scan.created_at) }}</p>
+                  @if (scan.status === 'pending' || scan.status === 'running') {
+                    <div class="flex items-center gap-1.5 mt-1">
+                      <mat-spinner diameter="12"></mat-spinner>
+                      <span class="text-xs text-blue-400">En cours...</span>
+                    </div>
+                  } @else if (scan.status === 'error') {
+                    <span class="text-xs text-red-400">Erreur</span>
+                  }
+                </div>
+
+                <!-- Score -->
+                <div class="flex justify-center">
+                  @if (getScanScore(scan) !== null) {
+                    <div class="w-12 h-12">
+                      <app-score-gauge [score]="getScanScore(scan)!"></app-score-gauge>
+                    </div>
+                  } @else {
+                    <span class="text-gray-600 text-lg">—</span>
+                  }
+                </div>
+
+                <!-- Overall status -->
+                <div class="flex justify-center">
+                  @if (scan.overall_status) {
+                    <span class="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border"
+                          [class]="statusColor(scan.overall_status)">
+                      {{ scan.overall_status }}
+                    </span>
+                  } @else {
+                    <span class="text-gray-600">—</span>
+                  }
+                </div>
+
+                <!-- Critiques -->
+                <div class="flex justify-center">
+                  @if (scan.status === 'done') {
+                    <span class="font-bold text-sm" [class]="getScanCriticalCount(scan) > 0 ? 'text-red-400' : 'text-gray-500'">
+                      {{ getScanCriticalCount(scan) }}
+                    </span>
+                  } @else {
+                    <span class="text-gray-600">—</span>
+                  }
+                </div>
+
+                <!-- Warnings -->
+                <div class="flex justify-center">
+                  @if (scan.status === 'done') {
+                    <span class="font-bold text-sm" [class]="getScanWarningCount(scan) > 0 ? 'text-yellow-400' : 'text-gray-500'">
+                      {{ getScanWarningCount(scan) }}
+                    </span>
+                  } @else {
+                    <span class="text-gray-600">—</span>
+                  }
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center gap-2">
+                  @if (scan.pdf_path) {
+                    <button mat-icon-button type="button" (click)="downloadPdf(scan.id)"
+                            class="!text-gray-400 hover:!text-red-400" title="Télécharger PDF">
+                      <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">picture_as_pdf</mat-icon>
+                    </button>
+                  }
+                  @if (scan.status === 'done') {
+                    <a [routerLink]="['/cyberscan/scan', scan.id]" mat-icon-button
+                       class="!text-gray-400 hover:!text-cyan-400" title="Voir le rapport">
+                      <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">open_in_new</mat-icon>
+                    </a>
+                  }
+                </div>
+
+              </div>
+            }
+          </div>
+
+          <!-- Pagination -->
+          @if ((scans()?.total ?? 0) > 20) {
+            <mat-paginator
+              [length]="scans()!.total"
+              [pageSize]="20"
+              [pageIndex]="currentPage() - 1"
+              (page)="onPageChange($event)"
+              class="bg-transparent mt-4">
+            </mat-paginator>
+          }
+        }
+      }
+
+      <!-- ── Tab: Rapports PDF ── -->
+      @if (activeTab() === 'rapports') {
+
+        @if (pdfScans.length === 0) {
+          <div class="text-center py-16 text-gray-500">
+            <mat-icon class="!text-[3rem] !w-[3rem] !h-[3rem] mb-3">picture_as_pdf</mat-icon>
+            <p class="text-lg">Aucun rapport PDF disponible.</p>
+            <p class="text-sm mt-1">Les rapports sont générés automatiquement à la fin de chaque scan.</p>
+          </div>
+        } @else {
+          <div class="flex flex-col gap-3">
+            @for (scan of pdfScans; track scan.id) {
+              @let score = getScanScore(scan);
+              <div class="bg-gray-800 border border-gray-700 rounded-xl px-5 py-4 flex items-center gap-5">
+
+                <!-- PDF icon -->
+                <div class="w-11 h-11 rounded-xl bg-red-900/30 border border-red-700/50 flex items-center justify-center flex-shrink-0">
+                  <mat-icon class="text-red-400 !text-[1.3rem] !w-[1.3rem] !h-[1.3rem]">picture_as_pdf</mat-icon>
+                </div>
+
+                <!-- Info -->
+                <div class="flex-1 min-w-0">
+                  <p class="font-medium text-gray-200">Rapport du {{ formatDate(scan.finished_at) }}</p>
+                  <div class="flex items-center gap-4 mt-1">
+                    @if (score !== null) {
+                      <span class="text-xs text-gray-400">Score : <span class="font-semibold text-white">{{ score }}/100</span></span>
+                    }
+                    @if (scan.overall_status) {
+                      <span class="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded border"
+                            [class]="statusColor(scan.overall_status)">
+                        {{ scan.overall_status }}
+                      </span>
+                    }
+                    <span class="text-xs text-gray-600">Scan #{{ scan.id }}</span>
+                  </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <a [routerLink]="['/cyberscan/scan', scan.id]" mat-stroked-button
+                     class="border-gray-600 text-gray-300 text-sm">
+                    <mat-icon class="mr-1">visibility</mat-icon>
+                    Voir
+                  </a>
+                  <button mat-flat-button color="primary" type="button"
+                          (click)="downloadPdf(scan.id)">
+                    <mat-icon class="mr-1">download</mat-icon>
+                    PDF
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      }
+
+    }
+  </div>
+</div>

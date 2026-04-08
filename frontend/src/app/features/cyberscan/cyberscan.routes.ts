@@ -20,6 +20,12 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Résultats du scan — CyberScan',
   },
   {
+    path: 'site/:id',
+    loadComponent: () => import('./site-detail/site-detail.component').then(m => m.SiteDetailComponent),
+    canActivate: [authGuard],
+    title: 'Page site — CyberScan',
+  },
+  {
     path: 'profile',
     loadComponent: () => import('./profile/profile.component').then(m => m.ProfileComponent),
     canActivate: [authGuard],

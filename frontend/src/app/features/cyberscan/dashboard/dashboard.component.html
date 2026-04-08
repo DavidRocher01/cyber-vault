@@ -197,7 +197,7 @@
               <div class="flex flex-col gap-1">
                 <div class="flex items-center gap-2 flex-wrap">
                   <mat-icon class="text-cyan-400">language</mat-icon>
-                  <p class="font-semibold">{{ site.name }}</p>
+                  <a [routerLink]="['/cyberscan/site', site.id]" class="font-semibold hover:text-cyan-400 transition-colors">{{ site.name }}</a>
                   <span class="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border"
                         [class]="siteBadgeClass(site.id)">
                     <mat-icon class="!text-[0.75rem] !w-[0.75rem] !h-[0.75rem]">{{ siteBadgeIcon(site.id) }}</mat-icon>
@@ -208,6 +208,10 @@
               </div>
             </div>
             <div class="flex items-center gap-2">
+              <a [routerLink]="['/cyberscan/site', site.id]" mat-stroked-button class="border-gray-600 text-gray-300">
+                <mat-icon class="mr-1">person</mat-icon>
+                Page dédiée
+              </a>
               <button mat-flat-button type="button" color="primary"
                       [disabled]="isTriggeringScans(site.id)"
                       (click)="triggerScan(site.id)">

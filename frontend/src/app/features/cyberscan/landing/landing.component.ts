@@ -283,4 +283,68 @@ export class LandingComponent implements OnInit {
     if (plan.name === 'business') return 'Pro';
     return '';
   }
+
+  readonly trustItems = [
+    {
+      icon: 'storage',
+      q: 'Où sont mes données ?',
+      a: 'Hébergées exclusivement sur AWS Paris (eu-west-3), France. Aucun transfert hors Union Européenne.',
+    },
+    {
+      icon: 'lock',
+      q: "C'est sécurisé ?",
+      a: 'Score A+ sur Mozilla Observatory. Chiffrement AES-256 au repos, TLS 1.3 en transit.',
+    },
+    {
+      icon: 'manage_accounts',
+      q: 'Qui accède à mon historique ?',
+      a: "Accès restreint par IAM avec MFA obligatoire. Vos rapports ne sont accessibles qu'à votre compte.",
+    },
+    {
+      icon: 'support_agent',
+      q: 'Et si ça bug ?',
+      a: "Support sous 24h pour les abonnés payants. Notification obligatoire en cas d'incident (RGPD/NIS 2) sous 72h.",
+    },
+  ];
+
+  readonly archSteps = [
+    {
+      icon: 'send',
+      label: 'Requête API',
+      desc: 'Votre demande de scan arrive via HTTPS sur notre API FastAPI.',
+    },
+    {
+      icon: 'workspaces',
+      label: 'Conteneur isolé',
+      desc: "Un conteneur éphémère est lancé uniquement pour votre analyse.",
+    },
+    {
+      icon: 'analytics',
+      label: '19 modules',
+      desc: "Les modules s'exécutent en isolation, sans accès aux données des autres clients.",
+    },
+    {
+      icon: 'delete_sweep',
+      label: 'Autodestruction',
+      desc: 'Le conteneur est détruit. Seul le rapport JSON chiffré est conservé.',
+    },
+  ];
+
+  readonly complianceItems = [
+    {
+      icon: 'gavel',
+      title: 'RGPD',
+      desc: "Registre des traitements tenu. Droit à l'oubli : supprimez vos scans en un clic depuis votre dashboard.",
+    },
+    {
+      icon: 'policy',
+      title: 'NIS 2',
+      desc: "Signalement d'incident en moins de 72h si votre compte est affecté. Obligations respectées.",
+    },
+    {
+      icon: 'verified',
+      title: 'Assurance RC Pro Cyber',
+      desc: 'Couverture active pour tous les scans payants. Votre recours en cas de litige sur un résultat.',
+    },
+  ];
 }
