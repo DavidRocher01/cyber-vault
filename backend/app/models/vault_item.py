@@ -14,3 +14,4 @@ class VaultItem(Base):
     password_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
     url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    category: Mapped[str] = mapped_column(String(32), nullable=False, default="login", server_default="login")

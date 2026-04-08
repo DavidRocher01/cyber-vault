@@ -1,111 +1,279 @@
-<mat-toolbar color="primary" class="flex justify-between">
-  <span>Cyber-Vault</span>
-  <div class="flex gap-2">
-    <button type="button" mat-button (click)="exportVault()" matTooltip="Exporter le vault (JSON chiffré)">
-      <mat-icon>download</mat-icon> Export
-    </button>
-    <button type="button" mat-button (click)="logout()">Déconnexion</button>
-  </div>
-</mat-toolbar>
+<div class="vault-bg text-white">
 
-<main class="mx-auto max-w-4xl p-6">
+  <!-- ── Navbar ── -->
+  <header class="border-b border-gray-800/60 px-6 py-4 flex items-center justify-between sticky top-0 z-20 bg-[#080d1a]/90 backdrop-blur-sm">
+    <div class="flex items-center gap-2.5">
+      <mat-icon class="text-cyan-400 !text-[1.8rem] !w-[1.8rem] !h-[1.8rem]">lock</mat-icon>
+      <span class="text-xl font-bold tracking-tight">Cyber<span class="text-cyan-400">Vault</span></span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button type="button" (click)="exportVault()"
+              class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+        <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">download</mat-icon>
+        Export
+      </button>
+      <button type="button" (click)="logout()"
+              class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+        <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">logout</mat-icon>
+        Déconnexion
+      </button>
+    </div>
+  </header>
 
-  @if (error$ | async; as error) {
-    <p class="mb-4 rounded bg-red-900 px-4 py-2 text-sm text-red-200">{{ error }}</p>
-  }
+  <div class="max-w-4xl mx-auto px-4 py-8">
 
-  <div class="mb-6 flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-100">Mon Vault</h1>
-    <button type="button" mat-flat-button color="accent" (click)="showForm = !showForm">
-      {{ showForm ? 'Annuler' : '+ Nouvelle entrée' }}
-    </button>
-  </div>
+    <!-- ── Titre + CTA ── -->
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold">Mon Vault</h1>
+        <p class="text-gray-500 text-sm mt-0.5">Vos identifiants chiffrés — zéro connaissance</p>
+      </div>
+      <button type="button" (click)="openCreate()" class="vault-btn-primary flex items-center gap-2">
+        <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">add</mat-icon>
+        Nouvelle entrée
+      </button>
+    </div>
 
-  <!-- Search -->
-  <mat-form-field appearance="outline" class="mb-4 w-full">
-    <mat-label>Rechercher…</mat-label>
-    <input matInput aria-label="Rechercher dans le vault" (input)="onSearch($any($event.target).value)" />
-    <mat-icon matSuffix>search</mat-icon>
-  </mat-form-field>
+    <!-- ── Recherche ── -->
+    <div class="relative mb-5">
+      <mat-icon class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">search</mat-icon>
+      <input type="text" [(ngModel)]="searchQuery" placeholder="Rechercher un identifiant, un site…"
+             class="vault-input pl-11" />
+    </div>
 
-  @if (showForm) {
-    <mat-card class="mb-6 p-4">
-      <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-3">
-        <mat-form-field appearance="outline">
-          <mat-label>Titre *</mat-label>
-          <input matInput aria-label="Titre" formControlName="title" />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Identifiant</mat-label>
-          <input matInput aria-label="Identifiant" formControlName="username" />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Mot de passe *</mat-label>
-          <input matInput aria-label="Mot de passe" type="password" formControlName="password_encrypted" />
-          <button type="button" matSuffix mat-icon-button (click)="generatePassword()"
-                  matTooltip="Générer un mot de passe">
-            <mat-icon>casino</mat-icon>
-          </button>
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>URL</mat-label>
-          <input matInput aria-label="URL" formControlName="url" />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Notes</mat-label>
-          <textarea matInput aria-label="Notes" formControlName="notes" rows="2"></textarea>
-        </mat-form-field>
-        <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid">
-          Enregistrer
+    <!-- ── Filtres catégories ── -->
+    <div class="flex gap-2 mb-6 overflow-x-auto pb-1">
+      @for (cat of categories; track cat.id) {
+        <button type="button" (click)="activeCategory.set(cat.id)"
+                class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border"
+                [class.bg-cyan-500]="activeCategory() === cat.id"
+                [class.border-cyan-500]="activeCategory() === cat.id"
+                [class.text-white]="activeCategory() === cat.id"
+                [class.bg-transparent]="activeCategory() !== cat.id"
+                [class.border-gray-700]="activeCategory() !== cat.id"
+                [class.text-gray-400]="activeCategory() !== cat.id"
+                [class.hover:border-gray-500]="activeCategory() !== cat.id">
+          <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">{{ cat.icon }}</mat-icon>
+          {{ cat.label }}
         </button>
-      </form>
-    </mat-card>
-  }
+      }
+    </div>
 
-  @if (loading$ | async) {
-    <ngx-skeleton-loader count="3" appearance="line" />
-  } @else {
-    <ng-container *ngIf="filteredItems$ | async as items">
-      @if (items.length === 0) {
-        <p class="text-center text-gray-500">Aucune entrée. Ajoutez votre première entrée !</p>
-      } @else {
-        <div class="flex flex-col gap-3">
-          @for (item of items; track item.id) {
-          <mat-card class="p-4">
-            <div class="flex items-start justify-between gap-2">
-              <div class="min-w-0 flex-1">
-                <p class="font-semibold text-gray-100">{{ item.title }}</p>
-                @if (item.username) {
-                  <p class="text-sm text-gray-400">{{ item.username }}</p>
+    <!-- ── Formulaire ajout / édition ── -->
+    @if (showForm()) {
+      <div class="vault-card rounded-2xl p-6 mb-6">
+        <div class="flex items-center justify-between mb-5">
+          <h2 class="text-lg font-bold">{{ formTitle }}</h2>
+          <button type="button" (click)="closeForm()" class="text-gray-600 hover:text-white transition-colors">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
+
+          <!-- Catégorie -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Catégorie</label>
+            <div class="flex gap-2 flex-wrap">
+              @for (cat of categories; track cat.id) {
+                @if (cat.id !== 'all') {
+                  <button type="button" (click)="form.patchValue({ category: cat.id })"
+                          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border"
+                          [class.bg-cyan-950]="form.controls.category.value === cat.id"
+                          [class.border-cyan-500]="form.controls.category.value === cat.id"
+                          [class.text-cyan-400]="form.controls.category.value === cat.id"
+                          [class.bg-gray-800]="form.controls.category.value !== cat.id"
+                          [class.border-gray-700]="form.controls.category.value !== cat.id"
+                          [class.text-gray-400]="form.controls.category.value !== cat.id">
+                    <mat-icon class="!text-[0.8rem] !w-[0.8rem] !h-[0.8rem]">{{ cat.icon }}</mat-icon>
+                    {{ cat.label }}
+                  </button>
                 }
-                @if (item.url) {
-                  <a [href]="item.url" target="_blank" rel="noopener"
-                     class="text-xs text-blue-400 hover:underline">{{ item.url }}</a>
-                }
-                @if (revealedPasswords[item.id] !== undefined) {
-                  <p class="mt-1 break-all font-mono text-sm text-green-400">
-                    {{ revealedPasswords[item.id] ?? '(erreur de déchiffrement)' }}
-                  </p>
-                }
+              }
+            </div>
+          </div>
+
+          <!-- Titre -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Titre *</label>
+            <input type="text" formControlName="title" placeholder="ex: Gmail, Stripe, Netflix…" class="vault-input" />
+          </div>
+
+          <!-- Username -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Identifiant / Email</label>
+            <input type="text" formControlName="username" placeholder="vous@exemple.com" class="vault-input" />
+          </div>
+
+          <!-- Mot de passe -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              Mot de passe {{ editingItem() ? '(laisser vide pour ne pas modifier)' : '*' }}
+            </label>
+            <div class="flex gap-2">
+              <div class="relative flex-1">
+                <input [type]="showPasswordInForm() ? 'text' : 'password'" formControlName="password_encrypted"
+                       placeholder="••••••••" class="vault-input pr-10" />
+                <button type="button" (click)="showPasswordInForm.set(!showPasswordInForm())"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-300 transition-colors">
+                  <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ showPasswordInForm() ? 'visibility_off' : 'visibility' }}</mat-icon>
+                </button>
               </div>
-              <div class="flex shrink-0 items-center gap-1">
-                <button type="button" mat-icon-button (click)="toggleReveal(item)"
-                        [matTooltip]="revealedPasswords[item.id] !== undefined ? 'Masquer' : 'Afficher'">
-                  <mat-icon>{{ revealedPasswords[item.id] !== undefined ? 'visibility_off' : 'visibility' }}</mat-icon>
-                </button>
-                <button type="button" mat-icon-button (click)="copyPassword(item)"
-                        [matTooltip]="copiedId === item.id ? 'Copié !' : 'Copier le mot de passe'">
-                  <mat-icon>{{ copiedId === item.id ? 'check' : 'content_copy' }}</mat-icon>
-                </button>
-                <button type="button" mat-icon-button color="warn" (click)="delete(item.id)" matTooltip="Supprimer">
-                  <mat-icon>delete</mat-icon>
-                </button>
+              <button type="button" (click)="generatePassword()"
+                      class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors text-xs whitespace-nowrap">
+                <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">casino</mat-icon>
+                Générer
+              </button>
+            </div>
+          </div>
+
+          <!-- URL -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">URL</label>
+            <input type="url" formControlName="url" placeholder="https://exemple.com" class="vault-input" />
+          </div>
+
+          <!-- Notes -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Notes</label>
+            <textarea formControlName="notes" rows="2" placeholder="Informations supplémentaires…"
+                      class="vault-input resize-none"></textarea>
+          </div>
+
+          <div class="flex gap-3 pt-1">
+            <button type="submit"
+                    [disabled]="!editingItem() && form.invalid"
+                    class="vault-btn-primary flex items-center gap-2">
+              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">{{ editingItem() ? 'save' : 'add' }}</mat-icon>
+              {{ editingItem() ? 'Enregistrer les modifications' : 'Ajouter' }}
+            </button>
+            <button type="button" (click)="closeForm()"
+                    class="px-5 py-3 rounded-xl text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 transition-colors">
+              Annuler
+            </button>
+          </div>
+
+        </form>
+      </div>
+    }
+
+    <!-- ── Erreur ── -->
+    @if (error$ | async; as error) {
+      <div class="flex items-center gap-2 bg-red-900/30 border border-red-700 rounded-xl px-4 py-3 text-sm text-red-400 mb-4">
+        <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] flex-shrink-0">error_outline</mat-icon>
+        {{ error }}
+      </div>
+    }
+
+    <!-- ── Liste ── -->
+    @if (loading$ | async) {
+      <div class="flex flex-col gap-3">
+        @for (i of [1,2,3]; track i) {
+          <div class="vault-card rounded-2xl p-5 animate-pulse">
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-xl bg-gray-800"></div>
+              <div class="flex-1">
+                <div class="h-4 bg-gray-800 rounded w-1/3 mb-2"></div>
+                <div class="h-3 bg-gray-800 rounded w-1/4"></div>
               </div>
             </div>
-          </mat-card>
-          }
-        </div>
-      }
-    </ng-container>
-  }
-</main>
+          </div>
+        }
+      </div>
+    } @else {
+      <ng-container *ngIf="filteredItems$ | async as items">
+        @if (items.length === 0) {
+          <div class="flex flex-col items-center justify-center py-20 gap-4 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-gray-800/60 border border-gray-700 flex items-center justify-center">
+              <mat-icon class="text-gray-600 !text-[2rem] !w-[2rem] !h-[2rem]">lock_open</mat-icon>
+            </div>
+            <p class="text-gray-500">Aucune entrée dans cette catégorie.</p>
+            <button type="button" (click)="openCreate()" class="vault-btn-primary flex items-center gap-2 text-sm">
+              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">add</mat-icon>
+              Ajouter une entrée
+            </button>
+          </div>
+        } @else {
+          <div class="flex flex-col gap-3">
+            @for (item of items; track item.id) {
+              <div class="vault-card rounded-2xl p-5 transition-all">
+                <div class="flex items-center gap-4">
+
+                  <!-- Icône catégorie -->
+                  <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                       [class.bg-blue-950]="item.category === 'login'"
+                       [class.bg-purple-950]="item.category === 'card'"
+                       [class.bg-yellow-950]="item.category === 'note'"
+                       [class.bg-green-950]="item.category === 'wifi'"
+                       [class.bg-gray-800]="item.category === 'other'">
+                    <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]"
+                              [class.text-blue-400]="item.category === 'login'"
+                              [class.text-purple-400]="item.category === 'card'"
+                              [class.text-yellow-400]="item.category === 'note'"
+                              [class.text-green-400]="item.category === 'wifi'"
+                              [class.text-gray-400]="item.category === 'other'">
+                      {{ categoryIcons[item.category] ?? 'more_horiz' }}
+                    </mat-icon>
+                  </div>
+
+                  <!-- Infos -->
+                  <div class="flex-1 min-w-0">
+                    <p class="font-semibold text-white truncate">{{ item.title }}</p>
+                    <p class="text-sm text-gray-500 truncate">
+                      {{ item.username || (item.url || '—') }}
+                    </p>
+                    @if (revealedPasswords[item.id] !== undefined) {
+                      <p class="mt-1.5 font-mono text-sm text-cyan-400 break-all">
+                        {{ revealedPasswords[item.id] ?? '(erreur de déchiffrement)' }}
+                      </p>
+                    }
+                    @if (item.url && item.username) {
+                      <a [href]="item.url" target="_blank" rel="noopener"
+                         class="text-xs text-gray-600 hover:text-cyan-400 transition-colors truncate block mt-0.5">
+                        {{ item.url }}
+                      </a>
+                    }
+                  </div>
+
+                  <!-- Actions -->
+                  <div class="flex items-center gap-1 flex-shrink-0">
+                    <button type="button" (click)="toggleReveal(item)"
+                            [matTooltip]="revealedPasswords[item.id] !== undefined ? 'Masquer' : 'Afficher le mot de passe'"
+                            class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:text-white hover:bg-gray-800 transition-colors">
+                      <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">
+                        {{ revealedPasswords[item.id] !== undefined ? 'visibility_off' : 'visibility' }}
+                      </mat-icon>
+                    </button>
+                    <button type="button" (click)="copyPassword(item)"
+                            [matTooltip]="copiedId === item.id ? 'Copié !' : 'Copier le mot de passe'"
+                            class="w-9 h-9 rounded-lg flex items-center justify-center transition-colors"
+                            [class.text-green-400]="copiedId === item.id"
+                            [class.text-gray-500]="copiedId !== item.id"
+                            [class.hover:text-white]="copiedId !== item.id"
+                            [class.hover:bg-gray-800]="copiedId !== item.id">
+                      <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">
+                        {{ copiedId === item.id ? 'check' : 'content_copy' }}
+                      </mat-icon>
+                    </button>
+                    <button type="button" (click)="openEdit(item)"
+                            matTooltip="Modifier"
+                            class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:text-white hover:bg-gray-800 transition-colors">
+                      <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">edit</mat-icon>
+                    </button>
+                    <button type="button" (click)="delete(item.id)"
+                            matTooltip="Supprimer"
+                            class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-950 transition-colors">
+                      <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">delete</mat-icon>
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </ng-container>
+    }
+
+  </div>
+</div>
