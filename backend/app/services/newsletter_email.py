@@ -80,17 +80,15 @@ def send_confirmation_email(to_email: str, confirm_url: str) -> None:
         + _footer(settings.FRONTEND_URL)
     )
     html = _wrap(rows)
-    plain = (
-        "Confirmez votre inscription au Radar Cyber
-
-"
-        f"Lien de confirmation : {confirm_url}
-
-"
-        "Lien valable 7 jours.
----
-CyberScan"
-    )
+    plain = "\n".join([
+        "Confirmez votre inscription au Radar Cyber",
+        "",
+        f"Lien de confirmation : {confirm_url}",
+        "",
+        "Lien valable 7 jours.",
+        "---",
+        "CyberScan",
+    ])
     _send(to_email, "Confirmez votre inscription au Radar Cyber", html, plain)
 
 
