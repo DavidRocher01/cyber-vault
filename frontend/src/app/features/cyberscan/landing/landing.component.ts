@@ -218,12 +218,12 @@ export class LandingComponent implements OnInit {
   ];
 
   newsletterSchedule: { actu_title: string; actu_url: string; actu_source: string; reflex: string }[] = [
-    { actu_title: 'Cyberhebdo : le fabricant de jouets Hasbro mis à l\'arrêt par une cyberattaque', actu_url: 'https://www.lemagit.fr/actualites/366641123/Cyberhebdo-du-3-avril-2026', actu_source: 'LeMagIT', reflex: 'Activer un plan de réponse aux incidents' },
+    { actu_title: 'L\'IA accélère les cyberattaques : une faille exploitée en seulement 72 minutes', actu_url: 'https://www.lemondeinformatique.fr/actualites/lire-l-ia-accelere-la-vitesse-des-cyberattaques-99405.html', actu_source: 'Le Monde Informatique', reflex: 'Réduire le délai de détection grâce à un EDR/SIEM' },
+    { actu_title: 'Piratage du fichier SIA : 41 000 détenteurs d\'armes exposés en France', actu_url: 'https://korben.info/fuite-sia-armes-ministere-interieur.html', actu_source: 'Korben', reflex: 'Activer la double authentification sur tous vos comptes' },
     { actu_title: 'Axios compromis : l\'impact d\'une intrusion nord-coréenne sur la chaîne logistique', actu_url: 'https://www.lemagit.fr/actualites/366641121/Axios-compromis-limpact-dune-intrusion-nord-coreenne-sur-la-chaine-logisitique', actu_source: 'LeMagIT', reflex: 'Auditer ses dépendances open source avant mise en prod' },
-    { actu_title: 'Citrix Netscaler CVE-2026-3055 : il est à nouveau temps de patcher', actu_url: 'https://www.lemagit.fr/actualites/366640755/Citrix-Netscaler-il-est-a-nouveau-temps-de-patcher', actu_source: 'LeMagIT', reflex: 'Appliquer les correctifs de sécurité sans délai' },
-    { actu_title: 'Ransomware : une vulnérabilité exploitée 36 jours avant d\'être rendue publique', actu_url: 'https://www.lemagit.fr/actualites/366640450/Ransomware-36-jours-une-vulnerabilite-inedite-exploitee-36-jours-avant-detre-rendue-publique', actu_source: 'LeMagIT', reflex: 'Activer un EDR/SIEM sur vos serveurs critiques' },
-    { actu_title: 'Europa.eu cyberattaquée : Bruxelles minimise l\'impact et nie toute compromission', actu_url: 'https://www.zataz.com/cyber-actualites-zataz-de-la-semaine-du-30-mars-au-4-avril-2026/', actu_source: 'ZATAZ', reflex: 'Ne jamais ignorer une alerte de sécurité — toujours investiguer' },
-    { actu_title: 'Ransomware 2025–2026 : la concentration des groupes s\'accélère', actu_url: 'https://www.zataz.com/ransomware-2025-2026-la-concentration-saccelere/', actu_source: 'ZATAZ', reflex: 'Vérifier que sa sauvegarde est hors-ligne et testée' },
+    { actu_title: 'Europa.eu cyberattaquée par ShinyHunters : Bruxelles minimise l\'impact', actu_url: 'https://www.zataz.com/cyber-actualites-zataz-de-la-semaine-du-30-mars-au-4-avril-2026/', actu_source: 'ZATAZ', reflex: 'Ne jamais minimiser une alerte de sécurité — toujours investiguer' },
+    { actu_title: 'Exposition de 16 milliards d\'identifiants et mots de passe : que faire ?', actu_url: 'https://www.cnil.fr/fr/exposition-de-16-milliards-didentifiants-et-des-mots-de-passe-que-faire', actu_source: 'CNIL', reflex: 'Vérifier ses comptes sur haveibeenpwned.com et changer ses mots de passe' },
+    { actu_title: '17Cyber : le nouveau réflexe officiel pour signaler une cyberattaque en France', actu_url: 'https://www.gendarmerie.interieur.gouv.fr/gendinfo/actualites/2026/17cyber-le-reflexe-cyber-pour-tous', actu_source: 'Gendarmerie nationale', reflex: 'Signaler toute cyberattaque sur 17cyber.gouv.fr' },
   ];
 
   comparisonRows = [
