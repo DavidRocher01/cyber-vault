@@ -1,7 +1,8 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule, NgClass } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import { switchMap } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -55,6 +56,85 @@ export class LandingComponent implements OnInit {
 
   toggleFaq(index: number) {
     this.openFaqIndex.update(i => (i === index ? null : index));
+  }
+
+  // ── Auth modal ────────────────────────────────────────────────────────────
+  authPanel = signal<'closed' | 'login' | 'register'>('closed');
+  authLoading = false;
+  authError: string | null = null;
+  showAuthPassword = false;
+
+  loginForm = this.fb.nonNullable.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', Validators.required],
+  });
+
+  registerForm = this.fb.nonNullable.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(8)]],
+    confirmPassword: ['', Validators.required],
+  }, { validators: (g: AbstractControl): ValidationErrors | null => {
+    const pw = g.get('password')?.value;
+    const cp = g.get('confirmPassword')?.value;
+    return pw && cp && pw !== cp ? { mismatch: true } : null;
+  }});
+
+  openAuth(mode: 'login' | 'register') {
+    this.authError = null;
+    this.authLoading = false;
+    this.loginForm.reset();
+    this.registerForm.reset();
+    this.authPanel.set(mode);
+  }
+
+  closeAuth() { this.authPanel.set('closed'); }
+
+  submitLogin() {
+    if (this.loginForm.invalid) return;
+    this.authLoading = true;
+    this.authError = null;
+    const { email, password } = this.loginForm.getRawValue();
+    this.auth.login(email, password).subscribe({
+      next: () => { this.router.navigate(['/cyberscan/dashboard']); },
+      error: err => {
+        this.authError = err.error?.detail ?? 'Identifiants incorrects.';
+        this.authLoading = false;
+      },
+    });
+  }
+
+  submitRegister() {
+    if (this.registerForm.invalid) return;
+    this.authLoading = true;
+    this.authError = null;
+    const { email, password } = this.registerForm.getRawValue();
+    this.auth.register(email, password).pipe(
+      switchMap(() => this.auth.login(email, password))
+    ).subscribe({
+      next: () => { this.router.navigate(['/cyberscan/onboarding']); },
+      error: err => {
+        this.authError = err.error?.detail ?? 'Erreur lors de la création du compte.';
+        this.authLoading = false;
+      },
+    });
+  }
+
+  get registerPasswordStrength(): number {
+    const pw = this.registerForm.get('password')?.value ?? '';
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    return score;
+  }
+
+  get registerStrengthLabel(): string {
+    const s = this.registerPasswordStrength;
+    if (s <= 1) return 'Faible';
+    if (s === 2) return 'Moyen';
+    if (s === 3) return 'Fort';
+    return 'Très fort';
   }
 
   // Newsletter
