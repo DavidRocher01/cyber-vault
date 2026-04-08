@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -26,7 +27,7 @@ export interface CategoryMeta {
   selector: 'app-vault-dashboard',
   standalone: true,
   imports: [
-    CommonModule, ReactiveFormsModule, FormsModule,
+    CommonModule, RouterLink, ReactiveFormsModule, FormsModule,
     MatIconModule, MatTooltipModule, MatProgressSpinnerModule,
   ],
   providers: [VaultStore],
