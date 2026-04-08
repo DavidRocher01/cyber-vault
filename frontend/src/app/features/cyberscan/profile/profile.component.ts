@@ -14,6 +14,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Title } from '@angular/platform-browser';
 
 import { UserService, UserProfile, TwoFactorSetup } from '../services/user.service';
+import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
   selector: 'app-profile',
@@ -21,7 +22,7 @@ import { UserService, UserProfile, TwoFactorSetup } from '../services/user.servi
   imports: [
     CommonModule, ReactiveFormsModule, RouterLink,
     MatButtonModule, MatCardModule, MatIconModule,
-    MatFormFieldModule, MatInputModule, MatSnackBarModule, MatDividerModule, MatProgressSpinnerModule, MatTooltipModule,
+    MatFormFieldModule, MatInputModule, MatSnackBarModule, MatDividerModule, MatProgressSpinnerModule, MatTooltipModule, NavButtonsComponent,
   ],
   templateUrl: './profile.component.html',
 })

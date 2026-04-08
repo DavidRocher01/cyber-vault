@@ -13,6 +13,7 @@ import { CyberscanService, Site, Scan, PaginatedScans } from '../services/cybers
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
 import { computeScore, getGrade, getScoreColor } from '../../../shared/score-utils';
 import { Finding, getFindings } from '../../../shared/scan-findings';
+import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
   selector: 'app-site-detail',
@@ -20,7 +21,7 @@ import { Finding, getFindings } from '../../../shared/scan-findings';
   imports: [
     CommonModule, RouterLink,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule,
-    MatSnackBarModule, MatPaginatorModule, ScoreGaugeComponent,
+    MatSnackBarModule, MatPaginatorModule, ScoreGaugeComponent, NavButtonsComponent,
   ],
   templateUrl: './site-detail.component.html',
 })

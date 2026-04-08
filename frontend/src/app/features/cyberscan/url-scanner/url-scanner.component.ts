@@ -11,6 +11,7 @@ import { interval, Subscription as RxSubscription } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 
 import { CyberscanService, UrlScan, PaginatedUrlScans } from '../services/cyberscan.service';
+import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 interface Finding {
   type: string;
@@ -39,7 +40,7 @@ interface UrlScanResults {
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule, RouterLink,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule,
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule, NavButtonsComponent,
     MatSnackBarModule, MatPaginatorModule,
   ],
   templateUrl: './url-scanner.component.html',
