@@ -69,4 +69,14 @@ export const CYBERSCAN_ROUTES: Routes = [
     loadComponent: () => import('./mentions-legales/mentions-legales.component').then(m => m.MentionsLegalesComponent),
     title: 'Mentions légales — CyberScan',
   },
+  {
+    path: 'newsletter/confirm',
+    loadComponent: () => import('./newsletter-confirm/newsletter-confirm.component').then(m => m.NewsletterConfirmComponent),
+    title: 'Confirmation newsletter — CyberScan',
+  },
+  {
+    path: 'newsletter/unsubscribe',
+    loadComponent: () => import('./newsletter-unsubscribe/newsletter-unsubscribe.component').then(m => m.NewsletterUnsubscribeComponent),
+    title: 'Désabonnement newsletter — CyberScan',
+  },
 ];
