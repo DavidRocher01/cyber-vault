@@ -80,7 +80,7 @@ export class RegisterComponent {
     this.authService.register(email, password).pipe(
       switchMap(() => this.authService.login(email, password))
     ).subscribe({
-      next: () => this.router.navigateByUrl(this.returnUrl ?? '/cyberscan/onboarding'),
+      next: () => this.router.navigateByUrl(this.returnUrl || '/cyberscan/onboarding'),
       error: err => { this.error = err.error?.detail ?? 'Erreur inscription'; this.loading = false; },
     });
   }
