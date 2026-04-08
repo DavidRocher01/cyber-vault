@@ -20,7 +20,7 @@ import { NavHistoryService } from '../../core/services/nav-history.service';
               [class.hover:bg-cyan-600]="nav.canGoBack()"
               [class.text-gray-600]="!nav.canGoBack()"
               [class.cursor-not-allowed]="!nav.canGoBack()"
-              [class.opacity-40]="!nav.canGoBack()"
+              [class.opacity-40]="!nav.canGoBack()">
         <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_back</mat-icon>
       </button>
       <button type="button"
@@ -33,7 +33,7 @@ import { NavHistoryService } from '../../core/services/nav-history.service';
               [class.hover:bg-cyan-600]="nav.canGoForward()"
               [class.text-gray-600]="!nav.canGoForward()"
               [class.cursor-not-allowed]="!nav.canGoForward()"
-              [class.opacity-40]="!nav.canGoForward()"
+              [class.opacity-40]="!nav.canGoForward()">
         <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_forward</mat-icon>
       </button>
     </div>
