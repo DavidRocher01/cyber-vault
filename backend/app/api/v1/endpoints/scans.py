@@ -1,5 +1,7 @@
 import csv
 import io
+import json
+import os
 from datetime import datetime
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
@@ -190,3 +192,43 @@ async def download_pdf(
         media_type="application/pdf",
         filename=f"cyberscan_rapport_{scan_id}.pdf",
     )
+
+
+_REMEDIATION_META: dict[str, tuple[str, str]] = {
+    "ufw":     ("ufw_setup.sh",                    "text/x-sh"),
+    "ssh":     ("ssh_hardening.sh",                "text/x-sh"),
+    "fastapi": ("fastapi_security_middleware.py",  "text/x-python"),
+    "upgrade": ("upgrade_deps.sh",                 "text/x-sh"),
+}
+
+
+@router.get("/{scan_id}/remediation/{script_key}")
+async def download_remediation_script(
+    scan_id: int,
+    script_key: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Download a generated remediation script for a completed scan."""
+    if script_key not in _REMEDIATION_META:
+        raise HTTPException(status_code=404, detail="Script inconnu")
+
+    result = await db.execute(
+        select(Scan)
+        .join(Site, Site.id == Scan.site_id)
+        .where(Scan.id == scan_id, Site.user_id == current_user.id)
+    )
+    scan = result.scalar_one_or_none()
+    if not scan:
+        raise HTTPException(status_code=404, detail="Scan non trouvé")
+    if scan.status != "done" or not scan.results_json:
+        raise HTTPException(status_code=404, detail="Scripts non disponibles")
+
+    results = json.loads(scan.results_json)
+    script_path = results.get("_meta", {}).get("remediation_scripts", {}).get(script_key)
+
+    if not script_path or not os.path.isfile(script_path):
+        raise HTTPException(status_code=404, detail="Script non trouvé")
+
+    filename, media_type = _REMEDIATION_META[script_key]
+    return FileResponse(path=script_path, media_type=media_type, filename=filename)

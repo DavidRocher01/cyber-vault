@@ -61,6 +61,27 @@ export class ScanDetailComponent implements OnInit {
     if (s) window.open(this.cyberscan.downloadPdf(s.id), '_blank');
   }
 
+  downloadRemediation(scriptKey: string) {
+    const s = this.scan();
+    if (s) window.open(this.cyberscan.downloadRemediation(s.id, scriptKey), '_blank');
+  }
+
+  get remediationScripts(): { key: string; label: string; icon: string }[] {
+    const results = this.scan()?.results_json;
+    if (!results) return [];
+    try {
+      const parsed = JSON.parse(results);
+      const scripts = parsed?._meta?.remediation_scripts ?? {};
+      const meta: Record<string, { label: string; icon: string }> = {
+        ufw:     { label: 'Pare-feu UFW',         icon: 'security' },
+        ssh:     { label: 'Durcissement SSH',      icon: 'terminal' },
+        fastapi: { label: 'Middleware FastAPI',    icon: 'code' },
+        upgrade: { label: 'Mises à jour deps',    icon: 'system_update' },
+      };
+      return Object.keys(scripts).filter(k => meta[k]).map(k => ({ key: k, ...meta[k] }));
+    } catch { return []; }
+  }
+
   get findings(): Finding[] {
     return getFindings(this.scan()?.results_json ?? null);
   }

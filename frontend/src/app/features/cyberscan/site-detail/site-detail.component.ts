@@ -14,6 +14,7 @@ import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.com
 import { computeScore, getGrade, getScoreColor } from '../../../shared/score-utils';
 import { Finding, getFindings } from '../../../shared/scan-findings';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { ScoreTrendComponent, ScoreTrendPoint } from '../../../shared/score-trend/score-trend.component';
 
 @Component({
   selector: 'app-site-detail',
@@ -21,7 +22,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
   imports: [
     CommonModule, RouterLink,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule,
-    MatSnackBarModule, MatPaginatorModule, ScoreGaugeComponent, NavButtonsComponent,
+    MatSnackBarModule, MatPaginatorModule, ScoreGaugeComponent, NavButtonsComponent, ScoreTrendComponent,
   ],
   templateUrl: './site-detail.component.html',
 })
@@ -158,6 +159,13 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
 
   get hasActiveScans(): boolean {
     return (this.scans()?.items ?? []).some(s => s.status === 'pending' || s.status === 'running');
+  }
+
+  get scoreTrend(): ScoreTrendPoint[] {
+    return (this.scans()?.items ?? [])
+      .filter(s => s.status === 'done' && s.results_json && s.finished_at)
+      .map(s => ({ date: s.finished_at!, score: computeScore(s.results_json) ?? 0 }))
+      .filter(p => p.score > 0);
   }
 
   getScanScore(scan: Scan): number | null {
