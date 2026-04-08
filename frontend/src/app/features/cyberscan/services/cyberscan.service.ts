@@ -60,6 +60,30 @@ export interface PaginatedScans {
   pages: number;
 }
 
+export interface UrlScan {
+  id: number;
+  user_id: number;
+  url: string;
+  status: string;
+  verdict: 'safe' | 'suspicious' | 'malicious' | null;
+  threat_type: string | null;
+  threat_score: number | null;
+  screenshot_path: string | null;
+  results_json: string | null;
+  error_message: string | null;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface PaginatedUrlScans {
+  items: UrlScan[];
+  total: number;
+  page: number;
+  per_page: number;
+  pages: number;
+}
+
 const API = '/api/v1';
 
 @Injectable({ providedIn: 'root' })
@@ -112,5 +136,23 @@ export class CyberscanService {
 
   exportCsv(siteId: number): string {
     return `${API}/scans/site/${siteId}/export`;
+  }
+
+  // ── URL Scans ──────────────────────────────────────────────────────────
+
+  triggerUrlScan(url: string): Observable<UrlScan> {
+    return this.http.post<UrlScan>(`${API}/url-scans`, { url });
+  }
+
+  getUrlScans(page = 1, perPage = 20): Observable<PaginatedUrlScans> {
+    return this.http.get<PaginatedUrlScans>(`${API}/url-scans?page=${page}&per_page=${perPage}`);
+  }
+
+  getUrlScan(id: number): Observable<UrlScan> {
+    return this.http.get<UrlScan>(`${API}/url-scans/${id}`);
+  }
+
+  deleteUrlScan(id: number): Observable<void> {
+    return this.http.delete<void>(`${API}/url-scans/${id}`);
   }
 }
