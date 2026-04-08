@@ -13,6 +13,10 @@
       <button type="button" mat-button (click)="i18n.toggle()" title="Changer la langue" class="!text-white font-medium hidden sm:inline-flex">
         <span class="text-sm font-bold">{{ i18n.lang() === 'fr' ? 'EN' : 'FR' }}</span>
       </button>
+      <a routerLink="/vault" mat-button class="!text-white font-medium hidden md:inline-flex items-center gap-1">
+        <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] text-cyan-400">lock</mat-icon>
+        Mon coffre-fort
+      </a>
       @if (isLoggedIn) {
         <a routerLink="/cyberscan/dashboard" mat-button class="!text-white font-medium">Dashboard</a>
       } @else {
