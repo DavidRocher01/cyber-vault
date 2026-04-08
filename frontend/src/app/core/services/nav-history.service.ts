@@ -12,10 +12,6 @@ export class NavHistoryService {
   readonly canGoForward = computed(() => this.pos() < this.stack.length - 1);
 
   constructor(private router: Router) {
-    const initial = this.router.url || '/';
-    this.stack = [initial];
-    this.pos.set(0);
-
     this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))
       .subscribe((e: any) => {
