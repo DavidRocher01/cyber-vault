@@ -19,25 +19,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
     MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule, NavButtonsComponent,
   ],
   templateUrl: './onboarding.component.html',
-  styles: [`
-    .onboarding-bg {
-      background: #0a0f1e;
-      background-image: radial-gradient(ellipse at 50% 0%, rgba(6,182,212,0.08) 0%, transparent 60%);
-    }
-    .onboarding-card {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.07);
-      backdrop-filter: blur(12px);
-    }
-    .onboarding-btn {
-      background: linear-gradient(135deg, #06b6d4, #0284c7);
-      color: white;
-    }
-    .onboarding-btn:hover:not(:disabled) {
-      background: linear-gradient(135deg, #22d3ee, #0ea5e9);
-      box-shadow: 0 0 20px rgba(6,182,212,0.4);
-    }
-  `],
+  styleUrl: './onboarding.component.css',
 })
 export class OnboardingComponent implements OnInit {
   private cyberscan = inject(CyberscanService);

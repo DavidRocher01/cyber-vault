@@ -1,192 +1,285 @@
-<div class="min-h-screen flex flex-col items-center justify-center px-4 py-12 onboarding-bg">
+<div class="min-h-screen flex flex-col items-center justify-center px-4 py-12 onboarding-bg relative overflow-hidden">
+
+  <!-- Ambient glows -->
+  <div class="pointer-events-none absolute inset-0 overflow-hidden">
+    <div class="ob-glow-top"></div>
+    <div class="ob-glow-bottom"></div>
+  </div>
 
   <!-- Logo + nav -->
-  <div class="flex items-center justify-between w-full max-w-lg mb-10">
+  <div class="relative flex items-center justify-between w-full max-w-xl mb-10">
     <app-nav-buttons />
-    <a routerLink="/cyberscan" class="flex items-center gap-2.5">
+    <a routerLink="/cyberscan" class="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
       <mat-icon class="text-cyan-400 !text-[2rem] !w-[2rem] !h-[2rem]">shield</mat-icon>
-      <span class="text-2xl font-bold text-cyan-400 tracking-tight">CyberScan</span>
+      <span class="text-2xl font-bold text-white tracking-tight">Cyber<span class="text-cyan-400">Scan</span></span>
     </a>
   </div>
 
-  <!-- Stepper header -->
-  <div class="flex items-center gap-0 mb-10 w-full max-w-sm">
+  <!-- Stepper -->
+  <div class="relative flex items-start w-full max-w-sm mb-10">
     @for (step of steps; track step.n; let last = $last) {
-      <div class="flex flex-col items-center flex-1">
-        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 border-2"
-             [class.bg-cyan-500]="currentStep() >= step.n"
-             [class.border-cyan-500]="currentStep() >= step.n"
-             [class.text-white]="currentStep() >= step.n"
-             [class.bg-transparent]="currentStep() < step.n"
-             [class.border-gray-700]="currentStep() < step.n"
-             [class.text-gray-600]="currentStep() < step.n">
+      <div class="flex flex-col items-center" [class.flex-1]="!last">
+        <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 relative z-10"
+             [class.ob-step-circle-done]="currentStep() > step.n"
+             [class.ob-step-circle-active]="currentStep() === step.n"
+             [class.ob-step-circle-pending]="currentStep() < step.n"
+             [class.ring-2]="currentStep() === step.n"
+             [class.ring-cyan-400]="currentStep() === step.n"
+             [class.ring-offset-2]="currentStep() === step.n">
           @if (currentStep() > step.n) {
-            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">check</mat-icon>
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] text-white">check</mat-icon>
           } @else {
-            {{ step.n }}
+            <span [class.text-cyan-400]="currentStep() === step.n"
+                  [class.text-gray-600]="currentStep() < step.n">{{ step.n }}</span>
           }
         </div>
-        <span class="text-xs mt-1.5 font-medium"
+        <span class="text-xs mt-2 font-semibold whitespace-nowrap"
               [class.text-cyan-400]="currentStep() >= step.n"
               [class.text-gray-600]="currentStep() < step.n">
           {{ step.label }}
         </span>
       </div>
       @if (!last) {
-        <div class="flex-1 h-px mb-5 transition-colors duration-300"
-             [class.bg-cyan-500]="currentStep() > step.n"
-             [class.bg-gray-700]="currentStep() <= step.n"></div>
+        <div class="flex-1 h-px mt-5 mx-1 transition-all duration-500"
+             [class.ob-step-line-done]="currentStep() > step.n"
+             [class.ob-step-line-pending]="currentStep() <= step.n"></div>
       }
     }
   </div>
 
   <!-- Card -->
-  <div class="w-full max-w-lg onboarding-card rounded-2xl p-8">
+  <div class="relative w-full max-w-xl onboarding-card rounded-2xl overflow-hidden">
 
-    <!-- ── Étape 1 : Plan ── -->
-    @if (currentStep() === 1) {
-      <div>
-        <h1 class="text-2xl font-bold text-white mb-1">Choisissez votre plan</h1>
-        <p class="text-gray-400 text-sm mb-6">Sélectionnez le plan adapté à vos besoins. Changeable à tout moment.</p>
+    <div class="ob-card-accent"></div>
 
-        <div class="flex flex-col gap-3">
-          @for (plan of plans(); track plan.id) {
-            <button type="button"
-                    class="w-full text-left rounded-xl border-2 px-5 py-4 transition-all duration-200 cursor-pointer group relative overflow-hidden"
-                    [class.border-cyan-500]="selectedPlan()?.id === plan.id"
-                    [class.bg-cyan-950]="selectedPlan()?.id === plan.id"
-                    [class.border-gray-700]="selectedPlan()?.id !== plan.id"
-                    [class.bg-gray-800]="selectedPlan()?.id !== plan.id"
-                    [class.hover:border-gray-500]="selectedPlan()?.id !== plan.id"
-                    (click)="selectPlan(plan)">
+    <div class="p-8">
 
-              <div class="flex items-start justify-between">
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 mb-1">
-                    <p class="font-bold text-white text-base">{{ plan.display_name }}</p>
-                    @if (plan.scan_interval_days <= 7) {
-                      <span class="text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded-full">Populaire</span>
-                    }
+      <!-- ── Étape 1 : Plan ── -->
+      @if (currentStep() === 1) {
+        <div>
+          <div class="flex items-start gap-4 mb-7">
+            <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ob-header-icon">
+              <mat-icon class="text-cyan-400 !text-[1.3rem] !w-[1.3rem] !h-[1.3rem]">workspace_premium</mat-icon>
+            </div>
+            <div>
+              <h1 class="text-xl font-bold text-white leading-tight">Choisissez votre plan</h1>
+              <p class="text-gray-400 text-sm mt-0.5">Sécurisez vos sites en continu. Sans engagement.</p>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-3">
+
+            @if (plans().length === 0) {
+              @for (i of [1,2,3]; track i) {
+                <div class="rounded-xl border border-gray-800 p-5 animate-pulse">
+                  <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                      <div class="h-4 bg-gray-800 rounded w-1/3 mb-3"></div>
+                      <div class="flex gap-3">
+                        <div class="h-3 bg-gray-800 rounded w-24"></div>
+                        <div class="h-3 bg-gray-800 rounded w-20"></div>
+                      </div>
+                    </div>
+                    <div class="h-7 bg-gray-800 rounded w-16"></div>
                   </div>
-                  <div class="flex flex-wrap gap-x-3 gap-y-0.5 mt-2">
-                    @for (feat of planFeatures(plan); track feat) {
-                      <span class="flex items-center gap-1 text-xs text-gray-400">
-                        <mat-icon class="!text-[0.7rem] !w-[0.7rem] !h-[0.7rem] text-cyan-500">check_circle</mat-icon>
-                        {{ feat }}
-                      </span>
-                    }
-                  </div>
-                </div>
-                <div class="text-right ml-4 flex-shrink-0">
-                  <p class="text-xl font-extrabold text-cyan-400">{{ formatPrice(plan.price_eur) }}</p>
-                  <p class="text-xs text-gray-500">/mois</p>
-                  @if (checkoutLoading() && selectedPlan()?.id === plan.id) {
-                    <mat-spinner diameter="18" class="mt-2 ml-auto"></mat-spinner>
-                  }
-                </div>
-              </div>
-
-              @if (selectedPlan()?.id === plan.id) {
-                <div class="absolute top-3 right-3 w-5 h-5 rounded-full bg-cyan-500 flex items-center justify-center">
-                  <mat-icon class="!text-[0.75rem] !w-[0.75rem] !h-[0.75rem] text-white">check</mat-icon>
                 </div>
               }
-            </button>
-          }
-        </div>
+            }
 
-        <p class="text-center text-xs text-gray-600 mt-5">
-          Vous serez redirigé vers Stripe pour le paiement sécurisé.
-        </p>
-      </div>
-    }
+            @for (plan of plans(); track plan.id; let i = $index) {
+              <button type="button" (click)="selectPlan(plan)"
+                      class="w-full text-left rounded-xl border-2 px-5 py-4 transition-all duration-200 relative overflow-hidden group"
+                      [class.border-cyan-500]="selectedPlan()?.id === plan.id"
+                      [class.border-gray-800]="selectedPlan()?.id !== plan.id"
+                      [class.ob-plan-selected]="selectedPlan()?.id === plan.id"
+                      [class.ob-plan-default]="selectedPlan()?.id !== plan.id">
 
-    <!-- ── Étape 2 : Site ── -->
-    @if (currentStep() === 2) {
-      <div>
-        <h1 class="text-2xl font-bold text-white mb-1">Ajoutez votre premier site</h1>
-        <p class="text-gray-400 text-sm mb-6">Entrez l'URL du site que vous souhaitez surveiller en continu.</p>
+                @if (plan.scan_interval_days <= 7) {
+                  <div class="absolute top-0 right-0 overflow-hidden w-20 h-20 pointer-events-none">
+                    <div class="absolute top-3 -right-5 rotate-45 text-[9px] font-bold bg-cyan-500 text-white px-6 py-0.5 tracking-wider">
+                      TOP
+                    </div>
+                  </div>
+                }
 
-        <form [formGroup]="siteForm" class="flex flex-col gap-4">
+                <div class="ob-plan-hover-glow"></div>
 
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">URL du site</label>
-            <div class="flex items-center rounded-xl border transition-all bg-gray-800/50"
-                 [class.border-cyan-500]="siteForm.controls.url.touched && siteForm.controls.url.valid"
-                 [class.border-red-600]="siteForm.controls.url.touched && siteForm.controls.url.invalid"
-                 [class.border-gray-700]="!siteForm.controls.url.touched">
-              <span class="pl-4 text-gray-600 text-sm select-none flex-shrink-0">https://</span>
-              <input type="url" formControlName="url" placeholder="monsite.com"
-                     class="flex-1 bg-transparent px-2 py-3.5 text-sm placeholder-gray-600 outline-none text-white" />
-              <mat-icon class="text-gray-600 mr-4 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">language</mat-icon>
-            </div>
-            @if (siteForm.controls.url.invalid && siteForm.controls.url.touched) {
-              <p class="text-xs text-red-400 pl-1">URL valide requise (https://...)</p>
+                <div class="flex items-center gap-4 relative">
+                  <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors"
+                       [class.ob-plan-icon-selected]="selectedPlan()?.id === plan.id"
+                       [class.ob-plan-icon-default]="selectedPlan()?.id !== plan.id">
+                    <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]"
+                              [class.text-cyan-400]="selectedPlan()?.id === plan.id"
+                              [class.text-gray-600]="selectedPlan()?.id !== plan.id">
+                      {{ i === 0 ? 'shield' : i === 1 ? 'security' : 'gpp_good' }}
+                    </mat-icon>
+                  </div>
+
+                  <div class="flex-1 min-w-0">
+                    <p class="font-bold text-white text-sm">{{ plan.display_name }}</p>
+                    <div class="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
+                      @for (feat of planFeatures(plan); track feat) {
+                        <span class="flex items-center gap-1 text-xs text-gray-500">
+                          <mat-icon class="!text-[0.65rem] !w-[0.65rem] !h-[0.65rem]"
+                                    [class.text-cyan-500]="selectedPlan()?.id === plan.id"
+                                    [class.text-gray-600]="selectedPlan()?.id !== plan.id">
+                            check_circle
+                          </mat-icon>
+                          {{ feat }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="text-right flex-shrink-0 ml-2">
+                    @if (checkoutLoading() && selectedPlan()?.id === plan.id) {
+                      <div class="flex flex-col items-center gap-1">
+                        <mat-spinner diameter="20"></mat-spinner>
+                        <span class="text-xs text-cyan-400">Redirection…</span>
+                      </div>
+                    } @else {
+                      <p class="text-xl font-extrabold text-cyan-400 leading-none">{{ formatPrice(plan.price_eur) }}</p>
+                      <p class="text-xs text-gray-600 mt-0.5">/mois</p>
+                    }
+                  </div>
+                </div>
+              </button>
             }
           </div>
 
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Nom du site</label>
-            <div class="flex items-center rounded-xl border transition-all bg-gray-800/50"
-                 [class.border-cyan-500]="siteForm.controls.name.touched && siteForm.controls.name.valid"
-                 [class.border-red-600]="siteForm.controls.name.touched && siteForm.controls.name.invalid"
-                 [class.border-gray-700]="!siteForm.controls.name.touched">
-              <input type="text" formControlName="name" placeholder="Mon site vitrine"
-                     class="flex-1 bg-transparent px-4 py-3.5 text-sm placeholder-gray-600 outline-none text-white" />
-              <mat-icon class="text-gray-600 mr-4 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">label</mat-icon>
-            </div>
+          <div class="flex items-center justify-center gap-5 mt-6 pt-5 border-t border-gray-800/60">
+            <span class="flex items-center gap-1.5 text-xs text-gray-600">
+              <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] text-gray-700">lock</mat-icon>
+              Paiement sécurisé Stripe
+            </span>
+            <span class="flex items-center gap-1.5 text-xs text-gray-600">
+              <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] text-gray-700">sync</mat-icon>
+              Résiliable à tout moment
+            </span>
+            <span class="flex items-center gap-1.5 text-xs text-gray-600">
+              <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] text-gray-700">receipt_long</mat-icon>
+              Sans engagement
+            </span>
           </div>
-
-        </form>
-
-        <div class="flex gap-3 mt-6">
-          <button type="button" (click)="currentStep.set(1)"
-                  class="px-5 py-3 rounded-xl text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 transition-colors">
-            Retour
-          </button>
-          <button type="button" (click)="addSiteAndScan()"
-                  [disabled]="siteForm.invalid || addingSite()"
-                  class="flex-1 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 onboarding-btn"
-                  [class.opacity-50]="siteForm.invalid || addingSite()"
-                  [class.cursor-not-allowed]="siteForm.invalid || addingSite()">
-            @if (addingSite()) {
-              <mat-spinner diameter="18"></mat-spinner>
-              Création en cours…
-            } @else {
-              Ajouter et lancer le scan
-              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_forward</mat-icon>
-            }
-          </button>
         </div>
-      </div>
-    }
+      }
 
-    <!-- ── Étape 3 : Succès ── -->
-    @if (currentStep() === 3) {
-      <div class="flex flex-col items-center text-center py-4 gap-5">
-        <div class="w-20 h-20 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center">
-          <mat-icon class="text-green-400 !text-[2.5rem] !w-[2.5rem] !h-[2.5rem]">check_circle</mat-icon>
-        </div>
+      <!-- ── Étape 2 : Site ── -->
+      @if (currentStep() === 2) {
         <div>
-          <h2 class="text-2xl font-bold text-white mb-2">Votre site est en cours de scan !</h2>
-          <p class="text-gray-400 text-sm max-w-sm">Le premier rapport sera disponible dans votre dashboard dans quelques minutes.</p>
-        </div>
-
-        <div class="w-full bg-gray-800/60 border border-gray-700 rounded-xl px-5 py-4 flex items-center gap-3 text-left">
-          <div class="w-9 h-9 rounded-xl bg-cyan-950 border border-cyan-800/60 flex items-center justify-center flex-shrink-0">
-            <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">notifications</mat-icon>
+          <div class="flex items-start gap-4 mb-7">
+            <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ob-header-icon">
+              <mat-icon class="text-cyan-400 !text-[1.3rem] !w-[1.3rem] !h-[1.3rem]">language</mat-icon>
+            </div>
+            <div>
+              <h1 class="text-xl font-bold text-white leading-tight">Ajoutez votre premier site</h1>
+              <p class="text-gray-400 text-sm mt-0.5">Entrez l'URL du site à surveiller en continu.</p>
+            </div>
           </div>
-          <p class="text-sm text-gray-300">Vous recevrez une notification dès que le scan est terminé.</p>
+
+          <form [formGroup]="siteForm" class="flex flex-col gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">URL du site</label>
+              <div class="flex items-center rounded-xl border transition-all ob-input-wrap"
+                   [class.border-cyan-500]="siteForm.controls.url.touched && siteForm.controls.url.valid"
+                   [class.border-red-600]="siteForm.controls.url.touched && siteForm.controls.url.invalid"
+                   [class.border-gray-700]="!siteForm.controls.url.touched">
+                <span class="pl-4 text-gray-500 text-sm select-none flex-shrink-0 font-mono">https://</span>
+                <input type="url" formControlName="url" placeholder="monsite.com"
+                       class="flex-1 bg-transparent px-2 py-3.5 text-sm placeholder-gray-600 outline-none text-white" />
+                <mat-icon class="text-gray-600 mr-4 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">language</mat-icon>
+              </div>
+              @if (siteForm.controls.url.invalid && siteForm.controls.url.touched) {
+                <p class="text-xs text-red-400 pl-1">URL valide requise (https://...)</p>
+              }
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Nom du site</label>
+              <div class="flex items-center rounded-xl border transition-all ob-input-wrap"
+                   [class.border-cyan-500]="siteForm.controls.name.touched && siteForm.controls.name.valid"
+                   [class.border-red-600]="siteForm.controls.name.touched && siteForm.controls.name.invalid"
+                   [class.border-gray-700]="!siteForm.controls.name.touched">
+                <input type="text" formControlName="name" placeholder="Mon site vitrine"
+                       class="flex-1 bg-transparent px-4 py-3.5 text-sm placeholder-gray-600 outline-none text-white" />
+                <mat-icon class="text-gray-600 mr-4 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">label</mat-icon>
+              </div>
+            </div>
+          </form>
+
+          <div class="mt-5 rounded-xl p-4 flex items-start gap-3 ob-info-box">
+            <mat-icon class="text-cyan-500 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0 mt-0.5">info_outline</mat-icon>
+            <p class="text-xs text-gray-400 leading-relaxed">
+              Un scan de sécurité sera lancé automatiquement dès l'ajout. Le rapport complet sera disponible dans votre dashboard en quelques minutes.
+            </p>
+          </div>
+
+          <div class="flex gap-3 mt-6">
+            <button type="button" (click)="currentStep.set(1)"
+                    class="px-5 py-3 rounded-xl text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 transition-colors">
+              Retour
+            </button>
+            <button type="button" (click)="addSiteAndScan()"
+                    [disabled]="siteForm.invalid || addingSite()"
+                    class="flex-1 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 onboarding-btn"
+                    [class.opacity-40]="siteForm.invalid || addingSite()"
+                    [class.cursor-not-allowed]="siteForm.invalid || addingSite()">
+              @if (addingSite()) {
+                <mat-spinner diameter="18"></mat-spinner>
+                Création en cours…
+              } @else {
+                Ajouter et lancer le scan
+                <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_forward</mat-icon>
+              }
+            </button>
+          </div>
         </div>
+      }
 
-        <button type="button" (click)="goToDashboard()"
-                class="w-full mt-2 py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 onboarding-btn">
-          Aller au dashboard
-          <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_forward</mat-icon>
-        </button>
-      </div>
-    }
+      <!-- ── Étape 3 : Succès ── -->
+      @if (currentStep() === 3) {
+        <div class="flex flex-col items-center text-center py-6 gap-6">
 
+          <div class="relative">
+            <div class="w-24 h-24 rounded-full flex items-center justify-center ob-success-outer">
+              <div class="w-16 h-16 rounded-full flex items-center justify-center ob-success-inner">
+                <mat-icon class="text-green-400 !text-[2.2rem] !w-[2.2rem] !h-[2.2rem]">check_circle</mat-icon>
+              </div>
+            </div>
+            <div class="absolute inset-0 rounded-full animate-ping opacity-20 ob-success-pulse"></div>
+          </div>
+
+          <div>
+            <h2 class="text-2xl font-bold text-white mb-2">C'est parti !</h2>
+            <p class="text-gray-400 text-sm max-w-xs leading-relaxed">
+              Votre site est en cours de scan. Le premier rapport sera disponible dans quelques minutes.
+            </p>
+          </div>
+
+          <div class="w-full flex flex-col gap-2">
+            <div class="flex items-center gap-3 rounded-xl px-4 py-3 text-left ob-success-item-cyan">
+              <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">radar</mat-icon>
+              <p class="text-sm text-gray-300">Analyse des en-têtes HTTP &amp; TLS en cours</p>
+            </div>
+            <div class="flex items-center gap-3 rounded-xl px-4 py-3 text-left ob-success-item-yellow">
+              <mat-icon class="text-yellow-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">notifications_active</mat-icon>
+              <p class="text-sm text-gray-300">Alertes email activées pour ce site</p>
+            </div>
+            <div class="flex items-center gap-3 rounded-xl px-4 py-3 text-left ob-success-item-purple">
+              <mat-icon class="text-purple-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">picture_as_pdf</mat-icon>
+              <p class="text-sm text-gray-300">Rapport PDF généré après chaque scan</p>
+            </div>
+          </div>
+
+          <button type="button" (click)="goToDashboard()"
+                  class="w-full py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 onboarding-btn">
+            Accéder au dashboard
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_forward</mat-icon>
+          </button>
+        </div>
+      }
+
+    </div>
   </div>
 
 </div>
