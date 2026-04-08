@@ -350,94 +350,148 @@
     </div>
   </section>
 
-  <!-- Newsletter -->
-  <section class="px-8 py-16 bg-gray-800/50 border-t border-gray-800">
-    <div class="max-w-4xl mx-auto">
-      <div class="text-center mb-10">
-        <div class="inline-flex items-center gap-2 bg-cyan-900/30 text-cyan-400 px-3 py-1 rounded-full text-xs font-medium border border-cyan-800 mb-4">
+  <!-- ── Newsletter ── -->
+  <section id="newsletter" class="relative overflow-hidden border-t border-gray-800" style="background:linear-gradient(180deg,#0f172a 0%,#0c1a2e 100%);">
+
+    <!-- Glow background -->
+    <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(6,182,212,0.07) 0%,transparent 70%);"></div>
+
+    <div class="relative max-w-5xl mx-auto px-8 py-20">
+
+      <!-- Header -->
+      <div class="text-center mb-14">
+        <div class="inline-flex items-center gap-2 bg-cyan-900/30 text-cyan-400 px-4 py-1.5 rounded-full text-xs font-semibold border border-cyan-800/60 mb-5 tracking-wider uppercase">
+          <span style="width:6px;height:6px;border-radius:50%;background:#22d3ee;display:inline-block;animation:pulse 2s infinite;"></span>
           Gratuit · Toutes les 2 semaines
         </div>
-        <h2 class="text-3xl font-bold mb-3">Le Radar Cyber</h2>
-        <p class="text-gray-300 max-w-xl mx-auto">
-          Le brief bimensuel pour comprendre les menaces mondiales et protéger votre entreprise — en 5 minutes de lecture.
+        <h2 class="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight">
+          Le <span class="text-cyan-400">Radar Cyber</span>
+        </h2>
+        <p class="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
+          Le brief bimensuel qui décrypte les cybermenaces mondiales et vous donne les bons réflexes — en 5 minutes de lecture.
         </p>
-      </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-        @for (item of newsletterItems; track item.title) {
-          <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 text-left">
-            <mat-icon class="text-cyan-400 mb-3 !text-[1.5rem] !w-[1.5rem] !h-[1.5rem]">{{ item.icon }}</mat-icon>
-            <h3 class="font-semibold text-sm mb-1">{{ item.title }}</h3>
-            <p class="text-gray-300 text-xs leading-relaxed">{{ item.desc }}</p>
+        <!-- Social proof -->
+        <div class="flex items-center justify-center gap-6 mt-8">
+          <div class="flex -space-x-2">
+            @for (a of newsletterAvatars; track a) {
+              <div class="w-8 h-8 rounded-full border-2 border-gray-900 flex items-center justify-center text-xs font-bold"
+                   [style.background]="a.bg" [style.color]="a.color">{{ a.initials }}</div>
+            }
           </div>
-        }
-      </div>
-
-      <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden mb-8">
-        <div class="px-5 py-3 border-b border-gray-700 text-xs font-bold text-gray-300 uppercase tracking-wider grid grid-cols-3 gap-4">
-          <span>Semaine</span>
-          <span>Actualité Monde</span>
-          <span>Bon Réflexe</span>
+          <p class="text-gray-400 text-sm">
+            <strong class="text-white">+1 200</strong> responsables IT et dirigeants abonnés
+          </p>
         </div>
-        @for (row of newsletterSchedule; track row.week; let odd = $odd) {
-          <div class="px-5 py-3 border-b border-gray-700/50 text-sm grid grid-cols-3 gap-4 hover:bg-gray-700/30 transition-colors"
-               [ngClass]="odd ? 'bg-gray-800/50' : ''">
-            <span class="text-cyan-400 font-mono">S{{ row.week }}</span>
-            <span class="text-gray-300">{{ row.actu }}</span>
-            <span class="text-gray-400">{{ row.reflex }}</span>
-          </div>
-        }
       </div>
 
-      <!-- Formulaire d'inscription -->
-      @if (newsletterSent) {
-        <div class="flex flex-col items-center gap-3 text-center py-8">
-          <div class="w-16 h-16 rounded-full bg-green-900/40 border border-green-700 flex items-center justify-center mx-auto">
-            <mat-icon class="text-green-400 !text-[2rem] !w-[2rem] !h-[2rem]">mark_email_read</mat-icon>
+      <!-- 2-column layout: preview + form -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+
+        <!-- Left: content cards -->
+        <div class="space-y-4">
+          @for (item of newsletterItems; track item.title) {
+            <div class="flex gap-4 p-4 rounded-xl border transition-all"
+                 style="background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.08);">
+              <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
+                   [style.background]="item.bg">
+                <span style="font-size:18px;">{{ item.emoji }}</span>
+              </div>
+              <div>
+                <p class="font-semibold text-sm text-white mb-0.5">{{ item.title }}</p>
+                <p class="text-gray-400 text-xs leading-relaxed">{{ item.desc }}</p>
+              </div>
+            </div>
+          }
+
+          <!-- Sample schedule -->
+          <div class="rounded-xl overflow-hidden border mt-2" style="border-color:rgba(255,255,255,0.08);">
+            <div class="px-4 py-2.5 text-xs font-bold text-gray-500 uppercase tracking-wider grid grid-cols-2 gap-4"
+                 style="background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.06);">
+              <span>Actualité Monde</span>
+              <span>Bon Réflexe</span>
+            </div>
+            @for (row of newsletterSchedule.slice(0, 4); track row.week; let odd = $odd) {
+              <div class="px-4 py-2.5 text-xs grid grid-cols-2 gap-4 border-b"
+                   style="border-color:rgba(255,255,255,0.05);"
+                   [style.background]="odd ? 'rgba(255,255,255,0.02)' : 'transparent'">
+                <span class="text-gray-300">{{ row.actu }}</span>
+                <span class="text-cyan-500/80">{{ row.reflex }}</span>
+              </div>
+            }
           </div>
-          <p class="text-xl font-semibold text-white">C'est dans la boîte !</p>
-          <p class="text-gray-400 text-sm max-w-xs">Vérifiez votre boîte mail. La prochaine édition arrive dans moins de deux semaines.</p>
         </div>
-      } @else {
-        <form [formGroup]="newsletterForm" (ngSubmit)="subscribeNewsletter()" class="max-w-lg mx-auto">
-          <!-- Capsule input + bouton -->
-          <div class="flex items-center bg-gray-900 border rounded-2xl overflow-hidden transition-all focus-within:ring-2 focus-within:ring-cyan-500"
-               [class.border-red-600]="newsletterForm.get('email')?.invalid && newsletterForm.get('email')?.touched"
-               [class.border-gray-700]="!(newsletterForm.get('email')?.invalid && newsletterForm.get('email')?.touched)">
-            <mat-icon class="text-gray-500 ml-4 flex-shrink-0 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">mail</mat-icon>
-            <input
-              type="email"
-              formControlName="email"
-              placeholder="votre@email.com"
-              autocomplete="email"
-              class="flex-1 bg-transparent px-4 py-4 text-sm text-white placeholder-gray-500 outline-none"
-            />
-            <button
-              type="submit"
-              [disabled]="newsletterLoading || newsletterForm.invalid"
-              class="m-1.5 px-5 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 font-semibold text-sm flex-shrink-0 transition-colors flex items-center gap-2">
-              @if (newsletterLoading) {
-                <mat-spinner diameter="16" class="!text-gray-900"></mat-spinner>
-              } @else {
-                S'abonner
-                <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_forward</mat-icon>
+
+        <!-- Right: form -->
+        <div class="rounded-2xl p-8" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+
+          @if (newsletterSent) {
+            <div class="text-center py-6">
+              <div class="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"
+                   style="background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);">
+                <mat-icon class="text-green-400 !text-[2rem] !w-[2rem] !h-[2rem]">mark_email_read</mat-icon>
+              </div>
+              <p class="text-xl font-bold text-white mb-2">Email de confirmation envoyé !</p>
+              <p class="text-gray-400 text-sm leading-relaxed">
+                Vérifiez votre boîte mail et cliquez sur le lien pour activer votre abonnement.
+              </p>
+            </div>
+          } @else {
+            <div class="mb-6">
+              <h3 class="text-xl font-bold text-white mb-1">Rejoignez le Radar Cyber</h3>
+              <p class="text-gray-400 text-sm">Gratuit · Désabonnement en 1 clic · Sans spam</p>
+            </div>
+
+            <form [formGroup]="newsletterForm" (ngSubmit)="subscribeNewsletter()" class="space-y-3">
+
+              <!-- Email input -->
+              <div class="flex items-center rounded-xl overflow-hidden transition-all focus-within:ring-2 focus-within:ring-cyan-500/50"
+                   style="background:#0f172a;border:1px solid rgba(255,255,255,0.1);">
+                <mat-icon class="text-gray-500 ml-4 flex-shrink-0 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">mail</mat-icon>
+                <input
+                  type="email"
+                  formControlName="email"
+                  placeholder="votre@email.com"
+                  autocomplete="email"
+                  class="flex-1 bg-transparent px-4 py-3.5 text-sm text-white placeholder-gray-600 outline-none"
+                />
+              </div>
+
+              @if (newsletterForm.get('email')?.invalid && newsletterForm.get('email')?.touched) {
+                <p class="text-red-400 text-xs px-1">Veuillez entrer une adresse email valide.</p>
               }
-            </button>
-          </div>
 
-          @if (newsletterError) {
-            <p class="text-sm mt-2 px-1"
-               [class.text-yellow-400]="newsletterError.includes('déjà')"
-               [class.text-red-400]="!newsletterError.includes('déjà')">
-              {{ newsletterError }}
+              <!-- Submit -->
+              <button
+                type="submit"
+                [disabled]="newsletterLoading || newsletterForm.invalid"
+                class="w-full py-3.5 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                style="background:linear-gradient(135deg,#0891b2,#0e7490);color:white;">
+                @if (newsletterLoading) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">send</mat-icon>
+                  S'abonner gratuitement
+                }
+              </button>
+
+              @if (newsletterError) {
+                <p class="text-sm px-1"
+                   [class.text-yellow-400]="newsletterError.includes('déjà') || newsletterError.includes('renvoyé')"
+                   [class.text-red-400]="!newsletterError.includes('déjà') && !newsletterError.includes('renvoyé')">
+                  {{ newsletterError }}
+                </p>
+              }
+            </form>
+
+            <!-- RGPD -->
+            <p class="text-gray-600 text-xs mt-4 leading-relaxed">
+              En vous inscrivant, vous acceptez de recevoir notre newsletter. Vos données ne seront jamais revendues.
+              Conformément au RGPD, vous pouvez vous désabonner à tout moment via le lien présent dans chaque email.
             </p>
           }
-        </form>
-
-        <p class="text-center text-xs text-gray-500 mt-4">
-          Toutes les 2 semaines · Désabonnement en 1 clic · Aucun spam
-        </p>
-      }
+        </div>
+      </div>
     </div>
   </section>
 

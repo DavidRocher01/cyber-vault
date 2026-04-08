@@ -71,7 +71,9 @@ export class LandingComponent implements OnInit {
     this.http.post(`${environment.apiUrl}/newsletter/subscribe`, this.newsletterForm.getRawValue()).subscribe({
       next: () => { this.newsletterSent = true; this.newsletterLoading = false; },
       error: err => {
-        this.newsletterError = err.status === 409 ? 'Vous êtes déjà abonné(e) !' : 'Une erreur est survenue. Réessayez.';
+        this.newsletterError = err.status === 409
+          ? 'Vous êtes déjà abonné(e) et actif(ve) !'
+          : 'Une erreur est survenue. Réessayez.';
         this.newsletterLoading = false;
       },
     });
@@ -200,10 +202,18 @@ export class LandingComponent implements OnInit {
     },
   ];
 
+  newsletterAvatars = [
+    { initials: 'ML', bg: '#0e7490', color: '#fff' },
+    { initials: 'PD', bg: '#7c3aed', color: '#fff' },
+    { initials: 'SB', bg: '#0f766e', color: '#fff' },
+    { initials: 'AR', bg: '#b45309', color: '#fff' },
+    { initials: 'JC', bg: '#be185d', color: '#fff' },
+  ];
+
   newsletterItems = [
-    { icon: 'public', title: 'Flash International', desc: 'Une cyberattaque majeure décryptée chaque semaine avec l\'impact estimé et le risque local' },
-    { icon: 'lightbulb', title: 'Le Bon Réflexe', desc: 'Une pratique simple en 2 minutes qui bloque 80% des attaques basiques' },
-    { icon: 'gavel', title: 'Coin des Dirigeants', desc: 'Réglementation française, lois cyber et conseils pour sensibiliser vos équipes' },
+    { emoji: '🌍', bg: 'rgba(239,68,68,0.15)', title: 'Flash International', desc: 'Une cyberattaque majeure décryptée avec l\'impact estimé et le risque pour votre secteur' },
+    { emoji: '💡', bg: 'rgba(34,211,238,0.15)', title: 'Le Bon Réflexe', desc: 'Une pratique concrète en 2 minutes qui bloque 80% des attaques courantes' },
+    { emoji: '⚖️', bg: 'rgba(168,85,247,0.15)', title: 'Coin des Dirigeants', desc: 'Réglementation française, NIS2, RGPD — ce que vous devez savoir chaque mois' },
   ];
 
   newsletterSchedule = [
