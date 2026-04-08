@@ -14,7 +14,61 @@
         Mon coffre-fort
       </a>
       @if (isLoggedIn) {
-        <a routerLink="/cyberscan/dashboard" mat-button class="!text-white font-medium">Dashboard</a>
+        <a routerLink="/cyberscan/dashboard" mat-button class="!text-white font-medium hidden md:inline-flex">Dashboard</a>
+
+        <!-- User avatar + dropdown -->
+        <div class="relative">
+          <button type="button" (click)="userMenuOpen = !userMenuOpen"
+                  class="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl border border-gray-700 hover:border-cyan-500/40 hover:bg-cyan-500/5 transition-all">
+            <div class="w-7 h-7 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-xs font-bold text-cyan-400">
+              {{ userInitials }}
+            </div>
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] text-gray-400 transition-transform"
+                      [class.rotate-180]="userMenuOpen">expand_more</mat-icon>
+          </button>
+
+          @if (userMenuOpen) {
+            <!-- Backdrop to close -->
+            <div class="fixed inset-0 z-40" (click)="userMenuOpen = false"></div>
+
+            <!-- Dropdown -->
+            <div class="absolute right-0 top-full mt-2 w-52 rounded-xl border border-gray-700/80 shadow-2xl z-50 overflow-hidden user-dropdown">
+              <!-- User info -->
+              <div class="px-4 py-3 border-b border-gray-700/60">
+                <p class="text-xs text-gray-500 mb-0.5">Connecté en tant que</p>
+                <p class="text-sm font-semibold text-white truncate">{{ auth.getCurrentEmail() }}</p>
+              </div>
+
+              <!-- Menu items -->
+              <div class="py-1">
+                <a routerLink="/cyberscan/dashboard" (click)="userMenuOpen = false"
+                   class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors">
+                  <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] text-gray-500">dashboard</mat-icon>
+                  Dashboard
+                </a>
+                <a routerLink="/cyberscan/profile" (click)="userMenuOpen = false"
+                   class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors">
+                  <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] text-gray-500">manage_accounts</mat-icon>
+                  Mon profil
+                </a>
+                <a routerLink="/vault" (click)="userMenuOpen = false"
+                   class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors">
+                  <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] text-cyan-500">lock</mat-icon>
+                  Mon coffre-fort
+                </a>
+              </div>
+
+              <div class="py-1 border-t border-gray-700/60">
+                <button type="button" (click)="logout(); userMenuOpen = false"
+                        class="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/8 transition-colors">
+                  <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">logout</mat-icon>
+                  Déconnexion
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+
       } @else {
         <button type="button" mat-button class="!text-white font-medium" (click)="openAuth('login')">Connexion</button>
         <button type="button" mat-flat-button color="primary" class="flex-shrink-0" (click)="openAuth('register')">S'inscrire</button>

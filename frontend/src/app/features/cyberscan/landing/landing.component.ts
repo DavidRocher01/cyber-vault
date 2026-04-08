@@ -40,7 +40,7 @@ import { Title, Meta } from '@angular/platform-browser';
 })
 export class LandingComponent implements OnInit {
   private cyberscan = inject(CyberscanService);
-  private auth = inject(AuthService);
+  readonly auth = inject(AuthService);
   private router = inject(Router);
   private http = inject(HttpClient);
   private fb = inject(FormBuilder);
@@ -347,8 +347,20 @@ export class LandingComponent implements OnInit {
     });
   }
 
+  userMenuOpen = false;
+
   get isLoggedIn(): boolean {
     return this.auth.isAuthenticated();
+  }
+
+  get userInitials(): string {
+    const email = this.auth.getCurrentEmail() ?? '';
+    return email.slice(0, 2).toUpperCase();
+  }
+
+  logout() {
+    this.auth.logout();
+    this.router.navigate(['/cyberscan']);
   }
 
   subscribe(plan: Plan) {
