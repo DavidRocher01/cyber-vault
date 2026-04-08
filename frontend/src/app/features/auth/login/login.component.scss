@@ -1,16 +1,1 @@
-.login-wrap       { background: #080d16; }
-.login-left       { background: linear-gradient(135deg, #080d16 0%, #0d1a2e 100%); }
-.login-right      { background: #0b1120; }
-.login-input-bg   { background: #111827; }
-.login-btn        { background: linear-gradient(135deg, #06b6d4, #0891b2); color: #000; }
-.login-dot-grid   {
-  background-image: radial-gradient(circle at 1px 1px, rgba(6,182,212,.18) 1px, transparent 0);
-  background-size: 30px 30px;
-}
-.login-glow {
-  background: radial-gradient(circle, rgba(6,182,212,.08) 0%, transparent 70%);
-}
-.login-shield-icon { font-size: 9rem; width: 9rem; height: 9rem; }
-.login-separator {
-  background: linear-gradient(to bottom, transparent, rgba(6,182,212,.3) 40%, rgba(6,182,212,.3) 60%, transparent);
-}
+/* login-specific overrides if needed */
