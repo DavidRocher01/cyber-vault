@@ -184,93 +184,127 @@
       </div>
 
       <!-- 2FA section -->
-      <div class="bg-gray-800/60 border border-gray-700 rounded-2xl p-6 mb-4">
-        <div class="flex items-center justify-between mb-5">
-          <div class="flex items-center gap-2">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center"
-                 [class]="profile()?.totp_enabled ? 'bg-green-500/15' : 'bg-gray-700/60'">
-              <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]"
-                        [class]="profile()?.totp_enabled ? 'text-green-400' : 'text-gray-400'">
-                shield
+      <div class="rounded-2xl p-6 mb-4 relative overflow-hidden border"
+           [class.bg-green-950]="profile()?.totp_enabled"
+           [class.border-green-800]="profile()?.totp_enabled"
+           [class.bg-gray-800]="!profile()?.totp_enabled"
+           [class.border-gray-700]="!profile()?.totp_enabled">
+
+        <!-- Ambient glow when active -->
+        @if (profile()?.totp_enabled) {
+          <div class="twofa-glow absolute inset-0 pointer-events-none opacity-20"></div>
+        }
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-5 relative">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors"
+                 [class.bg-green-500]="profile()?.totp_enabled && twoFaStep() === 'idle'"
+                 [class.bg-cyan-600]="!profile()?.totp_enabled || twoFaStep() !== 'idle'">
+              <mat-icon class="text-white !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">
+                {{ twoFaStep() === 'confirm' ? 'qr_code_2' : twoFaStep() === 'disable' ? 'no_encryption' : 'shield' }}
               </mat-icon>
             </div>
-            <h2 class="font-semibold">Double authentification (2FA)</h2>
+            <div>
+              <h2 class="font-semibold text-sm">Double authentification (2FA)</h2>
+              <p class="text-xs text-gray-500 mt-0.5">
+                {{ twoFaStep() === 'confirm' ? 'Configuration TOTP' : twoFaStep() === 'disable' ? 'Désactivation' : 'Sécurité du compte' }}
+              </p>
+            </div>
           </div>
-          <span class="text-xs font-bold px-2.5 py-1 rounded-full"
-                [class]="profile()?.totp_enabled
-                  ? 'bg-green-500/15 text-green-400 border border-green-700'
-                  : 'bg-gray-700 text-gray-400 border border-gray-600'">
-            {{ profile()?.totp_enabled ? 'Activée' : 'Désactivée' }}
-          </span>
+          @if (twoFaStep() === 'idle') {
+            <span class="text-xs font-bold px-2.5 py-1 rounded-full"
+                  [class.bg-green-500]="profile()?.totp_enabled"
+                  [class.text-white]="profile()?.totp_enabled"
+                  [class.bg-gray-700]="!profile()?.totp_enabled"
+                  [class.text-gray-400]="!profile()?.totp_enabled">
+              {{ profile()?.totp_enabled ? '✓ Activée' : 'Désactivée' }}
+            </span>
+          }
         </div>
 
-        <!-- État idle -->
+        <!-- ── Idle ── -->
         @if (twoFaStep() === 'idle') {
-          <p class="text-sm text-gray-400 mb-4">
-            @if (profile()?.totp_enabled) {
-              Votre compte est protégé par une application d'authentification (Google Authenticator, Authy…).
-            } @else {
-              Ajoutez une couche de sécurité supplémentaire : un code temporaire vous sera demandé à chaque connexion.
-            }
-          </p>
           @if (!profile()?.totp_enabled) {
+            <!-- Not enabled -->
+            <div class="flex items-start gap-3 p-4 rounded-xl mb-4 bg-gray-700/40 border border-gray-600/40">
+              <mat-icon class="text-gray-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0 mt-0.5">info_outline</mat-icon>
+              <p class="text-sm text-gray-400 leading-relaxed">
+                Ajoutez une couche de sécurité supplémentaire. Un code temporaire vous sera demandé à chaque connexion.
+              </p>
+            </div>
             <button type="button" (click)="startSetup2FA()" [disabled]="twoFaLoading()"
-                    class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all
-                           bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40">
+                    class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40">
               @if (twoFaLoading()) { <mat-spinner diameter="16"></mat-spinner> }
               @else { <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">qr_code_2</mat-icon> }
-              Configurer la 2FA
+              Activer la double authentification
             </button>
           } @else {
+            <!-- Enabled -->
+            <div class="flex items-start gap-3 p-4 rounded-xl mb-4 bg-green-900/20 border border-green-800/40">
+              <mat-icon class="text-green-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0 mt-0.5">verified_user</mat-icon>
+              <p class="text-sm text-green-300/80 leading-relaxed">
+                Votre compte est protégé. Un code TOTP est requis à chaque connexion (Google Authenticator, Authy…).
+              </p>
+            </div>
             <button type="button" (click)="twoFaStep.set('disable')"
-                    class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all
-                           border border-red-800 text-red-400 hover:bg-red-900/20">
-              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">no_encryption</mat-icon>
+                    class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all border border-gray-600 text-gray-400 hover:border-red-700 hover:text-red-400 hover:bg-red-900/10">
+              <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">no_encryption</mat-icon>
               Désactiver la 2FA
             </button>
           }
         }
 
-        <!-- Étape QR code -->
+        <!-- ── Setup / QR code ── -->
         @if (twoFaStep() === 'confirm' && twoFaSetup()) {
           <div class="flex flex-col gap-5">
-            <p class="text-sm text-gray-400">
-              1. Scannez ce QR code avec <strong class="text-white">Google Authenticator</strong>, <strong class="text-white">Authy</strong> ou toute autre application compatible TOTP.
-            </p>
+
+            <!-- Steps indicator -->
+            <div class="flex items-center gap-2 text-xs text-gray-500">
+              <span class="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center font-bold text-[10px]">1</span>
+              <span>Scannez le QR code</span>
+              <div class="flex-1 h-px bg-gray-700"></div>
+              <span class="w-5 h-5 rounded-full border border-gray-600 flex items-center justify-center font-bold text-[10px]">2</span>
+              <span>Entrez le code</span>
+            </div>
+
+            <!-- QR code -->
             <div class="flex flex-col items-center gap-3">
-              <div class="bg-white p-3 rounded-xl inline-block">
+              <div class="bg-white p-4 rounded-2xl shadow-lg">
                 <img [src]="'data:image/png;base64,' + twoFaSetup()!.qr_code_b64"
-                     alt="QR code 2FA" class="w-44 h-44" />
+                     alt="QR code 2FA" class="w-44 h-44 block" />
               </div>
+              <p class="text-xs text-gray-500 text-center max-w-xs">
+                Ouvrez <strong class="text-gray-300">Google Authenticator</strong>, <strong class="text-gray-300">Authy</strong> ou une app TOTP, puis scannez ce code.
+              </p>
               <details class="w-full">
-                <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-300 transition-colors text-center">
-                  Saisie manuelle du code secret
+                <summary class="text-xs text-gray-600 cursor-pointer hover:text-gray-400 transition-colors text-center">
+                  Saisie manuelle du secret
                 </summary>
-                <p class="mt-2 text-center font-mono text-sm text-cyan-300 bg-gray-900 rounded-lg px-4 py-2 tracking-widest select-all">
-                  {{ twoFaSetup()!.secret }}
-                </p>
+                <div class="mt-2 flex items-center justify-center gap-2">
+                  <p class="font-mono text-xs text-cyan-400 bg-gray-900 rounded-lg px-4 py-2 tracking-widest select-all border border-gray-700">
+                    {{ twoFaSetup()!.secret }}
+                  </p>
+                </div>
               </details>
             </div>
 
-            <div class="flex flex-col gap-1">
-              <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">
-                2. Entrez le code à 6 chiffres affiché dans l'application
-              </label>
-              <input type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code"
-                     placeholder="000000"
-                     [value]="twoFaCode()"
-                     (input)="twoFaCode.set($any($event.target).value)"
-                     class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-center text-2xl font-mono tracking-[0.5em] text-white placeholder-gray-700 outline-none transition-colors focus:border-cyan-500" />
+            <!-- OTP input -->
+            <div class="flex flex-col gap-3">
+              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider text-center">
+                Entrez le code affiché dans l'application
+              </p>
+              <app-otp-input [clearTrigger]="otpClear"
+                             (codeChange)="twoFaCode.set($event)"
+                             (complete)="confirm2FA()"></app-otp-input>
             </div>
 
             <div class="flex gap-3">
               <button type="button" (click)="confirm2FA()"
                       [disabled]="twoFaCode().length !== 6 || twoFaLoading()"
-                      class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all
-                             bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed">
+                      class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed">
                 @if (twoFaLoading()) { <mat-spinner diameter="16"></mat-spinner> }
-                @else { <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">verified</mat-icon> }
-                Activer la 2FA
+                @else { <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">verified</mat-icon> Activer la 2FA }
               </button>
               <button type="button" (click)="cancelTwoFa()"
                       class="px-4 py-3 rounded-xl text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 transition-all">
@@ -280,34 +314,36 @@
           </div>
         }
 
-        <!-- Désactivation -->
+        <!-- ── Disable ── -->
         @if (twoFaStep() === 'disable') {
           <div class="flex flex-col gap-4">
-            <p class="text-sm text-yellow-400 bg-yellow-900/20 border border-yellow-800 rounded-xl px-4 py-3">
-              ⚠️ La désactivation de la 2FA réduit la sécurité de votre compte.
-            </p>
-            <div class="flex flex-col gap-1">
-              <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Mot de passe</label>
+            <div class="flex items-start gap-3 p-4 rounded-xl bg-yellow-900/15 border border-yellow-800/40">
+              <mat-icon class="text-yellow-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0 mt-0.5">warning</mat-icon>
+              <p class="text-sm text-yellow-300/80">
+                La désactivation de la 2FA expose votre compte aux attaques. Confirmez en saisissant votre mot de passe et le code TOTP actuel.
+              </p>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Mot de passe actuel</label>
               <input type="password" autocomplete="current-password" placeholder="••••••••"
                      [value]="twoFaDisablePw()"
                      (input)="twoFaDisablePw.set($any($event.target).value)"
                      class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-colors focus:border-cyan-500" />
             </div>
-            <div class="flex flex-col gap-1">
-              <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Code 2FA actuel</label>
-              <input type="text" inputmode="numeric" maxlength="6" placeholder="000000"
-                     [value]="twoFaDisableCode()"
-                     (input)="twoFaDisableCode.set($any($event.target).value)"
-                     class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-center text-2xl font-mono tracking-[0.5em] text-white placeholder-gray-700 outline-none transition-colors focus:border-cyan-500" />
+
+            <div class="flex flex-col gap-3">
+              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider text-center">Code 2FA actuel</p>
+              <app-otp-input [clearTrigger]="otpDisableClear"
+                             (codeChange)="twoFaDisableCode.set($event)"></app-otp-input>
             </div>
-            <div class="flex gap-3">
+
+            <div class="flex gap-3 pt-1">
               <button type="button" (click)="disable2FA()"
                       [disabled]="!twoFaDisablePw() || twoFaDisableCode().length !== 6 || twoFaLoading()"
-                      class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all
-                             bg-red-700 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed">
+                      class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all bg-red-700 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed">
                 @if (twoFaLoading()) { <mat-spinner diameter="16"></mat-spinner> }
-                @else { <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">no_encryption</mat-icon> }
-                Confirmer la désactivation
+                @else { <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">no_encryption</mat-icon> Confirmer la désactivation }
               </button>
               <button type="button" (click)="cancelTwoFa()"
                       class="px-4 py-3 rounded-xl text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 transition-all">
@@ -316,6 +352,7 @@
             </div>
           </div>
         }
+
       </div>
 
       <!-- Danger zone -->

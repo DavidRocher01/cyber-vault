@@ -15,6 +15,7 @@ import { Title } from '@angular/platform-browser';
 
 import { UserService, UserProfile, TwoFactorSetup } from '../services/user.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { OtpInputComponent } from '../../../shared/otp-input/otp-input.component';
 
 @Component({
   selector: 'app-profile',
@@ -22,9 +23,10 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
   imports: [
     CommonModule, ReactiveFormsModule, RouterLink,
     MatButtonModule, MatCardModule, MatIconModule,
-    MatFormFieldModule, MatInputModule, MatSnackBarModule, MatDividerModule, MatProgressSpinnerModule, MatTooltipModule, NavButtonsComponent,
+    MatFormFieldModule, MatInputModule, MatSnackBarModule, MatDividerModule, MatProgressSpinnerModule, MatTooltipModule, NavButtonsComponent, OtpInputComponent,
   ],
   templateUrl: './profile.component.html',
+  styles: [`.twofa-glow { background: radial-gradient(ellipse at 80% 0%, rgba(34,197,94,.4), transparent 60%); }`],
 })
 export class ProfileComponent implements OnInit {
   private userService = inject(UserService);
@@ -49,6 +51,8 @@ export class ProfileComponent implements OnInit {
   twoFaCode = signal('');
   twoFaDisablePw = signal('');
   twoFaDisableCode = signal('');
+  otpClear = 0;
+  otpDisableClear = 0;
 
   get initials(): string {
     const email = this.profile()?.email ?? '';
@@ -170,6 +174,8 @@ export class ProfileComponent implements OnInit {
     this.twoFaCode.set('');
     this.twoFaDisablePw.set('');
     this.twoFaDisableCode.set('');
+    this.otpClear++;
+    this.otpDisableClear++;
   }
 
   updatePassword() {

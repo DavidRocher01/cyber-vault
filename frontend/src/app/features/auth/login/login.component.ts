@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { AuthStore } from '../auth.store';
+import { OtpInputComponent } from '../../../shared/otp-input/otp-input.component';
 
 @Component({
   selector: 'app-login',
@@ -17,7 +18,7 @@ import { AuthStore } from '../auth.store';
   imports: [
     CommonModule, ReactiveFormsModule, FormsModule, RouterLink,
     MatCardModule, MatFormFieldModule, MatInputModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule,
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule, OtpInputComponent,
   ],
   providers: [AuthStore],
   templateUrl: './login.component.html',
@@ -38,6 +39,7 @@ export class LoginComponent {
 
   showPassword = false;
   totpCode = '';
+  otpClear = 0;
 
   form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -58,6 +60,7 @@ export class LoginComponent {
 
   cancelTotp() {
     this.totpCode = '';
+    this.otpClear++;
     this.store.cancelTwoFa();
   }
 }

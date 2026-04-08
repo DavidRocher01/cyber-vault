@@ -14,6 +14,7 @@ import { environment } from '../../../../environments/environment';
 
 import { CyberscanService, Plan } from '../services/cyberscan.service';
 import { GlobeComponent } from '../../../shared/globe/globe.component';
+import { OtpInputComponent } from '../../../shared/otp-input/otp-input.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { I18nService } from '../../../core/services/i18n.service';
@@ -32,6 +33,7 @@ import { Title, Meta } from '@angular/platform-browser';
     MatIconModule,
     MatProgressSpinnerModule,
     GlobeComponent,
+    OtpInputComponent,
     MatFormFieldModule,
     MatInputModule,
   ],
@@ -60,6 +62,11 @@ export class LandingComponent implements OnInit {
 
   // ── Auth modal ────────────────────────────────────────────────────────────
   authPanel = signal<'closed' | 'login' | 'register'>('closed');
+  auth2faStep = signal(false);
+  pendingEmail = '';
+  pendingPassword = '';
+  authOtpCode = '';
+  authOtpClear = 0; // increment to trigger OTP clear
   authLoading = false;
   authError: string | null = null;
   showAuthPassword = false;
@@ -82,12 +89,18 @@ export class LandingComponent implements OnInit {
   openAuth(mode: 'login' | 'register') {
     this.authError = null;
     this.authLoading = false;
+    this.auth2faStep.set(false);
     this.loginForm.reset();
     this.registerForm.reset();
     this.authPanel.set(mode);
   }
 
-  closeAuth() { this.authPanel.set('closed'); }
+  closeAuth() {
+    this.authPanel.set('closed');
+    this.auth2faStep.set(false);
+    this.pendingEmail = '';
+    this.pendingPassword = '';
+  }
 
   submitLogin() {
     if (this.loginForm.invalid) return;
@@ -95,12 +108,42 @@ export class LandingComponent implements OnInit {
     this.authError = null;
     const { email, password } = this.loginForm.getRawValue();
     this.auth.login(email, password).subscribe({
-      next: () => { this.router.navigate(['/cyberscan/dashboard']); },
+      next: res => {
+        if ('requires_2fa' in res) {
+          this.pendingEmail = email;
+          this.pendingPassword = password;
+          this.auth2faStep.set(true);
+          this.authOtpClear++;
+          this.authLoading = false;
+        } else {
+          this.router.navigate(['/cyberscan/dashboard']);
+        }
+      },
       error: err => {
         this.authError = err.error?.detail ?? 'Identifiants incorrects.';
         this.authLoading = false;
       },
     });
+  }
+
+  submitLoginTotp() {
+    if (this.authOtpCode.length !== 6) return;
+    this.authLoading = true;
+    this.authError = null;
+    this.auth.login(this.pendingEmail, this.pendingPassword, this.authOtpCode).subscribe({
+      next: () => { this.router.navigate(['/cyberscan/dashboard']); },
+      error: err => {
+        this.authError = err.error?.detail ?? 'Code invalide.';
+        this.authLoading = false;
+        this.authOtpClear++;
+      },
+    });
+  }
+
+  cancelAuth2fa() {
+    this.auth2faStep.set(false);
+    this.authError = null;
+    this.authOtpCode = '';
   }
 
   submitRegister() {
