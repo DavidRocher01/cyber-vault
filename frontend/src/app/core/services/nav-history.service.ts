@@ -1,5 +1,6 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
+import { Location } from '@angular/common';
 import { filter } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
@@ -11,7 +12,7 @@ export class NavHistoryService {
   readonly canGoBack    = computed(() => this.pos() > 0);
   readonly canGoForward = computed(() => this.pos() < this.stack.length - 1);
 
-  constructor(private router: Router) {
+  constructor(private router: Router, private location: Location) {
     this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))
       .subscribe((e: any) => {
@@ -28,20 +29,16 @@ export class NavHistoryService {
   back() {
     if (!this.canGoBack() || this.jumping) return;
     this.jumping = true;
-    const target = this.pos() - 1;
-    this.pos.set(target);
-    this.router.navigateByUrl(this.stack[target])
-      .then(() => { this.jumping = false; })
-      .catch(() => { this.jumping = false; });
+    this.pos.set(this.pos() - 1);
+    this.location.back();
+    setTimeout(() => { this.jumping = false; }, 150);
   }
 
   forward() {
     if (!this.canGoForward() || this.jumping) return;
     this.jumping = true;
-    const target = this.pos() + 1;
-    this.pos.set(target);
-    this.router.navigateByUrl(this.stack[target])
-      .then(() => { this.jumping = false; })
-      .catch(() => { this.jumping = false; });
+    this.pos.set(this.pos() + 1);
+    this.location.forward();
+    setTimeout(() => { this.jumping = false; }, 150);
   }
 }
