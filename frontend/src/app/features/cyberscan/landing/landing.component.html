@@ -20,8 +20,8 @@
       @if (isLoggedIn) {
         <a routerLink="/cyberscan/dashboard" mat-button class="!text-white font-medium">Dashboard</a>
       } @else {
-        <a routerLink="/auth/login" mat-button class="!text-white font-medium">Connexion</a>
-        <a routerLink="/auth/register" mat-flat-button color="primary" class="flex-shrink-0">S'inscrire</a>
+        <button type="button" mat-button class="!text-white font-medium" (click)="openAuth('login')">Connexion</button>
+        <button type="button" mat-flat-button color="primary" class="flex-shrink-0" (click)="openAuth('register')">S'inscrire</button>
       }
     </div>
   </nav>
@@ -59,12 +59,21 @@
 
       <!-- CTAs -->
       <div class="hero-ctas flex gap-3 flex-wrap justify-center">
-        <a routerLink="/cyberscan/dashboard"
-           class="hero-cta-primary inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-base font-bold text-white">
-          <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">rocket_launch</mat-icon>
-          Commencer gratuitement
-          <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] opacity-70">arrow_forward</mat-icon>
-        </a>
+        @if (isLoggedIn) {
+          <a routerLink="/cyberscan/dashboard"
+             class="hero-cta-primary inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-base font-bold text-white">
+            <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">rocket_launch</mat-icon>
+            Accéder au dashboard
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] opacity-70">arrow_forward</mat-icon>
+          </a>
+        } @else {
+          <button type="button" (click)="openAuth('register')"
+             class="hero-cta-primary inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-base font-bold text-white">
+            <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">rocket_launch</mat-icon>
+            Commencer gratuitement
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] opacity-70">arrow_forward</mat-icon>
+          </button>
+        }
         <a href="#pricing"
            class="hero-cta-secondary inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-base font-semibold text-gray-200">
           Voir les tarifs
@@ -650,3 +659,156 @@
   </footer>
 
 </div>
+
+<!-- ── Auth Modal ─────────────────────────────────────────────────────────── -->
+@if (authPanel() !== 'closed') {
+  <!-- Backdrop -->
+  <div class="auth-modal-backdrop" (click)="closeAuth()"></div>
+
+  <!-- Panel -->
+  <div class="auth-modal-panel" role="dialog">
+
+    <!-- Close -->
+    <button type="button" class="auth-modal-close" (click)="closeAuth()" aria-label="Fermer">
+      <mat-icon>close</mat-icon>
+    </button>
+
+    <!-- Tabs -->
+    <div class="flex gap-1 p-1 auth-modal-tabs mb-6">
+      <button type="button" class="flex-1 py-2 rounded-lg text-sm font-semibold transition-all"
+              [class.auth-tab-active]="authPanel() === 'register'"
+              [class.auth-tab-inactive]="authPanel() !== 'register'"
+              (click)="openAuth('register')">
+        Créer un compte
+      </button>
+      <button type="button" class="flex-1 py-2 rounded-lg text-sm font-semibold transition-all"
+              [class.auth-tab-active]="authPanel() === 'login'"
+              [class.auth-tab-inactive]="authPanel() !== 'login'"
+              (click)="openAuth('login')">
+        Se connecter
+      </button>
+    </div>
+
+    <!-- Error -->
+    @if (authError) {
+      <div class="flex items-center gap-2 bg-red-900/30 border border-red-700/60 rounded-xl px-4 py-3 text-sm text-red-400 mb-4">
+        <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] flex-shrink-0">error_outline</mat-icon>
+        {{ authError }}
+      </div>
+    }
+
+    <!-- ── Register form ── -->
+    @if (authPanel() === 'register') {
+      <form [formGroup]="registerForm" (ngSubmit)="submitRegister()" class="flex flex-col gap-4">
+
+        <div class="flex flex-col gap-1.5">
+          <label class="auth-label">Email</label>
+          <div class="auth-input-wrap" [class.auth-input-valid]="registerForm.controls.email.touched && registerForm.controls.email.valid"
+               [class.auth-input-error]="registerForm.controls.email.touched && registerForm.controls.email.invalid">
+            <input type="email" formControlName="email" placeholder="vous@exemple.com" autocomplete="email"
+                   class="flex-1 bg-transparent px-4 py-3 text-sm placeholder-gray-600 outline-none text-white" />
+            <mat-icon class="text-gray-600 mr-3 !text-[1rem] !w-[1rem] !h-[1rem]">mail</mat-icon>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="auth-label">Mot de passe</label>
+          <div class="auth-input-wrap" [class.auth-input-valid]="registerForm.controls.password.touched && registerForm.controls.password.valid"
+               [class.auth-input-error]="registerForm.controls.password.touched && registerForm.controls.password.invalid">
+            <input [type]="showAuthPassword ? 'text' : 'password'" formControlName="password"
+                   placeholder="8 caractères minimum" autocomplete="new-password"
+                   class="flex-1 bg-transparent px-4 py-3 text-sm placeholder-gray-600 outline-none text-white" />
+            <button type="button" class="mr-3 text-gray-600 hover:text-gray-300 transition-colors flex-shrink-0"
+                    (click)="showAuthPassword = !showAuthPassword">
+              <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ showAuthPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+          </div>
+          @if ((registerForm.get('password')?.value?.length ?? 0) > 0) {
+            <div class="flex gap-1 mt-1">
+              @for (i of [1,2,3,4]; track i) {
+                <div class="h-1 flex-1 rounded-full transition-colors"
+                     [class.bg-red-500]="registerPasswordStrength < 2 && i <= registerPasswordStrength"
+                     [class.bg-yellow-500]="registerPasswordStrength === 2 && i <= registerPasswordStrength"
+                     [class.bg-green-500]="registerPasswordStrength >= 3 && i <= registerPasswordStrength"
+                     [class.bg-gray-700]="i > registerPasswordStrength"></div>
+              }
+            </div>
+            <p class="text-xs"
+               [class.text-red-400]="registerPasswordStrength < 2"
+               [class.text-yellow-400]="registerPasswordStrength === 2"
+               [class.text-green-400]="registerPasswordStrength >= 3">{{ registerStrengthLabel }}</p>
+          }
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="auth-label">Confirmer le mot de passe</label>
+          <div class="auth-input-wrap"
+               [class.auth-input-error]="registerForm.get('confirmPassword')?.touched && registerForm.hasError('mismatch')"
+               [class.auth-input-valid]="registerForm.get('confirmPassword')?.touched && !registerForm.hasError('mismatch') && registerForm.get('confirmPassword')?.value">
+            <input [type]="showAuthPassword ? 'text' : 'password'" formControlName="confirmPassword"
+                   placeholder="••••••••" autocomplete="new-password"
+                   class="flex-1 bg-transparent px-4 py-3 text-sm placeholder-gray-600 outline-none text-white" />
+            <mat-icon class="text-gray-600 mr-3 !text-[1rem] !w-[1rem] !h-[1rem]">lock</mat-icon>
+          </div>
+          @if (registerForm.get('confirmPassword')?.touched && registerForm.hasError('mismatch')) {
+            <p class="text-xs text-red-400">Les mots de passe ne correspondent pas</p>
+          }
+        </div>
+
+        <button type="submit" [disabled]="authLoading || registerForm.invalid"
+                class="auth-modal-btn mt-1" [class.opacity-50]="authLoading || registerForm.invalid">
+          @if (authLoading) { <mat-spinner diameter="20"></mat-spinner> }
+          @else {
+            Créer mon compte
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_forward</mat-icon>
+          }
+        </button>
+
+        <p class="text-center text-xs text-gray-600 mt-1">Sans carte bancaire · Scan complet en 2 min</p>
+      </form>
+    }
+
+    <!-- ── Login form ── -->
+    @if (authPanel() === 'login') {
+      <form [formGroup]="loginForm" (ngSubmit)="submitLogin()" class="flex flex-col gap-4">
+
+        <div class="flex flex-col gap-1.5">
+          <label class="auth-label">Email</label>
+          <div class="auth-input-wrap" [class.auth-input-valid]="loginForm.controls.email.touched && loginForm.controls.email.valid"
+               [class.auth-input-error]="loginForm.controls.email.touched && loginForm.controls.email.invalid">
+            <input type="email" formControlName="email" placeholder="vous@exemple.com" autocomplete="email"
+                   class="flex-1 bg-transparent px-4 py-3 text-sm placeholder-gray-600 outline-none text-white" />
+            <mat-icon class="text-gray-600 mr-3 !text-[1rem] !w-[1rem] !h-[1rem]">mail</mat-icon>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="auth-label">Mot de passe</label>
+          <div class="auth-input-wrap" [class.auth-input-valid]="loginForm.controls.password.touched && loginForm.controls.password.valid"
+               [class.auth-input-error]="loginForm.controls.password.touched && loginForm.controls.password.invalid">
+            <input [type]="showAuthPassword ? 'text' : 'password'" formControlName="password"
+                   placeholder="••••••••" autocomplete="current-password"
+                   class="flex-1 bg-transparent px-4 py-3 text-sm placeholder-gray-600 outline-none text-white" />
+            <button type="button" class="mr-3 text-gray-600 hover:text-gray-300 transition-colors flex-shrink-0"
+                    (click)="showAuthPassword = !showAuthPassword">
+              <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ showAuthPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+          </div>
+          <a routerLink="/auth/forgot-password" class="text-xs text-gray-600 hover:text-cyan-400 transition-colors self-end mt-0.5">
+            Mot de passe oublié ?
+          </a>
+        </div>
+
+        <button type="submit" [disabled]="authLoading || loginForm.invalid"
+                class="auth-modal-btn mt-1" [class.opacity-50]="authLoading || loginForm.invalid">
+          @if (authLoading) { <mat-spinner diameter="20"></mat-spinner> }
+          @else {
+            Se connecter
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_forward</mat-icon>
+          }
+        </button>
+      </form>
+    }
+
+  </div>
+}
