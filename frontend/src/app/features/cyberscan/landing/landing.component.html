@@ -23,36 +23,78 @@
   </nav>
 
   <!-- Hero -->
-  <section class="relative flex flex-col items-center text-center px-8 py-28 gap-6 overflow-hidden min-h-[680px]">
+  <section class="relative flex flex-col items-center text-center px-6 pt-24 pb-32 overflow-hidden min-h-[720px]">
     <!-- Globe background -->
     <div class="absolute inset-0 z-0 pointer-events-none">
       <app-globe class="block w-full h-full"></app-globe>
     </div>
+    <!-- Radial glow behind content -->
+    <div class="absolute inset-0 z-0 pointer-events-none hero-radial-glow"></div>
     <!-- Bottom fade -->
-    <div class="absolute bottom-0 left-0 right-0 h-32 z-10 bg-gradient-to-t from-gray-900 to-transparent pointer-events-none"></div>
+    <div class="absolute bottom-0 left-0 right-0 h-40 z-10 bg-gradient-to-t from-gray-900 to-transparent pointer-events-none"></div>
+
     <!-- Content -->
-    <div class="relative z-20 flex flex-col items-center gap-6">
-    <div class="inline-flex items-center gap-2 bg-cyan-900/40 text-cyan-400 px-5 py-2 rounded-full text-sm font-medium border border-cyan-700">
-      <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">verified_user</mat-icon>
-      Audit de sécurité automatisé
-    </div>
-    <h1 class="text-5xl font-extrabold leading-[1.1] max-w-3xl">
-      Scannez votre site web,<br />
-      <span class="text-cyan-400">protégez votre réputation</span>
-    </h1>
-    <p class="text-gray-300 text-xl max-w-2xl">
-      CyberScan surveille en continu vos sites web : vulnérabilités SSL, headers HTTP,
-      threat intelligence, fuites de données et bien plus — avec rapport PDF complet.
-    </p>
-    <div class="flex gap-4 mt-4 flex-wrap justify-center">
-      <a routerLink="/auth/register" mat-flat-button color="primary" class="text-lg px-8 py-3">
-        Commencer gratuitement
-      </a>
-      <a href="#pricing" mat-stroked-button class="text-lg px-8 py-3 !border-gray-400 text-gray-200">
-        Voir les tarifs
-      </a>
-    </div>
-    <p class="text-gray-500 text-sm mt-1">Pas de carte bancaire requise · Scan complet en 2 minutes</p>
+    <div class="relative z-20 flex flex-col items-center gap-7 max-w-3xl mx-auto">
+
+      <!-- Badge -->
+      <div class="hero-badge inline-flex items-center gap-2 text-cyan-400 px-4 py-1.5 rounded-full text-sm font-semibold">
+        <span class="hero-badge-dot"></span>
+        Audit de sécurité automatisé — OWASP · SSL · CVE
+      </div>
+
+      <!-- Title -->
+      <h1 class="hero-title text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight">
+        Scannez votre site.<br />
+        <span class="text-cyan-400 hero-cyan-glow">Stoppez les attaques.</span>
+      </h1>
+
+      <!-- Subtitle -->
+      <p class="hero-subtitle text-gray-400 text-lg md:text-xl max-w-xl leading-relaxed">
+        Détectez les failles SSL, headers dangereux, CVE connues et fuites de données — rapport PDF en 2 minutes.
+      </p>
+
+      <!-- CTAs -->
+      <div class="hero-ctas flex gap-3 flex-wrap justify-center">
+        <a routerLink="/auth/register"
+           class="hero-cta-primary inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-base font-bold text-white">
+          <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">rocket_launch</mat-icon>
+          Commencer gratuitement
+          <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] opacity-70">arrow_forward</mat-icon>
+        </a>
+        <a href="#pricing"
+           class="hero-cta-secondary inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-base font-semibold text-gray-200">
+          Voir les tarifs
+        </a>
+      </div>
+
+      <!-- Social proof -->
+      <div class="hero-social flex flex-col items-center gap-3">
+        <div class="flex items-center gap-3">
+          <!-- Avatar stack -->
+          <div class="flex items-center">
+            @for (a of newsletterAvatars; track a.initials) {
+              <div class="hero-avatar" [style.background]="a.bg" [style.color]="a.color">{{ a.initials }}</div>
+            }
+          </div>
+          <span class="text-gray-400 text-sm"><span class="text-white font-semibold">500+</span> sites protégés</span>
+        </div>
+        <!-- Trust micro-indicators -->
+        <div class="flex items-center gap-5 flex-wrap justify-center">
+          <span class="hero-trust-item">
+            <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] text-cyan-600">lock</mat-icon>
+            Sans carte bancaire
+          </span>
+          <span class="hero-trust-item">
+            <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] text-cyan-600">timer</mat-icon>
+            Résultat en 2 min
+          </span>
+          <span class="hero-trust-item">
+            <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] text-cyan-600">verified_user</mat-icon>
+            Scan non intrusif
+          </span>
+        </div>
+      </div>
+
     </div>
   </section>
 
