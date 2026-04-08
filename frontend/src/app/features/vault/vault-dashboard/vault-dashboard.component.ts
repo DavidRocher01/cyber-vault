@@ -112,10 +112,14 @@ export class VaultDashboardComponent implements OnInit {
   form = this.fb.nonNullable.group({
     title: ['', Validators.required],
     username: [''],
-    password_encrypted: ['', Validators.required],
+    password_encrypted: [''],
     url: [''],
     notes: [''],
     category: ['login' as VaultCategory],
+    // Card-specific helpers (not sent directly to store)
+    cardNumber: [''],
+    cardCvv: [''],
+    cardExpiry: [''],
   });
 
   revealedPasswords: Record<number, string | null> = {};
@@ -131,7 +135,10 @@ export class VaultDashboardComponent implements OnInit {
 
   openCreate() {
     this.editingItem.set(null);
-    this.form.reset({ category: 'login' });
+    this.form.reset({
+      category: 'login', title: '', username: '', password_encrypted: '',
+      url: '', notes: '', cardNumber: '', cardCvv: '', cardExpiry: '',
+    });
     this.showPasswordInForm.set(false);
     this.showForm.set(true);
   }
@@ -145,6 +152,9 @@ export class VaultDashboardComponent implements OnInit {
       url: item.url ?? '',
       notes: item.notes ?? '',
       category: item.category,
+      cardNumber: '',
+      cardCvv: '',
+      cardExpiry: '',
     });
     this.showPasswordInForm.set(false);
     this.showForm.set(true);
@@ -162,16 +172,36 @@ export class VaultDashboardComponent implements OnInit {
   }
 
   submit() {
+    const raw = this.form.getRawValue();
+    const cat = raw.category;
     const editing = this.editingItem();
+
+    // Build the secret field based on category
+    let secret = raw.password_encrypted;
+    if (cat === 'card') {
+      if (raw.cardNumber || raw.cardCvv || raw.cardExpiry) {
+        secret = JSON.stringify({ number: raw.cardNumber, cvv: raw.cardCvv, expiry: raw.cardExpiry });
+      }
+    } else if (cat === 'note') {
+      secret = '';
+    }
+
+    // Validate create mode
+    if (!editing) {
+      if (!raw.title) return;
+      if (cat === 'card' && !raw.cardNumber) return;
+      if ((cat === 'login' || cat === 'wifi' || cat === 'other') && !secret) return;
+    }
+
+    const base = { title: raw.title, username: raw.username, url: raw.url, notes: raw.notes, category: cat };
+
     if (editing) {
-      const { password_encrypted, ...rest } = this.form.getRawValue();
-      const payload: any = { id: editing.id, ...rest };
-      if (password_encrypted) payload.password_encrypted = password_encrypted;
+      const payload: any = { id: editing.id, ...base };
+      if (secret) payload.password_encrypted = secret;
       this.store.updateItem(payload);
       this.toast.success('Entrée mise à jour');
     } else {
-      if (this.form.invalid) return;
-      this.store.createItem(this.form.getRawValue());
+      this.store.createItem({ ...base, password_encrypted: secret });
       this.toast.success('Entrée ajoutée');
     }
     this.closeForm();
@@ -188,6 +218,10 @@ export class VaultDashboardComponent implements OnInit {
       delete this.revealedPasswords[item.id];
       return;
     }
+    if (!item.password_encrypted) {
+      this.revealedPasswords[item.id] = '';
+      return;
+    }
     try {
       this.revealedPasswords[item.id] = await this.cryptoService.decrypt(item.password_encrypted);
     } catch {
@@ -197,15 +231,49 @@ export class VaultDashboardComponent implements OnInit {
   }
 
   async copyPassword(item: VaultItem) {
+    if (!item.password_encrypted) { this.toast.warning('Aucun secret à copier'); return; }
     try {
       const plain = await this.cryptoService.decrypt(item.password_encrypted);
-      this.clipboardService.copy(plain);
+      let textToCopy = plain;
+      if (item.category === 'card') {
+        try { textToCopy = (JSON.parse(plain) as any).number ?? plain; } catch { /* use plain */ }
+      }
+      this.clipboardService.copy(textToCopy);
       this.copiedId = item.id;
-      this.toast.success('Mot de passe copié — presse-papiers effacé dans 30s');
+      const msg = item.category === 'card'
+        ? 'Numéro de carte copié — presse-papiers effacé dans 30s'
+        : 'Mot de passe copié — presse-papiers effacé dans 30s';
+      this.toast.success(msg);
       setTimeout(() => { if (this.copiedId === item.id) this.copiedId = null; }, 2000);
     } catch {
       this.toast.error('Erreur de déchiffrement');
     }
+  }
+
+  parseCardData(plain: string | null | undefined): { number: string; cvv: string; expiry: string } | null {
+    if (!plain) return null;
+    try {
+      const obj = JSON.parse(plain) as { number?: string; cvv?: string; expiry?: string };
+      if (obj.number !== undefined || obj.cvv !== undefined || obj.expiry !== undefined) return {
+        number: obj.number ?? '', cvv: obj.cvv ?? '', expiry: obj.expiry ?? '',
+      };
+    } catch { /* not JSON */ }
+    return null;
+  }
+
+  maskCardNumber(n: string): string {
+    if (!n) return '•••• •••• •••• ••••';
+    const clean = n.replace(/\s/g, '');
+    return '•••• •••• •••• ' + (clean.length >= 4 ? clean.slice(-4) : clean);
+  }
+
+  isSubmitValid(): boolean {
+    const raw = this.form.getRawValue();
+    if (!raw.title) return false;
+    const cat = raw.category;
+    if (cat === 'card') return !!raw.cardNumber;
+    if (cat === 'note') return true;
+    return !!raw.password_encrypted;
   }
 
   exportVault() {

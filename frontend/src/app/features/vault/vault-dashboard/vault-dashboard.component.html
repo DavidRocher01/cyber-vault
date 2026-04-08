@@ -95,54 +95,121 @@
 
           <!-- Titre -->
           <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Titre *</label>
-            <input type="text" formControlName="title" placeholder="ex: Gmail, Stripe, Netflix…" class="vault-input" />
-          </div>
-
-          <!-- Username -->
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Identifiant / Email</label>
-            <input type="text" formControlName="username" placeholder="vous@exemple.com" class="vault-input" />
-          </div>
-
-          <!-- Mot de passe -->
-          <div class="flex flex-col gap-1.5">
             <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Mot de passe {{ editingItem() ? '(laisser vide pour ne pas modifier)' : '*' }}
+              @if (form.controls.category.value === 'wifi') { Nom du réseau (SSID) * }
+              @else if (form.controls.category.value === 'card') { Nom de la carte * }
+              @else { Titre * }
             </label>
-            <div class="flex gap-2">
-              <div class="relative flex-1">
-                <input [type]="showPasswordInForm() ? 'text' : 'password'" formControlName="password_encrypted"
-                       placeholder="••••••••" class="vault-input pr-10" />
-                <button type="button" (click)="showPasswordInForm.set(!showPasswordInForm())"
-                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-300 transition-colors">
-                  <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ showPasswordInForm() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            <input type="text" formControlName="title"
+                   title="Titre de l'entrée"
+                   [placeholder]="form.controls.category.value === 'wifi' ? 'ex: Bbox-Home, Freebox…' :
+                                  form.controls.category.value === 'card' ? 'ex: Visa Crédit Agricole…' :
+                                  form.controls.category.value === 'note' ? 'ex: Codes PIN, Infos serveur…' :
+                                  'ex: Gmail, Stripe, Netflix…'"
+                   class="vault-input" />
+          </div>
+
+          <!-- Titulaire (card) -->
+          @if (form.controls.category.value === 'card') {
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Titulaire de la carte</label>
+              <input type="text" formControlName="username" placeholder="ex: JEAN DUPONT" class="vault-input" />
+            </div>
+          }
+
+          <!-- Identifiant (login / other) -->
+          @if (form.controls.category.value === 'login' || form.controls.category.value === 'other') {
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Identifiant / Email</label>
+              <input type="text" formControlName="username" placeholder="vous@exemple.com" class="vault-input" />
+            </div>
+          }
+
+          <!-- Type sécurité (wifi) -->
+          @if (form.controls.category.value === 'wifi') {
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Type de sécurité</label>
+              <select formControlName="username" title="Type de sécurité Wi-Fi" class="vault-input">
+                <option value="">Sélectionner…</option>
+                <option value="WPA3">WPA3</option>
+                <option value="WPA2">WPA2</option>
+                <option value="WPA2/WPA3">WPA2/WPA3</option>
+                <option value="WEP">WEP (obsolète)</option>
+                <option value="Ouvert">Ouvert (sans mot de passe)</option>
+              </select>
+            </div>
+          }
+
+          <!-- Champs carte bancaire -->
+          @if (form.controls.category.value === 'card') {
+            <div class="grid grid-cols-3 gap-3">
+              <div class="flex flex-col gap-1.5 col-span-2">
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Numéro de carte *</label>
+                <input type="text" formControlName="cardNumber" placeholder="1234 5678 9012 3456"
+                       maxlength="19" class="vault-input font-mono tracking-widest"
+                       [placeholder]="editingItem() ? '(laisser vide pour ne pas modifier)' : '1234 5678 9012 3456'" />
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">CVV</label>
+                <input type="text" formControlName="cardCvv" placeholder="•••" maxlength="4" class="vault-input font-mono" />
+              </div>
+            </div>
+            <div class="flex flex-col gap-1.5 max-w-[160px]">
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Expiration</label>
+              <input type="text" formControlName="cardExpiry" placeholder="MM/AA" maxlength="5" class="vault-input" />
+            </div>
+          }
+
+          <!-- Mot de passe (login / wifi / other) -->
+          @if (form.controls.category.value !== 'card' && form.controls.category.value !== 'note') {
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                @if (form.controls.category.value === 'wifi') {
+                  Mot de passe Wi-Fi {{ editingItem() ? '(laisser vide pour ne pas modifier)' : '*' }}
+                } @else {
+                  Mot de passe {{ editingItem() ? '(laisser vide pour ne pas modifier)' : '*' }}
+                }
+              </label>
+              <div class="flex gap-2">
+                <div class="relative flex-1">
+                  <input [type]="showPasswordInForm() ? 'text' : 'password'" formControlName="password_encrypted"
+                         placeholder="••••••••" class="vault-input pr-10" />
+                  <button type="button" (click)="showPasswordInForm.set(!showPasswordInForm())"
+                          class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-300 transition-colors">
+                    <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ showPasswordInForm() ? 'visibility_off' : 'visibility' }}</mat-icon>
+                  </button>
+                </div>
+                <button type="button" (click)="generatePassword()"
+                        class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors text-xs whitespace-nowrap">
+                  <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">casino</mat-icon>
+                  Générer
                 </button>
               </div>
-              <button type="button" (click)="generatePassword()"
-                      class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors text-xs whitespace-nowrap">
-                <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">casino</mat-icon>
-                Générer
-              </button>
             </div>
-          </div>
+          }
 
-          <!-- URL -->
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">URL</label>
-            <input type="url" formControlName="url" placeholder="https://exemple.com" class="vault-input" />
-          </div>
+          <!-- URL (login / other) -->
+          @if (form.controls.category.value === 'login' || form.controls.category.value === 'other') {
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">URL</label>
+              <input type="url" formControlName="url" placeholder="https://exemple.com" class="vault-input" />
+            </div>
+          }
 
           <!-- Notes -->
           <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Notes</label>
-            <textarea formControlName="notes" rows="2" placeholder="Informations supplémentaires…"
+            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              @if (form.controls.category.value === 'note') { Contenu de la note * } @else { Notes }
+            </label>
+            <textarea formControlName="notes"
+                      [rows]="form.controls.category.value === 'note' ? 5 : 2"
+                      placeholder="Informations supplémentaires…"
                       class="vault-input resize-none"></textarea>
           </div>
 
           <div class="flex gap-3 pt-1">
             <button type="submit"
-                    [disabled]="!editingItem() && form.invalid"
+                    [disabled]="!editingItem() && !isSubmitValid()"
                     class="vault-btn-primary flex items-center gap-2">
               <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">{{ editingItem() ? 'save' : 'add' }}</mat-icon>
               {{ editingItem() ? 'Enregistrer les modifications' : 'Ajouter' }}
@@ -219,42 +286,86 @@
                   <!-- Infos -->
                   <div class="flex-1 min-w-0">
                     <p class="font-semibold text-white truncate">{{ item.title }}</p>
-                    <p class="text-sm text-gray-500 truncate">
-                      {{ item.username || (item.url || '—') }}
-                    </p>
-                    @if (revealedPasswords[item.id] !== undefined) {
-                      <p class="mt-1.5 font-mono text-sm text-cyan-400 break-all">
-                        {{ revealedPasswords[item.id] ?? '(erreur de déchiffrement)' }}
+
+                    @if (item.category === 'card') {
+                      <!-- Carte : afficher numéro masqué + titulaire -->
+                      <p class="text-sm text-gray-500 truncate">
+                        @if (item.username) { {{ item.username }} · }
+                        @if (revealedPasswords[item.id] !== undefined && revealedPasswords[item.id] !== null) {
+                          {{ maskCardNumber(parseCardData(revealedPasswords[item.id])?.number ?? '') }}
+                        } @else {
+                          •••• •••• •••• ••••
+                        }
                       </p>
-                    }
-                    @if (item.url && item.username) {
-                      <a [href]="item.url" target="_blank" rel="noopener"
-                         class="text-xs text-gray-600 hover:text-cyan-400 transition-colors truncate block mt-0.5">
-                        {{ item.url }}
-                      </a>
+                      @if (revealedPasswords[item.id] !== undefined && revealedPasswords[item.id] !== null) {
+                        <ng-container *ngIf="parseCardData(revealedPasswords[item.id]) as card; else cardRaw">
+                          <div class="mt-1.5 flex gap-4 text-sm font-mono text-cyan-400">
+                            <span>{{ card.number || '—' }}</span>
+                            @if (card.expiry) { <span class="text-gray-400">{{ card.expiry }}</span> }
+                            @if (card.cvv) { <span class="text-gray-500">CVV: {{ card.cvv }}</span> }
+                          </div>
+                        </ng-container>
+                        <ng-template #cardRaw>
+                          <p class="mt-1.5 font-mono text-sm text-cyan-400 break-all">{{ revealedPasswords[item.id] }}</p>
+                        </ng-template>
+                      }
+                    } @else if (item.category === 'note') {
+                      <!-- Note : afficher aperçu du contenu -->
+                      <p class="text-sm text-gray-500 truncate">
+                        {{ item.notes ? (item.notes.length > 60 ? (item.notes | slice:0:60) + '…' : item.notes) : 'Note chiffrée' }}
+                      </p>
+                      @if (revealedPasswords[item.id] !== undefined) {
+                        <p class="mt-1.5 text-sm text-gray-300 whitespace-pre-wrap">{{ item.notes }}</p>
+                      }
+                    } @else if (item.category === 'wifi') {
+                      <!-- Wi-Fi : type sécu + mot de passe masqué -->
+                      <p class="text-sm text-gray-500 truncate">
+                        @if (item.username) { {{ item.username }} · }
+                        {{ revealedPasswords[item.id] !== undefined ? revealedPasswords[item.id] ?? '(erreur)' : '••••••••' }}
+                      </p>
+                    } @else {
+                      <!-- login / other -->
+                      <p class="text-sm text-gray-500 truncate">
+                        {{ item.username || (item.url || '—') }}
+                      </p>
+                      @if (revealedPasswords[item.id] !== undefined) {
+                        <p class="mt-1.5 font-mono text-sm text-cyan-400 break-all">
+                          {{ revealedPasswords[item.id] ?? '(erreur de déchiffrement)' }}
+                        </p>
+                      }
+                      @if (item.url && item.username) {
+                        <a [href]="item.url" target="_blank" rel="noopener"
+                           class="text-xs text-gray-600 hover:text-cyan-400 transition-colors truncate block mt-0.5">
+                          {{ item.url }}
+                        </a>
+                      }
                     }
                   </div>
 
                   <!-- Actions -->
                   <div class="flex items-center gap-1 flex-shrink-0">
-                    <button type="button" (click)="toggleReveal(item)"
-                            [matTooltip]="revealedPasswords[item.id] !== undefined ? 'Masquer' : 'Afficher le mot de passe'"
-                            class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:text-white hover:bg-gray-800 transition-colors">
-                      <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">
-                        {{ revealedPasswords[item.id] !== undefined ? 'visibility_off' : 'visibility' }}
-                      </mat-icon>
-                    </button>
-                    <button type="button" (click)="copyPassword(item)"
-                            [matTooltip]="copiedId === item.id ? 'Copié !' : 'Copier le mot de passe'"
-                            class="w-9 h-9 rounded-lg flex items-center justify-center transition-colors"
-                            [class.text-green-400]="copiedId === item.id"
-                            [class.text-gray-500]="copiedId !== item.id"
-                            [class.hover:text-white]="copiedId !== item.id"
-                            [class.hover:bg-gray-800]="copiedId !== item.id">
-                      <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">
-                        {{ copiedId === item.id ? 'check' : 'content_copy' }}
-                      </mat-icon>
-                    </button>
+                    @if (item.category !== 'note') {
+                      <button type="button" (click)="toggleReveal(item)"
+                              [matTooltip]="revealedPasswords[item.id] !== undefined ? 'Masquer' : (item.category === 'card' ? 'Afficher la carte' : 'Afficher le mot de passe')"
+                              class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:text-white hover:bg-gray-800 transition-colors">
+                        <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">
+                          {{ revealedPasswords[item.id] !== undefined ? 'visibility_off' : 'visibility' }}
+                        </mat-icon>
+                      </button>
+                    }
+                    @if (item.category !== 'note') {
+                      <button type="button" (click)="copyPassword(item)"
+                              [matTooltip]="copiedId === item.id ? 'Copié !' : (item.category === 'card' ? 'Copier le numéro' : 'Copier le mot de passe')"
+                              class="w-9 h-9 rounded-lg flex items-center justify-center transition-colors"
+                              [class.text-green-400]="copiedId === item.id"
+                              [class.text-gray-500]="copiedId !== item.id"
+                              [class.hover:text-white]="copiedId !== item.id"
+                              [class.hover:bg-gray-800]="copiedId !== item.id">
+                        <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">
+                          {{ copiedId === item.id ? 'check' : 'content_copy' }}
+                        </mat-icon>
+                      </button>
+                    }
                     <button type="button" (click)="openEdit(item)"
                             matTooltip="Modifier"
                             class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:text-white hover:bg-gray-800 transition-colors">
