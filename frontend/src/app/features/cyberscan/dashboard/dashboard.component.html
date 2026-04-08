@@ -6,7 +6,7 @@
       <mat-icon class="text-cyan-400">shield</mat-icon>
       <span class="text-xl font-bold text-cyan-400">CyberScan</span>
     </a>
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-2">
       <a routerLink="/cyberscan" mat-button class="!text-white font-medium">{{ i18n.t('nav.home') }}</a>
       <a routerLink="/cyberscan/url-scanner" mat-button class="!text-white font-medium">
         <mat-icon class="mr-1">radar</mat-icon>Scanner URL
@@ -14,6 +14,61 @@
       <a routerLink="/cyberscan/profile" mat-button class="!text-white font-medium">
         <mat-icon class="mr-1">person</mat-icon>{{ i18n.t('nav.profile') }}
       </a>
+
+      <!-- Notification bell -->
+      <div class="relative notif-panel-anchor">
+        <button type="button" mat-icon-button (click)="toggleNotifPanel($event)" class="relative !text-white" aria-label="Notifications">
+          <mat-icon>notifications</mat-icon>
+          @if (unreadCount() > 0) {
+            <span class="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+              {{ unreadCount() > 9 ? '9+' : unreadCount() }}
+            </span>
+          }
+        </button>
+
+        <!-- Notification dropdown -->
+        @if (showNotifPanel()) {
+          <div class="absolute right-0 top-full mt-2 w-80 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden"
+               (click)="$event.stopPropagation()">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+              <span class="font-semibold text-sm">Notifications</span>
+              @if (unreadCount() > 0) {
+                <button type="button" mat-button class="!text-xs !text-cyan-400 !px-0" (click)="markAllRead()">Tout lire</button>
+              }
+            </div>
+
+            @if (notifications().length === 0) {
+              <div class="py-8 text-center text-gray-500 text-sm">
+                <mat-icon class="!text-3xl mb-2 text-gray-600">notifications_none</mat-icon>
+                <p>Aucune notification</p>
+              </div>
+            } @else {
+              <div class="max-h-96 overflow-y-auto">
+                @for (notif of notifications(); track notif.id) {
+                  <div class="flex items-start gap-3 px-4 py-3 border-b border-gray-700/50 cursor-pointer transition-colors"
+                       [class]="notif.read ? 'hover:bg-gray-700/40' : 'bg-gray-700/60 hover:bg-gray-700'"
+                       (click)="handleNotifClick(notif)">
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium leading-snug truncate" [class]="notif.read ? 'text-gray-300' : 'text-white'">
+                        {{ notif.title }}
+                      </p>
+                      @if (notif.body) {
+                        <p class="text-xs text-gray-500 mt-0.5 truncate">{{ notif.body }}</p>
+                      }
+                      <p class="text-[10px] text-gray-600 mt-1">{{ formatDate(notif.created_at) }}</p>
+                    </div>
+                    <button type="button" mat-icon-button class="!w-6 !h-6 !text-gray-500 hover:!text-gray-300 flex-shrink-0 !min-w-0"
+                            (click)="dismissNotif($event, notif.id)" aria-label="Supprimer">
+                      <mat-icon class="!text-sm">close</mat-icon>
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+
       <a routerLink="/auth/login" mat-button class="!text-white font-medium">{{ i18n.t('nav.logout') }}</a>
     </div>
   </nav>
@@ -163,10 +218,28 @@
     }
 
     @if (!loading() && sites().length === 0) {
-      <div class="text-center py-16 text-gray-500">
-        <mat-icon class="mb-4 !text-[3rem] !w-[3rem] !h-[3rem]">language</mat-icon>
-        <p class="text-lg">{{ i18n.t('dashboard.noSites') }}</p>
-        <p class="text-sm mt-1">Ajoutez votre premier site pour lancer un scan</p>
+      <div class="flex flex-col items-center justify-center py-20 text-center">
+        <div class="w-20 h-20 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mb-6">
+          <mat-icon class="!text-[2.5rem] !w-[2.5rem] !h-[2.5rem] text-cyan-400">radar</mat-icon>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Aucun site surveillé</h3>
+        <p class="text-gray-400 max-w-sm mb-8">
+          Ajoutez votre premier site pour lancer votre premier scan de sécurité et obtenir un rapport complet.
+        </p>
+        <div class="flex flex-col sm:flex-row items-center gap-3">
+          @if (subscription()) {
+            <button type="button" mat-flat-button color="primary" (click)="showAddForm.set(true)">
+              <mat-icon class="mr-2">add_circle</mat-icon>Ajouter mon premier site
+            </button>
+          } @else {
+            <a routerLink="/cyberscan/onboarding" mat-flat-button color="primary">
+              <mat-icon class="mr-2">rocket_launch</mat-icon>Commencer l'onboarding
+            </a>
+          }
+          <a routerLink="/cyberscan/url-scanner" mat-stroked-button class="border-gray-600 text-gray-300">
+            <mat-icon class="mr-2">search</mat-icon>Scanner une URL suspecte
+          </a>
+        </div>
       </div>
     }
 

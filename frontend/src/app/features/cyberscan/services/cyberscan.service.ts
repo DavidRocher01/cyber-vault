@@ -84,6 +84,21 @@ export interface PaginatedUrlScans {
   pages: number;
 }
 
+export interface AppNotification {
+  id: number;
+  type: string;
+  title: string;
+  body: string | null;
+  link: string | null;
+  read: boolean;
+  created_at: string;
+}
+
+export interface NotificationList {
+  items: AppNotification[];
+  unread_count: number;
+}
+
 const API = '/api/v1';
 
 @Injectable({ providedIn: 'root' })
@@ -154,5 +169,23 @@ export class CyberscanService {
 
   deleteUrlScan(id: number): Observable<void> {
     return this.http.delete<void>(`${API}/url-scans/${id}`);
+  }
+
+  // ── Notifications ──────────────────────────────────────────────────────
+
+  getNotifications(): Observable<NotificationList> {
+    return this.http.get<NotificationList>(`${API}/notifications`);
+  }
+
+  markNotificationRead(id: number): Observable<AppNotification> {
+    return this.http.post<AppNotification>(`${API}/notifications/${id}/read`, {});
+  }
+
+  markAllNotificationsRead(): Observable<void> {
+    return this.http.post<void>(`${API}/notifications/read-all`, {});
+  }
+
+  deleteNotification(id: number): Observable<void> {
+    return this.http.delete<void>(`${API}/notifications/${id}`);
   }
 }

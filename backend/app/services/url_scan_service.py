@@ -321,6 +321,24 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
         url_scan.results_json = json.dumps(analysis, default=str)
         await db.commit()
 
+        # In-app notification
+        try:
+            from app.models.notification import Notification
+            verdict = analysis["verdict"]
+            score = analysis["threat_score"]
+            icon = {"safe": "✅", "suspicious": "⚠️", "malicious": "🚨"}.get(verdict, "🔍")
+            notif = Notification(
+                user_id=url_scan.user_id,
+                type="url_scan_done",
+                title=f"{icon} Scan URL — {verdict.capitalize()} (score {score}/100)",
+                body=url_scan.url[:120],
+                link="/cyberscan/url-scanner",
+            )
+            db.add(notif)
+            await db.commit()
+        except Exception:
+            pass
+
         # Send email alert (non-blocking — ignore SMTP errors)
         try:
             from app.core.config import settings

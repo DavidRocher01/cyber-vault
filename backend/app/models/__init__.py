@@ -9,3 +9,4 @@ from app.models.site import Site  # noqa: F401
 from app.models.scan import Scan  # noqa: F401
 from app.models.newsletter_subscriber import NewsletterSubscriber  # noqa: F401
 from app.models.url_scan import UrlScan  # noqa: F401
+from app.models.notification import Notification  # noqa: F401
