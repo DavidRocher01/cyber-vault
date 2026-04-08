@@ -9,11 +9,7 @@
     <div class="flex items-center gap-1 md:gap-2">
       <a routerLink="/cyberscan/ressources" mat-button class="!text-white font-medium hidden lg:inline-flex">Ressources</a>
       <a routerLink="/cyberscan/bonnes-pratiques" mat-button class="!text-white font-medium hidden lg:inline-flex">Bonnes pratiques</a>
-      <!-- Lang toggle -->
-      <button type="button" mat-button (click)="i18n.toggle()" title="Changer la langue" class="!text-white font-medium hidden sm:inline-flex">
-        <span class="text-sm font-bold">{{ i18n.lang() === 'fr' ? 'EN' : 'FR' }}</span>
-      </button>
-      <a routerLink="/vault" mat-button class="!text-white font-medium hidden md:inline-flex items-center gap-1">
+<a routerLink="/vault" mat-button class="!text-white font-medium hidden md:inline-flex items-center gap-1">
         <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] text-cyan-400">lock</mat-icon>
         Mon coffre-fort
       </a>
