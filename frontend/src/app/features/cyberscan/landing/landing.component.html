@@ -67,32 +67,20 @@
         </a>
       </div>
 
-      <!-- Social proof -->
-      <div class="hero-social flex flex-col items-center gap-3">
-        <div class="flex items-center gap-3">
-          <!-- Avatar stack -->
-          <div class="flex items-center">
-            @for (a of newsletterAvatars; track a.initials) {
-              <div class="hero-avatar" [style.background]="a.bg" [style.color]="a.color">{{ a.initials }}</div>
-            }
-          </div>
-          <span class="text-gray-400 text-sm"><span class="text-white font-semibold">500+</span> sites protégés</span>
-        </div>
-        <!-- Trust micro-indicators -->
-        <div class="flex items-center gap-5 flex-wrap justify-center">
-          <span class="hero-trust-item">
-            <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] text-cyan-600">lock</mat-icon>
-            Sans carte bancaire
-          </span>
-          <span class="hero-trust-item">
-            <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] text-cyan-600">timer</mat-icon>
-            Résultat en 2 min
-          </span>
-          <span class="hero-trust-item">
-            <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] text-cyan-600">verified_user</mat-icon>
-            Scan non intrusif
-          </span>
-        </div>
+      <!-- Trust micro-indicators -->
+      <div class="hero-social flex items-center gap-5 flex-wrap justify-center">
+        <span class="hero-trust-item">
+          <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] text-cyan-600">lock</mat-icon>
+          Sans carte bancaire
+        </span>
+        <span class="hero-trust-item">
+          <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] text-cyan-600">timer</mat-icon>
+          Résultat en 2 min
+        </span>
+        <span class="hero-trust-item">
+          <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] text-cyan-600">verified_user</mat-icon>
+          Scan non intrusif
+        </span>
       </div>
 
     </div>
