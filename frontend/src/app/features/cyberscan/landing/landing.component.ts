@@ -217,13 +217,13 @@ export class LandingComponent implements OnInit {
     { emoji: '⚖️', bg: 'rgba(168,85,247,0.15)', title: 'Coin des Dirigeants', desc: 'Réglementation française, NIS2, RGPD — ce que vous devez savoir chaque mois' },
   ];
 
-  newsletterSchedule = [
-    { week: '01', actu: 'Piratage d\'un hôpital aux USA', reflex: 'Activer la Double Authentification (MFA)' },
-    { week: '02', actu: 'Vol de données massif en Corée', reflex: 'Utiliser un gestionnaire de mots de passe' },
-    { week: '03', actu: 'Deepfake vocal d\'un PDG à Londres', reflex: 'Créer un "mot de passe verbal" pour les virements' },
-    { week: '04', actu: 'Failles dans les objets connectés (IoT)', reflex: 'Changer le mot de passe par défaut de sa box/caméra' },
-    { week: '05', actu: 'Ransomware sur une mairie en Espagne', reflex: 'Vérifier que sa sauvegarde est "hors-ligne"' },
-    { week: '06', actu: 'Fraude aux faux QR codes au Japon', reflex: 'Ne jamais scanner un QR code public sans douter' },
+  newsletterSchedule: { actu_title: string; actu_url: string; actu_source: string; reflex: string }[] = [
+    { actu_title: 'Ransomware sur Change Healthcare : 190M de dossiers médicaux volés', actu_url: 'https://techcrunch.com/2025/01/27/how-the-ransomware-attack-at-change-healthcare-went-down-a-timeline/', actu_source: 'TechCrunch', reflex: 'Activer la Double Authentification (MFA)' },
+    { actu_title: 'Fuite chez PowerSchool : données de 60M d\'élèves américains exposées', actu_url: 'https://www.bleepingcomputer.com/news/security/powerschool-data-breach-exposes-info-of-students-in-us-and-canada/', actu_source: 'BleepingComputer', reflex: 'Utiliser un gestionnaire de mots de passe' },
+    { actu_title: 'Deepfake vidéo d\'un CFO : Arup perd 25 millions à Hong Kong', actu_url: 'https://fortune.com/europe/2024/05/17/arup-deepfake-fraud-scam-victim-hong-kong-25-million-cfo/', actu_source: 'Fortune', reflex: 'Créer un mot de passe verbal pour les virements' },
+    { actu_title: 'Vulnérabilités critiques dans les modems IoT industriels', actu_url: 'https://www.bleepingcomputer.com/news/security/widely-used-modems-in-industrial-iot-devices-open-to-sms-attack/', actu_source: 'BleepingComputer', reflex: 'Changer le mot de passe par défaut de sa box/caméra' },
+    { actu_title: 'Ransomware LockBit frappe la mairie de Calvià — 10 M€ de rançon', actu_url: 'https://therecord.media/calvia-spain-ransomware-attack-10-million-euros-demand', actu_source: 'The Record', reflex: 'Vérifier que sa sauvegarde est hors-ligne' },
+    { actu_title: 'FBI alerte sur des QR codes malveillants du groupe Kimsuky', actu_url: 'https://www.bleepingcomputer.com/news/security/fbi-warns-about-kimsuky-hackers-using-qr-codes-to-phish-us-orgs/', actu_source: 'BleepingComputer', reflex: 'Ne jamais scanner un QR code public sans vérifier' },
   ];
 
   comparisonRows = [
@@ -244,6 +244,12 @@ export class LandingComponent implements OnInit {
     this.cyberscan.getPlans().subscribe({
       next: plans => { this.plans = plans; this.loading = false; },
       error: () => { this.loading = false; },
+    });
+    this.http.get<{ actu_title: string; actu_url: string; actu_source: string; reflex: string }[]>(
+      `${environment.apiUrl}/newsletter/schedule`
+    ).subscribe({
+      next: items => { this.newsletterSchedule = items; },
+      error: () => { /* keep hardcoded fallback */ },
     });
     this.animateCounters();
   }

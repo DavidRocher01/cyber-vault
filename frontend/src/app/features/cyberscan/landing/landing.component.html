@@ -409,10 +409,14 @@
               <span>Actualité Monde</span>
               <span>Bon Réflexe</span>
             </div>
-            @for (row of newsletterSchedule.slice(0, 4); track row.week; let odd = $odd) {
+            @for (row of newsletterSchedule.slice(0, 4); track row.actu_title; let odd = $odd) {
               <div class="nl-schedule-row px-4 py-2.5 text-xs grid grid-cols-2 gap-4 border-b"
                    [class.nl-schedule-row-odd]="odd">
-                <span class="text-gray-300">{{ row.actu }}</span>
+                <span class="flex flex-col gap-0.5">
+                  <a [href]="row.actu_url" target="_blank" rel="noopener noreferrer"
+                     class="text-gray-300 hover:text-cyan-400 transition-colors line-clamp-2 leading-relaxed">{{ row.actu_title }}</a>
+                  <span class="text-gray-600 text-[10px] font-medium">{{ row.actu_source }}</span>
+                </span>
                 <span class="text-cyan-500/80">{{ row.reflex }}</span>
               </div>
             }

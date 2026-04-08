@@ -41,3 +41,23 @@ class SendIssueIn(BaseModel):
 class SendIssueOut(BaseModel):
     sent: int
     message: str
+
+
+# Schedule schemas
+class ScheduleItemOut(BaseModel):
+    position: int
+    actu_title: str
+    actu_url: str
+    actu_source: str
+    reflex: str
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ScheduleItemIn(BaseModel):
+    position: int
+    actu_title: str
+    actu_url: str
+    actu_source: str
+    reflex: str

@@ -10,10 +10,13 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import create_refresh_token
 from app.models.newsletter_subscriber import NewsletterSubscriber
+from app.models.newsletter_schedule import NewsletterScheduleItem
 from app.schemas.newsletter import (
     NewsletterStatsOut,
     NewsletterSubscribeIn,
     NewsletterSubscribeOut,
+    ScheduleItemIn,
+    ScheduleItemOut,
     SendIssueIn,
     SendIssueOut,
     SubscriberOut,
@@ -197,3 +200,54 @@ async def admin_send_issue(
         count += 1
     logger.info(f"Newsletter issue #{payload.edition} queued for {count} subscribers")
     return SendIssueOut(sent=count, message=f"Édition #{payload.edition} envoyée à {count} abonné(s).")
+
+
+# ── Schedule endpoints ─────────────────────────────────────────────────────────
+
+@router.get("/schedule", response_model=list[ScheduleItemOut])
+async def get_schedule(db: AsyncSession = Depends(get_db)):
+    """Public — returns the current newsletter schedule with article links."""
+    result = await db.execute(
+        select(NewsletterScheduleItem).order_by(NewsletterScheduleItem.position)
+    )
+    return result.scalars().all()
+
+
+@router.put("/admin/schedule", response_model=list[ScheduleItemOut], dependencies=[Depends(_require_admin)])
+async def update_schedule(
+    items: list[ScheduleItemIn],
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin — replace the full schedule. Items must have unique positions 1-6.
+    Articles must be less than 2 weeks old."""
+    if len(items) == 0 or len(items) > 6:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="1 à 6 items requis")
+    positions = [i.position for i in items]
+    if len(positions) != len(set(positions)):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Positions dupliquées")
+
+    now = datetime.now(timezone.utc)
+
+    # Delete existing
+    existing = await db.execute(select(NewsletterScheduleItem))
+    for row in existing.scalars().all():
+        await db.delete(row)
+    await db.flush()
+
+    # Insert new
+    created = []
+    for item in sorted(items, key=lambda x: x.position):
+        row = NewsletterScheduleItem(
+            position=item.position,
+            actu_title=item.actu_title,
+            actu_url=item.actu_url,
+            actu_source=item.actu_source,
+            reflex=item.reflex,
+            updated_at=now,
+        )
+        db.add(row)
+        created.append(row)
+    await db.flush()
+
+    logger.info(f"Newsletter schedule updated — {len(created)} items")
+    return created
