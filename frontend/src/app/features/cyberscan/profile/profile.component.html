@@ -1,75 +1,338 @@
 <div class="min-h-screen bg-gray-900 text-white">
+
+  <!-- Navbar -->
   <nav class="flex items-center justify-between px-8 py-4 border-b border-gray-800">
     <div class="flex items-center gap-2">
       <mat-icon class="text-cyan-400">shield</mat-icon>
       <span class="text-xl font-bold text-cyan-400">CyberScan</span>
     </div>
-    <a routerLink="/cyberscan/dashboard" mat-button class="!text-white font-medium">
-      <mat-icon class="mr-1">arrow_back</mat-icon>
-      Dashboard
-    </a>
+    <div class="flex items-center gap-3">
+      <app-nav-buttons />
+      <a routerLink="/cyberscan/dashboard" class="text-sm text-gray-500 hover:text-cyan-400 transition-colors">Dashboard</a>
+    </div>
   </nav>
 
   <div class="max-w-2xl mx-auto px-6 py-10">
-    <h1 class="text-3xl font-bold mb-8">Mon profil</h1>
 
+    <!-- Skeleton -->
     @if (loading()) {
       <div class="flex flex-col gap-4">
-        <div class="animate-pulse bg-gray-700 rounded-xl h-48"></div>
-        <div class="animate-pulse bg-gray-700 rounded-xl h-56"></div>
+        <div class="animate-pulse bg-gray-800 rounded-2xl h-32"></div>
+        <div class="animate-pulse bg-gray-800 rounded-2xl h-52"></div>
+        <div class="animate-pulse bg-gray-800 rounded-2xl h-64"></div>
       </div>
     }
 
     @if (!loading()) {
-      <!-- Email -->
-      <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-6">
-        <div class="flex items-center gap-2 mb-4">
-          <mat-icon class="text-cyan-400">email</mat-icon>
-          <h2 class="text-lg font-semibold">Adresse email</h2>
+
+      <!-- Hero -->
+      <div class="flex items-center gap-5 mb-8">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-xl font-bold flex-shrink-0 select-none">
+          {{ initials }}
         </div>
-        <p class="text-sm text-gray-400 mb-4">Email actuel : <span class="text-white font-medium">{{ profile()?.email }}</span></p>
-        <form [formGroup]="emailForm" (ngSubmit)="updateEmail()" class="flex flex-col gap-4">
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Nouvel email</mat-label>
-            <input matInput type="email" formControlName="email" title="Nouvel email" placeholder="nouvel@email.com" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Mot de passe actuel</mat-label>
-            <input matInput type="password" formControlName="current_password" title="Mot de passe actuel" placeholder="••••••••" />
-          </mat-form-field>
-          <button mat-flat-button color="primary" type="submit" [disabled]="emailForm.invalid || savingEmail()">
-            @if (savingEmail()) { <mat-spinner diameter="18" class="mr-2"></mat-spinner> }
+        <div>
+          <h1 class="text-2xl font-bold">Mon profil</h1>
+          <p class="text-gray-400 text-sm mt-0.5">{{ profile()?.email }}</p>
+        </div>
+      </div>
+
+      <!-- Email section -->
+      <div class="bg-gray-800/60 border border-gray-700 rounded-2xl p-6 mb-4">
+        <div class="flex items-center gap-2 mb-5">
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/15 flex items-center justify-center">
+            <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">email</mat-icon>
+          </div>
+          <h2 class="font-semibold">Adresse email</h2>
+        </div>
+
+        <form [formGroup]="emailForm" (ngSubmit)="updateEmail()" class="flex flex-col gap-4" autocomplete="off">
+          <!-- New email -->
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Nouvel email</label>
+            <input
+              type="email"
+              formControlName="email"
+              autocomplete="off"
+              placeholder="nouvel@email.com"
+              class="w-full bg-gray-900 border rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-colors focus:border-cyan-500"
+              [class.border-gray-700]="!emailForm.controls.email.invalid || !emailForm.controls.email.touched"
+              [class.border-red-500]="emailForm.controls.email.invalid && emailForm.controls.email.touched"
+            />
+            @if (emailForm.controls.email.invalid && emailForm.controls.email.touched) {
+              <p class="text-xs text-red-400">Email invalide</p>
+            }
+          </div>
+
+          <!-- Current password -->
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Mot de passe actuel</label>
+            <div class="relative">
+              <input
+                [type]="showEmailPw() ? 'text' : 'password'"
+                formControlName="current_password"
+                autocomplete="new-password"
+                placeholder="••••••••"
+                class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 pr-11 text-sm text-white placeholder-gray-600 outline-none transition-colors focus:border-cyan-500"
+              />
+              <button type="button" (click)="showEmailPw.set(!showEmailPw())"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors">
+                <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ showEmailPw() ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" [disabled]="emailForm.invalid || savingEmail()"
+                  class="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-all
+                         bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed">
+            @if (savingEmail()) {
+              <mat-spinner diameter="16"></mat-spinner>
+            } @else {
+              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">save</mat-icon>
+            }
             Mettre à jour l'email
           </button>
         </form>
       </div>
 
-      <!-- Password -->
-      <div class="bg-gray-800 border border-gray-700 rounded-xl p-6">
-        <div class="flex items-center gap-2 mb-4">
-          <mat-icon class="text-cyan-400">lock</mat-icon>
-          <h2 class="text-lg font-semibold">Mot de passe</h2>
+      <!-- Password section -->
+      <div class="bg-gray-800/60 border border-gray-700 rounded-2xl p-6 mb-4">
+        <div class="flex items-center gap-2 mb-5">
+          <div class="w-8 h-8 rounded-lg bg-green-500/15 flex items-center justify-center">
+            <mat-icon class="text-green-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">lock</mat-icon>
+          </div>
+          <h2 class="font-semibold">Mot de passe</h2>
         </div>
-        <form [formGroup]="passwordForm" (ngSubmit)="updatePassword()" class="flex flex-col gap-4">
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Mot de passe actuel</mat-label>
-            <input matInput type="password" formControlName="current_password" title="Mot de passe actuel" placeholder="••••••••" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Nouveau mot de passe</mat-label>
-            <input matInput type="password" formControlName="new_password" title="Nouveau mot de passe" placeholder="••••••••" />
-            <mat-hint>Minimum 8 caractères</mat-hint>
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Confirmer le mot de passe</mat-label>
-            <input matInput type="password" formControlName="confirm_password" title="Confirmer le mot de passe" placeholder="••••••••" />
-          </mat-form-field>
-          <button mat-flat-button color="primary" type="submit" [disabled]="passwordForm.invalid || savingPassword()">
-            @if (savingPassword()) { <mat-spinner diameter="18" class="mr-2"></mat-spinner> }
+
+        <form [formGroup]="passwordForm" (ngSubmit)="updatePassword()" class="flex flex-col gap-4" autocomplete="off">
+          <!-- Current password -->
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Mot de passe actuel</label>
+            <div class="relative">
+              <input
+                [type]="showCurrentPw() ? 'text' : 'password'"
+                formControlName="current_password"
+                autocomplete="new-password"
+                placeholder="••••••••"
+                class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 pr-11 text-sm text-white placeholder-gray-600 outline-none transition-colors focus:border-cyan-500"
+              />
+              <button type="button" (click)="showCurrentPw.set(!showCurrentPw())"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors">
+                <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ showCurrentPw() ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <!-- New password + strength -->
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Nouveau mot de passe</label>
+            <div class="relative">
+              <input
+                [type]="showNewPw() ? 'text' : 'password'"
+                formControlName="new_password"
+                autocomplete="new-password"
+                placeholder="••••••••"
+                class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 pr-11 text-sm text-white placeholder-gray-600 outline-none transition-colors focus:border-cyan-500"
+              />
+              <button type="button" (click)="showNewPw.set(!showNewPw())"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors">
+                <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ showNewPw() ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </div>
+            @if (passwordStrength.label) {
+              <div class="flex items-center gap-2 mt-1">
+                <div class="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full transition-all duration-300" [class]="passwordStrength.color" [style.width]="passwordStrength.width"></div>
+                </div>
+                <span class="text-xs text-gray-400">{{ passwordStrength.label }}</span>
+              </div>
+            }
+          </div>
+
+          <!-- Confirm password -->
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Confirmer le mot de passe</label>
+            <div class="relative">
+              <input
+                [type]="showConfirmPw() ? 'text' : 'password'"
+                formControlName="confirm_password"
+                autocomplete="new-password"
+                placeholder="••••••••"
+                class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 pr-11 text-sm text-white placeholder-gray-600 outline-none transition-colors focus:border-cyan-500"
+              />
+              <button type="button" (click)="showConfirmPw.set(!showConfirmPw())"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors">
+                <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ showConfirmPw() ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </div>
+            @if (passwordForm.controls.confirm_password.value &&
+                 passwordForm.controls.new_password.value !== passwordForm.controls.confirm_password.value) {
+              <p class="text-xs text-red-400">Les mots de passe ne correspondent pas</p>
+            }
+          </div>
+
+          <button type="submit" [disabled]="passwordForm.invalid || savingPassword()"
+                  class="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-all
+                         bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed">
+            @if (savingPassword()) {
+              <mat-spinner diameter="16"></mat-spinner>
+            } @else {
+              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">lock_reset</mat-icon>
+            }
             Changer le mot de passe
           </button>
         </form>
       </div>
+
+      <!-- 2FA section -->
+      <div class="bg-gray-800/60 border border-gray-700 rounded-2xl p-6 mb-4">
+        <div class="flex items-center justify-between mb-5">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center"
+                 [class]="profile()?.totp_enabled ? 'bg-green-500/15' : 'bg-gray-700/60'">
+              <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]"
+                        [class]="profile()?.totp_enabled ? 'text-green-400' : 'text-gray-400'">
+                shield
+              </mat-icon>
+            </div>
+            <h2 class="font-semibold">Double authentification (2FA)</h2>
+          </div>
+          <span class="text-xs font-bold px-2.5 py-1 rounded-full"
+                [class]="profile()?.totp_enabled
+                  ? 'bg-green-500/15 text-green-400 border border-green-700'
+                  : 'bg-gray-700 text-gray-400 border border-gray-600'">
+            {{ profile()?.totp_enabled ? 'Activée' : 'Désactivée' }}
+          </span>
+        </div>
+
+        <!-- État idle -->
+        @if (twoFaStep() === 'idle') {
+          <p class="text-sm text-gray-400 mb-4">
+            @if (profile()?.totp_enabled) {
+              Votre compte est protégé par une application d'authentification (Google Authenticator, Authy…).
+            } @else {
+              Ajoutez une couche de sécurité supplémentaire : un code temporaire vous sera demandé à chaque connexion.
+            }
+          </p>
+          @if (!profile()?.totp_enabled) {
+            <button type="button" (click)="startSetup2FA()" [disabled]="twoFaLoading()"
+                    class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all
+                           bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40">
+              @if (twoFaLoading()) { <mat-spinner diameter="16"></mat-spinner> }
+              @else { <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">qr_code_2</mat-icon> }
+              Configurer la 2FA
+            </button>
+          } @else {
+            <button type="button" (click)="twoFaStep.set('disable')"
+                    class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all
+                           border border-red-800 text-red-400 hover:bg-red-900/20">
+              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">no_encryption</mat-icon>
+              Désactiver la 2FA
+            </button>
+          }
+        }
+
+        <!-- Étape QR code -->
+        @if (twoFaStep() === 'confirm' && twoFaSetup()) {
+          <div class="flex flex-col gap-5">
+            <p class="text-sm text-gray-400">
+              1. Scannez ce QR code avec <strong class="text-white">Google Authenticator</strong>, <strong class="text-white">Authy</strong> ou toute autre application compatible TOTP.
+            </p>
+            <div class="flex flex-col items-center gap-3">
+              <div class="bg-white p-3 rounded-xl inline-block">
+                <img [src]="'data:image/png;base64,' + twoFaSetup()!.qr_code_b64"
+                     alt="QR code 2FA" class="w-44 h-44" />
+              </div>
+              <details class="w-full">
+                <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-300 transition-colors text-center">
+                  Saisie manuelle du code secret
+                </summary>
+                <p class="mt-2 text-center font-mono text-sm text-cyan-300 bg-gray-900 rounded-lg px-4 py-2 tracking-widest select-all">
+                  {{ twoFaSetup()!.secret }}
+                </p>
+              </details>
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">
+                2. Entrez le code à 6 chiffres affiché dans l'application
+              </label>
+              <input type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code"
+                     placeholder="000000"
+                     [value]="twoFaCode()"
+                     (input)="twoFaCode.set($any($event.target).value)"
+                     class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-center text-2xl font-mono tracking-[0.5em] text-white placeholder-gray-700 outline-none transition-colors focus:border-cyan-500" />
+            </div>
+
+            <div class="flex gap-3">
+              <button type="button" (click)="confirm2FA()"
+                      [disabled]="twoFaCode().length !== 6 || twoFaLoading()"
+                      class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all
+                             bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed">
+                @if (twoFaLoading()) { <mat-spinner diameter="16"></mat-spinner> }
+                @else { <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">verified</mat-icon> }
+                Activer la 2FA
+              </button>
+              <button type="button" (click)="cancelTwoFa()"
+                      class="px-4 py-3 rounded-xl text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 transition-all">
+                Annuler
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Désactivation -->
+        @if (twoFaStep() === 'disable') {
+          <div class="flex flex-col gap-4">
+            <p class="text-sm text-yellow-400 bg-yellow-900/20 border border-yellow-800 rounded-xl px-4 py-3">
+              ⚠️ La désactivation de la 2FA réduit la sécurité de votre compte.
+            </p>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Mot de passe</label>
+              <input type="password" autocomplete="current-password" placeholder="••••••••"
+                     [value]="twoFaDisablePw()"
+                     (input)="twoFaDisablePw.set($any($event.target).value)"
+                     class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-colors focus:border-cyan-500" />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Code 2FA actuel</label>
+              <input type="text" inputmode="numeric" maxlength="6" placeholder="000000"
+                     [value]="twoFaDisableCode()"
+                     (input)="twoFaDisableCode.set($any($event.target).value)"
+                     class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-center text-2xl font-mono tracking-[0.5em] text-white placeholder-gray-700 outline-none transition-colors focus:border-cyan-500" />
+            </div>
+            <div class="flex gap-3">
+              <button type="button" (click)="disable2FA()"
+                      [disabled]="!twoFaDisablePw() || twoFaDisableCode().length !== 6 || twoFaLoading()"
+                      class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all
+                             bg-red-700 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed">
+                @if (twoFaLoading()) { <mat-spinner diameter="16"></mat-spinner> }
+                @else { <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">no_encryption</mat-icon> }
+                Confirmer la désactivation
+              </button>
+              <button type="button" (click)="cancelTwoFa()"
+                      class="px-4 py-3 rounded-xl text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 transition-all">
+                Annuler
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Danger zone -->
+      <div class="border border-red-900/50 rounded-2xl p-6 bg-red-950/10">
+        <div class="flex items-center gap-2 mb-3">
+          <mat-icon class="text-red-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">warning</mat-icon>
+          <h2 class="font-semibold text-red-400 text-sm">Zone de danger</h2>
+        </div>
+        <p class="text-sm text-gray-500 mb-4">La suppression de votre compte est définitive. Toutes vos données (sites, scans, rapports) seront effacées.</p>
+        <button type="button" mat-stroked-button
+                class="!border-red-800 !text-red-400 hover:!bg-red-900/20 !text-sm"
+                matTooltip="Contactez le support pour supprimer votre compte">
+          <mat-icon class="mr-1 !text-[1rem] !w-[1rem] !h-[1rem]">delete_forever</mat-icon>
+          Supprimer mon compte
+        </button>
+      </div>
+
     }
   </div>
 </div>

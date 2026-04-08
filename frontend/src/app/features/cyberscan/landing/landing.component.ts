@@ -141,6 +141,10 @@ export class LandingComponent implements OnInit {
       q: 'Comment fonctionne la facturation ?',
       a: 'La facturation est mensuelle, sans engagement, via Stripe. Vous pouvez résilier à tout moment depuis votre portail de gestion. Aucune donnée de paiement n\'est stockée sur nos serveurs.',
     },
+    {
+      q: 'Puis-je analyser une URL suspecte pour savoir si elle est malveillante ?',
+      a: 'Oui. L\'outil Scanner URL disponible dans votre dashboard permet d\'analyser n\'importe quelle URL en quelques secondes : détection de phishing, malware, scripts malveillants, redirections suspectes et domaines blacklistés. Idéal pour vérifier un lien reçu par email ou message avant de cliquer.',
+    },
   ];
 
   auditOffers = [

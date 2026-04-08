@@ -6,10 +6,10 @@
       <mat-icon class="text-cyan-400">shield</mat-icon>
       <span class="text-xl font-bold text-cyan-400">CyberScan</span>
     </a>
-    <a routerLink="/cyberscan/dashboard" mat-button class="text-gray-400">
-      <mat-icon class="mr-1">arrow_back</mat-icon>
-      Dashboard
-    </a>
+    <div class="flex items-center gap-3">
+      <app-nav-buttons />
+      <a routerLink="/cyberscan/dashboard" class="text-sm text-gray-500 hover:text-cyan-400 transition-colors">Dashboard</a>
+    </div>
   </nav>
 
   <div class="max-w-5xl mx-auto px-6 py-10">
@@ -89,8 +89,8 @@
                         activeScan()!.verdict === 'suspicious' ? 'border-yellow-700' :
                         activeScan()!.verdict === 'safe' ? 'border-green-700' : 'border-gray-700'">
 
-            <!-- Running state -->
             @if (isRunning) {
+              <!-- Running state -->
               <div class="flex items-center gap-4 py-6">
                 <mat-spinner diameter="36"></mat-spinner>
                 <div>
@@ -99,10 +99,8 @@
                   <p class="text-xs text-gray-500 mt-1">Chargement de la page, détection des scripts, vérification SSL...</p>
                 </div>
               </div>
-            }
-
-            <!-- Error state -->
-            @else if (activeScan()!.status === 'error') {
+            } @else if (activeScan()!.status === 'error') {
+              <!-- Error state -->
               <div class="flex items-start gap-4">
                 <mat-icon class="text-red-400 !text-[2rem] !w-[2rem] !h-[2rem] flex-shrink-0">error_outline</mat-icon>
                 <div>
@@ -110,10 +108,8 @@
                   <p class="text-sm text-gray-400 mt-1">{{ activeScan()!.error_message }}</p>
                 </div>
               </div>
-            }
-
-            <!-- Done state -->
-            @else if (activeScan()!.status === 'done') {
+            } @else if (activeScan()!.status === 'done') {
+              <!-- Done state -->
               <!-- Verdict hero -->
               <div class="flex items-center gap-5 mb-6">
                 <div class="w-16 h-16 rounded-2xl border-2 flex items-center justify-center flex-shrink-0"

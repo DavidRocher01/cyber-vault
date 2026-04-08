@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -15,7 +15,7 @@ import { AuthStore } from '../auth.store';
   selector: 'app-login',
   standalone: true,
   imports: [
-    CommonModule, ReactiveFormsModule, RouterLink,
+    CommonModule, ReactiveFormsModule, FormsModule, RouterLink,
     MatCardModule, MatFormFieldModule, MatInputModule,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule,
   ],
@@ -25,12 +25,14 @@ import { AuthStore } from '../auth.store';
 })
 export class LoginComponent {
   private fb = inject(FormBuilder);
-  private store = inject(AuthStore);
+  readonly store = inject(AuthStore);
 
   readonly loading$ = this.store.loading$;
   readonly error$ = this.store.error$;
+  readonly requires2fa$ = this.store.requires2fa$;
 
   showPassword = false;
+  totpCode = '';
 
   form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -41,5 +43,16 @@ export class LoginComponent {
     if (this.form.valid) {
       this.store.login(this.form.getRawValue());
     }
+  }
+
+  submitTotp() {
+    if (this.totpCode.length === 6) {
+      this.store.loginWith2FA({ totpCode: this.totpCode });
+    }
+  }
+
+  cancelTotp() {
+    this.totpCode = '';
+    this.store.cancelTwoFa();
   }
 }

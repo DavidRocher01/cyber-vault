@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 
+export type VaultCategory = 'login' | 'card' | 'note' | 'wifi' | 'other';
+
 export interface VaultItem {
   id: number;
   title: string;
@@ -9,6 +11,7 @@ export interface VaultItem {
   password_encrypted: string;
   url: string | null;
   notes: string | null;
+  category: VaultCategory;
 }
 
 export interface VaultItemCreate {
@@ -17,6 +20,7 @@ export interface VaultItemCreate {
   password_encrypted: string;
   url?: string;
   notes?: string;
+  category?: VaultCategory;
 }
 
 const API = environment.apiUrl;

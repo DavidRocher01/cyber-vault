@@ -18,7 +18,7 @@ from app.core.security import (
 from app.models.password_reset_token import PasswordResetToken
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
-from app.schemas.user import ForgotPasswordIn, RefreshIn, ResetPasswordIn, TokenOut, UserCreate, UserLogin, UserOut
+from app.schemas.user import ForgotPasswordIn, RefreshIn, ResetPasswordIn, TokenOut, UserCreate, UserLogin, UserOut, LoginOut
 from app.services.email_service import send_password_reset
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -37,7 +37,7 @@ async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)):
     return user
 
 
-@router.post("/login", response_model=TokenOut)
+@router.post("/login")
 async def login(payload: UserLogin, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == payload.email))
     user = result.scalar_one_or_none()
@@ -49,8 +49,12 @@ async def login(payload: UserLogin, db: AsyncSession = Depends(get_db)):
     if not user:
         raise invalid_exc
 
-    if user.locked_until and user.locked_until > datetime.now(timezone.utc):
-        remaining = int((user.locked_until - datetime.now(timezone.utc)).total_seconds() / 60) + 1
+    now_utc = datetime.now(timezone.utc)
+    locked_until = user.locked_until
+    if locked_until and locked_until.tzinfo is None:
+        locked_until = locked_until.replace(tzinfo=timezone.utc)
+    if locked_until and locked_until > now_utc:
+        remaining = int((locked_until - now_utc).total_seconds() / 60) + 1
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=f"Compte verrouillé. Réessayez dans {remaining} minute(s).",
@@ -65,11 +69,21 @@ async def login(payload: UserLogin, db: AsyncSession = Depends(get_db)):
             logger.warning(
                 f"Account locked after {user.failed_login_attempts} attempts: {user.email}"
             )
-        await db.flush()
+        await db.commit()  # Must commit before raising — rollback would undo the counter
         raise invalid_exc
 
     user.failed_login_attempts = 0
     user.locked_until = None
+
+    # 2FA check
+    if user.totp_enabled and user.totp_secret:
+        if not payload.totp_code:
+            await db.commit()
+            return {"requires_2fa": True}
+        import pyotp
+        totp = pyotp.TOTP(user.totp_secret)
+        if not totp.verify(payload.totp_code, valid_window=1):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Code 2FA invalide")
 
     access_token = create_access_token(subject=str(user.id))
     raw_refresh = create_refresh_token()
@@ -86,7 +100,10 @@ async def refresh(payload: RefreshIn, db: AsyncSession = Depends(get_db)):
         select(RefreshToken).where(RefreshToken.token == payload.refresh_token)
     )
     stored = result.scalar_one_or_none()
-    if not stored or stored.revoked or stored.expires_at < datetime.now(timezone.utc):
+    expires_at = stored.expires_at if stored else None
+    if expires_at is not None and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if not stored or stored.revoked or (expires_at is not None and expires_at < datetime.now(timezone.utc)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )

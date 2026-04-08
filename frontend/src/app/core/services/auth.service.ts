@@ -14,16 +14,22 @@ export interface TokenResponse {
   token_type: string;
 }
 
+export type LoginResponse = TokenResponse | { requires_2fa: true };
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   constructor(private http: HttpClient) {}
 
-  login(email: string, password: string) {
-    return this.http.post<TokenResponse>(`${API}/auth/login`, { email, password }).pipe(
+  login(email: string, password: string, totpCode?: string) {
+    const body: Record<string, string> = { email, password };
+    if (totpCode) body['totp_code'] = totpCode;
+    return this.http.post<LoginResponse>(`${API}/auth/login`, body).pipe(
       tap(res => {
-        localStorage.setItem(ACCESS_KEY, res.access_token);
-        localStorage.setItem(REFRESH_KEY, res.refresh_token);
-        localStorage.setItem(EMAIL_KEY, email);
+        if ('access_token' in res) {
+          localStorage.setItem(ACCESS_KEY, res.access_token);
+          localStorage.setItem(REFRESH_KEY, res.refresh_token);
+          localStorage.setItem(EMAIL_KEY, email);
+        }
       })
     );
   }

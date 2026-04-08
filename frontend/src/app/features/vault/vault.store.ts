@@ -4,6 +4,8 @@ import { tapResponse } from '@ngrx/operators';
 import { switchMap, tap } from 'rxjs';
 
 import { VaultItem, VaultItemCreate, VaultService } from '../../core/services/vault.service';
+
+interface VaultItemUpdate extends Partial<VaultItemCreate> { id: number; }
 import { CryptoService } from '../../core/services/crypto.service';
 
 interface VaultState {
@@ -47,6 +49,25 @@ export class VaultStore extends ComponentStore<VaultState> {
           tapResponse(
             item => this.patchState(s => ({ items: [...s.items, item] })),
             (err: any) => this.patchState({ error: err.error?.detail ?? 'Erreur de création' })
+          )
+        )
+      )
+    )
+  );
+
+  readonly updateItem = this.effect<VaultItemUpdate>(payload$ =>
+    payload$.pipe(
+      switchMap(async ({ id, password_encrypted, ...rest }) => {
+        const encrypted = password_encrypted
+          ? await this.cryptoService.encrypt(password_encrypted)
+          : undefined;
+        return { id, ...rest, ...(encrypted ? { password_encrypted: encrypted } : {}) };
+      }),
+      switchMap(({ id, ...payload }) =>
+        this.vaultService.update(id, payload).pipe(
+          tapResponse(
+            updated => this.patchState(s => ({ items: s.items.map(i => i.id === id ? updated : i) })),
+            (err: any) => this.patchState({ error: err.error?.detail ?? 'Erreur de modification' })
           )
         )
       )

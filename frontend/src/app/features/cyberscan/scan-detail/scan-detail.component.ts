@@ -12,11 +12,12 @@ import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.com
 import { RadarChartComponent } from '../../../shared/radar-chart/radar-chart.component';
 import { computeScore, getGrade, getScoreColor, getCategoryScores, RADAR_CATEGORIES } from '../../../shared/score-utils';
 import { Finding, getFindings } from '../../../shared/scan-findings';
+import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
   selector: 'app-scan-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule, MatProgressSpinnerModule, ScoreGaugeComponent, RadarChartComponent],
+  imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule, MatProgressSpinnerModule, ScoreGaugeComponent, RadarChartComponent, NavButtonsComponent],
   templateUrl: './scan-detail.component.html',
 })
 export class ScanDetailComponent implements OnInit {

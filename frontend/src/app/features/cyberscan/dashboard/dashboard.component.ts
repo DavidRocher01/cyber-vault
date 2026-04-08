@@ -1,7 +1,7 @@
-import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { RouterLink, ActivatedRoute } from '@angular/router';
+import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -16,13 +16,14 @@ import { Title, Meta } from '@angular/platform-browser';
 import { Subscription as RxSubscription, interval } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 
-import { CyberscanService, Site, Scan, Subscription as UserSubscription } from '../services/cyberscan.service';
+import { CyberscanService, Site, Scan, Subscription as UserSubscription, AppNotification } from '../services/cyberscan.service';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { ThemeService } from '../../../core/services/theme.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
 import { computeScore, getGrade, getScoreColor } from '../../../shared/score-utils';
+import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 type ScanFilter = 'all' | 'done' | 'running' | 'error';
 
@@ -41,7 +42,7 @@ interface PaginatedScans {
     CommonModule, ReactiveFormsModule, RouterLink,
     MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule,
     MatFormFieldModule, MatInputModule, MatChipsModule, MatSnackBarModule,
-    MatDialogModule, MatPaginatorModule, SkeletonComponent, ScoreGaugeComponent,
+    MatDialogModule, MatPaginatorModule, SkeletonComponent, ScoreGaugeComponent, NavButtonsComponent,
   ],
   templateUrl: './dashboard.component.html',
 })
@@ -50,10 +51,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private snack = inject(MatSnackBar);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private dialog = inject(MatDialog);
   private titleService = inject(Title);
   private meta = inject(Meta);
+  private el = inject(ElementRef);
   private pollingMap: Record<number, RxSubscription> = {};
+  private notifPollSub: RxSubscription | null = null;
 
   readonly theme = inject(ThemeService).theme;
   readonly i18n = inject(I18nService);
@@ -69,6 +73,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   loading = signal(true);
   addingSite = signal(false);
   showAddForm = signal(false);
+
+  // Notifications
+  notifications = signal<AppNotification[]>([]);
+  unreadCount = signal(0);
+  showNotifPanel = signal(false);
 
   siteForm = this.fb.nonNullable.group({
     url: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]],
@@ -89,18 +98,103 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     Object.values(this.pollingMap).forEach(sub => sub.unsubscribe());
+    this.notifPollSub?.unsubscribe();
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    if (this.showNotifPanel() && !this.el.nativeElement.querySelector('.notif-panel-anchor')?.contains(event.target)) {
+      this.showNotifPanel.set(false);
+    }
   }
 
   loadDashboard() {
     this.loading.set(true);
-    this.cyberscan.getMySubscription().subscribe({ next: sub => this.subscription.set(sub), error: () => {} });
-    this.cyberscan.getMySites().subscribe({
-      next: sites => {
-        this.sites.set(sites);
-        this.loading.set(false);
-        sites.forEach(s => this.loadScans(s.id, 1));
+    this.cyberscan.getMySubscription().subscribe({
+      next: sub => {
+        this.subscription.set(sub);
+        // Auto-redirect new users with no subscription and no sites to onboarding
+        if (!sub) {
+          this.cyberscan.getMySites().subscribe({
+            next: sites => {
+              this.sites.set(sites);
+              this.loading.set(false);
+              if (sites.length === 0) {
+                this.router.navigate(['/cyberscan/onboarding']);
+                return;
+              }
+              sites.forEach(s => this.loadScans(s.id, 1));
+            },
+            error: () => this.loading.set(false),
+          });
+          return;
+        }
+        this.cyberscan.getMySites().subscribe({
+          next: sites => {
+            this.sites.set(sites);
+            this.loading.set(false);
+            sites.forEach(s => this.loadScans(s.id, 1));
+          },
+          error: () => this.loading.set(false),
+        });
       },
       error: () => this.loading.set(false),
+    });
+    this.loadNotifications();
+    // Poll notifications every 30s
+    this.notifPollSub = interval(30000).subscribe(() => this.loadNotifications());
+  }
+
+  loadNotifications() {
+    this.cyberscan.getNotifications().subscribe({
+      next: data => {
+        this.notifications.set(data.items);
+        this.unreadCount.set(data.unread_count);
+      },
+      error: () => {},
+    });
+  }
+
+  toggleNotifPanel(event: MouseEvent) {
+    event.stopPropagation();
+    this.showNotifPanel.update(v => !v);
+  }
+
+  handleNotifClick(notif: AppNotification) {
+    if (!notif.read) {
+      this.cyberscan.markNotificationRead(notif.id).subscribe({
+        next: updated => {
+          this.notifications.update(list => list.map(n => n.id === notif.id ? updated : n));
+          this.unreadCount.update(c => Math.max(0, c - 1));
+        },
+        error: () => {},
+      });
+    }
+    if (notif.link) {
+      this.router.navigateByUrl(notif.link);
+      this.showNotifPanel.set(false);
+    }
+  }
+
+  markAllRead() {
+    this.cyberscan.markAllNotificationsRead().subscribe({
+      next: () => {
+        this.notifications.update(list => list.map(n => ({ ...n, read: true })));
+        this.unreadCount.set(0);
+      },
+      error: () => {},
+    });
+  }
+
+  dismissNotif(event: MouseEvent, id: number) {
+    event.stopPropagation();
+    this.cyberscan.deleteNotification(id).subscribe({
+      next: () => {
+        const notif = this.notifications().find(n => n.id === id);
+        this.notifications.update(list => list.filter(n => n.id !== id));
+        if (notif && !notif.read) this.unreadCount.update(c => Math.max(0, c - 1));
+      },
+      error: () => {},
     });
   }
 
