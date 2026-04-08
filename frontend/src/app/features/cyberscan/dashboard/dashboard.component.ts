@@ -23,6 +23,7 @@ import { ThemeService } from '../../../core/services/theme.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
 import { computeScore, getGrade, getScoreColor } from '../../../shared/score-utils';
+import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 type ScanFilter = 'all' | 'done' | 'running' | 'error';
 
@@ -41,7 +42,7 @@ interface PaginatedScans {
     CommonModule, ReactiveFormsModule, RouterLink,
     MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule,
     MatFormFieldModule, MatInputModule, MatChipsModule, MatSnackBarModule,
-    MatDialogModule, MatPaginatorModule, SkeletonComponent, ScoreGaugeComponent,
+    MatDialogModule, MatPaginatorModule, SkeletonComponent, ScoreGaugeComponent, NavButtonsComponent,
   ],
   templateUrl: './dashboard.component.html',
 })
