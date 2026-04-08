@@ -3,11 +3,12 @@ import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { Title, Meta } from '@angular/platform-browser';
+import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
   selector: 'app-bonnes-pratiques',
   standalone: true,
-  imports: [RouterLink, MatIconModule, MatButtonModule],
+  imports: [RouterLink, MatIconModule, MatButtonModule, NavButtonsComponent],
   templateUrl: './bonnes-pratiques.component.html',
 })
 export class BonnesPratiquesComponent {

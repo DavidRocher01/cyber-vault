@@ -9,13 +9,14 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Title } from '@angular/platform-browser';
 
 import { CyberscanService, Plan } from '../services/cyberscan.service';
+import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
   selector: 'app-onboarding',
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule, RouterLink,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule, NavButtonsComponent,
   ],
   templateUrl: './onboarding.component.html',
   styles: [`

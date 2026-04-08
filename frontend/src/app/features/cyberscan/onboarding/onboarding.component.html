@@ -1,10 +1,13 @@
 <div class="min-h-screen flex flex-col items-center justify-center px-4 py-12 onboarding-bg">
 
-  <!-- Logo -->
-  <a routerLink="/cyberscan" class="flex items-center gap-2.5 mb-10">
-    <mat-icon class="text-cyan-400 !text-[2rem] !w-[2rem] !h-[2rem]">shield</mat-icon>
-    <span class="text-2xl font-bold text-cyan-400 tracking-tight">CyberScan</span>
-  </a>
+  <!-- Logo + nav -->
+  <div class="flex items-center justify-between w-full max-w-lg mb-10">
+    <app-nav-buttons />
+    <a routerLink="/cyberscan" class="flex items-center gap-2.5">
+      <mat-icon class="text-cyan-400 !text-[2rem] !w-[2rem] !h-[2rem]">shield</mat-icon>
+      <span class="text-2xl font-bold text-cyan-400 tracking-tight">CyberScan</span>
+    </a>
+  </div>
 
   <!-- Stepper header -->
   <div class="flex items-center gap-0 mb-10 w-full max-w-sm">

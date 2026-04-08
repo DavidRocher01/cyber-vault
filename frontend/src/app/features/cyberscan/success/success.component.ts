@@ -5,13 +5,17 @@ import { MatIconModule } from '@angular/material/icon';
 import { Title } from '@angular/platform-browser';
 import { CyberscanService } from '../services/cyberscan.service';
 import { CommonModule } from '@angular/common';
+import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
   selector: 'app-checkout-success',
   standalone: true,
-  imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule],
+  imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule, NavButtonsComponent],
   template: `
     <div class="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center gap-6 text-center px-8">
+      <div class="absolute top-4 left-4">
+        <app-nav-buttons />
+      </div>
       <div class="w-24 h-24 rounded-full bg-green-500/20 border-2 border-green-500 flex items-center justify-center mb-2">
         <mat-icon class="text-green-400 !text-[3rem] !w-[3rem] !h-[3rem]">check_circle</mat-icon>
       </div>
