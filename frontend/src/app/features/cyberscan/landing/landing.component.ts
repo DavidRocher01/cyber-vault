@@ -35,6 +35,7 @@ import { Title, Meta } from '@angular/platform-browser';
     MatInputModule,
   ],
   templateUrl: './landing.component.html',
+  styleUrl: './landing.component.css',
 })
 export class LandingComponent implements OnInit {
   private cyberscan = inject(CyberscanService);
