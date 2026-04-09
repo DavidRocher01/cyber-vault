@@ -1,7 +1,7 @@
 """newsletter double opt-in: add confirmation_token, confirmed_at, set is_active default False
 
 Revision ID: c1d2e3f4a5b6
-Revises: f6a7b8c9d0e1
+Revises: d397692772ea
 Create Date: 2026-04-08 16:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "c1d2e3f4a5b6"
-down_revision: Union[str, None] = "f6a7b8c9d0e1"
+down_revision: Union[str, None] = "d397692772ea"
 branch_labels = None
 depends_on = None
 
