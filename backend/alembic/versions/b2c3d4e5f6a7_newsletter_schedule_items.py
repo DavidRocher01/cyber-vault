@@ -16,7 +16,7 @@ down_revision: Union[str, None] = "c1d2e3f4a5b6"
 branch_labels = None
 depends_on = None
 
-_NOW = datetime.now(timezone.utc).isoformat()
+_NOW = datetime.now(timezone.utc)
 
 _SEED = [
     {
