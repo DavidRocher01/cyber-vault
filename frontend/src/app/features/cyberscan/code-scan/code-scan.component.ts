@@ -136,27 +136,13 @@ export class CodeScanComponent implements OnInit, OnDestroy {
     this.dragOver.set(false);
   }
 
-  /** Convert SSH URL to HTTPS and trim whitespace. */
-  private normalizeRepoUrl(url: string): string {
-    url = url.trim();
-    // git@github.com:user/repo.git → https://github.com/user/repo.git
-    const sshMatch = url.match(/^git@([^:]+):(.+)$/);
-    if (sshMatch) {
-      url = `https://${sshMatch[1]}/${sshMatch[2]}`;
-    }
-    return url;
-  }
-
-  onRepoUrlPaste(event: ClipboardEvent) {
-    event.preventDefault();
-    const text = event.clipboardData?.getData('text') ?? '';
-    this.form.controls.repo_url.setValue(this.normalizeRepoUrl(text));
-    this.form.controls.repo_url.markAsTouched();
-  }
-
-  trimRepoUrl() {
+  /** Normalize the repo_url control: trim + SSH → HTTPS. Called from template. */
+  normalizeRepoUrl() {
     const ctrl = this.form.controls.repo_url;
-    ctrl.setValue(this.normalizeRepoUrl(ctrl.value), { emitEvent: false });
+    let url = (ctrl.value ?? '').trim();
+    const sshMatch = url.match(/^git@([^:]+):(.+)$/);
+    if (sshMatch) url = `https://${sshMatch[1]}/${sshMatch[2]}`;
+    if (url !== ctrl.value) ctrl.setValue(url, { emitEvent: false });
   }
 
   submit() {
@@ -166,10 +152,10 @@ export class CodeScanComponent implements OnInit, OnDestroy {
     }
     if (this.form.invalid || this.submitting()) return;
     this.submitting.set(true);
+    this.normalizeRepoUrl();
     const { repo_url, github_token } = this.form.getRawValue();
-    const normalizedUrl = this.normalizeRepoUrl(repo_url);
 
-    this.cyberscan.triggerCodeScan(normalizedUrl, github_token || undefined).subscribe({
+    this.cyberscan.triggerCodeScan(repo_url, github_token || undefined).subscribe({
       next: res => {
         this.submitting.set(false);
         this.form.patchValue({ repo_url: '', github_token: '' });
