@@ -6,7 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router } from '@angular/router';
-import { combineLatest, map, take } from 'rxjs';
+import { combineLatest, filter, map, take } from 'rxjs';
 
 import { HotToastService } from '@ngneat/hot-toast';
 
@@ -275,7 +275,9 @@ export class VaultDashboardComponent implements OnInit {
   }
 
   async exportVault() {
-    this.store.items$.pipe(take(1)).subscribe(async items => {
+    combineLatest([this.store.items$, this.store.loading$])
+      .pipe(filter(([, loading]) => !loading), take(1), map(([items]) => items))
+      .subscribe(async items => {
       const exportedAt = new Date().toISOString();
       const data = await Promise.all(items.map(async item => {
         let password: string | null = null;
