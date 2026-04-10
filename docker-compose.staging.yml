@@ -25,7 +25,7 @@ services:
       APP_ENV: staging
       SECRET_KEY: staging-secret-key-change-in-prod-64chars-minimum
       DATABASE_URL: postgresql+asyncpg://postgres:staging_password@postgres:5432/cybervault_staging
-      ALLOWED_ORIGINS: '["http://localhost:4201"]'
+      ALLOWED_ORIGINS: '["http://localhost:4200", "http://localhost:4201"]'
     ports:
       - "8001:8000"
     depends_on:
