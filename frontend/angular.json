@@ -67,7 +67,8 @@
               "buildTarget": "cyber-vault-frontend:build:production"
             },
             "development": {
-              "buildTarget": "cyber-vault-frontend:build:development"
+              "buildTarget": "cyber-vault-frontend:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"
