@@ -28,7 +28,7 @@ stripe==10.5.0
 apscheduler==3.10.4
 
 # Outils d'analyse de code
-bandit==1.7.9
+bandit==1.9.4
 pip-audit==2.7.3
 semgrep==1.72.0
 detect-secrets==1.5.0
