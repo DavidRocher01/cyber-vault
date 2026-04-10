@@ -68,13 +68,13 @@
                      [class.border-gray-700]="!form.controls.repo_url.touched || form.controls.repo_url.valid">
                   <mat-icon class="text-gray-500 ml-4 flex-shrink-0 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">hub</mat-icon>
                   <input type="text" formControlName="repo_url"
-                         placeholder="https://github.com/owner/repo  ou  https://gitlab.com/owner/repo"
+                         placeholder="https://github.com/owner/repo  ou  git@github.com:owner/repo.git"
                          autocomplete="off" spellcheck="false"
                          (blur)="trimRepoUrl()"
                          class="flex-1 bg-transparent px-4 py-4 text-sm placeholder-gray-600 outline-none" />
                 </div>
                 @if (form.controls.repo_url.touched && form.controls.repo_url.invalid) {
-                  <p class="text-xs text-red-400 -mt-2">URL valide requise (https://...)</p>
+                  <p class="text-xs text-red-400 -mt-2">URL requise — formats acceptés : https://… ou git@host:…</p>
                 }
                 <p class="text-xs text-gray-500 -mt-2">Compatible GitHub, GitLab, Bitbucket, Azure DevOps ou tout hôte Git accessible.</p>
 

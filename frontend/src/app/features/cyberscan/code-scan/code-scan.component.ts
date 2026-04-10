@@ -52,8 +52,11 @@ export class CodeScanComponent implements OnInit, OnDestroy {
   private snack = inject(MatSnackBar);
   private pollSubs: RxSubscription[] = [];
 
+  // Accepts: https://, http://, git@host:path, git://
+  private static readonly REPO_URL_RE = /^(https?:\/\/.+|git@[^:]+:.+|git:\/\/.+)/;
+
   form = this.fb.nonNullable.group({
-    repo_url: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]],
+    repo_url: ['', [Validators.required, Validators.pattern(CodeScanComponent.REPO_URL_RE)]],
     github_token: [''],
     show_token: [false],
   });
@@ -133,9 +136,20 @@ export class CodeScanComponent implements OnInit, OnDestroy {
     this.dragOver.set(false);
   }
 
+  /** Convert SSH URL to HTTPS and trim whitespace. */
+  private normalizeRepoUrl(url: string): string {
+    url = url.trim();
+    // git@github.com:user/repo.git → https://github.com/user/repo.git
+    const sshMatch = url.match(/^git@([^:]+):(.+)$/);
+    if (sshMatch) {
+      url = `https://${sshMatch[1]}/${sshMatch[2]}`;
+    }
+    return url;
+  }
+
   trimRepoUrl() {
     const ctrl = this.form.controls.repo_url;
-    ctrl.setValue(ctrl.value.trim(), { emitEvent: false });
+    ctrl.setValue(this.normalizeRepoUrl(ctrl.value), { emitEvent: false });
   }
 
   submit() {
@@ -146,8 +160,9 @@ export class CodeScanComponent implements OnInit, OnDestroy {
     if (this.form.invalid || this.submitting()) return;
     this.submitting.set(true);
     const { repo_url, github_token } = this.form.getRawValue();
+    const normalizedUrl = this.normalizeRepoUrl(repo_url);
 
-    this.cyberscan.triggerCodeScan(repo_url, github_token || undefined).subscribe({
+    this.cyberscan.triggerCodeScan(normalizedUrl, github_token || undefined).subscribe({
       next: res => {
         this.submitting.set(false);
         this.form.patchValue({ repo_url: '', github_token: '' });
