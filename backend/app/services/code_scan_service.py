@@ -143,6 +143,244 @@ def _run_semgrep(repo_dir: str) -> list[dict]:
     return findings
 
 
+def _run_gitleaks(repo_dir: str) -> list[dict]:
+    """Run gitleaks to detect hardcoded secrets and credentials."""
+    report_file = "gitleaks-report.json"
+    report_path = os.path.join(repo_dir, report_file)
+    _run(
+        [
+            "gitleaks", "detect", "--source", ".",
+            "--no-git",
+            "--report-format", "json",
+            "--report-path", report_file,
+            "--exit-code", "0",
+        ],
+        cwd=repo_dir,
+        timeout=120,
+    )
+    if not os.path.isfile(report_path):
+        return []
+    try:
+        with open(report_path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        logger.warning(f"gitleaks report parse error: {e}")
+        return []
+
+    if not isinstance(data, list):
+        return []
+
+    findings = []
+    for leak in data:
+        match_preview = (leak.get("Match") or "")[:80]
+        findings.append({
+            "tool": "gitleaks",
+            "severity": "critical",
+            "rule": leak.get("RuleID", ""),
+            "title": leak.get("Description", "Secret détecté"),
+            "message": f"Secret potentiel : {match_preview}" if match_preview else "Secret potentiel détecté",
+            "file": (leak.get("File") or "").replace(repo_dir, "").lstrip("/\\"),
+            "line": leak.get("StartLine"),
+            "confidence": "high",
+        })
+    return findings
+
+
+def _run_npm_audit(repo_dir: str) -> list[dict]:
+    """Run npm audit if package.json is present. Supports npm 7+ JSON v2 format."""
+    if not os.path.isfile(os.path.join(repo_dir, "package.json")):
+        logger.info("npm audit: no package.json found, skipping")
+        return []
+
+    # Generate lock file without installing if missing
+    if not os.path.isfile(os.path.join(repo_dir, "package-lock.json")):
+        logger.info("npm audit: generating package-lock.json")
+        _run(
+            ["npm", "install", "--package-lock-only", "--ignore-scripts", "--no-audit"],
+            cwd=repo_dir,
+            timeout=120,
+        )
+
+    _code, stdout, stderr = _run(
+        ["npm", "audit", "--json"],
+        cwd=repo_dir,
+        timeout=120,
+    )
+    if not stdout:
+        logger.warning(f"npm audit produced no output: {stderr[:300]}")
+        return []
+    try:
+        data = json.loads(stdout)
+    except json.JSONDecodeError:
+        logger.warning(f"npm audit JSON parse error: {stdout[:200]}")
+        return []
+
+    severity_map = {
+        "critical": "critical",
+        "high": "high",
+        "moderate": "medium",
+        "low": "low",
+        "info": "low",
+    }
+
+    findings = []
+    # npm 7+ format: data["vulnerabilities"] is a dict keyed by package name
+    for pkg_name, vuln in data.get("vulnerabilities", {}).items():
+        via = vuln.get("via", [])
+        advisories = [v for v in via if isinstance(v, dict)]
+        if advisories:
+            for adv in advisories:
+                sev = severity_map.get(adv.get("severity", vuln.get("severity", "low")), "low")
+                findings.append({
+                    "tool": "npm-audit",
+                    "severity": sev,
+                    "rule": str(adv.get("source", "")),
+                    "title": adv.get("title", f"Vulnérabilité dans {pkg_name}"),
+                    "message": adv.get("url", adv.get("title", "")),
+                    "file": "package.json",
+                    "line": None,
+                    "confidence": "high",
+                    "fix_versions": [],
+                })
+        else:
+            sev = severity_map.get(vuln.get("severity", "low"), "low")
+            findings.append({
+                "tool": "npm-audit",
+                "severity": sev,
+                "rule": "",
+                "title": f"Vulnérabilité dans {pkg_name}",
+                "message": f"Paquet affecté : {pkg_name} ({vuln.get('range', '')})",
+                "file": "package.json",
+                "line": None,
+                "confidence": "high",
+                "fix_versions": [],
+            })
+    return findings
+
+
+def _run_detect_secrets(repo_dir: str) -> list[dict]:
+    """Run detect-secrets to find potential secrets with entropy analysis."""
+    code, stdout, stderr = _run(
+        ["detect-secrets", "scan", "."],
+        cwd=repo_dir,
+        timeout=120,
+    )
+    if not stdout:
+        logger.warning(f"detect-secrets produced no output: {stderr[:300]}")
+        return []
+    try:
+        data = json.loads(stdout)
+    except json.JSONDecodeError:
+        logger.warning(f"detect-secrets JSON parse error: {stdout[:200]}")
+        return []
+
+    findings = []
+    for file_path, secrets in data.get("results", {}).items():
+        for secret in secrets:
+            findings.append({
+                "tool": "detect-secrets",
+                "severity": "critical",
+                "rule": secret.get("type", ""),
+                "title": secret.get("type", "Secret potentiel"),
+                "message": f"Secret potentiel à la ligne {secret.get('line_number', '?')} (non vérifié)",
+                "file": file_path.replace(repo_dir, "").lstrip("/\\"),
+                "line": secret.get("line_number"),
+                "confidence": "medium",
+            })
+    return findings
+
+
+def _run_trivy(repo_dir: str) -> list[dict]:
+    """Run trivy fs for multi-ecosystem CVE detection (pip, npm, go, cargo, …)."""
+    code, stdout, stderr = _run(
+        ["trivy", "fs", ".", "--format", "json", "--quiet", "--no-progress"],
+        cwd=repo_dir,
+        timeout=180,
+    )
+    if not stdout:
+        logger.warning(f"trivy produced no output: {stderr[:300]}")
+        return []
+    try:
+        data = json.loads(stdout)
+    except json.JSONDecodeError:
+        logger.warning(f"trivy JSON parse error: {stdout[:200]}")
+        return []
+
+    severity_map = {
+        "CRITICAL": "critical",
+        "HIGH": "high",
+        "MEDIUM": "medium",
+        "LOW": "low",
+        "UNKNOWN": "low",
+    }
+
+    findings = []
+    for result in data.get("Results", []):
+        target = result.get("Target", "")
+        for vuln in result.get("Vulnerabilities", []) or []:
+            sev = severity_map.get(vuln.get("Severity", "UNKNOWN").upper(), "low")
+            findings.append({
+                "tool": "trivy",
+                "severity": sev,
+                "rule": vuln.get("VulnerabilityID", ""),
+                "title": vuln.get("Title") or f"CVE dans {vuln.get('PkgName', '?')}",
+                "message": (vuln.get("Description") or "")[:300],
+                "file": target,
+                "line": None,
+                "confidence": "high",
+                "fix_versions": [vuln["FixedVersion"]] if vuln.get("FixedVersion") else [],
+            })
+    return findings
+
+
+def _run_checkov(repo_dir: str) -> list[dict]:
+    """Run checkov to detect IaC misconfigurations (Dockerfile, k8s, Terraform, …)."""
+    code, stdout, stderr = _run(
+        ["checkov", "-d", ".", "--output", "json", "--quiet", "--compact"],
+        cwd=repo_dir,
+        timeout=180,
+    )
+    if not stdout:
+        logger.warning(f"checkov produced no output: {stderr[:300]}")
+        return []
+    try:
+        raw = json.loads(stdout)
+    except json.JSONDecodeError:
+        logger.warning(f"checkov JSON parse error: {stdout[:200]}")
+        return []
+
+    severity_map = {
+        "CRITICAL": "critical",
+        "HIGH": "high",
+        "MEDIUM": "medium",
+        "LOW": "low",
+    }
+
+    # checkov may return a single dict or a list when multiple frameworks are scanned
+    results_list = raw if isinstance(raw, list) else [raw]
+
+    findings = []
+    for block in results_list:
+        failed = block.get("results", {}).get("failed_checks", [])
+        for check in failed:
+            sev_raw = (check.get("severity") or "MEDIUM").upper()
+            sev = severity_map.get(sev_raw, "medium")
+            check_meta = check.get("check", {}) if isinstance(check.get("check"), dict) else {}
+            check_id = check.get("check_id", check_meta.get("id", ""))
+            check_name = check_meta.get("name", check_id)
+            findings.append({
+                "tool": "checkov",
+                "severity": sev,
+                "rule": check_id,
+                "title": check_name,
+                "message": f"Échec de la règle {check_id} sur {check.get('resource', '?')}",
+                "file": (check.get("file_path") or "").lstrip("/\\"),
+                "line": (check.get("file_line_range") or [None])[0],
+                "confidence": "high",
+            })
+    return findings
+
+
 def _run_pip_audit(repo_dir: str) -> list[dict]:
     """
     Run pip-audit on requirements.txt / pyproject.toml if present.
@@ -250,6 +488,21 @@ async def run_code_scan(scan_id: int, db: AsyncSession) -> None:
         logger.info(f"CodeScan {scan_id}: running pip-audit")
         all_findings.extend(_run_pip_audit(repo_dir))
 
+        logger.info(f"CodeScan {scan_id}: running gitleaks")
+        all_findings.extend(_run_gitleaks(repo_dir))
+
+        logger.info(f"CodeScan {scan_id}: running detect-secrets")
+        all_findings.extend(_run_detect_secrets(repo_dir))
+
+        logger.info(f"CodeScan {scan_id}: running npm audit")
+        all_findings.extend(_run_npm_audit(repo_dir))
+
+        logger.info(f"CodeScan {scan_id}: running trivy")
+        all_findings.extend(_run_trivy(repo_dir))
+
+        logger.info(f"CodeScan {scan_id}: running checkov")
+        all_findings.extend(_run_checkov(repo_dir))
+
         # ── Aggregate ──────────────────────────────────────────────────────
         counts = _count_severities(all_findings)
         total = sum(counts.values())
@@ -327,6 +580,16 @@ async def run_code_scan_zip(scan_id: int, zip_path: str, db: AsyncSession) -> No
         all_findings.extend(_run_semgrep(repo_dir))
         logger.info(f"CodeScan {scan_id}: running pip-audit")
         all_findings.extend(_run_pip_audit(repo_dir))
+        logger.info(f"CodeScan {scan_id}: running gitleaks")
+        all_findings.extend(_run_gitleaks(repo_dir))
+        logger.info(f"CodeScan {scan_id}: running detect-secrets")
+        all_findings.extend(_run_detect_secrets(repo_dir))
+        logger.info(f"CodeScan {scan_id}: running npm audit")
+        all_findings.extend(_run_npm_audit(repo_dir))
+        logger.info(f"CodeScan {scan_id}: running trivy")
+        all_findings.extend(_run_trivy(repo_dir))
+        logger.info(f"CodeScan {scan_id}: running checkov")
+        all_findings.extend(_run_checkov(repo_dir))
 
         counts = _count_severities(all_findings)
         total = sum(counts.values())

@@ -48,6 +48,10 @@ export class UserService {
     return `${API}/users/me/export`;
   }
 
+  exportMyDataBlob(): Observable<Blob> {
+    return this.http.get(`${API}/users/me/export`, { responseType: 'blob' });
+  }
+
   deleteAccount(password: string): Observable<void> {
     return this.http.delete<void>(`${API}/users/me`, { body: { password } });
   }

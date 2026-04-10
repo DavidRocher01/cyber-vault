@@ -133,6 +133,11 @@ export class CodeScanComponent implements OnInit, OnDestroy {
     this.dragOver.set(false);
   }
 
+  trimRepoUrl() {
+    const ctrl = this.form.controls.repo_url;
+    ctrl.setValue(ctrl.value.trim(), { emitEvent: false });
+  }
+
   submit() {
     if (this.mode() === 'zip') {
       this.submitZip();
@@ -246,10 +251,15 @@ export class CodeScanComponent implements OnInit, OnDestroy {
 
   toolBadge(tool: string): string {
     switch (tool) {
-      case 'bandit':    return 'bg-purple-900/40 border-purple-700 text-purple-300';
-      case 'semgrep':   return 'bg-blue-900/40 border-blue-700 text-blue-300';
-      case 'pip-audit': return 'bg-yellow-900/40 border-yellow-700 text-yellow-300';
-      default:          return 'bg-gray-700/30 border-gray-600 text-gray-400';
+      case 'bandit':         return 'bg-purple-900/40 border-purple-700 text-purple-300';
+      case 'semgrep':        return 'bg-blue-900/40 border-blue-700 text-blue-300';
+      case 'pip-audit':      return 'bg-yellow-900/40 border-yellow-700 text-yellow-300';
+      case 'gitleaks':       return 'bg-red-900/40 border-red-700 text-red-300';
+      case 'detect-secrets': return 'bg-pink-900/40 border-pink-700 text-pink-300';
+      case 'npm-audit':      return 'bg-green-900/40 border-green-700 text-green-300';
+      case 'trivy':          return 'bg-cyan-900/40 border-cyan-700 text-cyan-300';
+      case 'checkov':        return 'bg-orange-900/40 border-orange-700 text-orange-300';
+      default:               return 'bg-gray-700/30 border-gray-600 text-gray-400';
     }
   }
 

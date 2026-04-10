@@ -177,8 +177,30 @@ export class ProfileComponent implements OnInit {
     password: ['', Validators.required],
   });
 
+  exportingData = signal(false);
+
   exportUrl(): string {
     return this.userService.exportMyData();
+  }
+
+  exportData() {
+    this.exportingData.set(true);
+    this.userService.exportMyDataBlob().subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cyberscan_mes_donnees_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.exportingData.set(false);
+        this.snack.open('Export téléchargé', 'OK', { duration: 3000 });
+      },
+      error: () => {
+        this.exportingData.set(false);
+        this.snack.open('Erreur lors de l\'export', 'Fermer', { duration: 4000 });
+      },
+    });
   }
 
   deleteAccount() {

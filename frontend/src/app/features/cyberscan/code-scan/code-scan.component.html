@@ -23,7 +23,7 @@
         <h1 class="text-3xl font-bold">Analyse de sécurité du code</h1>
       </div>
       <p class="text-gray-400 text-sm ml-13">
-        Analysez un dépôt Git ou une archive ZIP avec Bandit, Semgrep et pip-audit. Détection de failles SAST et dépendances vulnérables.
+        Analysez un dépôt Git ou une archive ZIP. Détection SAST, secrets hardcodés, CVE multi-écosystèmes et mauvaises configurations IaC.
       </p>
     </div>
 
@@ -67,9 +67,10 @@
                      [class.border-red-600]="form.controls.repo_url.touched && form.controls.repo_url.invalid"
                      [class.border-gray-700]="!form.controls.repo_url.touched || form.controls.repo_url.valid">
                   <mat-icon class="text-gray-500 ml-4 flex-shrink-0 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">hub</mat-icon>
-                  <input type="url" formControlName="repo_url"
+                  <input type="text" formControlName="repo_url"
                          placeholder="https://github.com/owner/repo  ou  https://gitlab.com/owner/repo"
-                         autocomplete="off"
+                         autocomplete="off" spellcheck="false"
+                         (blur)="trimRepoUrl()"
                          class="flex-1 bg-transparent px-4 py-4 text-sm placeholder-gray-600 outline-none" />
                 </div>
                 @if (form.controls.repo_url.touched && form.controls.repo_url.invalid) {
@@ -140,7 +141,7 @@
                     <p class="text-xs text-gray-600 mt-2">Fichier .zip uniquement — max 50 MB</p>
                   }
                 </div>
-                <input #zipInput type="file" accept=".zip" class="hidden" (change)="onFileSelected($event)" />
+                <input #zipInput type="file" accept=".zip" class="hidden" (change)="onFileSelected($event)" aria-label="Sélectionner un fichier ZIP" />
 
                 <p class="text-xs text-gray-500">Zippez la racine de votre projet (avec requirements.txt, package.json, etc. à la racine ou dans un sous-dossier).</p>
 
@@ -181,7 +182,7 @@
               <div class="flex flex-col items-center justify-center py-12 gap-4">
                 <mat-spinner diameter="40"></mat-spinner>
                 <p class="text-sm text-gray-400">Clonage du dépôt et analyse en cours…</p>
-                <p class="text-xs text-gray-600">Bandit · Semgrep · pip-audit</p>
+                <p class="text-xs text-gray-600">Bandit · Semgrep · pip-audit · gitleaks · detect-secrets · npm-audit · trivy · checkov</p>
               </div>
             } @else if (scan.status === 'failed') {
               <div class="bg-red-900/20 border border-red-800 rounded-xl p-4 text-sm text-red-300">
@@ -220,7 +221,7 @@
                   <!-- Filter tabs -->
                   <div class="flex gap-2 mb-4 flex-wrap">
                     @for (tab of [['all','Tout'], ['critical','Critique'], ['high','Élevé'], ['medium','Moyen'], ['low','Faible']]; track tab[0]) {
-                      <button (click)="activeTab.set($any(tab[0]))"
+                      <button type="button" (click)="activeTab.set($any(tab[0]))"
                               class="px-3 py-1 rounded-lg text-xs font-medium border transition-colors"
                               [class.bg-purple-600]="activeTab() === tab[0]"
                               [class.border-purple-500]="activeTab() === tab[0]"
@@ -334,7 +335,7 @@
                   </div>
                 }
 
-                <button (click)="$event.stopPropagation(); deleteScan(scan)"
+                <button type="button" (click)="$event.stopPropagation(); deleteScan(scan)"
                         class="mt-2 text-xs text-gray-600 hover:text-red-400 transition-colors flex items-center gap-1">
                   <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">delete</mat-icon>
                   Supprimer
@@ -368,7 +369,27 @@
             </div>
             <div class="flex items-center gap-2">
               <span class="text-[10px] px-1.5 py-0.5 rounded border bg-yellow-900/40 border-yellow-700 text-yellow-300">pip-audit</span>
-              <span class="text-xs text-gray-500">CVE sur dépendances Python</span>
+              <span class="text-xs text-gray-500">CVE dépendances Python</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-1.5 py-0.5 rounded border bg-red-900/40 border-red-700 text-red-300">gitleaks</span>
+              <span class="text-xs text-gray-500">Secrets &amp; clés API hardcodés</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-1.5 py-0.5 rounded border bg-pink-900/40 border-pink-700 text-pink-300">detect-secrets</span>
+              <span class="text-xs text-gray-500">Secrets par entropie (Yelp)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-1.5 py-0.5 rounded border bg-green-900/40 border-green-700 text-green-300">npm-audit</span>
+              <span class="text-xs text-gray-500">CVE dépendances Node.js</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-1.5 py-0.5 rounded border bg-cyan-900/40 border-cyan-700 text-cyan-300">trivy</span>
+              <span class="text-xs text-gray-500">CVE multi-écosystèmes (pip, npm, go…)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-1.5 py-0.5 rounded border bg-orange-900/40 border-orange-700 text-orange-300">checkov</span>
+              <span class="text-xs text-gray-500">Mauvaises configs IaC (Docker, k8s…)</span>
             </div>
           </div>
         </div>
