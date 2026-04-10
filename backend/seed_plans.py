@@ -1,5 +1,5 @@
 """
-Seed the plans table with the 3 CyberScan subscription plans.
+Seed the plans table with the 4 CyberScan subscription plans.
 Run once: python seed_plans.py
 Update stripe_price_id after creating prices in Stripe dashboard.
 """
@@ -16,29 +16,38 @@ from sqlalchemy import select
 
 PLANS = [
     {
+        "name":               "free",
+        "display_name":       "Gratuit",
+        "price_eur":          0,           # 0,00 €
+        "max_sites":          1,
+        "scan_interval_days": 0,           # scan manuel uniquement
+        "tier_level":         1,
+        "stripe_price_id":    "",
+    },
+    {
         "name":               "starter",
         "display_name":       "Starter",
-        "price_eur":          900,       # 9,00 €
+        "price_eur":          2900,        # 29,00 €
         "max_sites":          1,
         "scan_interval_days": 30,
         "tier_level":         2,
-        "stripe_price_id":    "",        # À remplir après création dans Stripe
+        "stripe_price_id":    "",          # À remplir après création dans Stripe
     },
     {
         "name":               "pro",
         "display_name":       "Pro",
-        "price_eur":          2900,      # 29,00 €
+        "price_eur":          4900,        # 49,00 €
         "max_sites":          3,
-        "scan_interval_days": 30,
+        "scan_interval_days": 7,
         "tier_level":         3,
         "stripe_price_id":    "",
     },
     {
         "name":               "business",
         "display_name":       "Business",
-        "price_eur":          7900,      # 79,00 €
+        "price_eur":          7900,        # 79,00 €
         "max_sites":          10,
-        "scan_interval_days": 7,
+        "scan_interval_days": 1,
         "tier_level":         4,
         "stripe_price_id":    "",
     },
@@ -51,7 +60,14 @@ async def seed():
             result = await db.execute(select(Plan).where(Plan.name == plan_data["name"]))
             existing = result.scalar_one_or_none()
             if existing:
-                print(f"Plan '{plan_data['name']}' déjà présent — ignoré")
+                # Mettre à jour le prix si différent
+                if existing.price_eur != plan_data["price_eur"]:
+                    existing.price_eur = plan_data["price_eur"]
+                    existing.max_sites = plan_data["max_sites"]
+                    existing.scan_interval_days = plan_data["scan_interval_days"]
+                    print(f"Plan '{plan_data['name']}' mis à jour")
+                else:
+                    print(f"Plan '{plan_data['name']}' déjà à jour — ignoré")
                 continue
             plan = Plan(**plan_data)
             db.add(plan)

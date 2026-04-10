@@ -351,18 +351,19 @@ export class LandingComponent implements OnInit {
 
   comparisonRows = [
     { label: 'Sites surveillés', starter: '1', pro: '3', business: '10' },
-    { label: 'Fréquence des scans', starter: 'Mensuel', pro: 'Mensuel', business: 'Hebdomadaire' },
+    { label: 'Fréquence des scans', starter: 'Mensuel', pro: 'Hebdomadaire', business: 'Quotidien' },
     { label: 'Rapport PDF', starter: true, pro: true, business: true },
     { label: 'Headers & SSL', starter: true, pro: true, business: true },
     { label: 'TLS audit / Threat Intel', starter: false, pro: true, business: true },
     { label: 'JWT / Clickjacking / Redirects', starter: false, pro: false, business: true },
     { label: 'Alerte email CRITICAL', starter: false, pro: true, business: true },
-    { label: 'Support prioritaire', starter: false, pro: false, business: true },
+    { label: 'Rapport blanc (logo client)', starter: false, pro: false, business: true },
+    { label: 'Support prioritaire 24h', starter: false, pro: false, business: true },
   ];
 
   ngOnInit() {
     this.titleService.setTitle('CyberScan — Audit de sécurité web automatisé');
-    this.meta.updateTag({ name: 'description', content: 'Scannez vos sites web, détectez les vulnérabilités et recevez des rapports PDF complets. Plans à partir de 9€/mois.' });
+    this.meta.updateTag({ name: 'description', content: 'Scannez vos sites web, détectez les vulnérabilités et recevez des rapports PDF complets. Plans à partir de 29€/mois.' });
     this.themeService.apply();
     this.cyberscan.getPlans().subscribe({
       next: plans => { this.plans = plans; this.loading = false; },
