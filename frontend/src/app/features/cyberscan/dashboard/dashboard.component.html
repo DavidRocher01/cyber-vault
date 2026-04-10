@@ -1,30 +1,30 @@
-<div class="min-h-screen bg-gray-900 text-white">
+<div class="min-h-screen dashboard-bg text-white">
 
-  <!-- Navbar -->
-  <nav class="flex items-center justify-between px-8 py-4 border-b border-gray-800">
+  <!-- ── Navbar ─────────────────────────────────────────────────────────────── -->
+  <nav class="sticky top-0 z-40 flex items-center justify-between px-6 py-3 border-b border-white/5 backdrop-blur-md bg-gray-900/80">
     <a routerLink="/cyberscan" class="flex items-center gap-2">
-      <mat-icon class="text-cyan-400">shield</mat-icon>
-      <span class="text-xl font-bold text-cyan-400">CyberScan</span>
+      <mat-icon class="text-cyan-400 !text-[1.6rem] !w-[1.6rem] !h-[1.6rem]">shield</mat-icon>
+      <span class="text-lg font-bold text-white">Cyber<span class="text-cyan-400">Scan</span></span>
     </a>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-1">
       <app-nav-buttons />
-      <a routerLink="/cyberscan" mat-button class="!text-white font-medium">{{ i18n.t('nav.home') }}</a>
-      <a routerLink="/cyberscan/profile" mat-button class="!text-white font-medium">
-        <mat-icon class="mr-1">person</mat-icon>{{ i18n.t('nav.profile') }}
+      <a routerLink="/cyberscan" mat-icon-button class="!text-gray-400 hover:!text-white" title="Accueil">
+        <mat-icon>home</mat-icon>
+      </a>
+      <a routerLink="/cyberscan/profile" mat-icon-button class="!text-gray-400 hover:!text-white" title="Profil">
+        <mat-icon>person</mat-icon>
       </a>
 
-      <!-- Notification bell -->
+      <!-- Notifications -->
       <div class="relative notif-panel-anchor">
-        <button type="button" mat-icon-button (click)="toggleNotifPanel($event)" class="relative !text-white" aria-label="Notifications">
+        <button type="button" mat-icon-button (click)="toggleNotifPanel($event)" class="relative !text-gray-400 hover:!text-white">
           <mat-icon>notifications</mat-icon>
           @if (unreadCount() > 0) {
-            <span class="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+            <span class="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
               {{ unreadCount() > 9 ? '9+' : unreadCount() }}
             </span>
           }
         </button>
-
-        <!-- Notification dropdown -->
         @if (showNotifPanel()) {
           <div class="absolute right-0 top-full mt-2 w-80 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden"
                (click)="$event.stopPropagation()">
@@ -34,7 +34,6 @@
                 <button type="button" mat-button class="!text-xs !text-cyan-400 !px-0" (click)="markAllRead()">Tout lire</button>
               }
             </div>
-
             @if (notifications().length === 0) {
               <div class="py-8 text-center text-gray-500 text-sm">
                 <mat-icon class="!text-3xl mb-2 text-gray-600">notifications_none</mat-icon>
@@ -47,16 +46,12 @@
                        [class]="notif.read ? 'hover:bg-gray-700/40' : 'bg-gray-700/60 hover:bg-gray-700'"
                        (click)="handleNotifClick(notif)">
                     <div class="flex-1 min-w-0">
-                      <p class="text-sm font-medium leading-snug truncate" [class]="notif.read ? 'text-gray-300' : 'text-white'">
-                        {{ notif.title }}
-                      </p>
-                      @if (notif.body) {
-                        <p class="text-xs text-gray-500 mt-0.5 truncate">{{ notif.body }}</p>
-                      }
+                      <p class="text-sm font-medium leading-snug truncate" [class]="notif.read ? 'text-gray-300' : 'text-white'">{{ notif.title }}</p>
+                      @if (notif.body) { <p class="text-xs text-gray-500 mt-0.5 truncate">{{ notif.body }}</p> }
                       <p class="text-[10px] text-gray-600 mt-1">{{ formatDate(notif.created_at) }}</p>
                     </div>
                     <button type="button" mat-icon-button class="!w-6 !h-6 !text-gray-500 hover:!text-gray-300 flex-shrink-0 !min-w-0"
-                            (click)="dismissNotif($event, notif.id)" aria-label="Supprimer">
+                            (click)="dismissNotif($event, notif.id)">
                       <mat-icon class="!text-sm">close</mat-icon>
                     </button>
                   </div>
@@ -67,358 +62,354 @@
         }
       </div>
 
-      <a routerLink="/auth/login" mat-button class="!text-white font-medium">{{ i18n.t('nav.logout') }}</a>
+      <a routerLink="/auth/login" mat-icon-button class="!text-gray-400 hover:!text-red-400" title="Déconnexion">
+        <mat-icon>logout</mat-icon>
+      </a>
     </div>
   </nav>
 
-  <div class="max-w-6xl mx-auto px-6 py-10">
+  <div class="max-w-6xl mx-auto px-6 py-8">
 
-    <!-- Subscription Banner — skeleton -->
+    <!-- ── Skeleton ────────────────────────────────────────────────────────── -->
     @if (loading()) {
-      <div class="mb-8 flex flex-col gap-3">
-        <app-skeleton height="5rem" cssClass="rounded-xl"></app-skeleton>
+      <div class="flex flex-col gap-4">
+        <app-skeleton height="5rem" cssClass="rounded-2xl"></app-skeleton>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          @for (i of [1,2,3,4]; track i) { <app-skeleton height="5rem" cssClass="rounded-xl"></app-skeleton> }
+        </div>
+        <app-skeleton height="12rem" cssClass="rounded-2xl"></app-skeleton>
       </div>
     }
 
-    <!-- Subscription Banner -->
     @if (!loading()) {
+
+      <!-- ── Subscription Banner ─────────────────────────────────────────── -->
       @if (subscription(); as sub) {
-        <div class="flex items-center justify-between bg-gray-800 border border-gray-700 rounded-xl px-6 py-4 mb-8 flex-wrap gap-4">
-          <div class="flex items-center gap-3">
-            <mat-icon class="text-cyan-400">workspace_premium</mat-icon>
+        <div class="relative overflow-hidden rounded-2xl border border-cyan-500/20 bg-gradient-to-r from-cyan-950/60 to-gray-800/60 px-6 py-5 mb-6 flex items-center justify-between flex-wrap gap-4">
+          <div class="absolute inset-0 pointer-events-none">
+            <div class="absolute -top-10 -left-10 w-40 h-40 rounded-full bg-cyan-500/5 blur-2xl"></div>
+          </div>
+          <div class="flex items-center gap-4 relative">
+            <div class="w-11 h-11 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center flex-shrink-0">
+              <mat-icon class="text-cyan-400 !text-[1.3rem] !w-[1.3rem] !h-[1.3rem]">workspace_premium</mat-icon>
+            </div>
             <div>
-              <p class="font-semibold">Plan <span class="text-cyan-400">{{ sub.plan.display_name }}</span></p>
-              <p class="text-sm text-gray-400">
-                {{ sites().length }} / {{ sub.plan.max_sites }} site{{ sub.plan.max_sites > 1 ? 's' : '' }} —
-                Scan tous les {{ sub.plan.scan_interval_days }} jours
+              <p class="font-bold text-white">Plan <span class="text-cyan-400">{{ sub.plan.display_name }}</span></p>
+              <p class="text-sm text-gray-400 mt-0.5">
+                <span class="text-white font-medium">{{ sites().length }}</span>/{{ sub.plan.max_sites }} site{{ sub.plan.max_sites > 1 ? 's' : '' }}
+                &nbsp;·&nbsp; Scan tous les <span class="text-white font-medium">{{ sub.plan.scan_interval_days }}</span> jours
               </p>
             </div>
           </div>
-          <button mat-stroked-button type="button" (click)="openBillingPortal()" class="border-gray-600 text-gray-300">
-            <mat-icon class="mr-1">manage_accounts</mat-icon>
-            {{ i18n.t('plan.manage') }}
+          <button type="button" (click)="openBillingPortal()"
+                  class="relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-gray-300 hover:text-white border border-gray-600 hover:border-gray-400 bg-gray-800/60 transition-all">
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">manage_accounts</mat-icon>
+            Gérer l'abonnement
           </button>
         </div>
       } @else {
-        <div class="flex items-center justify-between bg-yellow-900/30 border border-yellow-700 rounded-xl px-6 py-4 mb-8">
+        <div class="flex items-center justify-between bg-amber-950/40 border border-amber-700/50 rounded-2xl px-6 py-4 mb-6 flex-wrap gap-3">
           <div class="flex items-center gap-3">
-            <mat-icon class="text-yellow-400">warning</mat-icon>
-            <p class="text-yellow-300">Aucun abonnement actif. Choisissez un plan pour commencer à scanner.</p>
+            <mat-icon class="text-amber-400">warning</mat-icon>
+            <p class="text-amber-300 text-sm">Aucun abonnement actif. Choisissez un plan pour commencer à scanner.</p>
           </div>
-          <a routerLink="/cyberscan" mat-flat-button color="primary">Voir les plans</a>
+          <a routerLink="/cyberscan" mat-flat-button color="primary" class="!text-sm">Voir les plans</a>
         </div>
       }
-    }
 
-    <!-- Global score summary -->
-    @if (!loading() && sites().length > 0 && averageScore !== null) {
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 flex items-center gap-4 col-span-2 md:col-span-1">
-          <div class="w-16 h-16 flex-shrink-0">
-            <app-score-gauge [score]="averageScore"></app-score-gauge>
+      <!-- ── Stats ───────────────────────────────────────────────────────── -->
+      @if (sites().length > 0 && averageScore !== null) {
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div class="dashboard-stat-card col-span-2 md:col-span-1 flex items-center gap-4">
+            <div class="w-14 h-14 flex-shrink-0">
+              <app-score-gauge [score]="averageScore"></app-score-gauge>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Score moyen</p>
+              <p class="font-bold text-white">{{ getGrade(averageScore) }}</p>
+              <p class="text-xs text-gray-400">{{ averageScore }}/100</p>
+            </div>
           </div>
-          <div>
-            <p class="text-xs text-gray-500 uppercase tracking-wider">Score moyen</p>
-            <p class="text-sm font-semibold text-white mt-0.5">{{ getGrade(averageScore) }} — {{ averageScore }}/100</p>
+          <div class="dashboard-stat-card flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
+              <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">language</mat-icon>
+            </div>
+            <div>
+              <p class="text-2xl font-bold">{{ sites().length }}</p>
+              <p class="text-xs text-gray-500">site{{ sites().length > 1 ? 's' : '' }} surveillé{{ sites().length > 1 ? 's' : '' }}</p>
+            </div>
+          </div>
+          <div class="dashboard-stat-card flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0">
+              <mat-icon class="text-green-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">analytics</mat-icon>
+            </div>
+            <div>
+              <p class="text-2xl font-bold">{{ totalScans }}</p>
+              <p class="text-xs text-gray-500">scans effectués</p>
+            </div>
+          </div>
+          <div class="dashboard-stat-card flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-yellow-500/10 flex items-center justify-center flex-shrink-0">
+              <mat-icon class="text-yellow-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">schedule</mat-icon>
+            </div>
+            <div>
+              <p class="text-2xl font-bold">{{ subscription()?.plan?.scan_interval_days ?? '—' }}</p>
+              <p class="text-xs text-gray-500">jours entre scans</p>
+            </div>
           </div>
         </div>
-        <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 flex items-center gap-3">
-          <mat-icon class="text-cyan-400 !text-[1.8rem] !w-[1.8rem] !h-[1.8rem]">language</mat-icon>
-          <div>
-            <p class="text-2xl font-bold">{{ sites().length }}</p>
-            <p class="text-xs text-gray-500">site{{ sites().length > 1 ? 's' : '' }} surveillé{{ sites().length > 1 ? 's' : '' }}</p>
-          </div>
-        </div>
-        <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 flex items-center gap-3">
-          <mat-icon class="text-green-400 !text-[1.8rem] !w-[1.8rem] !h-[1.8rem]">analytics</mat-icon>
-          <div>
-            <p class="text-2xl font-bold">{{ totalScans }}</p>
-            <p class="text-xs text-gray-500">scans effectués</p>
-          </div>
-        </div>
-        <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 flex items-center gap-3">
-          <mat-icon class="text-yellow-400 !text-[1.8rem] !w-[1.8rem] !h-[1.8rem]">schedule</mat-icon>
-          <div>
-            <p class="text-2xl font-bold">{{ subscription()?.plan?.scan_interval_days ?? '—' }}</p>
-            <p class="text-xs text-gray-500">jours entre scans</p>
-          </div>
-        </div>
-      </div>
-    }
+      }
 
-    <!-- Quick access: extra tools -->
-    @if (!loading()) {
-      <div class="flex gap-4 mb-8 flex-wrap">
+      <!-- ── Quick Tools ─────────────────────────────────────────────────── -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
         <a routerLink="/cyberscan/url-scanner"
-           class="flex items-center gap-3 bg-gray-800 border border-gray-700 hover:border-red-700 rounded-xl px-5 py-3 transition-colors group">
-          <div class="w-8 h-8 rounded-lg bg-red-900/40 border border-red-800 flex items-center justify-center flex-shrink-0">
-            <mat-icon class="text-red-400 !text-[1rem] !w-[1rem] !h-[1rem]">radar</mat-icon>
+           class="group flex items-center gap-4 rounded-xl border border-gray-700/60 bg-gray-800/40 hover:bg-gray-800/80 hover:border-red-700/50 px-5 py-4 transition-all">
+          <div class="w-10 h-10 rounded-xl bg-red-900/30 border border-red-800/50 flex items-center justify-center flex-shrink-0 group-hover:bg-red-900/50 transition-colors">
+            <mat-icon class="text-red-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">radar</mat-icon>
           </div>
-          <div>
-            <p class="text-sm font-semibold group-hover:text-red-300 transition-colors">Scanner URL</p>
-            <p class="text-xs text-gray-500">Détection phishing & malware</p>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-sm text-white group-hover:text-red-300 transition-colors">Scanner URL</p>
+            <p class="text-xs text-gray-500 mt-0.5">Détection phishing & malware en temps réel</p>
           </div>
+          <mat-icon class="text-gray-600 group-hover:text-red-400 transition-colors !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">arrow_forward</mat-icon>
         </a>
         <a routerLink="/cyberscan/code-scan"
-           class="flex items-center gap-3 bg-gray-800 border border-gray-700 hover:border-purple-700 rounded-xl px-5 py-3 transition-colors group">
-          <div class="w-8 h-8 rounded-lg bg-purple-900/40 border border-purple-800 flex items-center justify-center flex-shrink-0">
-            <mat-icon class="text-purple-400 !text-[1rem] !w-[1rem] !h-[1rem]">code</mat-icon>
+           class="group flex items-center gap-4 rounded-xl border border-gray-700/60 bg-gray-800/40 hover:bg-gray-800/80 hover:border-purple-700/50 px-5 py-4 transition-all">
+          <div class="w-10 h-10 rounded-xl bg-purple-900/30 border border-purple-800/50 flex items-center justify-center flex-shrink-0 group-hover:bg-purple-900/50 transition-colors">
+            <mat-icon class="text-purple-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">code</mat-icon>
           </div>
-          <div>
-            <p class="text-sm font-semibold group-hover:text-purple-300 transition-colors">Analyse de code</p>
-            <p class="text-xs text-gray-500">Bandit · Semgrep · pip-audit</p>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-sm text-white group-hover:text-purple-300 transition-colors">Analyse de code</p>
+            <p class="text-xs text-gray-500 mt-0.5">Bandit · Semgrep · pip-audit</p>
           </div>
+          <mat-icon class="text-gray-600 group-hover:text-purple-400 transition-colors !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">arrow_forward</mat-icon>
         </a>
       </div>
-    }
 
-    <!-- Sites Header -->
-    <div class="flex items-center justify-between mb-4 flex-wrap gap-4">
-      <h2 class="text-2xl font-bold">{{ i18n.t('dashboard.sites') }}</h2>
-      <div class="flex items-center gap-3 flex-wrap">
-        <!-- Filter -->
-        <div class="flex items-center gap-1 bg-gray-800 border border-gray-700 rounded-lg p-1 text-sm">
-          <button type="button" (click)="scanFilter.set('all')" class="px-3 py-1 rounded-md transition-colors"
-                  [class.bg-cyan-600]="scanFilter() === 'all'" [class.text-white]="scanFilter() === 'all'"
-                  [class.text-gray-400]="scanFilter() !== 'all'">{{ i18n.t('scan.all') }}</button>
-          <button type="button" (click)="scanFilter.set('done')" class="px-3 py-1 rounded-md transition-colors"
-                  [class.bg-cyan-600]="scanFilter() === 'done'" [class.text-white]="scanFilter() === 'done'"
-                  [class.text-gray-400]="scanFilter() !== 'done'">{{ i18n.t('scan.done') }}</button>
-          <button type="button" (click)="scanFilter.set('running')" class="px-3 py-1 rounded-md transition-colors"
-                  [class.bg-cyan-600]="scanFilter() === 'running'" [class.text-white]="scanFilter() === 'running'"
-                  [class.text-gray-400]="scanFilter() !== 'running'">{{ i18n.t('scan.running') }}</button>
-          <button type="button" (click)="scanFilter.set('error')" class="px-3 py-1 rounded-md transition-colors"
-                  [class.bg-cyan-600]="scanFilter() === 'error'" [class.text-white]="scanFilter() === 'error'"
-                  [class.text-gray-400]="scanFilter() !== 'error'">{{ i18n.t('scan.error') }}</button>
-        </div>
-        @if (canAddSite) {
-          <button mat-flat-button type="button" color="primary" (click)="showAddForm.set(!showAddForm())">
-            <mat-icon class="mr-1">add</mat-icon>{{ i18n.t('dashboard.add') }}
-          </button>
-        } @else if (maxSites > 0) {
-          <span class="text-sm text-gray-500">Quota atteint ({{ maxSites }}/{{ maxSites }})</span>
-        }
-      </div>
-    </div>
-
-    <!-- Add Site Form -->
-    @if (showAddForm()) {
-      <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-6">
-        <h3 class="text-lg font-semibold mb-4">Nouveau site</h3>
-        <form [formGroup]="siteForm" (ngSubmit)="addSite()" class="flex flex-col gap-4">
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>URL (https://...)</mat-label>
-            <input matInput formControlName="url" title="URL du site" placeholder="https://monsite.com" />
-            @if (siteForm.controls.url.invalid && siteForm.controls.url.touched) {
-              <mat-error>URL valide requise (https://...)</mat-error>
-            }
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Nom du site</mat-label>
-            <input matInput formControlName="name" title="Nom du site" placeholder="Mon Site" />
-          </mat-form-field>
-          <div class="flex gap-3">
-            <button mat-flat-button color="primary" type="submit" [disabled]="siteForm.invalid || addingSite()">
-              @if (addingSite()) { <mat-spinner diameter="18" class="mr-2"></mat-spinner> }
-              Ajouter
+      <!-- ── Sites Header ────────────────────────────────────────────────── -->
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <h2 class="text-xl font-bold">Mes sites</h2>
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex items-center gap-0.5 bg-gray-800/60 border border-gray-700/60 rounded-lg p-1 text-sm">
+            <button type="button" (click)="scanFilter.set('all')" class="px-3 py-1 rounded-md text-xs font-medium transition-all"
+                    [class.bg-cyan-600]="scanFilter() === 'all'" [class.text-white]="scanFilter() === 'all'" [class.text-gray-400]="scanFilter() !== 'all'">Tous</button>
+            <button type="button" (click)="scanFilter.set('done')" class="px-3 py-1 rounded-md text-xs font-medium transition-all"
+                    [class.bg-cyan-600]="scanFilter() === 'done'" [class.text-white]="scanFilter() === 'done'" [class.text-gray-400]="scanFilter() !== 'done'">Terminés</button>
+            <button type="button" (click)="scanFilter.set('running')" class="px-3 py-1 rounded-md text-xs font-medium transition-all"
+                    [class.bg-cyan-600]="scanFilter() === 'running'" [class.text-white]="scanFilter() === 'running'" [class.text-gray-400]="scanFilter() !== 'running'">En cours</button>
+            <button type="button" (click)="scanFilter.set('error')" class="px-3 py-1 rounded-md text-xs font-medium transition-all"
+                    [class.bg-cyan-600]="scanFilter() === 'error'" [class.text-white]="scanFilter() === 'error'" [class.text-gray-400]="scanFilter() !== 'error'">Erreurs</button>
+          </div>
+          @if (canAddSite) {
+            <button type="button" mat-flat-button color="primary" (click)="showAddForm.set(!showAddForm())" class="!text-sm">
+              <mat-icon class="mr-1 !text-[1rem] !w-[1rem] !h-[1rem]">add</mat-icon>Ajouter un site
             </button>
-            <button mat-button type="button" (click)="showAddForm.set(false)">Annuler</button>
-          </div>
-        </form>
-      </div>
-    }
-
-    <!-- Skeleton sites -->
-    @if (loading()) {
-      <div class="flex flex-col gap-6">
-        @for (i of [1,2]; track i) {
-          <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 flex flex-col gap-4">
-            <app-skeleton height="1.5rem" width="40%"></app-skeleton>
-            <app-skeleton height="1rem" width="60%"></app-skeleton>
-            <app-skeleton height="8rem"></app-skeleton>
-          </div>
-        }
-      </div>
-    }
-
-    @if (!loading() && sites().length === 0) {
-      <div class="flex flex-col items-center justify-center py-20 text-center">
-        <div class="w-20 h-20 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mb-6">
-          <mat-icon class="!text-[2.5rem] !w-[2.5rem] !h-[2.5rem] text-cyan-400">radar</mat-icon>
+          } @else if (maxSites > 0) {
+            <span class="text-xs text-gray-500 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5">
+              Quota atteint ({{ maxSites }}/{{ maxSites }})
+            </span>
+          }
         </div>
-        <h3 class="text-xl font-bold text-white mb-2">Aucun site surveillé</h3>
-        <p class="text-gray-400 max-w-sm mb-8">
-          Ajoutez votre premier site pour lancer votre premier scan de sécurité et obtenir un rapport complet.
-        </p>
-        <div class="flex flex-col sm:flex-row items-center gap-3">
+      </div>
+
+      <!-- ── Add Site Form ───────────────────────────────────────────────── -->
+      @if (showAddForm()) {
+        <div class="bg-gray-800/60 border border-cyan-500/20 rounded-2xl p-6 mb-5">
+          <h3 class="text-base font-semibold mb-4 flex items-center gap-2">
+            <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">add_circle</mat-icon>
+            Nouveau site
+          </h3>
+          <form [formGroup]="siteForm" (ngSubmit)="addSite()" class="flex flex-col gap-4">
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>URL (https://...)</mat-label>
+              <input matInput formControlName="url" placeholder="https://monsite.com" />
+              @if (siteForm.controls.url.invalid && siteForm.controls.url.touched) {
+                <mat-error>URL valide requise (https://...)</mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Nom du site</mat-label>
+              <input matInput formControlName="name" placeholder="Mon Site" />
+            </mat-form-field>
+            <div class="flex gap-3">
+              <button mat-flat-button color="primary" type="submit" [disabled]="siteForm.invalid || addingSite()">
+                @if (addingSite()) { <mat-spinner diameter="18" class="mr-2"></mat-spinner> }
+                Ajouter
+              </button>
+              <button mat-button type="button" (click)="showAddForm.set(false)">Annuler</button>
+            </div>
+          </form>
+        </div>
+      }
+
+      <!-- ── Empty State ────────────────────────────────────────────────── -->
+      @if (sites().length === 0) {
+        <div class="flex flex-col items-center justify-center py-20 text-center">
+          <div class="w-20 h-20 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mb-6">
+            <mat-icon class="!text-[2.5rem] !w-[2.5rem] !h-[2.5rem] text-cyan-400">radar</mat-icon>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-2">Aucun site surveillé</h3>
+          <p class="text-gray-400 text-sm max-w-sm mb-8 leading-relaxed">
+            Ajoutez votre premier site pour lancer votre premier scan de sécurité et obtenir un rapport complet.
+          </p>
           @if (subscription()) {
             <button type="button" mat-flat-button color="primary" (click)="showAddForm.set(true)">
               <mat-icon class="mr-2">add_circle</mat-icon>Ajouter mon premier site
             </button>
           } @else {
             <a routerLink="/cyberscan/onboarding" mat-flat-button color="primary">
-              <mat-icon class="mr-2">rocket_launch</mat-icon>Commencer l'onboarding
+              <mat-icon class="mr-2">rocket_launch</mat-icon>Commencer
             </a>
           }
         </div>
-      </div>
-    }
-
-    <!-- Sites List -->
-    <div class="flex flex-col gap-6">
-      @for (site of sites(); track site.id) {
-        <div class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
-
-          <!-- Site Header -->
-          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-700 flex-wrap gap-3">
-            <div class="flex items-center gap-4">
-              <!-- Score gauge -->
-              @if (getLastScore(site.id); as score) {
-                <div class="flex flex-col items-center gap-1 flex-shrink-0">
-                  <div class="w-14 h-14">
-                    <app-score-gauge [score]="score"></app-score-gauge>
-                  </div>
-                  @if (getTrend(site.id); as trend) {
-                    <span class="text-[10px] font-bold flex items-center gap-0.5"
-                          [class.text-green-400]="trend > 0"
-                          [class.text-red-400]="trend < 0"
-                          [class.text-gray-500]="trend === 0">
-                      <mat-icon class="!text-[0.7rem] !w-[0.7rem] !h-[0.7rem]">
-                        {{ trend > 0 ? 'trending_up' : trend < 0 ? 'trending_down' : 'trending_flat' }}
-                      </mat-icon>
-                      {{ trend > 0 ? '+' : '' }}{{ trend }}
-                    </span>
-                  }
-                </div>
-              }
-              <div class="flex flex-col gap-1">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <mat-icon class="text-cyan-400">language</mat-icon>
-                  <a [routerLink]="['/cyberscan/site', site.id]" class="font-semibold hover:text-cyan-400 transition-colors">{{ site.name }}</a>
-                  <span class="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border"
-                        [class]="siteBadgeClass(site.id)">
-                    <mat-icon class="!text-[0.75rem] !w-[0.75rem] !h-[0.75rem]">{{ siteBadgeIcon(site.id) }}</mat-icon>
-                    {{ siteBadgeLabel(site.id) }}
-                  </span>
-                </div>
-                <a [href]="site.url" target="_blank" class="text-sm text-cyan-500 hover:underline ml-6">{{ site.url }}</a>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <a [routerLink]="['/cyberscan/site', site.id]" mat-stroked-button class="border-gray-600 text-gray-300">
-                <mat-icon class="mr-1">person</mat-icon>
-                Page dédiée
-              </a>
-              <button mat-flat-button type="button" color="primary"
-                      [disabled]="isTriggeringScans(site.id)"
-                      (click)="triggerScan(site.id)">
-                @if (isTriggeringScans(site.id)) {
-                  <mat-spinner diameter="18" class="mr-2"></mat-spinner>
-                } @else {
-                  <mat-icon class="mr-1">play_arrow</mat-icon>
-                }
-                {{ i18n.t('dashboard.scan') }}
-              </button>
-              <button mat-icon-button type="button" title="Exporter CSV" (click)="exportCsv(site.id)" class="text-gray-400 hover:text-cyan-400">
-                <mat-icon>download</mat-icon>
-              </button>
-              <button mat-icon-button type="button" (click)="confirmDeleteSite(site)" class="text-gray-500 hover:text-red-400">
-                <mat-icon>delete</mat-icon>
-              </button>
-            </div>
-          </div>
-
-          <!-- Progress bar -->
-          @if (hasActiveScans(site.id)) {
-            <div class="h-1 w-full bg-gray-700">
-              <div class="h-full bg-cyan-500 animate-pulse w-full"></div>
-            </div>
-          }
-
-          <!-- Scans -->
-          <div class="px-6 py-4">
-            @if (isLoadingScans(site.id)) {
-              <div class="flex flex-col gap-3 py-2">
-                <app-skeleton height="1rem"></app-skeleton>
-                <app-skeleton height="1rem" width="80%"></app-skeleton>
-                <app-skeleton height="1rem" width="60%"></app-skeleton>
-              </div>
-            } @else if (getScans(site.id).length === 0) {
-              <p class="text-sm text-gray-500 text-center py-4">
-                {{ scanFilter() === 'all' ? 'Aucun scan pour ce site' : 'Aucun scan correspondant au filtre' }}
-              </p>
-            } @else {
-              <table class="w-full text-sm">
-                <thead>
-                  <tr class="text-gray-500 border-b border-gray-700">
-                    <th class="text-left py-2 pb-3">Date</th>
-                    <th class="text-left py-2 pb-3">Statut</th>
-                    <th class="text-left py-2 pb-3">Résultat</th>
-                    <th class="text-left py-2 pb-3">Score</th>
-                    <th class="text-right py-2 pb-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (scan of getScans(site.id); track scan.id) {
-                    <tr class="border-b border-gray-700/50 last:border-0">
-                      <td class="py-3 text-gray-300">{{ formatDate(scan.created_at) }}</td>
-                      <td class="py-3">
-                        <span class="flex items-center gap-1" [class]="statusColor(scan.status)">
-                          <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">{{ statusIcon(scan.status) }}</mat-icon>
-                          {{ scan.status }}
-                        </span>
-                      </td>
-                      <td class="py-3">
-                        @if (scan.overall_status) {
-                          <span class="flex items-center gap-1 font-semibold" [class]="statusColor(scan.overall_status)">
-                            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">{{ statusIcon(scan.overall_status) }}</mat-icon>
-                            {{ scan.overall_status }}
-                          </span>
-                        } @else {
-                          <span class="text-gray-500">—</span>
-                        }
-                      </td>
-                      <td class="py-3">
-                        @if (getScanScore(scan); as score) {
-                          <span class="font-bold text-sm" [style.color]="getScoreColor(score)">
-                            {{ score }}<span class="text-gray-500 font-normal text-xs">/100</span>
-                          </span>
-                        } @else {
-                          <span class="text-gray-600">—</span>
-                        }
-                      </td>
-                      <td class="py-3 text-right">
-                        <a [routerLink]="['/cyberscan/scan', scan.id]" mat-icon-button class="text-gray-400 hover:text-cyan-400">
-                          <mat-icon>open_in_new</mat-icon>
-                        </a>
-                        @if (scan.pdf_path) {
-                          <button mat-icon-button type="button" (click)="downloadPdf(scan.id)" class="text-cyan-400">
-                            <mat-icon>picture_as_pdf</mat-icon>
-                          </button>
-                        }
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-
-              <!-- Pagination -->
-              @if (getTotal(site.id) > getPerPage(site.id)) {
-                <mat-paginator
-                  [length]="getTotal(site.id)"
-                  [pageSize]="getPerPage(site.id)"
-                  [pageIndex]="getCurrentPage(site.id)"
-                  [pageSizeOptions]="[10, 20]"
-                  (page)="onPageChange(site.id, $event)"
-                  class="bg-transparent text-gray-400 mt-2">
-                </mat-paginator>
-              }
-            }
-          </div>
-
-        </div>
       }
-    </div>
+
+      <!-- ── Sites List ─────────────────────────────────────────────────── -->
+      <div class="flex flex-col gap-5">
+        @for (site of sites(); track site.id) {
+          <div class="rounded-2xl border border-gray-700/60 bg-gray-800/40 overflow-hidden">
+
+            <!-- Site Header -->
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-700/50 flex-wrap gap-3">
+              <div class="flex items-center gap-4">
+                @if (getLastScore(site.id); as score) {
+                  <div class="flex flex-col items-center gap-0.5 flex-shrink-0">
+                    <div class="w-12 h-12">
+                      <app-score-gauge [score]="score"></app-score-gauge>
+                    </div>
+                    @if (getTrend(site.id); as trend) {
+                      <span class="text-[10px] font-bold flex items-center gap-0.5"
+                            [class.text-green-400]="trend > 0" [class.text-red-400]="trend < 0" [class.text-gray-500]="trend === 0">
+                        <mat-icon class="!text-[0.65rem] !w-[0.65rem] !h-[0.65rem]">
+                          {{ trend > 0 ? 'trending_up' : trend < 0 ? 'trending_down' : 'trending_flat' }}
+                        </mat-icon>
+                        {{ trend > 0 ? '+' : '' }}{{ trend }}
+                      </span>
+                    }
+                  </div>
+                }
+                <div>
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <a [routerLink]="['/cyberscan/site', site.id]" class="font-bold text-white hover:text-cyan-400 transition-colors">{{ site.name }}</a>
+                    <span class="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium"
+                          [class]="siteBadgeClass(site.id)">
+                      <mat-icon class="!text-[0.7rem] !w-[0.7rem] !h-[0.7rem]">{{ siteBadgeIcon(site.id) }}</mat-icon>
+                      {{ siteBadgeLabel(site.id) }}
+                    </span>
+                  </div>
+                  <a [href]="site.url" target="_blank" class="text-xs text-cyan-500/80 hover:text-cyan-400 hover:underline transition-colors mt-0.5 block">
+                    {{ site.url }}
+                  </a>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <a [routerLink]="['/cyberscan/site', site.id]" mat-stroked-button class="!text-xs border-gray-600 text-gray-400 hover:text-white">
+                  <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] mr-1">open_in_new</mat-icon>
+                  Détails
+                </a>
+                <button mat-flat-button type="button" color="primary" class="!text-xs"
+                        [disabled]="isTriggeringScans(site.id)" (click)="triggerScan(site.id)">
+                  @if (isTriggeringScans(site.id)) {
+                    <mat-spinner diameter="14" class="mr-1"></mat-spinner>
+                  } @else {
+                    <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] mr-1">play_arrow</mat-icon>
+                  }
+                  Scanner
+                </button>
+                <button mat-icon-button type="button" title="Exporter CSV" (click)="exportCsv(site.id)" class="!text-gray-500 hover:!text-cyan-400 !w-8 !h-8">
+                  <mat-icon class="!text-[1rem]">download</mat-icon>
+                </button>
+                <button mat-icon-button type="button" (click)="confirmDeleteSite(site)" class="!text-gray-500 hover:!text-red-400 !w-8 !h-8">
+                  <mat-icon class="!text-[1rem]">delete</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <!-- Progress bar -->
+            @if (hasActiveScans(site.id)) {
+              <div class="h-0.5 w-full bg-gray-700">
+                <div class="h-full bg-cyan-500 animate-pulse w-full"></div>
+              </div>
+            }
+
+            <!-- Scans table -->
+            <div class="px-5 py-3">
+              @if (isLoadingScans(site.id)) {
+                <div class="flex flex-col gap-2 py-3">
+                  @for (i of [1,2,3]; track i) { <app-skeleton height="0.875rem" [width]="i === 2 ? '70%' : '100%'"></app-skeleton> }
+                </div>
+              } @else if (getScans(site.id).length === 0) {
+                <p class="text-sm text-gray-500 text-center py-5">
+                  {{ scanFilter() === 'all' ? 'Aucun scan pour ce site' : 'Aucun scan correspondant au filtre' }}
+                </p>
+              } @else {
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="text-gray-500 text-xs border-b border-gray-700/50">
+                      <th class="text-left py-2 pb-2.5 font-medium">Date</th>
+                      <th class="text-left py-2 pb-2.5 font-medium">Statut</th>
+                      <th class="text-left py-2 pb-2.5 font-medium">Résultat</th>
+                      <th class="text-left py-2 pb-2.5 font-medium">Score</th>
+                      <th class="text-right py-2 pb-2.5 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (scan of getScans(site.id); track scan.id) {
+                      <tr class="border-b border-gray-700/30 last:border-0 hover:bg-gray-700/20 transition-colors">
+                        <td class="py-2.5 text-gray-400 text-xs">{{ formatDate(scan.created_at) }}</td>
+                        <td class="py-2.5">
+                          <span class="flex items-center gap-1 text-xs" [class]="statusColor(scan.status)">
+                            <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">{{ statusIcon(scan.status) }}</mat-icon>
+                            {{ scan.status }}
+                          </span>
+                        </td>
+                        <td class="py-2.5">
+                          @if (scan.overall_status) {
+                            <span class="flex items-center gap-1 text-xs font-semibold" [class]="statusColor(scan.overall_status)">
+                              <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">{{ statusIcon(scan.overall_status) }}</mat-icon>
+                              {{ scan.overall_status }}
+                            </span>
+                          } @else { <span class="text-gray-600 text-xs">—</span> }
+                        </td>
+                        <td class="py-2.5">
+                          @if (getScanScore(scan); as score) {
+                            <span class="font-bold text-sm" [style.color]="getScoreColor(score)">
+                              {{ score }}<span class="text-gray-600 font-normal text-xs">/100</span>
+                            </span>
+                          } @else { <span class="text-gray-600 text-xs">—</span> }
+                        </td>
+                        <td class="py-2.5 text-right">
+                          <a [routerLink]="['/cyberscan/scan', scan.id]" mat-icon-button class="!text-gray-400 hover:!text-cyan-400 !w-7 !h-7">
+                            <mat-icon class="!text-[1rem]">open_in_new</mat-icon>
+                          </a>
+                          @if (scan.pdf_path) {
+                            <button mat-icon-button type="button" (click)="downloadPdf(scan.id)" class="!text-cyan-400 !w-7 !h-7">
+                              <mat-icon class="!text-[1rem]">picture_as_pdf</mat-icon>
+                            </button>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+                @if (getTotal(site.id) > getPerPage(site.id)) {
+                  <mat-paginator
+                    [length]="getTotal(site.id)"
+                    [pageSize]="getPerPage(site.id)"
+                    [pageIndex]="getCurrentPage(site.id)"
+                    [pageSizeOptions]="[10, 20]"
+                    (page)="onPageChange(site.id, $event)"
+                    class="bg-transparent text-gray-400 mt-1">
+                  </mat-paginator>
+                }
+              }
+            </div>
+
+          </div>
+        }
+      </div>
+
+    }
 
   </div>
 </div>

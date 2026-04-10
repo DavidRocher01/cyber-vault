@@ -113,10 +113,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.cyberscan.getMySubscription().subscribe({
       next: sub => {
         this.subscription.set(sub);
-        // Redirect users with no active subscription to onboarding (plan selection)
         if (!sub) {
-          this.router.navigate(['/cyberscan/onboarding']);
-          this.loading.set(false);
+          // No subscription: check sites first
+          this.cyberscan.getMySites().subscribe({
+            next: sites => {
+              this.sites.set(sites);
+              this.loading.set(false);
+              if (sites.length === 0) {
+                this.router.navigate(['/cyberscan/onboarding']);
+                return;
+              }
+              sites.forEach(s => this.loadScans(s.id, 1));
+            },
+            error: () => this.loading.set(false),
+          });
           return;
         }
         this.cyberscan.getMySites().subscribe({

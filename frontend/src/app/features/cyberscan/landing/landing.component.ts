@@ -116,7 +116,7 @@ export class LandingComponent implements OnInit {
           this.authOtpClear++;
           this.authLoading = false;
         } else {
-          this.router.navigate(['/cyberscan/dashboard']);
+          this.closeAuth();
         }
       },
       error: err => {
@@ -131,7 +131,7 @@ export class LandingComponent implements OnInit {
     this.authLoading = true;
     this.authError = null;
     this.auth.login(this.pendingEmail, this.pendingPassword, this.authOtpCode).subscribe({
-      next: () => { this.router.navigate(['/cyberscan/dashboard']); },
+      next: () => { this.closeAuth(); },
       error: err => {
         this.authError = err.error?.detail ?? 'Code invalide.';
         this.authLoading = false;
@@ -154,7 +154,7 @@ export class LandingComponent implements OnInit {
     this.auth.register(email, password).pipe(
       switchMap(() => this.auth.login(email, password))
     ).subscribe({
-      next: () => { this.router.navigate(['/cyberscan/dashboard']); },
+      next: () => { this.closeAuth(); },
       error: err => {
         this.authError = err.error?.detail ?? 'Erreur lors de la création du compte.';
         this.authLoading = false;
@@ -362,12 +362,6 @@ export class LandingComponent implements OnInit {
   ];
 
   ngOnInit() {
-    // Redirect already-authenticated users straight to the dashboard
-    if (this.auth.isAuthenticated()) {
-      this.router.navigate(['/cyberscan/dashboard']);
-      return;
-    }
-
     this.titleService.setTitle('CyberScan — Audit de sécurité web automatisé');
     this.meta.updateTag({ name: 'description', content: 'Scannez vos sites web, détectez les vulnérabilités et recevez des rapports PDF complets. Plans à partir de 29€/mois.' });
     this.themeService.apply();
