@@ -274,13 +274,24 @@ export class VaultDashboardComponent implements OnInit {
     return !!raw.password_encrypted;
   }
 
-  exportVault() {
-    this.store.items$.pipe(take(1)).subscribe(items => {
-      const data = items.map(item => ({
-        title: item.title, username: item.username,
-        password_encrypted: item.password_encrypted,
-        url: item.url, notes: item.notes, category: item.category,
-        exported_at: new Date().toISOString(),
+  async exportVault() {
+    this.store.items$.pipe(take(1)).subscribe(async items => {
+      const exportedAt = new Date().toISOString();
+      const data = await Promise.all(items.map(async item => {
+        let password: string | null = null;
+        if (item.password_encrypted) {
+          try { password = await this.cryptoService.decrypt(item.password_encrypted); }
+          catch { password = null; }
+        }
+        return {
+          title: item.title,
+          username: item.username ?? null,
+          password: password,
+          url: item.url ?? null,
+          notes: item.notes ?? null,
+          category: item.category,
+          exported_at: exportedAt,
+        };
       }));
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -289,7 +300,7 @@ export class VaultDashboardComponent implements OnInit {
       a.download = `cyber-vault-export-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      this.toast.success('Export téléchargé (données chiffrées)');
+      this.toast.success('Export téléchargé');
     });
   }
 
