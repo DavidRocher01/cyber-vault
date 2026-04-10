@@ -6,16 +6,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.core.config import settings
 from app.core.database import Base
-import app.models.user  # noqa: F401
-import app.models.vault_item  # noqa: F401
-import app.models.refresh_token  # noqa: F401
-import app.models.plan  # noqa: F401
-import app.models.subscription  # noqa: F401
-import app.models.site  # noqa: F401
-import app.models.scan  # noqa: F401
-import app.models.password_reset_token  # noqa: F401
-import app.models.newsletter_subscriber  # noqa: F401
-import app.models.code_scan  # noqa: F401
+import app.models  # noqa: F401 — registers all models with Base.metadata
 
 config = context.config
 

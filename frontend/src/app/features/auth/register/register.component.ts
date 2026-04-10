@@ -48,6 +48,12 @@ export class RegisterComponent {
   loading = false;
   showPassword = false;
 
+  constructor() {
+    if (this.authService.isAuthenticated()) {
+      this.router.navigate(['/cyberscan/dashboard']);
+    }
+  }
+
   benefits = [
     { icon: 'security', text: 'Scan SSL, headers HTTP, CVE — non intrusif' },
     { icon: 'picture_as_pdf', text: 'Rapport PDF complet après chaque scan' },

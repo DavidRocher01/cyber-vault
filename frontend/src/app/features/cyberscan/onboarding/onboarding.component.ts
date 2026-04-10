@@ -9,14 +9,13 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Title } from '@angular/platform-browser';
 
 import { CyberscanService, Plan } from '../services/cyberscan.service';
-import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
   selector: 'app-onboarding',
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule, RouterLink,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule, NavButtonsComponent,
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
   ],
   templateUrl: './onboarding.component.html',
   styleUrl: './onboarding.component.css',
@@ -48,6 +47,11 @@ export class OnboardingComponent implements OnInit {
   ngOnInit() {
     this.title.setTitle('Démarrage — CyberScan');
     this.cyberscan.getPlans().subscribe({ next: p => this.plans.set(p) });
+    // If user already has a subscription (e.g. coming back from Stripe success),
+    // skip step 1 and go directly to step 2 (add first site).
+    this.cyberscan.getMySubscription().subscribe({
+      next: sub => { if (sub) this.currentStep.set(2); },
+    });
   }
 
   selectPlan(plan: Plan) {
@@ -75,6 +79,14 @@ export class OnboardingComponent implements OnInit {
         this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
       },
     });
+  }
+
+  goBack() {
+    if (this.currentStep() === 2) {
+      this.currentStep.set(1);
+    } else {
+      this.router.navigate(['/cyberscan/dashboard']);
+    }
   }
 
   goToDashboard() {

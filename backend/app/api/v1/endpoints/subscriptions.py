@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
@@ -27,6 +28,7 @@ async def get_my_subscription(
     """Return the current user's active subscription."""
     result = await db.execute(
         select(Subscription)
+        .options(selectinload(Subscription.plan))
         .where(Subscription.user_id == current_user.id, Subscription.status == "active")
     )
     return result.scalar_one_or_none()
