@@ -29,7 +29,7 @@ apscheduler==3.10.4
 
 # Outils d'analyse de code
 bandit==1.7.9
-pip-audit==2.7.3
+pip-audit==2.10.0
 semgrep==1.72.0
 detect-secrets==1.5.0
 checkov==3.2.0
