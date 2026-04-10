@@ -76,3 +76,42 @@ class PaginatedScans(BaseModel):
     page: int
     per_page: int
     pages: int
+
+
+# --- Code Scans ---
+
+class CodeScanCreate(BaseModel):
+    repo_url: str
+    github_token: str | None = None  # optional PAT for private repos
+
+
+class CodeScanOut(BaseModel):
+    id: int
+    user_id: int
+    repo_url: str
+    repo_name: str | None
+    status: str
+    critical_count: int
+    high_count: int
+    medium_count: int
+    low_count: int
+    results_json: str | None
+    error_message: str | None
+    created_at: datetime
+    started_at: datetime | None
+    finished_at: datetime | None
+
+    model_config = {"from_attributes": True}
+
+
+class CodeScanTriggerOut(BaseModel):
+    scan_id: int
+    message: str
+
+
+class PaginatedCodeScans(BaseModel):
+    items: list[CodeScanOut]
+    total: int
+    page: int
+    per_page: int
+    pages: int

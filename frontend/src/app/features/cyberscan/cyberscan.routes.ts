@@ -26,6 +26,12 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Scanner URL suspecte — CyberScan',
   },
   {
+    path: 'code-scan',
+    loadComponent: () => import('./code-scan/code-scan.component').then(m => m.CodeScanComponent),
+    canActivate: [authGuard],
+    title: 'Analyse de code — CyberScan',
+  },
+  {
     path: 'site/:id',
     loadComponent: () => import('./site-detail/site-detail.component').then(m => m.SiteDetailComponent),
     canActivate: [authGuard],

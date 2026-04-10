@@ -19,3 +19,4 @@ class User(Base):
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     notifications: Mapped[list["Notification"]] = relationship(back_populates="user", cascade="all, delete-orphan")  # type: ignore[name-defined]
+    code_scans: Mapped[list["CodeScan"]] = relationship(back_populates="user", cascade="all, delete-orphan")  # type: ignore[name-defined]

@@ -1,0 +1,320 @@
+<div class="min-h-screen bg-gray-900 text-white">
+
+  <!-- Navbar -->
+  <nav class="flex items-center justify-between px-8 py-4 border-b border-gray-800">
+    <a routerLink="/cyberscan" class="flex items-center gap-2">
+      <mat-icon class="text-cyan-400">shield</mat-icon>
+      <span class="text-xl font-bold text-cyan-400">CyberScan</span>
+    </a>
+    <div class="flex items-center gap-3">
+      <app-nav-buttons />
+      <a routerLink="/cyberscan/dashboard" class="text-sm text-gray-500 hover:text-cyan-400 transition-colors">Dashboard</a>
+    </div>
+  </nav>
+
+  <div class="max-w-6xl mx-auto px-6 py-10">
+
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="w-10 h-10 rounded-xl bg-purple-900/40 border border-purple-700 flex items-center justify-center">
+          <mat-icon class="text-purple-400 !text-[1.3rem] !w-[1.3rem] !h-[1.3rem]">code</mat-icon>
+        </div>
+        <h1 class="text-3xl font-bold">Analyse de sécurité du code</h1>
+      </div>
+      <p class="text-gray-400 text-sm ml-13">
+        Analysez un dépôt GitHub avec Bandit, Semgrep et pip-audit. Détection de failles SAST et dépendances vulnérables.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8">
+
+      <!-- ── Left: form + active result ── -->
+      <div class="flex flex-col gap-6">
+
+        <!-- Form -->
+        <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6">
+          <h2 class="font-semibold mb-4 flex items-center gap-2">
+            <mat-icon class="text-purple-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">link</mat-icon>
+            Dépôt GitHub à analyser
+          </h2>
+          <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
+            <!-- Repo URL -->
+            <div class="flex items-center bg-gray-900 border rounded-xl overflow-hidden transition-all focus-within:ring-2 focus-within:ring-purple-500"
+                 [class.border-red-600]="form.controls.repo_url.touched && form.controls.repo_url.invalid"
+                 [class.border-gray-700]="!form.controls.repo_url.touched || form.controls.repo_url.valid">
+              <mat-icon class="text-gray-500 ml-4 flex-shrink-0 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">hub</mat-icon>
+              <input
+                type="url"
+                formControlName="repo_url"
+                placeholder="https://github.com/owner/repository"
+                autocomplete="off"
+                class="flex-1 bg-transparent px-4 py-4 text-sm placeholder-gray-600 outline-none"
+              />
+            </div>
+            @if (form.controls.repo_url.touched && form.controls.repo_url.invalid) {
+              <p class="text-xs text-red-400 -mt-2">URL valide requise (https://github.com/...)</p>
+            }
+
+            <!-- Private repo toggle -->
+            <button type="button"
+                    (click)="showTokenField.set(!showTokenField())"
+                    class="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-300 transition-colors w-fit">
+              <mat-icon class="!text-[0.95rem] !w-[0.95rem] !h-[0.95rem]">
+                {{ showTokenField() ? 'lock_open' : 'lock' }}
+              </mat-icon>
+              {{ showTokenField() ? 'Masquer le token GitHub' : 'Dépôt privé ? Ajouter un token GitHub' }}
+            </button>
+
+            @if (showTokenField()) {
+              <div class="flex items-center bg-gray-900 border border-gray-700 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-purple-500">
+                <mat-icon class="text-gray-500 ml-4 flex-shrink-0 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">vpn_key</mat-icon>
+                <input
+                  type="password"
+                  formControlName="github_token"
+                  placeholder="ghp_xxxxxxxxxxxx"
+                  autocomplete="off"
+                  class="flex-1 bg-transparent px-4 py-3 text-sm placeholder-gray-600 outline-none"
+                />
+              </div>
+              <p class="text-xs text-gray-500 -mt-2">
+                Token GitHub avec accès <code class="bg-gray-700 px-1 rounded">repo</code> (lecture seule).
+                Non stocké après l'analyse.
+              </p>
+            }
+
+            <button type="submit"
+                    [disabled]="submitting() || form.invalid"
+                    class="w-full py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              @if (submitting()) {
+                <mat-spinner diameter="18" />
+                Analyse en cours…
+              } @else {
+                <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">bug_report</mat-icon>
+                Lancer l'analyse
+              }
+            </button>
+          </form>
+        </div>
+
+        <!-- Active scan results -->
+        @if (activeScan(); as scan) {
+          <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6">
+
+            <div class="flex items-start justify-between mb-4">
+              <div>
+                <h2 class="font-semibold flex items-center gap-2">
+                  <mat-icon class="text-purple-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">analytics</mat-icon>
+                  {{ scan.repo_name ?? scan.repo_url }}
+                </h2>
+                <p class="text-xs text-gray-500 mt-1">{{ formatDate(scan.created_at) }}</p>
+              </div>
+              <span class="text-xs font-medium px-2 py-1 rounded-full border" [ngClass]="statusBadgeClass(scan.status)">
+                {{ statusLabel(scan.status) }}
+              </span>
+            </div>
+
+            @if (isRunning) {
+              <div class="flex flex-col items-center justify-center py-12 gap-4">
+                <mat-spinner diameter="40" />
+                <p class="text-sm text-gray-400">Clonage du dépôt et analyse en cours…</p>
+                <p class="text-xs text-gray-600">Bandit · Semgrep · pip-audit</p>
+              </div>
+            } @else if (scan.status === 'failed') {
+              <div class="bg-red-900/20 border border-red-800 rounded-xl p-4 text-sm text-red-300">
+                <p class="font-semibold mb-1">Analyse échouée</p>
+                <p class="text-xs text-red-400">{{ scan.error_message ?? 'Erreur inconnue' }}</p>
+              </div>
+            } @else if (scan.status === 'done') {
+              @if (getResults(scan); as results) {
+
+                <!-- Summary counters -->
+                <div class="grid grid-cols-4 gap-3 mb-6">
+                  <div class="bg-red-900/20 border border-red-800 rounded-xl p-3 text-center">
+                    <p class="text-2xl font-bold text-red-400">{{ results.summary.critical }}</p>
+                    <p class="text-xs text-red-400/70 mt-0.5">Critique</p>
+                  </div>
+                  <div class="bg-orange-900/20 border border-orange-800 rounded-xl p-3 text-center">
+                    <p class="text-2xl font-bold text-orange-400">{{ results.summary.high }}</p>
+                    <p class="text-xs text-orange-400/70 mt-0.5">Élevé</p>
+                  </div>
+                  <div class="bg-yellow-900/20 border border-yellow-800 rounded-xl p-3 text-center">
+                    <p class="text-2xl font-bold text-yellow-400">{{ results.summary.medium }}</p>
+                    <p class="text-xs text-yellow-400/70 mt-0.5">Moyen</p>
+                  </div>
+                  <div class="bg-gray-700/30 border border-gray-600 rounded-xl p-3 text-center">
+                    <p class="text-2xl font-bold text-gray-400">{{ results.summary.low }}</p>
+                    <p class="text-xs text-gray-400/70 mt-0.5">Faible</p>
+                  </div>
+                </div>
+
+                @if (results.summary.total === 0) {
+                  <div class="flex flex-col items-center py-10 gap-3">
+                    <mat-icon class="text-green-400 !text-[2.5rem] !w-[2.5rem] !h-[2.5rem]">verified_user</mat-icon>
+                    <p class="text-green-400 font-semibold">Aucune faille détectée</p>
+                    <p class="text-xs text-gray-500">Le code analysé ne présente pas de vulnérabilités connues.</p>
+                  </div>
+                } @else {
+                  <!-- Filter tabs -->
+                  <div class="flex gap-2 mb-4 flex-wrap">
+                    @for (tab of [['all','Tout'], ['critical','Critique'], ['high','Élevé'], ['medium','Moyen'], ['low','Faible']]; track tab[0]) {
+                      <button (click)="activeTab.set($any(tab[0]))"
+                              class="px-3 py-1 rounded-lg text-xs font-medium border transition-colors"
+                              [class.bg-purple-600]="activeTab() === tab[0]"
+                              [class.border-purple-500]="activeTab() === tab[0]"
+                              [class.text-white]="activeTab() === tab[0]"
+                              [class.bg-gray-800]="activeTab() !== tab[0]"
+                              [class.border-gray-700]="activeTab() !== tab[0]"
+                              [class.text-gray-400]="activeTab() !== tab[0]">
+                        {{ tab[1] }}
+                      </button>
+                    }
+                  </div>
+
+                  <!-- Findings list -->
+                  <div class="flex flex-col gap-3 max-h-[500px] overflow-y-auto pr-1">
+                    @for (finding of filteredFindings(results); track $index) {
+                      <div class="bg-gray-900 border border-gray-700 rounded-xl p-4">
+                        <div class="flex items-start justify-between gap-3 mb-2">
+                          <div class="flex items-center gap-2 flex-wrap">
+                            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]"
+                                      [ngClass]="severityColor(finding.severity)">
+                              {{ severityIcon(finding.severity) }}
+                            </mat-icon>
+                            <span class="text-sm font-semibold">{{ finding.title || finding.rule }}</span>
+                          </div>
+                          <div class="flex items-center gap-1.5 flex-shrink-0">
+                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded border"
+                                  [ngClass]="toolBadge(finding.tool)">
+                              {{ finding.tool }}
+                            </span>
+                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded border"
+                                  [ngClass]="severityColor(finding.severity)">
+                              {{ severityLabel(finding.severity) }}
+                            </span>
+                          </div>
+                        </div>
+                        <p class="text-xs text-gray-400 mb-2">{{ finding.message }}</p>
+                        @if (finding.file) {
+                          <p class="text-xs text-gray-600 font-mono">
+                            {{ finding.file }}{{ finding.line ? ':' + finding.line : '' }}
+                          </p>
+                        }
+                        @if (finding.fix_versions && finding.fix_versions.length > 0) {
+                          <p class="text-xs text-green-400 mt-1">
+                            Versions corrigées : {{ finding.fix_versions.join(', ') }}
+                          </p>
+                        }
+                      </div>
+                    }
+                    @if (filteredFindings(results).length === 0) {
+                      <p class="text-center text-sm text-gray-500 py-6">Aucune faille dans cette catégorie.</p>
+                    }
+                  </div>
+                }
+              }
+            }
+          </div>
+        }
+      </div>
+
+      <!-- ── Right: history ── -->
+      <div class="flex flex-col gap-4">
+        <h2 class="font-semibold text-gray-300 flex items-center gap-2">
+          <mat-icon class="text-gray-500 !text-[1rem] !w-[1rem] !h-[1rem]">history</mat-icon>
+          Historique
+        </h2>
+
+        @if (loadingHistory()) {
+          <div class="flex justify-center py-8">
+            <mat-spinner diameter="32" />
+          </div>
+        } @else if (!history()?.items?.length) {
+          <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6 text-center text-sm text-gray-500">
+            Aucune analyse pour l'instant.
+          </div>
+        } @else {
+          <div class="flex flex-col gap-3">
+            @for (scan of history()!.items; track scan.id) {
+              <div class="bg-gray-800 border rounded-xl p-4 cursor-pointer transition-all hover:border-purple-700"
+                   [class.border-purple-600]="activeScan()?.id === scan.id"
+                   [class.border-gray-700]="activeScan()?.id !== scan.id"
+                   (click)="viewScan(scan)">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0">
+                    <p class="text-sm font-medium truncate">{{ scan.repo_name ?? scan.repo_url }}</p>
+                    <p class="text-xs text-gray-500 mt-0.5">{{ formatDate(scan.created_at) }}</p>
+                  </div>
+                  <span class="text-xs font-medium flex-shrink-0 mt-0.5" [ngClass]="statusColor(scan.status)">
+                    {{ statusLabel(scan.status) }}
+                  </span>
+                </div>
+
+                @if (scan.status === 'done') {
+                  <div class="flex items-center gap-3 mt-3">
+                    @if (scan.critical_count > 0) {
+                      <span class="text-xs text-red-400">{{ scan.critical_count }} critique{{ scan.critical_count > 1 ? 's' : '' }}</span>
+                    }
+                    @if (scan.high_count > 0) {
+                      <span class="text-xs text-orange-400">{{ scan.high_count }} élevé{{ scan.high_count > 1 ? 's' : '' }}</span>
+                    }
+                    @if (scan.medium_count > 0) {
+                      <span class="text-xs text-yellow-400">{{ scan.medium_count }} moyen{{ scan.medium_count > 1 ? 's' : '' }}</span>
+                    }
+                    @if (totalFindings(scan) === 0) {
+                      <span class="text-xs text-green-400 flex items-center gap-1">
+                        <mat-icon class="!text-[0.8rem] !w-[0.8rem] !h-[0.8rem]">check_circle</mat-icon>
+                        Aucune faille
+                      </span>
+                    }
+                  </div>
+                } @else if (scan.status === 'running' || scan.status === 'pending') {
+                  <div class="flex items-center gap-2 mt-2">
+                    <mat-spinner diameter="12" />
+                    <span class="text-xs text-cyan-400">Analyse en cours…</span>
+                  </div>
+                }
+
+                <button (click)="$event.stopPropagation(); deleteScan(scan)"
+                        class="mt-2 text-xs text-gray-600 hover:text-red-400 transition-colors flex items-center gap-1">
+                  <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">delete</mat-icon>
+                  Supprimer
+                </button>
+              </div>
+            }
+          </div>
+
+          @if (history()!.pages > 1) {
+            <mat-paginator
+              [length]="history()!.total"
+              [pageSize]="10"
+              [pageIndex]="currentPage() - 1"
+              (page)="onPageChange($event)"
+              class="bg-transparent text-gray-400"
+              hidePageSize />
+          }
+        }
+
+        <!-- Tools info -->
+        <div class="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4 mt-2">
+          <p class="text-xs font-semibold text-gray-400 mb-3">Outils d'analyse</p>
+          <div class="flex flex-col gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-1.5 py-0.5 rounded border bg-purple-900/40 border-purple-700 text-purple-300">bandit</span>
+              <span class="text-xs text-gray-500">SAST Python — code source</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-1.5 py-0.5 rounded border bg-blue-900/40 border-blue-700 text-blue-300">semgrep</span>
+              <span class="text-xs text-gray-500">SAST multi-langages</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-1.5 py-0.5 rounded border bg-yellow-900/40 border-yellow-700 text-yellow-300">pip-audit</span>
+              <span class="text-xs text-gray-500">CVE sur dépendances Python</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
