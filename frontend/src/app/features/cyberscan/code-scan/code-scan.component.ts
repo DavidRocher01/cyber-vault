@@ -136,6 +136,12 @@ export class CodeScanComponent implements OnInit, OnDestroy {
     this.dragOver.set(false);
   }
 
+  /** True only when the field has content that doesn't match the URL pattern. */
+  urlInvalid(): boolean {
+    const ctrl = this.form.controls.repo_url;
+    return ctrl.dirty && ctrl.invalid && !!ctrl.value;
+  }
+
   /** Normalize the repo_url control: trim + SSH → HTTPS. Called from template. */
   normalizeRepoUrl() {
     const ctrl = this.form.controls.repo_url;

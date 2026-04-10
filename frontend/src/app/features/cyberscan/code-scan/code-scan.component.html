@@ -64,8 +64,8 @@
               </h2>
               <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
                 <div class="flex items-center bg-gray-900 border rounded-xl overflow-hidden transition-all focus-within:ring-2 focus-within:ring-purple-500"
-                     [class.border-red-600]="form.controls.repo_url.touched && form.controls.repo_url.invalid"
-                     [class.border-gray-700]="!form.controls.repo_url.touched || form.controls.repo_url.valid">
+                     [class.border-red-600]="urlInvalid()"
+                     [class.border-gray-700]="!urlInvalid()">
                   <mat-icon class="text-gray-500 ml-4 flex-shrink-0 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">hub</mat-icon>
                   <input type="text" formControlName="repo_url"
                          placeholder="https://github.com/owner/repo  ou  git@github.com:owner/repo.git"
@@ -74,8 +74,8 @@
                          (blur)="normalizeRepoUrl()"
                          class="flex-1 bg-transparent px-4 py-4 text-sm placeholder-gray-600 outline-none" />
                 </div>
-                @if (form.controls.repo_url.touched && form.controls.repo_url.invalid) {
-                  <p class="text-xs text-red-400 -mt-2">URL requise — formats acceptés : https://… ou git&#64;host:…</p>
+                @if (urlInvalid()) {
+                  <p class="text-xs text-red-400 -mt-2">URL invalide — formats acceptés : https://… ou git&#64;host:…</p>
                 }
                 <p class="text-xs text-gray-500 -mt-2">Compatible GitHub, GitLab, Bitbucket, Azure DevOps ou tout hôte Git accessible.</p>
 
