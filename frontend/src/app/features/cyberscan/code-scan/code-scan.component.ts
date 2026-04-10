@@ -147,6 +147,13 @@ export class CodeScanComponent implements OnInit, OnDestroy {
     return url;
   }
 
+  onRepoUrlPaste(event: ClipboardEvent) {
+    event.preventDefault();
+    const text = event.clipboardData?.getData('text') ?? '';
+    this.form.controls.repo_url.setValue(this.normalizeRepoUrl(text));
+    this.form.controls.repo_url.markAsTouched();
+  }
+
   trimRepoUrl() {
     const ctrl = this.form.controls.repo_url;
     ctrl.setValue(this.normalizeRepoUrl(ctrl.value), { emitEvent: false });

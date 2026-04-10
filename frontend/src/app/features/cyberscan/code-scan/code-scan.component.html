@@ -70,6 +70,7 @@
                   <input type="text" formControlName="repo_url"
                          placeholder="https://github.com/owner/repo  ou  git@github.com:owner/repo.git"
                          autocomplete="off" spellcheck="false"
+                         (paste)="onRepoUrlPaste($event)"
                          (blur)="trimRepoUrl()"
                          class="flex-1 bg-transparent px-4 py-4 text-sm placeholder-gray-600 outline-none" />
                 </div>
