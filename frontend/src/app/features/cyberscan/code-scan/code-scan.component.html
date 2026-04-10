@@ -23,7 +23,7 @@
         <h1 class="text-3xl font-bold">Analyse de sécurité du code</h1>
       </div>
       <p class="text-gray-400 text-sm ml-13">
-        Analysez un dépôt GitHub avec Bandit, Semgrep et pip-audit. Détection de failles SAST et dépendances vulnérables.
+        Analysez un dépôt Git ou une archive ZIP. Détection SAST, secrets hardcodés, CVE multi-écosystèmes et mauvaises configurations IaC.
       </p>
     </div>
 
@@ -32,69 +32,133 @@
       <!-- ── Left: form + active result ── -->
       <div class="flex flex-col gap-6">
 
-        <!-- Form -->
+        <!-- Form card -->
         <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6">
-          <h2 class="font-semibold mb-4 flex items-center gap-2">
-            <mat-icon class="text-purple-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">link</mat-icon>
-            Dépôt GitHub à analyser
-          </h2>
-          <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
-            <!-- Repo URL -->
-            <div class="flex items-center bg-gray-900 border rounded-xl overflow-hidden transition-all focus-within:ring-2 focus-within:ring-purple-500"
-                 [class.border-red-600]="form.controls.repo_url.touched && form.controls.repo_url.invalid"
-                 [class.border-gray-700]="!form.controls.repo_url.touched || form.controls.repo_url.valid">
-              <mat-icon class="text-gray-500 ml-4 flex-shrink-0 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">hub</mat-icon>
-              <input
-                type="url"
-                formControlName="repo_url"
-                placeholder="https://github.com/owner/repository"
-                autocomplete="off"
-                class="flex-1 bg-transparent px-4 py-4 text-sm placeholder-gray-600 outline-none"
-              />
+
+          <!-- Mode toggle -->
+          <div class="flex gap-1 bg-gray-900 rounded-xl p-1 mb-5">
+            <button type="button" (click)="setMode('git')"
+                    class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all"
+                    [class.bg-purple-600]="mode() === 'git'"
+                    [class.text-white]="mode() === 'git'"
+                    [class.text-gray-400]="mode() !== 'git'">
+              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">link</mat-icon>
+              Dépôt Git
+            </button>
+            <button type="button" (click)="setMode('zip')"
+                    class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all"
+                    [class.bg-purple-600]="mode() === 'zip'"
+                    [class.text-white]="mode() === 'zip'"
+                    [class.text-gray-400]="mode() !== 'zip'">
+              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">folder_zip</mat-icon>
+              Archive ZIP
+            </button>
+          </div>
+
+          <!-- Git mode -->
+          @if (mode() === 'git') {
+            <div>
+              <h2 class="font-semibold mb-4 flex items-center gap-2">
+                <mat-icon class="text-purple-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">link</mat-icon>
+                Dépôt Git à analyser
+              </h2>
+              <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
+                <div class="flex items-center bg-gray-900 border rounded-xl overflow-hidden transition-all focus-within:ring-2 focus-within:ring-purple-500"
+                     [class.border-red-600]="form.controls.repo_url.touched && form.controls.repo_url.invalid"
+                     [class.border-gray-700]="!form.controls.repo_url.touched || form.controls.repo_url.valid">
+                  <mat-icon class="text-gray-500 ml-4 flex-shrink-0 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">hub</mat-icon>
+                  <input type="text" formControlName="repo_url"
+                         placeholder="https://github.com/owner/repo  ou  https://gitlab.com/owner/repo"
+                         autocomplete="off" spellcheck="false"
+                         (blur)="trimRepoUrl()"
+                         class="flex-1 bg-transparent px-4 py-4 text-sm placeholder-gray-600 outline-none" />
+                </div>
+                @if (form.controls.repo_url.touched && form.controls.repo_url.invalid) {
+                  <p class="text-xs text-red-400 -mt-2">URL valide requise (https://...)</p>
+                }
+                <p class="text-xs text-gray-500 -mt-2">Compatible GitHub, GitLab, Bitbucket, Azure DevOps ou tout hôte Git accessible.</p>
+
+                <button type="button" (click)="showTokenField.set(!showTokenField())"
+                        class="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-300 transition-colors w-fit">
+                  <mat-icon class="!text-[0.95rem] !w-[0.95rem] !h-[0.95rem]">{{ showTokenField() ? 'lock_open' : 'lock' }}</mat-icon>
+                  {{ showTokenField() ? 'Masquer le token' : "Dépôt privé ? Ajouter un token d'accès" }}
+                </button>
+
+                @if (showTokenField()) {
+                  <div class="flex items-center bg-gray-900 border border-gray-700 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-purple-500">
+                    <mat-icon class="text-gray-500 ml-4 flex-shrink-0 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">vpn_key</mat-icon>
+                    <input type="password" formControlName="github_token"
+                           placeholder="ghp_xxx  /  glpat_xxx  /  token personnel"
+                           autocomplete="off"
+                           class="flex-1 bg-transparent px-4 py-3 text-sm placeholder-gray-600 outline-none" />
+                  </div>
+                  <p class="text-xs text-gray-500 -mt-2">
+                    Token avec accès lecture seule (<code class="bg-gray-700 px-1 rounded">repo</code> sur GitHub,
+                    <code class="bg-gray-700 px-1 rounded">read_repository</code> sur GitLab). Non stocké après l'analyse.
+                  </p>
+                }
+
+                <button type="submit" [disabled]="submitting() || form.invalid"
+                        class="w-full py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                  @if (submitting()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                    Analyse en cours…
+                  } @else {
+                    <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">bug_report</mat-icon>
+                    Lancer l'analyse
+                  }
+                </button>
+              </form>
             </div>
-            @if (form.controls.repo_url.touched && form.controls.repo_url.invalid) {
-              <p class="text-xs text-red-400 -mt-2">URL valide requise (https://github.com/...)</p>
-            }
+          }
 
-            <!-- Private repo toggle -->
-            <button type="button"
-                    (click)="showTokenField.set(!showTokenField())"
-                    class="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-300 transition-colors w-fit">
-              <mat-icon class="!text-[0.95rem] !w-[0.95rem] !h-[0.95rem]">
-                {{ showTokenField() ? 'lock_open' : 'lock' }}
-              </mat-icon>
-              {{ showTokenField() ? 'Masquer le token GitHub' : 'Dépôt privé ? Ajouter un token GitHub' }}
-            </button>
+          <!-- ZIP mode -->
+          @if (mode() === 'zip') {
+            <div>
+              <h2 class="font-semibold mb-4 flex items-center gap-2">
+                <mat-icon class="text-purple-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">folder_zip</mat-icon>
+                Uploader une archive ZIP
+              </h2>
+              <div class="flex flex-col gap-4">
+                <!-- Drop zone -->
+                <div class="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all"
+                     [ngClass]="dragOver() ? 'border-purple-500 bg-purple-900/10' : 'border-gray-600'"
+                     (dragover)="onDragOver($event)"
+                     (dragleave)="onDragLeave()"
+                     (drop)="onDrop($event)"
+                     (click)="zipInput.click()">
+                  @if (selectedFile()) {
+                    <mat-icon class="text-purple-400 !text-[2rem] !w-[2rem] !h-[2rem] mb-2">folder_zip</mat-icon>
+                    <p class="text-sm font-medium text-white">{{ selectedFile()!.name }}</p>
+                    <p class="text-xs text-gray-500 mt-1">{{ formatFileSize(selectedFile()!.size) }}</p>
+                    <button type="button" (click)="$event.stopPropagation(); selectedFile.set(null)"
+                            class="mt-3 text-xs text-red-400 hover:text-red-300 transition-colors">
+                      Supprimer
+                    </button>
+                  } @else {
+                    <mat-icon class="text-gray-500 !text-[2rem] !w-[2rem] !h-[2rem] mb-2">upload_file</mat-icon>
+                    <p class="text-sm text-gray-400">Glissez votre archive ici ou <span class="text-purple-400 hover:text-purple-300">cliquez pour parcourir</span></p>
+                    <p class="text-xs text-gray-600 mt-2">Fichier .zip uniquement — max 50 MB</p>
+                  }
+                </div>
+                <input #zipInput type="file" accept=".zip" class="hidden" (change)="onFileSelected($event)" aria-label="Sélectionner un fichier ZIP" />
 
-            @if (showTokenField()) {
-              <div class="flex items-center bg-gray-900 border border-gray-700 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-purple-500">
-                <mat-icon class="text-gray-500 ml-4 flex-shrink-0 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">vpn_key</mat-icon>
-                <input
-                  type="password"
-                  formControlName="github_token"
-                  placeholder="ghp_xxxxxxxxxxxx"
-                  autocomplete="off"
-                  class="flex-1 bg-transparent px-4 py-3 text-sm placeholder-gray-600 outline-none"
-                />
+                <p class="text-xs text-gray-500">Zippez la racine de votre projet (avec requirements.txt, package.json, etc. à la racine ou dans un sous-dossier).</p>
+
+                <button type="button" [disabled]="submitting() || !selectedFile()" (click)="submit()"
+                        class="w-full py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                  @if (submitting()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                    Upload et analyse en cours…
+                  } @else {
+                    <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">security</mat-icon>
+                    Analyser l'archive
+                  }
+                </button>
               </div>
-              <p class="text-xs text-gray-500 -mt-2">
-                Token GitHub avec accès <code class="bg-gray-700 px-1 rounded">repo</code> (lecture seule).
-                Non stocké après l'analyse.
-              </p>
-            }
+            </div>
+          }
 
-            <button type="submit"
-                    [disabled]="submitting() || form.invalid"
-                    class="w-full py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-              @if (submitting()) {
-                <mat-spinner diameter="18" />
-                Analyse en cours…
-              } @else {
-                <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">bug_report</mat-icon>
-                Lancer l'analyse
-              }
-            </button>
-          </form>
         </div>
 
         <!-- Active scan results -->
@@ -116,9 +180,9 @@
 
             @if (isRunning) {
               <div class="flex flex-col items-center justify-center py-12 gap-4">
-                <mat-spinner diameter="40" />
+                <mat-spinner diameter="40"></mat-spinner>
                 <p class="text-sm text-gray-400">Clonage du dépôt et analyse en cours…</p>
-                <p class="text-xs text-gray-600">Bandit · Semgrep · pip-audit</p>
+                <p class="text-xs text-gray-600">Bandit · Semgrep · pip-audit · gitleaks · detect-secrets · npm-audit · trivy · checkov</p>
               </div>
             } @else if (scan.status === 'failed') {
               <div class="bg-red-900/20 border border-red-800 rounded-xl p-4 text-sm text-red-300">
@@ -127,7 +191,6 @@
               </div>
             } @else if (scan.status === 'done') {
               @if (getResults(scan); as results) {
-
                 <!-- Summary counters -->
                 <div class="grid grid-cols-4 gap-3 mb-6">
                   <div class="bg-red-900/20 border border-red-800 rounded-xl p-3 text-center">
@@ -158,7 +221,7 @@
                   <!-- Filter tabs -->
                   <div class="flex gap-2 mb-4 flex-wrap">
                     @for (tab of [['all','Tout'], ['critical','Critique'], ['high','Élevé'], ['medium','Moyen'], ['low','Faible']]; track tab[0]) {
-                      <button (click)="activeTab.set($any(tab[0]))"
+                      <button type="button" (click)="activeTab.set($any(tab[0]))"
                               class="px-3 py-1 rounded-lg text-xs font-medium border transition-colors"
                               [class.bg-purple-600]="activeTab() === tab[0]"
                               [class.border-purple-500]="activeTab() === tab[0]"
@@ -177,19 +240,16 @@
                       <div class="bg-gray-900 border border-gray-700 rounded-xl p-4">
                         <div class="flex items-start justify-between gap-3 mb-2">
                           <div class="flex items-center gap-2 flex-wrap">
-                            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]"
-                                      [ngClass]="severityColor(finding.severity)">
+                            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]" [ngClass]="severityColor(finding.severity)">
                               {{ severityIcon(finding.severity) }}
                             </mat-icon>
                             <span class="text-sm font-semibold">{{ finding.title || finding.rule }}</span>
                           </div>
                           <div class="flex items-center gap-1.5 flex-shrink-0">
-                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded border"
-                                  [ngClass]="toolBadge(finding.tool)">
+                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded border" [ngClass]="toolBadge(finding.tool)">
                               {{ finding.tool }}
                             </span>
-                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded border"
-                                  [ngClass]="severityColor(finding.severity)">
+                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded border" [ngClass]="severityColor(finding.severity)">
                               {{ severityLabel(finding.severity) }}
                             </span>
                           </div>
@@ -227,7 +287,7 @@
 
         @if (loadingHistory()) {
           <div class="flex justify-center py-8">
-            <mat-spinner diameter="32" />
+            <mat-spinner diameter="32"></mat-spinner>
           </div>
         } @else if (!history()?.items?.length) {
           <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6 text-center text-sm text-gray-500">
@@ -270,12 +330,12 @@
                   </div>
                 } @else if (scan.status === 'running' || scan.status === 'pending') {
                   <div class="flex items-center gap-2 mt-2">
-                    <mat-spinner diameter="12" />
+                    <mat-spinner diameter="12"></mat-spinner>
                     <span class="text-xs text-cyan-400">Analyse en cours…</span>
                   </div>
                 }
 
-                <button (click)="$event.stopPropagation(); deleteScan(scan)"
+                <button type="button" (click)="$event.stopPropagation(); deleteScan(scan)"
                         class="mt-2 text-xs text-gray-600 hover:text-red-400 transition-colors flex items-center gap-1">
                   <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">delete</mat-icon>
                   Supprimer
@@ -309,7 +369,27 @@
             </div>
             <div class="flex items-center gap-2">
               <span class="text-[10px] px-1.5 py-0.5 rounded border bg-yellow-900/40 border-yellow-700 text-yellow-300">pip-audit</span>
-              <span class="text-xs text-gray-500">CVE sur dépendances Python</span>
+              <span class="text-xs text-gray-500">CVE dépendances Python</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-1.5 py-0.5 rounded border bg-red-900/40 border-red-700 text-red-300">gitleaks</span>
+              <span class="text-xs text-gray-500">Secrets &amp; clés API hardcodés</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-1.5 py-0.5 rounded border bg-pink-900/40 border-pink-700 text-pink-300">detect-secrets</span>
+              <span class="text-xs text-gray-500">Secrets par entropie (Yelp)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-1.5 py-0.5 rounded border bg-green-900/40 border-green-700 text-green-300">npm-audit</span>
+              <span class="text-xs text-gray-500">CVE dépendances Node.js</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-1.5 py-0.5 rounded border bg-cyan-900/40 border-cyan-700 text-cyan-300">trivy</span>
+              <span class="text-xs text-gray-500">CVE multi-écosystèmes (pip, npm, go…)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-1.5 py-0.5 rounded border bg-orange-900/40 border-orange-700 text-orange-300">checkov</span>
+              <span class="text-xs text-gray-500">Mauvaises configs IaC (Docker, k8s…)</span>
             </div>
           </div>
         </div>

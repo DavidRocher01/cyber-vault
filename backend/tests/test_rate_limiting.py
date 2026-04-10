@@ -69,12 +69,13 @@ async def test_url_scan_normal_returns_202():
 @pytest.mark.asyncio
 async def test_url_scan_rate_limited_returns_429():
     """When the rate limit is exceeded url-scans returns 429."""
-    with patch("app.api.v1.endpoints.url_scans.run_url_scan", new_callable=AsyncMock):
-        with patch(
-            "app.api.v1.endpoints.url_scans.limiter._check_request_limit",
-            side_effect=_raise_rate_limit,
-        ):
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-                h = await _auth_headers(c, "urlrate2@test.com")
+    # Auth must happen BEFORE patching the limiter (patch would block login too)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        h = await _auth_headers(c, "urlrate2@test.com")
+        with patch("app.api.v1.endpoints.url_scans.run_url_scan", new_callable=AsyncMock):
+            with patch(
+                "app.api.v1.endpoints.url_scans.limiter._check_request_limit",
+                side_effect=_raise_rate_limit,
+            ):
                 r = await c.post(f"{BASE}/url-scans", json={"url": "https://example.com"}, headers=h)
     assert r.status_code == 429

@@ -168,7 +168,10 @@ async def reset_password(payload: ResetPasswordIn, db: AsyncSession = Depends(ge
         detail="Lien invalide ou expiré",
     )
 
-    if not stored or stored.used or stored.expires_at < datetime.now(timezone.utc):
+    expires_at = stored.expires_at if stored else None
+    if expires_at is not None and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if not stored or stored.used or (expires_at is not None and expires_at < datetime.now(timezone.utc)):
         raise invalid_exc
 
     user_result = await db.execute(select(User).where(User.id == stored.user_id))

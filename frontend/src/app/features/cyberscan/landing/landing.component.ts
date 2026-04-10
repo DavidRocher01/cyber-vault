@@ -103,7 +103,7 @@ export class LandingComponent implements OnInit {
   }
 
   submitLogin() {
-    if (this.loginForm.invalid) return;
+    if (this.loginForm.invalid || this.authLoading) return;
     this.authLoading = true;
     this.authError = null;
     const { email, password } = this.loginForm.getRawValue();
@@ -116,7 +116,7 @@ export class LandingComponent implements OnInit {
           this.authOtpClear++;
           this.authLoading = false;
         } else {
-          this.router.navigate(['/cyberscan/dashboard']);
+          this.closeAuth();
         }
       },
       error: err => {
@@ -131,7 +131,7 @@ export class LandingComponent implements OnInit {
     this.authLoading = true;
     this.authError = null;
     this.auth.login(this.pendingEmail, this.pendingPassword, this.authOtpCode).subscribe({
-      next: () => { this.router.navigate(['/cyberscan/dashboard']); },
+      next: () => { this.closeAuth(); },
       error: err => {
         this.authError = err.error?.detail ?? 'Code invalide.';
         this.authLoading = false;
@@ -147,14 +147,14 @@ export class LandingComponent implements OnInit {
   }
 
   submitRegister() {
-    if (this.registerForm.invalid) return;
+    if (this.registerForm.invalid || this.authLoading) return;
     this.authLoading = true;
     this.authError = null;
     const { email, password } = this.registerForm.getRawValue();
     this.auth.register(email, password).pipe(
       switchMap(() => this.auth.login(email, password))
     ).subscribe({
-      next: () => { this.router.navigate(['/cyberscan/onboarding']); },
+      next: () => { this.closeAuth(); },
       error: err => {
         this.authError = err.error?.detail ?? 'Erreur lors de la création du compte.';
         this.authLoading = false;

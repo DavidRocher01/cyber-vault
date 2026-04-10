@@ -1,12 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { tap } from 'rxjs';
-import { environment } from '../../../environments/environment';
 
 const ACCESS_KEY = 'cv_token';
 const REFRESH_KEY = 'cv_refresh';
 const EMAIL_KEY = 'cv_email';
-const API = environment.apiUrl;
+const API = '/api/v1';
 
 export interface TokenResponse {
   access_token: string;

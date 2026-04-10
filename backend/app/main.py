@@ -9,9 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
+import app.models  # noqa: F401 — register all models with Base.metadata
+
 from app.api.v1.router import api_router
 from app.core.config import settings
-from app.core.database import get_db
+from app.core.database import Base, engine, get_db
 from app.core.limiter import limiter
 from app.core.logging import setup_logging
 from app.services.scheduler import start_scheduler, stop_scheduler
@@ -49,10 +51,17 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+async def _create_tables() -> None:
+    """Create any missing tables without dropping existing ones (idempotent)."""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("Database tables verified/created")
+
+
 app = FastAPI(
     title=settings.APP_NAME,
     version="1.0.0",
-    on_startup=[start_scheduler],
+    on_startup=[_create_tables, start_scheduler],
     on_shutdown=[stop_scheduler],
 )
 

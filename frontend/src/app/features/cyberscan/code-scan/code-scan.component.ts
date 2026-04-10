@@ -65,6 +65,9 @@ export class CodeScanComponent implements OnInit, OnDestroy {
   activeScan = signal<CodeScan | null>(null);
   showTokenField = signal(false);
   activeTab = signal<'critical' | 'high' | 'medium' | 'low' | 'all'>('all');
+  mode = signal<'git' | 'zip'>('git');
+  selectedFile = signal<File | null>(null);
+  dragOver = signal(false);
 
   ngOnInit() {
     this.loadHistory(1);
@@ -93,8 +96,54 @@ export class CodeScanComponent implements OnInit, OnDestroy {
     this.loadHistory(event.pageIndex + 1);
   }
 
+  setMode(m: 'git' | 'zip') {
+    this.mode.set(m);
+    this.selectedFile.set(null);
+    this.dragOver.set(false);
+  }
+
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    if (file && !file.name.toLowerCase().endsWith('.zip')) {
+      this.snack.open('Seuls les fichiers .zip sont acceptés', 'Fermer', { duration: 4000 });
+      return;
+    }
+    this.selectedFile.set(file);
+  }
+
+  onDrop(event: DragEvent) {
+    event.preventDefault();
+    this.dragOver.set(false);
+    const file = event.dataTransfer?.files[0] ?? null;
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+      this.snack.open('Seuls les fichiers .zip sont acceptés', 'Fermer', { duration: 4000 });
+      return;
+    }
+    this.selectedFile.set(file);
+  }
+
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+    this.dragOver.set(true);
+  }
+
+  onDragLeave() {
+    this.dragOver.set(false);
+  }
+
+  trimRepoUrl() {
+    const ctrl = this.form.controls.repo_url;
+    ctrl.setValue(ctrl.value.trim(), { emitEvent: false });
+  }
+
   submit() {
-    if (this.form.invalid) return;
+    if (this.mode() === 'zip') {
+      this.submitZip();
+      return;
+    }
+    if (this.form.invalid || this.submitting()) return;
     this.submitting.set(true);
     const { repo_url, github_token } = this.form.getRawValue();
 
@@ -104,12 +153,30 @@ export class CodeScanComponent implements OnInit, OnDestroy {
         this.form.patchValue({ repo_url: '', github_token: '' });
         this.snack.open('Analyse lancée — résultats dans quelques minutes', 'OK', { duration: 6000 });
         this.loadHistory(1);
-        // Poll for the new scan
         this.startPolling(res.scan_id);
       },
       error: err => {
         this.submitting.set(false);
         this.snack.open(err.error?.detail || 'Erreur lors du lancement', 'Fermer', { duration: 6000 });
+      },
+    });
+  }
+
+  submitZip() {
+    const file = this.selectedFile();
+    if (!file || this.submitting()) return;
+    this.submitting.set(true);
+    this.cyberscan.uploadCodeScan(file).subscribe({
+      next: res => {
+        this.submitting.set(false);
+        this.selectedFile.set(null);
+        this.snack.open('Analyse lancée — résultats dans quelques minutes', 'OK', { duration: 6000 });
+        this.loadHistory(1);
+        this.startPolling(res.scan_id);
+      },
+      error: err => {
+        this.submitting.set(false);
+        this.snack.open(err.error?.detail || 'Erreur lors de l\'upload', 'Fermer', { duration: 6000 });
       },
     });
   }
@@ -184,10 +251,15 @@ export class CodeScanComponent implements OnInit, OnDestroy {
 
   toolBadge(tool: string): string {
     switch (tool) {
-      case 'bandit':    return 'bg-purple-900/40 border-purple-700 text-purple-300';
-      case 'semgrep':   return 'bg-blue-900/40 border-blue-700 text-blue-300';
-      case 'pip-audit': return 'bg-yellow-900/40 border-yellow-700 text-yellow-300';
-      default:          return 'bg-gray-700/30 border-gray-600 text-gray-400';
+      case 'bandit':         return 'bg-purple-900/40 border-purple-700 text-purple-300';
+      case 'semgrep':        return 'bg-blue-900/40 border-blue-700 text-blue-300';
+      case 'pip-audit':      return 'bg-yellow-900/40 border-yellow-700 text-yellow-300';
+      case 'gitleaks':       return 'bg-red-900/40 border-red-700 text-red-300';
+      case 'detect-secrets': return 'bg-pink-900/40 border-pink-700 text-pink-300';
+      case 'npm-audit':      return 'bg-green-900/40 border-green-700 text-green-300';
+      case 'trivy':          return 'bg-cyan-900/40 border-cyan-700 text-cyan-300';
+      case 'checkov':        return 'bg-orange-900/40 border-orange-700 text-orange-300';
+      default:               return 'bg-gray-700/30 border-gray-600 text-gray-400';
     }
   }
 
@@ -231,5 +303,11 @@ export class CodeScanComponent implements OnInit, OnDestroy {
   get isRunning(): boolean {
     const s = this.activeScan();
     return !!s && (s.status === 'pending' || s.status === 'running');
+  }
+
+  formatFileSize(bytes: number): string {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 }

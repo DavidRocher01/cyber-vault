@@ -16,7 +16,7 @@ import { Title, Meta } from '@angular/platform-browser';
 import { Subscription as RxSubscription, interval } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 
-import { CyberscanService, Site, Scan, Subscription as UserSubscription, AppNotification } from '../services/cyberscan.service';
+import { CyberscanService, Site, Scan, Subscription as UserSubscription, Plan, AppNotification } from '../services/cyberscan.service';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { ThemeService } from '../../../core/services/theme.service';
@@ -74,6 +74,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   addingSite = signal(false);
   showAddForm = signal(false);
 
+  // Plans modal
+  showPlansModal = signal(false);
+  plans = signal<Plan[]>([]);
+  checkoutLoading = signal<number | null>(null);
+
   // Notifications
   notifications = signal<AppNotification[]>([]);
   unreadCount = signal(0);
@@ -113,8 +118,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.cyberscan.getMySubscription().subscribe({
       next: sub => {
         this.subscription.set(sub);
-        // Auto-redirect new users with no subscription and no sites to onboarding
         if (!sub) {
+          // No subscription: check sites first
           this.cyberscan.getMySites().subscribe({
             next: sites => {
               this.sites.set(sites);
@@ -280,8 +285,36 @@ export class DashboardComponent implements OnInit, OnDestroy {
     window.open(this.cyberscan.exportCsv(siteId), '_blank');
   }
 
+  openPlansModal() {
+    this.showPlansModal.set(true);
+    if (this.plans().length === 0) {
+      this.cyberscan.getPlans().subscribe({ next: p => this.plans.set(p) });
+    }
+  }
+
+  selectPlan(plan: Plan) {
+    this.checkoutLoading.set(plan.id);
+    this.cyberscan.createCheckout(plan.id).subscribe({
+      next: res => {
+        const url = res.checkout_url;
+        // Internal route (dev mode) → use Angular router to preserve nav history
+        if (url.startsWith('/') || url.includes(window.location.host)) {
+          const path = url.startsWith('/') ? url : new URL(url).pathname;
+          this.router.navigateByUrl(path);
+        } else {
+          window.location.href = url;
+        }
+      },
+      error: () => this.checkoutLoading.set(null),
+    });
+  }
+
   openBillingPortal() {
     this.cyberscan.getBillingPortal().subscribe({ next: res => window.location.href = res.checkout_url });
+  }
+
+  formatPrice(cents: number): string {
+    return (cents / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
   }
 
   downloadPdf(scanId: number) {

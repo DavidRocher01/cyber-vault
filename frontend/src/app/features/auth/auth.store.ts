@@ -3,7 +3,6 @@ import { ComponentStore } from '@ngrx/component-store';
 import { ActivatedRoute, Router } from '@angular/router';
 import { tapResponse } from '@ngrx/operators';
 import { switchMap } from 'rxjs';
-import { HotToastService } from '@ngneat/hot-toast';
 
 import { AuthService } from '../../core/services/auth.service';
 
@@ -25,7 +24,6 @@ export class AuthStore extends ComponentStore<AuthState> {
     private authService: AuthService,
     private router: Router,
     private route: ActivatedRoute,
-    private toast: HotToastService
   ) {
     super({ loading: false, error: null, requires2fa: false, pendingEmail: null, pendingPassword: null });
   }
@@ -51,8 +49,7 @@ export class AuthStore extends ComponentStore<AuthState> {
             (err: any) => {
               const msg = err.error?.detail ?? 'Erreur de connexion';
               this.patchState({ loading: false, error: msg });
-              this.toast.error(msg);
-            }
+                          }
           )
         );
       })
@@ -74,8 +71,7 @@ export class AuthStore extends ComponentStore<AuthState> {
             (err: any) => {
               const msg = err.error?.detail ?? 'Code invalide';
               this.patchState({ loading: false, error: msg });
-              this.toast.error(msg);
-            }
+                          }
           )
         );
       })
@@ -84,5 +80,9 @@ export class AuthStore extends ComponentStore<AuthState> {
 
   cancelTwoFa() {
     this.patchState({ requires2fa: false, pendingEmail: null, pendingPassword: null, error: null });
+  }
+
+  clearError() {
+    this.patchState({ error: null });
   }
 }

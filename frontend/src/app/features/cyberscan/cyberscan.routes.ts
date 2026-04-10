@@ -71,6 +71,11 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'CGU — CyberScan',
   },
   {
+    path: 'politique-confidentialite',
+    loadComponent: () => import('./politique-confidentialite/politique-confidentialite.component').then(m => m.PolitiqueConfidentialiteComponent),
+    title: 'Politique de confidentialité — CyberScan',
+  },
+  {
     path: 'mentions-legales',
     loadComponent: () => import('./mentions-legales/mentions-legales.component').then(m => m.MentionsLegalesComponent),
     title: 'Mentions légales — CyberScan',

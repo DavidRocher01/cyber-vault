@@ -11,6 +11,7 @@ import app.models.subscription  # noqa: F401 — force relationship resolution
 import app.models.site           # noqa: F401
 import app.models.scan           # noqa: F401
 import app.models.user           # noqa: F401
+import app.models.code_scan      # noqa: F401
 from sqlalchemy import select
 
 

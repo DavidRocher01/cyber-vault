@@ -1,0 +1,204 @@
+<div class="min-h-screen bg-gray-900 text-white">
+
+  <!-- Navbar -->
+  <nav class="flex items-center justify-between px-8 py-4 border-b border-gray-800">
+    <a routerLink="/cyberscan" class="flex items-center gap-2">
+      <mat-icon class="text-cyan-400">shield</mat-icon>
+      <span class="text-xl font-bold text-cyan-400">CyberScan</span>
+    </a>
+    <app-nav-buttons />
+  </nav>
+
+  <div class="max-w-3xl mx-auto px-6 py-12">
+
+    <h1 class="text-3xl font-bold mb-2">Politique de confidentialité</h1>
+    <p class="text-gray-400 text-sm mb-10">Dernière mise à jour : avril 2026</p>
+
+    <!-- Section helper -->
+    <div class="flex flex-col gap-10 text-gray-300 text-sm leading-relaxed">
+
+      <!-- 1 -->
+      <section>
+        <h2 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+          <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">person</mat-icon>
+          1. Responsable du traitement
+        </h2>
+        <p>
+          Le service CyberScan est édité en tant qu'auto-entrepreneur. Pour toute question relative à
+          vos données personnelles, vous pouvez nous contacter à :
+          <a href="mailto:contact&#64;cyberscanapp.com" class="text-cyan-400 hover:underline">contact&#64;cyberscanapp.com</a>.
+        </p>
+      </section>
+
+      <!-- 2 -->
+      <section>
+        <h2 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+          <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">database</mat-icon>
+          2. Données collectées
+        </h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm border-collapse">
+            <thead>
+              <tr class="border-b border-gray-700 text-gray-400 text-xs uppercase tracking-wider">
+                <th class="text-left py-2 pr-4">Donnée</th>
+                <th class="text-left py-2 pr-4">Finalité</th>
+                <th class="text-left py-2">Base légale</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b border-gray-800">
+                <td class="py-2 pr-4">Adresse e-mail</td>
+                <td class="py-2 pr-4">Authentification, notifications</td>
+                <td class="py-2">Contrat</td>
+              </tr>
+              <tr class="border-b border-gray-800">
+                <td class="py-2 pr-4">Mot de passe (hashé bcrypt)</td>
+                <td class="py-2 pr-4">Authentification</td>
+                <td class="py-2">Contrat</td>
+              </tr>
+              <tr class="border-b border-gray-800">
+                <td class="py-2 pr-4">URLs des sites surveillés</td>
+                <td class="py-2 pr-4">Exécution des scans</td>
+                <td class="py-2">Contrat</td>
+              </tr>
+              <tr class="border-b border-gray-800">
+                <td class="py-2 pr-4">Résultats de scans</td>
+                <td class="py-2 pr-4">Rapports & historique</td>
+                <td class="py-2">Contrat</td>
+              </tr>
+              <tr class="border-b border-gray-800">
+                <td class="py-2 pr-4">Données de paiement</td>
+                <td class="py-2 pr-4">Facturation (Stripe)</td>
+                <td class="py-2">Contrat / obligation légale</td>
+              </tr>
+              <tr>
+                <td class="py-2 pr-4">Logs de connexion</td>
+                <td class="py-2 pr-4">Sécurité, détection de fraude</td>
+                <td class="py-2">Intérêt légitime</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-4 text-gray-400 text-xs">
+          Nous ne collectons aucune donnée de navigation à des fins publicitaires. Aucun cookie tiers de tracking n'est utilisé.
+        </p>
+      </section>
+
+      <!-- 3 -->
+      <section>
+        <h2 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+          <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">cookie</mat-icon>
+          3. Cookies
+        </h2>
+        <p class="mb-3">
+          CyberScan utilise uniquement des cookies strictement nécessaires au fonctionnement du service :
+        </p>
+        <ul class="list-disc list-inside space-y-1 text-gray-400">
+          <li><span class="text-white font-mono text-xs">access_token</span> — jeton d'authentification JWT (sessionStorage)</li>
+          <li><span class="text-white font-mono text-xs">refresh_token</span> — renouvellement de session (localStorage, 30 jours)</li>
+          <li><span class="text-white font-mono text-xs">cyberscan_cookie_consent</span> — mémorisation de votre choix de consentement</li>
+        </ul>
+        <p class="mt-3 text-gray-400">
+          Ces cookies ne peuvent pas être désactivés sans altérer le fonctionnement du service.
+          Aucun cookie publicitaire, analytique tiers ou de réseaux sociaux n'est déposé.
+        </p>
+      </section>
+
+      <!-- 4 -->
+      <section>
+        <h2 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+          <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">share</mat-icon>
+          4. Partage des données
+        </h2>
+        <p class="mb-3">Vos données peuvent être transmises aux sous-traitants suivants :</p>
+        <ul class="list-disc list-inside space-y-1 text-gray-400">
+          <li><strong class="text-white">Amazon Web Services</strong> (AWS Paris, eu-west-3) — hébergement, base de données</li>
+          <li><strong class="text-white">Stripe</strong> — traitement des paiements (données de carte non stockées chez nous)</li>
+          <li><strong class="text-white">Sentry</strong> — monitoring des erreurs (logs anonymisés)</li>
+        </ul>
+        <p class="mt-3 text-gray-400">
+          Aucune vente de données à des tiers. Aucun transfert hors Union Européenne sans garanties adéquates.
+        </p>
+      </section>
+
+      <!-- 5 -->
+      <section>
+        <h2 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+          <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">schedule</mat-icon>
+          5. Durée de conservation
+        </h2>
+        <ul class="list-disc list-inside space-y-1 text-gray-400">
+          <li>Données de compte : jusqu'à suppression du compte + 30 jours (sauvegarde)</li>
+          <li>Résultats de scans : durée de l'abonnement + 90 jours</li>
+          <li>Logs de connexion : 12 mois</li>
+          <li>Données de facturation : 10 ans (obligation légale)</li>
+        </ul>
+      </section>
+
+      <!-- 6 -->
+      <section>
+        <h2 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+          <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">gavel</mat-icon>
+          6. Vos droits (RGPD)
+        </h2>
+        <p class="mb-3">Conformément au Règlement Général sur la Protection des Données (RGPD), vous disposez des droits suivants :</p>
+        <ul class="list-disc list-inside space-y-1 text-gray-400">
+          <li><strong class="text-white">Droit d'accès</strong> — obtenir une copie de vos données</li>
+          <li><strong class="text-white">Droit de rectification</strong> — corriger vos données inexactes</li>
+          <li><strong class="text-white">Droit à l'effacement</strong> — supprimer votre compte et vos données</li>
+          <li><strong class="text-white">Droit à la portabilité</strong> — exporter vos données au format JSON</li>
+          <li><strong class="text-white">Droit d'opposition</strong> — vous opposer à certains traitements</li>
+          <li><strong class="text-white">Droit à la limitation</strong> — restreindre le traitement de vos données</li>
+        </ul>
+        <p class="mt-4">
+          Ces droits s'exercent directement depuis votre
+          <a routerLink="/cyberscan/profile" class="text-cyan-400 hover:underline">espace profil</a>
+          (export & suppression) ou par email à
+          <a href="mailto:contact&#64;cyberscanapp.com" class="text-cyan-400 hover:underline">contact&#64;cyberscanapp.com</a>.
+          Réponse sous 30 jours.
+        </p>
+        <p class="mt-3 text-gray-400">
+          En cas de litige, vous pouvez saisir la
+          <a href="https://www.cnil.fr" target="_blank" rel="noopener" class="text-cyan-400 hover:underline">CNIL</a>
+          (Commission Nationale de l'Informatique et des Libertés).
+        </p>
+      </section>
+
+      <!-- 7 -->
+      <section>
+        <h2 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+          <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">lock</mat-icon>
+          7. Sécurité
+        </h2>
+        <p class="text-gray-400">
+          Vos données sont chiffrées en transit (TLS 1.3) et au repos (AES-256).
+          Les mots de passe sont hashés avec bcrypt (coût 12). L'accès aux serveurs est restreint
+          par authentification multifacteur (MFA). Un journal d'accès est conservé à des fins de détection d'incidents.
+        </p>
+      </section>
+
+      <!-- 8 -->
+      <section>
+        <h2 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+          <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">edit</mat-icon>
+          8. Modifications
+        </h2>
+        <p class="text-gray-400">
+          Nous nous réservons le droit de modifier cette politique. En cas de modification substantielle,
+          vous serez notifié par e-mail au moins 15 jours avant l'entrée en vigueur.
+          La version en vigueur est toujours disponible sur cette page.
+        </p>
+      </section>
+
+    </div>
+
+    <!-- Footer links -->
+    <div class="mt-12 pt-6 border-t border-gray-800 flex flex-wrap gap-4 text-xs text-gray-500">
+      <a routerLink="/cyberscan" class="hover:text-cyan-400">Accueil</a>
+      <a routerLink="/cyberscan/cgu" class="hover:text-cyan-400">CGU</a>
+      <a routerLink="/cyberscan/mentions-legales" class="hover:text-cyan-400">Mentions légales</a>
+      <a routerLink="/cyberscan/profile" class="hover:text-cyan-400">Mon profil</a>
+    </div>
+
+  </div>
+</div>
