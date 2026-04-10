@@ -295,7 +295,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
   selectPlan(plan: Plan) {
     this.checkoutLoading.set(plan.id);
     this.cyberscan.createCheckout(plan.id).subscribe({
-      next: res => { window.location.href = res.checkout_url; },
+      next: res => {
+        const url = res.checkout_url;
+        // Internal route (dev mode) → use Angular router to preserve nav history
+        if (url.startsWith('/') || url.includes(window.location.host)) {
+          const path = url.startsWith('/') ? url : new URL(url).pathname;
+          this.router.navigateByUrl(path);
+        } else {
+          window.location.href = url;
+        }
+      },
       error: () => this.checkoutLoading.set(null),
     });
   }

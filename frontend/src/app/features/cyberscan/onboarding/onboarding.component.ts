@@ -58,7 +58,15 @@ export class OnboardingComponent implements OnInit {
     this.selectedPlan.set(plan);
     this.checkoutLoading.set(true);
     this.cyberscan.createCheckout(plan.id).subscribe({
-      next: res => { window.location.href = res.checkout_url; },
+      next: res => {
+        const url = res.checkout_url;
+        if (url.startsWith('/') || url.includes(window.location.host)) {
+          const path = url.startsWith('/') ? url : new URL(url).pathname;
+          this.router.navigateByUrl(path);
+        } else {
+          window.location.href = url;
+        }
+      },
       error: () => this.checkoutLoading.set(false),
     });
   }
