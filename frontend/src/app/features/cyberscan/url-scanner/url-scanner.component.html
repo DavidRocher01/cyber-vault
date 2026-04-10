@@ -296,6 +296,14 @@
                     </span>
                   }
 
+                  <!-- Delete button -->
+                  <button type="button"
+                          (click)="$event.stopPropagation(); deleteScan(scan)"
+                          class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded text-gray-600 hover:text-red-400 hover:bg-red-900/30 transition-all"
+                          title="Supprimer">
+                    <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">close</mat-icon>
+                  </button>
+
                 </div>
               </div>
             }
