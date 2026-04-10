@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -33,6 +33,7 @@ export class ProfileComponent implements OnInit {
   private fb = inject(FormBuilder);
   private snack = inject(MatSnackBar);
   private title = inject(Title);
+  private router = inject(Router);
 
   profile = signal<UserProfile | null>(null);
   loading = signal(true);
@@ -164,6 +165,33 @@ export class ProfileComponent implements OnInit {
       error: err => {
         this.twoFaLoading.set(false);
         this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
+      },
+    });
+  }
+
+  // ── RGPD ──────────────────────────────────────────────────────────────────
+  showDeleteConfirm = signal(false);
+  deletingAccount = signal(false);
+
+  deleteForm = this.fb.nonNullable.group({
+    password: ['', Validators.required],
+  });
+
+  exportUrl(): string {
+    return this.userService.exportMyData();
+  }
+
+  deleteAccount() {
+    if (this.deleteForm.invalid) return;
+    this.deletingAccount.set(true);
+    this.userService.deleteAccount(this.deleteForm.getRawValue().password).subscribe({
+      next: () => {
+        this.snack.open('Compte supprimé. Au revoir !', 'OK', { duration: 5000 });
+        this.router.navigate(['/cyberscan']);
+      },
+      error: err => {
+        this.deletingAccount.set(false);
+        this.snack.open(err.error?.detail || 'Mot de passe incorrect', 'Fermer', { duration: 4000 });
       },
     });
   }

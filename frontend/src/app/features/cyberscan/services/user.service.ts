@@ -43,4 +43,12 @@ export class UserService {
   disable2FA(password: string, code: string): Observable<UserProfile> {
     return this.http.post<UserProfile>(`${API}/users/me/2fa/disable`, { password, code });
   }
+
+  exportMyData(): string {
+    return `${API}/users/me/export`;
+  }
+
+  deleteAccount(password: string): Observable<void> {
+    return this.http.delete<void>(`${API}/users/me`, { body: { password } });
+  }
 }

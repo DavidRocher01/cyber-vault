@@ -357,17 +357,64 @@
 
       <!-- Danger zone -->
       <div class="border border-red-900/50 rounded-2xl p-6 bg-red-950/10">
-        <div class="flex items-center gap-2 mb-3">
-          <mat-icon class="text-red-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">warning</mat-icon>
-          <h2 class="font-semibold text-red-400 text-sm">Zone de danger</h2>
+        <!-- RGPD — Export & Suppression -->
+        <div class="flex items-center gap-2 mb-4">
+          <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">policy</mat-icon>
+          <h2 class="font-semibold text-sm">Mes données (RGPD)</h2>
         </div>
-        <p class="text-sm text-gray-500 mb-4">La suppression de votre compte est définitive. Toutes vos données (sites, scans, rapports) seront effacées.</p>
-        <button type="button" mat-stroked-button
-                class="!border-red-800 !text-red-400 hover:!bg-red-900/20 !text-sm"
-                matTooltip="Contactez le support pour supprimer votre compte">
-          <mat-icon class="mr-1 !text-[1rem] !w-[1rem] !h-[1rem]">delete_forever</mat-icon>
-          Supprimer mon compte
-        </button>
+
+        <!-- Export -->
+        <div class="bg-gray-700/30 border border-gray-600 rounded-xl p-4 mb-4">
+          <p class="text-sm font-medium mb-1">Exporter mes données</p>
+          <p class="text-xs text-gray-400 mb-3">Téléchargez une copie de toutes vos données (compte, sites, scans) au format JSON.</p>
+          <a [href]="exportUrl()" download="cyberscan_mes_donnees.json"
+             class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm font-medium text-white transition-colors">
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">download</mat-icon>
+            Exporter (JSON)
+          </a>
+        </div>
+
+        <!-- Suppression -->
+        <div class="bg-red-900/10 border border-red-900 rounded-xl p-4">
+          <div class="flex items-center gap-2 mb-1">
+            <mat-icon class="text-red-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">warning</mat-icon>
+            <p class="text-sm font-semibold text-red-400">Supprimer mon compte</p>
+          </div>
+          <p class="text-xs text-gray-400 mb-3">
+            Action irréversible. Toutes vos données (sites, scans, rapports) seront définitivement effacées.
+          </p>
+          @if (!showDeleteConfirm()) {
+            <button type="button" mat-stroked-button
+                    (click)="showDeleteConfirm.set(true)"
+                    class="!border-red-800 !text-red-400 hover:!bg-red-900/20 !text-sm">
+              <mat-icon class="mr-1 !text-[1rem] !w-[1rem] !h-[1rem]">delete_forever</mat-icon>
+              Supprimer mon compte
+            </button>
+          } @else {
+            <form [formGroup]="deleteForm" (ngSubmit)="deleteAccount()" class="flex flex-col gap-3">
+              <input type="password" formControlName="password"
+                     placeholder="Confirmez votre mot de passe"
+                     class="bg-gray-900 border border-red-800 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:ring-2 focus:ring-red-600 w-full" />
+              <div class="flex gap-2">
+                <button type="submit" mat-flat-button
+                        [disabled]="deleteForm.invalid || deletingAccount()"
+                        class="!bg-red-600 !text-white !text-sm flex-1">
+                  @if (deletingAccount()) {
+                    <mat-spinner diameter="16" class="mx-auto" />
+                  } @else {
+                    Confirmer la suppression
+                  }
+                </button>
+                <button type="button" mat-stroked-button
+                        (click)="showDeleteConfirm.set(false); deleteForm.reset()"
+                        class="!border-gray-600 !text-gray-400 !text-sm">
+                  Annuler
+                </button>
+              </div>
+            </form>
+          }
+        </div>
+
       </div>
 
     }

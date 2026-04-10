@@ -1,9 +1,12 @@
 import base64
 import io
+import json
+from datetime import datetime, timezone
 
 import pyotp
 import qrcode
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -11,8 +14,14 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.security import hash_password, verify_password
 from app.models.user import User
+from app.models.site import Site
+from app.models.scan import Scan
 from app.schemas.user import UserOut, TwoFactorSetupOut, TwoFactorVerifyIn, TwoFactorDisableIn
 from pydantic import BaseModel, EmailStr
+
+
+class DeleteAccountIn(BaseModel):
+    password: str
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -74,6 +83,62 @@ def _make_qr_b64(uri: str) -> str:
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode()
+
+
+@router.get("/me/export")
+async def export_my_data(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Export all user data as JSON (RGPD — droit à la portabilité)."""
+    sites_result = await db.execute(select(Site).where(Site.user_id == current_user.id))
+    sites = sites_result.scalars().all()
+
+    scans_data = []
+    for site in sites:
+        scans_result = await db.execute(select(Scan).where(Scan.site_id == site.id))
+        for scan in scans_result.scalars().all():
+            scans_data.append({
+                "site_url": site.url,
+                "site_name": site.name,
+                "scan_id": scan.id,
+                "status": scan.status,
+                "overall_status": scan.overall_status,
+                "created_at": scan.created_at.isoformat() if scan.created_at else None,
+                "finished_at": scan.finished_at.isoformat() if scan.finished_at else None,
+            })
+
+    export = {
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "account": {
+            "email": current_user.email,
+            "is_active": current_user.is_active,
+            "totp_enabled": current_user.totp_enabled,
+        },
+        "sites": [{"url": s.url, "name": s.name, "created_at": s.created_at.isoformat() if s.created_at else None} for s in sites],
+        "scans": scans_data,
+    }
+
+    content = json.dumps(export, ensure_ascii=False, indent=2)
+    return StreamingResponse(
+        iter([content]),
+        media_type="application/json",
+        headers={"Content-Disposition": "attachment; filename=cyberscan_mes_donnees.json"},
+    )
+
+
+@router.delete("/me", status_code=204)
+async def delete_my_account(
+    payload: DeleteAccountIn,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete account and all associated data (RGPD — droit à l'effacement)."""
+    if not verify_password(payload.password, current_user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Mot de passe incorrect")
+
+    await db.delete(current_user)
+    await db.commit()
 
 
 @router.post("/me/2fa/setup", response_model=TwoFactorSetupOut)
