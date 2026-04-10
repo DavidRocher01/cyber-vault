@@ -16,6 +16,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import zipfile
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
@@ -278,4 +279,78 @@ async def run_code_scan(scan_id: int, db: AsyncSession) -> None:
 
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
+        await db.commit()
+
+
+async def run_code_scan_zip(scan_id: int, zip_path: str, db: AsyncSession) -> None:
+    """Background task: extract ZIP archive, run tools, persist results."""
+    from sqlalchemy import select
+
+    result = await db.execute(select(CodeScan).where(CodeScan.id == scan_id))
+    scan: CodeScan | None = result.scalar_one_or_none()
+    if not scan:
+        logger.error(f"CodeScan {scan_id} not found")
+        return
+
+    scan.status = "running"
+    scan.started_at = datetime.now(timezone.utc)
+    await db.commit()
+
+    tmp_dir = tempfile.mkdtemp(prefix="cyberscan_code_")
+    try:
+        logger.info(f"CodeScan {scan_id}: extracting ZIP")
+        repo_dir = os.path.join(tmp_dir, "repo")
+        os.makedirs(repo_dir, exist_ok=True)
+
+        with zipfile.ZipFile(zip_path, "r") as z:
+            # Zip-bomb guard
+            total_size = sum(info.file_size for info in z.infolist())
+            if total_size > 200 * 1024 * 1024:
+                raise RuntimeError("Archive trop volumineuse après extraction (max 200 MB)")
+            # Path-traversal guard
+            real_repo = os.path.realpath(repo_dir)
+            for member in z.infolist():
+                dest = os.path.realpath(os.path.join(repo_dir, member.filename))
+                if not dest.startswith(real_repo + os.sep) and dest != real_repo:
+                    raise RuntimeError("Archive contient des chemins invalides (path traversal)")
+            z.extractall(repo_dir)
+
+        # If ZIP wraps a single top-level folder, descend into it
+        entries = os.listdir(repo_dir)
+        if len(entries) == 1 and os.path.isdir(os.path.join(repo_dir, entries[0])):
+            repo_dir = os.path.join(repo_dir, entries[0])
+
+        all_findings: list[dict] = []
+        logger.info(f"CodeScan {scan_id}: running Bandit")
+        all_findings.extend(_run_bandit(repo_dir))
+        logger.info(f"CodeScan {scan_id}: running Semgrep")
+        all_findings.extend(_run_semgrep(repo_dir))
+        logger.info(f"CodeScan {scan_id}: running pip-audit")
+        all_findings.extend(_run_pip_audit(repo_dir))
+
+        counts = _count_severities(all_findings)
+        total = sum(counts.values())
+        results = {"findings": all_findings, "summary": {"total": total, **counts}}
+
+        scan.status = "done"
+        scan.critical_count = counts["critical"]
+        scan.high_count = counts["high"]
+        scan.medium_count = counts["medium"]
+        scan.low_count = counts["low"]
+        scan.results_json = json.dumps(results)
+        scan.finished_at = datetime.now(timezone.utc)
+        logger.info(f"CodeScan {scan_id}: done — {total} findings")
+
+    except Exception as exc:
+        logger.exception(f"CodeScan {scan_id} (ZIP) failed: {exc}")
+        scan.status = "failed"
+        scan.error_message = str(exc)[:512]
+        scan.finished_at = datetime.now(timezone.utc)
+
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        try:
+            os.unlink(zip_path)
+        except Exception:
+            pass
         await db.commit()

@@ -8,7 +8,11 @@
 
   <!-- Logo + nav -->
   <div class="relative flex items-center justify-between w-full max-w-xl mb-10">
-    <app-nav-buttons />
+    <button type="button" (click)="goBack()"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/10 transition-all">
+      <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">arrow_back</mat-icon>
+      Retour
+    </button>
     <a routerLink="/cyberscan" class="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
       <mat-icon class="text-cyan-400 !text-[2rem] !w-[2rem] !h-[2rem]">shield</mat-icon>
       <span class="text-2xl font-bold text-white tracking-tight">Cyber<span class="text-cyan-400">Scan</span></span>

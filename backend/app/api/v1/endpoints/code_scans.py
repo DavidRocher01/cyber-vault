@@ -1,7 +1,9 @@
+import os
+import tempfile
 from datetime import datetime
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,13 +17,12 @@ from app.schemas.cyberscan import (
     CodeScanTriggerOut,
     PaginatedCodeScans,
 )
-from app.services.code_scan_service import run_code_scan
+from app.services.code_scan_service import run_code_scan, run_code_scan_zip
 
 router = APIRouter(prefix="/code-scans", tags=["code-scans"])
 
 
 def _embed_token(url: str, token: str | None) -> str:
-    """Inject PAT token into HTTPS GitHub URL."""
     if not token:
         return url
     parsed = urlparse(url)
@@ -43,6 +44,48 @@ async def _run_background(scan_id: int) -> None:
         await run_code_scan(scan_id, db)
 
 
+async def _run_zip_background(scan_id: int, zip_path: str) -> None:
+    async with AsyncSessionLocal() as db:
+        await run_code_scan_zip(scan_id, zip_path, db)
+
+
+@router.post("/upload", response_model=CodeScanTriggerOut, status_code=202)
+async def upload_code_scan(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Trigger a code security analysis from an uploaded ZIP archive."""
+    if not file.filename or not file.filename.lower().endswith(".zip"):
+        raise HTTPException(status_code=422, detail="Seuls les fichiers .zip sont acceptés")
+
+    content = await file.read()
+    if len(content) > 50 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Fichier trop volumineux (max 50 MB)")
+
+    fd, zip_path = tempfile.mkstemp(suffix=".zip", prefix="cyberscan_upload_")
+    os.close(fd)
+    with open(zip_path, "wb") as f:
+        f.write(content)
+
+    repo_name = file.filename[:-4] if file.filename.lower().endswith(".zip") else file.filename
+
+    scan = CodeScan(
+        user_id=current_user.id,
+        repo_url=f"upload:{file.filename}",
+        repo_name=repo_name,
+        status="pending",
+        created_at=datetime.utcnow(),
+    )
+    db.add(scan)
+    await db.commit()
+    await db.refresh(scan)
+
+    background_tasks.add_task(_run_zip_background, scan.id, zip_path)
+    return {"scan_id": scan.id, "message": "Analyse lancée en arrière-plan"}
+
+
 @router.post("", response_model=CodeScanTriggerOut, status_code=202)
 async def trigger_code_scan(
     body: CodeScanCreate,
@@ -50,18 +93,16 @@ async def trigger_code_scan(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Trigger a code security analysis on a GitHub repository."""
-    # Basic URL validation
+    """Trigger a code security analysis on a Git repository."""
     parsed = urlparse(body.repo_url)
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
         raise HTTPException(status_code=422, detail="URL de dépôt invalide (https:// requis)")
 
-    # Embed token if provided (for private repos)
     clone_url = _embed_token(body.repo_url, body.github_token)
 
     scan = CodeScan(
         user_id=current_user.id,
-        repo_url=body.repo_url,  # store clean URL (no token)
+        repo_url=body.repo_url,
         repo_name=_repo_name(body.repo_url),
         status="pending",
         created_at=datetime.utcnow(),
@@ -70,16 +111,12 @@ async def trigger_code_scan(
     await db.commit()
     await db.refresh(scan)
 
-    # Patch clone URL with token into the object used by the background task
-    # We pass scan_id; the service re-fetches from DB. We store the token-embedded
-    # URL temporarily by overwriting repo_url before the task reads it.
     if body.github_token:
         scan.repo_url = clone_url
         await db.commit()
 
     background_tasks.add_task(_run_background, scan.id)
 
-    # Restore clean URL in response
     scan.repo_url = body.repo_url
     return {"scan_id": scan.id, "message": "Analyse de code lancée en arrière-plan"}
 

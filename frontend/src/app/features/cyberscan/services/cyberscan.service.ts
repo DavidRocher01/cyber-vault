@@ -221,6 +221,12 @@ export class CyberscanService {
     return this.http.delete<void>(`${API}/code-scans/${id}`);
   }
 
+  uploadCodeScan(file: File): Observable<{ scan_id: number; message: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<{ scan_id: number; message: string }>(`${API}/code-scans/upload`, formData);
+  }
+
   // ── Notifications ──────────────────────────────────────────────────────
 
   getNotifications(): Observable<NotificationList> {
