@@ -39,11 +39,37 @@ jobs:
           docker push    $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
       - name: Deploy to ECS
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG:    ${{ github.sha }}
         run: |
+          # Retrieve the current task definition ARN from the service
+          TASK_DEF_ARN=$(aws ecs describe-services \
+            --cluster ${{ secrets.ECS_CLUSTER }} \
+            --services ${{ secrets.ECS_SERVICE }} \
+            --query 'services[0].taskDefinition' \
+            --output text)
+
+          # Build a new task definition JSON with the updated image
+          NEW_TASK_DEF=$(aws ecs describe-task-definition \
+            --task-definition "$TASK_DEF_ARN" \
+            --query 'taskDefinition' \
+            --output json | jq \
+              --arg IMAGE "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+              'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)
+               | .containerDefinitions[0].image = $IMAGE')
+
+          # Register the new revision
+          NEW_ARN=$(aws ecs register-task-definition \
+            --cli-input-json "$NEW_TASK_DEF" \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+          # Update the service to use the new revision
           aws ecs update-service \
             --cluster ${{ secrets.ECS_CLUSTER }} \
             --service ${{ secrets.ECS_SERVICE }} \
-            --force-new-deployment
+            --task-definition "$NEW_ARN"
 
   # ── Frontend : S3 + CloudFront ──────────────────────────────────────────────
   deploy-frontend:
