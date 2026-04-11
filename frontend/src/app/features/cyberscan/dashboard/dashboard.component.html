@@ -227,17 +227,19 @@
             Nouveau site
           </h3>
           <form [formGroup]="siteForm" (ngSubmit)="addSite()" class="flex flex-col gap-4">
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>URL (https://...)</mat-label>
-              <input matInput formControlName="url" placeholder="https://monsite.com" />
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-medium text-gray-400 uppercase tracking-wide">URL du site</label>
+              <input formControlName="url" type="url" placeholder="https://monsite.com"
+                class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-colors" />
               @if (siteForm.controls.url.invalid && siteForm.controls.url.touched) {
-                <mat-error>URL valide requise (https://...)</mat-error>
+                <p class="text-xs text-red-400 mt-0.5">URL valide requise (https://...)</p>
               }
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Nom du site</mat-label>
-              <input matInput formControlName="name" placeholder="Mon Site" />
-            </mat-form-field>
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-medium text-gray-400 uppercase tracking-wide">Nom du site</label>
+              <input formControlName="name" type="text" placeholder="Mon Site"
+                class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-colors" />
+            </div>
             <div class="flex gap-3">
               <button mat-flat-button color="primary" type="submit" [disabled]="siteForm.invalid || addingSite()">
                 @if (addingSite()) { <mat-spinner diameter="18" class="mr-2"></mat-spinner> }
