@@ -96,15 +96,17 @@ async def test_token_gives_access_to_user_me():
 
 @pytest.mark.asyncio
 async def test_nis2_score_formula_compliant_2pts_partial_1pt():
-    """Régression : compliant=2pts, partial=1pt, max=2*N → score correct."""
+    """Régression : compliant=2pts, partial=1pt, dénominateur=34 items total.
+    Tous les items non renseignés comptent comme non_compliant (0pt).
+    rssi=compliant(2pts) + mgmt_training=partial(1pt) + 32 nc(0pt)
+    → score = 3 / (34*2) * 100 = round(4.41) = 4%"""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "nis2_formula@test.com")
-        # 1 compliant (2pts) + 1 partial (1pt) sur 2 items scorables → (3/4)*100 = 75%
         r = await c.put(f"{BASE}/nis2/me", json={
-            "items": {"rssi": "compliant", "policy": "partial"}
+            "items": {"rssi": "compliant", "mgmt_training": "partial"}
         }, headers=h)
     assert r.status_code == 200
-    assert r.json()["score"] == 75
+    assert r.json()["score"] == 4
 
 
 @pytest.mark.asyncio

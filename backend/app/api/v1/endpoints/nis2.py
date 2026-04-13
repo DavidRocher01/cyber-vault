@@ -139,8 +139,11 @@ ALL_ITEM_IDS = {item["id"] for cat in NIS2_CATEGORIES for item in cat["items"]}
 
 
 def _compute_score(items: dict[str, str]) -> int:
-    """Compute 0-100 score. compliant=2pts, partial=1pt, non_compliant=0, na excluded."""
-    scorable = [(v) for v in items.values() if v != "na"]
+    """Compute 0-100 score against ALL 34 NIS2 items.
+    compliant=2pts, partial=1pt, non_compliant=0, na excluded from denominator.
+    Items not present in payload default to non_compliant (0pts)."""
+    all_statuses = [items.get(id, "non_compliant") for id in ALL_ITEM_IDS]
+    scorable = [s for s in all_statuses if s != "na"]
     if not scorable:
         return 0
     total = sum(2 if s == "compliant" else 1 if s == "partial" else 0 for s in scorable)
@@ -236,7 +239,7 @@ async def export_assessment_pdf(
     )
     assessment = result.scalar_one_or_none()
     items = json.loads(assessment.items_json) if assessment else {}
-    score = assessment.score if assessment else 0
+    score = _compute_score(items)  # recalcul avec la formule corrigée (34 items)
     updated_at = assessment.updated_at if assessment else None
 
     from app.services.nis2_pdf import generate_nis2_pdf
