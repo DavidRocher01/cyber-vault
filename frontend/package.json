@@ -4,8 +4,8 @@
   "scripts": {
     "start": "ng serve",
     "build": "ng build",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
+    "test": "vitest run --reporter=verbose --reporter=junit --outputFile=test-results/results.xml",
+    "test:coverage": "vitest run --coverage --reporter=verbose --reporter=junit --outputFile=test-results/results.xml",
     "test:e2e": "playwright test",
     "lint": "ng lint",
     "format": "prettier --write \"src/**/*.{ts,html,scss}\"",

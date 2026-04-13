@@ -24,7 +24,7 @@ dist/
 
 # Playwright
 playwright-report/
-test-results/
+/test-results/
 
 # VS Code
 .vscode/
