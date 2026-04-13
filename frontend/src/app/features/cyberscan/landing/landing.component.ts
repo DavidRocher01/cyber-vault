@@ -295,7 +295,7 @@ export class LandingComponent implements OnInit {
       icon: 'code',
       name: 'Audit Standard',
       target: 'Startups, SaaS, applications métiers',
-      price: '890 €',
+      price: '390 € HT',
       duration: '1 jour',
       badge: 'Recommandé',
       featured: true,
