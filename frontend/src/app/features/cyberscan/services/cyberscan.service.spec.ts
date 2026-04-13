@@ -9,15 +9,19 @@ const API = '/api/v1';
  * We bypass DI by creating an instance via Object.create and manually
  * assigning the http dependency — same pattern used for constructor injection.
  */
-function makeService(httpOverrides: Partial<{ get: any; post: any; delete: any }> = {}) {
+function makeService(httpOverrides: Partial<{ get: any; post: any; put: any; delete: any }> = {}) {
   const http = {
     get: vi.fn().mockReturnValue(of({})),
     post: vi.fn().mockReturnValue(of({})),
+    put: vi.fn().mockReturnValue(of({})),
     delete: vi.fn().mockReturnValue(of(null)),
     ...httpOverrides,
   };
   const service = Object.create(CyberscanService.prototype) as CyberscanService;
   (service as any).http = http;
+  // Reset in-memory caches so each test starts fresh
+  (service as any)._plans$ = null;
+  (service as any)._subscription$ = null;
   return { service, http };
 }
 
@@ -255,5 +259,123 @@ describe('CyberscanService', () => {
   it('deleteNotification() envoie DELETE /api/v1/notifications/:id', () => {
     service.deleteNotification(3).subscribe();
     expect(http.delete).toHaveBeenCalledWith(`${API}/notifications/3`);
+  });
+
+  // ── NIS2 ──────────────────────────────────────────────────────────────────
+
+  it('getNis2Assessment() envoie GET /api/v1/nis2/me', () => {
+    http.get.mockReturnValue(of({ score: 0, items: {}, categories: [] }));
+    service.getNis2Assessment().subscribe();
+    expect(http.get).toHaveBeenCalledWith(`${API}/nis2/me`);
+  });
+
+  it('getNis2Assessment() retourne les données du serveur', () => {
+    const data = { score: 75, items: { rssi: 'compliant' }, categories: [] };
+    http.get.mockReturnValue(of(data));
+    let result: any;
+    service.getNis2Assessment().subscribe(r => (result = r));
+    expect(result.score).toBe(75);
+    expect(result.items.rssi).toBe('compliant');
+  });
+
+  it('saveNis2Assessment() envoie PUT /api/v1/nis2/me avec { items }', () => {
+    const items = { rssi: 'compliant', policy: 'partial' };
+    http.put.mockReturnValue(of({ score: 75, items }));
+    service.saveNis2Assessment(items).subscribe();
+    expect(http.put).toHaveBeenCalledWith(`${API}/nis2/me`, { items });
+  });
+
+  it('saveNis2Assessment() retourne la réponse avec le score', () => {
+    const items = { rssi: 'compliant' };
+    http.put.mockReturnValue(of({ score: 100, items }));
+    let result: any;
+    service.saveNis2Assessment(items).subscribe(r => (result = r));
+    expect(result.score).toBe(100);
+  });
+
+  it('saveNis2Assessment() envoie exactement un PUT', () => {
+    http.put.mockReturnValue(of({}));
+    service.saveNis2Assessment({}).subscribe();
+    expect(http.put).toHaveBeenCalledTimes(1);
+  });
+
+  it('downloadNis2PdfBlob() envoie GET /api/v1/nis2/me/pdf avec responseType blob', () => {
+    const blob = new Blob(['PDF'], { type: 'application/pdf' });
+    http.get.mockReturnValue(of(blob));
+    service.downloadNis2PdfBlob().subscribe();
+    expect(http.get).toHaveBeenCalledWith(`${API}/nis2/me/pdf`, { responseType: 'blob' });
+  });
+
+  it('downloadNis2PdfBlob() retourne un Blob', () => {
+    const blob = new Blob(['PDF'], { type: 'application/pdf' });
+    http.get.mockReturnValue(of(blob));
+    let result: any;
+    service.downloadNis2PdfBlob().subscribe(r => (result = r));
+    expect(result).toBe(blob);
+  });
+
+  // ── Blob downloads ────────────────────────────────────────────────────────
+
+  it('downloadPdfBlob() envoie GET /api/v1/scans/:id/pdf avec responseType blob', () => {
+    const blob = new Blob(['PDF']);
+    http.get.mockReturnValue(of(blob));
+    service.downloadPdfBlob(5).subscribe();
+    expect(http.get).toHaveBeenCalledWith(`${API}/scans/5/pdf`, { responseType: 'blob' });
+  });
+
+  it('downloadUrlScanPdfBlob() envoie GET /api/v1/url-scans/:id/pdf avec responseType blob', () => {
+    const blob = new Blob(['PDF']);
+    http.get.mockReturnValue(of(blob));
+    service.downloadUrlScanPdfBlob(12).subscribe();
+    expect(http.get).toHaveBeenCalledWith(`${API}/url-scans/12/pdf`, { responseType: 'blob' });
+  });
+
+  // ── Cache — Plans ──────────────────────────────────────────────────────────
+
+  it('getPlans() ne fait qu\'un seul appel HTTP pour deux souscriptions', () => {
+    http.get.mockReturnValue(of([]));
+    service.getPlans().subscribe();
+    service.getPlans().subscribe();
+    expect(http.get).toHaveBeenCalledTimes(1);
+  });
+
+  it('getPlans() émet la même valeur aux deux abonnés', () => {
+    const plans = [{ id: 1, name: 'starter' }];
+    http.get.mockReturnValue(of(plans));
+    const results: any[] = [];
+    service.getPlans().subscribe(r => results.push(r));
+    service.getPlans().subscribe(r => results.push(r));
+    expect(results).toHaveLength(2);
+    expect(results[0]).toEqual(results[1]);
+  });
+
+  // ── Cache — Subscription ──────────────────────────────────────────────────
+
+  it('getMySubscription() ne fait qu\'un seul appel HTTP pour deux souscriptions', () => {
+    http.get.mockReturnValue(of(null));
+    service.getMySubscription().subscribe();
+    service.getMySubscription().subscribe();
+    expect(http.get).toHaveBeenCalledTimes(1);
+  });
+
+  it('getMySubscription(refresh=true) force un nouvel appel HTTP', () => {
+    http.get.mockReturnValue(of(null));
+    service.getMySubscription().subscribe();
+    service.getMySubscription(true).subscribe();
+    expect(http.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('invalidateSubscriptionCache() force un nouvel appel au prochain getMySubscription()', () => {
+    http.get.mockReturnValue(of(null));
+    service.getMySubscription().subscribe(); // premier appel → HTTP
+    service.invalidateSubscriptionCache();
+    service.getMySubscription().subscribe(); // après invalidation → nouvel HTTP
+    expect(http.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('invalidateSubscriptionCache() n\'effectue pas d\'appel HTTP en lui-même', () => {
+    service.invalidateSubscriptionCache();
+    expect(http.get).not.toHaveBeenCalled();
+    expect(http.post).not.toHaveBeenCalled();
   });
 });
