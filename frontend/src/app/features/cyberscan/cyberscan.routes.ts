@@ -56,6 +56,12 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Abonnement activé — CyberScan',
   },
   {
+    path: 'nis2',
+    loadComponent: () => import('./nis2/nis2.component').then(m => m.Nis2Component),
+    canActivate: [authGuard],
+    title: 'Conformité NIS2 — CyberScan',
+  },
+  {
     path: 'ressources',
     loadComponent: () => import('./ressources/ressources.component').then(m => m.RessourcesComponent),
     title: 'Ressources — CyberScan',

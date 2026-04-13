@@ -250,6 +250,20 @@ export class CyberscanService {
     return this.http.post<{ scan_id: number; message: string }>(`${API}/code-scans/upload`, formData);
   }
 
+  // ── NIS2 ──────────────────────────────────────────────────────────────
+
+  getNis2Assessment(): Observable<any> {
+    return this.http.get<any>(`${API}/nis2/me`);
+  }
+
+  saveNis2Assessment(items: Record<string, string>): Observable<any> {
+    return this.http.put<any>(`${API}/nis2/me`, { items });
+  }
+
+  downloadNis2PdfBlob(): Observable<Blob> {
+    return this.http.get(`${API}/nis2/me/pdf`, { responseType: 'blob' });
+  }
+
   // ── Notifications ──────────────────────────────────────────────────────
 
   getNotifications(): Observable<NotificationList> {
