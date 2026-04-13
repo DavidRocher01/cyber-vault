@@ -76,7 +76,7 @@
                       [attr.stroke]="scoreColor(score())"
                       stroke-width="3" stroke-linecap="round"
                       [attr.stroke-dasharray]="(score() / 100 * 100) + ' 100'"
-                      style="transition: stroke-dasharray 0.6s ease"/>
+                      class="score-circle-transition"/>
             </svg>
             <div class="absolute inset-0 flex flex-col items-center justify-center">
               <span class="text-2xl font-black" [style.color]="scoreColor(score())">{{ score() }}%</span>

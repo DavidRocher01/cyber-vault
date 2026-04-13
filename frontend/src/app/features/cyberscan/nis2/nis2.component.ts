@@ -33,6 +33,7 @@ export interface Nis2Category {
     NavButtonsComponent,
   ],
   templateUrl: './nis2.component.html',
+  styleUrl: './nis2.component.css',
 })
 export class Nis2Component implements OnInit {
   private cyberscan = inject(CyberscanService);
