@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-gray-900 text-white">
+<div class="min-h-screen bg-gray-900 text-white overflow-x-hidden">
 
   <!-- Navbar -->
   <nav class="flex items-center justify-between px-4 md:px-8 py-4 border-b border-gray-800 gap-2">
@@ -151,7 +151,7 @@
 
   <!-- Animated Counters -->
   <section class="bg-cyan-900/20 border-y border-cyan-900/40 px-8 py-14">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto text-center">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-4xl mx-auto text-center">
       @for (counter of counters; track counter.label) {
         <div>
           <mat-icon class="text-cyan-400 mb-2 !text-[2rem] !w-[2rem] !h-[2rem]">{{ counter.icon }}</mat-icon>
@@ -167,7 +167,7 @@
   <!-- Features -->
   <section class="px-8 py-16 bg-gray-800/50">
     <h2 class="text-3xl font-bold text-center mb-12">Ce que nous analysons</h2>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
       @for (feature of features; track feature.title) {
         <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 hover:border-cyan-600 hover:shadow-lg hover:shadow-cyan-900/20 transition-all cursor-default">
           <mat-icon class="text-cyan-400 mb-3 !text-[2rem] !w-[2rem] !h-[2rem]">{{ feature.icon }}</mat-icon>
@@ -185,7 +185,7 @@
   <section class="px-8 py-16">
     <h2 class="text-3xl font-bold text-center mb-2">Ils nous font confiance</h2>
     <p class="text-gray-300 text-center mb-10">Des équipes qui protègent leurs assets avec CyberScan</p>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-5xl mx-auto">
       @for (t of testimonials; track t.name) {
         <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 flex flex-col gap-4">
           <div class="flex gap-1">
@@ -212,13 +212,10 @@
   <section id="audits" class="px-8 py-20 border-t border-gray-800">
     <h2 class="text-3xl font-bold text-center mb-3">Audits à la demande</h2>
     <p class="text-gray-300 text-center mb-12">Des diagnostics complets, réalisés par un expert, avec rapport détaillé et plan d'action</p>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-5xl mx-auto">
       @for (offer of auditOffers; track offer.name) {
         <div class="relative rounded-2xl border p-8 flex flex-col gap-5 transition-all"
-             [class.border-cyan-500]="offer.featured"
-             [class.border-gray-700]="!offer.featured"
-             [class.scale-105]="offer.featured"
-             [ngClass]="offer.featured ? 'bg-gray-800/80' : 'bg-gray-800'">
+             [ngClass]="offer.featured ? 'border-cyan-500 bg-gray-800/80 md:scale-105' : 'border-gray-700 bg-gray-800'">
           @if (offer.badge) {
             <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-500 text-gray-900 text-xs font-bold px-3 py-1 rounded-full">
               {{ offer.badge }}
@@ -269,13 +266,10 @@
         <mat-spinner diameter="48"></mat-spinner>
       </div>
     } @else {
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-5xl mx-auto">
         @for (plan of plans; track plan.id) {
           <div class="relative rounded-2xl border p-8 flex flex-col gap-6 transition-all"
-               [class.border-cyan-500]="plan.name === 'pro'"
-               [class.border-gray-700]="plan.name !== 'pro'"
-               [class.scale-105]="plan.name === 'pro'"
-               [ngClass]="plan.name === 'pro' ? 'bg-gray-800/80 shadow-xl shadow-cyan-900/30' : 'bg-gray-800'">
+               [ngClass]="plan.name === 'pro' ? 'border-cyan-500 bg-gray-800/80 shadow-xl shadow-cyan-900/30 md:scale-105' : 'border-gray-700 bg-gray-800'">
 
             @if (getPlanBadge(plan)) {
               <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-500 text-gray-900 text-xs font-bold px-3 py-1 rounded-full">
@@ -640,7 +634,7 @@
       </div>
 
       <!-- Conformité & Labels -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         @for (item of complianceItems; track item.title) {
           <div class="bg-gray-800 border border-gray-700 rounded-xl p-5">
             <div class="flex items-center gap-2 mb-3">
@@ -673,7 +667,7 @@
 
   <!-- Footer -->
   <footer class="border-t border-gray-800 px-8 py-10 text-gray-400 text-sm">
-    <div class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+    <div class="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-8 mb-8">
       <div>
         <div class="flex items-center gap-2 mb-3">
           <mat-icon class="text-cyan-400">shield</mat-icon>
