@@ -95,6 +95,14 @@ export class Nis2Component implements OnInit {
     this.score.set(Math.round(pts / (vals.length * 2) * 100));
   }
 
+  resetAll() {
+    const allIds = this.categories().flatMap(cat => cat.items.map(i => i.id));
+    const reset: Record<string, Nis2Status> = {};
+    for (const id of allIds) reset[id] = 'na';
+    this.items.set(reset);
+    this.recalcScore();
+  }
+
   private get _fullItems(): Record<string, string> {
     const allIds = this.categories().flatMap(cat => cat.items.map(i => i.id));
     const full: Record<string, string> = {};

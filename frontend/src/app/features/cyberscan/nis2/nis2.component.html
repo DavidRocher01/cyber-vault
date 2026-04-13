@@ -34,6 +34,11 @@
 
       <!-- Action buttons -->
       <div class="flex items-center gap-3 flex-shrink-0">
+        <button type="button" (click)="resetAll()" [disabled]="loading()"
+                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+          <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">restart_alt</mat-icon>
+          Tout réinitialiser
+        </button>
         <button type="button" (click)="exportPdf()" [disabled]="exporting() || loading()"
                 class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
           @if (exporting()) {
@@ -189,6 +194,11 @@
           }
         </div>
         <div class="flex items-center gap-3">
+          <button type="button" (click)="resetAll()"
+                  class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-gray-200 transition-all">
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">restart_alt</mat-icon>
+            Tout réinitialiser
+          </button>
           <button type="button" (click)="exportPdf()" [disabled]="exporting()"
                   class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-all disabled:opacity-50">
             @if (exporting()) { <mat-spinner diameter="14"></mat-spinner> } @else {
