@@ -1,13 +1,15 @@
 services:
   postgres:
     image: postgres:17-alpine
-    container_name: cybervault_staging_db
+    container_name: cybervault_dev_db
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: staging_password
-      POSTGRES_DB: cybervault_staging
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: cybervault
+    ports:
+      - "5433:5432"
     volumes:
-      - postgres_staging_data:/var/lib/postgresql/data
+      - postgres_dev_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -18,14 +20,14 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: cybervault_staging_backend
+    container_name: cybervault_dev_backend
     restart: unless-stopped
     environment:
-      APP_ENV: staging
-      SECRET_KEY: staging-secret-key-change-in-prod-64chars-minimum
-      DATABASE_URL: postgresql+asyncpg://postgres:staging_password@postgres:5432/cybervault_staging
-      ALLOWED_ORIGINS: '["http://localhost:4201"]'
-      FRONTEND_URL: http://localhost:4201
+      APP_ENV: development
+      SECRET_KEY: dev-secret-key-not-for-production-64chars
+      DATABASE_URL: postgresql+asyncpg://postgres:password@postgres:5432/cybervault
+      ALLOWED_ORIGINS: '["http://localhost:4200"]'
+      FRONTEND_URL: http://localhost:4200
     expose:
       - "8000"
     depends_on:
@@ -42,12 +44,12 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: cybervault_staging_frontend
+    container_name: cybervault_dev_frontend
     ports:
-      - "4201:80"
+      - "4200:80"
     depends_on:
       backend:
         condition: service_healthy
 
 volumes:
-  postgres_staging_data:
+  postgres_dev_data:
