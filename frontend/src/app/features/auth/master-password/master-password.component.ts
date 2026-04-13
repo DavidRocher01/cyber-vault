@@ -75,7 +75,7 @@ export class MasterPasswordComponent {
     }
     try {
       await this.cryptoService.deriveKey(this.form.getRawValue().masterPassword, email);
-      this.router.navigate(['/vault']);
+      this.router.navigate(['/cyberscan/dashboard']);
     } catch {
       this.error = 'Erreur lors de la dérivation de la clé.';
     } finally {
