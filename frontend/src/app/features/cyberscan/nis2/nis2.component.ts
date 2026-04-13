@@ -95,9 +95,16 @@ export class Nis2Component implements OnInit {
     this.score.set(Math.round(pts / (vals.length * 2) * 100));
   }
 
+  private get _fullItems(): Record<string, string> {
+    const allIds = this.categories().flatMap(cat => cat.items.map(i => i.id));
+    const full: Record<string, string> = {};
+    for (const id of allIds) full[id] = this.getStatus(id);
+    return full;
+  }
+
   save() {
     this.saving.set(true);
-    this.cyberscan.saveNis2Assessment(this.items()).subscribe({
+    this.cyberscan.saveNis2Assessment(this._fullItems).subscribe({
       next: data => {
         this.score.set(data.score);
         this.updatedAt.set(data.updated_at);
@@ -114,7 +121,7 @@ export class Nis2Component implements OnInit {
   exportPdf() {
     this.exporting.set(true);
     // Sauvegarde automatique avant export pour garantir la cohérence PDF/app
-    this.cyberscan.saveNis2Assessment(this.items()).subscribe({
+    this.cyberscan.saveNis2Assessment(this._fullItems).subscribe({
       next: data => {
         this.score.set(data.score);
         this.updatedAt.set(data.updated_at);
