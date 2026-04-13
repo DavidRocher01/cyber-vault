@@ -2,7 +2,7 @@ import csv
 import io
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -58,7 +58,7 @@ async def trigger_scan(
     last_scan = last_result.scalar_one_or_none()
 
     if last_scan and last_scan.finished_at:
-        days_since = (datetime.utcnow() - last_scan.finished_at).days
+        days_since = (datetime.now(timezone.utc) - last_scan.finished_at).days
         if days_since < interval_days:
             days_left = interval_days - days_since
             raise HTTPException(
