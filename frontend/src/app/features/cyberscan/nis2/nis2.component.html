@@ -105,15 +105,14 @@
           <!-- Category bars -->
           <div class="flex flex-col gap-2">
             @for (cat of categories(); track cat.id) {
-              @let cs = catScore(cat);
               <div class="flex items-center gap-3">
                 <span class="text-xs text-gray-400 w-40 truncate flex-shrink-0">{{ cat.label }}</span>
                 <div class="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
                   <div class="h-full rounded-full transition-all duration-500"
-                       [style.width.%]="cs"
-                       [style.background-color]="scoreColor(cs)"></div>
+                       [style.width.%]="catScore(cat)"
+                       [style.background-color]="scoreColor(catScore(cat))"></div>
                 </div>
-                <span class="text-xs font-bold w-8 text-right flex-shrink-0" [style.color]="scoreColor(cs)">{{ cs }}%</span>
+                <span class="text-xs font-bold w-8 text-right flex-shrink-0" [style.color]="scoreColor(catScore(cat))">{{ catScore(cat) }}%</span>
               </div>
             }
           </div>
@@ -132,29 +131,27 @@
                 <h2 class="font-bold text-sm">{{ cat.label }}</h2>
                 <span class="text-xs text-gray-500">({{ cat.items.length }} critères)</span>
               </div>
-              @let cc = catCompliance(cat);
               <div class="flex items-center gap-2 text-xs">
-                <span class="text-green-400 font-semibold">✓ {{ cc.compliant }}</span>
+                <span class="text-green-400 font-semibold">✓ {{ catCompliance(cat).compliant }}</span>
                 <span class="text-gray-600">·</span>
-                <span class="text-yellow-400 font-semibold">~ {{ cc.partial }}</span>
+                <span class="text-yellow-400 font-semibold">~ {{ catCompliance(cat).partial }}</span>
                 <span class="text-gray-600">·</span>
-                <span class="text-red-400 font-semibold">✗ {{ cc.nc }}</span>
+                <span class="text-red-400 font-semibold">✗ {{ catCompliance(cat).nc }}</span>
               </div>
             </div>
 
             <!-- Items -->
             <div class="divide-y divide-gray-700/50">
               @for (item of cat.items; track item.id) {
-                @let st = getStatus(item.id);
                 <div class="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-700/20 transition-colors">
 
                   <!-- Status toggle button -->
                   <button type="button" (click)="toggle(item.id)"
-                          [matTooltip]="'Cliquer pour changer → ' + statusLabel(st)"
+                          [matTooltip]="'Cliquer pour changer → ' + statusLabel(getStatus(item.id))"
                           class="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all hover:opacity-80 min-w-[110px] justify-center"
-                          [class]="statusClass(st)">
-                    <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">{{ statusIcon(st) }}</mat-icon>
-                    {{ statusLabel(st) }}
+                          [class]="statusClass(getStatus(item.id))">
+                    <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">{{ statusIcon(getStatus(item.id)) }}</mat-icon>
+                    {{ statusLabel(getStatus(item.id)) }}
                   </button>
 
                   <!-- Label + description -->
@@ -169,7 +166,7 @@
                       <button type="button" (click)="setStatus(item.id, s)"
                               [matTooltip]="statusLabel(s)"
                               class="w-6 h-6 rounded-md flex items-center justify-center transition-all"
-                              [class]="st === s ? statusClass(s) + ' border' : 'text-gray-600 hover:text-gray-400 bg-transparent border border-transparent'">
+                              [class]="getStatus(item.id) === s ? statusClass(s) + ' border' : 'text-gray-600 hover:text-gray-400 bg-transparent border border-transparent'">
                         <mat-icon class="!text-[0.8rem] !w-[0.8rem] !h-[0.8rem]">{{ statusIcon(s) }}</mat-icon>
                       </button>
                     }
