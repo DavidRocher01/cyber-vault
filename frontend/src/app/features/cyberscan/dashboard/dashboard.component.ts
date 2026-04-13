@@ -117,19 +117,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       next: sub => {
         this.subscription.set(sub);
         if (!sub) {
-          // No subscription: check sites first
-          this.cyberscan.getMySites().subscribe({
-            next: sites => {
-              this.sites.set(sites);
-              this.loading.set(false);
-              if (sites.length === 0) {
-                this.router.navigate(['/cyberscan/onboarding']);
-                return;
-              }
-              sites.forEach(s => this.loadScans(s.id, 1));
-            },
-            error: () => this.loading.set(false),
-          });
+          this.loading.set(false);
+          this.router.navigate(['/cyberscan/onboarding']);
           return;
         }
         this.cyberscan.getMySites().subscribe({
@@ -316,7 +305,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   downloadPdf(scanId: number) {
-    window.open(this.cyberscan.downloadPdf(scanId), '_blank');
+    this.cyberscan.downloadPdfBlob(scanId).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cyberscan_rapport_${scanId}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => this.snack.open('Erreur lors du téléchargement du PDF', 'Fermer', { duration: 4000 }),
+    });
   }
 
   getScans(siteId: number): Scan[] {

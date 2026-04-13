@@ -56,6 +56,28 @@ async def _create_tables() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database tables verified/created")
+    await _seed_plans()
+
+
+async def _seed_plans() -> None:
+    """Insert default plans if they don't exist yet (idempotent)."""
+    from app.core.database import AsyncSessionLocal
+    from app.models.plan import Plan
+    from sqlalchemy import select
+
+    PLANS = [
+        {"name": "free",     "display_name": "Gratuit",  "price_eur": 0,    "max_sites": 1,  "scan_interval_days": 0,  "tier_level": 1, "stripe_price_id": ""},
+        {"name": "starter",  "display_name": "Starter",  "price_eur": 990,  "max_sites": 1,  "scan_interval_days": 30, "tier_level": 2, "stripe_price_id": ""},
+        {"name": "pro",      "display_name": "Pro",       "price_eur": 3990, "max_sites": 3,  "scan_interval_days": 7,  "tier_level": 3, "stripe_price_id": ""},
+        {"name": "business", "display_name": "Business",  "price_eur": 4990, "max_sites": 10, "scan_interval_days": 1,  "tier_level": 4, "stripe_price_id": ""},
+    ]
+    async with AsyncSessionLocal() as db:
+        for plan_data in PLANS:
+            result = await db.execute(select(Plan).where(Plan.name == plan_data["name"]))
+            if not result.scalar_one_or_none():
+                db.add(Plan(**plan_data))
+        await db.commit()
+    logger.info("Plans seeded")
 
 
 app = FastAPI(

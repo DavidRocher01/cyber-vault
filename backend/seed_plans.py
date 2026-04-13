@@ -28,7 +28,7 @@ PLANS = [
     {
         "name":               "starter",
         "display_name":       "Starter",
-        "price_eur":          2900,        # 29,00 €
+        "price_eur":          990,         # 9,90 €
         "max_sites":          1,
         "scan_interval_days": 30,
         "tier_level":         2,
@@ -37,7 +37,7 @@ PLANS = [
     {
         "name":               "pro",
         "display_name":       "Pro",
-        "price_eur":          4900,        # 49,00 €
+        "price_eur":          3990,        # 39,90 €
         "max_sites":          3,
         "scan_interval_days": 7,
         "tier_level":         3,
@@ -46,7 +46,7 @@ PLANS = [
     {
         "name":               "business",
         "display_name":       "Business",
-        "price_eur":          7900,        # 79,00 €
+        "price_eur":          4990,        # 49,90 €
         "max_sites":          10,
         "scan_interval_days": 1,
         "tier_level":         4,

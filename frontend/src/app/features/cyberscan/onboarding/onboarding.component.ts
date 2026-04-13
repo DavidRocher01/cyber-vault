@@ -34,7 +34,7 @@ export class OnboardingComponent implements OnInit {
   currentStep = signal(1);
 
   siteForm = this.fb.nonNullable.group({
-    url: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]],
+    url: ['', [Validators.required, Validators.minLength(3)]],
     name: ['', Validators.required],
   });
 
@@ -74,7 +74,9 @@ export class OnboardingComponent implements OnInit {
   addSiteAndScan() {
     if (this.siteForm.invalid) return;
     this.addingSite.set(true);
-    this.cyberscan.createSite(this.siteForm.getRawValue()).subscribe({
+    const { url, name } = this.siteForm.getRawValue();
+    const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+    this.cyberscan.createSite({ url: fullUrl, name }).subscribe({
       next: site => {
         this.addingSite.set(false);
         this.currentStep.set(3);

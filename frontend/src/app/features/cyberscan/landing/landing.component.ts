@@ -117,6 +117,7 @@ export class LandingComponent implements OnInit {
           this.authLoading = false;
         } else {
           this.closeAuth();
+          this.router.navigate(['/cyberscan/dashboard']);
         }
       },
       error: err => {
@@ -131,7 +132,7 @@ export class LandingComponent implements OnInit {
     this.authLoading = true;
     this.authError = null;
     this.auth.login(this.pendingEmail, this.pendingPassword, this.authOtpCode).subscribe({
-      next: () => { this.closeAuth(); },
+      next: () => { this.closeAuth(); this.router.navigate(['/cyberscan/dashboard']); },
       error: err => {
         this.authError = err.error?.detail ?? 'Code invalide.';
         this.authLoading = false;
@@ -154,7 +155,7 @@ export class LandingComponent implements OnInit {
     this.auth.register(email, password).pipe(
       switchMap(() => this.auth.login(email, password))
     ).subscribe({
-      next: () => { this.closeAuth(); },
+      next: () => { this.closeAuth(); this.router.navigate(['/cyberscan/onboarding']); },
       error: err => {
         this.authError = err.error?.detail ?? 'Erreur lors de la création du compte.';
         this.authLoading = false;

@@ -58,7 +58,18 @@ export class ScanDetailComponent implements OnInit {
 
   downloadPdf() {
     const s = this.scan();
-    if (s) window.open(this.cyberscan.downloadPdf(s.id), '_blank');
+    if (!s) return;
+    this.cyberscan.downloadPdfBlob(s.id).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cyberscan_rapport_${s.id}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => console.error('Erreur téléchargement PDF'),
+    });
   }
 
   downloadRemediation(scriptKey: string) {

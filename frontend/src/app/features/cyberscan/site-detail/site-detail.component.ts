@@ -112,7 +112,17 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
   }
 
   downloadPdf(scanId: number) {
-    window.open(this.cyberscan.downloadPdf(scanId), '_blank');
+    this.cyberscan.downloadPdfBlob(scanId).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cyberscan_rapport_${scanId}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => this.snack.open('Erreur lors du téléchargement du PDF', 'Fermer', { duration: 4000 }),
+    });
   }
 
   exportCsv() {

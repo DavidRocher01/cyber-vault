@@ -312,8 +312,9 @@
                 </div>
               </div>
               <div class="flex items-center gap-1.5">
-                <a [routerLink]="['/cyberscan/site', site.id]" mat-stroked-button class="!text-xs border-gray-600 text-gray-400 hover:text-white">
-                  <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] mr-1">open_in_new</mat-icon>
+                <a [routerLink]="['/cyberscan/site', site.id]"
+                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400 transition-all">
+                  <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">arrow_forward</mat-icon>
                   Détails
                 </a>
                 <button mat-flat-button type="button" color="primary" class="!text-xs"
