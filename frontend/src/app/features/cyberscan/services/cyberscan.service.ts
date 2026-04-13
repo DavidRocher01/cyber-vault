@@ -193,8 +193,8 @@ export class CyberscanService {
     return this.http.get(`${API}/scans/${scanId}/pdf`, { responseType: 'blob' });
   }
 
-  downloadRemediation(scanId: number, scriptKey: string): string {
-    return `${API}/scans/${scanId}/remediation/${scriptKey}`;
+  downloadRemediationBlob(scanId: number, scriptKey: string): Observable<Blob> {
+    return this.http.get(`${API}/scans/${scanId}/remediation/${scriptKey}`, { responseType: 'blob' });
   }
 
   exportCsv(siteId: number): string {

@@ -73,7 +73,20 @@ export class ScanDetailComponent implements OnInit {
 
   downloadRemediation(scriptKey: string) {
     const s = this.scan();
-    if (s) window.open(this.cyberscan.downloadRemediation(s.id, scriptKey), '_blank');
+    if (!s) return;
+    const ext = scriptKey === 'fastapi' ? '.py' : '.sh';
+    const filename = `cyberscan_${scriptKey}_${s.id}${ext}`;
+    this.cyberscan.downloadRemediationBlob(s.id, scriptKey).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => console.error('Erreur téléchargement script'),
+    });
   }
 
   get remediationScripts(): { key: string; label: string; icon: string }[] {
