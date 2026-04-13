@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { combineLatest, filter, map, take } from 'rxjs';
 
 import { HotToastService } from '@ngneat/hot-toast';
@@ -97,8 +98,8 @@ export class VaultDashboardComponent implements OnInit {
   private router = inject(Router);
   private fb = inject(FormBuilder);
 
-  readonly loading$ = this.store.loading$;
-  readonly error$ = this.store.error$;
+  readonly loading = toSignal(this.store.loading$, { initialValue: false });
+  readonly error   = toSignal(this.store.error$,   { initialValue: null as string | null });
 
   readonly categories: CategoryMeta[] = [
     { id: 'all',   label: 'Tout',        icon: 'grid_view' },
@@ -113,26 +114,26 @@ export class VaultDashboardComponent implements OnInit {
     login: 'person', card: 'credit_card', note: 'sticky_note_2', wifi: 'wifi', other: 'more_horiz',
   };
 
-  searchQuery = '';
+  searchQuery = signal('');
   activeCategory = signal<VaultCategory | 'all'>('all');
 
-  readonly filteredItems$ = combineLatest([this.store.items$]).pipe(
-    map(([items]) => items.filter(item => {
-      const cat = this.activeCategory();
+  private readonly allItems = toSignal(this.store.items$, { initialValue: [] as VaultItem[] });
+
+  readonly filteredItems = computed(() => {
+    const cat = this.activeCategory();
+    const q = this.searchQuery().toLowerCase();
+    return this.allItems().filter(item => {
       const matchCat = cat === 'all' || item.category === cat;
-      const q = this.searchQuery.toLowerCase();
       const matchQ = !q || item.title.toLowerCase().includes(q) || (item.username ?? '').toLowerCase().includes(q);
       return matchCat && matchQ;
-    }))
-  );
+    });
+  });
 
-  readonly categoryCounts$ = this.store.items$.pipe(
-    map(items => {
-      const counts: Record<string, number> = { all: items.length };
-      for (const item of items) counts[item.category] = (counts[item.category] ?? 0) + 1;
-      return counts;
-    })
-  );
+  readonly categoryCounts = computed(() => {
+    const counts: Record<string, number> = { all: this.allItems().length };
+    for (const item of this.allItems()) counts[item.category] = (counts[item.category] ?? 0) + 1;
+    return counts;
+  });
 
   get passwordStrength(): { width: string; color: string; label: string } {
     const pwd = this.form.controls.password_encrypted.value;

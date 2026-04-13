@@ -7,7 +7,7 @@ VALID_CATEGORIES = {"login", "card", "note", "wifi", "other"}
 class VaultItemCreate(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     username: str | None = Field(default=None, max_length=200)
-    password_encrypted: str = Field(min_length=1, max_length=8192)
+    password_encrypted: str = Field(min_length=0, max_length=8192)
     url: str | None = Field(default=None, max_length=2048)
     notes: str | None = Field(default=None, max_length=10000)
     category: str = Field(default="login", max_length=32)

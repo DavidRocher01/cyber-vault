@@ -40,7 +40,7 @@ async def create_item(
 ):
     item = VaultItem(**payload.model_dump(), owner_id=current_user.id)
     db.add(item)
-    await db.flush()
+    await db.commit()
     await db.refresh(item)
     return item
 
@@ -79,7 +79,7 @@ async def update_item(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entrée introuvable")
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(item, field, value)
-    await db.flush()
+    await db.commit()
     await db.refresh(item)
     return item
 
@@ -99,3 +99,4 @@ async def delete_item(
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entrée introuvable")
     await db.delete(item)
+    await db.commit()

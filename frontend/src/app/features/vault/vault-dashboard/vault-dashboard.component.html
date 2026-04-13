@@ -37,45 +37,44 @@
     <!-- ── Recherche ── -->
     <div class="relative mb-5">
       <mat-icon class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">search</mat-icon>
-      <input type="text" [(ngModel)]="searchQuery" placeholder="Rechercher un identifiant, un site…"
+      <input type="text" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)"
+             placeholder="Rechercher un identifiant, un site…"
              class="vault-input pl-11" />
     </div>
 
     <!-- ── Filtres catégories ── -->
-    <ng-container *ngIf="categoryCounts$ | async as counts">
-      <div class="flex gap-2 mb-6 overflow-x-auto pb-1">
-        @for (cat of categories; track cat.id) {
-          <button type="button" (click)="activeCategory.set(cat.id)"
-                  class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border"
-                  [class.bg-cyan-500]="activeCategory() === cat.id"
-                  [class.border-cyan-500]="activeCategory() === cat.id"
-                  [class.text-white]="activeCategory() === cat.id"
-                  [class.bg-transparent]="activeCategory() !== cat.id"
-                  [class.border-gray-700]="activeCategory() !== cat.id"
-                  [class.text-gray-400]="activeCategory() !== cat.id">
-            <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">{{ cat.icon }}</mat-icon>
-            {{ cat.label }}
-            @if ((counts[cat.id] || 0) > 0) {
-              <span class="text-xs px-1.5 py-0.5 rounded-full"
-                    [style.background]="activeCategory() === cat.id ? 'rgba(255,255,255,0.2)' : 'rgba(55,65,81,1)'">
-                {{ counts[cat.id] }}
-              </span>
-            }
-          </button>
-        }
-      </div>
-    </ng-container>
+    <div class="flex gap-2 mb-6 overflow-x-auto pb-1">
+      @for (cat of categories; track cat.id) {
+        <button type="button" (click)="activeCategory.set(cat.id)"
+                class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border"
+                [class.bg-cyan-500]="activeCategory() === cat.id"
+                [class.border-cyan-500]="activeCategory() === cat.id"
+                [class.text-white]="activeCategory() === cat.id"
+                [class.bg-transparent]="activeCategory() !== cat.id"
+                [class.border-gray-700]="activeCategory() !== cat.id"
+                [class.text-gray-400]="activeCategory() !== cat.id">
+          <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">{{ cat.icon }}</mat-icon>
+          {{ cat.label }}
+          @if ((categoryCounts()[cat.id] || 0) > 0) {
+            <span class="text-xs px-1.5 py-0.5 rounded-full"
+                  [style.background]="activeCategory() === cat.id ? 'rgba(255,255,255,0.2)' : 'rgba(55,65,81,1)'">
+              {{ categoryCounts()[cat.id] }}
+            </span>
+          }
+        </button>
+      }
+    </div>
 
     <!-- ── Erreur ── -->
-    @if (error$ | async; as error) {
+    @if (error()) {
       <div class="flex items-center gap-2 bg-red-900/30 border border-red-700 rounded-xl px-4 py-3 text-sm text-red-400 mb-4">
         <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] flex-shrink-0">error_outline</mat-icon>
-        {{ error }}
+        {{ error() }}
       </div>
     }
 
     <!-- ── Liste ── -->
-    @if (loading$ | async) {
+    @if (loading()) {
       <div class="flex flex-col gap-3">
         @for (i of [1,2,3]; track i) {
           <div class="vault-card rounded-2xl p-5 animate-pulse">
@@ -90,8 +89,7 @@
         }
       </div>
     } @else {
-      <ng-container *ngIf="filteredItems$ | async as items">
-        @if (items.length === 0) {
+        @if (filteredItems().length === 0) {
           <div class="flex flex-col items-center justify-center py-20 gap-4 text-center">
             <div class="w-16 h-16 rounded-2xl bg-gray-800/60 border border-gray-700 flex items-center justify-center">
               <mat-icon class="text-gray-600 !text-[2rem] !w-[2rem] !h-[2rem]">lock_open</mat-icon>
@@ -104,7 +102,7 @@
           </div>
         } @else {
           <div class="flex flex-col gap-3">
-            @for (item of items; track item.id) {
+            @for (item of filteredItems(); track item.id) {
               <div class="vault-card rounded-2xl p-5 transition-all">
                 <div class="flex items-center gap-4">
 
@@ -225,7 +223,6 @@
             }
           </div>
         }
-      </ng-container>
     }
 
   </div>
