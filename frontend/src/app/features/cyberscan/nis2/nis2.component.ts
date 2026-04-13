@@ -230,19 +230,24 @@ export class Nis2Component implements OnInit {
     });
   }
 
-  get totalItems(): number {
-    return this.categories().reduce((s, c) => s + c.items.length, 0);
-  }
-  private get allItemIds(): string[] {
-    return this.categories().flatMap(cat => cat.items.map(i => i.id));
-  }
-  get compliantCount(): number {
-    return this.allItemIds.filter(id => this.getStatus(id) === 'compliant').length;
-  }
-  get partialCount(): number {
-    return this.allItemIds.filter(id => this.getStatus(id) === 'partial').length;
-  }
-  get ncCount(): number {
-    return this.allItemIds.filter(id => this.getStatus(id) === 'non_compliant').length;
-  }
+  readonly totalItems = computed(() =>
+    this.categories().reduce((s, c) => s + c.items.length, 0)
+  );
+
+  private readonly allItemIds = computed(() =>
+    this.categories().flatMap(cat => cat.items.map(i => i.id))
+  );
+
+  readonly compliantCount = computed(() =>
+    this.allItemIds().filter(id => this.getStatus(id) === 'compliant').length
+  );
+  readonly partialCount = computed(() =>
+    this.allItemIds().filter(id => this.getStatus(id) === 'partial').length
+  );
+  readonly ncCount = computed(() =>
+    this.allItemIds().filter(id => this.getStatus(id) === 'non_compliant').length
+  );
+  readonly naCount = computed(() =>
+    this.allItemIds().filter(id => this.getStatus(id) === 'na').length
+  );
 }

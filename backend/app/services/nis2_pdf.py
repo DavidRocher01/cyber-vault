@@ -29,7 +29,6 @@ from app.services.pdf_brand import (
     DARK_BG,
     GRAY,
     GREEN,
-    ORANGE,
     RED,
     WHITE,
     YELLOW,
@@ -53,47 +52,20 @@ STATUS_LABEL = {
     "na":            "N/A",
 }
 STATUS_BG = {
-    "compliant":     colors.HexColor("#14532d"),
-    "partial":       colors.HexColor("#713f12"),
-    "non_compliant": colors.HexColor("#7f1d1d"),
-    "na":            colors.HexColor("#1e293b"),
+    "compliant":     colors.HexColor("#052e16"),
+    "partial":       colors.HexColor("#1c1400"),
+    "non_compliant": colors.HexColor("#2d0a0a"),
+    "na":            colors.HexColor("#0f172a"),
 }
 
-PURPLE = colors.HexColor("#8b5cf6")
+ROW_A = CARD_BG
+ROW_B = colors.HexColor("#162032")
 
 
-def _style(name, **kwargs) -> ParagraphStyle:
-    defaults = dict(fontName="Helvetica", textColor=WHITE, fontSize=9, spaceAfter=2)
-    defaults.update(kwargs)
-    return ParagraphStyle(name, **defaults)
-
-
-def _progress_bar(pct: int, width: float, height: float = 5, color=CYAN) -> Table:
-    """Return a thin horizontal progress bar as a 1×1 Table."""
-    filled = max(width * pct / 100, 0)
-    empty  = width - filled
-    if filled <= 0:
-        data = [[""]]
-        t = Table(data, colWidths=[width], rowHeights=[height])
-        t.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#1e293b")),
-            ("TOPPADDING",    (0, 0), (-1, -1), 0),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-            ("LEFTPADDING",   (0, 0), (-1, -1), 0),
-            ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
-        ]))
-        return t
-    data = [["", ""]]
-    t = Table(data, colWidths=[filled, empty], rowHeights=[height])
-    t.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (0, 0), color),
-        ("BACKGROUND",    (1, 0), (1, 0), colors.HexColor("#1e293b")),
-        ("TOPPADDING",    (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
-    ]))
-    return t
+def _st(name, **kw) -> ParagraphStyle:
+    d = dict(fontName="Helvetica", textColor=WHITE, fontSize=9, spaceAfter=2, leading=12)
+    d.update(kw)
+    return ParagraphStyle(name, **d)
 
 
 def _score_color(pct: int):
@@ -103,9 +75,21 @@ def _score_color(pct: int):
 
 
 def _score_bg(pct: int):
-    if pct >= 80: return colors.HexColor("#14532d")
-    if pct >= 50: return colors.HexColor("#713f12")
-    return colors.HexColor("#7f1d1d")
+    if pct >= 80: return colors.HexColor("#052e16")
+    if pct >= 50: return colors.HexColor("#1c1400")
+    return colors.HexColor("#2d0a0a")
+
+
+def _cat_score(cat_items: list, items: dict) -> int:
+    scorable = [it for it in cat_items if items.get(it["id"], "non_compliant") != "na"]
+    if not scorable:
+        return 0
+    pts = sum(
+        2 if items.get(it["id"], "non_compliant") == "compliant"
+        else 1 if items.get(it["id"], "non_compliant") == "partial" else 0
+        for it in scorable
+    )
+    return round(pts / (len(scorable) * 2) * 100)
 
 
 def generate_nis2_pdf(
@@ -125,14 +109,13 @@ def generate_nis2_pdf(
     )
 
     st = get_styles(DOC_TYPE)
-    section_st = st["section"]
+    story = []
 
-    date_str    = updated_at.strftime("%d/%m/%Y") if updated_at else datetime.utcnow().strftime("%d/%m/%Y")
+    date_str    = updated_at.strftime("%d/%m/%Y à %H:%M") if updated_at else "—"
+    score_label = "Conforme" if score >= 80 else "En cours" if score >= 50 else "Non conforme"
     sc          = _score_color(score)
     sc_bg       = _score_bg(score)
-    score_label = "Conforme" if score >= 80 else "En cours" if score >= 50 else "Non conforme"
 
-    # Counts
     all_ids     = [it["id"] for cat in categories for it in cat["items"]]
     total_items = len(all_ids)
     compliant_n = sum(1 for i in all_ids if items.get(i, "non_compliant") == "compliant")
@@ -140,94 +123,89 @@ def generate_nis2_pdf(
     nc_n        = sum(1 for i in all_ids if items.get(i, "non_compliant") == "non_compliant")
     na_n        = sum(1 for i in all_ids if items.get(i, "non_compliant") == "na")
 
-    story = []
-
     # ── SCORE HERO ──────────────────────────────────────────────────────────────
-    # Left: big score + level badge
-    score_num_st  = _style("ScN", fontSize=48, fontName="Helvetica-Bold", textColor=sc, leading=52)
-    level_badge_st = _style("LvB", fontSize=11, fontName="Helvetica-Bold", textColor=sc)
-    date_small_st  = _style("DS",  fontSize=7,  textColor=GRAY)
+    # Row 1: score % | label + date
+    # Row 2: 4 KPI cells (spanning right column)
 
-    left_cell = [
-        Paragraph(f"{score}%", score_num_st),
-        Spacer(1, 2),
-        Paragraph(score_label, level_badge_st),
-        Spacer(1, 4),
-        Paragraph(f"Dernière mise à jour : {date_str}", date_small_st),
-    ]
+    score_pct_st  = _st("ScP", fontSize=42, fontName="Helvetica-Bold", textColor=sc, leading=46)
+    score_lbl_st  = _st("ScL", fontSize=13, fontName="Helvetica-Bold", textColor=sc, leading=18)
+    date_st       = _st("ScD", fontSize=8,  textColor=GRAY, leading=11)
+    total_st      = _st("ScT", fontSize=8,  textColor=GRAY, leading=11)
 
-    # Right: 4 KPI tiles
-    kpi_w = (W * 0.65 - 8) / 4
+    # KPI cells inside a 1×4 sub-table
+    kpi_col_w = W * 0.65 / 4
 
-    def kpi_table(value: int, label: str, color, bg) -> Table:
-        val_st = _style(f"KV{label}", fontSize=22, fontName="Helvetica-Bold", textColor=color, leading=26)
-        lbl_st = _style(f"KL{label}", fontSize=7,  textColor=GRAY)
-        t = Table([[Paragraph(str(value), val_st)], [Paragraph(label, lbl_st)]],
-                  colWidths=[kpi_w])
-        t.setStyle(TableStyle([
-            ("BACKGROUND",    (0, 0), (-1, -1), bg),
-            ("TOPPADDING",    (0, 0), (-1, -1), 8),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-            ("LEFTPADDING",   (0, 0), (-1, -1), 6),
-            ("RIGHTPADDING",  (0, 0), (-1, -1), 6),
-            ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
-            ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-            ("ROUNDEDCORNERS", [5]),
-        ]))
-        return t
+    def kpi_para(val: int, label: str, color) -> list:
+        return [
+            Paragraph(str(val), _st(f"KV{label}", fontSize=20, fontName="Helvetica-Bold",
+                                    textColor=color, leading=24)),
+            Paragraph(label,    _st(f"KL{label}", fontSize=7,  textColor=GRAY, leading=10)),
+        ]
 
-    kpi_row = Table([[
-        kpi_table(compliant_n, "Conformes",      GREEN,  colors.HexColor("#052e16")),
-        kpi_table(partial_n,   "Partiels",        YELLOW, colors.HexColor("#1c1400")),
-        kpi_table(nc_n,        "Non conformes",   RED,    colors.HexColor("#2d0a0a")),
-        kpi_table(na_n,        "N/A",             GRAY,   colors.HexColor("#0f172a")),
-    ]], colWidths=[kpi_w] * 4, hAlign="CENTER")
-    kpi_row.setStyle(TableStyle([
-        ("LEFTPADDING",   (0, 0), (-1, -1), 3),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 3),
-        ("TOPPADDING",    (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    kpi_table = Table(
+        [[kpi_para(compliant_n, "Conformes", GREEN),
+          kpi_para(partial_n,   "Partiels",  YELLOW),
+          kpi_para(nc_n,        "Non conf.", RED),
+          kpi_para(na_n,        "N/A",       GRAY)]],
+        colWidths=[kpi_col_w] * 4,
+    )
+    kpi_table.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (0, 0), colors.HexColor("#052e16")),
+        ("BACKGROUND",    (1, 0), (1, 0), colors.HexColor("#1c1400")),
+        ("BACKGROUND",    (2, 0), (2, 0), colors.HexColor("#2d0a0a")),
+        ("BACKGROUND",    (3, 0), (3, 0), colors.HexColor("#0f172a")),
+        ("TOPPADDING",    (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
+        ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+        ("LINEAFTER",     (0, 0), (2, 0),   0.5, BORDER),
     ]))
 
-    total_st  = _style("Tot", fontSize=8, textColor=GRAY)
-    right_cell = [kpi_row, Spacer(1, 6), Paragraph(f"{total_items} critères évalués au total", total_st)]
+    right_content = [
+        Paragraph(score_label, score_lbl_st),
+        Spacer(1, 3),
+        Paragraph(f"Mis à jour le {date_str}", date_st),
+        Spacer(1, 8),
+        kpi_table,
+        Spacer(1, 4),
+        Paragraph(f"{total_items} critères évalués au total", total_st),
+    ]
 
     hero = Table(
-        [[left_cell, right_cell]],
-        colWidths=[W * 0.35, W * 0.65],
+        [[Paragraph(f"{score}%", score_pct_st), right_content]],
+        colWidths=[W * 0.25, W * 0.75],
     )
     hero.setStyle(TableStyle([
         ("BACKGROUND",    (0, 0), (-1, -1), CARD_BG),
         ("BACKGROUND",    (0, 0), (0, 0),   sc_bg),
-        ("TOPPADDING",    (0, 0), (-1, -1), 16),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 16),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 18),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 18),
-        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-        ("LINEAFTER",     (0, 0), (0, -1),  0.5, BORDER),
-        ("ROUNDEDCORNERS", [8]),
+        ("TOPPADDING",    (0, 0), (-1, -1), 18),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 18),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 20),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 16),
+        ("VALIGN",        (0, 0), (0, 0),   "MIDDLE"),
+        ("VALIGN",        (1, 0), (1, 0),   "TOP"),
+        ("LINEAFTER",     (0, 0), (0, 0),   1, BORDER),
     ]))
     story.append(hero)
     story.append(Spacer(1, 7 * mm))
 
     # ── CATEGORY SUMMARY ────────────────────────────────────────────────────────
-    story.append(Paragraph("Résumé par catégorie", section_st))
+    story.append(Paragraph("Résumé par catégorie", st["section"]))
     story.append(section_rule(W, DOC_TYPE))
 
-    # Header row
-    hdr_st = _style("TH", fontSize=8, fontName="Helvetica-Bold", textColor=GRAY)
-    cat_rows = [[
-        Paragraph("Catégorie", hdr_st),
-        Paragraph("Score", hdr_st),
-        Paragraph("Progression", hdr_st),
-        Paragraph("✓", _style("TH1", fontSize=8, fontName="Helvetica-Bold", textColor=GREEN)),
-        Paragraph("~", _style("TH2", fontSize=8, fontName="Helvetica-Bold", textColor=YELLOW)),
-        Paragraph("✗", _style("TH3", fontSize=8, fontName="Helvetica-Bold", textColor=RED)),
-        Paragraph("—", _style("TH4", fontSize=8, fontName="Helvetica-Bold", textColor=GRAY)),
-    ]]
+    hdr = _st("TH", fontSize=8, fontName="Helvetica-Bold", textColor=GRAY)
+    col_w = [W * 0.36, W * 0.30, W * 0.085, W * 0.085, W * 0.095, W * 0.075]
 
-    bar_col_w = W * 0.26
-    col_widths = [W * 0.30, W * 0.08, bar_col_w, W * 0.09, W * 0.09, W * 0.10, W * 0.08]
+    summary_rows = [[
+        Paragraph("Catégorie",       hdr),
+        Paragraph("Score",           hdr),
+        Paragraph("✓ Conf.",         _st("H1", fontSize=8, fontName="Helvetica-Bold", textColor=GREEN)),
+        Paragraph("~ Part.",         _st("H2", fontSize=8, fontName="Helvetica-Bold", textColor=YELLOW)),
+        Paragraph("✗ N.Conf.",       _st("H3", fontSize=8, fontName="Helvetica-Bold", textColor=RED)),
+        Paragraph("— N/A",           _st("H4", fontSize=8, fontName="Helvetica-Bold", textColor=GRAY)),
+    ]]
 
     for cat in categories:
         cat_items = cat["items"]
@@ -235,130 +213,133 @@ def generate_nis2_pdf(
         p  = sum(1 for it in cat_items if items.get(it["id"], "non_compliant") == "partial")
         n  = sum(1 for it in cat_items if items.get(it["id"], "non_compliant") == "non_compliant")
         na = sum(1 for it in cat_items if items.get(it["id"], "non_compliant") == "na")
+        pct = _cat_score(cat_items, items)
+        bar_color = _score_color(pct)
 
-        scorable = [it for it in cat_items if items.get(it["id"], "non_compliant") != "na"]
-        if scorable:
-            pts    = sum(2 if items.get(it["id"], "non_compliant") == "compliant"
-                         else 1 if items.get(it["id"], "non_compliant") == "partial" else 0
-                         for it in scorable)
-            cat_pct = round(pts / (len(scorable) * 2) * 100)
+        # Progress bar as a 2-col table (filled + empty)
+        bar_w = W * 0.30 - 16  # subtract padding
+        bar_h = 6
+        filled = max(bar_w * pct / 100, 0)
+        empty  = bar_w - filled
+
+        if pct <= 0:
+            bar = Table([[""]],  colWidths=[bar_w], rowHeights=[bar_h])
+            bar.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#1e293b")),
+                ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ]))
+        elif pct >= 100:
+            bar = Table([[""]],  colWidths=[bar_w], rowHeights=[bar_h])
+            bar.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, -1), bar_color),
+                ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ]))
         else:
-            cat_pct = 0
+            bar = Table([["", ""]], colWidths=[filled, empty], rowHeights=[bar_h])
+            bar.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (0, 0), bar_color),
+                ("BACKGROUND", (1, 0), (1, 0), colors.HexColor("#1e293b")),
+                ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ]))
 
-        bar_color = _score_color(cat_pct)
-        bar = _progress_bar(cat_pct, bar_col_w - 6, height=6, color=bar_color)
-
-        pct_st = _style(f"CS{cat['id']}", fontSize=8, fontName="Helvetica-Bold",
-                        textColor=_score_color(cat_pct))
-
-        cat_rows.append([
-            Paragraph(cat["label"], _style(f"CL{cat['id']}", fontSize=8, textColor=WHITE)),
-            Paragraph(f"{cat_pct}%", pct_st),
+        bar_cell = [
             bar,
-            Paragraph(str(c),  _style(f"CC{cat['id']}", fontSize=8, fontName="Helvetica-Bold", textColor=GREEN)),
-            Paragraph(str(p),  _style(f"CP{cat['id']}", fontSize=8, fontName="Helvetica-Bold", textColor=YELLOW)),
-            Paragraph(str(n),  _style(f"CN{cat['id']}", fontSize=8, fontName="Helvetica-Bold", textColor=RED)),
-            Paragraph(str(na), _style(f"CA{cat['id']}", fontSize=8, fontName="Helvetica-Bold", textColor=GRAY)),
+            Paragraph(f"{pct}%", _st(f"BP{cat['id']}", fontSize=7, fontName="Helvetica-Bold",
+                                      textColor=bar_color, spaceBefore=2)),
+        ]
+
+        summary_rows.append([
+            Paragraph(cat["label"], _st(f"CL{cat['id']}", fontSize=8, textColor=WHITE)),
+            bar_cell,
+            Paragraph(str(c),  _st(f"CC{cat['id']}", fontSize=8, fontName="Helvetica-Bold", textColor=GREEN)),
+            Paragraph(str(p),  _st(f"CP{cat['id']}", fontSize=8, fontName="Helvetica-Bold", textColor=YELLOW)),
+            Paragraph(str(n),  _st(f"CN{cat['id']}", fontSize=8, fontName="Helvetica-Bold", textColor=RED)),
+            Paragraph(str(na), _st(f"CA{cat['id']}", fontSize=8, fontName="Helvetica-Bold", textColor=GRAY)),
         ])
 
-    cat_table = Table(cat_rows, colWidths=col_widths)
-    ts = [
-        ("BACKGROUND",    (0, 0), (-1, 0),   colors.HexColor("#0f172a")),
-        ("BACKGROUND",    (0, 1), (-1, -1),  CARD_BG),
-        ("ROWBACKGROUNDS",(0, 1), (-1, -1),  [CARD_BG, colors.HexColor("#162032")]),
-        ("FONTNAME",      (0, 0), (-1, 0),   "Helvetica-Bold"),
-        ("FONTSIZE",      (0, 0), (-1, -1),  8),
-        ("TOPPADDING",    (0, 0), (-1, -1),  6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1),  6),
-        ("LEFTPADDING",   (0, 0), (-1, -1),  8),
-        ("RIGHTPADDING",  (0, 0), (-1, -1),  6),
-        ("GRID",          (0, 0), (-1, -1),  0.3, BORDER),
-        ("ALIGN",         (1, 0), (-1, -1),  "CENTER"),
-        ("VALIGN",        (0, 0), (-1, -1),  "MIDDLE"),
-        ("LINEBELOW",     (0, 0), (-1, 0),   1, BORDER),
-    ]
-    cat_table.setStyle(TableStyle(ts))
-    story.append(cat_table)
+    summary_table = Table(summary_rows, colWidths=col_w)
+    summary_table.setStyle(TableStyle([
+        ("BACKGROUND",     (0, 0), (-1, 0),   colors.HexColor("#0c1422")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1),  [ROW_A, ROW_B]),
+        ("FONTSIZE",       (0, 0), (-1, -1),  8),
+        ("TOPPADDING",     (0, 0), (-1, -1),  6),
+        ("BOTTOMPADDING",  (0, 0), (-1, -1),  6),
+        ("LEFTPADDING",    (0, 0), (-1, -1),  8),
+        ("RIGHTPADDING",   (0, 0), (-1, -1),  8),
+        ("GRID",           (0, 0), (-1, -1),  0.3, BORDER),
+        ("ALIGN",          (2, 0), (-1, -1),  "CENTER"),
+        ("VALIGN",         (0, 0), (-1, -1),  "MIDDLE"),
+        ("LINEBELOW",      (0, 0), (-1, 0),   1, BORDER),
+    ]))
+    story.append(summary_table)
     story.append(Spacer(1, 7 * mm))
 
     # ── DETAILED CHECKLIST ───────────────────────────────────────────────────────
-    story.append(Paragraph("Détail des critères", section_st))
+    story.append(Paragraph("Détail des critères", st["section"]))
     story.append(section_rule(W, DOC_TYPE))
 
     for cat in categories:
-        # Compute category score for header badge
-        scorable = [it for it in cat["items"] if items.get(it["id"], "non_compliant") != "na"]
-        if scorable:
-            pts = sum(2 if items.get(it["id"], "non_compliant") == "compliant"
-                      else 1 if items.get(it["id"], "non_compliant") == "partial" else 0
-                      for it in scorable)
-            cat_pct = round(pts / (len(scorable) * 2) * 100)
-        else:
-            cat_pct = 0
+        pct = _cat_score(cat["items"], items)
 
-        # Category header row (spans full width)
-        cat_hdr_st   = _style(f"CH{cat['id']}", fontSize=9, fontName="Helvetica-Bold",
-                               textColor=CYAN, leading=13)
-        cat_score_st = _style(f"CS2{cat['id']}", fontSize=8, fontName="Helvetica-Bold",
-                               textColor=_score_color(cat_pct))
-
+        # Category header
         hdr_row = Table([[
-            Paragraph(cat["label"], cat_hdr_st),
-            Paragraph(f"{cat_pct}%", cat_score_st),
+            Paragraph(cat["label"],
+                      _st(f"CH{cat['id']}", fontSize=9, fontName="Helvetica-Bold",
+                          textColor=CYAN, leading=13)),
+            Paragraph(f"{pct}%",
+                      _st(f"CS{cat['id']}", fontSize=8, fontName="Helvetica-Bold",
+                          textColor=_score_color(pct))),
         ]], colWidths=[W * 0.88, W * 0.12])
         hdr_row.setStyle(TableStyle([
             ("BACKGROUND",    (0, 0), (-1, -1), colors.HexColor("#0c1f3a")),
-            ("TOPPADDING",    (0, 0), (-1, -1), 7),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+            ("TOPPADDING",    (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
             ("LEFTPADDING",   (0, 0), (-1, -1), 10),
             ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
             ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
             ("ALIGN",         (1, 0), (1, 0),   "RIGHT"),
-            ("LINEBELOW",     (0, 0), (-1, -1), 0.5, CYAN),
+            ("LINEBELOW",     (0, 0), (-1, -1), 1, CYAN),
         ]))
 
-        # Item rows
+        # Items
         item_rows = []
         for it in cat["items"]:
             status = items.get(it["id"], "non_compliant")
             sc_col = STATUS_COLOR.get(status, GRAY)
-            sc_bg2 = STATUS_BG.get(status, CARD_BG)
             sl     = STATUS_LABEL.get(status, status)
 
-            badge_st = _style(f"Bdg{it['id']}", fontSize=7, fontName="Helvetica-Bold",
-                               textColor=sc_col)
-            label_st = _style(f"Lbl{it['id']}", fontSize=8, textColor=WHITE, leading=11)
-            desc_st  = _style(f"Dsc{it['id']}", fontSize=7, textColor=GRAY, leading=10,
-                               spaceAfter=0)
-
-            badge_cell = Paragraph(sl, badge_st)
-            content_cell = [Paragraph(it["label"], label_st),
-                            Paragraph(it["desc"],   desc_st)]
-
+            badge_cell   = Paragraph(sl, _st(f"Bdg{it['id']}", fontSize=7,
+                                             fontName="Helvetica-Bold", textColor=sc_col))
+            content_cell = [
+                Paragraph(it["label"], _st(f"Lb{it['id']}",  fontSize=8,
+                                           fontName="Helvetica-Bold", textColor=WHITE, leading=11)),
+                Paragraph(it["desc"],  _st(f"Dc{it['id']}",  fontSize=7,
+                                           textColor=GRAY, leading=10, spaceAfter=0)),
+            ]
             item_rows.append([badge_cell, content_cell])
 
         items_table = Table(item_rows, colWidths=[W * 0.16, W * 0.84])
 
-        item_ts = [
-            ("BACKGROUND",    (0, 0), (-1, -1), CARD_BG),
-            ("ROWBACKGROUNDS",(0, 0), (-1, -1), [CARD_BG, colors.HexColor("#162032")]),
-            ("TOPPADDING",    (0, 0), (-1, -1), 6),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-            ("LEFTPADDING",   (0, 0), (-1, -1), 8),
-            ("RIGHTPADDING",  (0, 0), (-1, -1), 8),
-            ("VALIGN",        (0, 0), (-1, -1), "TOP"),
-            ("GRID",          (0, 0), (-1, -1), 0.3, BORDER),
-            ("ALIGN",         (0, 0), (0, -1),  "CENTER"),
-            ("VALIGN",        (0, 0), (0, -1),  "MIDDLE"),
+        ts = [
+            ("ROWBACKGROUNDS", (0, 0), (-1, -1), [ROW_A, ROW_B]),
+            ("TOPPADDING",     (0, 0), (-1, -1), 7),
+            ("BOTTOMPADDING",  (0, 0), (-1, -1), 7),
+            ("LEFTPADDING",    (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING",   (0, 0), (-1, -1), 8),
+            ("VALIGN",         (0, 0), (-1, -1), "TOP"),
+            ("ALIGN",          (0, 0), (0, -1),  "CENTER"),
+            ("VALIGN",         (0, 0), (0, -1),  "MIDDLE"),
+            ("GRID",           (0, 0), (-1, -1), 0.3, BORDER),
         ]
-        # Color-coded left border per status
         for row_idx, it in enumerate(cat["items"]):
             status = items.get(it["id"], "non_compliant")
-            sc_bg2 = STATUS_BG.get(status, CARD_BG)
-            item_ts.append(("BACKGROUND", (0, row_idx), (0, row_idx), sc_bg2))
+            ts.append(("BACKGROUND", (0, row_idx), (0, row_idx),
+                        STATUS_BG.get(status, CARD_BG)))
 
-        items_table.setStyle(TableStyle(item_ts))
-
+        items_table.setStyle(TableStyle(ts))
         story.append(KeepTogether([hdr_row, items_table]))
         story.append(Spacer(1, 3 * mm))
 
@@ -368,7 +349,7 @@ def generate_nis2_pdf(
     story.append(Paragraph(
         f"Rapport NIS2 généré par CyberScan le {datetime.utcnow().strftime('%d/%m/%Y à %H:%M')} UTC — "
         "Ce rapport est fourni à titre indicatif et ne constitue pas un audit légal de conformité.",
-        _style("Disc", fontSize=7, textColor=GRAY),
+        _st("Disc", fontSize=7, textColor=GRAY),
     ))
 
     doc.build(

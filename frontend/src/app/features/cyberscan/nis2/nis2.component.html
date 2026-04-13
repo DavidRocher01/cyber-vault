@@ -90,20 +90,20 @@
         <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6">
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
             <div class="text-center">
-              <p class="text-2xl font-black text-green-400">{{ compliantCount }}</p>
+              <p class="text-2xl font-black text-green-400">{{ compliantCount() }}</p>
               <p class="text-xs text-gray-500 mt-0.5">Conformes</p>
             </div>
             <div class="text-center">
-              <p class="text-2xl font-black text-yellow-400">{{ partialCount }}</p>
+              <p class="text-2xl font-black text-yellow-400">{{ partialCount() }}</p>
               <p class="text-xs text-gray-500 mt-0.5">Partiels</p>
             </div>
             <div class="text-center">
-              <p class="text-2xl font-black text-red-400">{{ ncCount }}</p>
+              <p class="text-2xl font-black text-red-400">{{ ncCount() }}</p>
               <p class="text-xs text-gray-500 mt-0.5">Non conformes</p>
             </div>
             <div class="text-center">
-              <p class="text-2xl font-black text-gray-400">{{ totalItems }}</p>
-              <p class="text-xs text-gray-500 mt-0.5">Critères total</p>
+              <p class="text-2xl font-black text-gray-400">{{ naCount() }}</p>
+              <p class="text-xs text-gray-500 mt-0.5">N/A</p>
             </div>
           </div>
 
@@ -115,9 +115,12 @@
                 <div class="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
                   <div class="h-full rounded-full transition-all duration-500"
                        [style.width.%]="catScore(cat)"
-                       [style.background-color]="scoreColor(catScore(cat))"></div>
+                       [style.background-color]="catCompliance(cat).compliant + catCompliance(cat).partial + catCompliance(cat).nc === 0 ? '#4b5563' : scoreColor(catScore(cat))"></div>
                 </div>
-                <span class="text-xs font-bold w-8 text-right flex-shrink-0" [style.color]="scoreColor(catScore(cat))">{{ catScore(cat) }}%</span>
+                <span class="text-xs font-bold w-8 text-right flex-shrink-0"
+                      [style.color]="catCompliance(cat).compliant + catCompliance(cat).partial + catCompliance(cat).nc === 0 ? '#4b5563' : scoreColor(catScore(cat))">
+                  {{ catCompliance(cat).compliant + catCompliance(cat).partial + catCompliance(cat).nc === 0 ? '—' : catScore(cat) + '%' }}
+                </span>
               </div>
             }
           </div>
