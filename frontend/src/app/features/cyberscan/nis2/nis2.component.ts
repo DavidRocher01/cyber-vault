@@ -113,6 +113,21 @@ export class Nis2Component implements OnInit {
 
   exportPdf() {
     this.exporting.set(true);
+    // Sauvegarde automatique avant export pour garantir la cohérence PDF/app
+    this.cyberscan.saveNis2Assessment(this.items()).subscribe({
+      next: data => {
+        this.score.set(data.score);
+        this.updatedAt.set(data.updated_at);
+        this._downloadPdf();
+      },
+      error: () => {
+        this.exporting.set(false);
+        this.snack.open('Erreur lors de la sauvegarde avant export', 'Fermer', { duration: 4000 });
+      },
+    });
+  }
+
+  private _downloadPdf() {
     this.cyberscan.downloadNis2PdfBlob().subscribe({
       next: blob => {
         const url = URL.createObjectURL(blob);
