@@ -478,7 +478,7 @@ export class LandingComponent implements OnInit {
     },
     {
       icon: 'analytics',
-      label: '19 modules',
+      label: '21 modules',
       desc: "Les modules s'exécutent en isolation, sans accès aux données des autres clients.",
     },
     {
