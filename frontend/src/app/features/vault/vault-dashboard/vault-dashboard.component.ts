@@ -286,6 +286,10 @@ export class VaultDashboardComponent implements OnInit {
 
   ngOnInit() {
     this.store.loadItems();
+    // Effacer le titulaire quand on passe en catégorie carte (évite l'autofill navigateur)
+    this.form.controls.category.valueChanges.subscribe(cat => {
+      if (cat === 'card') setTimeout(() => this.form.controls.username.setValue(''), 50);
+    });
   }
 
   get formTitle() {
@@ -300,6 +304,8 @@ export class VaultDashboardComponent implements OnInit {
     });
     this.showPasswordInForm.set(false);
     this.showForm.set(true);
+    // Le navigateur autofill s'applique après le rendu — on efface après un tick
+    setTimeout(() => this.form.controls.username.setValue(''), 50);
   }
 
   openEdit(item: VaultItem) {
