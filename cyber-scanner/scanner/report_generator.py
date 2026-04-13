@@ -25,16 +25,16 @@ from reportlab.platypus import (
 )
 
 # ---------------------------------------------------------------------------
-# Brand colours
+# Brand colours  (dark theme — aligned with pdf_brand.py)
 # ---------------------------------------------------------------------------
-COLOR_CRITICAL = colors.HexColor("#DC2626")
-COLOR_WARNING = colors.HexColor("#F97316")
-COLOR_OK = colors.HexColor("#16A34A")
-COLOR_PRIMARY = colors.HexColor("#1E3A5F")
-COLOR_BG = colors.HexColor("#F8FAFC")
-COLOR_WHITE = colors.white
-COLOR_LIGHT_BORDER = colors.HexColor("#CBD5E1")
-COLOR_ROW_ALT = colors.HexColor("#EFF6FF")
+COLOR_CRITICAL    = colors.HexColor("#f87171")   # RED
+COLOR_WARNING     = colors.HexColor("#fb923c")   # ORANGE
+COLOR_OK          = colors.HexColor("#4ade80")   # GREEN
+COLOR_PRIMARY     = colors.HexColor("#06b6d4")   # CYAN  (was navy #1E3A5F)
+COLOR_BG          = colors.HexColor("#0f172a")   # DARK_BG  (was light #F8FAFC)
+COLOR_WHITE       = colors.white
+COLOR_LIGHT_BORDER = colors.HexColor("#334155")  # BORDER  (was #CBD5E1)
+COLOR_ROW_ALT     = colors.HexColor("#1e293b")   # CARD_BG  (was #EFF6FF)
 
 from scanner.constants import PORT_NAMES, HEADER_RECOMMENDATIONS
 
@@ -59,31 +59,77 @@ class AuditDocTemplate(BaseDocTemplate):
         self.addPageTemplates([template])
 
     def _draw_footer(self, canvas, doc):
-        canvas.saveState()
-        footer_text = f"Cyber-Scanner v1.0  —  Confidentiel  —  généré le {self.report_date}"
-        canvas.setFont("Helvetica", 8)
-        canvas.setFillColor(colors.HexColor("#64748B"))
+        """Render dark background, top band (scan blue) and footer on every page."""
+        from reportlab.lib.pagesizes import A4
+        page_w, page_h = A4
 
-        # Divider line
+        canvas.saveState()
+
+        # ── Full-page dark background ─────────────────────────────────────────
+        canvas.setFillColor(COLOR_BG)   # DARK_BG #0f172a
+        canvas.rect(0, 0, page_w, page_h, fill=1, stroke=0)
+
+        # ── Top band (scan blue, #3b82f6 at 30 % opacity) ────────────────────
+        scan_color = colors.HexColor("#3b82f6")
+        r, g, b    = scan_color.red, scan_color.green, scan_color.blue
+        band_h     = 10 * mm
+        band_y     = page_h - band_h
+
+        canvas.setFillColorRGB(r, g, b, alpha=0.30)
+        canvas.rect(0, band_y, page_w, band_h, fill=1, stroke=0)
+
+        # Top edge line (2 px)
+        canvas.setStrokeColor(scan_color)
+        canvas.setLineWidth(2)
+        canvas.line(0, page_h - 1, page_w, page_h - 1)
+
+        # "CS" logo mark
+        left_margin = doc.leftMargin
+        logo_size   = 6 * mm
+        logo_x      = left_margin
+        logo_y      = band_y + (band_h - logo_size) / 2
+        canvas.setFillColor(COLOR_PRIMARY)   # CYAN
+        canvas.roundRect(logo_x, logo_y, logo_size, logo_size, radius=1.5 * mm, fill=1, stroke=0)
+        canvas.setFillColor(COLOR_WHITE)
+        canvas.setFont("Helvetica-Bold", 6)
+        canvas.drawCentredString(logo_x + logo_size / 2, logo_y + 1.5 * mm, "CS")
+
+        # "CyberScan" label
+        text_x = logo_x + logo_size + 3 * mm
+        mid_y  = band_y + band_h / 2 - 1.5 * mm
+        canvas.setFillColor(COLOR_WHITE)
+        canvas.setFont("Helvetica-Bold", 11)
+        canvas.drawString(text_x, mid_y, "CyberScan")
+
+        # Pipe separator
+        sep_x = text_x + 60
+        canvas.setFillColor(colors.HexColor("#94a3b8"))
+        canvas.setFont("Helvetica", 9)
+        canvas.drawString(sep_x, mid_y, "|")
+
+        # Document title
+        canvas.setFillColor(scan_color)
+        canvas.setFont("Helvetica", 9)
+        canvas.drawString(sep_x + 8, mid_y, "Rapport d'Audit")
+
+        # Date right-aligned in band
+        canvas.setFillColor(colors.HexColor("#94a3b8"))
+        canvas.setFont("Helvetica", 8)
+        canvas.drawRightString(page_w - left_margin, mid_y, self.report_date.split(" ")[0])
+
+        # ── Footer ────────────────────────────────────────────────────────────
+        footer_y = 8 * mm
         canvas.setStrokeColor(COLOR_LIGHT_BORDER)
         canvas.setLineWidth(0.5)
-        canvas.line(
-            doc.leftMargin,
-            doc.bottomMargin - 0.3 * cm,
-            doc.leftMargin + doc.width,
-            doc.bottomMargin - 0.3 * cm,
-        )
+        canvas.line(left_margin, footer_y, left_margin + doc.width, footer_y)
 
-        # Footer text left
-        canvas.drawString(doc.leftMargin, doc.bottomMargin - 0.7 * cm, footer_text)
+        canvas.setFillColor(colors.HexColor("#94a3b8"))
+        canvas.setFont("Helvetica", 7)
 
-        # Page number right
-        page_str = f"Page {doc.page}"
-        canvas.drawRightString(
-            doc.leftMargin + doc.width,
-            doc.bottomMargin - 0.7 * cm,
-            page_str,
-        )
+        canvas.drawString(left_margin, footer_y - 5 * mm, "CyberScan \u2014 confidentiel")
+        canvas.drawCentredString(page_w / 2, footer_y - 5 * mm, f"Page {doc.page}")
+        canvas.drawRightString(left_margin + doc.width, footer_y - 5 * mm, self.report_date)
+
         canvas.restoreState()
 
 
@@ -137,14 +183,14 @@ def _build_styles() -> dict[str, Any]:
             "body",
             fontName="Helvetica",
             fontSize=10,
-            textColor=colors.HexColor("#1E293B"),
+            textColor=colors.HexColor("#cbd5e1"),
             spaceAfter=4,
         ),
         "bullet": ParagraphStyle(
             "bullet",
             fontName="Helvetica",
             fontSize=10,
-            textColor=colors.HexColor("#1E293B"),
+            textColor=colors.HexColor("#cbd5e1"),
             spaceAfter=5,
             leftIndent=16,
             bulletIndent=4,
@@ -159,7 +205,7 @@ def _build_styles() -> dict[str, Any]:
             "cell",
             fontName="Helvetica",
             fontSize=9,
-            textColor=colors.HexColor("#1E293B"),
+            textColor=colors.HexColor("#cbd5e1"),
         ),
     }
     return styles
@@ -271,7 +317,7 @@ def _build_cover(target_url: str, report_date: str, styles: dict[str, Any], page
     conf_table.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFF7ED")),
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#1e293b")),
                 ("BOX", (0, 0), (-1, -1), 1, COLOR_WARNING),
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
@@ -371,7 +417,7 @@ def _build_executive_summary(
 
     # Per-module status table
     head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE, alignment=TA_CENTER)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
 
     rows = [[Paragraph("Module", head_style), Paragraph("Statut", head_style)]]
     module_labels = {
@@ -404,7 +450,7 @@ def _build_executive_summary(
             ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
             ("ALIGN", (0, 0), (-1, -1), "CENTER"),
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
             ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
             ("TOPPADDING", (0, 0), (-1, -1), 7),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
@@ -431,7 +477,7 @@ def _build_ssl_section(ssl_result: dict[str, Any], styles: dict[str, Any], page_
     story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
 
     head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
 
     if ssl_result.get("error"):
         rows = [
@@ -472,7 +518,7 @@ def _build_ssl_section(ssl_result: dict[str, Any], styles: dict[str, Any], page_
                 ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
                 ("ALIGN", (0, 0), (-1, -1), "LEFT"),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
                 ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
                 ("TOPPADDING", (0, 0), (-1, -1), 7),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
@@ -495,7 +541,7 @@ def _build_headers_section(headers_result: dict[str, Any], styles: dict[str, Any
     story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
 
     head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
 
     if headers_result.get("error"):
         rows = [
@@ -520,7 +566,7 @@ def _build_headers_section(headers_result: dict[str, Any], styles: dict[str, Any
         score = headers_result.get("score", 0)
         score_color = COLOR_OK if score == 6 else (COLOR_WARNING if score >= 4 else COLOR_CRITICAL)
         score_style = ParagraphStyle("sc", fontName="Helvetica-Bold", fontSize=10, textColor=score_color)
-        rows.append([Paragraph("Score total", ParagraphStyle("stb", fontName="Helvetica-Bold", fontSize=10, textColor=colors.HexColor("#1E293B"))), Paragraph(f"{score}/6", score_style)])
+        rows.append([Paragraph("Score total", ParagraphStyle("stb", fontName="Helvetica-Bold", fontSize=10, textColor=colors.HexColor("#cbd5e1"))), Paragraph(f"{score}/6", score_style)])
 
     col_w = (page_w - 4 * cm)
     t = Table(rows, colWidths=[col_w * 0.65, col_w * 0.35])
@@ -530,14 +576,14 @@ def _build_headers_section(headers_result: dict[str, Any], styles: dict[str, Any
                 ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
                 ("ALIGN", (0, 0), (-1, -1), "LEFT"),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
                 ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
                 ("TOPPADDING", (0, 0), (-1, -1), 7),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
                 ("LEFTPADDING", (0, 0), (-1, -1), 10),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 10),
                 # Last row (score) bold background
-                ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#E2E8F0")),
+                ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#334155")),
             ]
         )
     )
@@ -555,7 +601,7 @@ def _build_ports_section(port_result: dict[str, Any], styles: dict[str, Any], pa
     story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
 
     head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
 
     if skipped or port_result is None:
         rows = [
@@ -607,7 +653,7 @@ def _build_ports_section(port_result: dict[str, Any], styles: dict[str, Any], pa
                 ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
                 ("ALIGN", (0, 0), (-1, -1), "LEFT"),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
                 ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
                 ("TOPPADDING", (0, 0), (-1, -1), 7),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
@@ -630,7 +676,7 @@ def _build_sca_section(sca_result: dict[str, Any], styles: dict[str, Any], page_
     story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
 
     head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
     col_w = page_w - 4 * cm
 
     if skipped or not sca_result:
@@ -717,9 +763,9 @@ def _build_sca_section(sca_result: dict[str, Any], styles: dict[str, Any], page_
             summary_text = v.get("summary", "")[:180]
             vuln_rows.append([
                 Paragraph(f"{v['package']}\n{v['version']}", cell_style),
-                Paragraph(cve_str, ParagraphStyle("cv", fontName="Helvetica", fontSize=9, textColor=colors.HexColor("#1E293B"))),
+                Paragraph(cve_str, ParagraphStyle("cv", fontName="Helvetica", fontSize=9, textColor=colors.HexColor("#cbd5e1"))),
                 Paragraph(sev, sev_cell_style),
-                Paragraph(summary_text, ParagraphStyle("sm", fontName="Helvetica", fontSize=8, textColor=colors.HexColor("#475569"))),
+                Paragraph(summary_text, ParagraphStyle("sm", fontName="Helvetica", fontSize=8, textColor=colors.HexColor("#94a3b8"))),
             ])
         t_vulns = Table(
             vuln_rows,
@@ -750,7 +796,7 @@ def _build_email_section(email_result: dict[str, Any], styles: dict[str, Any], p
     story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
 
     head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
     col_w = page_w - 4 * cm
 
     if skipped or not email_result:
@@ -803,7 +849,7 @@ def _build_cookie_section(cookie_result: dict[str, Any], styles: dict[str, Any],
     story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
 
     head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
     col_w = page_w - 4 * cm
 
     if skipped or not cookie_result:
@@ -824,7 +870,7 @@ def _build_cookie_section(cookie_result: dict[str, Any], styles: dict[str, Any],
         else:
             rows.append([Paragraph("—", cell_style), Paragraph("Tous les cookies sont correctement sécurisés", ParagraphStyle("ok", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_OK))])
 
-        summary_style = ParagraphStyle("sm", fontName="Helvetica-Bold", fontSize=10, textColor=colors.HexColor("#1E293B"))
+        summary_style = ParagraphStyle("sm", fontName="Helvetica-Bold", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
         total_issues = cookie_result.get("total_issues", 0)
         ic = COLOR_OK if total_issues == 0 else (COLOR_WARNING if cookie_result.get("status") == "WARNING" else COLOR_CRITICAL)
         rows.append([Paragraph("Total cookies", summary_style), Paragraph(str(cookie_result.get("total_cookies", 0)), cell_style)])
@@ -838,7 +884,7 @@ def _build_cookie_section(cookie_result: dict[str, Any], styles: dict[str, Any],
         ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
         ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("BACKGROUND", (0, -2), (-1, -1), colors.HexColor("#E2E8F0")),
+        ("BACKGROUND", (0, -2), (-1, -1), colors.HexColor("#334155")),
     ]))
     story.append(t)
     return story
@@ -854,7 +900,7 @@ def _build_cors_section(cors_result: dict[str, Any], styles: dict[str, Any], pag
     story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
 
     head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
     col_w = page_w - 4 * cm
 
     if skipped or not cors_result:
@@ -900,7 +946,7 @@ def _build_ip_reputation_section(ip_result: dict[str, Any], styles: dict[str, An
     story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
 
     head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
     col_w = page_w - 4 * cm
 
     if skipped or not ip_result:
@@ -943,7 +989,7 @@ def _build_dns_section(dns_result: dict[str, Any], styles: dict[str, Any], page_
     story.append(Paragraph("10. DNS & Subdomains", styles["section_title"]))
     story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
     head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
     col_w = page_w - 4 * cm
 
     if skipped or not dns_result:
@@ -986,7 +1032,7 @@ def _build_cms_section(cms_result: dict[str, Any], styles: dict[str, Any], page_
     story.append(Paragraph("11. CMS Detection", styles["section_title"]))
     story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
     head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
     col_w = page_w - 4 * cm
 
     if skipped or not cms_result:
@@ -1027,7 +1073,7 @@ def _build_waf_section(waf_result: dict[str, Any], styles: dict[str, Any], page_
     story.append(Paragraph("12. WAF Detection", styles["section_title"]))
     story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
     head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
     col_w = page_w - 4 * cm
 
     if skipped or not waf_result:
@@ -1068,7 +1114,7 @@ def _build_breach_section(breach_result: dict[str, Any], styles: dict[str, Any],
     story.append(Paragraph("13. Data Breach (HIBP)", styles["section_title"]))
     story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
     head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#1E293B"))
+    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
     col_w = page_w - 4 * cm
 
     if skipped or not breach_result:
@@ -1129,7 +1175,7 @@ def _build_tech_section(tech_result: dict[str, Any], styles: dict[str, Any], pag
         ("TEXTCOLOR",  (0, 0), (-1, 0), COLOR_WHITE),
         ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE",   (0, 0), (-1, -1), 9),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
         ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
         ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
         ("TOPPADDING", (0, 0), (-1, -1), 5),
@@ -1179,7 +1225,7 @@ def _build_tls_section(tls_result: dict[str, Any], styles: dict[str, Any], page_
     t.setStyle(TableStyle([
         ("FONTNAME",   (0, 0), (-1, -1), "Helvetica"),
         ("FONTSIZE",   (0, 0), (-1, -1), 9),
-        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
         ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
         ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
         ("TOPPADDING", (0, 0), (-1, -1), 5),
@@ -1223,7 +1269,7 @@ def _build_takeover_section(takeover_result: dict[str, Any], styles: dict[str, A
             ("TEXTCOLOR",  (0, 0), (-1, 0), COLOR_WHITE),
             ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
             ("FONTSIZE",   (0, 0), (-1, -1), 9),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
             ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
             ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
             ("TOPPADDING", (0, 0), (-1, -1), 5),
@@ -1267,7 +1313,7 @@ def _build_threat_intel_section(ti_result: dict[str, Any], styles: dict[str, Any
     t.setStyle(TableStyle([
         ("FONTNAME",   (0, 0), (-1, -1), "Helvetica"),
         ("FONTSIZE",   (0, 0), (-1, -1), 9),
-        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
         ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
         ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
         ("TOPPADDING", (0, 0), (-1, -1), 5),
@@ -1309,7 +1355,7 @@ def _build_http_methods_section(methods_result: dict[str, Any], styles: dict[str
     t.setStyle(TableStyle([
         ("FONTNAME",   (0, 0), (-1, -1), "Helvetica"),
         ("FONTSIZE",   (0, 0), (-1, -1), 9),
-        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
         ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
         ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
         ("TOPPADDING", (0, 0), (-1, -1), 5),
@@ -1332,7 +1378,7 @@ def _build_http_methods_section(methods_result: dict[str, Any], styles: dict[str
             ("TEXTCOLOR",  (0, 0), (-1, 0), COLOR_WHITE),
             ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
             ("FONTSIZE",   (0, 0), (-1, -1), 9),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
             ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
             ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
             ("TOPPADDING", (0, 0), (-1, -1), 5),
@@ -1369,7 +1415,7 @@ def _build_open_redirect_section(r: dict[str, Any], styles: dict[str, Any], page
     t.setStyle(TableStyle([
         ("FONTNAME",  (0, 0), (-1, -1), "Helvetica"),
         ("FONTSIZE",  (0, 0), (-1, -1), 9),
-        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
         ("BOX",       (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
         ("INNERGRID", (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
         ("TOPPADDING", (0, 0), (-1, -1), 5),
@@ -1408,7 +1454,7 @@ def _build_clickjacking_section(r: dict[str, Any], styles: dict[str, Any], page_
     t.setStyle(TableStyle([
         ("FONTNAME",  (0, 0), (-1, -1), "Helvetica"),
         ("FONTSIZE",  (0, 0), (-1, -1), 9),
-        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
         ("BOX",       (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
         ("INNERGRID", (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
         ("TOPPADDING", (0, 0), (-1, -1), 5),
@@ -1447,7 +1493,7 @@ def _build_dirlist_section(r: dict[str, Any], styles: dict[str, Any], page_w: fl
         ("TEXTCOLOR",  (0, 0), (-1, 0), COLOR_WHITE),
         ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE",   (0, 0), (-1, -1), 9),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
         ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
         ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
         ("TOPPADDING", (0, 0), (-1, -1), 5),
@@ -1485,7 +1531,7 @@ def _build_robots_section(r: dict[str, Any], styles: dict[str, Any], page_w: flo
     t.setStyle(TableStyle([
         ("FONTNAME",  (0, 0), (-1, -1), "Helvetica"),
         ("FONTSIZE",  (0, 0), (-1, -1), 9),
-        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
         ("BOX",       (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
         ("INNERGRID", (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
         ("TOPPADDING", (0, 0), (-1, -1), 5),
@@ -1528,7 +1574,7 @@ def _build_jwt_section(r: dict[str, Any], styles: dict[str, Any], page_w: float,
         ("TEXTCOLOR",  (0, 0), (-1, 0), COLOR_WHITE),
         ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE",   (0, 0), (-1, -1), 9),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_WHITE, COLOR_ROW_ALT]),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
         ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
         ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
         ("TOPPADDING", (0, 0), (-1, -1), 5),
@@ -1621,7 +1667,7 @@ def _build_recommendations(
             "pt",
             fontName="Helvetica",
             fontSize=10,
-            textColor=colors.HexColor("#1E293B"),
+            textColor=colors.HexColor("#cbd5e1"),
         )
         col_w = page_w - 4 * cm
         row_table = Table(
@@ -1727,7 +1773,7 @@ def generate_report(
         pagesize=A4,
         leftMargin=2 * cm,
         rightMargin=2 * cm,
-        topMargin=2 * cm,
+        topMargin=2.5 * cm,   # extra 0.5 cm for top band
         bottomMargin=2 * cm,
     )
 

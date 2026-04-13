@@ -1,5 +1,6 @@
 """
 NIS2 Compliance PDF report generator using ReportLab.
+Uses shared visual identity from pdf_brand.
 """
 
 from __future__ import annotations
@@ -20,15 +21,23 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-DARK_BG   = colors.HexColor("#111827")
-CARD_BG   = colors.HexColor("#1f2937")
-CYAN      = colors.HexColor("#22d3ee")
-GREEN     = colors.HexColor("#4ade80")
-YELLOW    = colors.HexColor("#facc15")
-RED       = colors.HexColor("#f87171")
-ORANGE    = colors.HexColor("#fb923c")
-GRAY      = colors.HexColor("#9ca3af")
-WHITE     = colors.white
+from app.services.pdf_brand import (
+    BORDER,
+    CARD_BG,
+    CYAN,
+    DARK_BG,
+    GRAY,
+    GREEN,
+    ORANGE,
+    RED,
+    WHITE,
+    YELLOW,
+    draw_page,
+    get_styles,
+    section_rule,
+)
+
+DOC_TYPE = "nis2"
 
 STATUS_COLOR = {
     "compliant":     GREEN,
@@ -63,38 +72,22 @@ def generate_nis2_pdf(
     doc = SimpleDocTemplate(
         buf, pagesize=A4,
         leftMargin=15 * mm, rightMargin=15 * mm,
-        topMargin=15 * mm, bottomMargin=15 * mm,
+        topMargin=25 * mm, bottomMargin=20 * mm,
     )
+
+    st = get_styles(DOC_TYPE)
 
     title_st   = _style("T", fontSize=22, fontName="Helvetica-Bold")
     sub_st     = _style("S", fontSize=10, textColor=GRAY)
-    section_st = _style("Sec", fontSize=11, fontName="Helvetica-Bold", textColor=CYAN, spaceBefore=8, spaceAfter=4)
-    body_st    = _style("B", fontSize=9)
+    section_st = st["section"]
+    body_st    = _style("B", fontSize=9, textColor=colors.HexColor("#cbd5e1"))
     small_st   = _style("Sm", fontSize=8, textColor=GRAY)
-    score_label_st = _style("Sc", fontSize=30, fontName="Helvetica-Bold")
 
     story = []
 
-    # ── Header ──────────────────────────────────────────────────────────────
-    date_str = updated_at.strftime("%d/%m/%Y") if updated_at else datetime.utcnow().strftime("%d/%m/%Y")
-    header = Table([[
-        Paragraph("CyberScan", title_st),
-        Paragraph(f"Rapport de conformité NIS2<br/><font size='9' color='#9ca3af'>{user_email} — {date_str}</font>", sub_st),
-    ]], colWidths=[W * 0.45, W * 0.55])
-    header.setStyle(TableStyle([
-        ("BACKGROUND",  (0, 0), (-1, -1), DARK_BG),
-        ("TOPPADDING",  (0, 0), (-1, -1), 12),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 14),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 14),
-        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-        ("ALIGN",         (1, 0), (1, 0),   "RIGHT"),
-        ("ROUNDEDCORNERS", [6]),
-    ]))
-    story.append(header)
-    story.append(Spacer(1, 5 * mm))
-
     # ── Score hero ──────────────────────────────────────────────────────────
+    date_str = updated_at.strftime("%d/%m/%Y") if updated_at else datetime.utcnow().strftime("%d/%m/%Y")
+
     if score >= 80:
         score_color = GREEN
         level = "Conforme"
@@ -119,11 +112,11 @@ def generate_nis2_pdf(
         Paragraph(f"{score}%", score_st),
         Paragraph(
             f"{level}<br/>"
-            f"<font size='9' color='#4ade80'>✓ {compliant_n} conformes</font>  "
+            f"<font size='9' color='#4ade80'>&#10003; {compliant_n} conformes</font>  "
             f"<font size='9' color='#facc15'>~ {partial_n} partiels</font>  "
-            f"<font size='9' color='#f87171'>✗ {nc_n} non-conformes</font>  "
-            f"<font size='9' color='#9ca3af'>— {na_n} N/A</font><br/>"
-            f"<font size='8' color='#6b7280'>{total_items} critères évalués au total</font>",
+            f"<font size='9' color='#f87171'>&#10007; {nc_n} non-conformes</font>  "
+            f"<font size='9' color='#94a3b8'>&#8212; {na_n} N/A</font><br/>"
+            f"<font size='8' color='#64748b'>{total_items} critères évalués au total</font>",
             level_st,
         ),
     ]], colWidths=[W * 0.2, W * 0.8])
@@ -141,7 +134,7 @@ def generate_nis2_pdf(
 
     # ── Category summary bar ─────────────────────────────────────────────────
     story.append(Paragraph("Résumé par catégorie", section_st))
-    story.append(HRFlowable(width=W, thickness=0.5, color=colors.HexColor("#374151"), spaceAfter=4))
+    story.append(section_rule(W, DOC_TYPE))
 
     cat_rows = [["Catégorie", "Conformes", "Partiels", "Non-conformes", "N/A"]]
     for cat in categories:
@@ -168,7 +161,7 @@ def generate_nis2_pdf(
         ("TOPPADDING",    (0, 0), (-1, -1), 5),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
         ("LEFTPADDING",   (0, 0), (-1, -1), 8),
-        ("GRID",          (0, 0), (-1, -1), 0.3, colors.HexColor("#374151")),
+        ("GRID",          (0, 0), (-1, -1), 0.3, BORDER),
         ("ALIGN",         (1, 0), (-1, -1), "CENTER"),
     ]))
     story.append(cat_table)
@@ -176,11 +169,13 @@ def generate_nis2_pdf(
 
     # ── Detailed checklist ───────────────────────────────────────────────────
     story.append(Paragraph("Détail des critères", section_st))
-    story.append(HRFlowable(width=W, thickness=0.5, color=colors.HexColor("#374151"), spaceAfter=4))
+    story.append(section_rule(W, DOC_TYPE))
 
     for cat in categories:
-        story.append(Paragraph(cat["label"], _style(f"Cat{cat['id']}", fontSize=10, fontName="Helvetica-Bold",
-                                                      textColor=CYAN, spaceBefore=6, spaceAfter=3)))
+        story.append(Paragraph(cat["label"], _style(
+            f"Cat{cat['id']}", fontSize=10, fontName="Helvetica-Bold",
+            textColor=CYAN, spaceBefore=6, spaceAfter=3,
+        )))
         rows = [["Statut", "Critère"]]
         for it in cat["items"]:
             status = items.get(it["id"], "non_compliant")
@@ -201,26 +196,24 @@ def generate_nis2_pdf(
             ("TOPPADDING",    (0, 0), (-1, -1), 5),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
             ("LEFTPADDING",   (0, 0), (-1, -1), 8),
-            ("GRID",          (0, 0), (-1, -1), 0.3, colors.HexColor("#374151")),
+            ("GRID",          (0, 0), (-1, -1), 0.3, BORDER),
             ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
         ]))
         story.append(t)
         story.append(Spacer(1, 2 * mm))
 
-    # ── Footer ───────────────────────────────────────────────────────────────
+    # ── Disclaimer ───────────────────────────────────────────────────────────
     story.append(Spacer(1, 4 * mm))
-    story.append(HRFlowable(width=W, thickness=0.5, color=colors.HexColor("#374151"), spaceAfter=4))
+    story.append(HRFlowable(width=W, thickness=0.5, color=BORDER, spaceAfter=4))
     story.append(Paragraph(
         f"Rapport NIS2 généré par CyberScan le {datetime.utcnow().strftime('%d/%m/%Y à %H:%M')} UTC — "
         "Ce rapport est fourni à titre indicatif et ne constitue pas un audit légal de conformité.",
         small_st,
     ))
 
-    def _bg(canvas, doc):
-        canvas.saveState()
-        canvas.setFillColor(DARK_BG)
-        canvas.rect(0, 0, A4[0], A4[1], fill=1, stroke=0)
-        canvas.restoreState()
-
-    doc.build(story, onFirstPage=_bg, onLaterPages=_bg)
+    doc.build(
+        story,
+        onFirstPage=lambda c, d: draw_page(c, d, DOC_TYPE, "Conformité NIS2", user_email),
+        onLaterPages=lambda c, d: draw_page(c, d, DOC_TYPE, "Conformité NIS2"),
+    )
     return buf.getvalue()

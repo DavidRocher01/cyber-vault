@@ -32,10 +32,32 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
 
+# ── Import shared brand from backend package ──────────────────────────────────
+_repo_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_repo_root / "backend"))
+
+from app.services.pdf_brand import (  # noqa: E402
+    BORDER,
+    CARD_BG,
+    CYAN,
+    DARK_BG,
+    GRAY,
+    GREEN,
+    RED,
+    WHITE,
+    YELLOW,
+    DOC_COLOR,
+    PAGE_W,
+    PAGE_H,
+    draw_page,
+    get_styles,
+    section_rule,
+)
+
 # ── ReportLab ─────────────────────────────────────────────────────────────────
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import (
     HRFlowable,
@@ -47,43 +69,24 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-# ── Palette ───────────────────────────────────────────────────────────────────
-DARK_BG  = colors.HexColor("#111827")
-CARD_BG  = colors.HexColor("#1f2937")
-HEADER   = colors.HexColor("#0f172a")
-CYAN     = colors.HexColor("#22d3ee")
-GREEN    = colors.HexColor("#4ade80")
-RED      = colors.HexColor("#f87171")
-YELLOW   = colors.HexColor("#facc15")
-GRAY     = colors.HexColor("#9ca3af")
-LGRAY    = colors.HexColor("#374151")
-WHITE    = colors.white
-
-PAGE_W, PAGE_H = A4
-MARGIN = 18 * mm
+DOC_TYPE = "test"
+MARGIN   = 15 * mm   # left/right margin (must match pdf_brand.MARGIN mm)
+HEADER   = colors.HexColor("#0c1a2e")
+LGRAY    = BORDER
 
 # ── Styles ────────────────────────────────────────────────────────────────────
 
 def _styles():
-    base = getSampleStyleSheet()
-    return {
-        "title": ParagraphStyle("title", fontName="Helvetica-Bold",
-                                fontSize=22, textColor=CYAN, spaceAfter=4),
-        "subtitle": ParagraphStyle("subtitle", fontName="Helvetica",
-                                   fontSize=11, textColor=GRAY, spaceAfter=10),
-        "section": ParagraphStyle("section", fontName="Helvetica-Bold",
-                                  fontSize=13, textColor=CYAN, spaceBefore=14, spaceAfter=6),
-        "subsection": ParagraphStyle("subsection", fontName="Helvetica-Bold",
-                                     fontSize=10, textColor=WHITE, spaceBefore=8, spaceAfter=4),
-        "body": ParagraphStyle("body", fontName="Helvetica",
-                               fontSize=9, textColor=GRAY),
-        "pass": ParagraphStyle("pass", fontName="Helvetica",
-                               fontSize=9, textColor=GREEN),
-        "fail": ParagraphStyle("fail", fontName="Helvetica-Bold",
-                               fontSize=9, textColor=RED),
-        "skip": ParagraphStyle("skip", fontName="Helvetica",
-                               fontSize=9, textColor=YELLOW),
+    st = get_styles(DOC_TYPE)
+    doc_hex   = DOC_COLOR[DOC_TYPE]
+    doc_color = colors.HexColor(doc_hex)
+    extra = {
+        "pass": ParagraphStyle("pass", fontName="Helvetica",      fontSize=9, textColor=GREEN),
+        "fail": ParagraphStyle("fail", fontName="Helvetica-Bold", fontSize=9, textColor=RED),
+        "skip": ParagraphStyle("skip", fontName="Helvetica",      fontSize=9, textColor=YELLOW),
     }
+    st.update(extra)
+    return st
 
 # ── Parsing JUnit XML ─────────────────────────────────────────────────────────
 
@@ -106,28 +109,28 @@ def _parse_junit(xml_path: Path) -> dict:
         cases = []
 
         for case in suite.findall("testcase"):
-            name = case.get("name", "?")
+            name      = case.get("name", "?")
             classname = case.get("classname", "")
-            time_val = float(case.get("time", "0") or "0")
+            time_val  = float(case.get("time", "0") or "0")
 
             failure = case.find("failure")
             error   = case.find("error")
             skipped = case.find("skipped")
 
             if failure is not None:
-                status = "FAIL"
+                status  = "FAIL"
                 message = (failure.get("message") or failure.text or "")[:200]
                 totals["failed"] += 1
             elif error is not None:
-                status = "ERROR"
+                status  = "ERROR"
                 message = (error.get("message") or error.text or "")[:200]
                 totals["errors"] += 1
             elif skipped is not None:
-                status = "SKIP"
+                status  = "SKIP"
                 message = skipped.get("message", "")
                 totals["skipped"] += 1
             else:
-                status = "PASS"
+                status  = "PASS"
                 message = ""
                 totals["passed"] += 1
 
@@ -148,12 +151,16 @@ def _parse_junit(xml_path: Path) -> dict:
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _status_cell(status: str, styles: dict):
-    labels = {"PASS": "✓ PASS", "FAIL": "✗ FAIL", "ERROR": "✗ ERROR", "SKIP": "— SKIP"}
+    labels    = {"PASS": "&#10003; PASS", "FAIL": "&#10007; FAIL", "ERROR": "&#10007; ERROR", "SKIP": "&#8212; SKIP"}
     style_map = {"PASS": "pass", "FAIL": "fail", "ERROR": "fail", "SKIP": "skip"}
     return Paragraph(labels.get(status, status), styles[style_map.get(status, "body")])
 
-def _hr(color=LGRAY):
-    return HRFlowable(width="100%", thickness=0.5, color=color, spaceAfter=6, spaceBefore=2)
+def _hr(color=None):
+    return HRFlowable(
+        width="100%", thickness=0.5,
+        color=color if color is not None else LGRAY,
+        spaceAfter=6, spaceBefore=2,
+    )
 
 def _summary_table(backend: dict, frontend: dict, styles: dict):
     bt = backend["totals"]
@@ -163,8 +170,8 @@ def _summary_table(backend: dict, frontend: dict, styles: dict):
     total_failed = bt["failed"] + ft["failed"] + bt["errors"] + ft["errors"]
     total_skip   = bt["skipped"] + ft["skipped"]
 
-    be_ok = bt["failed"] + bt["errors"] == 0
-    fe_ok = ft["failed"] + ft["errors"] == 0
+    be_ok    = bt["failed"] + bt["errors"] == 0
+    fe_ok    = ft["failed"] + ft["errors"] == 0
     global_ok = be_ok and fe_ok
 
     def cell(txt, bold=False, color=WHITE):
@@ -179,73 +186,67 @@ def _summary_table(backend: dict, frontend: dict, styles: dict):
          Paragraph("Réussis", header_style), Paragraph("Échoués", header_style),
          Paragraph("Ignorés", header_style), Paragraph("Statut", header_style)],
         [cell("Backend (pytest)"), cell(str(bt["tests"])),
-         cell(str(bt["passed"]), color=GREEN), cell(str(bt["failed"] + bt["errors"]), color=RED if not be_ok else GRAY),
-         cell(str(bt["skipped"]), color=YELLOW), cell("✓ OK" if be_ok else "✗ ÉCHEC", color=GREEN if be_ok else RED)],
+         cell(str(bt["passed"]), color=GREEN),
+         cell(str(bt["failed"] + bt["errors"]), color=RED if not be_ok else GRAY),
+         cell(str(bt["skipped"]), color=YELLOW),
+         cell("&#10003; OK" if be_ok else "&#10007; ÉCHEC", color=GREEN if be_ok else RED)],
         [cell("Frontend (Vitest)"), cell(str(ft["tests"])),
-         cell(str(ft["passed"]), color=GREEN), cell(str(ft["failed"] + ft["errors"]), color=RED if not fe_ok else GRAY),
-         cell(str(ft["skipped"]), color=YELLOW), cell("✓ OK" if fe_ok else "✗ ÉCHEC", color=GREEN if fe_ok else RED)],
+         cell(str(ft["passed"]), color=GREEN),
+         cell(str(ft["failed"] + ft["errors"]), color=RED if not fe_ok else GRAY),
+         cell(str(ft["skipped"]), color=YELLOW),
+         cell("&#10003; OK" if fe_ok else "&#10007; ÉCHEC", color=GREEN if fe_ok else RED)],
         [cell("TOTAL", bold=True), cell(str(total_tests), bold=True),
-         cell(str(total_passed), bold=True, color=GREEN), cell(str(total_failed), bold=True, color=RED if total_failed else GRAY),
+         cell(str(total_passed), bold=True, color=GREEN),
+         cell(str(total_failed), bold=True, color=RED if total_failed else GRAY),
          cell(str(total_skip), bold=True, color=YELLOW),
-         cell("✓ SUCCÈS" if global_ok else "✗ ÉCHEC", bold=True, color=GREEN if global_ok else RED)],
+         cell("&#10003; SUCCÈS" if global_ok else "&#10007; ÉCHEC", bold=True, color=GREEN if global_ok else RED)],
     ]
 
-    col_w = [(PAGE_W - 2*MARGIN) * p for p in [0.28, 0.12, 0.14, 0.14, 0.14, 0.18]]
+    col_w = [(PAGE_W - 2 * MARGIN) * p for p in [0.28, 0.12, 0.14, 0.14, 0.14, 0.18]]
     t = Table(data, colWidths=col_w)
     t.setStyle(TableStyle([
-        ("BACKGROUND",  (0, 0), (-1, 0), HEADER),
-        ("BACKGROUND",  (0, 1), (-1, 2), CARD_BG),
-        ("BACKGROUND",  (0, 3), (-1, 3), LGRAY),
-        ("ROWBACKGROUNDS", (0, 1), (-1, 2), [CARD_BG, DARK_BG]),
-        ("GRID",        (0, 0), (-1, -1), 0.3, LGRAY),
-        ("TOPPADDING",  (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("BACKGROUND",     (0, 0), (-1, 0),  HEADER),
+        ("ROWBACKGROUNDS", (0, 1), (-1, 2),  [CARD_BG, DARK_BG]),
+        ("BACKGROUND",     (0, 3), (-1, 3),  LGRAY),
+        ("GRID",           (0, 0), (-1, -1), 0.3, LGRAY),
+        ("TOPPADDING",     (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING",  (0, 0), (-1, -1), 5),
+        ("LEFTPADDING",    (0, 0), (-1, -1), 6),
     ]))
     return t
 
 def _test_table(cases: list, styles: dict):
     header_style = ParagraphStyle("h", fontName="Helvetica-Bold", fontSize=8, textColor=CYAN)
-    name_style   = ParagraphStyle("n", fontName="Helvetica", fontSize=8, textColor=WHITE)
+    name_style   = ParagraphStyle("n", fontName="Helvetica",      fontSize=8, textColor=WHITE)
     msg_style    = ParagraphStyle("m", fontName="Helvetica-Oblique", fontSize=7, textColor=RED)
-    time_style   = ParagraphStyle("t", fontName="Helvetica", fontSize=8, textColor=GRAY)
+    time_style   = ParagraphStyle("t", fontName="Helvetica",      fontSize=8, textColor=GRAY)
 
     data = [[Paragraph("Statut", header_style), Paragraph("Nom du test", header_style),
              Paragraph("Durée", header_style)]]
 
+    usable_w = PAGE_W - 2 * MARGIN
     for c in cases:
-        msg_cell = Paragraph(c["message"].replace("\n", " ") if c["message"] else "", msg_style)
-        name_cell = Paragraph(c["name"], name_style) if not c["message"] else \
-                    Table([[Paragraph(c["name"], name_style)], [msg_cell]],
-                          colWidths=[(PAGE_W - 2*MARGIN) * 0.74])
+        msg_cell  = Paragraph(c["message"].replace("\n", " ") if c["message"] else "", msg_style)
+        name_cell = (
+            Paragraph(c["name"], name_style) if not c["message"] else
+            Table([[Paragraph(c["name"], name_style)], [msg_cell]],
+                  colWidths=[usable_w * 0.74])
+        )
         data.append([_status_cell(c["status"], styles), name_cell,
                      Paragraph(f"{c['time']:.3f}s", time_style)])
 
-    col_w = [(PAGE_W - 2*MARGIN) * p for p in [0.12, 0.74, 0.14]]
+    col_w = [usable_w * p for p in [0.12, 0.74, 0.14]]
     t = Table(data, colWidths=col_w, repeatRows=1)
     t.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, 0), HEADER),
-        ("ROWBACKGROUNDS",(0, 1), (-1, -1), [CARD_BG, DARK_BG]),
-        ("GRID",          (0, 0), (-1, -1), 0.3, LGRAY),
-        ("TOPPADDING",    (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 5),
-        ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+        ("BACKGROUND",     (0, 0), (-1, 0),  HEADER),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [CARD_BG, DARK_BG]),
+        ("GRID",           (0, 0), (-1, -1), 0.3, LGRAY),
+        ("TOPPADDING",     (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING",  (0, 0), (-1, -1), 4),
+        ("LEFTPADDING",    (0, 0), (-1, -1), 5),
+        ("VALIGN",         (0, 0), (-1, -1), "TOP"),
     ]))
     return t
-
-# ── Background dark ───────────────────────────────────────────────────────────
-
-def _dark_background(canvas, doc):
-    canvas.saveState()
-    canvas.setFillColor(DARK_BG)
-    canvas.rect(0, 0, PAGE_W, PAGE_H, fill=1, stroke=0)
-    # Footer
-    canvas.setFillColor(GRAY)
-    canvas.setFont("Helvetica", 7)
-    canvas.drawCentredString(PAGE_W / 2, 10 * mm,
-        f"CyberScan — Rapport de tests confidentiel — Page {doc.page}")
-    canvas.restoreState()
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
@@ -271,21 +272,21 @@ def generate(version: str, repo_root: Path):
     doc = SimpleDocTemplate(
         str(out_path), pagesize=A4,
         leftMargin=MARGIN, rightMargin=MARGIN,
-        topMargin=MARGIN, bottomMargin=18 * mm,
+        topMargin=25 * mm, bottomMargin=20 * mm,
     )
 
     story = []
 
     # ── Page de garde ──────────────────────────────────────────────────────────
-    story.append(Spacer(1, 20 * mm))
+    story.append(Spacer(1, 10 * mm))
     story.append(Paragraph("CyberScan", styles["title"]))
     story.append(Paragraph(f"Rapport de tests — v{version}", styles["section"]))
     story.append(Paragraph(f"Généré le {date_str}", styles["subtitle"]))
-    story.append(_hr(CYAN))
+    story.append(section_rule(PAGE_W - 2 * MARGIN, DOC_TYPE))
     story.append(Spacer(1, 6 * mm))
 
     # Badge résultat global
-    badge_text = "✓  TOUS LES TESTS PASSENT" if global_ok else "✗  DES TESTS ÉCHOUENT"
+    badge_text  = "&#10003;  TOUS LES TESTS PASSENT" if global_ok else "&#10007;  DES TESTS ÉCHOUENT"
     badge_color = GREEN if global_ok else RED
     badge_style = ParagraphStyle("badge", fontName="Helvetica-Bold",
                                  fontSize=16, textColor=badge_color, spaceAfter=10)
@@ -293,9 +294,10 @@ def generate(version: str, repo_root: Path):
     story.append(Spacer(1, 4 * mm))
 
     # Résumé chiffré
+    doc_hex     = DOC_COLOR[DOC_TYPE]
     summary_style = ParagraphStyle("sum", fontName="Helvetica", fontSize=10, textColor=GRAY)
     story.append(Paragraph(
-        f"<b><font color='#22d3ee'>{total_tests}</font></b> tests exécutés  ·  "
+        f"<b><font color='{doc_hex}'>{total_tests}</font></b> tests exécutés  ·  "
         f"<b><font color='#4ade80'>{total_passed}</font></b> réussis  ·  "
         f"<b><font color='#f87171'>{total_failed}</font></b> échoués",
         summary_style,
@@ -306,21 +308,22 @@ def generate(version: str, repo_root: Path):
 
     # Infos
     info_data = [
-        ["Version", f"v{version}"],
-        ["Date", date_str],
-        ["Backend XML", str(backend_xml) if backend_xml.exists() else "non trouvé"],
+        ["Version",      f"v{version}"],
+        ["Date",         date_str],
+        ["Backend XML",  str(backend_xml)  if backend_xml.exists()  else "non trouvé"],
         ["Frontend XML", str(frontend_xml) if frontend_xml.exists() else "non trouvé"],
     ]
-    info_style = ParagraphStyle("i", fontName="Helvetica", fontSize=8, textColor=GRAY)
+    info_style = ParagraphStyle("i",  fontName="Helvetica",      fontSize=8, textColor=GRAY)
     info_bold  = ParagraphStyle("ib", fontName="Helvetica-Bold", fontSize=8, textColor=WHITE)
     info_rows  = [[Paragraph(k, info_bold), Paragraph(v, info_style)] for k, v in info_data]
-    info_table = Table(info_rows, colWidths=[(PAGE_W-2*MARGIN)*0.25, (PAGE_W-2*MARGIN)*0.75])
+    usable_w   = PAGE_W - 2 * MARGIN
+    info_table = Table(info_rows, colWidths=[usable_w * 0.25, usable_w * 0.75])
     info_table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), CARD_BG),
-        ("GRID", (0, 0), (-1, -1), 0.3, LGRAY),
+        ("GRID",       (0, 0), (-1, -1), 0.3, LGRAY),
         ("TOPPADDING", (0, 0), (-1, -1), 4),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 6),
     ]))
     story.append(info_table)
 
@@ -333,8 +336,6 @@ def generate(version: str, repo_root: Path):
         story.append(Paragraph("Aucun résultat trouvé (lancer pytest depuis backend/)", styles["body"]))
     else:
         for suite in backend["suites"]:
-            # Nom de fichier court
-            suite_label = suite["name"].replace("tests/", "").replace("test_", "")
             story.append(Paragraph(suite["name"], styles["subsection"]))
             story.append(_test_table(suite["cases"], styles))
             story.append(Spacer(1, 4 * mm))
@@ -352,7 +353,11 @@ def generate(version: str, repo_root: Path):
             story.append(_test_table(suite["cases"], styles))
             story.append(Spacer(1, 4 * mm))
 
-    doc.build(story, onFirstPage=_dark_background, onLaterPages=_dark_background)
+    doc.build(
+        story,
+        onFirstPage=lambda c, d: draw_page(c, d, DOC_TYPE, "Rapport de Tests"),
+        onLaterPages=lambda c, d: draw_page(c, d, DOC_TYPE, "Rapport de Tests"),
+    )
     return out_path
 
 
