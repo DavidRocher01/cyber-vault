@@ -49,10 +49,13 @@ export function extractSummary(key: string, d: Record<string, unknown>): { label
     }
 
     case 'email': {
+      const spf   = d['spf']   as { found?: boolean } | null | undefined;
+      const dkim  = d['dkim']  as { found?: boolean } | null | undefined;
+      const dmarc = d['dmarc'] as { found?: boolean } | null | undefined;
       const items = [];
-      if (d['spf']   != null) items.push({ label: 'SPF',   value: d['spf']   ? 'Présent' : 'Absent' });
-      if (d['dkim']  != null) items.push({ label: 'DKIM',  value: d['dkim']  ? 'Présent' : 'Absent' });
-      if (d['dmarc'] != null) items.push({ label: 'DMARC', value: d['dmarc'] ? 'Présent' : 'Absent' });
+      if (spf   != null) items.push({ label: 'SPF',   value: spf.found   ? 'Présent' : 'Absent' });
+      if (dkim  != null) items.push({ label: 'DKIM',  value: dkim.found  ? 'Présent' : 'Absent' });
+      if (dmarc != null) items.push({ label: 'DMARC', value: dmarc.found ? 'Présent' : 'Absent' });
       return items;
     }
 
