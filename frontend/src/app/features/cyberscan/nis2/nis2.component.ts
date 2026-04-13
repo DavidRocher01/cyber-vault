@@ -203,13 +203,16 @@ export class Nis2Component implements OnInit {
   get totalItems(): number {
     return this.categories().reduce((s, c) => s + c.items.length, 0);
   }
+  private get allItemIds(): string[] {
+    return this.categories().flatMap(cat => cat.items.map(i => i.id));
+  }
   get compliantCount(): number {
-    return Object.values(this.items()).filter(v => v === 'compliant').length;
+    return this.allItemIds.filter(id => this.getStatus(id) === 'compliant').length;
   }
   get partialCount(): number {
-    return Object.values(this.items()).filter(v => v === 'partial').length;
+    return this.allItemIds.filter(id => this.getStatus(id) === 'partial').length;
   }
   get ncCount(): number {
-    return Object.values(this.items()).filter(v => v === 'non_compliant').length;
+    return this.allItemIds.filter(id => this.getStatus(id) === 'non_compliant').length;
   }
 }
