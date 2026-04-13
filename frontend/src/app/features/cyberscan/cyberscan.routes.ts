@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { authGuard } from '../../core/guards/auth.guard';
-import { cryptoGuard } from '../../core/guards/crypto.guard';
 
 export const CYBERSCAN_ROUTES: Routes = [
   {
@@ -11,55 +10,55 @@ export const CYBERSCAN_ROUTES: Routes = [
   {
     path: 'dashboard',
     loadComponent: () => import('./dashboard/dashboard.component').then(m => m.DashboardComponent),
-    canActivate: [authGuard, cryptoGuard],
+    canActivate: [authGuard],
     title: 'Dashboard — CyberScan',
   },
   {
     path: 'scan/:id',
     loadComponent: () => import('./scan-detail/scan-detail.component').then(m => m.ScanDetailComponent),
-    canActivate: [authGuard, cryptoGuard],
+    canActivate: [authGuard],
     title: 'Résultats du scan — CyberScan',
   },
   {
     path: 'url-scanner',
     loadComponent: () => import('./url-scanner/url-scanner.component').then(m => m.UrlScannerComponent),
-    canActivate: [authGuard, cryptoGuard],
+    canActivate: [authGuard],
     title: 'Scanner URL suspecte — CyberScan',
   },
   {
     path: 'code-scan',
     loadComponent: () => import('./code-scan/code-scan.component').then(m => m.CodeScanComponent),
-    canActivate: [authGuard, cryptoGuard],
+    canActivate: [authGuard],
     title: 'Analyse de code — CyberScan',
   },
   {
     path: 'site/:id',
     loadComponent: () => import('./site-detail/site-detail.component').then(m => m.SiteDetailComponent),
-    canActivate: [authGuard, cryptoGuard],
+    canActivate: [authGuard],
     title: 'Page site — CyberScan',
   },
   {
     path: 'profile',
     loadComponent: () => import('./profile/profile.component').then(m => m.ProfileComponent),
-    canActivate: [authGuard, cryptoGuard],
+    canActivate: [authGuard],
     title: 'Mon profil — CyberScan',
   },
   {
     path: 'onboarding',
     loadComponent: () => import('./onboarding/onboarding.component').then(m => m.OnboardingComponent),
-    canActivate: [authGuard, cryptoGuard],
+    canActivate: [authGuard],
     title: 'Démarrage — CyberScan',
   },
   {
     path: 'success',
     loadComponent: () => import('./success/success.component').then(m => m.CheckoutSuccessComponent),
-    canActivate: [authGuard, cryptoGuard],
+    canActivate: [authGuard],
     title: 'Abonnement activé — CyberScan',
   },
   {
     path: 'nis2',
     loadComponent: () => import('./nis2/nis2.component').then(m => m.Nis2Component),
-    canActivate: [authGuard, cryptoGuard],
+    canActivate: [authGuard],
     title: 'Conformité NIS2 — CyberScan',
   },
   {

@@ -139,8 +139,13 @@ describe('CyberscanService', () => {
     expect(http.get).not.toHaveBeenCalled();
   });
 
-  it('downloadRemediation() retourne l\'URL correcte', () => {
-    expect(service.downloadRemediation(3, 'nginx')).toBe(`${API}/scans/3/remediation/nginx`);
+  it('downloadRemediationBlob() appelle GET avec responseType blob', () => {
+    http.get.mockReturnValue(of(new Blob()));
+    service.downloadRemediationBlob(3, 'nginx').subscribe();
+    expect(http.get).toHaveBeenCalledWith(
+      `${API}/scans/3/remediation/nginx`,
+      expect.objectContaining({ responseType: 'blob' })
+    );
   });
 
   it('exportCsv() retourne l\'URL correcte', () => {

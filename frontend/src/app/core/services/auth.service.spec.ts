@@ -5,11 +5,13 @@ import { AuthService } from './auth.service';
 describe('AuthService', () => {
   let service: AuthService;
   let httpMock: any;
+  let routerMock: any;
 
   beforeEach(() => {
     localStorage.clear();
     httpMock = { post: vi.fn() };
-    service = new AuthService(httpMock);
+    routerMock = { navigate: vi.fn() };
+    service = new AuthService(httpMock, routerMock);
   });
 
   it('getToken() retourne null avant connexion', () => {
@@ -40,5 +42,26 @@ describe('AuthService', () => {
     expect(service.getToken()).toBeNull();
     expect(service.getRefreshToken()).toBeNull();
     expect(service.getCurrentEmail()).toBeNull();
+  });
+
+  it('logout() redirige vers /cyberscan', () => {
+    httpMock.post.mockReturnValue(of({}));
+    service.logout();
+    expect(routerMock.navigate).toHaveBeenCalledWith(['/cyberscan']);
+  });
+
+  it('logout() redirige vers /cyberscan même sans refresh token', () => {
+    service.logout();
+    expect(routerMock.navigate).toHaveBeenCalledWith(['/cyberscan']);
+  });
+
+  it('logout() appelle POST /auth/logout si un refresh token existe', () => {
+    localStorage.setItem('cv_refresh', 'ref999');
+    httpMock.post.mockReturnValue(of({}));
+    service.logout();
+    expect(httpMock.post).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/logout'),
+      expect.objectContaining({ refresh_token: 'ref999' })
+    );
   });
 });

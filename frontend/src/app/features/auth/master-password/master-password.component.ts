@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
@@ -54,6 +54,7 @@ export class MasterPasswordComponent {
   private cryptoService = inject(CryptoService);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   error: string | null = null;
   loading = false;
@@ -75,7 +76,8 @@ export class MasterPasswordComponent {
     }
     try {
       await this.cryptoService.deriveKey(this.form.getRawValue().masterPassword, email);
-      this.router.navigate(['/cyberscan/dashboard']);
+      const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/vault';
+      this.router.navigateByUrl(returnUrl);
     } catch {
       this.error = 'Erreur lors de la dérivation de la clé.';
     } finally {

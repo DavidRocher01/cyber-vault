@@ -472,8 +472,7 @@ export class VaultDashboardComponent implements OnInit {
   }
 
   logout() {
-    this.authService.logout();
     this.cryptoService.clearKey();
-    this.router.navigate(['/auth/login']);
+    this.authService.logout();
   }
 }

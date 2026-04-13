@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { tap } from 'rxjs';
 
 const ACCESS_KEY = 'cv_token';
@@ -17,7 +18,7 @@ export type LoginResponse = TokenResponse | { requires_2fa: true };
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private router: Router) {}
 
   login(email: string, password: string, totpCode?: string) {
     const body: Record<string, string> = { email, password };
@@ -56,6 +57,7 @@ export class AuthService {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
     localStorage.removeItem(EMAIL_KEY);
+    this.router.navigate(['/cyberscan']);
   }
 
   getToken(): string | null {

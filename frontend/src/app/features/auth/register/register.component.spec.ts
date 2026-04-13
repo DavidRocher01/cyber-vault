@@ -53,11 +53,11 @@ describe('RegisterComponent — returnUrl', () => {
     expect(navigateByUrlMock).toHaveBeenCalledWith('/cyberscan/dashboard');
   });
 
-  it('navigue vers /cyberscan/onboarding si pas de returnUrl', async () => {
+  it('navigue vers /cyberscan si pas de returnUrl', async () => {
     const { component, navigateByUrlMock } = await makeComponent();
     component.form.setValue({ email: 'a@b.com', password: 'Password1!', confirmPassword: 'Password1!' });
     component.submit();
     await new Promise(r => setTimeout(r, 20));
-    expect(navigateByUrlMock).toHaveBeenCalledWith('/cyberscan/onboarding');
+    expect(navigateByUrlMock).toHaveBeenCalledWith('/cyberscan');
   });
 });

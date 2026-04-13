@@ -5,19 +5,19 @@ import { describe, it, expect } from 'vitest';
 import { extractSummary, getFindings, MODULE_META } from './scan-findings';
 
 describe('extractSummary() — ssl', () => {
-  it('retourne issuer si présent', () => {
-    const result = extractSummary('ssl', { issuer: 'Let\'s Encrypt', status: 'OK' });
-    expect(result.some(r => r.label === 'Émetteur')).toBe(true);
+  it('affiche la durée de validité restante', () => {
+    const result = extractSummary('ssl', { days_remaining: 30, status: 'OK' });
+    expect(result.some(r => r.label === 'Expire dans' && r.value.includes('30'))).toBe(true);
   });
 
-  it('inclut days_left si présent', () => {
-    const result = extractSummary('ssl', { days_left: 30, status: 'OK' });
-    expect(result.some(r => r.value.includes('30'))).toBe(true);
+  it('affiche le protocole si présent', () => {
+    const result = extractSummary('ssl', { protocol: 'TLSv1.3', status: 'OK' });
+    expect(result.some(r => r.label === 'Protocole' && r.value === 'TLSv1.3')).toBe(true);
   });
 
-  it('inclut protocols si présent', () => {
-    const result = extractSummary('ssl', { protocols: ['TLSv1.2', 'TLSv1.3'], status: 'OK' });
-    expect(result.some(r => r.label === 'Protocoles')).toBe(true);
+  it('affiche Valide: Oui si valid=true', () => {
+    const result = extractSummary('ssl', { valid: true, status: 'OK' });
+    expect(result.some(r => r.label === 'Valide' && r.value === 'Oui')).toBe(true);
   });
 
   it('retourne tableau vide si données vides', () => {
@@ -27,38 +27,38 @@ describe('extractSummary() — ssl', () => {
 
 describe('extractSummary() — headers', () => {
   it('liste les headers manquants', () => {
-    const result = extractSummary('headers', { missing_headers: ['X-Frame-Options', 'CSP'], status: 'WARNING' });
+    const result = extractSummary('headers', { headers_missing: ['X-Frame-Options', 'CSP'], status: 'WARNING' });
     expect(result[0].label).toBe('Headers manquants');
     expect(result[0].value).toContain('X-Frame-Options');
   });
 
   it('indique Aucun si aucun header manquant', () => {
-    const result = extractSummary('headers', { missing_headers: [], status: 'OK' });
+    const result = extractSummary('headers', { headers_missing: [], status: 'OK' });
     expect(result[0].value).toBe('Aucun');
   });
 
   it('limite à 4 headers manquants', () => {
     const missing = ['A', 'B', 'C', 'D', 'E'];
-    const result = extractSummary('headers', { missing_headers: missing, status: 'WARNING' });
+    const result = extractSummary('headers', { headers_missing: missing, status: 'WARNING' });
     expect(result[0].value.split(', ').length).toBeLessThanOrEqual(4);
   });
 });
 
 describe('extractSummary() — email', () => {
   it('inclut SPF, DKIM, DMARC', () => {
-    const result = extractSummary('email', { spf: true, dkim: false, dmarc: true, status: 'WARNING' });
+    const result = extractSummary('email', { spf: { found: true }, dkim: { found: false }, dmarc: { found: true }, status: 'WARNING' });
     expect(result.some(r => r.label === 'SPF')).toBe(true);
     expect(result.some(r => r.label === 'DKIM')).toBe(true);
     expect(result.some(r => r.label === 'DMARC')).toBe(true);
   });
 
-  it('affiche "Présent" pour les valeurs truthy', () => {
-    const result = extractSummary('email', { spf: true, status: 'OK' });
+  it('affiche "Présent" pour found: true', () => {
+    const result = extractSummary('email', { spf: { found: true }, status: 'OK' });
     expect(result.find(r => r.label === 'SPF')?.value).toBe('Présent');
   });
 
-  it('affiche "Absent" pour les valeurs falsy', () => {
-    const result = extractSummary('email', { dkim: false, status: 'CRITICAL' });
+  it('affiche "Absent" pour found: false', () => {
+    const result = extractSummary('email', { dkim: { found: false }, status: 'CRITICAL' });
     expect(result.find(r => r.label === 'DKIM')?.value).toBe('Absent');
   });
 });
@@ -89,10 +89,20 @@ describe('extractSummary() — cors', () => {
 });
 
 describe('extractSummary() — ip', () => {
-  it('inclut ip, country, blacklisted', () => {
-    const result = extractSummary('ip', { ip: '1.2.3.4', country: 'FR', blacklisted: false, status: 'OK' });
+  it('affiche l\'IP et le nombre de blacklists', () => {
+    const result = extractSummary('ip', { ip: '1.2.3.4', total_listed: 2, listed_in: ['Spamhaus', 'SORBS'], status: 'WARNING' });
     expect(result.some(r => r.label === 'IP')).toBe(true);
-    expect(result.some(r => r.label === 'Pays')).toBe(true);
+    expect(result.some(r => r.label === 'Blacklists')).toBe(true);
+  });
+
+  it('affiche les listes dans lesquelles l\'IP est référencée', () => {
+    const result = extractSummary('ip', { ip: '1.2.3.4', total_listed: 1, listed_in: ['Spamhaus'], status: 'WARNING' });
+    expect(result.some(r => r.label === 'Listé dans')).toBe(true);
+  });
+
+  it('n\'affiche pas les listes si listed_in est vide', () => {
+    const result = extractSummary('ip', { ip: '1.2.3.4', total_listed: 0, listed_in: [], status: 'OK' });
+    expect(result.some(r => r.label === 'Listé dans')).toBe(false);
   });
 });
 
@@ -122,12 +132,12 @@ describe('extractSummary() — cms', () => {
 
 describe('extractSummary() — waf', () => {
   it('affiche le WAF si détecté', () => {
-    const result = extractSummary('waf', { waf: 'Cloudflare', status: 'OK' });
+    const result = extractSummary('waf', { detected: true, waf_name: 'Cloudflare', status: 'OK' });
     expect(result[0].value).toBe('Cloudflare');
   });
 
   it('affiche "Non détecté" si absent', () => {
-    const result = extractSummary('waf', { status: 'OK' });
+    const result = extractSummary('waf', { detected: false, status: 'OK' });
     expect(result[0].value).toContain('Non détecté');
   });
 });
@@ -145,21 +155,32 @@ describe('extractSummary() — tech', () => {
 });
 
 describe('extractSummary() — tls', () => {
-  it('affiche grade et protocole', () => {
-    const result = extractSummary('tls', { grade: 'A+', protocol: 'TLSv1.3', status: 'OK' });
-    expect(result.some(r => r.label === 'Grade SSL Labs')).toBe(true);
-    expect(result.some(r => r.label === 'Protocole min')).toBe(true);
+  it('affiche les protocoles supportés', () => {
+    const result = extractSummary('tls', { supported_protocols: ['TLSv1.2', 'TLSv1.3'], hsts: { present: true }, status: 'OK' });
+    expect(result.some(r => r.label === 'Protocoles')).toBe(true);
+    expect(result.some(r => r.label === 'HSTS')).toBe(true);
+  });
+
+  it('affiche HSTS désactivé si absent', () => {
+    const result = extractSummary('tls', { supported_protocols: ['TLSv1.3'], hsts: { present: false }, status: 'OK' });
+    const hsts = result.find(r => r.label === 'HSTS');
+    expect(hsts?.value).toBe('Désactivé');
+  });
+
+  it('retourne vide si aucun protocole ni hsts', () => {
+    const result = extractSummary('tls', { status: 'OK' });
+    expect(result).toEqual([]);
   });
 });
 
 describe('extractSummary() — http_methods', () => {
   it('liste les méthodes dangereuses', () => {
-    const result = extractSummary('http_methods', { dangerous_methods: ['PUT', 'DELETE'], status: 'WARNING' });
+    const result = extractSummary('http_methods', { dangerous_allowed: ['PUT', 'DELETE'], status: 'WARNING' });
     expect(result[0].value).toContain('PUT');
   });
 
   it('indique aucune méthode dangereuse', () => {
-    const result = extractSummary('http_methods', { dangerous_methods: [], status: 'OK' });
+    const result = extractSummary('http_methods', { dangerous_allowed: [], status: 'OK' });
     expect(result[0].value).toContain('Aucune');
   });
 });
