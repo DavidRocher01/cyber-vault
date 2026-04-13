@@ -1,0 +1,27 @@
+# Frontend
+frontend/node_modules/
+frontend/.angular/
+frontend/dist/
+
+# Backend
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/**/*.pyo
+backend/.pytest_cache/
+backend/.env
+backend/.coverage
+
+# Cyber-scanner
+cyber-scanner/__pycache__/
+cyber-scanner/**/__pycache__/
+cyber-scanner/**/*.pyc
+cyber-scanner/reports/
+
+# Git / CI
+.git/
+.github/
+
+# Docs
+docs/

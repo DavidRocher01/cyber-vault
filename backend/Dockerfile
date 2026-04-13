@@ -3,7 +3,7 @@ FROM python:3.12-slim
 # Apply OS security patches + install system tools
 RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
-        curl wget git nodejs npm ca-certificates \
+        curl wget git nodejs npm ca-certificates nmap \
     # gitleaks
     && GITLEAKS_VERSION=8.30.1 \
     && curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
@@ -16,10 +16,14 @@ RUN apt-get update && apt-get upgrade -y \
 
 WORKDIR /app
 
-COPY requirements.prod.txt .
+COPY backend/requirements.prod.txt .
 RUN pip install --no-cache-dir -r requirements.prod.txt
 
-COPY . .
+# Copy cyber-scanner and install its dependencies
+COPY cyber-scanner/ /cyber-scanner/
+RUN pip install --no-cache-dir -r /cyber-scanner/requirements.txt
+
+COPY backend/ .
 
 EXPOSE 8000
 

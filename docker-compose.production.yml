@@ -3,8 +3,8 @@ services:
   # En production AWS : RDS PostgreSQL t4g.micro (géré par AWS).
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: cybervault_prod_backend
     restart: unless-stopped
     environment:
