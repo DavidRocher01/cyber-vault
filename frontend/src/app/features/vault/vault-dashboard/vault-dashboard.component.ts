@@ -52,6 +52,7 @@ export interface CategoryMeta {
       transition: border-color 0.2s;
     }
     .vault-input:focus { border-color: #06b6d4; }
+    .vault-input-search { padding-left: 2.75rem; }
     .vault-input::placeholder { color: #4b5563; }
     .vault-btn-primary {
       background: linear-gradient(135deg, #06b6d4, #0284c7);
