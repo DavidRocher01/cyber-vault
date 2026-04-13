@@ -57,8 +57,7 @@
             {{ cat.label }}
             @if ((counts[cat.id] || 0) > 0) {
               <span class="text-xs px-1.5 py-0.5 rounded-full"
-                    [class.bg-white/20]="activeCategory() === cat.id"
-                    [class.bg-gray-700]="activeCategory() !== cat.id">
+                    [style.background]="activeCategory() === cat.id ? 'rgba(255,255,255,0.2)' : 'rgba(55,65,81,1)'">
                 {{ counts[cat.id] }}
               </span>
             }
