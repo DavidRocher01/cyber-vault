@@ -28,6 +28,16 @@ html.light-mode .text-gray-300 { color: #334155 !important; }
 html.light-mode .text-gray-500 { color: #64748b !important; }
 html.light-mode .text-white { color: #0f172a !important; }
 
+/* ── Fix autofill jaune Chrome / Edge ── */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0px 1000px #111827 inset !important;
+  -webkit-text-fill-color: #f9fafb !important;
+  caret-color: #f9fafb;
+}
+
 /* ── Shared auth layout ── */
 .auth-wrap      { background: #080d16; }
 .auth-left      { background: linear-gradient(135deg, #080d16 0%, #0d1a2e 100%); }
