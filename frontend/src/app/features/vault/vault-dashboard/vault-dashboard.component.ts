@@ -169,6 +169,117 @@ export class VaultDashboardComponent implements OnInit {
     cardExpiry: [''],
   });
 
+  // ── Règles métier carte ───────────────────────────────────────────────────
+
+  onCardNumberInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    // Garder uniquement les chiffres puis formater par groupes de 4
+    const digits = input.value.replace(/\D/g, '').slice(0, 16);
+    const formatted = digits.match(/.{1,4}/g)?.join(' ') ?? digits;
+    this.form.patchValue({ cardNumber: formatted }, { emitEvent: false });
+    input.value = formatted;
+  }
+
+  onCvvInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const digits = input.value.replace(/\D/g, '').slice(0, 4);
+    this.form.patchValue({ cardCvv: digits }, { emitEvent: false });
+    input.value = digits;
+  }
+
+  onExpiryInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const prev = (input as any)._prevExpiry as string | undefined;
+    let raw = input.value.replace(/\D/g, '');
+
+    // Suppression en arrière : ne pas ré-insérer le "/"
+    const isDeleting = prev !== undefined && input.value.length < prev.length;
+    if (isDeleting && raw.length <= 2) {
+      (input as any)._prevExpiry = input.value;
+      this.form.patchValue({ cardExpiry: input.value }, { emitEvent: false });
+      return;
+    }
+
+    raw = raw.slice(0, 4);
+    let formatted = raw;
+    if (raw.length >= 2) {
+      const mm = Math.min(parseInt(raw.slice(0, 2), 10), 12).toString().padStart(2, '0');
+      formatted = raw.length > 2 ? `${mm}/${raw.slice(2)}` : mm;
+    }
+
+    this.form.patchValue({ cardExpiry: formatted }, { emitEvent: false });
+    input.value = formatted;
+    (input as any)._prevExpiry = formatted;
+  }
+
+  onCardholderInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    // Lettres, espaces, tirets et apostrophes uniquement, en majuscules
+    const clean = input.value.replace(/[^a-zA-ZÀ-ÿ\s\-']/g, '').toUpperCase();
+    this.form.patchValue({ username: clean }, { emitEvent: false });
+    input.value = clean;
+  }
+
+  get cardErrors(): { number?: string; cvv?: string; expiry?: string } {
+    const errors: { number?: string; cvv?: string; expiry?: string } = {};
+    const num   = (this.form.controls.cardNumber.value ?? '').replace(/\s/g, '');
+    const cvv   = this.form.controls.cardCvv.value ?? '';
+    const exp   = this.form.controls.cardExpiry.value ?? '';
+
+    // Numéro : 13–19 chiffres + Luhn
+    if (num.length > 0) {
+      if (num.length < 13) {
+        errors.number = 'Numéro trop court';
+      } else if (!this._luhn(num)) {
+        errors.number = 'Numéro invalide';
+      }
+    }
+
+    // CVV
+    if (cvv.length > 0 && (cvv.length < 3 || !/^\d+$/.test(cvv))) {
+      errors.cvv = '3 ou 4 chiffres requis';
+    }
+
+    // Expiration
+    if (exp.length > 0 && exp.length === 5) {
+      const [mm, yy] = exp.split('/').map(Number);
+      const now = new Date();
+      const expDate = new Date(2000 + yy, mm - 1, 1);
+      if (mm < 1 || mm > 12) {
+        errors.expiry = 'Mois invalide (01–12)';
+      } else if (expDate < new Date(now.getFullYear(), now.getMonth(), 1)) {
+        errors.expiry = 'Carte expirée';
+      }
+    }
+
+    return errors;
+  }
+
+  private _luhn(num: string): boolean {
+    let sum = 0;
+    let alt = false;
+    for (let i = num.length - 1; i >= 0; i--) {
+      let n = parseInt(num[i], 10);
+      if (alt) { n *= 2; if (n > 9) n -= 9; }
+      sum += n;
+      alt = !alt;
+    }
+    return sum % 10 === 0;
+  }
+
+  get cardNumberDigitCount(): number {
+    return (this.form.controls.cardNumber.value ?? '').replace(/\s/g, '').length;
+  }
+
+  get isCardFormValid(): boolean {
+    const raw = this.form.getRawValue();
+    if (!raw.title) return false;
+    const num = raw.cardNumber.replace(/\s/g, '');
+    if (num.length < 13 || !this._luhn(num)) return false;
+    const errors = this.cardErrors;
+    return !errors.number && !errors.cvv && !errors.expiry;
+  }
+
   revealedPasswords: Record<number, string | null> = {};
   copiedId: number | null = null;
 
@@ -316,7 +427,7 @@ export class VaultDashboardComponent implements OnInit {
     const raw = this.form.getRawValue();
     if (!raw.title) return false;
     const cat = raw.category;
-    if (cat === 'card') return !!raw.cardNumber;
+    if (cat === 'card') return this.isCardFormValid;
     if (cat === 'note') return true;
     return !!raw.password_encrypted;
   }
