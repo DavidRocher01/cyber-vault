@@ -30,6 +30,9 @@ playwright-report/
 .vscode/
 *.code-workspace
 
+# Test reports / generated PDFs
+docs/test-reports/
+
 # OS
 .DS_Store
 Thumbs.db
