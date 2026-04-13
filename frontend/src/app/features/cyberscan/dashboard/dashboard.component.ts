@@ -22,6 +22,7 @@ import { I18nService } from '../../../core/services/i18n.service';
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
 import { computeScore, getGrade, getScoreColor } from '../../../shared/score-utils';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { environment } from '../../../../environments/environment';
 
 type ScanFilter = 'all' | 'done' | 'running' | 'error';
 
@@ -59,6 +60,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   readonly theme = inject(ThemeService).theme;
   readonly i18n = inject(I18nService);
+  readonly version = environment.version;
 
   subscription = signal<UserSubscription | null>(null);
   sites = signal<Site[]>([]);

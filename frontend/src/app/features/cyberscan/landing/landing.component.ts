@@ -51,6 +51,8 @@ export class LandingComponent implements OnInit {
   readonly themeService = inject(ThemeService);
   readonly i18n = inject(I18nService);
 
+  readonly version = environment.version;
+
   plans: Plan[] = [];
   loading = true;
   checkoutLoading: number | null = null;

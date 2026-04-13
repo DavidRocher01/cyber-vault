@@ -11,6 +11,7 @@ from starlette.requests import Request
 
 import app.models  # noqa: F401 — register all models with Base.metadata
 
+from app.__version__ import __version__
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.database import Base, engine, get_db
@@ -82,7 +83,7 @@ async def _seed_plans() -> None:
 
 app = FastAPI(
     title=settings.APP_NAME,
-    version="1.0.0",
+    version=__version__,
     on_startup=[_create_tables, start_scheduler],
     on_shutdown=[stop_scheduler],
 )
@@ -112,7 +113,7 @@ async def health(db: AsyncSession = Depends(get_db)):
     overall = "ok" if db_status == "ok" else "degraded"
     return {
         "status": overall,
-        "version": "1.0.0",
+        "version": __version__,
         "environment": settings.APP_ENV,
         "database": db_status,
     }
