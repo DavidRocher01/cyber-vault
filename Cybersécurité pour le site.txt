@@ -176,13 +176,13 @@ Synthèse
 
 1. La répartition intelligente du budget (Estimation 2026)
 Poste de dépense	Service AWS	Coût estimé	Pourquoi ce choix ?
-Base de données	RDS PostgreSQL (t4g.micro)	16 €	Indispensable pour l'historique et la gestion des crédits.
-Backend API	App Runner (ou Fargate)	12 €	Plus simple qu'un Load Balancer + EC2, et très sécurisé.
-Analyseur	AWS Lambda	2 €	Coût dérisoire car payé uniquement à la seconde de scan.
-Sécurité/Secrets	KMS + Secrets Manager	5 €	Pour dire à vos clients : "Vos clés GitHub sont chiffrées physiquement".
-Stockage	S3 + CloudWatch	5 €	Pour les rapports PDF et les logs d'audit.
-Réseau	Route 53 + CloudFront	5 €	Pour que votre site Angular soit rapide et en HTTPS partout.
-Marge de sécurité	-	5 €	Pour les variations de trafic.
+Base de données	RDS PostgreSQL (t4g.micro)	
+Backend API	App Runner (ou Fargate)	
+Analyseur	AWS Lambda	
+Sécurité/Secrets	KMS + Secrets Manager	
+Stockage	S3 + CloudWatch	
+Réseau	Route 53 + CloudFront	
+
 
 Total : ~50 € / mois.
 2. Le "Hack" pour économiser (AWS Activate)
