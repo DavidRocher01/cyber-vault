@@ -49,6 +49,7 @@ export class Nis2Component implements OnInit {
 
   // Status cycle: non_compliant → partial → compliant → na → non_compliant
   private readonly CYCLE: Nis2Status[] = ['non_compliant', 'partial', 'compliant', 'na'];
+  readonly STATUS_LIST: Nis2Status[] = ['compliant', 'partial', 'non_compliant', 'na'];
 
   ngOnInit() {
     this.cyberscan.getNis2Assessment().subscribe({
@@ -127,29 +128,32 @@ export class Nis2Component implements OnInit {
 
   // ── Helpers ────────────────────────────────────────────────────────────
 
-  statusLabel(s: Nis2Status): string {
-    const map: Record<Nis2Status, string> = {
+  statusLabel(s: string): string {
+    const map: Record<string, string> = {
       compliant: 'Conforme', partial: 'Partiel',
       non_compliant: 'Non conforme', na: 'N/A',
     };
-    return map[s];
+    return map[s] ?? s;
   }
 
-  statusIcon(s: Nis2Status): string {
-    return { compliant: 'check_circle', partial: 'pending', non_compliant: 'cancel', na: 'remove_circle_outline' }[s];
+  statusIcon(s: string): string {
+    const map: Record<string, string> = { compliant: 'check_circle', partial: 'pending', non_compliant: 'cancel', na: 'remove_circle_outline' };
+    return map[s] ?? 'help_outline';
   }
 
-  statusClass(s: Nis2Status): string {
-    return {
+  statusClass(s: string): string {
+    const map: Record<string, string> = {
       compliant:     'text-green-400 bg-green-400/10 border-green-700',
       partial:       'text-yellow-400 bg-yellow-400/10 border-yellow-700',
       non_compliant: 'text-red-400 bg-red-400/10 border-red-700',
       na:            'text-gray-400 bg-gray-700/30 border-gray-600',
-    }[s];
+    };
+    return map[s] ?? 'text-gray-400 bg-gray-700/30 border-gray-600';
   }
 
-  statusColor(s: Nis2Status): string {
-    return { compliant: '#4ade80', partial: '#facc15', non_compliant: '#f87171', na: '#6b7280' }[s];
+  statusColor(s: string): string {
+    const map: Record<string, string> = { compliant: '#4ade80', partial: '#facc15', non_compliant: '#f87171', na: '#6b7280' };
+    return map[s] ?? '#6b7280';
   }
 
   scoreColor(n: number): string {

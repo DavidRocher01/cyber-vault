@@ -162,7 +162,7 @@
 
                   <!-- Quick set buttons -->
                   <div class="flex items-center gap-1 flex-shrink-0">
-                    @for (s of (['compliant','partial','non_compliant','na'] as any[]); track s) {
+                    @for (s of STATUS_LIST; track s) {
                       <button type="button" (click)="setStatus(item.id, s)"
                               [matTooltip]="statusLabel(s)"
                               class="w-6 h-6 rounded-md flex items-center justify-center transition-all"
