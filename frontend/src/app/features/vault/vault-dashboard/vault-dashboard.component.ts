@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from '@angular/forms';
@@ -63,6 +63,28 @@ export interface CategoryMeta {
       box-shadow: 0 0 20px rgba(6,182,212,0.3);
     }
     .vault-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    /* Fix autofill jaune Chrome */
+    .vault-input:-webkit-autofill,
+    .vault-input:-webkit-autofill:hover,
+    .vault-input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0px 1000px #0f1729 inset !important;
+      -webkit-text-fill-color: white !important;
+      caret-color: white;
+    }
+    /* Modal */
+    .vault-modal {
+      background: #0f1729;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+    }
+    /* Strength bar */
+    .strength-bar { height: 3px; border-radius: 2px; transition: width 0.3s ease, background 0.3s ease; }
+    /* Modal animation */
+    @keyframes modal-in {
+      from { opacity: 0; transform: scale(0.96) translateY(-8px); }
+      to   { opacity: 1; transform: scale(1)    translateY(0);     }
+    }
+    .modal-animate { animation: modal-in 0.18s ease-out forwards; }
   `],
 })
 export class VaultDashboardComponent implements OnInit {
@@ -103,6 +125,30 @@ export class VaultDashboardComponent implements OnInit {
       return matchCat && matchQ;
     }))
   );
+
+  readonly categoryCounts$ = this.store.items$.pipe(
+    map(items => {
+      const counts: Record<string, number> = { all: items.length };
+      for (const item of items) counts[item.category] = (counts[item.category] ?? 0) + 1;
+      return counts;
+    })
+  );
+
+  get passwordStrength(): { width: string; color: string; label: string } {
+    const pwd = this.form.controls.password_encrypted.value;
+    if (!pwd) return { width: '0%', color: 'transparent', label: '' };
+    let score = 0;
+    if (pwd.length >= 8)  score++;
+    if (pwd.length >= 16) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    if (score <= 1) return { width: '20%',  color: '#ef4444', label: 'Faible' };
+    if (score <= 2) return { width: '40%',  color: '#f97316', label: 'Moyen' };
+    if (score <= 3) return { width: '65%',  color: '#eab308', label: 'Bon' };
+    if (score === 4) return { width: '85%',  color: '#22c55e', label: 'Fort' };
+    return { width: '100%', color: '#06b6d4', label: 'Excellent' };
+  }
 
   // Form state
   showForm = signal(false);
