@@ -60,9 +60,11 @@ export function extractSummary(key: string, d: Record<string, unknown>): { label
     }
 
     case 'cookies': {
-      const issues = d['issues'] as string[] | undefined;
-      return issues?.length
-        ? [{ label: 'Problèmes', value: issues.slice(0, 3).join(', ') }]
+      const issues = d['issues'] as { cookie?: string; issue?: string }[] | string[] | undefined;
+      const labels = issues?.map(i => typeof i === 'string' ? i : (i.issue ?? i.cookie ?? ''))
+                           .filter(Boolean).slice(0, 3) ?? [];
+      return labels.length
+        ? [{ label: 'Problèmes', value: labels.join(' · ') }]
         : [{ label: 'Cookies', value: 'Configuration correcte' }];
     }
 
@@ -102,11 +104,16 @@ export function extractSummary(key: string, d: Record<string, unknown>): { label
         : [];
     }
 
-    case 'tls':
+    case 'tls': {
+      const protocols = d['supported_protocols'] as string[] | undefined;
+      const weak      = d['weak_protocols']      as string[] | undefined;
+      const hsts      = d['hsts']                as { present?: boolean } | undefined;
       return [
-        d['grade']    ? { label: 'Grade SSL Labs', value: String(d['grade']) }    : null,
-        d['protocol'] ? { label: 'Protocole min',  value: String(d['protocol']) } : null,
+        protocols?.length ? { label: 'Protocoles',   value: protocols.join(', ') }                   : null,
+        weak?.length      ? { label: 'Faibles',       value: weak.join(', ') }                        : null,
+        hsts != null      ? { label: 'HSTS',          value: hsts.present ? 'Activé' : 'Désactivé' } : null,
       ].filter(Boolean) as { label: string; value: string }[];
+    }
 
     case 'threat_intel': {
       const cves  = d['cves']       as string[] | undefined;
@@ -129,6 +136,41 @@ export function extractSummary(key: string, d: Record<string, unknown>): { label
       return issues?.length
         ? [{ label: 'Problèmes JWT', value: issues.slice(0, 3).join(', ') }]
         : [{ label: 'JWT', value: 'Aucun token détecté' }];
+    }
+
+    case 'takeover': {
+      const total     = d['total_checked']    as number | undefined;
+      const vuln      = d['total_vulnerable'] as number | undefined;
+      const err       = d['error']            as string | undefined;
+      if (err) return [{ label: 'Statut', value: 'Aucun sous-domaine à vérifier' }];
+      return [
+        total != null ? { label: 'Sous-domaines vérifiés',   value: String(total) } : null,
+        vuln  != null ? { label: 'Vulnérables',               value: String(vuln)  } : null,
+      ].filter(Boolean) as { label: string; value: string }[];
+    }
+
+    case 'robots': {
+      const sensitive = d['sensitive_disallowed'] as string[] | undefined;
+      const sitemaps  = d['sitemaps_declared']    as string[] | undefined;
+      return [
+        sensitive?.length ? { label: 'Chemins sensibles', value: sensitive.slice(0, 3).join(', ') }   : { label: 'Chemins sensibles', value: 'Aucun' },
+        sitemaps?.length  ? { label: 'Sitemap',           value: `${sitemaps.length} déclaré(s)` }     : null,
+      ].filter(Boolean) as { label: string; value: string }[];
+    }
+
+    case 'open_redirect': {
+      const vulnerable = d['vulnerable'] as boolean | undefined;
+      const findings   = d['findings']   as unknown[] | undefined;
+      return vulnerable
+        ? [{ label: 'Redirections', value: `${findings?.length ?? 1} vulnérable(s)` }]
+        : [{ label: 'Redirections', value: 'Aucune vulnérable' }];
+    }
+
+    case 'directory_listing': {
+      const total = d['total_critical'] as number | undefined;
+      return total
+        ? [{ label: 'Répertoires exposés', value: String(total) }]
+        : [{ label: 'Listing', value: 'Aucun répertoire exposé' }];
     }
 
     default:
