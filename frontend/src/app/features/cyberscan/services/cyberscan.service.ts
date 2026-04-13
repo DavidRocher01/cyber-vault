@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, shareReplay } from 'rxjs';
 
 export interface Plan {
   id: number;
@@ -130,12 +130,27 @@ const API = '/api/v1';
 export class CyberscanService {
   private http = inject(HttpClient);
 
+  // ── In-memory caches (busted on demand) ───────────────────────────────
+  private _plans$: Observable<Plan[]> | null = null;
+  private _subscription$: Observable<Subscription | null> | null = null;
+
   getPlans(): Observable<Plan[]> {
-    return this.http.get<Plan[]>(`${API}/plans`);
+    if (!this._plans$) {
+      this._plans$ = this.http.get<Plan[]>(`${API}/plans`).pipe(shareReplay(1));
+    }
+    return this._plans$;
   }
 
-  getMySubscription(): Observable<Subscription | null> {
-    return this.http.get<Subscription | null>(`${API}/subscriptions/me`);
+  getMySubscription(refresh = false): Observable<Subscription | null> {
+    if (!this._subscription$ || refresh) {
+      this._subscription$ = this.http.get<Subscription | null>(`${API}/subscriptions/me`).pipe(shareReplay(1));
+    }
+    return this._subscription$;
+  }
+
+  /** Call after checkout / plan change to force subscription reload. */
+  invalidateSubscriptionCache(): void {
+    this._subscription$ = null;
   }
 
   createCheckout(planId: number): Observable<CheckoutSession> {

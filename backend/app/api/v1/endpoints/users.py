@@ -94,10 +94,16 @@ async def export_my_data(
     sites_result = await db.execute(select(Site).where(Site.user_id == current_user.id))
     sites = sites_result.scalars().all()
 
+    # Single query for all scans (no N+1)
+    site_ids = [s.id for s in sites]
+    site_map = {s.id: s for s in sites}
     scans_data = []
-    for site in sites:
-        scans_result = await db.execute(select(Scan).where(Scan.site_id == site.id))
+    if site_ids:
+        scans_result = await db.execute(
+            select(Scan).where(Scan.site_id.in_(site_ids)).order_by(Scan.created_at.desc())
+        )
         for scan in scans_result.scalars().all():
+            site = site_map[scan.site_id]
             scans_data.append({
                 "site_url": site.url,
                 "site_name": site.name,

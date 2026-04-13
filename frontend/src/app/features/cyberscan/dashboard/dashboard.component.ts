@@ -12,7 +12,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { Title, Meta } from '@angular/platform-browser';
 import { Subscription as RxSubscription, interval } from 'rxjs';
-import { switchMap, takeWhile } from 'rxjs/operators';
+import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 
 import { CyberscanService, Site, Scan, Subscription as UserSubscription, Plan, AppNotification } from '../services/cyberscan.service';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
@@ -210,9 +210,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   maybeStartPolling(siteId: number, scans: Scan[]) {
     const hasActive = scans.some(s => s.status === 'pending' || s.status === 'running');
     if (!hasActive || this.pollingMap[siteId]) return;
-    this.pollingMap[siteId] = interval(4000).pipe(
-      switchMap(() => this.cyberscan.getSiteScans(siteId, this.pageMap()[siteId] ?? 1)),
-      takeWhile(d => d.items.some(x => x.status === 'pending' || x.status === 'running'), true),
+    this.pollingMap[siteId] = pollWithBackoff(
+      () => this.cyberscan.getSiteScans(siteId, this.pageMap()[siteId] ?? 1),
+      d => !d.items.some(x => x.status === 'pending' || x.status === 'running'),
     ).subscribe(data => {
       this.scansMap.update(m => ({ ...m, [siteId]: data }));
       if (!data.items.some(s => s.status === 'pending' || s.status === 'running')) delete this.pollingMap[siteId];
@@ -281,6 +281,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   selectPlan(plan: Plan) {
     this.checkoutLoading.set(plan.id);
+    this.cyberscan.invalidateSubscriptionCache();
     this.cyberscan.createCheckout(plan.id).subscribe({
       next: res => {
         const url = res.checkout_url;

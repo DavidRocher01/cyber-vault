@@ -4,11 +4,12 @@ Starter/Pro : toutes les 30 nuits à 2h00.
 Business : toutes les 7 nuits à 2h00.
 """
 
+import asyncio
 from datetime import datetime, timedelta
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from app.core.database import AsyncSessionLocal
 from app.models.scan import Scan
@@ -39,18 +40,31 @@ async def _schedule_due_scans() -> None:
             )
         )
         rows = result.all()
+        if not rows:
+            return
 
+        # Batch load last done scan per site — single query, no N+1
+        site_ids = [site.id for site, _ in rows]
+        subq = (
+            select(func.max(Scan.id).label("max_id"))
+            .where(Scan.site_id.in_(site_ids), Scan.status == "done")
+            .group_by(Scan.site_id)
+            .subquery()
+        )
+        last_scans_result = await db.execute(
+            select(Scan).where(Scan.id.in_(select(subq.c.max_id)))
+        )
+        last_scan_map: dict[int, Scan] = {s.site_id: s for s in last_scans_result.scalars().all()}
+
+        # Batch load users
+        from app.models.user import User
+        user_ids = list({site.user_id for site, _ in rows})
+        users_result = await db.execute(select(User).where(User.id.in_(user_ids)))
+        user_map: dict[int, User] = {u.id: u for u in users_result.scalars().all()}
+
+        now = datetime.utcnow()
         for site, plan in rows:
-            # Find last scan
-            last_result = await db.execute(
-                select(Scan)
-                .where(Scan.site_id == site.id, Scan.status == "done")
-                .order_by(Scan.finished_at.desc())
-                .limit(1)
-            )
-            last_scan = last_result.scalar_one_or_none()
-
-            now = datetime.utcnow()
+            last_scan = last_scan_map.get(site.id)
             if last_scan and last_scan.finished_at:
                 days_since = (now - last_scan.finished_at).days
                 if days_since < plan.scan_interval_days:
@@ -64,15 +78,14 @@ async def _schedule_due_scans() -> None:
 
             await run_scan(scan.id, db)
 
-            # Send email report
+            # Send email report — wrapped in thread to avoid blocking the event loop
             await db.refresh(scan)
             if scan.status == "done" and scan.pdf_path:
-                from app.models.user import User
-                user_result = await db.execute(select(User).where(User.id == site.user_id))
-                user = user_result.scalar_one_or_none()
+                user = user_map.get(site.user_id)
                 if user:
                     try:
-                        send_scan_report(
+                        await asyncio.to_thread(
+                            send_scan_report,
                             to_email=user.email,
                             site_url=site.url,
                             overall_status=scan.overall_status or "OK",

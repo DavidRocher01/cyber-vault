@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -8,13 +8,17 @@ from app.core.database import Base
 
 class UrlScan(Base):
     __tablename__ = "url_scans"
+    __table_args__ = (
+        Index("ix_url_scans_user_id_status", "user_id", "status"),
+        Index("ix_url_scans_user_id_created_at", "user_id", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     url: Mapped[str] = mapped_column(String(2048), nullable=False)
 
     # pending | running | done | error
-    status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending", index=True)
 
     # safe | suspicious | malicious
     verdict: Mapped[str | None] = mapped_column(String(20), nullable=True)

@@ -4,8 +4,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { interval } from 'rxjs';
-import { switchMap, takeWhile } from 'rxjs/operators';
+import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 
 import { CyberscanService, Scan } from '../services/cyberscan.service';
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
@@ -50,9 +49,9 @@ export class ScanDetailComponent implements OnInit {
   }
 
   startPolling(id: number) {
-    interval(4000).pipe(
-      switchMap(() => this.cyberscan.getScan(id)),
-      takeWhile(s => s.status === 'pending' || s.status === 'running', true),
+    pollWithBackoff(
+      () => this.cyberscan.getScan(id),
+      s => s.status !== 'pending' && s.status !== 'running',
     ).subscribe(scan => this.scan.set(scan));
   }
 

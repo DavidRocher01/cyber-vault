@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -8,6 +8,10 @@ from app.core.database import Base
 
 class CodeScan(Base):
     __tablename__ = "code_scans"
+    __table_args__ = (
+        Index("ix_code_scans_user_id_status", "user_id", "status"),
+        Index("ix_code_scans_user_id_created_at", "user_id", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
@@ -15,7 +19,7 @@ class CodeScan(Base):
     repo_name: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
     # pending | running | done | failed
-    status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending", index=True)
 
     # Severity counters
     critical_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

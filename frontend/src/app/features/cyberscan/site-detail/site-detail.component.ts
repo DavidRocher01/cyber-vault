@@ -6,8 +6,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { Subscription as RxSubscription, interval } from 'rxjs';
-import { switchMap, takeWhile } from 'rxjs/operators';
+import { Subscription as RxSubscription } from 'rxjs';
+import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 
 import { CyberscanService, Site, Scan, PaginatedScans } from '../services/cyberscan.service';
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
@@ -84,9 +84,9 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
   maybeStartPolling(items: Scan[]) {
     const hasActive = items.some(s => s.status === 'pending' || s.status === 'running');
     if (!hasActive || this.pollingSubscription) return;
-    this.pollingSubscription = interval(4000).pipe(
-      switchMap(() => this.cyberscan.getSiteScans(this.siteId(), this.currentPage(), 20)),
-      takeWhile(d => d.items.some(s => s.status === 'pending' || s.status === 'running'), true),
+    this.pollingSubscription = pollWithBackoff(
+      () => this.cyberscan.getSiteScans(this.siteId(), this.currentPage(), 20),
+      d => !d.items.some(s => s.status === 'pending' || s.status === 'running'),
     ).subscribe(data => {
       this.scans.set(data);
       if (!data.items.some(s => s.status === 'pending' || s.status === 'running')) {

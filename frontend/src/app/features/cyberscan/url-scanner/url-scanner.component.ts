@@ -7,8 +7,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { interval, Subscription as RxSubscription } from 'rxjs';
-import { switchMap, takeWhile } from 'rxjs/operators';
+import { Subscription as RxSubscription } from 'rxjs';
+import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 
 import { CyberscanService, UrlScan, PaginatedUrlScans } from '../services/cyberscan.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
@@ -110,9 +110,9 @@ export class UrlScannerComponent implements OnInit, OnDestroy {
   }
 
   startPolling(scanId: number) {
-    const sub = interval(3000).pipe(
-      switchMap(() => this.cyberscan.getUrlScan(scanId)),
-      takeWhile(s => s.status === 'pending' || s.status === 'running', true),
+    const sub = pollWithBackoff(
+      () => this.cyberscan.getUrlScan(scanId),
+      s => s.status !== 'pending' && s.status !== 'running',
     ).subscribe(scan => {
       // Update history
       this.history.update(h => {
