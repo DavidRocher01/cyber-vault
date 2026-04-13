@@ -204,6 +204,10 @@ export class CyberscanService {
     return this.http.delete<void>(`${API}/url-scans/${id}`);
   }
 
+  downloadUrlScanPdfBlob(scanId: number): Observable<Blob> {
+    return this.http.get(`${API}/url-scans/${scanId}/pdf`, { responseType: 'blob' });
+  }
+
   // ── Code Scans ─────────────────────────────────────────────────────────
 
   triggerCodeScan(repoUrl: string, githubToken?: string): Observable<{ scan_id: number; message: string }> {

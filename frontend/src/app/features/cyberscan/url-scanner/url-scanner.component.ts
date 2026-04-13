@@ -130,6 +130,20 @@ export class UrlScannerComponent implements OnInit, OnDestroy {
     this.pollSubs.push(sub);
   }
 
+  downloadPdf(scan: UrlScan) {
+    this.cyberscan.downloadUrlScanPdfBlob(scan.id).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cyberscan_url_${scan.id}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => this.snack.open('Erreur lors du téléchargement du PDF', 'Fermer', { duration: 4000 }),
+    });
+  }
+
   deleteScan(scan: UrlScan) {
     this.cyberscan.deleteUrlScan(scan.id).subscribe({
       next: () => {

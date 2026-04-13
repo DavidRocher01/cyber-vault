@@ -2,7 +2,10 @@
 URL Scan endpoints — trigger and consult suspicious URL analyses.
 """
 
+import json
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
@@ -95,6 +98,43 @@ async def get_url_scan(
     if not scan:
         raise HTTPException(status_code=404, detail="Scan introuvable")
     return scan
+
+
+@router.get("/{scan_id}/pdf")
+async def download_url_scan_pdf(
+    scan_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate and return a PDF report for a completed URL scan."""
+    result = await db.execute(
+        select(UrlScan).where(
+            UrlScan.id == scan_id,
+            UrlScan.user_id == current_user.id,
+        )
+    )
+    scan = result.scalar_one_or_none()
+    if not scan:
+        raise HTTPException(status_code=404, detail="Scan introuvable")
+    if scan.status != "done" or not scan.results_json:
+        raise HTTPException(status_code=404, detail="Rapport non disponible — scan non terminé")
+
+    try:
+        results = json.loads(scan.results_json)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Données de scan invalides")
+
+    results["url"] = scan.url
+    results["created_at"] = scan.created_at
+
+    from app.services.url_scan_pdf import generate_url_scan_pdf
+    pdf_bytes = generate_url_scan_pdf(results)
+
+    return StreamingResponse(
+        iter([pdf_bytes]),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="cyberscan_url_{scan_id}.pdf"'},
+    )
 
 
 @router.delete("/{scan_id}", status_code=204)
