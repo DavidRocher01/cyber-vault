@@ -52,6 +52,9 @@ async def add_site(
         raise HTTPException(status_code=403, detail=f"Limite de {max_sites} site(s) atteinte pour votre formule")
 
     url = payload.url
+    # Reject non-web protocols explicitly before auto-correction
+    if url.startswith(("ftp://", "ftps://", "javascript:", "data:", "file://")):
+        raise HTTPException(status_code=422, detail="Protocole non supporté. Utilisez http:// ou https://")
     if not url.startswith(("http://", "https://")):
         url = f"https://{url}"
 

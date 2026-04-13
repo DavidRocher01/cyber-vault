@@ -102,12 +102,14 @@ async def test_create_site_missing_name_returns_422():
 
 
 @pytest.mark.asyncio
-async def test_create_site_invalid_url_no_protocol_returns_422():
+async def test_create_site_no_protocol_autocorrected_to_https():
+    """L'endpoint auto-corrige les URLs sans protocole → https:// est ajouté, 201 retourné."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "site_val3@test.com")
         with patch("app.api.v1.endpoints.sites._get_max_sites", return_value=5):
             r = await c.post(f"{BASE}/sites", json={"url": "example.com", "name": "Test"}, headers=h)
-    assert r.status_code == 422
+    assert r.status_code == 201
+    assert r.json()["url"] == "https://example.com"
 
 
 @pytest.mark.asyncio
@@ -217,15 +219,16 @@ async def test_nis2_items_not_dict_returns_422():
 
 @pytest.mark.asyncio
 async def test_nis2_all_valid_statuses_accepted():
-    """Tous les statuts valides (compliant, partial, non_compliant, na) doivent passer."""
+    """Tous les statuts valides (compliant, partial, non_compliant, na) doivent passer.
+    Utilise des IDs d'items réels (niveau item, pas catégorie)."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "nis2v4@test.com")
         r = await c.put(f"{BASE}/nis2/me", json={
             "items": {
-                "rssi": "compliant",
-                "policy": "partial",
-                "training": "non_compliant",
-                "incident": "na",
+                "rssi": "compliant",          # item réel — Gouvernance
+                "mgmt_training": "partial",   # item réel — Gouvernance
+                "incident_proc": "non_compliant",  # item réel — Incidents
+                "anssi_notif": "na",          # item réel — Incidents
             }
         }, headers=h)
     assert r.status_code == 200

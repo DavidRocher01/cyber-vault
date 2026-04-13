@@ -32,16 +32,19 @@ async def _headers(client: AsyncClient, email: str, password: str = "StrongPass1
 # ── [AUTH] Flux d'authentification ───────────────────────────────────────────
 
 @pytest.mark.asyncio
-async def test_register_returns_201_with_access_token():
-    """Régression : l'inscription doit retourner 201 + access_token."""
+async def test_register_returns_201_with_user_data():
+    """Régression : l'inscription doit retourner 201 + données utilisateur (id, email, is_active).
+    Note : register ne retourne PAS de token — il faut appeler /login ensuite."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.post(f"{BASE}/auth/register", json={
             "email": "reg_regr@test.com", "password": "StrongPass123!"
         })
     assert r.status_code == 201
     body = r.json()
-    assert "access_token" in body
-    assert body["token_type"] == "bearer"
+    assert "id" in body
+    assert body["email"] == "reg_regr@test.com"
+    assert body["is_active"] is True
+    assert "access_token" not in body
 
 
 @pytest.mark.asyncio
@@ -233,10 +236,13 @@ async def test_user_me_response_has_required_fields():
 
 @pytest.mark.asyncio
 async def test_user_delete_removes_access():
-    """Régression : après suppression du compte, le token ne doit plus fonctionner."""
+    """Régression : après suppression du compte, le token ne doit plus fonctionner.
+    DELETE /users/me requiert le mot de passe dans le body."""
+    password = "StrongPass123!"
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        h = await _headers(c, "del_regr@test.com")
-        await c.delete(f"{BASE}/users/me", headers=h)
+        h = await _headers(c, "del_regr@test.com", password)
+        r_del = await c.request("DELETE", f"{BASE}/users/me", headers=h, json={"password": password})
+        assert r_del.status_code == 204
         r = await c.get(f"{BASE}/users/me", headers=h)
     assert r.status_code in (401, 403, 404)
 
