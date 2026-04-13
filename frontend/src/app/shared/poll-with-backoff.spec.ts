@@ -19,9 +19,11 @@ describe('pollWithBackoff — comportement de base', () => {
   it('appelle le fetcher et émet sa valeur', async () => {
     const fetcher = vi.fn(() => of({ status: 'done' }));
     const promise = firstValueFrom(
-      pollWithBackoff(fetcher, v => v.status === 'done')
+      pollWithBackoff(fetcher, v => v.status === 'done', 100)
     );
-    await vi.runAllTimersAsync();
+    // Avancer juste au-delà du premier tick (initialMs = 100)
+    // runAllTimersAsync bouclerait à l'infini car schedule() se réappelle elle-même.
+    await vi.advanceTimersByTimeAsync(100);
     const result = await promise;
     expect(fetcher).toHaveBeenCalled();
     expect(result).toEqual({ status: 'done' });
@@ -32,11 +34,12 @@ describe('pollWithBackoff — comportement de base', () => {
     const fetcher = vi.fn(() => of({ status: call++ === 0 ? 'pending' : 'done' }));
     const results: any[] = [];
 
-    const sub = pollWithBackoff(fetcher, v => v.status === 'done').subscribe({
+    const sub = pollWithBackoff(fetcher, v => v.status === 'done', 100).subscribe({
       next: v => results.push(v),
     });
 
-    await vi.runAllTimersAsync();
+    // tick 1 à t=100 (pending), tick 2 à t=100+200=300 (done → complète)
+    await vi.advanceTimersByTimeAsync(400);
     sub.unsubscribe();
 
     // Doit avoir complété avec au moins une valeur 'done'
@@ -48,9 +51,9 @@ describe('pollWithBackoff — comportement de base', () => {
     const results: any[] = [];
 
     const promise = lastValueFrom(
-      pollWithBackoff(fetcher, v => v.status === 'done').pipe(toArray())
+      pollWithBackoff(fetcher, v => v.status === 'done', 100).pipe(toArray())
     );
-    await vi.runAllTimersAsync();
+    await vi.advanceTimersByTimeAsync(100);
     const all = await promise;
 
     // La valeur done doit être émise (pas juste ignorée)
