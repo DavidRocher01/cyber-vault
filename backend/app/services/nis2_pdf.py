@@ -101,12 +101,14 @@ def generate_nis2_pdf(
     score_st = _style("ScD", fontSize=32, fontName="Helvetica-Bold", textColor=score_color)
     level_st = _style("LvD", fontSize=13, fontName="Helvetica-Bold", textColor=score_color)
 
-    # Count items by status
-    total_items = sum(len(cat["items"]) for cat in categories)
-    compliant_n = sum(1 for v in items.values() if v == "compliant")
-    partial_n   = sum(1 for v in items.values() if v == "partial")
-    nc_n        = sum(1 for v in items.values() if v == "non_compliant")
-    na_n        = sum(1 for v in items.values() if v == "na")
+    # Count items by status — parcourir TOUS les items des catégories,
+    # les items non renseignés comptent comme non_compliant (défaut).
+    all_ids = [it["id"] for cat in categories for it in cat["items"]]
+    total_items = len(all_ids)
+    compliant_n = sum(1 for i in all_ids if items.get(i, "non_compliant") == "compliant")
+    partial_n   = sum(1 for i in all_ids if items.get(i, "non_compliant") == "partial")
+    nc_n        = sum(1 for i in all_ids if items.get(i, "non_compliant") == "non_compliant")
+    na_n        = sum(1 for i in all_ids if items.get(i, "non_compliant") == "na")
 
     score_table = Table([[
         Paragraph(f"{score}%", score_st),
@@ -139,10 +141,10 @@ def generate_nis2_pdf(
     cat_rows = [["Catégorie", "Conformes", "Partiels", "Non-conformes", "N/A"]]
     for cat in categories:
         cat_items = cat["items"]
-        c = sum(1 for it in cat_items if items.get(it["id"]) == "compliant")
-        p = sum(1 for it in cat_items if items.get(it["id"]) == "partial")
-        n = sum(1 for it in cat_items if items.get(it["id"]) == "non_compliant")
-        na = sum(1 for it in cat_items if items.get(it["id"]) == "na")
+        c  = sum(1 for it in cat_items if items.get(it["id"], "non_compliant") == "compliant")
+        p  = sum(1 for it in cat_items if items.get(it["id"], "non_compliant") == "partial")
+        n  = sum(1 for it in cat_items if items.get(it["id"], "non_compliant") == "non_compliant")
+        na = sum(1 for it in cat_items if items.get(it["id"], "non_compliant") == "na")
         cat_rows.append([cat["label"], str(c), str(p), str(n), str(na)])
 
     cat_table = Table(cat_rows, colWidths=[W * 0.40, W * 0.15, W * 0.15, W * 0.18, W * 0.12])
