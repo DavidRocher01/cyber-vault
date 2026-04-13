@@ -56,7 +56,7 @@ async def create_checkout(
             existing.plan_id = plan.id
             existing.status = "active"
             existing.current_period_start = now
-            existing.current_period_end = now + timedelta(days=plan.scan_interval_days * 2)
+            existing.current_period_end = now + timedelta(days=max(plan.scan_interval_days * 2, 30))
         else:
             db.add(Subscription(
                 user_id=current_user.id,
@@ -65,7 +65,7 @@ async def create_checkout(
                 stripe_subscription_id="dev_subscription",
                 status="active",
                 current_period_start=now,
-                current_period_end=now + timedelta(days=plan.scan_interval_days * 2),
+                current_period_end=now + timedelta(days=max(plan.scan_interval_days * 2, 30)),
             ))
         await db.commit()
         return {"checkout_url": f"{FRONTEND_URL}/cyberscan/success"}

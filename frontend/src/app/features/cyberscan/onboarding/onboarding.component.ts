@@ -49,7 +49,7 @@ export class OnboardingComponent implements OnInit {
     this.cyberscan.getPlans().subscribe({ next: p => this.plans.set(p) });
     // If user already has a subscription (e.g. coming back from Stripe success),
     // skip step 1 and go directly to step 2 (add first site).
-    this.cyberscan.getMySubscription().subscribe({
+    this.cyberscan.getMySubscription(true).subscribe({
       next: sub => { if (sub) this.currentStep.set(2); },
     });
   }
