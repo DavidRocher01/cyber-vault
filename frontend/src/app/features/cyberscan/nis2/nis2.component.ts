@@ -85,7 +85,11 @@ export class Nis2Component implements OnInit {
   }
 
   recalcScore() {
-    const vals = Object.values(this.items()).filter(v => v !== 'na');
+    // Utiliser TOUS les items des catégories comme dénominateur,
+    // pas seulement ceux explicitement renseignés dans le map.
+    // Les items non renseignés ont getStatus() = 'non_compliant' = 0 pts.
+    const allIds = this.categories().flatMap(cat => cat.items.map(i => i.id));
+    const vals = allIds.map(id => this.getStatus(id)).filter(v => v !== 'na');
     if (!vals.length) { this.score.set(0); return; }
     const pts = vals.reduce((s, v) => s + (v === 'compliant' ? 2 : v === 'partial' ? 1 : 0), 0);
     this.score.set(Math.round(pts / (vals.length * 2) * 100));
