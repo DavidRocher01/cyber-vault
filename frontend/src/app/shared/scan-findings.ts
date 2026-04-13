@@ -36,13 +36,13 @@ export function extractSummary(key: string, d: Record<string, unknown>): { label
   switch (key) {
     case 'ssl':
       return [
-        d['issuer']    ? { label: 'Émetteur',     value: String(d['issuer']) }                     : null,
-        d['days_left'] != null ? { label: 'Expire dans', value: `${d['days_left']} jours` }        : null,
-        d['protocols'] ? { label: 'Protocoles',   value: (d['protocols'] as string[]).join(', ') } : null,
+        d['days_remaining'] != null ? { label: 'Expire dans', value: `${d['days_remaining']} jours` } : null,
+        d['protocol']  ? { label: 'Protocole',    value: String(d['protocol']) }                   : null,
+        d['valid']     != null ? { label: 'Valide',       value: d['valid'] ? 'Oui' : 'Non' }      : null,
       ].filter(Boolean) as { label: string; value: string }[];
 
     case 'headers': {
-      const missing = d['missing_headers'] as string[] | undefined;
+      const missing = d['headers_missing'] as string[] | undefined;
       return missing?.length
         ? [{ label: 'Headers manquants', value: missing.slice(0, 4).join(', ') }]
         : [{ label: 'Headers manquants', value: 'Aucun' }];
@@ -70,9 +70,9 @@ export function extractSummary(key: string, d: Record<string, unknown>): { label
 
     case 'ip':
       return [
-        d['ip']          ? { label: 'IP',        value: String(d['ip']) }      : null,
-        d['country']     ? { label: 'Pays',      value: String(d['country']) } : null,
-        d['blacklisted'] != null ? { label: 'Blacklist', value: d['blacklisted'] ? 'Oui' : 'Non' } : null,
+        d['ip']           ? { label: 'IP',          value: String(d['ip']) }                                         : null,
+        d['total_listed'] != null ? { label: 'Blacklists', value: `${d['total_listed']} liste(s)` }                  : null,
+        d['listed_in'] && (d['listed_in'] as string[]).length ? { label: 'Listé dans', value: (d['listed_in'] as string[]).slice(0, 2).join(', ') } : null,
       ].filter(Boolean) as { label: string; value: string }[];
 
     case 'dns': {
@@ -88,8 +88,8 @@ export function extractSummary(key: string, d: Record<string, unknown>): { label
         : [{ label: 'CMS', value: 'Non détecté' }];
 
     case 'waf':
-      return d['waf']
-        ? [{ label: 'WAF détecté', value: String(d['waf']) }]
+      return d['detected']
+        ? [{ label: 'WAF détecté', value: String(d['waf_name'] ?? 'Inconnu') }]
         : [{ label: 'WAF', value: 'Non détecté' }];
 
     case 'tech': {
@@ -106,16 +106,16 @@ export function extractSummary(key: string, d: Record<string, unknown>): { label
       ].filter(Boolean) as { label: string; value: string }[];
 
     case 'threat_intel': {
-      const vulns = d['vulns']      as string[] | undefined;
-      const ports  = d['open_ports'] as number[] | undefined;
+      const cves  = d['cves']       as string[] | undefined;
+      const ports = d['open_ports'] as number[] | undefined;
       return [
         ports?.length ? { label: 'Ports ouverts', value: ports.slice(0, 6).join(', ') } : null,
-        vulns?.length ? { label: 'CVE détectées', value: `${vulns.length}` }             : null,
+        cves?.length  ? { label: 'CVE détectées', value: `${cves.length}` }              : null,
       ].filter(Boolean) as { label: string; value: string }[];
     }
 
     case 'http_methods': {
-      const dangerous = d['dangerous_methods'] as string[] | undefined;
+      const dangerous = d['dangerous_allowed'] as string[] | undefined;
       return dangerous?.length
         ? [{ label: 'Méthodes dangereuses', value: dangerous.join(', ') }]
         : [{ label: 'Méthodes', value: 'Aucune dangereuse' }];
