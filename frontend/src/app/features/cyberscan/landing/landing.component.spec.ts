@@ -1,7 +1,9 @@
 /**
- * LandingComponent — tests des méthodes utilitaires pures.
+ * LandingComponent — tests des méthodes utilitaires pures + non-régression.
  */
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { LandingComponent } from './landing.component';
 
 function make(): LandingComponent {
@@ -55,5 +57,36 @@ describe('LandingComponent — getPlanFeatures()', () => {
     const plan: any = { max_sites: 10, scan_interval_days: 7, tier_level: 4 };
     const features = make().getPlanFeatures(plan);
     expect(features.some(f => f.includes('Tier 4'))).toBe(true);
+  });
+});
+
+// ── Non-régression : données statiques critiques ──────────────────────────────
+// Ces tests lisent le source TypeScript pour détecter toute modification
+// accidentelle des valeurs affichées aux utilisateurs.
+
+describe('LandingComponent — non-régression données statiques', () => {
+  const src = readFileSync(
+    resolve(__dirname, './landing.component.ts'),
+    'utf-8',
+  );
+
+  it('[RÉGRESSION] prix Audit Standard = 390 € HT (pas 890 €)', () => {
+    expect(src).toContain("'390 € HT'");
+    expect(src).not.toContain("'890 €'");
+  });
+
+  it('[RÉGRESSION] nombre de modules = 21 (pas 19)', () => {
+    expect(src).toContain("'21 modules'");
+    expect(src).not.toContain("'19 modules'");
+  });
+
+  it('[RÉGRESSION] redirect 2FA vers /cyberscan (pas /cyberscan/dashboard)', () => {
+    // submitLoginTotp() doit naviguer vers /cyberscan, pas le dashboard
+    expect(src).toContain("navigate(['/cyberscan']");
+    // S'assurer que le seul navigate dans submitLoginTotp pointe vers /cyberscan
+    const totpFnMatch = src.match(/submitLoginTotp\(\)[^}]+}/s);
+    if (totpFnMatch) {
+      expect(totpFnMatch[0]).not.toContain('/cyberscan/dashboard');
+    }
   });
 });
