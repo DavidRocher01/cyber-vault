@@ -62,9 +62,9 @@
         }
       </div>
 
-      <a routerLink="/auth/login" mat-icon-button class="!text-gray-400 hover:!text-red-400" title="Déconnexion">
+      <button (click)="logout()" mat-icon-button class="!text-gray-400 hover:!text-red-400" title="Déconnexion">
         <mat-icon>logout</mat-icon>
-      </a>
+      </button>
     </div>
   </nav>
 

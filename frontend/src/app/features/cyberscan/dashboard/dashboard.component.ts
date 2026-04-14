@@ -15,6 +15,7 @@ import { Subscription as RxSubscription, interval } from 'rxjs';
 import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 
 import { CyberscanService, Site, Scan, Subscription as UserSubscription, Plan, AppNotification } from '../services/cyberscan.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { ThemeService } from '../../../core/services/theme.service';
@@ -47,6 +48,7 @@ interface PaginatedScans {
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   private cyberscan = inject(CyberscanService);
+  private authService = inject(AuthService);
   private fb = inject(FormBuilder);
   private snack = inject(MatSnackBar);
   private route = inject(ActivatedRoute);
@@ -104,6 +106,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     Object.values(this.pollingMap).forEach(sub => sub.unsubscribe());
     this.notifPollSub?.unsubscribe();
+  }
+
+  logout() {
+    this.authService.logout();
   }
 
   @HostListener('document:click', ['$event'])
