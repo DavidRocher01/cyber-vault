@@ -28,6 +28,18 @@ html.light-mode .text-gray-300 { color: #334155 !important; }
 html.light-mode .text-gray-500 { color: #64748b !important; }
 html.light-mode .text-white { color: #0f172a !important; }
 
+/* ── Dark dialog panel ── */
+.dark-dialog .mat-mdc-dialog-surface {
+  background: transparent !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7) !important;
+  border-radius: 1rem !important;
+  padding: 0 !important;
+}
+.dark-dialog .mdc-dialog__surface {
+  background: transparent !important;
+  border-radius: 1rem !important;
+}
+
 /* ── Fix autofill jaune Chrome / Edge ── */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,

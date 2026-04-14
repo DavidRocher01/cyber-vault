@@ -249,6 +249,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   confirmDeleteSite(site: Site) {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: { title: 'Supprimer le site', message: `Supprimer "${site.name}" et tout son historique de scans ?`, confirm: 'Supprimer', danger: true },
+      panelClass: 'dark-dialog',
     });
     ref.afterClosed().subscribe(ok => {
       if (!ok) return;
