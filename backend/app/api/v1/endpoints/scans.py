@@ -227,8 +227,59 @@ async def download_remediation_script(
     results = json.loads(scan.results_json)
     script_path = results.get("_meta", {}).get("remediation_scripts", {}).get(script_key)
 
-    if not script_path or not os.path.isfile(script_path):
-        raise HTTPException(status_code=404, detail="Script non trouvé")
+    # If file exists on disk, serve it directly
+    if script_path and os.path.isfile(script_path):
+        filename, media_type = _REMEDIATION_META[script_key]
+        return FileResponse(path=script_path, media_type=media_type, filename=filename)
 
-    filename, media_type = _REMEDIATION_META[script_key]
-    return FileResponse(path=script_path, media_type=media_type, filename=filename)
+    # Otherwise regenerate on-the-fly from scan data stored in DB
+    try:
+        import sys
+        if "/cyber-scanner" not in sys.path:
+            sys.path.insert(0, "/cyber-scanner")
+        from scanner.remediation import (
+            _build_ufw_script, _build_ssh_script,
+            _build_fastapi_middleware, _build_upgrade_script,
+        )
+        from datetime import datetime as dt
+
+        target_url = results.get("_meta", {}).get("url", "unknown")
+        date_str   = dt.now().strftime("%Y-%m-%d %H:%M")
+
+        if script_key == "ufw":
+            port_result    = results.get("ports", {})
+            critical_ports = port_result.get("critical_ports", []) if not port_result.get("error") else []
+            content = _build_ufw_script(target_url, date_str, critical_ports)
+            media_type = "text/x-sh"
+            filename   = "ufw_setup.sh"
+
+        elif script_key == "ssh":
+            content    = _build_ssh_script(target_url, date_str)
+            media_type = "text/x-sh"
+            filename   = "ssh_hardening.sh"
+
+        elif script_key == "fastapi":
+            headers_result  = results.get("headers", {})
+            missing_headers = headers_result.get("headers_missing", []) if not headers_result.get("error") else []
+            content    = _build_fastapi_middleware(target_url, date_str, missing_headers)
+            media_type = "text/x-python"
+            filename   = "fastapi_security_middleware.py"
+
+        elif script_key == "upgrade":
+            sca_result = results.get("sca", {})
+            vulns      = sca_result.get("vulns", []) if sca_result and not sca_result.get("error") else []
+            content    = _build_upgrade_script(target_url, date_str, vulns)
+            media_type = "text/x-sh"
+            filename   = "upgrade_deps.sh"
+
+        else:
+            raise HTTPException(status_code=404, detail="Script non trouvé")
+
+        return StreamingResponse(
+            iter([content.encode("utf-8")]),
+            media_type=media_type,
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    except ImportError:
+        raise HTTPException(status_code=404, detail="Script non trouvé")
