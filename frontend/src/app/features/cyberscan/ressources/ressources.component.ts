@@ -19,6 +19,9 @@ export class RessourcesComponent {
     this.titleService.setTitle('Ressources cybersécurité — CyberScan');
     this.meta.updateTag({ name: 'description', content: 'Outils, plateformes et chaînes YouTube sélectionnés pour approfondir vos connaissances en cybersécurité : audits, gouvernance, RGPD, CTF.' });
     this.meta.updateTag({ property: 'og:title', content: 'Ressources cybersécurité — CyberScan' });
+    this.meta.updateTag({ property: 'og:description', content: 'Outils, plateformes et chaînes YouTube pour approfondir vos connaissances en cybersécurité.' });
+    this.meta.updateTag({ property: 'og:url', content: 'https://cyberscanapp.com/cyberscan/ressources' });
+    this.meta.updateTag({ property: 'og:title', content: 'Ressources cybersécurité — CyberScan' });
     this.meta.updateTag({ property: 'og:description', content: 'Outils, plateformes et chaînes YouTube pour la cybersécurité.' });
   }
 

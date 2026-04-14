@@ -366,7 +366,12 @@ export class LandingComponent implements OnInit {
 
   ngOnInit() {
     this.titleService.setTitle('CyberScan — Audit de sécurité web automatisé');
-    this.meta.updateTag({ name: 'description', content: 'Scannez vos sites web, détectez les vulnérabilités et recevez des rapports PDF complets. Plans à partir de 29€/mois.' });
+    this.meta.updateTag({ name: 'description', content: 'Scannez vos sites web, détectez les vulnérabilités SSL, headers et ports, et recevez des rapports PDF complets. Plans à partir de 29€/mois.' });
+    this.meta.updateTag({ property: 'og:title', content: 'CyberScan — Audit de sécurité web automatisé' });
+    this.meta.updateTag({ property: 'og:description', content: 'Scannez vos sites web, détectez les vulnérabilités SSL, headers et ports, et recevez des rapports PDF complets. Plans à partir de 29€/mois.' });
+    this.meta.updateTag({ property: 'og:url', content: 'https://cyberscanapp.com/cyberscan' });
+    this.meta.updateTag({ name: 'twitter:title', content: 'CyberScan — Audit de sécurité web automatisé' });
+    this.meta.updateTag({ name: 'twitter:description', content: 'Scannez vos sites, détectez les vulnérabilités SSL, headers et ports. Rapports PDF inclus.' });
     this.themeService.apply();
     this.cyberscan.getPlans().subscribe({
       next: plans => { this.plans = plans; this.loading = false; },

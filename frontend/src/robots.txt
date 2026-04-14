@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Disallow: /cyberscan/dashboard
+Disallow: /cyberscan/scan/
+Disallow: /cyberscan/site/
+Disallow: /cyberscan/profile
+Disallow: /cyberscan/onboarding
+Disallow: /cyberscan/success
+Disallow: /cyberscan/url-scanner
+Disallow: /cyberscan/code-scan
+Disallow: /cyberscan/nis2
+Disallow: /vault
+Disallow: /auth/
+
+Sitemap: https://cyberscanapp.com/sitemap.xml
