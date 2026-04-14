@@ -29,7 +29,8 @@ export class AuthStore extends ComponentStore<AuthState> {
   }
 
   private get returnUrl(): string {
-    return this.route.snapshot.queryParamMap.get('returnUrl') || '/cyberscan';
+    const url = this.route.snapshot.queryParamMap.get('returnUrl') || '/cyberscan';
+    return url.startsWith('/vault') ? '/cyberscan' : url;
   }
 
   readonly login = this.effect<{ email: string; password: string }>(credentials$ =>

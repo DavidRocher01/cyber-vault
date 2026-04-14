@@ -35,7 +35,8 @@ export class RegisterComponent {
   private route = inject(ActivatedRoute);
 
   get returnUrl(): string | null {
-    return this.route.snapshot.queryParamMap.get('returnUrl');
+    const url = this.route.snapshot.queryParamMap.get('returnUrl');
+    return url?.startsWith('/vault') ? null : url;
   }
 
   form = this.fb.nonNullable.group({

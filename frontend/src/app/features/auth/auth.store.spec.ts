@@ -14,7 +14,8 @@ import { describe, it, expect } from 'vitest';
 // Reproduit exactement le getter privé de AuthStore
 
 function resolveReturnUrl(queryParamValue: string | null): string {
-  return queryParamValue || '/cyberscan';
+  const url = queryParamValue || '/cyberscan';
+  return url.startsWith('/vault') ? '/cyberscan' : url;
 }
 
 describe('AuthStore — returnUrl resolution', () => {
@@ -32,5 +33,13 @@ describe('AuthStore — returnUrl resolution', () => {
 
   it('préserve les chemins avec query params', () => {
     expect(resolveReturnUrl('/cyberscan/dashboard?tab=scans')).toBe('/cyberscan/dashboard?tab=scans');
+  });
+
+  it('ignore returnUrl=/vault et redirige vers /cyberscan', () => {
+    expect(resolveReturnUrl('/vault')).toBe('/cyberscan');
+  });
+
+  it('ignore tout sous-chemin de /vault', () => {
+    expect(resolveReturnUrl('/vault/settings')).toBe('/cyberscan');
   });
 });

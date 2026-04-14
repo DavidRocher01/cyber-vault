@@ -45,6 +45,16 @@ describe('RegisterComponent — returnUrl', () => {
     expect(component.returnUrl).toBe('/cyberscan/dashboard');
   });
 
+  it('returnUrl getter retourne null si url pointe vers /vault', async () => {
+    const { component } = await makeComponent('/vault');
+    expect(component.returnUrl).toBeNull();
+  });
+
+  it('returnUrl getter retourne null pour tout sous-chemin de /vault', async () => {
+    const { component } = await makeComponent('/vault/settings');
+    expect(component.returnUrl).toBeNull();
+  });
+
   it('navigue vers returnUrl après inscription si présent', async () => {
     const { component, navigateByUrlMock } = await makeComponent('/cyberscan/dashboard');
     component.form.setValue({ email: 'a@b.com', password: 'Password1!', confirmPassword: 'Password1!' });
@@ -55,6 +65,14 @@ describe('RegisterComponent — returnUrl', () => {
 
   it('navigue vers /cyberscan si pas de returnUrl', async () => {
     const { component, navigateByUrlMock } = await makeComponent();
+    component.form.setValue({ email: 'a@b.com', password: 'Password1!', confirmPassword: 'Password1!' });
+    component.submit();
+    await new Promise(r => setTimeout(r, 20));
+    expect(navigateByUrlMock).toHaveBeenCalledWith('/cyberscan');
+  });
+
+  it('navigue vers /cyberscan si returnUrl pointe vers /vault', async () => {
+    const { component, navigateByUrlMock } = await makeComponent('/vault');
     component.form.setValue({ email: 'a@b.com', password: 'Password1!', confirmPassword: 'Password1!' });
     component.submit();
     await new Promise(r => setTimeout(r, 20));
