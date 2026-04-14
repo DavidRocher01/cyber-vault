@@ -1,10 +1,10 @@
 """
-ISO 27001:2022 Compliance PDF — redesigned visual.
+ISO 27001:2022 Compliance PDF — premium visual design.
+Cover page drawn directly on canvas. Tables for summary + detail.
 """
 from __future__ import annotations
 
 import io
-import math
 from datetime import datetime
 
 from reportlab.lib import colors
@@ -19,13 +19,13 @@ from reportlab.platypus.flowables import Flowable
 
 from app.services.pdf_brand import (
     BORDER, CARD_BG, CYAN, DARK_BG, GRAY, GREEN, RED, WHITE, YELLOW,
-    draw_page, section_rule,
+    draw_page,
 )
 
-DOC_TYPE = "iso27001"
-VIOLET   = colors.HexColor("#8b5cf6")
-VIOLET_BG = colors.HexColor("#1e1333")
-VIOLET_DIM = colors.HexColor("#4c1d95")
+DOC_TYPE  = "iso27001"
+VIOLET    = colors.HexColor("#8b5cf6")
+VIOLET_DIM = colors.HexColor("#3b1f6e")
+VIOLET_BG  = colors.HexColor("#13102a")
 
 STATUS_COLOR = {"compliant": GREEN, "partial": YELLOW, "non_compliant": RED, "na": GRAY}
 STATUS_LABEL = {"compliant": "Conforme", "partial": "Partiel", "non_compliant": "Non conforme", "na": "N/A"}
@@ -35,9 +35,11 @@ STATUS_BG    = {
     "non_compliant": colors.HexColor("#2d0a0a"),
     "na":            colors.HexColor("#111827"),
 }
-
 ROW_A = CARD_BG
 ROW_B = colors.HexColor("#162032")
+
+PAGE_W, PAGE_H = A4
+MARGIN = 15 * mm
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -56,12 +58,6 @@ def _score_color(pct: int):
     return RED
 
 
-def _score_bg(pct: int):
-    if pct >= 80: return colors.HexColor("#052e16")
-    if pct >= 50: return colors.HexColor("#1c1400")
-    return colors.HexColor("#2d0a0a")
-
-
 def _cat_score(cat_items: list, items: dict) -> int:
     scorable = [it for it in cat_items if items.get(it["id"], "non_compliant") != "na"]
     if not scorable:
@@ -75,191 +71,162 @@ def _cat_score(cat_items: list, items: dict) -> int:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Score Gauge Flowable
+# Cover page — drawn entirely on canvas
 # ─────────────────────────────────────────────────────────────────────────────
 
-class ScoreGauge(Flowable):
-    """Semicircle gauge drawn with ReportLab Graphics."""
+def _draw_cover(canvas, doc, score, score_label, total,
+                compliant, partial, nc, na, user_email, date_str):
+    """Full cover page drawn on the canvas (onFirstPage callback)."""
+    W, H = PAGE_W, PAGE_H
+    sc = _score_color(score)
 
-    def __init__(self, score: int, width=120, height=75):
-        super().__init__()
-        self.score = score
-        self.width = width
-        self.height = height
+    canvas.saveState()
 
-    def draw(self):
-        score  = self.score
-        cx, cy = self.width / 2, 20
-        r_out  = min(self.width, self.height * 1.5) / 2 - 4
-        r_in   = r_out - 14
-        color  = _score_color(score)
+    # ── Background ────────────────────────────────────────────────────────────
+    canvas.setFillColor(DARK_BG)
+    canvas.rect(0, 0, W, H, fill=1, stroke=0)
 
-        # Track (grey arc — 180°)
-        c = self.canv
-        c.saveState()
+    # ── Top accent band ───────────────────────────────────────────────────────
+    canvas.setFillColor(VIOLET_BG)
+    canvas.rect(0, H - 14*mm, W, 14*mm, fill=1, stroke=0)
+    canvas.setStrokeColor(VIOLET)
+    canvas.setLineWidth(2.5)
+    canvas.line(0, H - 1, W, H - 1)
 
-        # Grey track
-        c.setStrokeColor(colors.HexColor("#1e293b"))
-        c.setLineWidth(14)
-        c.setLineCap(1)
-        c.arc(cx - r_out + 7, cy - r_out + 7, cx + r_out - 7, cy + r_out - 7,
-              startAng=0, extent=180)
+    # Logo box
+    lx, ly = MARGIN, H - 10.5*mm
+    canvas.setFillColor(CYAN)
+    canvas.roundRect(lx, ly, 7*mm, 7*mm, radius=1.5*mm, fill=1, stroke=0)
+    canvas.setFillColor(WHITE)
+    canvas.setFont("Helvetica-Bold", 6)
+    canvas.drawCentredString(lx + 3.5*mm, ly + 2*mm, "CS")
 
-        # Colored fill
-        if score > 0:
-            c.setStrokeColor(color)
-            c.setLineWidth(14)
-            c.setLineCap(1)
-            c.arc(cx - r_out + 7, cy - r_out + 7, cx + r_out - 7, cy + r_out - 7,
-                  startAng=0, extent=min(score / 100 * 180, 180))
+    canvas.setFillColor(WHITE)
+    canvas.setFont("Helvetica-Bold", 10)
+    canvas.drawString(lx + 9*mm, ly + 1.8*mm, "CyberScan")
+    canvas.setFillColor(GRAY)
+    canvas.setFont("Helvetica", 8)
+    canvas.drawString(lx + 9*mm + 42, ly + 1.8*mm, "|")
+    canvas.setFillColor(VIOLET)
+    canvas.drawString(lx + 9*mm + 50, ly + 1.8*mm, "Conformité ISO 27001:2022")
 
-        # Score text
-        c.setFillColor(color)
-        c.setFont("Helvetica-Bold", 26)
-        c.drawCentredString(cx, cy + r_out * 0.35, f"{score}%")
+    canvas.setFillColor(GRAY)
+    canvas.setFont("Helvetica", 7)
+    canvas.drawRightString(W - MARGIN, ly + 1.8*mm, date_str[:10])
 
-        c.restoreState()
+    # ── Left violet side-bar ──────────────────────────────────────────────────
+    canvas.setFillColor(VIOLET_BG)
+    canvas.rect(0, 0, 8*mm, H - 14*mm, fill=1, stroke=0)
+    canvas.setFillColor(VIOLET)
+    canvas.rect(0, 0, 2*mm, H - 14*mm, fill=1, stroke=0)
 
-    def wrap(self, *args):
-        return self.width, self.height
+    # ── Title block ───────────────────────────────────────────────────────────
+    tx = 16*mm
+    ty = H - 40*mm
 
+    canvas.setFillColor(VIOLET)
+    canvas.setFont("Helvetica-Bold", 30)
+    canvas.drawString(tx, ty, "Rapport de conformité")
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Status Badge cell (colored pill background)
-# ─────────────────────────────────────────────────────────────────────────────
+    canvas.setFillColor(WHITE)
+    canvas.setFont("Helvetica-Bold", 22)
+    canvas.drawString(tx, ty - 14*mm, "ISO/IEC 27001:2022")
 
-def _badge_table(status: str) -> Table:
-    label = STATUS_LABEL.get(status, status)
-    color = STATUS_COLOR.get(status, GRAY)
-    bg    = STATUS_BG.get(status, CARD_BG)
-    t = Table([[Paragraph(label, _st(f"Bdg_{status}_{id(status)}", fontSize=7,
-                                     fontName="Helvetica-Bold", textColor=color,
-                                     alignment=1))]], colWidths=[28*mm])
-    t.setStyle(TableStyle([
-        ("BACKGROUND",    (0,0), (-1,-1), bg),
-        ("ROUNDEDCORNERS",[3]),
-        ("TOPPADDING",    (0,0), (-1,-1), 4),
-        ("BOTTOMPADDING", (0,0), (-1,-1), 4),
-        ("LEFTPADDING",   (0,0), (-1,-1), 4),
-        ("RIGHTPADDING",  (0,0), (-1,-1), 4),
-        ("BOX",           (0,0), (-1,-1), 0.5, color),
-        ("ALIGN",         (0,0), (-1,-1), "CENTER"),
-    ]))
-    return t
+    # Underline
+    canvas.setStrokeColor(VIOLET)
+    canvas.setLineWidth(2)
+    canvas.line(tx, ty - 17*mm, tx + 70*mm, ty - 17*mm)
 
+    canvas.setFillColor(GRAY)
+    canvas.setFont("Helvetica", 9)
+    canvas.drawString(tx, ty - 22*mm, f"Généré le {date_str}  ·  {user_email}")
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Cover page flowable
-# ─────────────────────────────────────────────────────────────────────────────
+    # ── Score gauge (semicircle) ───────────────────────────────────────────────
+    cx = W / 2
+    cy = H - 115*mm
+    r  = 32*mm
 
-class CoverPage(Flowable):
-    def __init__(self, score: int, score_label: str, total: int,
-                 compliant: int, partial: int, nc: int, na: int,
-                 user_email: str, date_str: str, page_w: float, page_h: float):
-        super().__init__()
-        self.score       = score
-        self.score_label = score_label
-        self.total       = total
-        self.compliant   = compliant
-        self.partial     = partial
-        self.nc          = nc
-        self.na          = na
-        self.user_email  = user_email
-        self.date_str    = date_str
-        self.width       = page_w - 30 * mm
-        self.height      = page_h - 50 * mm
+    # Track arc (grey, 180°)
+    canvas.setStrokeColor(colors.HexColor("#1e293b"))
+    canvas.setLineWidth(18)
+    canvas.setLineCap(1)
+    p = canvas.beginPath()
+    p.arc(cx - r, cy - r, cx + r, cy + r, startAng=0, extent=180)
+    canvas.drawPath(p, stroke=1, fill=0)
 
-    def draw(self):
-        c   = self.canv
-        W   = self.width
-        sc  = _score_color(self.score)
-        sc_bg = _score_bg(self.score)
+    # Colored arc (score %)
+    if score > 0:
+        canvas.setStrokeColor(sc)
+        canvas.setLineWidth(18)
+        canvas.setLineCap(1)
+        p2 = canvas.beginPath()
+        p2.arc(cx - r, cy - r, cx + r, cy + r, startAng=0, extent=min(score / 100 * 180, 180))
+        canvas.drawPath(p2, stroke=1, fill=0)
 
-        c.saveState()
+    # Center dot
+    canvas.setFillColor(DARK_BG)
+    canvas.circle(cx, cy, 14*mm, fill=1, stroke=0)
 
-        # ── Title block ──────────────────────────────────────────────────────
-        c.setFillColor(VIOLET)
-        c.setFont("Helvetica-Bold", 28)
-        c.drawString(0, self.height - 10*mm, "Rapport de conformité")
-        c.setFillColor(WHITE)
-        c.setFont("Helvetica-Bold", 22)
-        c.drawString(0, self.height - 22*mm, "ISO/IEC 27001:2022")
+    # Score text
+    canvas.setFillColor(sc)
+    canvas.setFont("Helvetica-Bold", 36)
+    canvas.drawCentredString(cx, cy - 5*mm, f"{score}%")
 
-        # Accent line under title
-        c.setStrokeColor(VIOLET)
-        c.setLineWidth(2)
-        c.line(0, self.height - 26*mm, 80*mm, self.height - 26*mm)
+    # Label below gauge
+    canvas.setFillColor(sc)
+    canvas.setFont("Helvetica-Bold", 11)
+    canvas.drawCentredString(cx, cy - 40*mm, score_label)
 
-        # Meta
-        c.setFillColor(GRAY)
-        c.setFont("Helvetica", 9)
-        c.drawString(0, self.height - 33*mm, f"Généré le {self.date_str}  ·  {self.user_email}")
+    # Total controls
+    canvas.setFillColor(GRAY)
+    canvas.setFont("Helvetica", 8)
+    canvas.drawCentredString(cx, cy - 46*mm, f"{total} contrôles évalués")
 
-        # ── Score hero card ───────────────────────────────────────────────────
-        card_y  = self.height - 95*mm
-        card_h  = 55*mm
-        card_w  = W
+    # ── KPI row ───────────────────────────────────────────────────────────────
+    kpis = [
+        (compliant, "Conformes",     GREEN,  colors.HexColor("#052e16")),
+        (partial,   "Partiels",      YELLOW, colors.HexColor("#1c1400")),
+        (nc,        "Non conformes", RED,    colors.HexColor("#2d0a0a")),
+        (na,        "N/A",           GRAY,   colors.HexColor("#111827")),
+    ]
+
+    kpi_y    = H - 175*mm
+    kpi_h    = 28*mm
+    kpi_total_w = W - 2*MARGIN
+    kpi_w    = (kpi_total_w - 3*3*mm) / 4  # 3 gaps of 3mm
+
+    for i, (val, lbl, col, bg) in enumerate(kpis):
+        kx = MARGIN + i * (kpi_w + 3*mm)
 
         # Card background
-        c.setFillColor(CARD_BG)
-        c.roundRect(0, card_y, card_w, card_h, radius=4*mm, fill=1, stroke=0)
+        canvas.setFillColor(bg)
+        canvas.roundRect(kx, kpi_y, kpi_w, kpi_h, radius=3*mm, fill=1, stroke=0)
 
-        # Left score block
-        left_w = 55*mm
-        c.setFillColor(sc_bg)
-        c.roundRect(0, card_y, left_w, card_h, radius=4*mm, fill=1, stroke=0)
-        # clip right side of left block to not round
-        c.setFillColor(sc_bg)
-        c.rect(left_w - 4*mm, card_y, 4*mm, card_h, fill=1, stroke=0)
+        # Colored top border
+        canvas.setFillColor(col)
+        canvas.roundRect(kx, kpi_y + kpi_h - 1.5*mm, kpi_w, 1.5*mm, radius=1*mm, fill=1, stroke=0)
 
-        # Score %
-        c.setFillColor(sc)
-        c.setFont("Helvetica-Bold", 38)
-        c.drawCentredString(left_w / 2, card_y + card_h / 2 - 6*mm, f"{self.score}%")
-        c.setFont("Helvetica-Bold", 10)
-        c.drawCentredString(left_w / 2, card_y + card_h / 2 + 10*mm, self.score_label)
+        # Value
+        canvas.setFillColor(col)
+        canvas.setFont("Helvetica-Bold", 26)
+        canvas.drawCentredString(kx + kpi_w/2, kpi_y + kpi_h/2 - 1*mm, str(val))
 
-        # Separator
-        c.setStrokeColor(BORDER)
-        c.setLineWidth(0.5)
-        c.line(left_w + 1*mm, card_y + 5*mm, left_w + 1*mm, card_y + card_h - 5*mm)
+        # Label
+        canvas.setFillColor(GRAY)
+        canvas.setFont("Helvetica", 7)
+        canvas.drawCentredString(kx + kpi_w/2, kpi_y + 4*mm, lbl)
 
-        # KPI blocks
-        kpis = [
-            (self.compliant, "Conformes",    GREEN),
-            (self.partial,   "Partiels",     YELLOW),
-            (self.nc,        "Non conformes",RED),
-            (self.na,        "N/A",          GRAY),
-        ]
-        kpi_x_start = left_w + 8*mm
-        kpi_w       = (card_w - left_w - 10*mm) / 4
-        for i, (val, lbl, col) in enumerate(kpis):
-            kx = kpi_x_start + i * kpi_w + kpi_w / 2
-            ky = card_y + card_h / 2
+    # ── Footer ────────────────────────────────────────────────────────────────
+    canvas.setStrokeColor(BORDER)
+    canvas.setLineWidth(0.5)
+    canvas.line(MARGIN, 12*mm, W - MARGIN, 12*mm)
+    canvas.setFillColor(GRAY)
+    canvas.setFont("Helvetica", 7)
+    canvas.drawString(MARGIN, 7*mm, "CyberScan — confidentiel")
+    canvas.drawCentredString(W/2, 7*mm, "Page 1")
+    canvas.drawRightString(W - MARGIN, 7*mm, date_str[:10])
 
-            # Background tint
-            c.setFillColor(STATUS_BG.get(
-                ["compliant","partial","non_compliant","na"][i], CARD_BG))
-            c.roundRect(kpi_x_start + i*kpi_w, card_y + 6*mm,
-                        kpi_w - 3*mm, card_h - 12*mm, radius=2*mm, fill=1, stroke=0)
-
-            c.setFillColor(col)
-            c.setFont("Helvetica-Bold", 22)
-            c.drawCentredString(kx, ky - 1*mm, str(val))
-            c.setFont("Helvetica", 7)
-            c.setFillColor(GRAY)
-            c.drawCentredString(kx, ky - 8*mm, lbl)
-
-        # Total
-        c.setFillColor(GRAY)
-        c.setFont("Helvetica", 8)
-        c.drawString(left_w + 8*mm, card_y + 2*mm,
-                     f"{self.total} contrôles évalués au total")
-
-        c.restoreState()
-
-    def wrap(self, *args):
-        return self.width, self.height
+    canvas.restoreState()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -274,8 +241,7 @@ def generate_iso27001_pdf(
     user_email: str,
 ) -> bytes:
     buf = io.BytesIO()
-    PAGE_W, PAGE_H = A4
-    W = PAGE_W - 30 * mm
+    W   = PAGE_W - 30*mm
 
     doc = SimpleDocTemplate(
         buf, pagesize=A4,
@@ -283,7 +249,6 @@ def generate_iso27001_pdf(
         topMargin=22*mm, bottomMargin=18*mm,
     )
 
-    story = []
     date_str    = updated_at.strftime("%d/%m/%Y à %H:%M") if updated_at else datetime.utcnow().strftime("%d/%m/%Y à %H:%M")
     score_label = "Conforme" if score >= 80 else "En cours" if score >= 50 else "Non conforme"
 
@@ -294,33 +259,25 @@ def generate_iso27001_pdf(
     nc_n        = sum(1 for i in all_ids if items.get(i, "non_compliant") == "non_compliant")
     na_n        = sum(1 for i in all_ids if items.get(i, "non_compliant") == "na")
 
-    # ── COVER ─────────────────────────────────────────────────────────────────
-    story.append(CoverPage(
-        score=score, score_label=score_label,
-        total=total_items,
-        compliant=compliant_n, partial=partial_n, nc=nc_n, na=na_n,
-        user_email=user_email, date_str=date_str,
-        page_w=PAGE_W, page_h=PAGE_H,
-    ))
-    story.append(Spacer(1, 8*mm))
+    # Cover is page 1 (drawn by onFirstPage). Content starts on page 2.
+    story: list = [PageBreak()]
 
-    # ── DOMAIN SUMMARY TABLE ──────────────────────────────────────────────────
+    # ── SUMMARY TABLE ─────────────────────────────────────────────────────────
     story.append(Paragraph("Résumé par domaine",
                             _st("Sec", fontSize=13, fontName="Helvetica-Bold",
-                                textColor=VIOLET, spaceBefore=6, spaceAfter=4)))
+                                textColor=VIOLET, spaceBefore=4, spaceAfter=4)))
     story.append(HRFlowable(width=W, thickness=1.2, color=VIOLET, spaceAfter=6))
 
-    # Header row
-    hdr = _st("TH", fontSize=8, fontName="Helvetica-Bold", textColor=GRAY)
+    hdr   = _st("TH", fontSize=8, fontName="Helvetica-Bold", textColor=GRAY)
     col_w = [W*0.34, W*0.30, W*0.09, W*0.09, W*0.10, W*0.08]
 
     summary_rows = [[
-        Paragraph("Domaine",   hdr),
-        Paragraph("Score",     hdr),
-        Paragraph("✓",         _st("H1", fontSize=9, fontName="Helvetica-Bold", textColor=GREEN)),
-        Paragraph("~",         _st("H2", fontSize=9, fontName="Helvetica-Bold", textColor=YELLOW)),
-        Paragraph("✗",         _st("H3", fontSize=9, fontName="Helvetica-Bold", textColor=RED)),
-        Paragraph("—",         _st("H4", fontSize=9, fontName="Helvetica-Bold", textColor=GRAY)),
+        Paragraph("Domaine", hdr),
+        Paragraph("Score",   hdr),
+        Paragraph("✓ Conf.", _st("H1", fontSize=8, fontName="Helvetica-Bold", textColor=GREEN)),
+        Paragraph("~ Part.", _st("H2", fontSize=8, fontName="Helvetica-Bold", textColor=YELLOW)),
+        Paragraph("✗ N.C.", _st("H3", fontSize=8, fontName="Helvetica-Bold", textColor=RED)),
+        Paragraph("— N/A",  _st("H4", fontSize=8, fontName="Helvetica-Bold", textColor=GRAY)),
     ]]
 
     for cat in categories:
@@ -331,44 +288,32 @@ def generate_iso27001_pdf(
         na = sum(1 for it in cat_items if items.get(it["id"], "non_compliant") == "na")
         pct       = _cat_score(cat_items, items)
         bar_color = _score_color(pct)
-
-        bar_w  = W * 0.30 - 16
-        bar_h  = 7
-        filled = max(bar_w * pct / 100, 0)
-        empty  = bar_w - filled
+        bar_w     = W * 0.30 - 16
+        bar_h     = 8
+        filled    = max(bar_w * pct / 100, 0)
+        empty     = bar_w - filled
 
         if pct <= 0:
             bar = Table([[""]], colWidths=[bar_w], rowHeights=[bar_h])
-            bar.setStyle(TableStyle([
-                ("BACKGROUND", (0,0),(-1,-1), colors.HexColor("#1e293b")),
+            bar.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,-1),colors.HexColor("#1e293b")),
                 ("TOPPADDING",(0,0),(-1,-1),0),("BOTTOMPADDING",(0,0),(-1,-1),0),
-                ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
-            ]))
+                ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0)]))
         elif pct >= 100:
             bar = Table([[""]], colWidths=[bar_w], rowHeights=[bar_h])
-            bar.setStyle(TableStyle([
-                ("BACKGROUND", (0,0),(-1,-1), bar_color),
+            bar.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,-1),bar_color),
                 ("TOPPADDING",(0,0),(-1,-1),0),("BOTTOMPADDING",(0,0),(-1,-1),0),
-                ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
-            ]))
+                ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0)]))
         else:
-            bar = Table([["", ""]], colWidths=[filled, empty], rowHeights=[bar_h])
-            bar.setStyle(TableStyle([
-                ("BACKGROUND",(0,0),(0,0), bar_color),
-                ("BACKGROUND",(1,0),(1,0), colors.HexColor("#1e293b")),
+            bar = Table([["",""]], colWidths=[filled, empty], rowHeights=[bar_h])
+            bar.setStyle(TableStyle([("BACKGROUND",(0,0),(0,0),bar_color),
+                ("BACKGROUND",(1,0),(1,0),colors.HexColor("#1e293b")),
                 ("TOPPADDING",(0,0),(-1,-1),0),("BOTTOMPADDING",(0,0),(-1,-1),0),
-                ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
-            ]))
-
-        bar_cell = [
-            bar,
-            Paragraph(f"{pct}%", _st(f"BP{cat['id']}", fontSize=7, fontName="Helvetica-Bold",
-                                      textColor=bar_color, spaceBefore=2)),
-        ]
+                ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0)]))
 
         summary_rows.append([
             Paragraph(cat["label"], _st(f"CL{cat['id']}", fontSize=8, textColor=WHITE)),
-            bar_cell,
+            [bar, Paragraph(f"{pct}%", _st(f"BP{cat['id']}", fontSize=7, fontName="Helvetica-Bold",
+                                            textColor=bar_color, spaceBefore=2))],
             Paragraph(str(c),  _st(f"CC{cat['id']}", fontSize=9, fontName="Helvetica-Bold", textColor=GREEN,  alignment=1)),
             Paragraph(str(p),  _st(f"CP{cat['id']}", fontSize=9, fontName="Helvetica-Bold", textColor=YELLOW, alignment=1)),
             Paragraph(str(n),  _st(f"CN{cat['id']}", fontSize=9, fontName="Helvetica-Bold", textColor=RED,    alignment=1)),
@@ -387,23 +332,22 @@ def generate_iso27001_pdf(
         ("ALIGN",          (2,0), (-1,-1), "CENTER"),
         ("VALIGN",         (0,0), (-1,-1), "MIDDLE"),
         ("LINEBELOW",      (0,0), (-1,0),  1, VIOLET),
-        # Violet left accent on each category cell
         ("LINEBEFORE",     (0,1), (0,-1),  3, VIOLET_DIM),
     ]))
     story.append(summary_table)
     story.append(Spacer(1, 8*mm))
 
-    # ── DETAILED CHECKLIST ────────────────────────────────────────────────────
+    # ── DETAIL CHECKLIST ──────────────────────────────────────────────────────
     story.append(Paragraph("Détail des contrôles",
                             _st("Sec2", fontSize=13, fontName="Helvetica-Bold",
-                                textColor=VIOLET, spaceBefore=6, spaceAfter=4)))
+                                textColor=VIOLET, spaceBefore=4, spaceAfter=4)))
     story.append(HRFlowable(width=W, thickness=1.2, color=VIOLET, spaceAfter=6))
 
     for cat in categories:
         pct = _cat_score(cat["items"], items)
         sc  = _score_color(pct)
 
-        # Category header row
+        # Category header
         hdr_row = Table([[
             Paragraph(cat["label"],
                       _st(f"CH{cat['id']}", fontSize=10, fontName="Helvetica-Bold",
@@ -413,10 +357,10 @@ def generate_iso27001_pdf(
                           textColor=sc, alignment=2)),
         ]], colWidths=[W*0.85, W*0.15])
         hdr_row.setStyle(TableStyle([
-            ("BACKGROUND",    (0,0), (-1,-1), colors.HexColor("#0f0e1f")),
+            ("BACKGROUND",    (0,0), (-1,-1), VIOLET_BG),
             ("TOPPADDING",    (0,0), (-1,-1), 9),
             ("BOTTOMPADDING", (0,0), (-1,-1), 9),
-            ("LEFTPADDING",   (0,0), (-1,-1), 10),
+            ("LEFTPADDING",   (0,0), (-1,-1), 12),
             ("RIGHTPADDING",  (0,0), (-1,-1), 10),
             ("VALIGN",        (0,0), (-1,-1), "MIDDLE"),
             ("ALIGN",         (1,0), (1,0),   "RIGHT"),
@@ -424,16 +368,15 @@ def generate_iso27001_pdf(
             ("LINEBELOW",     (0,0), (-1,-1), 0.8, VIOLET),
         ]))
 
-        # Item rows
         item_rows = []
         item_ts   = []
 
         for row_idx, it in enumerate(cat["items"]):
-            status  = items.get(it["id"], "non_compliant")
-            sc_col  = STATUS_COLOR.get(status, GRAY)
-            sl      = STATUS_LABEL.get(status, status)
+            status = items.get(it["id"], "non_compliant")
+            sc_col = STATUS_COLOR.get(status, GRAY)
+            sl     = STATUS_LABEL.get(status, status)
 
-            # Badge cell (colored pill)
+            # Pill badge
             badge = Table(
                 [[Paragraph(sl, _st(f"Bdg{it['id']}", fontSize=7,
                                     fontName="Helvetica-Bold", textColor=sc_col,
@@ -444,9 +387,9 @@ def generate_iso27001_pdf(
                 ("BACKGROUND",    (0,0),(-1,-1), STATUS_BG.get(status, CARD_BG)),
                 ("TOPPADDING",    (0,0),(-1,-1), 4),
                 ("BOTTOMPADDING", (0,0),(-1,-1), 4),
-                ("LEFTPADDING",   (0,0),(-1,-1), 4),
-                ("RIGHTPADDING",  (0,0),(-1,-1), 4),
-                ("BOX",           (0,0),(-1,-1), 0.6, sc_col),
+                ("LEFTPADDING",   (0,0),(-1,-1), 3),
+                ("RIGHTPADDING",  (0,0),(-1,-1), 3),
+                ("BOX",           (0,0),(-1,-1), 0.7, sc_col),
                 ("ALIGN",         (0,0),(-1,-1), "CENTER"),
             ]))
 
@@ -480,14 +423,21 @@ def generate_iso27001_pdf(
     story.append(Spacer(1, 4*mm))
     story.append(HRFlowable(width=W, thickness=0.5, color=BORDER, spaceAfter=4))
     story.append(Paragraph(
-        f"Rapport ISO 27001:2022 généré par CyberScan le {datetime.utcnow().strftime('%d/%m/%Y à %H:%M')} UTC — "
+        f"Rapport ISO 27001:2022 généré par CyberScan le "
+        f"{datetime.utcnow().strftime('%d/%m/%Y à %H:%M')} UTC — "
         "Ce rapport est fourni à titre indicatif et ne constitue pas une certification ISO/IEC 27001.",
         _st("Disc", fontSize=7, textColor=GRAY),
     ))
 
-    doc.build(
-        story,
-        onFirstPage=lambda c, d: draw_page(c, d, DOC_TYPE, "Conformité ISO 27001:2022", user_email),
-        onLaterPages=lambda c, d: draw_page(c, d, DOC_TYPE, "Conformité ISO 27001:2022"),
-    )
+    # ── BUILD ─────────────────────────────────────────────────────────────────
+    def _first_page(canvas, doc):
+        _draw_cover(canvas, doc,
+                    score=score, score_label=score_label, total=total_items,
+                    compliant=compliant_n, partial=partial_n, nc=nc_n, na=na_n,
+                    user_email=user_email, date_str=date_str)
+
+    def _later_pages(canvas, doc):
+        draw_page(canvas, doc, DOC_TYPE, "Conformité ISO 27001:2022", "")
+
+    doc.build(story, onFirstPage=_first_page, onLaterPages=_later_pages)
     return buf.getvalue()
