@@ -14,32 +14,40 @@ import { describe, it, expect } from 'vitest';
 // Reproduit exactement le getter privé de AuthStore
 
 function resolveReturnUrl(queryParamValue: string | null): string {
-  const url = queryParamValue || '/cyberscan';
-  return url.startsWith('/vault') ? '/cyberscan' : url;
+  const url = queryParamValue || '';
+  return url.startsWith('/cyberscan/') ? url : '/cyberscan';
 }
 
 describe('AuthStore — returnUrl resolution', () => {
-  it('utilise returnUrl quand il est présent', () => {
+  it('utilise returnUrl si c\'est une route /cyberscan/', () => {
     expect(resolveReturnUrl('/cyberscan/dashboard')).toBe('/cyberscan/dashboard');
   });
 
-  it('utilise /cyberscan quand returnUrl est null', () => {
-    expect(resolveReturnUrl(null)).toBe('/cyberscan');
-  });
-
-  it('utilise /cyberscan quand returnUrl est une chaîne vide', () => {
-    expect(resolveReturnUrl('')).toBe('/cyberscan');
-  });
-
-  it('préserve les chemins avec query params', () => {
+  it('préserve les sous-chemins /cyberscan/ avec query params', () => {
     expect(resolveReturnUrl('/cyberscan/dashboard?tab=scans')).toBe('/cyberscan/dashboard?tab=scans');
   });
 
-  it('ignore returnUrl=/vault et redirige vers /cyberscan', () => {
+  it('redirige vers /cyberscan quand returnUrl est null', () => {
+    expect(resolveReturnUrl(null)).toBe('/cyberscan');
+  });
+
+  it('redirige vers /cyberscan quand returnUrl est vide', () => {
+    expect(resolveReturnUrl('')).toBe('/cyberscan');
+  });
+
+  it('ignore returnUrl=/vault', () => {
     expect(resolveReturnUrl('/vault')).toBe('/cyberscan');
   });
 
-  it('ignore tout sous-chemin de /vault', () => {
-    expect(resolveReturnUrl('/vault/settings')).toBe('/cyberscan');
+  it('ignore returnUrl=/auth/master-password', () => {
+    expect(resolveReturnUrl('/auth/master-password')).toBe('/cyberscan');
+  });
+
+  it('ignore returnUrl=/auth/login', () => {
+    expect(resolveReturnUrl('/auth/login')).toBe('/cyberscan');
+  });
+
+  it('ignore /cyberscan sans slash final (landing)', () => {
+    expect(resolveReturnUrl('/cyberscan')).toBe('/cyberscan');
   });
 });

@@ -50,8 +50,13 @@ describe('RegisterComponent — returnUrl', () => {
     expect(component.returnUrl).toBeNull();
   });
 
-  it('returnUrl getter retourne null pour tout sous-chemin de /vault', async () => {
-    const { component } = await makeComponent('/vault/settings');
+  it('returnUrl getter retourne null pour /auth/master-password', async () => {
+    const { component } = await makeComponent('/auth/master-password');
+    expect(component.returnUrl).toBeNull();
+  });
+
+  it('returnUrl getter retourne null pour /cyberscan sans slash final', async () => {
+    const { component } = await makeComponent('/cyberscan');
     expect(component.returnUrl).toBeNull();
   });
 
@@ -73,6 +78,14 @@ describe('RegisterComponent — returnUrl', () => {
 
   it('navigue vers /cyberscan si returnUrl pointe vers /vault', async () => {
     const { component, navigateByUrlMock } = await makeComponent('/vault');
+    component.form.setValue({ email: 'a@b.com', password: 'Password1!', confirmPassword: 'Password1!' });
+    component.submit();
+    await new Promise(r => setTimeout(r, 20));
+    expect(navigateByUrlMock).toHaveBeenCalledWith('/cyberscan');
+  });
+
+  it('navigue vers /cyberscan si returnUrl pointe vers /auth/master-password', async () => {
+    const { component, navigateByUrlMock } = await makeComponent('/auth/master-password');
     component.form.setValue({ email: 'a@b.com', password: 'Password1!', confirmPassword: 'Password1!' });
     component.submit();
     await new Promise(r => setTimeout(r, 20));

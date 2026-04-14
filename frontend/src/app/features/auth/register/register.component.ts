@@ -36,7 +36,7 @@ export class RegisterComponent {
 
   get returnUrl(): string | null {
     const url = this.route.snapshot.queryParamMap.get('returnUrl');
-    return url?.startsWith('/vault') ? null : url;
+    return url?.startsWith('/cyberscan/') ? url : null;
   }
 
   form = this.fb.nonNullable.group({
