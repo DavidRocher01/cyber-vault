@@ -28,8 +28,8 @@ services:
       DATABASE_URL: postgresql+asyncpg://postgres:password@postgres:5432/cybervault
       ALLOWED_ORIGINS: '["http://localhost:4200"]'
       FRONTEND_URL: http://localhost:4200
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
