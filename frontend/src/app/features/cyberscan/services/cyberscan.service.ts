@@ -264,6 +264,20 @@ export class CyberscanService {
     return this.http.get(`${API}/nis2/me/pdf`, { responseType: 'blob' });
   }
 
+  // ── ISO 27001 ──────────────────────────────────────────────────────────
+
+  getIso27001Assessment(): Observable<any> {
+    return this.http.get<any>(`${API}/iso27001/me`);
+  }
+
+  saveIso27001Assessment(items: Record<string, string>): Observable<any> {
+    return this.http.put<any>(`${API}/iso27001/me`, { items });
+  }
+
+  downloadIso27001PdfBlob(): Observable<Blob> {
+    return this.http.get(`${API}/iso27001/me/pdf`, { responseType: 'blob' });
+  }
+
   // ── Notifications ──────────────────────────────────────────────────────
 
   getNotifications(): Observable<NotificationList> {

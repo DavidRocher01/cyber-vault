@@ -62,6 +62,12 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Conformité NIS2 — CyberScan',
   },
   {
+    path: 'iso27001',
+    loadComponent: () => import('./iso27001/iso27001.component').then(m => m.Iso27001Component),
+    canActivate: [authGuard],
+    title: 'Conformité ISO 27001:2022 — CyberScan',
+  },
+  {
     path: 'ressources',
     loadComponent: () => import('./ressources/ressources.component').then(m => m.RessourcesComponent),
     title: 'Ressources — CyberScan',
