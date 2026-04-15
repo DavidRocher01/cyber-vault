@@ -1025,13 +1025,35 @@ def main() -> None:
             port_result=ports_result or None,
             headers_result=headers_result or None,
             sca_result=sca_result or None,
+            ssl_result=ssl_result or None,
+            cors_result=cors_result or None,
+            cookie_result=cookie_result or None,
+            http_methods_result=methods_result or None,
+            clickjacking_result=clickjacking_result or None,
+            directory_listing_result=dirlist_result or None,
+            open_redirect_result=redirect_result or None,
+            robots_result=robots_result or None,
+            email_result=email_result or None,
+            waf_result=waf_result or None,
         )
-        lines = [f"[bold green]Scripts de remédiation générés dans[/bold green] [cyan]remediation/[/cyan]"]
+        lines = ["[bold green]Scripts de remédiation générés dans[/bold green] [cyan]remediation/[/cyan]"]
         script_labels = {
-            "ufw":     "ufw_setup.sh            — règles pare-feu UFW",
-            "ssh":     "ssh_hardening.sh        — durcissement SSH",
-            "fastapi": "fastapi_security_middleware.py — headers de sécurité",
-            "upgrade": "upgrade_deps.sh         — mise à jour dépendances vulnérables",
+            "ufw":                    "ufw_setup.sh                   — règles pare-feu UFW",
+            "ssh":                    "ssh_hardening.sh               — durcissement SSH",
+            "robots":                 "robots.txt                     — robots.txt sécurisé",
+            "nginx_waf":              "nginx_waf_ratelimit.conf       — WAF + rate-limiting Nginx",
+            "nginx_ssl":              "nginx_ssl_hardening.conf       — SSL/TLS Nginx durci",
+            "fastapi_cors":           "fastapi_cors_fix.py            — CORS FastAPI",
+            "nginx_cors":             "nginx_cors_fix.conf            — CORS Nginx",
+            "fastapi_cookie":         "fastapi_cookie_security.py     — cookies sécurisés",
+            "nginx_methods":          "nginx_http_methods.conf        — méthodes HTTP restreintes",
+            "nginx_clickjacking":     "nginx_clickjacking.conf        — anti-clickjacking Nginx",
+            "fastapi_clickjacking":   "fastapi_clickjacking.py        — anti-clickjacking FastAPI",
+            "nginx_dirlist":          "nginx_directory_listing.conf   — directory listing désactivé",
+            "fastapi_open_redirect":  "fastapi_open_redirect.py       — open redirect corrigé",
+            "dns_email":              "dns_email_security.txt         — SPF/DKIM/DMARC",
+            "fastapi":                "fastapi_security_middleware.py — headers de sécurité",
+            "upgrade":                "upgrade_deps.sh                — mise à jour dépendances vulnérables",
         }
         for key, label in script_labels.items():
             if key in generated:
