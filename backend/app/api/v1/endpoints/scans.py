@@ -247,48 +247,39 @@ async def download_remediation_script(
         filename, media_type = _REMEDIATION_META[script_key]
         return FileResponse(path=script_path, media_type=media_type, filename=filename)
 
-    # Otherwise regenerate on-the-fly from scan data stored in DB
+    # File missing on disk — regenerate on-the-fly from scan data stored in DB
     try:
-        import sys
+        import sys, tempfile
         if "/cyber-scanner" not in sys.path:
             sys.path.insert(0, "/cyber-scanner")
-        from scanner.remediation import (
-            _build_ufw_script, _build_ssh_script,
-            _build_fastapi_middleware, _build_upgrade_script,
-        )
-        from datetime import datetime as dt
+        from scanner.remediation import generate_remediation
 
         target_url = results.get("_meta", {}).get("url", "unknown")
-        date_str   = dt.now().strftime("%Y-%m-%d %H:%M")
 
-        if script_key == "ufw":
-            port_result    = results.get("ports", {})
-            critical_ports = port_result.get("critical_ports", []) if not port_result.get("error") else []
-            content = _build_ufw_script(target_url, date_str, critical_ports)
-            media_type = "text/x-sh"
-            filename   = "ufw_setup.sh"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            paths = generate_remediation(
+                target_url=target_url,
+                port_result=results.get("ports") or None,
+                headers_result=results.get("headers") or None,
+                sca_result=None,
+                ssl_result=results.get("ssl") or None,
+                cors_result=results.get("cors") or None,
+                cookie_result=results.get("cookies") or None,
+                http_methods_result=results.get("http_methods") or None,
+                clickjacking_result=results.get("clickjacking") or None,
+                directory_listing_result=results.get("directory_listing") or None,
+                open_redirect_result=results.get("open_redirect") or None,
+                robots_result=results.get("robots") or None,
+                email_result=results.get("email") or None,
+                waf_result=results.get("waf") or None,
+                output_dir=tmpdir,
+            )
+            if script_key not in paths:
+                raise HTTPException(status_code=404, detail="Script non disponible pour ce scan")
 
-        elif script_key == "ssh":
-            content    = _build_ssh_script(target_url, date_str)
-            media_type = "text/x-sh"
-            filename   = "ssh_hardening.sh"
-
-        elif script_key == "fastapi":
-            headers_result  = results.get("headers", {})
-            missing_headers = headers_result.get("headers_missing", []) if not headers_result.get("error") else []
-            content    = _build_fastapi_middleware(target_url, date_str, missing_headers)
-            media_type = "text/x-python"
-            filename   = "fastapi_security_middleware.py"
-
-        elif script_key == "upgrade":
-            sca_result = results.get("sca", {})
-            vulns      = sca_result.get("vulns", []) if sca_result and not sca_result.get("error") else []
-            content    = _build_upgrade_script(target_url, date_str, vulns)
-            media_type = "text/x-sh"
-            filename   = "upgrade_deps.sh"
-
-        else:
-            raise HTTPException(status_code=404, detail="Script non trouvé")
+            filename, media_type = _REMEDIATION_META[script_key]
+            with open(paths[script_key], "r", encoding="utf-8") as f:
+                content = f.read()
 
         return StreamingResponse(
             iter([content.encode("utf-8")]),
@@ -296,5 +287,7 @@ async def download_remediation_script(
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
 
-    except ImportError:
+    except HTTPException:
+        raise
+    except Exception:
         raise HTTPException(status_code=404, detail="Script non trouvé")
