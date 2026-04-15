@@ -185,6 +185,17 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
                 target_url=url,
                 port_result=port_result,
                 headers_result=headers_result,
+                sca_result=None,
+                ssl_result=ssl_result,
+                cors_result=cors_result,
+                cookie_result=cookie_result,
+                http_methods_result=methods_result,
+                clickjacking_result=clickjacking_result,
+                directory_listing_result=dirlist_result,
+                open_redirect_result=redirect_result,
+                robots_result=robots_result,
+                email_result=email_result,
+                waf_result=waf_result,
                 output_dir=remediation_dir,
             )
         except Exception:
