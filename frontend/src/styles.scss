@@ -107,3 +107,31 @@ app-cyberscan-landing mat-expansion-panel .mat-expansion-indicator::after {
 app-cyberscan-landing mat-expansion-panel.mat-expanded {
   border-left: 3px solid #22d3ee !important;
 }
+
+/* ── Skeleton shimmer (GPU-only: transform on ::after, no Paint trigger) ─── */
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: rgba(30, 41, 59, 0.85);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent          0%,
+      rgba(100, 116, 139, 0.18) 45%,
+      rgba(148, 163, 184, 0.28) 50%,
+      rgba(100, 116, 139, 0.18) 55%,
+      transparent         100%
+    );
+    animation: shimmer 1.8s ease-in-out infinite;
+    will-change: transform;
+  }
+}

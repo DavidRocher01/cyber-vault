@@ -6,7 +6,7 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div [class]="'animate-pulse bg-gray-700 rounded-lg ' + cssClass" [style.height]="height" [style.width]="width"></div>
+    <div [class]="'skeleton-shimmer rounded-lg ' + cssClass" [style.height]="height" [style.width]="width"></div>
   `,
 })
 export class SkeletonComponent {
