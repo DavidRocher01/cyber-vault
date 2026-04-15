@@ -14,6 +14,7 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import (
     HRFlowable,
+    PageBreak,
     Paragraph,
     SimpleDocTemplate,
     Spacer,
@@ -32,31 +33,13 @@ from app.services.pdf_brand import (
     RED,
     WHITE,
     YELLOW,
-    draw_page,
+    STATUS_COLOR, STATUS_LABEL, STATUS_BG,
+    draw_page, draw_compliance_cover, score_color, cat_score,
     get_styles,
     section_rule,
 )
 
 DOC_TYPE = "nis2"
-
-STATUS_COLOR = {
-    "compliant":     GREEN,
-    "partial":       YELLOW,
-    "non_compliant": RED,
-    "na":            GRAY,
-}
-STATUS_LABEL = {
-    "compliant":     "Conforme",
-    "partial":       "Partiel",
-    "non_compliant": "Non conforme",
-    "na":            "N/A",
-}
-STATUS_BG = {
-    "compliant":     colors.HexColor("#052e16"),
-    "partial":       colors.HexColor("#1c1400"),
-    "non_compliant": colors.HexColor("#2d0a0a"),
-    "na":            colors.HexColor("#0f172a"),
-}
 
 ROW_A = CARD_BG
 ROW_B = colors.HexColor("#162032")
@@ -66,30 +49,6 @@ def _st(name, **kw) -> ParagraphStyle:
     d = dict(fontName="Helvetica", textColor=WHITE, fontSize=9, spaceAfter=2, leading=12)
     d.update(kw)
     return ParagraphStyle(name, **d)
-
-
-def _score_color(pct: int):
-    if pct >= 80: return GREEN
-    if pct >= 50: return YELLOW
-    return RED
-
-
-def _score_bg(pct: int):
-    if pct >= 80: return colors.HexColor("#052e16")
-    if pct >= 50: return colors.HexColor("#1c1400")
-    return colors.HexColor("#2d0a0a")
-
-
-def _cat_score(cat_items: list, items: dict) -> int:
-    scorable = [it for it in cat_items if items.get(it["id"], "non_compliant") != "na"]
-    if not scorable:
-        return 0
-    pts = sum(
-        2 if items.get(it["id"], "non_compliant") == "compliant"
-        else 1 if items.get(it["id"], "non_compliant") == "partial" else 0
-        for it in scorable
-    )
-    return round(pts / (len(scorable) * 2) * 100)
 
 
 def generate_nis2_pdf(
@@ -109,12 +68,9 @@ def generate_nis2_pdf(
     )
 
     st = get_styles(DOC_TYPE)
-    story = []
 
     date_str    = updated_at.strftime("%d/%m/%Y à %H:%M") if updated_at else "—"
     score_label = "Conforme" if score >= 80 else "En cours" if score >= 50 else "Non conforme"
-    sc          = _score_color(score)
-    sc_bg       = _score_bg(score)
 
     all_ids     = [it["id"] for cat in categories for it in cat["items"]]
     total_items = len(all_ids)
@@ -123,73 +79,13 @@ def generate_nis2_pdf(
     nc_n        = sum(1 for i in all_ids if items.get(i, "non_compliant") == "non_compliant")
     na_n        = sum(1 for i in all_ids if items.get(i, "non_compliant") == "na")
 
-    # ── SCORE HERO ──────────────────────────────────────────────────────────────
-    # Row 1: score % | label + date
-    # Row 2: 4 KPI cells (spanning right column)
-
-    score_pct_st  = _st("ScP", fontSize=42, fontName="Helvetica-Bold", textColor=sc, leading=46)
-    score_lbl_st  = _st("ScL", fontSize=13, fontName="Helvetica-Bold", textColor=sc, leading=18)
-    date_st       = _st("ScD", fontSize=8,  textColor=GRAY, leading=11)
-    total_st      = _st("ScT", fontSize=8,  textColor=GRAY, leading=11)
-
-    # KPI cells inside a 1×4 sub-table
-    kpi_col_w = W * 0.65 / 4
-
-    def kpi_para(val: int, label: str, color) -> list:
-        return [
-            Paragraph(str(val), _st(f"KV{label}", fontSize=20, fontName="Helvetica-Bold",
-                                    textColor=color, leading=24)),
-            Paragraph(label,    _st(f"KL{label}", fontSize=7,  textColor=GRAY, leading=10)),
-        ]
-
-    kpi_table = Table(
-        [[kpi_para(compliant_n, "Conformes", GREEN),
-          kpi_para(partial_n,   "Partiels",  YELLOW),
-          kpi_para(nc_n,        "Non conf.", RED),
-          kpi_para(na_n,        "N/A",       GRAY)]],
-        colWidths=[kpi_col_w] * 4,
-    )
-    kpi_table.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (0, 0), colors.HexColor("#052e16")),
-        ("BACKGROUND",    (1, 0), (1, 0), colors.HexColor("#1c1400")),
-        ("BACKGROUND",    (2, 0), (2, 0), colors.HexColor("#2d0a0a")),
-        ("BACKGROUND",    (3, 0), (3, 0), colors.HexColor("#0f172a")),
-        ("TOPPADDING",    (0, 0), (-1, -1), 10),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
-        ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
-        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-        ("LINEAFTER",     (0, 0), (2, 0),   0.5, BORDER),
-    ]))
-
-    right_content = [
-        Paragraph(score_label, score_lbl_st),
-        Spacer(1, 3),
-        Paragraph(f"Mis à jour le {date_str}", date_st),
-        Spacer(1, 8),
-        kpi_table,
-        Spacer(1, 4),
-        Paragraph(f"{total_items} critères évalués au total", total_st),
+    domain_scores: list[tuple[str, int]] = [
+        (cat["label"], cat_score(cat["items"], items))
+        for cat in categories
     ]
 
-    hero = Table(
-        [[Paragraph(f"{score}%", score_pct_st), right_content]],
-        colWidths=[W * 0.25, W * 0.75],
-    )
-    hero.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, -1), CARD_BG),
-        ("BACKGROUND",    (0, 0), (0, 0),   sc_bg),
-        ("TOPPADDING",    (0, 0), (-1, -1), 18),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 18),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 20),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 16),
-        ("VALIGN",        (0, 0), (0, 0),   "MIDDLE"),
-        ("VALIGN",        (1, 0), (1, 0),   "TOP"),
-        ("LINEAFTER",     (0, 0), (0, 0),   1, BORDER),
-    ]))
-    story.append(hero)
-    story.append(Spacer(1, 7 * mm))
+    # Cover is page 1 (drawn by onFirstPage). Content starts on page 2.
+    story: list = [PageBreak()]
 
     # ── CATEGORY SUMMARY ────────────────────────────────────────────────────────
     story.append(Paragraph("Résumé par catégorie", st["section"]))
@@ -213,8 +109,8 @@ def generate_nis2_pdf(
         p  = sum(1 for it in cat_items if items.get(it["id"], "non_compliant") == "partial")
         n  = sum(1 for it in cat_items if items.get(it["id"], "non_compliant") == "non_compliant")
         na = sum(1 for it in cat_items if items.get(it["id"], "non_compliant") == "na")
-        pct = _cat_score(cat_items, items)
-        bar_color = _score_color(pct)
+        pct = cat_score(cat_items, items)
+        bar_color = score_color(pct)
 
         # Progress bar as a 2-col table (filled + empty)
         bar_w = W * 0.30 - 16  # subtract padding
@@ -282,7 +178,7 @@ def generate_nis2_pdf(
     story.append(section_rule(W, DOC_TYPE))
 
     for cat in categories:
-        pct = _cat_score(cat["items"], items)
+        pct = cat_score(cat["items"], items)
 
         # Category header
         hdr_row = Table([[
@@ -291,7 +187,7 @@ def generate_nis2_pdf(
                           textColor=CYAN, leading=13)),
             Paragraph(f"{pct}%",
                       _st(f"CS{cat['id']}", fontSize=8, fontName="Helvetica-Bold",
-                          textColor=_score_color(pct))),
+                          textColor=score_color(pct))),
         ]], colWidths=[W * 0.88, W * 0.12])
         hdr_row.setStyle(TableStyle([
             ("BACKGROUND",    (0, 0), (-1, -1), colors.HexColor("#0c1f3a")),
@@ -352,9 +248,21 @@ def generate_nis2_pdf(
         _st("Disc", fontSize=7, textColor=GRAY),
     ))
 
+    def _first_page(c, d):
+        draw_compliance_cover(
+            c, d,
+            doc_type=DOC_TYPE,
+            title_line1="Rapport de conformite",
+            title_line2="NIS2",
+            score=score, score_label=score_label, total=total_items,
+            compliant=compliant_n, partial=partial_n, nc=nc_n, na=na_n,
+            date_str=date_str,
+            domain_scores=domain_scores,
+        )
+
     doc.build(
         story,
-        onFirstPage=lambda c, d: draw_page(c, d, DOC_TYPE, "Conformité NIS2", "contact@cyberscanapp.com"),
+        onFirstPage=_first_page,
         onLaterPages=lambda c, d: draw_page(c, d, DOC_TYPE, "Conformité NIS2"),
     )
     return buf.getvalue()

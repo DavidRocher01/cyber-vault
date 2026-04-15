@@ -14,6 +14,7 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import (
     HRFlowable,
+    PageBreak,
     Paragraph,
     SimpleDocTemplate,
     Spacer,
@@ -32,7 +33,7 @@ from app.services.pdf_brand import (
     RED,
     WHITE,
     YELLOW,
-    draw_page,
+    draw_page, draw_url_scan_cover,
     get_styles,
     section_rule,
 )
@@ -48,6 +49,11 @@ VERDICT_LABEL = {
     "safe":       "SÛR",
     "suspicious": "SUSPECT",
     "malicious":  "MALVEILLANT",
+}
+VERDICT_HEX = {
+    "safe":       "#4ade80",
+    "suspicious": "#facc15",
+    "malicious":  "#f87171",
 }
 SEVERITY_COLOR = {
     "critical": RED,
@@ -85,64 +91,16 @@ def generate_url_scan_pdf(url_scan_data: dict) -> bytes:
 
     W  = A4[0] - 30 * mm
     st = get_styles(DOC_TYPE)
-    story = []
 
-    # ── Verdict hero ──────────────────────────────────────────────────────────
-    verdict = url_scan_data.get("verdict") or "unknown"
-    score   = url_scan_data.get("threat_score") or 0
-    v_color = VERDICT_COLOR.get(verdict, GRAY)
-    v_label = VERDICT_LABEL.get(verdict, verdict.upper())
-
-    verdict_style = ParagraphStyle(
-        "VerdictDyn",
-        fontSize=28,
-        fontName="Helvetica-Bold",
-        textColor=v_color,
-    )
-    score_style = ParagraphStyle(
-        "ScoreDyn",
-        fontSize=13,
-        fontName="Helvetica-Bold",
-        textColor=v_color,
-    )
-    threat_type = url_scan_data.get("threat_type") or ""
-    threat_label_map = {
-        "phishing":          "Phishing",
-        "malware":           "Malware",
-        "redirect":          "Redirection suspecte",
-        "tracker":           "Tracker",
-        "malicious_domain":  "Domaine malveillant",
-    }
-    threat_label = threat_label_map.get(threat_type, threat_type) if threat_type else ""
-
-    verdict_data = [[
-        Paragraph(v_label, verdict_style),
-        Paragraph(
-            f"Score : {score}/100<br/>"
-            f"<font size='9' color='#94a3b8'>{threat_label}</font>",
-            score_style,
-        ),
-    ]]
-    verdict_table = Table(verdict_data, colWidths=[W * 0.6, W * 0.4])
-    verdict_table.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, -1), CARD_BG),
-        ("TOPPADDING",    (0, 0), (-1, -1), 14),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 14),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 14),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 14),
-        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-        ("ALIGN",         (1, 0), (1, 0),   "RIGHT"),
-        ("ROUNDEDCORNERS", [6]),
-    ]))
-    story.append(verdict_table)
-    story.append(Spacer(1, 5 * mm))
-
-    # ── URL info ──────────────────────────────────────────────────────────────
-    url          = url_scan_data.get("url", "")
-    orig_domain  = url_scan_data.get("original_domain", "")
-    final_domain = url_scan_data.get("final_domain", "")
+    # ── Extract scan data needed for cover + content ───────────────────────────
+    verdict       = url_scan_data.get("verdict") or "unknown"
+    score         = url_scan_data.get("threat_score") or 0
+    v_label       = VERDICT_LABEL.get(verdict, verdict.upper())
+    v_hex         = VERDICT_HEX.get(verdict, "#94a3b8")
+    findings      = url_scan_data.get("findings") or []
     redirect_count = url_scan_data.get("redirect_count", 0)
-    ssl_valid    = url_scan_data.get("ssl_valid", True)
+    ssl_valid     = url_scan_data.get("ssl_valid", True)
+    url           = url_scan_data.get("url", "")
 
     created_at = url_scan_data.get("created_at", "")
     if isinstance(created_at, datetime):
@@ -155,6 +113,13 @@ def generate_url_scan_pdf(url_scan_data: dict) -> bytes:
             date_str = str(created_at)
     else:
         date_str = "—"
+
+    # Cover is page 1 (drawn by onFirstPage). Content starts on page 2.
+    story: list = [PageBreak()]
+
+    # ── URL info ──────────────────────────────────────────────────────────────
+    orig_domain  = url_scan_data.get("original_domain", "")
+    final_domain = url_scan_data.get("final_domain", "")
 
     url_color    = "#06b6d4"
     domain_color = "#facc15" if final_domain != orig_domain else "#ffffff"
@@ -194,7 +159,6 @@ def generate_url_scan_pdf(url_scan_data: dict) -> bytes:
     story.append(Spacer(1, 6 * mm))
 
     # ── Findings ──────────────────────────────────────────────────────────────
-    findings = url_scan_data.get("findings") or []
     story.append(Paragraph(f"Comportements détectés ({len(findings)})", st["section"]))
     story.append(section_rule(W, DOC_TYPE))
 
@@ -254,9 +218,22 @@ def generate_url_scan_pdf(url_scan_data: dict) -> bytes:
     ))
 
     # ── Build ─────────────────────────────────────────────────────────────────
+    def _first_page(c, d):
+        draw_url_scan_cover(
+            c, d,
+            url=url,
+            verdict_label=v_label,
+            verdict_color_hex=v_hex,
+            threat_score=score,
+            findings_count=len(findings),
+            redirect_count=redirect_count,
+            ssl_valid=ssl_valid,
+            date_str=date_str,
+        )
+
     doc.build(
         story,
-        onFirstPage=lambda c, d: draw_page(c, d, DOC_TYPE, "Analyse d'URL"),
+        onFirstPage=_first_page,
         onLaterPages=lambda c, d: draw_page(c, d, DOC_TYPE, "Analyse d'URL"),
     )
     return buf.getvalue()
