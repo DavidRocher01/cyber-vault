@@ -172,7 +172,7 @@ def _draw_cover(canvas, doc, score, score_label, total,
 
     canvas.setFillColor(GRAY)
     canvas.setFont("Helvetica", 7.5)
-    canvas.drawString(tx, ty - 16 * mm, f"Genere le {date_str}  \u2022  {user_email}")
+    canvas.drawString(tx, ty - 16 * mm, f"Genere le {date_str}  \u2022  contact@cyberscanapp.com")
 
     # ── Score card (52–120 mm from top, i.e. card_y = H-120mm, card_h=68mm) ──
     card_y = H - 120 * mm   # bottom edge of card

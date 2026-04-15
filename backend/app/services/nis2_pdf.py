@@ -354,7 +354,7 @@ def generate_nis2_pdf(
 
     doc.build(
         story,
-        onFirstPage=lambda c, d: draw_page(c, d, DOC_TYPE, "Conformité NIS2", user_email),
+        onFirstPage=lambda c, d: draw_page(c, d, DOC_TYPE, "Conformité NIS2", "contact@cyberscanapp.com"),
         onLaterPages=lambda c, d: draw_page(c, d, DOC_TYPE, "Conformité NIS2"),
     )
     return buf.getvalue()
