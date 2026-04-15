@@ -30,11 +30,17 @@ from reportlab.platypus import (
 COLOR_CRITICAL    = colors.HexColor("#f87171")   # RED
 COLOR_WARNING     = colors.HexColor("#fb923c")   # ORANGE
 COLOR_OK          = colors.HexColor("#4ade80")   # GREEN
-COLOR_PRIMARY     = colors.HexColor("#06b6d4")   # CYAN  (was navy #1E3A5F)
-COLOR_BG          = colors.HexColor("#0f172a")   # DARK_BG  (was light #F8FAFC)
+COLOR_PRIMARY     = colors.HexColor("#06b6d4")   # CYAN — text only
+COLOR_BG          = colors.HexColor("#0f172a")   # page background
+COLOR_CARD        = colors.HexColor("#1e293b")   # card / table header bg
+COLOR_BORDER      = colors.HexColor("#334155")   # borders
+COLOR_MUTED       = colors.HexColor("#94a3b8")   # secondary text
+COLOR_TEXT        = colors.HexColor("#e2e8f0")   # primary text
+
+# Aliases kept for backward compat within this file
 COLOR_WHITE       = colors.white
-COLOR_LIGHT_BORDER = colors.HexColor("#334155")  # BORDER  (was #CBD5E1)
-COLOR_ROW_ALT     = colors.HexColor("#1e293b")   # CARD_BG  (was #EFF6FF)
+COLOR_LIGHT_BORDER = COLOR_BORDER
+COLOR_ROW_ALT     = COLOR_CARD
 
 from scanner.constants import PORT_NAMES, HEADER_RECOMMENDATIONS
 
@@ -119,7 +125,7 @@ class AuditDocTemplate(BaseDocTemplate):
 
         # ── Footer ────────────────────────────────────────────────────────────
         footer_y = 8 * mm
-        canvas.setStrokeColor(COLOR_LIGHT_BORDER)
+        canvas.setStrokeColor(COLOR_BORDER)
         canvas.setLineWidth(0.5)
         canvas.line(left_margin, footer_y, left_margin + doc.width, footer_y)
 
@@ -144,7 +150,7 @@ def _build_styles() -> dict[str, Any]:
             "cover_title",
             fontName="Helvetica-Bold",
             fontSize=28,
-            textColor=COLOR_WHITE,
+            textColor=COLOR_TEXT,
             alignment=TA_CENTER,
             spaceAfter=10,
         ),
@@ -152,7 +158,7 @@ def _build_styles() -> dict[str, Any]:
             "cover_subtitle",
             fontName="Helvetica",
             fontSize=14,
-            textColor=colors.HexColor("#CBD5E1"),
+            textColor=COLOR_MUTED,
             alignment=TA_CENTER,
             spaceAfter=6,
         ),
@@ -166,8 +172,8 @@ def _build_styles() -> dict[str, Any]:
         "section_title": ParagraphStyle(
             "section_title",
             fontName="Helvetica-Bold",
-            fontSize=14,
-            textColor=COLOR_PRIMARY,
+            fontSize=13,
+            textColor=COLOR_TEXT,
             spaceBefore=18,
             spaceAfter=8,
         ),
@@ -183,14 +189,14 @@ def _build_styles() -> dict[str, Any]:
             "body",
             fontName="Helvetica",
             fontSize=10,
-            textColor=colors.HexColor("#cbd5e1"),
+            textColor=COLOR_MUTED,
             spaceAfter=4,
         ),
         "bullet": ParagraphStyle(
             "bullet",
             fontName="Helvetica",
             fontSize=10,
-            textColor=colors.HexColor("#cbd5e1"),
+            textColor=COLOR_MUTED,
             spaceAfter=5,
             leftIndent=16,
             bulletIndent=4,
@@ -205,14 +211,14 @@ def _build_styles() -> dict[str, Any]:
             "cell",
             fontName="Helvetica",
             fontSize=9,
-            textColor=colors.HexColor("#cbd5e1"),
+            textColor=COLOR_MUTED,
         ),
     }
     return styles
 
 
 # ---------------------------------------------------------------------------
-# Status badge helper
+# Status helpers
 # ---------------------------------------------------------------------------
 def _status_color(status: str) -> colors.Color:
     mapping = {
@@ -223,107 +229,292 @@ def _status_color(status: str) -> colors.Color:
     return mapping.get(status, colors.HexColor("#64748B"))
 
 
-def _status_badge_table(status: str) -> Table:
-    """Return a small coloured inline table acting as a status badge."""
+def _status_bullet(status: str) -> str:
+    """Return a bullet+text string for inline status display (no background fill)."""
+    labels = {
+        "OK": "● OK",
+        "WARNING": "● WARNING",
+        "CRITICAL": "● CRITICAL",
+    }
+    return labels.get(status, f"● {status}")
+
+
+def _status_inline(status: str) -> Paragraph:
+    """Return a Paragraph with colored bullet text — no background coloring."""
     c = _status_color(status)
-    style = ParagraphStyle(
-        "badge",
+    st = ParagraphStyle(
+        "inline_status",
         fontName="Helvetica-Bold",
         fontSize=10,
-        textColor=COLOR_WHITE,
-        alignment=TA_CENTER,
+        textColor=c,
     )
-    t = Table([[Paragraph(status, style)]], colWidths=[3.5 * cm], rowHeights=[0.6 * cm])
-    t.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), c),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("ROUNDEDCORNERS", [4]),
-                ("TOPPADDING", (0, 0), (-1, -1), 2),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-            ]
-        )
+    return Paragraph(_status_bullet(status), st)
+
+
+# ---------------------------------------------------------------------------
+# Standard table style factory
+# ---------------------------------------------------------------------------
+def _std_table_style(extra: list | None = None) -> TableStyle:
+    """
+    Returns the standard dark-theme table style:
+    - Header row: COLOR_CARD bg, COLOR_PRIMARY text, bold 10pt
+    - Data rows: alternating COLOR_BG / COLOR_CARD
+    - No INNERGRID — only BOX + LINEBELOW
+    - Padding: top/bottom=8, left/right=12
+    """
+    base = [
+        # Header row
+        ("BACKGROUND",   (0, 0), (-1, 0),  COLOR_CARD),
+        ("TEXTCOLOR",    (0, 0), (-1, 0),  COLOR_PRIMARY),
+        ("FONTNAME",     (0, 0), (-1, 0),  "Helvetica-Bold"),
+        ("FONTSIZE",     (0, 0), (-1, 0),  10),
+        # Data rows alternating
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, COLOR_CARD]),
+        # Text color for data cells
+        ("TEXTCOLOR",    (0, 1), (-1, -1), COLOR_TEXT),
+        ("FONTNAME",     (0, 1), (-1, -1), "Helvetica"),
+        ("FONTSIZE",     (0, 1), (-1, -1), 9),
+        # Borders: box + horizontal separators only
+        ("BOX",          (0, 0), (-1, -1), 0.5, COLOR_BORDER),
+        ("LINEBELOW",    (0, 0), (-1, -1), 0.5, COLOR_BORDER),
+        # Alignment / padding
+        ("ALIGN",        (0, 0), (-1, -1), "LEFT"),
+        ("VALIGN",       (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING",   (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING",(0, 0), (-1, -1), 8),
+        ("LEFTPADDING",  (0, 0), (-1, -1), 12),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+    ]
+    if extra:
+        base.extend(extra)
+    return TableStyle(base)
+
+
+# ---------------------------------------------------------------------------
+# Section header helper
+# ---------------------------------------------------------------------------
+def _section_header(num: str | int, title: str, styles: dict[str, Any]) -> list:
+    """
+    Returns a list of flowables representing a styled section header:
+    - Left accent bar (cyan 4mm) + bold title text
+    - Thin HR separator
+    """
+    accent_style = ParagraphStyle(
+        "sh_accent",
+        fontName="Helvetica-Bold",
+        fontSize=13,
+        textColor=COLOR_TEXT,
     )
-    return t
+    # Accent bar as a tiny filled table cell
+    bar_data = [[""]]
+    bar_table = Table(bar_data, colWidths=[4 * mm], rowHeights=[0.6 * cm])
+    bar_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), COLOR_PRIMARY),
+        ("LEFTPADDING",  (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING",   (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING",(0, 0), (-1, -1), 0),
+    ]))
+
+    title_para = Paragraph(f"{num}. {title}", accent_style)
+
+    header_table = Table(
+        [[bar_table, title_para]],
+        colWidths=[4 * mm + 6, None],
+    )
+    header_table.setStyle(TableStyle([
+        ("VALIGN",       (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING",  (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING",   (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING",(0, 0), (-1, -1), 0),
+    ]))
+
+    return [
+        Spacer(1, 0.5 * cm),
+        header_table,
+        Spacer(1, 0.15 * cm),
+        HRFlowable(width="100%", thickness=0.5, color=COLOR_BORDER, spaceAfter=0),
+        Spacer(1, 0.3 * cm),
+    ]
 
 
 # ---------------------------------------------------------------------------
 # Cover page
 # ---------------------------------------------------------------------------
-def _build_cover(target_url: str, report_date: str, styles: dict[str, Any], page_w: float, page_h: float) -> list:
+def _build_cover(
+    target_url: str,
+    report_date: str,
+    styles: dict[str, Any],
+    page_w: float,
+    page_h: float,
+    overall_status: str = "OK",
+) -> list:
     story = []
 
-    # Dark blue background rectangle drawn via a Table
-    header_data = [[""]]
-    header_table = Table(header_data, colWidths=[page_w - 4 * cm], rowHeights=[8 * cm])
-    header_table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), COLOR_PRIMARY),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                ("TOPPADDING", (0, 0), (-1, -1), 0),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-            ]
-        )
+    col_w = page_w
+
+    # ── Logo zone ────────────────────────────────────────────────────────────
+    cs_badge_style = ParagraphStyle(
+        "cs_badge",
+        fontName="Helvetica-Bold",
+        fontSize=18,
+        textColor=COLOR_WHITE,
+        alignment=TA_CENTER,
+    )
+    cs_label_style = ParagraphStyle(
+        "cs_label",
+        fontName="Helvetica-Bold",
+        fontSize=26,
+        textColor=COLOR_TEXT,
+        alignment=TA_CENTER,
+    )
+    cs_sub_style = ParagraphStyle(
+        "cs_sub",
+        fontName="Helvetica",
+        fontSize=13,
+        textColor=COLOR_MUTED,
+        alignment=TA_CENTER,
     )
 
-    # Overlay text via a nested table inside the header
-    inner_style_title = ParagraphStyle(
-        "cov_t", fontName="Helvetica-Bold", fontSize=26, textColor=COLOR_WHITE, alignment=TA_CENTER, spaceAfter=10
-    )
-    inner_style_sub = ParagraphStyle(
-        "cov_s", fontName="Helvetica", fontSize=13, textColor=colors.HexColor("#94A3B8"), alignment=TA_CENTER, spaceAfter=8
-    )
+    logo_badge_data = [[Paragraph("CS", cs_badge_style)]]
+    logo_badge = Table(logo_badge_data, colWidths=[1.8 * cm], rowHeights=[1.8 * cm])
+    logo_badge.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), COLOR_PRIMARY),
+        ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+        ("ROUNDEDCORNERS", [6]),
+        ("TOPPADDING",    (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
+    ]))
 
-    cover_content = [
-        [Paragraph("CYBER-SCANNER", inner_style_title)],
-        [Paragraph("Rapport d'Audit de Sécurité", inner_style_sub)],
-        [Spacer(1, 0.5 * cm)],
-        [Paragraph(f"Cible : {target_url}", inner_style_sub)],
-        [Paragraph(f"Date  : {report_date}", inner_style_sub)],
-    ]
-    inner_table = Table(cover_content, colWidths=[page_w - 4 * cm])
-    inner_table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), COLOR_PRIMARY),
-                ("LEFTPADDING", (0, 0), (-1, -1), 20),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 20),
-                ("TOPPADDING", (0, 0), (-1, -1), 4),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ]
-        )
+    logo_row = Table(
+        [[logo_badge, Paragraph("CyberScan", cs_label_style)]],
+        colWidths=[2 * cm, col_w - 2 * cm],
     )
+    logo_row.setStyle(TableStyle([
+        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 8),
+        ("TOPPADDING",    (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
 
     story.append(Spacer(1, 2 * cm))
-    story.append(inner_table)
-    story.append(Spacer(1, 1.5 * cm))
+    story.append(logo_row)
+    story.append(Spacer(1, 0.3 * cm))
+    story.append(Paragraph("Rapport d'Audit de Sécurité", cs_sub_style))
+    story.append(Spacer(1, 0.4 * cm))
+    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_BORDER, spaceAfter=0))
+    story.append(Spacer(1, 0.6 * cm))
 
+    # ── Cible block ──────────────────────────────────────────────────────────
+    label_style = ParagraphStyle(
+        "cov_label",
+        fontName="Helvetica",
+        fontSize=9,
+        textColor=COLOR_MUTED,
+    )
+    url_style = ParagraphStyle(
+        "cov_url",
+        fontName="Helvetica-Bold",
+        fontSize=16,
+        textColor=COLOR_PRIMARY,
+    )
+    date_style = ParagraphStyle(
+        "cov_date",
+        fontName="Helvetica",
+        fontSize=12,
+        textColor=COLOR_TEXT,
+    )
+
+    cible_data = [
+        [Paragraph("URL analysée", label_style)],
+        [Paragraph(target_url, url_style)],
+        [Spacer(1, 0.3 * cm)],
+        [Paragraph("Date du scan", label_style)],
+        [Paragraph(report_date, date_style)],
+    ]
+    cible_table = Table(cible_data, colWidths=[col_w])
+    cible_table.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), COLOR_CARD),
+        ("BOX",           (0, 0), (-1, -1), 0.5, COLOR_BORDER),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 16),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 16),
+        ("TOPPADDING",    (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("ALIGN",         (0, 0), (-1, -1), "LEFT"),
+    ]))
+    story.append(cible_table)
+    story.append(Spacer(1, 0.6 * cm))
+
+    # ── Global risk status badge ──────────────────────────────────────────────
+    status_color = _status_color(overall_status)
+    risk_label_style = ParagraphStyle(
+        "risk_label",
+        fontName="Helvetica",
+        fontSize=9,
+        textColor=COLOR_MUTED,
+        alignment=TA_CENTER,
+        spaceAfter=4,
+    )
+    risk_status_style = ParagraphStyle(
+        "risk_status",
+        fontName="Helvetica-Bold",
+        fontSize=22,
+        textColor=status_color,
+        alignment=TA_CENTER,
+    )
+    explanations = {
+        "OK": "Aucune vulnérabilité critique détectée. La posture de sécurité est satisfaisante.",
+        "WARNING": "Des points d'amélioration ont été identifiés. Une action corrective est recommandée.",
+        "CRITICAL": "Des vulnérabilités critiques ont été détectées. Une action immédiate est requise.",
+    }
+    risk_desc_style = ParagraphStyle(
+        "risk_desc",
+        fontName="Helvetica",
+        fontSize=10,
+        textColor=COLOR_MUTED,
+        alignment=TA_CENTER,
+    )
+    risk_data = [
+        [Paragraph("NIVEAU DE RISQUE GLOBAL", risk_label_style)],
+        [Paragraph(overall_status, risk_status_style)],
+        [Paragraph(explanations.get(overall_status, ""), risk_desc_style)],
+    ]
+    risk_table = Table(risk_data, colWidths=[col_w])
+    risk_table.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), COLOR_CARD),
+        ("BOX",           (0, 0), (-1, -1), 1, COLOR_BORDER),
+        ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING",    (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 16),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 16),
+        ("ROUNDEDCORNERS", [6]),
+    ]))
+    story.append(risk_table)
+    story.append(Spacer(1, 0.6 * cm))
+
+    # ── CONFIDENTIEL footer ───────────────────────────────────────────────────
     conf_style = ParagraphStyle(
         "conf",
         fontName="Helvetica-Bold",
-        fontSize=12,
-        textColor=COLOR_WARNING,
+        fontSize=10,
+        textColor=COLOR_MUTED,
         alignment=TA_CENTER,
-        borderPad=6,
     )
-    conf_data = [[Paragraph("CONFIDENTIEL", conf_style)]]
-    conf_table = Table(conf_data, colWidths=[page_w - 4 * cm], rowHeights=[1 * cm])
-    conf_table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#1e293b")),
-                ("BOX", (0, 0), (-1, -1), 1, COLOR_WARNING),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ]
-        )
-    )
+    conf_data = [[Paragraph("CONFIDENTIEL — Document réservé au destinataire désigné", conf_style)]]
+    conf_table = Table(conf_data, colWidths=[col_w], rowHeights=[0.9 * cm])
+    conf_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), COLOR_CARD),
+        ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_BORDER),
+        ("ALIGN",      (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
+    ]))
     story.append(conf_table)
     story.append(PageBreak())
     return story
@@ -334,8 +525,7 @@ def _build_cover(target_url: str, report_date: str, styles: dict[str, Any], page
 # ---------------------------------------------------------------------------
 def _build_toc(styles: dict[str, Any]) -> list:
     story = []
-    story.append(Paragraph("Table des matières", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header("", "Table des matières", styles)
 
     toc_entries = [
         ("1.",  "Résumé exécutif"),
@@ -367,8 +557,7 @@ def _build_executive_summary(
     overall_status: str, statuses: dict[str, str], styles: dict[str, Any], page_w: float
 ) -> list:
     story = []
-    story.append(Paragraph("1. Résumé exécutif", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(1, "Résumé exécutif", styles)
 
     explanations = {
         "OK": "Aucune vulnérabilité critique détectée. La posture de sécurité est satisfaisante.",
@@ -376,48 +565,65 @@ def _build_executive_summary(
         "CRITICAL": "Des vulnérabilités critiques ont été détectées. Une action immédiate est requise.",
     }
 
-    c = _status_color(overall_status)
-    summary_style = ParagraphStyle(
-        "exec_text",
-        fontName="Helvetica",
-        fontSize=11,
-        textColor=COLOR_WHITE,
-        alignment=TA_CENTER,
-    )
+    status_color = _status_color(overall_status)
+
     label_style = ParagraphStyle(
         "exec_label",
         fontName="Helvetica",
         fontSize=9,
-        textColor=colors.HexColor("#CBD5E1"),
+        textColor=COLOR_MUTED,
         alignment=TA_CENTER,
         spaceAfter=4,
     )
+    status_style = ParagraphStyle(
+        "exec_status",
+        fontName="Helvetica-Bold",
+        fontSize=22,
+        textColor=status_color,
+        alignment=TA_CENTER,
+    )
+    desc_style = ParagraphStyle(
+        "exec_desc",
+        fontName="Helvetica",
+        fontSize=11,
+        textColor=COLOR_MUTED,
+        alignment=TA_CENTER,
+    )
+
+    col_w = page_w - 4 * cm
     box_data = [
         [Paragraph("NIVEAU DE RISQUE GLOBAL", label_style)],
-        [Paragraph(overall_status, ParagraphStyle("rs", fontName="Helvetica-Bold", fontSize=22, textColor=COLOR_WHITE, alignment=TA_CENTER))],
-        [Paragraph(explanations.get(overall_status, ""), summary_style)],
+        [Paragraph(overall_status, status_style)],
+        [Paragraph(explanations.get(overall_status, ""), desc_style)],
     ]
-    box_table = Table(box_data, colWidths=[page_w - 4 * cm])
-    box_table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), c),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("TOPPADDING", (0, 0), (-1, -1), 10),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
-                ("LEFTPADDING", (0, 0), (-1, -1), 16),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 16),
-                ("ROUNDEDCORNERS", [6]),
-            ]
-        )
-    )
+    box_table = Table(box_data, colWidths=[col_w])
+    box_table.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), COLOR_CARD),
+        ("BOX",           (0, 0), (-1, -1), 1, COLOR_BORDER),
+        ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING",    (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 16),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 16),
+        ("ROUNDEDCORNERS", [6]),
+    ]))
     story.append(box_table)
     story.append(Spacer(1, 0.8 * cm))
 
-    # Per-module status table
-    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE, alignment=TA_CENTER)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
+    # Per-module status table — header dark, no per-cell background coloring
+    head_style = ParagraphStyle(
+        "exec_th",
+        fontName="Helvetica-Bold",
+        fontSize=10,
+        textColor=COLOR_PRIMARY,
+    )
+    cell_style = ParagraphStyle(
+        "exec_td",
+        fontName="Helvetica",
+        fontSize=10,
+        textColor=COLOR_TEXT,
+    )
 
     rows = [[Paragraph("Module", head_style), Paragraph("Statut", head_style)]]
     module_labels = {
@@ -437,32 +643,18 @@ def _build_executive_summary(
     for key, label in module_labels.items():
         if key in statuses:
             st = statuses[key]
-            sc = _status_color(st)
-            badge_style = ParagraphStyle("b", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE, alignment=TA_CENTER)
-            rows.append([Paragraph(label, cell_style), Paragraph(st, badge_style)])
+            rows.append([Paragraph(label, cell_style), _status_inline(st)])
         else:
-            rows.append([Paragraph(label, cell_style), Paragraph("Non scanné", cell_style)])
+            rows.append([
+                Paragraph(label, cell_style),
+                Paragraph("Non scanné", ParagraphStyle(
+                    "ns", fontName="Helvetica", fontSize=10, textColor=COLOR_MUTED
+                )),
+            ])
 
-    col_w = (page_w - 4 * cm) / 2
-    mod_table = Table(rows, colWidths=[col_w, col_w])
-    ts = TableStyle(
-        [
-            ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
-            ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-            ("TOPPADDING", (0, 0), (-1, -1), 7),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ]
-    )
-    # Colour the status cells
-    for i, (key, _) in enumerate(module_labels.items(), start=1):
-        if key in statuses:
-            ts.add("BACKGROUND", (1, i), (1, i), _status_color(statuses[key]))
-            ts.add("TEXTCOLOR", (1, i), (1, i), COLOR_WHITE)
-
-    mod_table.setStyle(ts)
+    col_w_half = col_w / 2
+    mod_table = Table(rows, colWidths=[col_w_half, col_w_half])
+    mod_table.setStyle(_std_table_style())
     story.append(mod_table)
     return story
 
@@ -472,37 +664,35 @@ def _build_executive_summary(
 # ---------------------------------------------------------------------------
 def _build_ssl_section(ssl_result: dict[str, Any], styles: dict[str, Any], page_w: float) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("2. SSL / TLS", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(2, "SSL / TLS", styles)
 
-    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
+    head_style = ParagraphStyle("th2", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
+    cell_style = ParagraphStyle("td2", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
 
     if ssl_result.get("error"):
         rows = [
             [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
-            [Paragraph("Statut", cell_style), Paragraph("CRITICAL", ParagraphStyle("cr", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_CRITICAL))],
+            [Paragraph("Statut", cell_style), _status_inline("CRITICAL")],
             [Paragraph("Erreur", cell_style), Paragraph(str(ssl_result["error"]), cell_style)],
         ]
     else:
         days = ssl_result.get("days_remaining", 0) or 0
         days_color = COLOR_OK if days >= 30 else (COLOR_WARNING if days >= 7 else COLOR_CRITICAL)
-        days_style = ParagraphStyle("dy", fontName="Helvetica-Bold", fontSize=10, textColor=days_color)
+        days_style = ParagraphStyle("dy2", fontName="Helvetica-Bold", fontSize=10, textColor=days_color)
 
         valid_text = "Oui" if ssl_result.get("valid") else "Non"
         valid_color = COLOR_OK if ssl_result.get("valid") else COLOR_CRITICAL
-        valid_style = ParagraphStyle("vl", fontName="Helvetica-Bold", fontSize=10, textColor=valid_color)
+        valid_style = ParagraphStyle("vl2", fontName="Helvetica-Bold", fontSize=10, textColor=valid_color)
 
         tls_ok = ssl_result.get("tls_ok", False)
         tls_text = "Oui (>= TLS 1.2)" if tls_ok else "Non (protocole obsolète)"
         tls_color = COLOR_OK if tls_ok else COLOR_CRITICAL
-        tls_style = ParagraphStyle("tl", fontName="Helvetica-Bold", fontSize=10, textColor=tls_color)
+        tls_style = ParagraphStyle("tl2", fontName="Helvetica-Bold", fontSize=10, textColor=tls_color)
 
         status = ssl_result.get("status", "CRITICAL")
         rows = [
             [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
-            [Paragraph("Statut", cell_style), Paragraph(status, ParagraphStyle("st", fontName="Helvetica-Bold", fontSize=10, textColor=_status_color(status)))],
+            [Paragraph("Statut", cell_style), _status_inline(status)],
             [Paragraph("Certificat valide", cell_style), Paragraph(valid_text, valid_style)],
             [Paragraph("Date d'expiration", cell_style), Paragraph(str(ssl_result.get("expiry_date", "—")), cell_style)],
             [Paragraph("Jours restants", cell_style), Paragraph(str(days), days_style)],
@@ -510,23 +700,9 @@ def _build_ssl_section(ssl_result: dict[str, Any], styles: dict[str, Any], page_
             [Paragraph("TLS OK", cell_style), Paragraph(tls_text, tls_style)],
         ]
 
-    col_w = (page_w - 4 * cm)
+    col_w = page_w - 4 * cm
     t = Table(rows, colWidths=[col_w * 0.38, col_w * 0.62])
-    t.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-                ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
-                ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-                ("TOPPADDING", (0, 0), (-1, -1), 7),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-                ("LEFTPADDING", (0, 0), (-1, -1), 10),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-            ]
-        )
-    )
+    t.setStyle(_std_table_style())
     story.append(t)
     return story
 
@@ -536,12 +712,10 @@ def _build_ssl_section(ssl_result: dict[str, Any], styles: dict[str, Any], page_
 # ---------------------------------------------------------------------------
 def _build_headers_section(headers_result: dict[str, Any], styles: dict[str, Any], page_w: float) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("3. Headers HTTP", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(3, "Headers HTTP", styles)
 
-    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
+    head_style = ParagraphStyle("th3", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
+    cell_style = ParagraphStyle("td3", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
 
     if headers_result.get("error"):
         rows = [
@@ -557,36 +731,26 @@ def _build_headers_section(headers_result: dict[str, Any], styles: dict[str, Any
 
         for header in all_headers:
             if header in found:
-                present_style = ParagraphStyle("ok", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_OK)
+                present_style = ParagraphStyle("ok3", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_OK)
                 rows.append([Paragraph(header, cell_style), Paragraph("✓  Présent", present_style)])
             else:
-                absent_style = ParagraphStyle("cr", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_CRITICAL)
+                absent_style = ParagraphStyle("cr3", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_CRITICAL)
                 rows.append([Paragraph(header, cell_style), Paragraph("✗  Absent", absent_style)])
 
         score = headers_result.get("score", 0)
         score_color = COLOR_OK if score == 6 else (COLOR_WARNING if score >= 4 else COLOR_CRITICAL)
-        score_style = ParagraphStyle("sc", fontName="Helvetica-Bold", fontSize=10, textColor=score_color)
-        rows.append([Paragraph("Score total", ParagraphStyle("stb", fontName="Helvetica-Bold", fontSize=10, textColor=colors.HexColor("#cbd5e1"))), Paragraph(f"{score}/6", score_style)])
+        score_style = ParagraphStyle("sc3", fontName="Helvetica-Bold", fontSize=10, textColor=score_color)
+        rows.append([
+            Paragraph("Score total", ParagraphStyle("stb3", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_TEXT)),
+            Paragraph(f"{score}/6", score_style),
+        ])
 
-    col_w = (page_w - 4 * cm)
+    col_w = page_w - 4 * cm
     t = Table(rows, colWidths=[col_w * 0.65, col_w * 0.35])
-    t.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-                ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
-                ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-                ("TOPPADDING", (0, 0), (-1, -1), 7),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-                ("LEFTPADDING", (0, 0), (-1, -1), 10),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-                # Last row (score) bold background
-                ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#334155")),
-            ]
-        )
-    )
+    # Last row gets a slightly distinct bg to stand out as summary
+    t.setStyle(_std_table_style([
+        ("BACKGROUND", (0, -1), (-1, -1), COLOR_CARD),
+    ]))
     story.append(t)
     return story
 
@@ -596,72 +760,64 @@ def _build_headers_section(headers_result: dict[str, Any], styles: dict[str, Any
 # ---------------------------------------------------------------------------
 def _build_ports_section(port_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("4. Ports réseau", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(4, "Ports réseau", styles)
 
-    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
+    head_style = ParagraphStyle("th4", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
+    cell_style = ParagraphStyle("td4", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
+    col_w = page_w - 4 * cm
 
     if skipped or port_result is None:
         rows = [
             [Paragraph("Résultat", head_style)],
             [Paragraph("Non scanné (option --skip-ports activée)", cell_style)],
         ]
-        col_w = page_w - 4 * cm
         t = Table(rows, colWidths=[col_w])
     elif port_result.get("error"):
         rows = [
             [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
-            [Paragraph("Statut", cell_style), Paragraph("CRITICAL", ParagraphStyle("cr", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_CRITICAL))],
+            [Paragraph("Statut", cell_style), _status_inline("CRITICAL")],
             [Paragraph("Erreur", cell_style), Paragraph(str(port_result["error"]), cell_style)],
         ]
-        col_w = page_w - 4 * cm
         t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
     else:
         open_ports = port_result.get("open_ports", [])
         critical_ports = port_result.get("critical_ports", [])
-        status = port_result.get("status", "OK")
 
         rows = [[Paragraph("Port", head_style), Paragraph("Service", head_style), Paragraph("Criticité", head_style)]]
 
         if open_ports:
-            for port in open_ports:
-                service = PORT_NAMES.get(port, "unknown")
-                is_critical = port in critical_ports
+            for port_info in open_ports:
+                if isinstance(port_info, dict):
+                    port_num = port_info.get("port", 0)
+                    service  = port_info.get("service", PORT_NAMES.get(port_num, "unknown"))
+                    crit_raw = port_info.get("criticality", "")
+                    is_critical = crit_raw.lower() in ("critique", "critical", "high", "danger")
+                else:
+                    port_num    = port_info
+                    service     = PORT_NAMES.get(port_num, "unknown")
+                    is_critical = port_num in (critical_ports or [])
                 crit_text = "Critique" if is_critical else "Normal"
                 crit_style = ParagraphStyle(
-                    "cp",
+                    "cp4",
                     fontName="Helvetica-Bold",
                     fontSize=10,
                     textColor=COLOR_CRITICAL if is_critical else COLOR_OK,
                 )
                 rows.append([
-                    Paragraph(str(port), cell_style),
+                    Paragraph(str(port_num), cell_style),
                     Paragraph(service, cell_style),
                     Paragraph(crit_text, crit_style),
                 ])
         else:
-            rows.append([Paragraph("—", cell_style), Paragraph("Aucun port ouvert", cell_style), Paragraph("OK", ParagraphStyle("ok", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_OK))])
+            rows.append([
+                Paragraph("—", cell_style),
+                Paragraph("Aucun port ouvert", cell_style),
+                Paragraph("● OK", ParagraphStyle("ok4", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_OK)),
+            ])
 
-        col_w = page_w - 4 * cm
         t = Table(rows, colWidths=[col_w * 0.2, col_w * 0.5, col_w * 0.3])
 
-    t.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-                ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
-                ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-                ("TOPPADDING", (0, 0), (-1, -1), 7),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-                ("LEFTPADDING", (0, 0), (-1, -1), 10),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-            ]
-        )
-    )
+    t.setStyle(_std_table_style())
     story.append(t)
     return story
 
@@ -671,12 +827,10 @@ def _build_ports_section(port_result: dict[str, Any], styles: dict[str, Any], pa
 # ---------------------------------------------------------------------------
 def _build_sca_section(sca_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("5. SCA — Analyse des dépendances", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(5, "SCA — Analyse des dépendances", styles)
 
-    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
+    head_style = ParagraphStyle("th5", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
+    cell_style = ParagraphStyle("td5", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
     col_w = page_w - 4 * cm
 
     if skipped or not sca_result:
@@ -685,32 +839,18 @@ def _build_sca_section(sca_result: dict[str, Any], styles: dict[str, Any], page_
             [Paragraph("Non scanné (utiliser --requirements ou --package-json pour activer)", cell_style)],
         ]
         t = Table(rows, colWidths=[col_w])
-        t.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-            ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-            ("TOPPADDING", (0, 0), (-1, -1), 7),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-            ("LEFTPADDING", (0, 0), (-1, -1), 10),
-        ]))
+        t.setStyle(_std_table_style())
         story.append(t)
         return story
 
     if sca_result.get("error"):
         rows = [
             [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
-            [Paragraph("Statut", cell_style), Paragraph("CRITICAL", ParagraphStyle("cr", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_CRITICAL))],
+            [Paragraph("Statut", cell_style), _status_inline("CRITICAL")],
             [Paragraph("Erreur", cell_style), Paragraph(str(sca_result["error"]), cell_style)],
         ]
         t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
-        t.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-            ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
-            ("TOPPADDING", (0, 0), (-1, -1), 7),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-            ("LEFTPADDING", (0, 0), (-1, -1), 10),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ]))
+        t.setStyle(_std_table_style())
         story.append(t)
         return story
 
@@ -718,25 +858,16 @@ def _build_sca_section(sca_result: dict[str, Any], styles: dict[str, Any], page_
     total_pkgs = sca_result.get("total_packages", 0)
     total_vulns = sca_result.get("total_vulns", 0)
 
-    # Summary row
+    vuln_color = COLOR_OK if total_vulns == 0 else (COLOR_WARNING if sca_result.get("status") == "WARNING" else COLOR_CRITICAL)
+    vuln_style = ParagraphStyle("vs5", fontName="Helvetica-Bold", fontSize=10, textColor=vuln_color)
+
     summary_rows = [
         [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
         [Paragraph("Packages scannés", cell_style), Paragraph(str(total_pkgs), cell_style)],
+        [Paragraph("Vulnérabilités trouvées", cell_style), Paragraph(str(total_vulns), vuln_style)],
     ]
-    vuln_color = COLOR_OK if total_vulns == 0 else (COLOR_WARNING if sca_result.get("status") == "WARNING" else COLOR_CRITICAL)
-    vuln_style = ParagraphStyle("vs", fontName="Helvetica-Bold", fontSize=10, textColor=vuln_color)
-    summary_rows.append([Paragraph("Vulnérabilités trouvées", cell_style), Paragraph(str(total_vulns), vuln_style)])
-
     t_summary = Table(summary_rows, colWidths=[col_w * 0.45, col_w * 0.55])
-    t_summary.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
-        ("TOPPADDING", (0, 0), (-1, -1), 7),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-    ]))
+    t_summary.setStyle(_std_table_style())
     story.append(t_summary)
 
     if vulns:
@@ -746,7 +877,7 @@ def _build_sca_section(sca_result: dict[str, Any], styles: dict[str, Any], page_
             "HIGH": COLOR_CRITICAL,
             "MEDIUM": COLOR_WARNING,
             "LOW": colors.HexColor("#3B82F6"),
-            "UNKNOWN": colors.HexColor("#64748B"),
+            "UNKNOWN": COLOR_MUTED,
         }
         vuln_head = [
             Paragraph("Package", head_style),
@@ -757,30 +888,21 @@ def _build_sca_section(sca_result: dict[str, Any], styles: dict[str, Any], page_
         vuln_rows = [vuln_head]
         for v in vulns:
             sev = v.get("severity", "UNKNOWN")
-            sc = sev_colors.get(sev, colors.HexColor("#64748B"))
-            sev_cell_style = ParagraphStyle("sc", fontName="Helvetica-Bold", fontSize=9, textColor=sc)
+            sc = sev_colors.get(sev, COLOR_MUTED)
+            sev_cell_style = ParagraphStyle("sc5", fontName="Helvetica-Bold", fontSize=9, textColor=sc)
             cve_str = "\n".join(v.get("cve_ids", ["N/A"]))
             summary_text = v.get("summary", "")[:180]
             vuln_rows.append([
-                Paragraph(f"{v['package']}\n{v['version']}", cell_style),
-                Paragraph(cve_str, ParagraphStyle("cv", fontName="Helvetica", fontSize=9, textColor=colors.HexColor("#cbd5e1"))),
+                Paragraph(f"{v['package']}\n{v['version']}", ParagraphStyle("pkg5", fontName="Helvetica", fontSize=9, textColor=COLOR_TEXT)),
+                Paragraph(cve_str, ParagraphStyle("cv5", fontName="Helvetica", fontSize=9, textColor=COLOR_TEXT)),
                 Paragraph(sev, sev_cell_style),
-                Paragraph(summary_text, ParagraphStyle("sm", fontName="Helvetica", fontSize=8, textColor=colors.HexColor("#94a3b8"))),
+                Paragraph(summary_text, ParagraphStyle("sm5", fontName="Helvetica", fontSize=8, textColor=COLOR_MUTED)),
             ])
         t_vulns = Table(
             vuln_rows,
             colWidths=[col_w * 0.18, col_w * 0.22, col_w * 0.14, col_w * 0.46],
         )
-        t_vulns.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-            ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("TOPPADDING", (0, 0), (-1, -1), 6),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-            ("LEFTPADDING", (0, 0), (-1, -1), 8),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-        ]))
+        t_vulns.setStyle(_std_table_style([("VALIGN", (0, 0), (-1, -1), "TOP")]))
         story.append(t_vulns)
 
     return story
@@ -791,50 +913,45 @@ def _build_sca_section(sca_result: dict[str, Any], styles: dict[str, Any], page_
 # ---------------------------------------------------------------------------
 def _build_email_section(email_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("6. Email Security (SPF / DKIM / DMARC)", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(6, "Email Security (SPF / DKIM / DMARC)", styles)
 
-    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
+    head_style = ParagraphStyle("th6", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
+    cell_style = ParagraphStyle("td6", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
     col_w = page_w - 4 * cm
 
     if skipped or not email_result:
-        rows = [[Paragraph("Résultat", head_style)],
-                [Paragraph("Non scanné", cell_style)]]
+        rows = [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné", cell_style)]]
         t = Table(rows, colWidths=[col_w])
     elif email_result.get("error"):
-        rows = [[Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
-                [Paragraph("Erreur", cell_style), Paragraph(str(email_result["error"]), cell_style)]]
+        rows = [
+            [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
+            [Paragraph("Erreur", cell_style), Paragraph(str(email_result["error"]), cell_style)],
+        ]
         t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
     else:
         def flag_cell(found: bool, ok_text: str, bad_text: str) -> Paragraph:
             if found:
-                return Paragraph(ok_text, ParagraphStyle("ok", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_OK))
-            return Paragraph(bad_text, ParagraphStyle("cr", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_CRITICAL))
+                return Paragraph(ok_text, ParagraphStyle("ok6", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_OK))
+            return Paragraph(bad_text, ParagraphStyle("cr6", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_CRITICAL))
 
         spf = email_result.get("spf", {})
         dkim = email_result.get("dkim", {})
         dmarc = email_result.get("dmarc", {})
         rows = [
             [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
-            [Paragraph("Statut", cell_style), Paragraph(email_result.get("status", ""), ParagraphStyle("st", fontName="Helvetica-Bold", fontSize=10, textColor=_status_color(email_result.get("status", "OK"))))],
+            [Paragraph("Statut", cell_style), _status_inline(email_result.get("status", "OK"))],
             [Paragraph("SPF", cell_style), flag_cell(spf.get("found", False), f"Présent {'(strict)' if spf.get('strict') else '(~all)'}", "Absent")],
             [Paragraph("DKIM", cell_style), flag_cell(dkim.get("found", False), f"Présent (selector: {dkim.get('selector', '?')})", "Non détecté")],
             [Paragraph("DMARC", cell_style), flag_cell(dmarc.get("found", False), f"Présent (p={dmarc.get('policy', '?')})", "Absent")],
         ]
         for issue in email_result.get("issues", []):
-            rows.append([Paragraph("Issue", ParagraphStyle("is", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WARNING)), Paragraph(issue, cell_style)])
+            rows.append([
+                Paragraph("Issue", ParagraphStyle("is6", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WARNING)),
+                Paragraph(issue, cell_style),
+            ])
         t = Table(rows, colWidths=[col_w * 0.3, col_w * 0.7])
 
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
-        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    t.setStyle(_std_table_style())
     story.append(t)
     return story
 
@@ -844,47 +961,46 @@ def _build_email_section(email_result: dict[str, Any], styles: dict[str, Any], p
 # ---------------------------------------------------------------------------
 def _build_cookie_section(cookie_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("7. Cookie Security", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(7, "Cookie Security", styles)
 
-    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
+    head_style = ParagraphStyle("th7", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
+    cell_style = ParagraphStyle("td7", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
     col_w = page_w - 4 * cm
 
     if skipped or not cookie_result:
         rows = [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné", cell_style)]]
         t = Table(rows, colWidths=[col_w])
     elif cookie_result.get("error"):
-        rows = [[Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
-                [Paragraph("Erreur", cell_style), Paragraph(str(cookie_result["error"]), cell_style)]]
+        rows = [
+            [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
+            [Paragraph("Erreur", cell_style), Paragraph(str(cookie_result["error"]), cell_style)],
+        ]
         t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
     else:
         issues = cookie_result.get("issues", [])
-        rows = [
-            [Paragraph("Cookie", head_style), Paragraph("Problème", head_style)],
-        ]
+        rows = [[Paragraph("Cookie", head_style), Paragraph("Problème", head_style)]]
         if issues:
             for issue in issues:
-                rows.append([Paragraph(issue["cookie"], cell_style), Paragraph(issue["issue"], ParagraphStyle("warn", fontName="Helvetica", fontSize=10, textColor=COLOR_WARNING))])
+                rows.append([
+                    Paragraph(issue["cookie"], cell_style),
+                    Paragraph(issue["issue"], ParagraphStyle("warn7", fontName="Helvetica", fontSize=10, textColor=COLOR_WARNING)),
+                ])
         else:
-            rows.append([Paragraph("—", cell_style), Paragraph("Tous les cookies sont correctement sécurisés", ParagraphStyle("ok", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_OK))])
+            rows.append([
+                Paragraph("—", cell_style),
+                Paragraph("Tous les cookies sont correctement sécurisés",
+                          ParagraphStyle("ok7", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_OK)),
+            ])
 
-        summary_style = ParagraphStyle("sm", fontName="Helvetica-Bold", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
+        summary_style = ParagraphStyle("sm7", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_TEXT)
         total_issues = cookie_result.get("total_issues", 0)
         ic = COLOR_OK if total_issues == 0 else (COLOR_WARNING if cookie_result.get("status") == "WARNING" else COLOR_CRITICAL)
         rows.append([Paragraph("Total cookies", summary_style), Paragraph(str(cookie_result.get("total_cookies", 0)), cell_style)])
-        rows.append([Paragraph("Total issues", summary_style), Paragraph(str(total_issues), ParagraphStyle("tc", fontName="Helvetica-Bold", fontSize=10, textColor=ic))])
+        rows.append([Paragraph("Total issues", summary_style), Paragraph(str(total_issues), ParagraphStyle("tc7", fontName="Helvetica-Bold", fontSize=10, textColor=ic))])
         t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
 
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
-        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("BACKGROUND", (0, -2), (-1, -1), colors.HexColor("#334155")),
+    t.setStyle(_std_table_style([
+        ("BACKGROUND", (0, -2), (-1, -1), COLOR_CARD),
     ]))
     story.append(t)
     return story
@@ -895,43 +1011,40 @@ def _build_cookie_section(cookie_result: dict[str, Any], styles: dict[str, Any],
 # ---------------------------------------------------------------------------
 def _build_cors_section(cors_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("8. CORS", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(8, "CORS", styles)
 
-    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
+    head_style = ParagraphStyle("th8", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
+    cell_style = ParagraphStyle("td8", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
     col_w = page_w - 4 * cm
 
     if skipped or not cors_result:
         rows = [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné", cell_style)]]
         t = Table(rows, colWidths=[col_w])
     elif cors_result.get("error"):
-        rows = [[Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
-                [Paragraph("Erreur", cell_style), Paragraph(str(cors_result["error"]), cell_style)]]
+        rows = [
+            [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
+            [Paragraph("Erreur", cell_style), Paragraph(str(cors_result["error"]), cell_style)],
+        ]
         t = Table(rows, colWidths=[col_w * 0.4, col_w * 0.6])
     else:
         vuln = cors_result.get("vulnerable", False)
-        vuln_style = ParagraphStyle("vl", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_CRITICAL if vuln else COLOR_OK)
+        vuln_style = ParagraphStyle("vl8", fontName="Helvetica-Bold", fontSize=10,
+                                    textColor=COLOR_CRITICAL if vuln else COLOR_OK)
         rows = [
             [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
-            [Paragraph("Statut", cell_style), Paragraph(cors_result.get("status", ""), ParagraphStyle("st", fontName="Helvetica-Bold", fontSize=10, textColor=_status_color(cors_result.get("status", "OK"))))],
+            [Paragraph("Statut", cell_style), _status_inline(cors_result.get("status", "OK"))],
             [Paragraph("Allow-Origin", cell_style), Paragraph(cors_result.get("allow_origin") or "non défini", cell_style)],
             [Paragraph("Allow-Credentials", cell_style), Paragraph(cors_result.get("allow_credentials") or "non défini", cell_style)],
             [Paragraph("Vulnérable", cell_style), Paragraph("Oui" if vuln else "Non", vuln_style)],
         ]
         for issue in cors_result.get("issues", []):
-            rows.append([Paragraph("Issue", ParagraphStyle("is", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WARNING)), Paragraph(issue, cell_style)])
+            rows.append([
+                Paragraph("Issue", ParagraphStyle("is8", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WARNING)),
+                Paragraph(issue, cell_style),
+            ])
         t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
 
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
-        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    t.setStyle(_std_table_style())
     story.append(t)
     return story
 
@@ -941,41 +1054,40 @@ def _build_cors_section(cors_result: dict[str, Any], styles: dict[str, Any], pag
 # ---------------------------------------------------------------------------
 def _build_ip_reputation_section(ip_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("9. IP Réputation (DNSBL)", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(9, "IP Réputation (DNSBL)", styles)
 
-    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
+    head_style = ParagraphStyle("th9", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
+    cell_style = ParagraphStyle("td9", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
     col_w = page_w - 4 * cm
 
     if skipped or not ip_result:
         rows = [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné", cell_style)]]
         t = Table(rows, colWidths=[col_w])
     elif ip_result.get("error") and not ip_result.get("ip"):
-        rows = [[Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
-                [Paragraph("Erreur", cell_style), Paragraph(str(ip_result["error"]), cell_style)]]
+        rows = [
+            [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
+            [Paragraph("Erreur", cell_style), Paragraph(str(ip_result["error"]), cell_style)],
+        ]
         t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
     else:
         listed = ip_result.get("listed_in", [])
         rows = [
             [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
-            [Paragraph("Statut", cell_style), Paragraph(ip_result.get("status", ""), ParagraphStyle("st", fontName="Helvetica-Bold", fontSize=10, textColor=_status_color(ip_result.get("status", "OK"))))],
+            [Paragraph("Statut", cell_style), _status_inline(ip_result.get("status", "OK"))],
             [Paragraph("IP", cell_style), Paragraph(str(ip_result.get("ip", "—")), cell_style)],
-            [Paragraph("Blacklists", cell_style), Paragraph(str(ip_result.get("total_listed", 0)), ParagraphStyle("bl", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_CRITICAL if listed else COLOR_OK))],
+            [Paragraph("Blacklists", cell_style),
+             Paragraph(str(ip_result.get("total_listed", 0)),
+                       ParagraphStyle("bl9", fontName="Helvetica-Bold", fontSize=10,
+                                      textColor=COLOR_CRITICAL if listed else COLOR_OK))],
         ]
         for entry in listed:
-            rows.append([Paragraph(entry["label"], ParagraphStyle("lb", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_CRITICAL)), Paragraph(entry["category"], cell_style)])
+            rows.append([
+                Paragraph(entry["label"], ParagraphStyle("lb9", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_CRITICAL)),
+                Paragraph(entry["category"], cell_style),
+            ])
         t = Table(rows, colWidths=[col_w * 0.4, col_w * 0.6])
 
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
-        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    t.setStyle(_std_table_style())
     story.append(t)
     return story
 
@@ -985,11 +1097,10 @@ def _build_ip_reputation_section(ip_result: dict[str, Any], styles: dict[str, An
 # ---------------------------------------------------------------------------
 def _build_dns_section(dns_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("10. DNS & Subdomains", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
-    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
+    story += _section_header(10, "DNS & Subdomains", styles)
+
+    head_style = ParagraphStyle("th10", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
+    cell_style = ParagraphStyle("td10", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
     col_w = page_w - 4 * cm
 
     if skipped or not dns_result:
@@ -997,28 +1108,25 @@ def _build_dns_section(dns_result: dict[str, Any], styles: dict[str, Any], page_
         t = Table(rows, colWidths=[col_w])
     else:
         zt = dns_result.get("zone_transfer", {})
-        zt_style = ParagraphStyle("zt", fontName="Helvetica-Bold", fontSize=10,
-                                   textColor=COLOR_CRITICAL if zt.get("vulnerable") else COLOR_OK)
+        zt_style = ParagraphStyle("zt10", fontName="Helvetica-Bold", fontSize=10,
+                                  textColor=COLOR_CRITICAL if zt.get("vulnerable") else COLOR_OK)
         rows = [
             [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
-            [Paragraph("Statut", cell_style), Paragraph(dns_result.get("status", ""), ParagraphStyle("st", fontName="Helvetica-Bold", fontSize=10, textColor=_status_color(dns_result.get("status", "OK"))))],
+            [Paragraph("Statut", cell_style), _status_inline(dns_result.get("status", "OK"))],
             [Paragraph("Subdomains trouvés", cell_style), Paragraph(str(dns_result.get("total_found", 0)), cell_style)],
-            [Paragraph("Zone Transfer", cell_style), Paragraph("VULNERABLE" if zt.get("vulnerable") else "Refusé", zt_style)],
+            [Paragraph("Zone Transfer", cell_style),
+             Paragraph("VULNERABLE" if zt.get("vulnerable") else "Refusé", zt_style)],
         ]
         for s in dns_result.get("found", [])[:10]:
-            rows.append([Paragraph(s["subdomain"], ParagraphStyle("sub", fontName="Helvetica", fontSize=9, textColor=COLOR_PRIMARY)), Paragraph(s["ip"], cell_style)])
+            rows.append([
+                Paragraph(s["subdomain"], ParagraphStyle("sub10", fontName="Helvetica", fontSize=9, textColor=COLOR_PRIMARY)),
+                Paragraph(s["ip"], cell_style),
+            ])
         if dns_result.get("total_found", 0) > 10:
             rows.append([Paragraph(f"... et {dns_result['total_found'] - 10} autres", cell_style), Paragraph("", cell_style)])
         t = Table(rows, colWidths=[col_w * 0.55, col_w * 0.45])
 
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
-        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    t.setStyle(_std_table_style())
     story.append(t)
     return story
 
@@ -1028,11 +1136,10 @@ def _build_dns_section(dns_result: dict[str, Any], styles: dict[str, Any], page_
 # ---------------------------------------------------------------------------
 def _build_cms_section(cms_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("11. CMS Detection", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
-    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
+    story += _section_header(11, "CMS Detection", styles)
+
+    head_style = ParagraphStyle("th11", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
+    cell_style = ParagraphStyle("td11", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
     col_w = page_w - 4 * cm
 
     if skipped or not cms_result:
@@ -1044,22 +1151,19 @@ def _build_cms_section(cms_result: dict[str, Any], styles: dict[str, Any], page_
         cms_color = COLOR_OK if cms == "Unknown" else (COLOR_CRITICAL if version else COLOR_WARNING)
         rows = [
             [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
-            [Paragraph("Statut", cell_style), Paragraph(cms_result.get("status", ""), ParagraphStyle("st", fontName="Helvetica-Bold", fontSize=10, textColor=_status_color(cms_result.get("status", "OK"))))],
-            [Paragraph("CMS détecté", cell_style), Paragraph(cms, ParagraphStyle("cms", fontName="Helvetica-Bold", fontSize=10, textColor=cms_color))],
+            [Paragraph("Statut", cell_style), _status_inline(cms_result.get("status", "OK"))],
+            [Paragraph("CMS détecté", cell_style),
+             Paragraph(cms, ParagraphStyle("cms11", fontName="Helvetica-Bold", fontSize=10, textColor=cms_color))],
         ]
         if version:
-            rows.append([Paragraph("Version exposée", cell_style), Paragraph(version, ParagraphStyle("ver", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_CRITICAL))])
+            rows.append([
+                Paragraph("Version exposée", cell_style),
+                Paragraph(version, ParagraphStyle("ver11", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_CRITICAL)),
+            ])
         rows.append([Paragraph("Confidence", cell_style), Paragraph(str(cms_result.get("confidence", 0)), cell_style)])
         t = Table(rows, colWidths=[col_w * 0.4, col_w * 0.6])
 
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
-        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    t.setStyle(_std_table_style())
     story.append(t)
     return story
 
@@ -1069,11 +1173,10 @@ def _build_cms_section(cms_result: dict[str, Any], styles: dict[str, Any], page_
 # ---------------------------------------------------------------------------
 def _build_waf_section(waf_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("12. WAF Detection", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
-    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
+    story += _section_header(12, "WAF Detection", styles)
+
+    head_style = ParagraphStyle("th12", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
+    cell_style = ParagraphStyle("td12", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
     col_w = page_w - 4 * cm
 
     if skipped or not waf_result:
@@ -1081,26 +1184,23 @@ def _build_waf_section(waf_result: dict[str, Any], styles: dict[str, Any], page_
         t = Table(rows, colWidths=[col_w])
     else:
         detected = waf_result.get("detected", False)
-        det_style = ParagraphStyle("det", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_OK if detected else COLOR_WARNING)
+        det_style = ParagraphStyle("det12", fontName="Helvetica-Bold", fontSize=10,
+                                   textColor=COLOR_OK if detected else COLOR_WARNING)
         rows = [
             [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
-            [Paragraph("Statut", cell_style), Paragraph(waf_result.get("status", ""), ParagraphStyle("st", fontName="Helvetica-Bold", fontSize=10, textColor=_status_color(waf_result.get("status", "OK"))))],
+            [Paragraph("Statut", cell_style), _status_inline(waf_result.get("status", "OK"))],
             [Paragraph("WAF détecté", cell_style), Paragraph("Oui" if detected else "Non", det_style)],
         ]
         if waf_result.get("waf_name"):
-            rows.append([Paragraph("Nom", cell_style), Paragraph(waf_result["waf_name"], ParagraphStyle("wn", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_OK))])
+            rows.append([
+                Paragraph("Nom", cell_style),
+                Paragraph(waf_result["waf_name"], ParagraphStyle("wn12", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_OK)),
+            ])
         if waf_result.get("method"):
             rows.append([Paragraph("Méthode détection", cell_style), Paragraph(waf_result["method"], cell_style)])
         t = Table(rows, colWidths=[col_w * 0.4, col_w * 0.6])
 
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
-        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    t.setStyle(_std_table_style())
     story.append(t)
     return story
 
@@ -1110,15 +1210,15 @@ def _build_waf_section(waf_result: dict[str, Any], styles: dict[str, Any], page_
 # ---------------------------------------------------------------------------
 def _build_breach_section(breach_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("13. Data Breach (HIBP)", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
-    head_style = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_WHITE)
-    cell_style = ParagraphStyle("td", fontName="Helvetica", fontSize=10, textColor=colors.HexColor("#cbd5e1"))
+    story += _section_header(13, "Data Breach (HIBP)", styles)
+
+    head_style = ParagraphStyle("th13", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
+    cell_style = ParagraphStyle("td13", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
     col_w = page_w - 4 * cm
 
     if skipped or not breach_result:
-        rows = [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné (utiliser --breach-email ou --breach-domain)", cell_style)]]
+        rows = [[Paragraph("Résultat", head_style)],
+                [Paragraph("Non scanné (utiliser --breach-email ou --breach-domain)", cell_style)]]
         t = Table(rows, colWidths=[col_w])
     elif breach_result.get("error") and breach_result.get("status") == "WARNING":
         rows = [[Paragraph("Résultat", head_style)], [Paragraph(str(breach_result["error"]), cell_style)]]
@@ -1128,23 +1228,19 @@ def _build_breach_section(breach_result: dict[str, Any], styles: dict[str, Any],
         total_color = COLOR_OK if total == 0 else (COLOR_WARNING if breach_result.get("status") == "WARNING" else COLOR_CRITICAL)
         rows = [
             [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
-            [Paragraph("Statut", cell_style), Paragraph(breach_result.get("status", ""), ParagraphStyle("st", fontName="Helvetica-Bold", fontSize=10, textColor=_status_color(breach_result.get("status", "OK"))))],
+            [Paragraph("Statut", cell_style), _status_inline(breach_result.get("status", "OK"))],
             [Paragraph("Cible", cell_style), Paragraph(breach_result.get("target", ""), cell_style)],
-            [Paragraph("Fuites trouvées", cell_style), Paragraph(str(total), ParagraphStyle("tc", fontName="Helvetica-Bold", fontSize=10, textColor=total_color))],
+            [Paragraph("Fuites trouvées", cell_style),
+             Paragraph(str(total), ParagraphStyle("tc13", fontName="Helvetica-Bold", fontSize=10, textColor=total_color))],
         ]
         for b in breach_result.get("breaches", []):
-            rows.append([Paragraph(b["name"], ParagraphStyle("bn", fontName="Helvetica-Bold", fontSize=9, textColor=COLOR_CRITICAL)),
-                         Paragraph(f"{b.get('breach_date','')} — {b.get('pwn_count',0):,} comptes", cell_style)])
+            rows.append([
+                Paragraph(b["name"], ParagraphStyle("bn13", fontName="Helvetica-Bold", fontSize=9, textColor=COLOR_CRITICAL)),
+                Paragraph(f"{b.get('breach_date','')} — {b.get('pwn_count',0):,} comptes", cell_style),
+            ])
         t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
 
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_BG, colors.white]),
-        ("GRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    t.setStyle(_std_table_style())
     story.append(t)
     return story
 
@@ -1154,36 +1250,28 @@ def _build_breach_section(breach_result: dict[str, Any], styles: dict[str, Any],
 # ---------------------------------------------------------------------------
 def _build_tech_section(tech_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("14. Technology Fingerprint", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(14, "Technology Fingerprint", styles)
+
     if skipped:
         story.append(Paragraph("Module non exécuté (--skip-tech).", styles["body"]))
         return story
+
     status = tech_result.get("status", "OK")
-    story.append(_status_badge_table(status))
+    story.append(_status_inline(status))
     story.append(Spacer(1, 0.3 * cm))
-    rows = [["Catégorie", "Technologies détectées"]]
+
+    head_style = ParagraphStyle("th14", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
+    rows = [[Paragraph("Catégorie", head_style), Paragraph("Technologies détectées", head_style)]]
     for cat, names in tech_result.get("technologies", {}).items():
         rows.append([cat.capitalize(), ", ".join(names)])
     if len(rows) == 1:
         rows.append(["—", "Aucune technologie identifiée"])
+
     col_w = page_w - 4 * cm
     t = Table(rows, colWidths=[col_w * 0.3, col_w * 0.7])
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-        ("TEXTCOLOR",  (0, 0), (-1, 0), COLOR_WHITE),
-        ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE",   (0, 0), (-1, -1), 9),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
-        ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-        ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    t.setStyle(_std_table_style())
     story.append(t)
+
     if tech_result.get("error"):
         story.append(Spacer(1, 0.2 * cm))
         story.append(Paragraph(f"⚠ {tech_result['error']}", styles["body"]))
@@ -1195,15 +1283,16 @@ def _build_tech_section(tech_result: dict[str, Any], styles: dict[str, Any], pag
 # ---------------------------------------------------------------------------
 def _build_tls_section(tls_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("15. Audit TLS approfondi", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(15, "Audit TLS approfondi", styles)
+
     if skipped:
         story.append(Paragraph("Module non exécuté (--skip-tls).", styles["body"]))
         return story
+
     status = tls_result.get("status", "OK")
-    story.append(_status_badge_table(status))
+    story.append(_status_inline(status))
     story.append(Spacer(1, 0.3 * cm))
+
     hsts = tls_result.get("hsts", {})
     rows = [
         ["Protocoles supportés", ", ".join(tls_result.get("supported_protocols", [])) or "—"],
@@ -1220,19 +1309,10 @@ def _build_tls_section(tls_result: dict[str, Any], styles: dict[str, Any], page_
             ["Cert issuer",   cert.get("issuer", "—")],
             ["Cert expires",  cert.get("not_after", "—")],
         ]
+
     col_w = page_w - 4 * cm
     t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
-    t.setStyle(TableStyle([
-        ("FONTNAME",   (0, 0), (-1, -1), "Helvetica"),
-        ("FONTSIZE",   (0, 0), (-1, -1), 9),
-        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
-        ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-        ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    t.setStyle(_std_table_style())
     story.append(t)
     return story
 
@@ -1242,42 +1322,37 @@ def _build_tls_section(tls_result: dict[str, Any], styles: dict[str, Any], page_
 # ---------------------------------------------------------------------------
 def _build_takeover_section(takeover_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("16. Subdomain Takeover", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(16, "Subdomain Takeover", styles)
+
     if skipped:
         story.append(Paragraph("Module non exécuté (--skip-takeover).", styles["body"]))
         return story
+
     status = takeover_result.get("status", "OK")
-    story.append(_status_badge_table(status))
+    story.append(_status_inline(status))
     story.append(Spacer(1, 0.3 * cm))
     story.append(Paragraph(
         f"Sous-domaines vérifiés : {takeover_result.get('total_checked', 0)} — "
         f"Vulnérables : {takeover_result.get('total_vulnerable', 0)}",
         styles["body"],
     ))
+
     vulns = takeover_result.get("vulnerable", [])
     if vulns:
         story.append(Spacer(1, 0.2 * cm))
-        rows = [["Sous-domaine", "Service", "Raison"]]
+        head_style = ParagraphStyle("th16", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
+        rows = [[Paragraph("Sous-domaine", head_style), Paragraph("Service", head_style), Paragraph("Raison", head_style)]]
         for v in vulns:
             rows.append([v["subdomain"], v.get("service", "—"), v.get("reason", "—")])
         col_w = page_w - 4 * cm
         t = Table(rows, colWidths=[col_w * 0.38, col_w * 0.22, col_w * 0.40])
-        t.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), COLOR_CRITICAL),
-            ("TEXTCOLOR",  (0, 0), (-1, 0), COLOR_WHITE),
-            ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE",   (0, 0), (-1, -1), 9),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
-            ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-            ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
-            ("TOPPADDING", (0, 0), (-1, -1), 5),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-            ("LEFTPADDING", (0, 0), (-1, -1), 8),
-            ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
+        # Takeover header gets critical color to signal danger
+        t.setStyle(_std_table_style([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#3d1515")),
+            ("TEXTCOLOR",  (0, 0), (-1, 0), COLOR_CRITICAL),
         ]))
         story.append(t)
+
     if takeover_result.get("error"):
         story.append(Spacer(1, 0.2 * cm))
         story.append(Paragraph(takeover_result["error"], styles["body"]))
@@ -1289,19 +1364,23 @@ def _build_takeover_section(takeover_result: dict[str, Any], styles: dict[str, A
 # ---------------------------------------------------------------------------
 def _build_threat_intel_section(ti_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("17. Threat Intelligence (Shodan)", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(17, "Threat Intelligence (Shodan)", styles)
+
     if skipped:
         story.append(Paragraph("Module non exécuté (--skip-threat).", styles["body"]))
         return story
+
     status = ti_result.get("status", "OK")
-    story.append(_status_badge_table(status))
+    story.append(_status_inline(status))
     story.append(Spacer(1, 0.3 * cm))
+
     cves  = ti_result.get("cves", [])
     ports = ti_result.get("open_ports", [])
     abuse = ti_result.get("abuse_score")
+
+    head_style = ParagraphStyle("th17", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
     rows = [
+        [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
         ["IP",           str(ti_result.get("ip", "—"))],
         ["Ports ouverts", ", ".join(str(p) for p in ports) if ports else "—"],
         ["CVEs",          ", ".join(cves[:8]) + ("…" if len(cves) > 8 else "") if cves else "Aucun"],
@@ -1310,18 +1389,9 @@ def _build_threat_intel_section(ti_result: dict[str, Any], styles: dict[str, Any
     ]
     col_w = page_w - 4 * cm
     t = Table(rows, colWidths=[col_w * 0.3, col_w * 0.7])
-    t.setStyle(TableStyle([
-        ("FONTNAME",   (0, 0), (-1, -1), "Helvetica"),
-        ("FONTSIZE",   (0, 0), (-1, -1), 9),
-        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
-        ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-        ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    t.setStyle(_std_table_style())
     story.append(t)
+
     if ti_result.get("error"):
         story.append(Spacer(1, 0.2 * cm))
         story.append(Paragraph(f"⚠ {ti_result['error']}", styles["body"]))
@@ -1333,59 +1403,53 @@ def _build_threat_intel_section(ti_result: dict[str, Any], styles: dict[str, Any
 # ---------------------------------------------------------------------------
 def _build_http_methods_section(methods_result: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("18. Méthodes HTTP dangereuses", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(18, "Méthodes HTTP dangereuses", styles)
+
     if skipped:
         story.append(Paragraph("Module non exécuté (--skip-methods).", styles["body"]))
         return story
+
     status = methods_result.get("status", "OK")
-    story.append(_status_badge_table(status))
+    story.append(_status_inline(status))
     story.append(Spacer(1, 0.3 * cm))
+
     dangerous = methods_result.get("dangerous_allowed", [])
     allowed   = methods_result.get("allowed_methods", [])
     declared  = methods_result.get("options_declared", [])
+
+    head_style = ParagraphStyle("th18", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
     rows = [
+        [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
         ["OPTIONS déclare",    ", ".join(declared) if declared else "—"],
         ["Méthodes autorisées", ", ".join(allowed) if allowed else "Aucune"],
         ["Méthodes dangereuses", ", ".join(dangerous) if dangerous else "Aucune"],
     ]
     col_w = page_w - 4 * cm
     t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
-    t.setStyle(TableStyle([
-        ("FONTNAME",   (0, 0), (-1, -1), "Helvetica"),
-        ("FONTSIZE",   (0, 0), (-1, -1), 9),
-        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
-        ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-        ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    t.setStyle(_std_table_style())
     story.append(t)
+
     probes = methods_result.get("probes", [])
     if probes:
         story.append(Spacer(1, 0.3 * cm))
-        probe_rows = [["Méthode", "Code HTTP", "Acceptée"]]
+        probe_head = [Paragraph("Méthode", head_style), Paragraph("Code HTTP", head_style), Paragraph("Acceptée", head_style)]
+        probe_rows = [probe_head]
         for p in probes:
             code = str(p["status_code"]) if p["status_code"] else "Erreur"
             accepted = "OUI" if p["allowed"] else "non"
-            probe_rows.append([p["method"], code, accepted])
+            accepted_style = ParagraphStyle(
+                "acc18",
+                fontName="Helvetica-Bold",
+                fontSize=9,
+                textColor=COLOR_CRITICAL if p["allowed"] else COLOR_OK,
+            )
+            probe_rows.append([
+                p["method"],
+                code,
+                Paragraph(accepted, accepted_style),
+            ])
         t2 = Table(probe_rows, colWidths=[col_w * 0.25, col_w * 0.35, col_w * 0.40])
-        t2.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-            ("TEXTCOLOR",  (0, 0), (-1, 0), COLOR_WHITE),
-            ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE",   (0, 0), (-1, -1), 9),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
-            ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-            ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
-            ("TOPPADDING", (0, 0), (-1, -1), 5),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-            ("LEFTPADDING", (0, 0), (-1, -1), 8),
-            ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
-        ]))
+        t2.setStyle(_std_table_style())
         story.append(t2)
     return story
 
@@ -1395,34 +1459,35 @@ def _build_http_methods_section(methods_result: dict[str, Any], styles: dict[str
 # ---------------------------------------------------------------------------
 def _build_open_redirect_section(r: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("19. Open Redirect", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(19, "Open Redirect", styles)
+
     if skipped:
         story.append(Paragraph("Module non exécuté (--skip-redirects).", styles["body"]))
         return story
-    story.append(_status_badge_table(r.get("status", "OK")))
+
+    story.append(_status_inline(r.get("status", "OK")))
     story.append(Spacer(1, 0.3 * cm))
+
     col_w = page_w - 4 * cm
+    head_style = ParagraphStyle("th19", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
+    vuln_text = "OUI" if r.get("vulnerable") else "Non"
+    vuln_style = ParagraphStyle(
+        "vl19",
+        fontName="Helvetica-Bold",
+        fontSize=9,
+        textColor=COLOR_CRITICAL if r.get("vulnerable") else COLOR_OK,
+    )
     rows = [
+        [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
         ["Probes envoyées", str(r.get("tested", 0))],
-        ["Vulnérable",      "OUI" if r.get("vulnerable") else "Non"],
+        ["Vulnérable", Paragraph(vuln_text, vuln_style)],
     ]
     findings = r.get("findings", [])
     for f in findings:
         rows.append([f"Param: {f['param']}", f"→ {f['location'][:60]}"])
+
     t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
-    t.setStyle(TableStyle([
-        ("FONTNAME",  (0, 0), (-1, -1), "Helvetica"),
-        ("FONTSIZE",  (0, 0), (-1, -1), 9),
-        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
-        ("BOX",       (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-        ("INNERGRID", (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("VALIGN",    (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    t.setStyle(_std_table_style())
     story.append(t)
     return story
 
@@ -1432,18 +1497,22 @@ def _build_open_redirect_section(r: dict[str, Any], styles: dict[str, Any], page
 # ---------------------------------------------------------------------------
 def _build_clickjacking_section(r: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("20. Clickjacking", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(20, "Clickjacking", styles)
+
     if skipped:
         story.append(Paragraph("Module non exécuté (--skip-clickjacking).", styles["body"]))
         return story
-    story.append(_status_badge_table(r.get("status", "OK")))
+
+    story.append(_status_inline(r.get("status", "OK")))
     story.append(Spacer(1, 0.3 * cm))
+
     xfo = r.get("xfo", {})
     csp = r.get("csp_frame_ancestors", {})
     col_w = page_w - 4 * cm
+
+    head_style = ParagraphStyle("th20", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
     rows = [
+        [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
         ["X-Frame-Options",      xfo.get("value") or "Absent"],
         ["XFO protégé",          "Oui" if xfo.get("protected") else "Non"],
         ["CSP frame-ancestors",  csp.get("value") or "Absent"],
@@ -1451,17 +1520,7 @@ def _build_clickjacking_section(r: dict[str, Any], styles: dict[str, Any], page_
         ["Vulnérable clickjacking", "OUI" if r.get("vulnerable") else "Non"],
     ]
     t = Table(rows, colWidths=[col_w * 0.4, col_w * 0.6])
-    t.setStyle(TableStyle([
-        ("FONTNAME",  (0, 0), (-1, -1), "Helvetica"),
-        ("FONTSIZE",  (0, 0), (-1, -1), 9),
-        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
-        ("BOX",       (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-        ("INNERGRID", (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("VALIGN",    (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    t.setStyle(_std_table_style())
     story.append(t)
     return story
 
@@ -1471,36 +1530,33 @@ def _build_clickjacking_section(r: dict[str, Any], styles: dict[str, Any], page_
 # ---------------------------------------------------------------------------
 def _build_dirlist_section(r: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("21. Directory Listing & Chemins sensibles", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(21, "Directory Listing & Chemins sensibles", styles)
+
     if skipped:
         story.append(Paragraph("Module non exécuté (--skip-dirlist).", styles["body"]))
         return story
-    story.append(_status_badge_table(r.get("status", "OK")))
+
+    story.append(_status_inline(r.get("status", "OK")))
     story.append(Spacer(1, 0.3 * cm))
+
     findings = r.get("findings", [])
     if not findings:
         story.append(Paragraph("Aucun chemin sensible exposé.", styles["body"]))
         return story
+
     col_w = page_w - 4 * cm
-    rows = [["Chemin", "Catégorie", "Sévérité", "HTTP"]]
+    head_style = ParagraphStyle("th21", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
+    rows = [[
+        Paragraph("Chemin", head_style),
+        Paragraph("Catégorie", head_style),
+        Paragraph("Sévérité", head_style),
+        Paragraph("HTTP", head_style),
+    ]]
     for f in findings:
         rows.append([f["path"], f["category"], f["severity"], str(f["status_code"])])
+
     t = Table(rows, colWidths=[col_w * 0.38, col_w * 0.22, col_w * 0.22, col_w * 0.18])
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-        ("TEXTCOLOR",  (0, 0), (-1, 0), COLOR_WHITE),
-        ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE",   (0, 0), (-1, -1), 9),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
-        ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-        ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    t.setStyle(_std_table_style())
     story.append(t)
     return story
 
@@ -1510,17 +1566,20 @@ def _build_dirlist_section(r: dict[str, Any], styles: dict[str, Any], page_w: fl
 # ---------------------------------------------------------------------------
 def _build_robots_section(r: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("22. Robots.txt & Sitemap", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(22, "Robots.txt & Sitemap", styles)
+
     if skipped:
         story.append(Paragraph("Module non exécuté (--skip-robots).", styles["body"]))
         return story
-    story.append(_status_badge_table(r.get("status", "OK")))
+
+    story.append(_status_inline(r.get("status", "OK")))
     story.append(Spacer(1, 0.3 * cm))
+
     col_w = page_w - 4 * cm
     sensitive = r.get("sensitive_disallowed", [])
+    head_style = ParagraphStyle("th22", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
     rows = [
+        [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
         ["robots.txt",         "Trouvé" if r.get("robots_found") else "Absent"],
         ["Disallow entries",   str(len(r.get("disallowed_paths", [])))],
         ["Chemins sensibles",  ", ".join(sensitive[:6]) if sensitive else "Aucun"],
@@ -1528,17 +1587,7 @@ def _build_robots_section(r: dict[str, Any], styles: dict[str, Any], page_w: flo
         ["URLs sitemap",       str(r.get("sitemap_url_count", 0))],
     ]
     t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
-    t.setStyle(TableStyle([
-        ("FONTNAME",  (0, 0), (-1, -1), "Helvetica"),
-        ("FONTSIZE",  (0, 0), (-1, -1), 9),
-        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
-        ("BOX",       (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-        ("INNERGRID", (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("VALIGN",    (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    t.setStyle(_std_table_style())
     story.append(t)
     return story
 
@@ -1548,14 +1597,15 @@ def _build_robots_section(r: dict[str, Any], styles: dict[str, Any], page_w: flo
 # ---------------------------------------------------------------------------
 def _build_jwt_section(r: dict[str, Any], styles: dict[str, Any], page_w: float, skipped: bool = False) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("23. Sécurité JWT", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(23, "Sécurité JWT", styles)
+
     if skipped:
         story.append(Paragraph("Module non exécuté (--skip-jwt).", styles["body"]))
         return story
-    story.append(_status_badge_table(r.get("status", "OK")))
+
+    story.append(_status_inline(r.get("status", "OK")))
     story.append(Spacer(1, 0.3 * cm))
+
     col_w = page_w - 4 * cm
     analyses = r.get("analyses", [])
     if not analyses:
@@ -1564,24 +1614,22 @@ def _build_jwt_section(r: dict[str, Any], styles: dict[str, Any], page_w: float,
             styles["body"],
         ))
         return story
-    rows = [["Token (début)", "Problèmes", "Sévérité"]]
+
+    head_style = ParagraphStyle("th23", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
+    rows = [[Paragraph("Token (début)", head_style), Paragraph("Problèmes", head_style), Paragraph("Sévérité", head_style)]]
     for a in analyses:
         issues = ", ".join(a["issues"]) if a["issues"] else "OK"
-        rows.append([a["token"][:40], issues, a["severity"]])
+        sev = a["severity"]
+        sev_style = ParagraphStyle(
+            "sv23",
+            fontName="Helvetica-Bold",
+            fontSize=9,
+            textColor=_status_color(sev if sev in ("OK", "WARNING", "CRITICAL") else "WARNING"),
+        )
+        rows.append([a["token"][:40], issues, Paragraph(sev, sev_style)])
+
     t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.45, col_w * 0.20])
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), COLOR_PRIMARY),
-        ("TEXTCOLOR",  (0, 0), (-1, 0), COLOR_WHITE),
-        ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE",   (0, 0), (-1, -1), 9),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [COLOR_ROW_ALT, COLOR_BG]),
-        ("BOX",        (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-        ("INNERGRID",  (0, 0), (-1, -1), 0.3, COLOR_LIGHT_BORDER),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    t.setStyle(_std_table_style())
     story.append(t)
     return story
 
@@ -1600,9 +1648,7 @@ def _build_recommendations(
     sca_skipped: bool = True,
 ) -> list:
     story = []
-    story.append(Spacer(1, 0.6 * cm))
-    story.append(Paragraph("24. Recommandations", styles["section_title"]))
-    story.append(HRFlowable(width="100%", thickness=1, color=COLOR_PRIMARY, spaceAfter=10))
+    story += _section_header(24, "Recommandations", styles)
 
     recommendations: list[tuple[str, str]] = []  # (priority, text)
 
@@ -1626,7 +1672,6 @@ def _build_recommendations(
     if not sca_skipped and sca_result and not sca_result.get("error"):
         for vuln in sca_result.get("vulns", []):
             sev = vuln.get("severity", "UNKNOWN")
-            priority = sev if sev in ("CRITICAL", "WARNING") else ("WARNING" if sev in ("HIGH", "MEDIUM") else "OK")
             cve_str = ", ".join(vuln.get("cve_ids", ["N/A"]))
             recommendations.append((
                 "CRITICAL" if sev in ("CRITICAL", "HIGH") else "WARNING",
@@ -1654,42 +1699,40 @@ def _build_recommendations(
     priority_order = {"CRITICAL": 0, "WARNING": 1, "OK": 2}
     recommendations.sort(key=lambda x: priority_order.get(x[0], 99))
 
+    col_w = page_w - 4 * cm
+
     for priority, text in recommendations:
         c = _status_color(priority)
+        priority_label = _status_bullet(priority)
         badge_style = ParagraphStyle(
-            "pb",
+            "pb24",
             fontName="Helvetica-Bold",
-            fontSize=8,
-            textColor=COLOR_WHITE,
+            fontSize=9,
+            textColor=c,
             alignment=TA_CENTER,
         )
         text_style = ParagraphStyle(
-            "pt",
+            "pt24",
             fontName="Helvetica",
             fontSize=10,
-            textColor=colors.HexColor("#cbd5e1"),
+            textColor=COLOR_TEXT,
         )
-        col_w = page_w - 4 * cm
         row_table = Table(
-            [[Paragraph(priority, badge_style), Paragraph(text, text_style)]],
-            colWidths=[2.2 * cm, col_w - 2.2 * cm],
+            [[Paragraph(priority_label, badge_style), Paragraph(text, text_style)]],
+            colWidths=[2.5 * cm, col_w - 2.5 * cm],
         )
-        row_table.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (0, 0), c),
-                    ("BACKGROUND", (1, 0), (1, 0), colors.white),
-                    ("BOX", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-                    ("INNERGRID", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_BORDER),
-                    ("ALIGN", (0, 0), (0, 0), "CENTER"),
-                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                    ("TOPPADDING", (0, 0), (-1, -1), 7),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-                ]
-            )
-        )
+        row_table.setStyle(TableStyle([
+            ("BACKGROUND",    (0, 0), (0, 0),  COLOR_CARD),
+            ("BACKGROUND",    (1, 0), (1, 0),  COLOR_BG),
+            ("BOX",           (0, 0), (-1, -1), 0.5, COLOR_BORDER),
+            ("LINEBELOW",     (0, 0), (-1, -1), 0.5, COLOR_BORDER),
+            ("ALIGN",         (0, 0), (0, 0),  "CENTER"),
+            ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING",    (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ("LEFTPADDING",   (0, 0), (-1, -1), 10),
+            ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
+        ]))
         story.append(row_table)
         story.append(Spacer(1, 0.2 * cm))
 
@@ -1837,7 +1880,7 @@ def generate_report(
     usable_w = page_w - 4 * cm  # leftMargin + rightMargin = 4 cm
 
     story: list = []
-    story += _build_cover(target_url, report_date, styles, usable_w, page_h)
+    story += _build_cover(target_url, report_date, styles, usable_w, page_h, overall_status=overall)
     story += _build_toc(styles)
     story += _build_executive_summary(overall, statuses, styles, usable_w + 4 * cm)
     story += _build_ssl_section(ssl_result or {}, styles, usable_w + 4 * cm)
