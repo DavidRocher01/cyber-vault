@@ -80,15 +80,17 @@ describe('LandingComponent — non-régression données statiques', () => {
     expect(src).not.toContain("'19 modules'");
   });
 
-  it('[RÉGRESSION] login redirige vers /cyberscan/dashboard (pas la landing)', () => {
-    // submitLogin() et submitLoginTotp() doivent naviguer vers /cyberscan/dashboard
+  it('[RÉGRESSION] login redirige vers /cyberscan (landing) et non /cyberscan/dashboard', () => {
+    // submitLogin() et submitLoginTotp() doivent naviguer vers /cyberscan après connexion
     const loginFnMatch = src.match(/submitLogin\(\)\s*\{[\s\S]+?^  \}/m);
     if (loginFnMatch) {
-      expect(loginFnMatch[0]).toContain('/cyberscan/dashboard');
+      expect(loginFnMatch[0]).toContain("'/cyberscan'");
+      expect(loginFnMatch[0]).not.toContain("'/cyberscan/dashboard'");
     }
     const totpFnMatch = src.match(/submitLoginTotp\(\)\s*\{[\s\S]+?^  \}/m);
     if (totpFnMatch) {
-      expect(totpFnMatch[0]).toContain('/cyberscan/dashboard');
+      expect(totpFnMatch[0]).toContain("'/cyberscan'");
+      expect(totpFnMatch[0]).not.toContain("'/cyberscan/dashboard'");
     }
   });
 

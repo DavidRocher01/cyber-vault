@@ -119,7 +119,7 @@ export class LandingComponent implements OnInit {
           this.authLoading = false;
         } else {
           this.closeAuth();
-          this.router.navigate(['/cyberscan/dashboard']);
+          this.router.navigate(['/cyberscan']);
         }
       },
       error: err => {
@@ -134,7 +134,7 @@ export class LandingComponent implements OnInit {
     this.authLoading = true;
     this.authError = null;
     this.auth.login(this.pendingEmail, this.pendingPassword, this.authOtpCode).subscribe({
-      next: () => { this.closeAuth(); this.router.navigate(['/cyberscan/dashboard']); },
+      next: () => { this.closeAuth(); this.router.navigate(['/cyberscan']); },
       error: err => {
         this.authError = err.error?.detail ?? 'Code invalide.';
         this.authLoading = false;
