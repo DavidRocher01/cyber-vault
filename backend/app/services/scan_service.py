@@ -6,7 +6,7 @@ saves the PDF, and updates the Scan record in DB.
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -53,7 +53,7 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
         return
 
     scan.status = "running"
-    scan.started_at = datetime.utcnow()
+    scan.started_at = datetime.now(timezone.utc)
     await db.commit()
 
     tier = await _get_plan_tier(db, site.user_id)
@@ -223,7 +223,7 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
         scan.overall_status = overall
         scan.pdf_path       = pdf_path
         scan.results_json   = json.dumps(results, default=str)
-        scan.finished_at    = datetime.utcnow()
+        scan.finished_at    = datetime.now(timezone.utc)
         await db.commit()
 
         # Email alert on CRITICAL (manual scans)
@@ -246,5 +246,5 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
     except Exception as exc:
         scan.status        = "failed"
         scan.error_message = str(exc)[:500]
-        scan.finished_at   = datetime.utcnow()
+        scan.finished_at   = datetime.now(timezone.utc)
         await db.commit()

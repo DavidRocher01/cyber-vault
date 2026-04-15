@@ -19,8 +19,13 @@ from app.services.code_scan_service import (
     _extract_repo_name,
     _run,
     _run_bandit,
+    _run_checkov,
+    _run_detect_secrets,
+    _run_gitleaks,
+    _run_npm_audit,
     _run_pip_audit,
     _run_semgrep,
+    _run_trivy,
     _sanitize_repo_url,
     run_code_scan,
     run_code_scan_zip,
@@ -451,3 +456,424 @@ async def test_run_code_scan_zip_descends_single_top_level_folder(tmp_path):
 
     # The bandit should have been called on the inner folder, not the outer wrapper
     assert any("myproject" in d for d in called_dirs)
+
+
+# ─── _run_gitleaks ────────────────────────────────────────────────────────────
+
+def test_run_gitleaks_no_report_file_returns_empty(tmp_path):
+    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+        findings = _run_gitleaks(str(tmp_path))
+    assert findings == []
+
+
+def test_run_gitleaks_invalid_json_returns_empty(tmp_path):
+    report = tmp_path / "gitleaks-report.json"
+    report.write_text("not-json")
+    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+        findings = _run_gitleaks(str(tmp_path))
+    assert findings == []
+
+
+def test_run_gitleaks_non_list_report_returns_empty(tmp_path):
+    report = tmp_path / "gitleaks-report.json"
+    report.write_text(json.dumps({"key": "value"}))
+    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+        findings = _run_gitleaks(str(tmp_path))
+    assert findings == []
+
+
+def test_run_gitleaks_parses_leak(tmp_path):
+    leaks = [{
+        "RuleID": "generic-api-key",
+        "Description": "Generic API Key",
+        "Match": "SUPERSECRETKEY",
+        "File": str(tmp_path / "config.py"),
+        "StartLine": 7,
+    }]
+    report = tmp_path / "gitleaks-report.json"
+    report.write_text(json.dumps(leaks))
+    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+        findings = _run_gitleaks(str(tmp_path))
+    assert len(findings) == 1
+    assert findings[0]["tool"] == "gitleaks"
+    assert findings[0]["severity"] == "critical"
+    assert findings[0]["rule"] == "generic-api-key"
+    assert findings[0]["line"] == 7
+    assert "SUPERSECRETKEY" in findings[0]["message"]
+
+
+def test_run_gitleaks_truncates_long_match(tmp_path):
+    leaks = [{"RuleID": "r", "Description": "d", "Match": "X" * 100, "File": "f.py", "StartLine": 1}]
+    report = tmp_path / "gitleaks-report.json"
+    report.write_text(json.dumps(leaks))
+    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+        findings = _run_gitleaks(str(tmp_path))
+    # preview is capped at 80 chars
+    assert "X" * 80 in findings[0]["message"]
+    assert "X" * 81 not in findings[0]["message"]
+
+
+def test_run_gitleaks_empty_match_uses_default_message(tmp_path):
+    leaks = [{"RuleID": "r", "Description": "d", "Match": "", "File": "f.py", "StartLine": 1}]
+    report = tmp_path / "gitleaks-report.json"
+    report.write_text(json.dumps(leaks))
+    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+        findings = _run_gitleaks(str(tmp_path))
+    assert findings[0]["message"] == "Secret potentiel détecté"
+
+
+def test_run_gitleaks_multiple_leaks(tmp_path):
+    leaks = [
+        {"RuleID": "key1", "Description": "Key 1", "Match": "abc", "File": "a.py", "StartLine": 1},
+        {"RuleID": "key2", "Description": "Key 2", "Match": "def", "File": "b.py", "StartLine": 5},
+    ]
+    report = tmp_path / "gitleaks-report.json"
+    report.write_text(json.dumps(leaks))
+    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+        findings = _run_gitleaks(str(tmp_path))
+    assert len(findings) == 2
+    assert all(f["severity"] == "critical" for f in findings)
+
+
+# ─── _run_npm_audit ───────────────────────────────────────────────────────────
+
+def test_run_npm_audit_no_package_json_returns_empty(tmp_path):
+    findings = _run_npm_audit(str(tmp_path))
+    assert findings == []
+
+
+def test_run_npm_audit_no_output_returns_empty(tmp_path):
+    (tmp_path / "package.json").write_text('{"name":"test"}')
+    (tmp_path / "package-lock.json").write_text("{}")  # so npm install isn't called
+    with patch("app.services.code_scan_service._run", return_value=(0, "", "err")):
+        assert _run_npm_audit(str(tmp_path)) == []
+
+
+def test_run_npm_audit_invalid_json_returns_empty(tmp_path):
+    (tmp_path / "package.json").write_text('{"name":"test"}')
+    (tmp_path / "package-lock.json").write_text("{}")
+    with patch("app.services.code_scan_service._run", return_value=(0, "bad-json", "")):
+        assert _run_npm_audit(str(tmp_path)) == []
+
+
+def test_run_npm_audit_parses_advisory_vulnerability(tmp_path):
+    (tmp_path / "package.json").write_text('{"name":"test"}')
+    (tmp_path / "package-lock.json").write_text("{}")
+    audit_data = {
+        "vulnerabilities": {
+            "lodash": {
+                "severity": "high",
+                "via": [{
+                    "source": 1500,
+                    "severity": "high",
+                    "title": "Prototype Pollution",
+                    "url": "https://npmjs.com/advisories/1500",
+                }],
+            }
+        }
+    }
+    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(audit_data), "")):
+        findings = _run_npm_audit(str(tmp_path))
+    assert len(findings) == 1
+    assert findings[0]["tool"] == "npm-audit"
+    assert findings[0]["severity"] == "high"
+    assert findings[0]["title"] == "Prototype Pollution"
+    assert findings[0]["file"] == "package.json"
+
+
+def test_run_npm_audit_parses_indirect_vulnerability(tmp_path):
+    """Via list contains strings (indirect dep), not advisory dicts."""
+    (tmp_path / "package.json").write_text('{"name":"test"}')
+    (tmp_path / "package-lock.json").write_text("{}")
+    audit_data = {
+        "vulnerabilities": {
+            "old-package": {
+                "severity": "moderate",
+                "via": ["other-package"],
+                "range": "< 2.0.0",
+            }
+        }
+    }
+    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(audit_data), "")):
+        findings = _run_npm_audit(str(tmp_path))
+    assert len(findings) == 1
+    assert findings[0]["severity"] == "medium"
+    assert "old-package" in findings[0]["title"]
+
+
+def test_run_npm_audit_generates_lockfile_when_missing(tmp_path):
+    """When package-lock.json is absent, npm install --package-lock-only should run first."""
+    (tmp_path / "package.json").write_text('{"name":"test"}')
+    # No package-lock.json
+
+    calls = []
+
+    def fake_run(cmd, cwd, timeout=120):
+        calls.append(cmd)
+        if "audit" in cmd:
+            return (0, json.dumps({"vulnerabilities": {}}), "")
+        return (0, "", "")
+
+    with patch("app.services.code_scan_service._run", side_effect=fake_run):
+        _run_npm_audit(str(tmp_path))
+
+    assert any("install" in " ".join(c) for c in calls), "npm install --package-lock-only should have been called"
+
+
+def test_run_npm_audit_severity_critical(tmp_path):
+    (tmp_path / "package.json").write_text('{"name":"test"}')
+    (tmp_path / "package-lock.json").write_text("{}")
+    audit_data = {
+        "vulnerabilities": {
+            "vuln-pkg": {
+                "severity": "critical",
+                "via": [{"source": 9999, "severity": "critical", "title": "RCE", "url": "https://x.com"}],
+            }
+        }
+    }
+    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(audit_data), "")):
+        findings = _run_npm_audit(str(tmp_path))
+    assert findings[0]["severity"] == "critical"
+
+
+def test_run_npm_audit_no_vulnerabilities_returns_empty(tmp_path):
+    (tmp_path / "package.json").write_text('{"name":"test"}')
+    (tmp_path / "package-lock.json").write_text("{}")
+    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps({"vulnerabilities": {}}), "")):
+        assert _run_npm_audit(str(tmp_path)) == []
+
+
+# ─── _run_detect_secrets ─────────────────────────────────────────────────────
+
+def test_run_detect_secrets_no_output_returns_empty(tmp_path):
+    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+        assert _run_detect_secrets(str(tmp_path)) == []
+
+
+def test_run_detect_secrets_invalid_json_returns_empty(tmp_path):
+    with patch("app.services.code_scan_service._run", return_value=(0, "bad", "")):
+        assert _run_detect_secrets(str(tmp_path)) == []
+
+
+def test_run_detect_secrets_empty_results(tmp_path):
+    data = {"results": {}}
+    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+        assert _run_detect_secrets(str(tmp_path)) == []
+
+
+def test_run_detect_secrets_parses_secrets(tmp_path):
+    data = {
+        "results": {
+            "config/settings.py": [
+                {"type": "AWS Access Key", "line_number": 12},
+                {"type": "Base64 High Entropy String", "line_number": 25},
+            ]
+        }
+    }
+    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+        findings = _run_detect_secrets(str(tmp_path))
+    assert len(findings) == 2
+    assert all(f["tool"] == "detect-secrets" for f in findings)
+    assert all(f["severity"] == "critical" for f in findings)
+    assert findings[0]["line"] == 12
+    assert findings[1]["line"] == 25
+
+
+def test_run_detect_secrets_multiple_files(tmp_path):
+    data = {
+        "results": {
+            "a.py": [{"type": "Secret1", "line_number": 1}],
+            "b.py": [{"type": "Secret2", "line_number": 2}],
+        }
+    }
+    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+        findings = _run_detect_secrets(str(tmp_path))
+    assert len(findings) == 2
+
+
+# ─── _run_trivy ───────────────────────────────────────────────────────────────
+
+def test_run_trivy_no_output_returns_empty(tmp_path):
+    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+        assert _run_trivy(str(tmp_path)) == []
+
+
+def test_run_trivy_invalid_json_returns_empty(tmp_path):
+    with patch("app.services.code_scan_service._run", return_value=(0, "bad", "")):
+        assert _run_trivy(str(tmp_path)) == []
+
+
+def test_run_trivy_empty_results(tmp_path):
+    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps({"Results": []}), "")):
+        assert _run_trivy(str(tmp_path)) == []
+
+
+def test_run_trivy_parses_high_vulnerability(tmp_path):
+    data = {
+        "Results": [{
+            "Target": "requirements.txt",
+            "Vulnerabilities": [{
+                "VulnerabilityID": "CVE-2023-0001",
+                "PkgName": "requests",
+                "Severity": "HIGH",
+                "Title": "HTTP Smuggling",
+                "Description": "A smuggling vuln",
+                "FixedVersion": "2.29.0",
+            }]
+        }]
+    }
+    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+        findings = _run_trivy(str(tmp_path))
+    assert len(findings) == 1
+    assert findings[0]["tool"] == "trivy"
+    assert findings[0]["severity"] == "high"
+    assert findings[0]["rule"] == "CVE-2023-0001"
+    assert findings[0]["fix_versions"] == ["2.29.0"]
+    assert findings[0]["file"] == "requirements.txt"
+
+
+def test_run_trivy_parses_critical_no_fix(tmp_path):
+    data = {
+        "Results": [{
+            "Target": "go.sum",
+            "Vulnerabilities": [{
+                "VulnerabilityID": "CVE-2023-9999",
+                "PkgName": "somepkg",
+                "Severity": "CRITICAL",
+                "Title": "",
+                "Description": "RCE",
+                "FixedVersion": "",
+            }]
+        }]
+    }
+    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+        findings = _run_trivy(str(tmp_path))
+    assert findings[0]["severity"] == "critical"
+    assert findings[0]["fix_versions"] == []
+    assert "somepkg" in findings[0]["title"]  # fallback title
+
+
+def test_run_trivy_none_vulnerabilities_skipped(tmp_path):
+    data = {"Results": [{"Target": "Dockerfile", "Vulnerabilities": None}]}
+    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+        assert _run_trivy(str(tmp_path)) == []
+
+
+def test_run_trivy_unknown_severity_maps_to_low(tmp_path):
+    data = {
+        "Results": [{
+            "Target": "Cargo.lock",
+            "Vulnerabilities": [{"VulnerabilityID": "CVE-X", "PkgName": "pkg", "Severity": "UNKNOWN"}]
+        }]
+    }
+    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+        findings = _run_trivy(str(tmp_path))
+    assert findings[0]["severity"] == "low"
+
+
+# ─── _run_checkov ─────────────────────────────────────────────────────────────
+
+def test_run_checkov_no_output_returns_empty(tmp_path):
+    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+        assert _run_checkov(str(tmp_path)) == []
+
+
+def test_run_checkov_invalid_json_returns_empty(tmp_path):
+    with patch("app.services.code_scan_service._run", return_value=(0, "bad", "")):
+        assert _run_checkov(str(tmp_path)) == []
+
+
+def test_run_checkov_empty_failed_checks(tmp_path):
+    data = {"results": {"failed_checks": []}}
+    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+        assert _run_checkov(str(tmp_path)) == []
+
+
+def test_run_checkov_parses_single_block(tmp_path):
+    data = {
+        "results": {
+            "failed_checks": [{
+                "check_id": "CKV_DOCKER_2",
+                "severity": "HIGH",
+                "resource": "Dockerfile.web",
+                "file_path": "/repo/Dockerfile",
+                "file_line_range": [1, 5],
+                "check": {"id": "CKV_DOCKER_2", "name": "Ensure HEALTHCHECK is defined"},
+            }]
+        }
+    }
+    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+        findings = _run_checkov(str(tmp_path))
+    assert len(findings) == 1
+    assert findings[0]["tool"] == "checkov"
+    assert findings[0]["severity"] == "high"
+    assert findings[0]["rule"] == "CKV_DOCKER_2"
+    assert findings[0]["line"] == 1
+    assert "Dockerfile" in findings[0]["file"]
+
+
+def test_run_checkov_parses_list_of_blocks(tmp_path):
+    block = {
+        "results": {
+            "failed_checks": [{
+                "check_id": "CKV_K8S_1",
+                "severity": "MEDIUM",
+                "resource": "Pod",
+                "file_path": "k8s.yaml",
+                "file_line_range": [10],
+            }]
+        }
+    }
+    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps([block, block]), "")):
+        findings = _run_checkov(str(tmp_path))
+    assert len(findings) == 2
+
+
+def test_run_checkov_no_severity_defaults_to_medium(tmp_path):
+    data = {
+        "results": {
+            "failed_checks": [{
+                "check_id": "CKV_TF_1",
+                "resource": "aws_s3_bucket.main",
+                "file_path": "main.tf",
+                "file_line_range": [5],
+            }]
+        }
+    }
+    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+        findings = _run_checkov(str(tmp_path))
+    assert findings[0]["severity"] == "medium"
+
+
+def test_run_checkov_critical_severity(tmp_path):
+    data = {
+        "results": {
+            "failed_checks": [{
+                "check_id": "CKV_AWS_1",
+                "severity": "CRITICAL",
+                "resource": "aws_iam_policy",
+                "file_path": "iam.tf",
+                "file_line_range": [3],
+            }]
+        }
+    }
+    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+        findings = _run_checkov(str(tmp_path))
+    assert findings[0]["severity"] == "critical"
+
+
+def test_run_checkov_strips_leading_slash_from_file(tmp_path):
+    data = {
+        "results": {
+            "failed_checks": [{
+                "check_id": "CKV_X",
+                "severity": "LOW",
+                "resource": "res",
+                "file_path": "/repo/infra/main.tf",
+                "file_line_range": [1],
+            }]
+        }
+    }
+    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+        findings = _run_checkov(str(tmp_path))
+    assert not findings[0]["file"].startswith("/")

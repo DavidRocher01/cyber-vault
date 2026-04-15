@@ -5,7 +5,7 @@ Covers: trigger (202), frequency enforcement (429), list (pagination),
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from httpx import ASGITransport, AsyncClient
 from unittest.mock import patch, AsyncMock
 
@@ -77,7 +77,7 @@ async def test_scan_frequency_enforcement_429():
                 result = await db.execute(select(Scan).where(Scan.id == scan_id))
                 scan = result.scalar_one()
                 scan.status = "done"
-                scan.finished_at = datetime.utcnow()
+                scan.finished_at = datetime.now(timezone.utc)
                 await db.commit()
 
             # Second trigger — should be blocked (interval_days=30 default, 0 days elapsed)

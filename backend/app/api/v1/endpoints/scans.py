@@ -58,7 +58,10 @@ async def trigger_scan(
     last_scan = last_result.scalar_one_or_none()
 
     if last_scan and last_scan.finished_at:
-        days_since = (datetime.now(timezone.utc) - last_scan.finished_at).days
+        finished_at = last_scan.finished_at
+        if finished_at.tzinfo is None:
+            finished_at = finished_at.replace(tzinfo=timezone.utc)
+        days_since = (datetime.now(timezone.utc) - finished_at).days
         if days_since < interval_days:
             days_left = interval_days - days_since
             raise HTTPException(
