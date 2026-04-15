@@ -148,8 +148,13 @@ describe('CyberscanService', () => {
     );
   });
 
-  it('exportCsv() retourne l\'URL correcte', () => {
-    expect(service.exportCsv(8)).toBe(`${API}/scans/site/8/export`);
+  it('exportCsvBlob() appelle GET /scans/site/:id/export avec responseType blob', () => {
+    http.get.mockReturnValue(of(new Blob()));
+    service.exportCsvBlob(8).subscribe();
+    expect(http.get).toHaveBeenCalledWith(
+      `${API}/scans/site/8/export`,
+      expect.objectContaining({ responseType: 'blob' })
+    );
   });
 
   // ── URL Scans ──────────────────────────────────────────────────────────────
