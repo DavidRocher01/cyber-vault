@@ -80,13 +80,23 @@ describe('LandingComponent — non-régression données statiques', () => {
     expect(src).not.toContain("'19 modules'");
   });
 
-  it('[RÉGRESSION] redirect 2FA vers /cyberscan (pas /cyberscan/dashboard)', () => {
-    // submitLoginTotp() doit naviguer vers /cyberscan, pas le dashboard
-    expect(src).toContain("navigate(['/cyberscan']");
-    // S'assurer que le seul navigate dans submitLoginTotp pointe vers /cyberscan
-    const totpFnMatch = src.match(/submitLoginTotp\(\)[^}]+}/s);
+  it('[RÉGRESSION] login redirige vers /cyberscan/dashboard (pas la landing)', () => {
+    // submitLogin() et submitLoginTotp() doivent naviguer vers /cyberscan/dashboard
+    const loginFnMatch = src.match(/submitLogin\(\)\s*\{[\s\S]+?^  \}/m);
+    if (loginFnMatch) {
+      expect(loginFnMatch[0]).toContain('/cyberscan/dashboard');
+    }
+    const totpFnMatch = src.match(/submitLoginTotp\(\)\s*\{[\s\S]+?^  \}/m);
     if (totpFnMatch) {
-      expect(totpFnMatch[0]).not.toContain('/cyberscan/dashboard');
+      expect(totpFnMatch[0]).toContain('/cyberscan/dashboard');
+    }
+  });
+
+  it('[RÉGRESSION] inscription redirige vers /cyberscan/onboarding (pas la landing)', () => {
+    // submitRegister() doit naviguer vers /cyberscan/onboarding
+    const registerFnMatch = src.match(/submitRegister\(\)\s*\{[\s\S]+?^  \}/m);
+    if (registerFnMatch) {
+      expect(registerFnMatch[0]).toContain('/cyberscan/onboarding');
     }
   });
 });

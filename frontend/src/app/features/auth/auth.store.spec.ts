@@ -15,7 +15,7 @@ import { describe, it, expect } from 'vitest';
 
 function resolveReturnUrl(queryParamValue: string | null): string {
   const url = queryParamValue || '';
-  return url.startsWith('/cyberscan/') ? url : '/cyberscan';
+  return url.startsWith('/cyberscan') ? url : '/cyberscan/dashboard';
 }
 
 describe('AuthStore — returnUrl resolution', () => {
@@ -27,27 +27,27 @@ describe('AuthStore — returnUrl resolution', () => {
     expect(resolveReturnUrl('/cyberscan/dashboard?tab=scans')).toBe('/cyberscan/dashboard?tab=scans');
   });
 
-  it('redirige vers /cyberscan quand returnUrl est null', () => {
-    expect(resolveReturnUrl(null)).toBe('/cyberscan');
+  it('redirige vers /cyberscan/dashboard quand returnUrl est null', () => {
+    expect(resolveReturnUrl(null)).toBe('/cyberscan/dashboard');
   });
 
-  it('redirige vers /cyberscan quand returnUrl est vide', () => {
-    expect(resolveReturnUrl('')).toBe('/cyberscan');
+  it('redirige vers /cyberscan/dashboard quand returnUrl est vide', () => {
+    expect(resolveReturnUrl('')).toBe('/cyberscan/dashboard');
   });
 
   it('ignore returnUrl=/vault', () => {
-    expect(resolveReturnUrl('/vault')).toBe('/cyberscan');
+    expect(resolveReturnUrl('/vault')).toBe('/cyberscan/dashboard');
   });
 
   it('ignore returnUrl=/auth/master-password', () => {
-    expect(resolveReturnUrl('/auth/master-password')).toBe('/cyberscan');
+    expect(resolveReturnUrl('/auth/master-password')).toBe('/cyberscan/dashboard');
   });
 
   it('ignore returnUrl=/auth/login', () => {
-    expect(resolveReturnUrl('/auth/login')).toBe('/cyberscan');
+    expect(resolveReturnUrl('/auth/login')).toBe('/cyberscan/dashboard');
   });
 
-  it('ignore /cyberscan sans slash final (landing)', () => {
+  it('préserve /cyberscan (landing) comme returnUrl valide', () => {
     expect(resolveReturnUrl('/cyberscan')).toBe('/cyberscan');
   });
 });
