@@ -92,6 +92,14 @@ describe('LandingComponent — non-régression données statiques', () => {
     }
   });
 
+  it('[RÉGRESSION] ngOnInit ne redirige pas les utilisateurs authentifiés (landing accessible)', () => {
+    // La landing doit être accessible même quand l\'utilisateur est connecté
+    const ngOnInitMatch = src.match(/ngOnInit\(\)\s*\{[\s\S]+?^  \}/m);
+    if (ngOnInitMatch) {
+      expect(ngOnInitMatch[0]).not.toContain("navigate(['/cyberscan/dashboard'])");
+    }
+  });
+
   it('[RÉGRESSION] inscription redirige vers /cyberscan/onboarding (pas la landing)', () => {
     // submitRegister() doit naviguer vers /cyberscan/onboarding
     const registerFnMatch = src.match(/submitRegister\(\)\s*\{[\s\S]+?^  \}/m);

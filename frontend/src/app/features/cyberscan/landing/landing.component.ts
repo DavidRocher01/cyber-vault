@@ -365,10 +365,6 @@ export class LandingComponent implements OnInit {
   ];
 
   ngOnInit() {
-    if (this.auth.isAuthenticated()) {
-      this.router.navigate(['/cyberscan/dashboard']);
-      return;
-    }
     this.titleService.setTitle('CyberScan — Audit de sécurité web automatisé');
     this.meta.updateTag({ name: 'description', content: 'Scannez vos sites web, détectez les vulnérabilités SSL, headers et ports, et recevez des rapports PDF complets. Plans à partir de 29€/mois.' });
     this.meta.updateTag({ property: 'og:title', content: 'CyberScan — Audit de sécurité web automatisé' });
