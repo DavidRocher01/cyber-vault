@@ -316,12 +316,18 @@ def _draw_cover(canvas, doc, score, score_label, total,
         canvas.setFillColor(colors.HexColor("#0e1623"))
         canvas.roundRect(dx, cell_y, col_w, cell_h, radius=2 * mm, fill=1, stroke=0)
 
-        # Left color accent bar (3 mm wide)
-        canvas.setFillColor(dom_col)
-        canvas.roundRect(dx, cell_y, 3 * mm, cell_h, radius=1 * mm, fill=1, stroke=0)
+        # Left accent: thick stroke line contained inside the cell's rounded corners.
+        # Line center at dx+2mm, width=4mm → spans dx to dx+4mm.
+        # Endpoints inset by r_cell so line never exits the rounded area.
+        r_cell = 2 * mm
+        canvas.setStrokeColor(dom_col)
+        canvas.setLineWidth(4 * mm)
+        canvas.setLineCap(0)   # butt caps — no extension beyond endpoints
+        canvas.line(dx + 2 * mm, cell_y + r_cell,
+                    dx + 2 * mm, cell_y + cell_h - r_cell)
 
         # Domain label (vertically centred upper half)
-        inner_x = dx + 6 * mm
+        inner_x = dx + 7 * mm
         label_y = cell_y + cell_h * 0.55
         canvas.setFillColor(WHITE)
         canvas.setFont("Helvetica-Bold", 7.5)
