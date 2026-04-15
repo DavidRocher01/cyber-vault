@@ -72,12 +72,61 @@
 
     <!-- ── Skeleton ────────────────────────────────────────────────────────── -->
     @if (loading()) {
-      <div class="flex flex-col gap-4">
-        <app-skeleton height="5rem" cssClass="rounded-2xl"></app-skeleton>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          @for (i of [1,2,3,4]; track i) { <app-skeleton height="5rem" cssClass="rounded-xl"></app-skeleton> }
+      <div class="flex flex-col gap-5">
+        <!-- Banner plan -->
+        <app-skeleton height="4.5rem" cssClass="rounded-2xl"></app-skeleton>
+        <!-- Stats KPI -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          @for (i of [1,2,3,4]; track i) {
+            <div class="flex flex-col gap-2 p-4 rounded-xl border border-gray-700/40 bg-gray-800/30">
+              <app-skeleton height="0.65rem" width="50%" cssClass="rounded-full"></app-skeleton>
+              <app-skeleton height="1.6rem" width="40%" cssClass="rounded-lg"></app-skeleton>
+              <app-skeleton height="0.55rem" width="70%" cssClass="rounded-full"></app-skeleton>
+            </div>
+          }
         </div>
-        <app-skeleton height="12rem" cssClass="rounded-2xl"></app-skeleton>
+        <!-- Site card -->
+        <div class="flex flex-col gap-0 rounded-2xl border border-gray-700/40 bg-gray-800/30 overflow-hidden">
+          <!-- En-tête du site -->
+          <div class="flex items-center justify-between px-5 py-4 border-b border-gray-700/30">
+            <div class="flex items-center gap-3">
+              <app-skeleton height="2rem" width="2rem" cssClass="rounded-lg"></app-skeleton>
+              <div class="flex flex-col gap-1.5">
+                <app-skeleton height="0.75rem" width="7rem" cssClass="rounded-full"></app-skeleton>
+                <app-skeleton height="0.6rem" width="11rem" cssClass="rounded-full"></app-skeleton>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <app-skeleton height="2rem" width="5.5rem" cssClass="rounded-lg"></app-skeleton>
+              <app-skeleton height="2rem" width="6rem" cssClass="rounded-lg"></app-skeleton>
+              <app-skeleton height="2rem" width="2rem" cssClass="rounded-lg"></app-skeleton>
+              <app-skeleton height="2rem" width="2rem" cssClass="rounded-lg"></app-skeleton>
+            </div>
+          </div>
+          <!-- Lignes scans -->
+          <div class="px-5 py-3 flex flex-col gap-0">
+            <div class="scan-skeleton-grid pb-2 mb-1 border-b border-gray-700/40">
+              @for (w of ['55%','45%','40%','35%','30%']; track w) {
+                <app-skeleton height="0.55rem" [width]="w" cssClass="rounded-full"></app-skeleton>
+              }
+            </div>
+            @for (row of [1,2,3]; track row) {
+              <div class="scan-skeleton-grid py-2.5 border-b border-gray-700/20 last:border-0">
+                <app-skeleton height="0.7rem" cssClass="rounded-full"></app-skeleton>
+                <div class="flex items-center gap-1.5">
+                  <app-skeleton height="0.7rem" width="0.7rem" cssClass="!rounded-full"></app-skeleton>
+                  <app-skeleton height="0.7rem" cssClass="rounded-full"></app-skeleton>
+                </div>
+                <app-skeleton height="0.7rem" [width]="row === 2 ? '65%' : '82%'" cssClass="rounded-full"></app-skeleton>
+                <app-skeleton height="0.7rem" width="45%" cssClass="rounded-full"></app-skeleton>
+                <div class="flex justify-end gap-1">
+                  <app-skeleton height="1.4rem" width="1.4rem" cssClass="rounded-md"></app-skeleton>
+                  <app-skeleton height="1.4rem" width="1.4rem" cssClass="rounded-md"></app-skeleton>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
       </div>
     }
 
@@ -429,8 +478,39 @@
             <!-- Scans table -->
             <div class="px-5 py-3">
               @if (isLoadingScans(site.id)) {
-                <div class="flex flex-col gap-2 py-3">
-                  @for (i of [1,2,3]; track i) { <app-skeleton height="0.875rem" [width]="i === 2 ? '70%' : '100%'"></app-skeleton> }
+                <div class="py-3">
+                  <!-- Indicateur radar -->
+                  <div class="flex items-center gap-2.5 mb-3 px-1">
+                    <div class="relative w-4 h-4 flex-shrink-0">
+                      <span class="radar-ring absolute inset-0 rounded-full bg-cyan-500/30"></span>
+                      <span class="relative flex w-4 h-4 rounded-full bg-cyan-500/10 border border-cyan-500/40 items-center justify-center">
+                        <mat-icon class="text-cyan-400 !text-[0.6rem] !w-[0.6rem] !h-[0.6rem]">radar</mat-icon>
+                      </span>
+                    </div>
+                    <span class="text-xs text-gray-500 animate-pulse tracking-wide">Récupération des scans…</span>
+                  </div>
+                  <!-- En-tête du tableau -->
+                  <div class="scan-skeleton-grid pb-2 mb-1 border-b border-gray-700/40">
+                    @for (w of ['55%','45%','40%','35%','30%']; track w) {
+                      <app-skeleton height="0.55rem" [width]="w" cssClass="rounded-full"></app-skeleton>
+                    }
+                  </div>
+                  <!-- Lignes skeleton -->
+                  @for (row of [1,2,3]; track row) {
+                    <div class="scan-skeleton-grid py-2.5 border-b border-gray-700/20 last:border-0">
+                      <app-skeleton height="0.7rem" cssClass="rounded-full"></app-skeleton>
+                      <div class="flex items-center gap-1.5">
+                        <app-skeleton height="0.7rem" width="0.7rem" cssClass="!rounded-full"></app-skeleton>
+                        <app-skeleton height="0.7rem" cssClass="rounded-full"></app-skeleton>
+                      </div>
+                      <app-skeleton height="0.7rem" [width]="row === 2 ? '65%' : '82%'" cssClass="rounded-full"></app-skeleton>
+                      <app-skeleton height="0.7rem" width="45%" cssClass="rounded-full"></app-skeleton>
+                      <div class="flex justify-end gap-1">
+                        <app-skeleton height="1.4rem" width="1.4rem" cssClass="rounded-md"></app-skeleton>
+                        <app-skeleton height="1.4rem" width="1.4rem" cssClass="rounded-md"></app-skeleton>
+                      </div>
+                    </div>
+                  }
                 </div>
               } @else if (getScans(site.id).length === 0) {
                 <p class="text-sm text-gray-500 text-center py-5">
