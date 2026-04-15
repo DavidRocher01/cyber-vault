@@ -68,6 +68,12 @@ _BAND_TITLE_COLOR: dict[str, str] = {
     "scan":     "#bae6fd",
 }
 
+# Short label shown in the band right zone for compliance covers
+_BAND_COVER_LABEL: dict[str, str] = {
+    "nis2":     "DIRECTIVE NIS2",
+    "iso27001": "ISO 27001:2022",
+}
+
 # Status badge styling (shared by compliance generators)
 STATUS_COLOR = {"compliant": GREEN, "partial": YELLOW, "non_compliant": RED, "na": GRAY}
 STATUS_LABEL = {"compliant": "Conforme", "partial": "Partiel",
@@ -263,10 +269,11 @@ def draw_compliance_cover(
     canvas.rect(0, 0, W, H, fill=1, stroke=0)
 
     # Band
+    band_label = _BAND_COVER_LABEL.get(doc_type, title_line2.upper())
     _draw_band(canvas,
                band_y=band_y, band_h=BAND_H, band_cy=band_cy,
                doc_type=doc_type, doc_color=col,
-               right_text=f"RAPPORT {title_line2.upper()}",
+               right_text=band_label,
                right_sub=date_str[:10])
 
     # ── Title block ───────────────────────────────────────────────────────────
@@ -301,8 +308,11 @@ def draw_compliance_cover(
     canvas.setFont("Helvetica-Bold", 7)
     canvas.drawString(M, card_y + card_h + 4 * mm, "SYNTHESE DE CONFORMITE")
 
-    canvas.setFillColor(colors.HexColor("#141e30"))
+    canvas.setFillColor(colors.HexColor("#111c30"))
     canvas.roundRect(M, card_y, card_w, card_h, radius=4 * mm, fill=1, stroke=0)
+    canvas.setStrokeColor(colors.HexColor("#1e2d4a"))
+    canvas.setLineWidth(0.8)
+    canvas.roundRect(M, card_y, card_w, card_h, radius=4 * mm, fill=0, stroke=1)
     # Top stripe — thick line contained within card's rounded corners
     canvas.setStrokeColor(col_mid)
     canvas.setLineWidth(2 * mm)
@@ -516,8 +526,11 @@ def draw_url_scan_cover(
     canvas.setFont("Helvetica-Bold", 7)
     canvas.drawString(M, card_y + card_h + 4 * mm, "RESULTAT DE L'ANALYSE")
 
-    canvas.setFillColor(colors.HexColor("#141e30"))
+    canvas.setFillColor(colors.HexColor("#111c30"))
     canvas.roundRect(M, card_y, card_w, card_h, radius=4 * mm, fill=1, stroke=0)
+    canvas.setStrokeColor(colors.HexColor("#1e2d4a"))
+    canvas.setLineWidth(0.8)
+    canvas.roundRect(M, card_y, card_w, card_h, radius=4 * mm, fill=0, stroke=1)
     # Top stripe — contained within card's rounded corners
     canvas.setStrokeColor(col_mid)
     canvas.setLineWidth(2 * mm)
