@@ -198,10 +198,22 @@ async def download_pdf(
 
 
 _REMEDIATION_META: dict[str, tuple[str, str]] = {
-    "ufw":     ("ufw_setup.sh",                    "text/x-sh"),
-    "ssh":     ("ssh_hardening.sh",                "text/x-sh"),
-    "fastapi": ("fastapi_security_middleware.py",  "text/x-python"),
-    "upgrade": ("upgrade_deps.sh",                 "text/x-sh"),
+    "ufw":                   ("ufw_setup.sh",                    "text/x-sh"),
+    "ssh":                   ("ssh_hardening.sh",                "text/x-sh"),
+    "robots":                ("robots.txt",                      "text/plain"),
+    "nginx_waf":             ("nginx_waf_ratelimit.conf",        "text/plain"),
+    "fastapi":               ("fastapi_security_middleware.py",  "text/x-python"),
+    "upgrade":               ("upgrade_deps.sh",                 "text/x-sh"),
+    "nginx_ssl":             ("nginx_ssl_hardening.conf",        "text/plain"),
+    "fastapi_cors":          ("fastapi_cors_fix.py",             "text/x-python"),
+    "nginx_cors":            ("nginx_cors_fix.conf",             "text/plain"),
+    "fastapi_cookie":        ("fastapi_cookie_security.py",      "text/x-python"),
+    "nginx_methods":         ("nginx_http_methods.conf",         "text/plain"),
+    "nginx_clickjacking":    ("nginx_clickjacking.conf",         "text/plain"),
+    "fastapi_clickjacking":  ("fastapi_clickjacking.py",         "text/x-python"),
+    "nginx_dirlist":         ("nginx_directory_listing.conf",    "text/plain"),
+    "fastapi_open_redirect": ("fastapi_open_redirect.py",        "text/x-python"),
+    "dns_email":             ("dns_email_security.txt",          "text/plain"),
 }
 
 
