@@ -93,28 +93,22 @@ def _draw_cover(canvas, doc, score, score_label, total,
 
     canvas.saveState()
 
-    # ── Background ────────────────────────────────────────────────────────────
+    BAND_H  = 18 * mm
+    band_cy = H - BAND_H / 2
+
+    # ── Full-page background (no sidebar — clean) ─────────────────────────────
     canvas.setFillColor(DARK_BG)
     canvas.rect(0, 0, W, H, fill=1, stroke=0)
 
-    BAND_H  = 18 * mm   # band height
-    band_cy = H - BAND_H / 2   # vertical centre of band
-
-    # ── Left violet sidebar (below accent band) ───────────────────────────────
-    canvas.setFillColor(VIOLET_BG)
-    canvas.rect(0, 0, 8 * mm, H - BAND_H, fill=1, stroke=0)
-    canvas.setFillColor(VIOLET)
-    canvas.rect(0, 0, 2 * mm, H - BAND_H, fill=1, stroke=0)
-
-    # ── Top accent band — flat dark background ────────────────────────────────
+    # ── Top accent band ───────────────────────────────────────────────────────
     canvas.setFillColor(colors.HexColor("#0f0a28"))
     canvas.rect(0, H - BAND_H, W, BAND_H, fill=1, stroke=0)
 
-    # Left violet accent stripe (3 mm, continuous with sidebar)
+    # Left stripe on band only (2 mm)
     canvas.setFillColor(VIOLET)
-    canvas.rect(0, H - BAND_H, 3 * mm, BAND_H, fill=1, stroke=0)
+    canvas.rect(0, H - BAND_H, 2 * mm, BAND_H, fill=1, stroke=0)
 
-    # Bottom border — single solid violet line
+    # Bottom border line
     canvas.setStrokeColor(VIOLET_MID)
     canvas.setLineWidth(2.5)
     canvas.line(0, H - BAND_H, W, H - BAND_H)
@@ -158,25 +152,27 @@ def _draw_cover(canvas, doc, score, score_label, total,
     canvas.setFont("Helvetica", 7)
     canvas.drawRightString(W - MARGIN, band_cy - 4 * mm, date_str[:10])
 
-    # ── Title block (18–48 mm from top) ──────────────────────────────────────
-    tx = 16 * mm
-    ty = H - 26 * mm   # baseline of main title (26 mm from top, below 18mm band)
+    # ── Title block (22–56 mm from top) ──────────────────────────────────────
+    # Left accent bar  (3 mm wide × 22 mm tall, aligned with the two title lines)
+    acc_x = MARGIN
+    acc_y = H - 56 * mm        # bottom of accent bar
+    canvas.setFillColor(VIOLET_MID)
+    canvas.roundRect(acc_x, acc_y, 3 * mm, 22 * mm, radius=1 * mm, fill=1, stroke=0)
+
+    tx = MARGIN + 7 * mm       # text starts 7 mm right of margin (4 mm right of bar)
+    ty = H - 26 * mm           # baseline of main title
 
     canvas.setFillColor(VIOLET)
-    canvas.setFont("Helvetica-Bold", 24)
+    canvas.setFont("Helvetica-Bold", 22)
     canvas.drawString(tx, ty, "Rapport de conformite")
 
     canvas.setFillColor(WHITE)
-    canvas.setFont("Helvetica-Bold", 18)
-    canvas.drawString(tx, ty - 10 * mm, "ISO/IEC 27001:2022")
-
-    canvas.setStrokeColor(VIOLET)
-    canvas.setLineWidth(2)
-    canvas.line(tx, ty - 13 * mm, tx + 62 * mm, ty - 13 * mm)
+    canvas.setFont("Helvetica-Bold", 17)
+    canvas.drawString(tx, ty - 9 * mm, "ISO/IEC 27001:2022")
 
     canvas.setFillColor(GRAY)
-    canvas.setFont("Helvetica", 8)
-    canvas.drawString(tx, ty - 18 * mm, f"Genere le {date_str}  \u2022  {user_email}")
+    canvas.setFont("Helvetica", 7.5)
+    canvas.drawString(tx, ty - 16 * mm, f"Genere le {date_str}  \u2022  {user_email}")
 
     # ── Score card (52–120 mm from top, i.e. card_y = H-120mm, card_h=68mm) ──
     card_y = H - 120 * mm   # bottom edge of card
@@ -286,67 +282,68 @@ def _draw_cover(canvas, doc, score, score_label, total,
         canvas.setFont("Helvetica", 7)
         canvas.drawCentredString(kx + cell_w / 2, ky + 3.5 * mm, lbl)
 
-    # ── Domain scores grid (126–235 mm from top) ──────────────────────────────
-    # 2 columns × 5 rows. Each cell: horizontal mini-bar + label + %
-    dom_section_top = card_y - 8 * mm    # 8 mm below card bottom
-    dom_label_y     = dom_section_top + 3 * mm
+    # ── Domain scores grid ────────────────────────────────────────────────────
+    # Available vertical space: from 10mm below card to 20mm above footer
+    # card_y = bottom of card; footer line at 12mm from bottom
+    dom_available = card_y - 8 * mm - 20 * mm   # usable height for grid
+    num_dom = len(domain_scores)                  # 10
+    ncols   = 2
+    nrows   = (num_dom + ncols - 1) // ncols      # 5
 
+    # Section label
+    dom_top = card_y - 8 * mm   # top of domain section (just below card)
     canvas.setFillColor(colors.HexColor("#6b7280"))
     canvas.setFont("Helvetica-Bold", 7)
-    canvas.drawString(MARGIN, dom_label_y, "RESULTATS PAR DOMAINE")
+    canvas.drawString(MARGIN, dom_top, "RESULTATS PAR DOMAINE")
 
-    num_dom  = len(domain_scores)        # should be 10
-    ncols    = 2
-    nrows    = (num_dom + ncols - 1) // ncols
-    dom_w    = (card_w - 4 * mm) / ncols  # width of each domain cell
-    row_h    = 18 * mm                    # height of each row
-    grid_top = dom_section_top - 4 * mm  # top edge of first domain row
+    # Row height fills the available space evenly
+    gap_h   = 3 * mm
+    row_h   = (dom_available - gap_h) / nrows   # height per row incl. gap
+    col_gap = 4 * mm
+    col_w   = (card_w - col_gap) / ncols        # full column width
 
     for idx, (lbl, pct) in enumerate(domain_scores):
-        col_i = idx % ncols
-        row_i = idx // ncols
-        dx = MARGIN + col_i * (dom_w + 4 * mm)
-        dy = grid_top - row_i * row_h    # top of this cell
+        col_i  = idx % ncols
+        row_i  = idx // ncols
+        dx     = MARGIN + col_i * (col_w + col_gap)
+        # cell_y = bottom of cell (y increases upward in PDF)
+        cell_y = dom_top - (row_i + 1) * row_h - row_i * gap_h + gap_h
+        cell_h = row_h - gap_h
 
         dom_col = _score_color(pct)
 
         # Cell background
         canvas.setFillColor(colors.HexColor("#0e1623"))
-        canvas.roundRect(dx, dy - row_h + 3 * mm, dom_w - 4 * mm, row_h - 3 * mm,
-                         radius=2 * mm, fill=1, stroke=0)
+        canvas.roundRect(dx, cell_y, col_w, cell_h, radius=2 * mm, fill=1, stroke=0)
 
-        # Left color accent
+        # Left color accent bar (3 mm wide)
         canvas.setFillColor(dom_col)
-        canvas.roundRect(dx, dy - row_h + 3 * mm, 2.5 * mm, row_h - 3 * mm,
-                         radius=1 * mm, fill=1, stroke=0)
+        canvas.roundRect(dx, cell_y, 3 * mm, cell_h, radius=1 * mm, fill=1, stroke=0)
 
-        # Domain label
-        cell_inner_x = dx + 6 * mm
+        # Domain label (vertically centred upper half)
+        inner_x = dx + 6 * mm
+        label_y = cell_y + cell_h * 0.55
         canvas.setFillColor(WHITE)
         canvas.setFont("Helvetica-Bold", 7.5)
-        # Truncate long labels
-        max_chars = 28
-        short_lbl = lbl if len(lbl) <= max_chars else lbl[:max_chars - 1] + "…"
-        canvas.drawString(cell_inner_x, dy - 5 * mm, short_lbl)
+        short_lbl = lbl if len(lbl) <= 26 else lbl[:25] + "…"
+        canvas.drawString(inner_x, label_y, short_lbl)
 
-        # Bar track
-        bar_x = cell_inner_x
-        bar_y = dy - 10 * mm
-        bar_w = dom_w - 14 * mm
-        bar_h_px = 4 * mm
+        # Progress bar (lower half of cell)
+        bar_x   = inner_x
+        bar_y   = cell_y + cell_h * 0.18
+        bar_w   = col_w - inner_x + dx - 12 * mm
+        bar_h_v = 3.5 * mm
         canvas.setFillColor(colors.HexColor("#1e293b"))
-        canvas.roundRect(bar_x, bar_y, bar_w, bar_h_px, radius=1 * mm, fill=1, stroke=0)
-
-        # Bar fill
+        canvas.roundRect(bar_x, bar_y, bar_w, bar_h_v, radius=1 * mm, fill=1, stroke=0)
         if pct > 0:
-            fill_w = max(bar_w * pct / 100, 2 * mm)
             canvas.setFillColor(dom_col)
-            canvas.roundRect(bar_x, bar_y, fill_w, bar_h_px, radius=1 * mm, fill=1, stroke=0)
+            canvas.roundRect(bar_x, bar_y, max(bar_w * pct / 100, 2 * mm), bar_h_v,
+                             radius=1 * mm, fill=1, stroke=0)
 
-        # Percentage label
+        # Percentage — right-aligned, vertically centred
         canvas.setFillColor(dom_col)
         canvas.setFont("Helvetica-Bold", 8)
-        canvas.drawRightString(dx + dom_w - 6 * mm, dy - 8.5 * mm, f"{pct}%")
+        canvas.drawRightString(dx + col_w - 3 * mm, cell_y + cell_h * 0.38, f"{pct}%")
 
     # ── Footer ────────────────────────────────────────────────────────────────
     canvas.setStrokeColor(BORDER)
