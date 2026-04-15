@@ -2,10 +2,14 @@
  * DashboardComponent — tests des méthodes utilitaires pures.
  */
 import { describe, it, expect } from 'vitest';
+import { signal } from '@angular/core';
 import { DashboardComponent } from './dashboard.component';
 
 function make(): DashboardComponent {
-  return Object.create(DashboardComponent.prototype) as DashboardComponent;
+  const comp = Object.create(DashboardComponent.prototype) as DashboardComponent;
+  (comp as any).scansMap = signal({});
+  (comp as any).sites = signal([]);
+  return comp;
 }
 
 describe('DashboardComponent — statusColor()', () => {
@@ -63,5 +67,115 @@ describe('DashboardComponent — getScoreColor()', () => {
     const c1 = make().getScoreColor(10);
     const c2 = make().getScoreColor(90);
     expect(c1).not.toBe(c2);
+  });
+});
+
+// ── Analytics helpers ──────────────────────────────────────────────────────────
+
+const SCAN_OK = JSON.stringify({
+  ssl: { status: 'OK' }, headers: { status: 'OK' }, email: { status: 'OK' },
+  cookies: { status: 'OK' }, cors: { status: 'OK' }, ip: { status: 'OK' },
+  dns: { status: 'OK' }, cms: { status: 'OK' }, waf: { status: 'OK' },
+  tech: { status: 'OK' }, tls: { status: 'OK' }, takeover: { status: 'OK' },
+  threat_intel: { status: 'OK' }, http_methods: { status: 'OK' },
+  open_redirect: { status: 'OK' }, clickjacking: { status: 'OK' },
+  directory_listing: { status: 'OK' }, robots: { status: 'OK' }, jwt: { status: 'OK' },
+});
+
+const SCAN_CRITICAL = JSON.stringify({
+  ssl: { status: 'CRITICAL' }, headers: { status: 'CRITICAL' }, tls: { status: 'CRITICAL' },
+});
+
+function makeWithScans(scansPerSite: Record<number, { status: string; results_json: string; created_at: string }[]>): DashboardComponent {
+  const comp = make();
+  const map: Record<number, any> = {};
+  for (const [id, items] of Object.entries(scansPerSite)) {
+    map[Number(id)] = { items, total: items.length, page: 1, per_page: 10, pages: 1 };
+  }
+  (comp as any).scansMap = signal(map);
+  (comp as any).sites = signal(Object.keys(scansPerSite).map(id => ({ id: Number(id), name: `site${id}`, url: `https://site${id}.com` })));
+  return comp;
+}
+
+describe('DashboardComponent — scoreHistory()', () => {
+  it('retourne vide si pas de scans done', () => {
+    const comp = makeWithScans({ 1: [{ status: 'running', results_json: '', created_at: '2024-01-01' }] });
+    expect(comp.scoreHistory(1)).toHaveLength(0);
+  });
+
+  it('retourne les scans done dans l\'ordre chronologique', () => {
+    const scans = [
+      { status: 'done', results_json: SCAN_OK, created_at: '2024-01-03' },
+      { status: 'done', results_json: SCAN_OK, created_at: '2024-01-02' },
+      { status: 'done', results_json: SCAN_OK, created_at: '2024-01-01' },
+    ];
+    const comp = makeWithScans({ 1: scans });
+    const history = comp.scoreHistory(1);
+    expect(history.length).toBeGreaterThan(0);
+    expect(history[0].date).toBe('2024-01-01');
+  });
+
+  it('limite à n entrées', () => {
+    const scans = Array.from({ length: 12 }, (_, i) => ({
+      status: 'done', results_json: SCAN_OK, created_at: `2024-01-${String(i + 1).padStart(2, '0')}`,
+    }));
+    const comp = makeWithScans({ 1: scans });
+    expect(comp.scoreHistory(1, 5)).toHaveLength(5);
+  });
+});
+
+describe('DashboardComponent — sparklinePoints()', () => {
+  it('retourne une chaîne vide si moins de 2 scans', () => {
+    const comp = makeWithScans({ 1: [{ status: 'done', results_json: SCAN_OK, created_at: '2024-01-01' }] });
+    expect(comp.sparklinePoints(1)).toBe('');
+  });
+
+  it('retourne des points SVG valides pour 2+ scans', () => {
+    const scans = [
+      { status: 'done', results_json: SCAN_OK, created_at: '2024-01-01' },
+      { status: 'done', results_json: SCAN_CRITICAL, created_at: '2024-01-02' },
+    ];
+    const comp = makeWithScans({ 1: scans });
+    const points = comp.sparklinePoints(1);
+    expect(points).toBeTruthy();
+    expect(points).toContain(',');
+    expect(points.split(' ')).toHaveLength(2);
+  });
+});
+
+describe('DashboardComponent — globalCategoryScores', () => {
+  it('retourne vide si aucun scan done', () => {
+    const comp = makeWithScans({ 1: [{ status: 'running', results_json: '', created_at: '' }] });
+    expect(comp.globalCategoryScores).toHaveLength(0);
+  });
+
+  it('retourne 6 catégories si au moins un scan done', () => {
+    const comp = makeWithScans({ 1: [{ status: 'done', results_json: SCAN_OK, created_at: '2024-01-01' }] });
+    expect(comp.globalCategoryScores).toHaveLength(6);
+  });
+
+  it('scores entre 0 et 100', () => {
+    const comp = makeWithScans({ 1: [{ status: 'done', results_json: SCAN_OK, created_at: '2024-01-01' }] });
+    for (const cat of comp.globalCategoryScores) {
+      expect(cat.score).toBeGreaterThanOrEqual(0);
+      expect(cat.score).toBeLessThanOrEqual(100);
+    }
+  });
+});
+
+describe('DashboardComponent — criticalCount / warningCount / okCount', () => {
+  it('criticalCount = 0 si aucun site critique', () => {
+    const comp = makeWithScans({ 1: [{ status: 'done', results_json: SCAN_OK, created_at: '2024-01-01' }] });
+    expect(comp.criticalCount).toBe(0);
+  });
+
+  it('criticalCount = 1 si un site CRITICAL', () => {
+    const comp = makeWithScans({ 1: [{ status: 'done', results_json: SCAN_CRITICAL, created_at: '2024-01-01' }] });
+    expect(comp.criticalCount).toBe(1);
+  });
+
+  it('okCount = 1 si un site OK', () => {
+    const comp = makeWithScans({ 1: [{ status: 'done', results_json: SCAN_OK, created_at: '2024-01-01' }] });
+    expect(comp.okCount).toBe(1);
   });
 });

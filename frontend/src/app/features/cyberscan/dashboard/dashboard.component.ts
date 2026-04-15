@@ -21,7 +21,7 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { ThemeService } from '../../../core/services/theme.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
-import { computeScore, getGrade, getScoreColor } from '../../../shared/score-utils';
+import { computeScore, getGrade, getScoreColor, getCategoryScores, RADAR_CATEGORIES } from '../../../shared/score-utils';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { environment } from '../../../../environments/environment';
 
@@ -436,6 +436,59 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   getGrade(score: number): string { return getGrade(score); }
   getScoreColor(score: number): string { return getScoreColor(score); }
+
+  // ── Analytics ─────────────────────────────────────────────────────────────
+  analyticsOpen = signal(true);
+  readonly categoryLabels = RADAR_CATEGORIES.map(c => c.label);
+
+  /** Last N done scans with a score, for sparkline */
+  scoreHistory(siteId: number, n = 8): { score: number; date: string }[] {
+    return (this.scansMap()[siteId]?.items ?? [])
+      .filter(s => s.status === 'done' && s.results_json)
+      .slice(0, n)
+      .reverse()
+      .map(s => ({ score: computeScore(s.results_json ?? null) ?? 0, date: s.created_at ?? '' }));
+  }
+
+  /** SVG polyline points for a sparkline, normalized to [0, height] */
+  sparklinePoints(siteId: number, w = 120, h = 32): string {
+    const history = this.scoreHistory(siteId);
+    if (history.length < 2) return '';
+    const xs = history.map((_, i) => (i / (history.length - 1)) * w);
+    const min = Math.min(...history.map(p => p.score));
+    const max = Math.max(...history.map(p => p.score));
+    const range = max - min || 1;
+    const ys = history.map(p => h - ((p.score - min) / range) * (h - 4) - 2);
+    return xs.map((x, i) => `${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ');
+  }
+
+  /** Average category scores across all sites (from last done scan per site) */
+  get globalCategoryScores(): { label: string; score: number }[] {
+    const perSite = this.sites()
+      .map(s => {
+        const scan = (this.scansMap()[s.id]?.items ?? []).find(x => x.status === 'done' && x.results_json);
+        return scan ? getCategoryScores(scan.results_json ?? null) : null;
+      })
+      .filter((v): v is number[] => v !== null);
+
+    if (perSite.length === 0) return [];
+    return RADAR_CATEGORIES.map((cat, i) => ({
+      label: cat.label,
+      score: Math.round(perSite.reduce((sum, s) => sum + s[i], 0) / perSite.length),
+    }));
+  }
+
+  get criticalCount(): number {
+    return this.sites().filter(s => this.lastScanStatus(s.id) === 'CRITICAL').length;
+  }
+
+  get warningCount(): number {
+    return this.sites().filter(s => this.lastScanStatus(s.id) === 'WARNING').length;
+  }
+
+  get okCount(): number {
+    return this.sites().filter(s => this.lastScanStatus(s.id) === 'OK').length;
+  }
 
   get totalScans(): number {
     return Object.values(this.scansMap()).reduce((sum, p) => sum + (p?.total ?? 0), 0);

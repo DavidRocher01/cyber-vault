@@ -264,6 +264,119 @@
         </a>
       </div>
 
+      <!-- ── Analytics globale ────────────────────────────────────────────── -->
+      @if (sites().length > 0 && globalCategoryScores.length > 0) {
+        <div class="rounded-2xl border border-gray-700/60 bg-gray-800/40 mb-8 overflow-hidden">
+
+          <!-- Header collapsible -->
+          <button type="button"
+                  class="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-700/20 transition-colors"
+                  (click)="analyticsOpen.update(v => !v)">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-indigo-500/15 flex items-center justify-center flex-shrink-0">
+                <mat-icon class="text-indigo-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">bar_chart</mat-icon>
+              </div>
+              <h2 class="font-semibold text-sm">Analyse globale</h2>
+              <!-- Alert badges -->
+              <div class="flex items-center gap-1.5 ml-2">
+                @if (criticalCount > 0) {
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-700/40">
+                    {{ criticalCount }} critique{{ criticalCount > 1 ? 's' : '' }}
+                  </span>
+                }
+                @if (warningCount > 0) {
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-700/40">
+                    {{ warningCount }} warning{{ warningCount > 1 ? 's' : '' }}
+                  </span>
+                }
+                @if (okCount > 0 && criticalCount === 0 && warningCount === 0) {
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-700/40">
+                    Tout OK
+                  </span>
+                }
+              </div>
+            </div>
+            <mat-icon class="text-gray-500 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] transition-transform duration-200"
+                      [style.transform]="analyticsOpen() ? 'rotate(180deg)' : 'rotate(0deg)'">
+              expand_more
+            </mat-icon>
+          </button>
+
+          @if (analyticsOpen()) {
+            <div class="border-t border-gray-700/40 px-6 py-5 flex flex-col gap-6">
+
+              <!-- Sparklines par site -->
+              @if (sites().length > 0) {
+                <div>
+                  <p class="text-xs text-gray-500 uppercase tracking-wider mb-3 font-semibold">Évolution du score</p>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    @for (site of sites(); track site.id) {
+                      @let history = scoreHistory(site.id);
+                      @let lastScore = getLastScore(site.id);
+                      <a [routerLink]="['/cyberscan/sites', site.id]"
+                         class="group flex items-center gap-3 bg-gray-900/60 border border-gray-700/50 rounded-xl px-4 py-3 hover:border-indigo-600/50 hover:bg-gray-900/80 transition-all">
+                        <div class="flex-1 min-w-0">
+                          <p class="text-xs font-semibold text-gray-300 truncate group-hover:text-white transition-colors">{{ site.name }}</p>
+                          <p class="text-[10px] text-gray-600 truncate">{{ site.url }}</p>
+                          @if (lastScore !== null) {
+                            <p class="text-lg font-bold mt-0.5" [style.color]="getScoreColor(lastScore)">
+                              {{ lastScore }}<span class="text-xs font-normal text-gray-500">/100</span>
+                            </p>
+                          } @else {
+                            <p class="text-xs text-gray-600 mt-1">Aucun scan</p>
+                          }
+                        </div>
+                        <!-- Sparkline SVG -->
+                        @if (history.length >= 2) {
+                          <svg width="80" height="32" class="flex-shrink-0 overflow-visible">
+                            <polyline
+                              [attr.points]="sparklinePoints(site.id, 80, 32)"
+                              fill="none"
+                              stroke="#6366f1"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                        } @else {
+                          <div class="w-20 h-8 flex items-center justify-center">
+                            <span class="text-[10px] text-gray-600">—</span>
+                          </div>
+                        }
+                      </a>
+                    }
+                  </div>
+                </div>
+              }
+
+              <!-- Barres catégories -->
+              <div>
+                <p class="text-xs text-gray-500 uppercase tracking-wider mb-3 font-semibold">Score par catégorie (moyenne globale)</p>
+                <div class="flex flex-col gap-2.5">
+                  @for (cat of globalCategoryScores; track cat.label) {
+                    <div class="flex items-center gap-3">
+                      <p class="text-xs text-gray-400 w-28 flex-shrink-0">{{ cat.label }}</p>
+                      <div class="flex-1 h-2 bg-gray-700/60 rounded-full overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-700"
+                             [style.width.%]="cat.score"
+                             [style.background-color]="getScoreColor(cat.score)">
+                        </div>
+                      </div>
+                      <p class="text-xs font-bold w-8 text-right flex-shrink-0"
+                         [style.color]="getScoreColor(cat.score)">
+                        {{ cat.score }}
+                      </p>
+                    </div>
+                  }
+                </div>
+              </div>
+
+            </div>
+          }
+
+        </div>
+      }
+
       <!-- ── Sites Header ────────────────────────────────────────────────── -->
       <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
         <h2 class="text-xl font-bold">Mes sites</h2>
