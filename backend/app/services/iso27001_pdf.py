@@ -97,7 +97,8 @@ def _draw_cover(canvas, doc, score, score_label, total,
     canvas.setFillColor(DARK_BG)
     canvas.rect(0, 0, W, H, fill=1, stroke=0)
 
-    BAND_H = 16 * mm   # band height
+    BAND_H  = 18 * mm   # band height
+    band_cy = H - BAND_H / 2   # vertical centre of band
 
     # ── Left violet sidebar (below accent band) ───────────────────────────────
     canvas.setFillColor(VIOLET_BG)
@@ -105,93 +106,61 @@ def _draw_cover(canvas, doc, score, score_label, total,
     canvas.setFillColor(VIOLET)
     canvas.rect(0, 0, 2 * mm, H - BAND_H, fill=1, stroke=0)
 
-    # ── Top accent band ───────────────────────────────────────────────────────
-    # Base fill
-    canvas.setFillColor(colors.HexColor("#0d0b1e"))
+    # ── Top accent band — flat dark background ────────────────────────────────
+    canvas.setFillColor(colors.HexColor("#0f0a28"))
     canvas.rect(0, H - BAND_H, W, BAND_H, fill=1, stroke=0)
 
-    # Simulated left→right gradient: bright violet fades toward dark
-    _grad = [
-        (0,         W * 0.18, colors.HexColor("#1e1040")),
-        (W * 0.18,  W * 0.40, colors.HexColor("#160d34")),
-        (W * 0.40,  W * 0.65, colors.HexColor("#100a26")),
-        (W * 0.65,  W,        colors.HexColor("#0d0b1e")),
-    ]
-    for gx0, gx1, gcol in _grad:
-        canvas.setFillColor(gcol)
-        canvas.rect(gx0, H - BAND_H, gx1 - gx0, BAND_H, fill=1, stroke=0)
-
-    # Bright left accent stripe (continuous with sidebar)
+    # Left violet accent stripe (3 mm, continuous with sidebar)
     canvas.setFillColor(VIOLET)
     canvas.rect(0, H - BAND_H, 3 * mm, BAND_H, fill=1, stroke=0)
 
-    # Bottom border line
-    canvas.setStrokeColor(VIOLET)
-    canvas.setLineWidth(1.5)
+    # Bottom border — single solid violet line
+    canvas.setStrokeColor(VIOLET_MID)
+    canvas.setLineWidth(2.5)
     canvas.line(0, H - BAND_H, W, H - BAND_H)
 
-    # ── Logo area ─────────────────────────────────────────────────────────────
-    band_cy = H - BAND_H / 2   # vertical center of band
-    lx = MARGIN
+    # ── Left zone: logo circle + wordmark ─────────────────────────────────────
+    logo_cx = MARGIN + 5 * mm   # circle centre x
+    logo_r  = 4.2 * mm
 
-    # "CS" box
-    box_size = 8 * mm
-    bx = lx
-    by = band_cy - box_size / 2
+    # Outer circle (CYAN)
     canvas.setFillColor(CYAN)
-    canvas.roundRect(bx, by, box_size, box_size, radius=2 * mm, fill=1, stroke=0)
-    # Subtle cyan inner glow (lighter top-left quarter)
+    canvas.circle(logo_cx, band_cy, logo_r, fill=1, stroke=0)
+    # Inner circle — slightly lighter to simulate depth
     canvas.setFillColor(colors.HexColor("#22d3ee"))
-    canvas.roundRect(bx + 0.5 * mm, by + box_size * 0.45,
-                     box_size * 0.5, box_size * 0.5, radius=1.5 * mm, fill=1, stroke=0)
+    canvas.circle(logo_cx - 0.6 * mm, band_cy + 0.6 * mm, logo_r * 0.55, fill=1, stroke=0)
+    # "CS" monogram
     canvas.setFillColor(colors.HexColor("#083344"))
-    canvas.setFont("Helvetica-Bold", 7)
-    canvas.drawCentredString(bx + box_size / 2, by + 2.2 * mm, "CS")
+    canvas.setFont("Helvetica-Bold", 6.5)
+    canvas.drawCentredString(logo_cx, band_cy - 1.1 * mm, "CS")
 
     # "CyberScan" wordmark
-    tx_name = bx + box_size + 3 * mm
+    wm_x = logo_cx + logo_r + 3 * mm
     canvas.setFillColor(WHITE)
-    canvas.setFont("Helvetica-Bold", 11)
-    canvas.drawString(tx_name, band_cy - 1.8 * mm, "CyberScan")
+    canvas.setFont("Helvetica-Bold", 12)
+    canvas.drawString(wm_x, band_cy - 2 * mm, "CyberScan")
 
-    # Thin vertical separator
-    sep_x = tx_name + 52
-    canvas.setStrokeColor(colors.HexColor("#3b1f6e"))
-    canvas.setLineWidth(1)
-    canvas.line(sep_x, band_cy - 4 * mm, sep_x, band_cy + 4 * mm)
+    # ── Centre: thin horizontal rule connecting both zones ────────────────────
+    rule_x0 = wm_x + 54   # right edge of wordmark  (approx)
+    rule_x1 = W - MARGIN - 42 * mm
+    if rule_x1 > rule_x0 + 10:
+        canvas.setStrokeColor(colors.HexColor("#2d1b69"))
+        canvas.setLineWidth(0.6)
+        canvas.line(rule_x0 + 3 * mm, band_cy, rule_x1 - 3 * mm, band_cy)
 
-    # Subtitle text
-    canvas.setFillColor(colors.HexColor("#a78bfa"))
-    canvas.setFont("Helvetica", 8.5)
-    canvas.drawString(sep_x + 4, band_cy - 1.8 * mm, "Conformite ISO 27001:2022")
-
-    # ── Right badge + date ────────────────────────────────────────────────────
-    badge_text  = "ISO 27001:2022"
-    badge_w     = 32 * mm
-    badge_h     = 5.5 * mm
-    badge_x     = W - MARGIN - badge_w
-    badge_y     = band_cy + 0.5 * mm
-
-    # Badge background + border
-    canvas.setFillColor(colors.HexColor("#1e0a4e"))
-    canvas.roundRect(badge_x, badge_y, badge_w, badge_h, radius=1.5 * mm, fill=1, stroke=0)
-    canvas.setStrokeColor(VIOLET)
-    canvas.setLineWidth(0.8)
-    canvas.roundRect(badge_x, badge_y, badge_w, badge_h, radius=1.5 * mm, fill=0, stroke=1)
-
-    # Badge text
+    # ── Right zone: document type (stacked) ───────────────────────────────────
+    # Line 1: "RAPPORT ISO 27001:2022"  bold violet
     canvas.setFillColor(colors.HexColor("#c4b5fd"))
-    canvas.setFont("Helvetica-Bold", 7)
-    canvas.drawCentredString(badge_x + badge_w / 2, badge_y + 1.8 * mm, badge_text)
-
-    # Date below badge
+    canvas.setFont("Helvetica-Bold", 8.5)
+    canvas.drawRightString(W - MARGIN, band_cy + 1.5 * mm, "RAPPORT ISO 27001:2022")
+    # Line 2: date  small gray
     canvas.setFillColor(colors.HexColor("#6b7280"))
-    canvas.setFont("Helvetica", 6.5)
-    canvas.drawRightString(W - MARGIN, band_cy - 3.5 * mm, date_str[:10])
+    canvas.setFont("Helvetica", 7)
+    canvas.drawRightString(W - MARGIN, band_cy - 4 * mm, date_str[:10])
 
     # ── Title block (18–48 mm from top) ──────────────────────────────────────
     tx = 16 * mm
-    ty = H - 24 * mm   # baseline of main title (24 mm from top, below 16mm band)
+    ty = H - 26 * mm   # baseline of main title (26 mm from top, below 18mm band)
 
     canvas.setFillColor(VIOLET)
     canvas.setFont("Helvetica-Bold", 24)
