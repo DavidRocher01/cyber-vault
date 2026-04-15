@@ -126,7 +126,17 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
   }
 
   exportCsv() {
-    window.open(this.cyberscan.exportCsv(this.siteId()), '_blank');
+    this.cyberscan.exportCsvBlob(this.siteId()).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cyberscan_export_site_${this.siteId()}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => this.snack.open('Erreur lors de l\'export CSV', 'Fermer', { duration: 4000 }),
+    });
   }
 
   // ── Computed helpers ──────────────────────────────────────────
