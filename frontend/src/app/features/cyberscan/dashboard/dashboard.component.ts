@@ -439,6 +439,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   // ── Analytics ─────────────────────────────────────────────────────────────
   analyticsOpen = signal(true);
+  toggleAnalytics() { this.analyticsOpen.update(v => !v); }
   readonly categoryLabels = RADAR_CATEGORIES.map(c => c.label);
 
   /** Last N done scans with a score, for sparkline */
