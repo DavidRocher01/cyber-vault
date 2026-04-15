@@ -96,10 +96,22 @@ export class ScanDetailComponent implements OnInit {
       const parsed = JSON.parse(results);
       const scripts = parsed?._meta?.remediation_scripts ?? {};
       const meta: Record<string, { label: string; icon: string }> = {
-        ufw:     { label: 'Pare-feu UFW',         icon: 'security' },
-        ssh:     { label: 'Durcissement SSH',      icon: 'terminal' },
-        fastapi: { label: 'Middleware FastAPI',    icon: 'code' },
-        upgrade: { label: 'Mises à jour deps',    icon: 'system_update' },
+        ufw:                   { label: 'Pare-feu UFW',              icon: 'security' },
+        ssh:                   { label: 'Durcissement SSH',           icon: 'terminal' },
+        robots:                { label: 'robots.txt',                 icon: 'smart_toy' },
+        nginx_waf:             { label: 'WAF / Rate-limiting Nginx',  icon: 'shield' },
+        fastapi:               { label: 'Middleware FastAPI',         icon: 'code' },
+        upgrade:               { label: 'Mises à jour dépendances',   icon: 'system_update' },
+        nginx_ssl:             { label: 'SSL/TLS Nginx',              icon: 'lock' },
+        fastapi_cors:          { label: 'CORS FastAPI',               icon: 'swap_horiz' },
+        nginx_cors:            { label: 'CORS Nginx',                 icon: 'swap_horiz' },
+        fastapi_cookie:        { label: 'Cookies sécurisés FastAPI',  icon: 'cookie' },
+        nginx_methods:         { label: 'Méthodes HTTP Nginx',        icon: 'http' },
+        nginx_clickjacking:    { label: 'Anti-clickjacking Nginx',    icon: 'web_asset_off' },
+        fastapi_clickjacking:  { label: 'Anti-clickjacking FastAPI',  icon: 'web_asset_off' },
+        nginx_dirlist:         { label: 'Directory listing Nginx',    icon: 'folder_off' },
+        fastapi_open_redirect: { label: 'Open redirect FastAPI',      icon: 'link_off' },
+        dns_email:             { label: 'SPF / DKIM / DMARC',         icon: 'email' },
       };
       return Object.keys(scripts).filter(k => meta[k]).map(k => ({ key: k, ...meta[k] }));
     } catch { return []; }
