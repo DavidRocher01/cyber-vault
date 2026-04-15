@@ -243,31 +243,93 @@
 
       <!-- ── Add Site Form ───────────────────────────────────────────────── -->
       @if (showAddForm()) {
-        <div class="bg-gray-800/60 border border-cyan-500/20 rounded-2xl p-6 mb-5">
-          <h3 class="text-base font-semibold mb-4 flex items-center gap-2">
-            <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">add_circle</mat-icon>
-            Nouveau site
-          </h3>
-          <form [formGroup]="siteForm" (ngSubmit)="addSite()" class="flex flex-col gap-4">
-            <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-gray-400 uppercase tracking-wide">URL du site</label>
-              <input formControlName="url" type="url" placeholder="https://monsite.com"
-                class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-colors" />
-              @if (siteForm.controls.url.invalid && siteForm.controls.url.touched) {
-                <p class="text-xs text-red-400 mt-0.5">URL valide requise (https://...)</p>
-              }
+        <div class="add-site-card rounded-2xl p-6 mb-5">
+
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="text-base font-semibold flex items-center gap-2.5">
+              <div class="add-site-icon w-8 h-8 rounded-lg flex items-center justify-center">
+                <mat-icon class="text-cyan-400 !text-[1rem] !w-[1rem] !h-[1rem]">language</mat-icon>
+              </div>
+              Nouveau site à surveiller
+            </h3>
+            <button type="button" (click)="showAddForm.set(false)"
+              class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-gray-200 hover:bg-gray-700/60 transition-all">
+              <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">close</mat-icon>
+            </button>
+          </div>
+
+          <form [formGroup]="siteForm" (ngSubmit)="addSite()">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+
+              <!-- URL -->
+              <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <mat-icon class="!text-[0.75rem] !w-[0.75rem] !h-[0.75rem]">link</mat-icon>
+                  URL du site <span class="text-red-400 ml-0.5">*</span>
+                </label>
+                <div class="relative">
+                  <input formControlName="url" type="text" placeholder="https://monsite.com"
+                    (blur)="autoPrependHttps()"
+                    [class.border-red-500]="siteForm.controls.url.invalid && siteForm.controls.url.touched"
+                    [class.border-green-500]="siteForm.controls.url.valid && siteForm.controls.url.touched"
+                    [class.border-gray-700]="!siteForm.controls.url.touched"
+                    class="w-full bg-gray-900/80 border rounded-xl px-4 py-3 pr-10 text-sm text-white placeholder-gray-600
+                           focus:outline-none focus:ring-1 focus:ring-cyan-500/40 focus:border-cyan-500/60 transition-all" />
+                  @if (siteForm.controls.url.valid && siteForm.controls.url.touched) {
+                    <mat-icon class="absolute right-3 top-1/2 -translate-y-1/2 text-green-400 !text-[1rem] !w-[1rem] !h-[1rem]">check_circle</mat-icon>
+                  } @else if (siteForm.controls.url.invalid && siteForm.controls.url.touched) {
+                    <mat-icon class="absolute right-3 top-1/2 -translate-y-1/2 text-red-400 !text-[1rem] !w-[1rem] !h-[1rem]">error</mat-icon>
+                  }
+                </div>
+                @if (siteForm.controls.url.invalid && siteForm.controls.url.touched) {
+                  <p class="text-xs text-red-400 flex items-center gap-1">
+                    <mat-icon class="!text-[0.75rem] !w-[0.75rem] !h-[0.75rem]">warning</mat-icon>
+                    URL valide requise (https://…)
+                  </p>
+                } @else {
+                  <p class="text-xs text-gray-600">Saisir sans https:// l'ajoute automatiquement</p>
+                }
+              </div>
+
+              <!-- Nom -->
+              <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <mat-icon class="!text-[0.75rem] !w-[0.75rem] !h-[0.75rem]">label</mat-icon>
+                  Nom du site <span class="text-red-400 ml-0.5">*</span>
+                </label>
+                <div class="relative">
+                  <input formControlName="name" type="text" placeholder="Mon Site"
+                    [class.border-green-500]="siteForm.controls.name.valid && siteForm.controls.name.touched"
+                    [class.border-gray-700]="!siteForm.controls.name.touched"
+                    class="w-full bg-gray-900/80 border rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600
+                           focus:outline-none focus:ring-1 focus:ring-cyan-500/40 focus:border-cyan-500/60 transition-all" />
+                  @if (siteForm.controls.name.valid && siteForm.controls.name.touched) {
+                    <mat-icon class="absolute right-3 top-1/2 -translate-y-1/2 text-green-400 !text-[1rem] !w-[1rem] !h-[1rem]">check_circle</mat-icon>
+                  }
+                </div>
+                <p class="text-xs text-gray-600">Nom affiché dans le dashboard</p>
+              </div>
+
             </div>
-            <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-gray-400 uppercase tracking-wide">Nom du site</label>
-              <input formControlName="name" type="text" placeholder="Mon Site"
-                class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-colors" />
-            </div>
-            <div class="flex gap-3">
-              <button mat-flat-button color="primary" type="submit" [disabled]="siteForm.invalid || addingSite()">
-                @if (addingSite()) { <mat-spinner diameter="18" class="mr-2"></mat-spinner> }
-                Ajouter
+
+            <!-- Actions -->
+            <div class="flex items-center justify-end gap-3">
+              <button type="button" (click)="showAddForm.set(false)"
+                class="px-4 py-2 rounded-xl text-sm text-gray-400 hover:text-gray-200 hover:bg-gray-700/50 transition-all">
+                Annuler
               </button>
-              <button mat-button type="button" (click)="showAddForm.set(false)">Annuler</button>
+              <button type="submit" [disabled]="siteForm.invalid || addingSite()"
+                class="add-site-submit flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all
+                       disabled:opacity-40 disabled:cursor-not-allowed">
+                @if (addingSite()) {
+                  <mat-spinner diameter="16"></mat-spinner>
+                  Ajout en cours…
+                } @else {
+                  <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">add_circle</mat-icon>
+                  Ajouter le site
+                }
+              </button>
             </div>
           </form>
         </div>

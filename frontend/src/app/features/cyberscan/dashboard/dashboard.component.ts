@@ -45,6 +45,7 @@ interface PaginatedScans {
     MatDialogModule, MatPaginatorModule, SkeletonComponent, ScoreGaugeComponent, NavButtonsComponent,
   ],
   templateUrl: './dashboard.component.html',
+  styleUrl: './dashboard.component.css',
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   private cyberscan = inject(CyberscanService);
@@ -225,6 +226,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.scansMap.update(m => ({ ...m, [siteId]: data }));
       if (!data.items.some(s => s.status === 'pending' || s.status === 'running')) delete this.pollingMap[siteId];
     });
+  }
+
+  autoPrependHttps() {
+    const ctrl = this.siteForm.controls.url;
+    const v = ctrl.value.trim();
+    if (v && !v.startsWith('http://') && !v.startsWith('https://')) {
+      ctrl.setValue('https://' + v, { emitEvent: true });
+      ctrl.markAsTouched();
+    }
   }
 
   addSite() {
