@@ -253,7 +253,7 @@ def generate_nis2_pdf(
             c, d,
             doc_type=DOC_TYPE,
             title_line1="Rapport de conformite",
-            title_line2="NIS2",
+            title_line2="Directive NIS2",
             score=score, score_label=score_label, total=total_items,
             compliant=compliant_n, partial=partial_n, nc=nc_n, na=na_n,
             date_str=date_str,

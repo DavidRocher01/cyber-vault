@@ -297,15 +297,18 @@ def draw_compliance_cover(
     left_w  = card_w * 0.40
     right_w = card_w * 0.60
 
-    canvas.setFillColor(GRAY)
+    canvas.setFillColor(col)
     canvas.setFont("Helvetica-Bold", 7)
     canvas.drawString(M, card_y + card_h + 4 * mm, "SYNTHESE DE CONFORMITE")
 
     canvas.setFillColor(colors.HexColor("#141e30"))
     canvas.roundRect(M, card_y, card_w, card_h, radius=4 * mm, fill=1, stroke=0)
-    canvas.setFillColor(col_mid)
-    canvas.roundRect(M, card_y + card_h - 1.5 * mm, card_w, 1.5 * mm,
-                     radius=2 * mm, fill=1, stroke=0)
+    # Top stripe — thick line contained within card's rounded corners
+    canvas.setStrokeColor(col_mid)
+    canvas.setLineWidth(2 * mm)
+    canvas.setLineCap(0)
+    canvas.line(M + 4 * mm, card_y + card_h - 1 * mm,
+                M + card_w - 4 * mm, card_y + card_h - 1 * mm)
 
     # Gauge (left 40%)
     cx = M + left_w / 2
@@ -332,8 +335,8 @@ def draw_compliance_cover(
     canvas.setFillColor(colors.HexColor("#141e30"))
     canvas.circle(cx, cy, r - 7 * mm, fill=1, stroke=0)
     canvas.setFillColor(sc)
-    canvas.setFont("Helvetica-Bold", 26)
-    canvas.drawCentredString(cx, cy - 3.5 * mm, f"{score}%")
+    canvas.setFont("Helvetica-Bold", 30)
+    canvas.drawCentredString(cx, cy - 4 * mm, f"{score}%")
     canvas.setFillColor(sc)
     canvas.setFont("Helvetica-Bold", 8)
     canvas.drawCentredString(cx, card_y + 11 * mm, score_label)
@@ -363,12 +366,15 @@ def draw_compliance_cover(
         ky = card_y + card_h - (i // 2 + 1) * (cell_h + 4 * mm) + 2 * mm
         canvas.setFillColor(bg)
         canvas.roundRect(kx, ky, cell_w, cell_h, radius=2.5 * mm, fill=1, stroke=0)
-        canvas.setFillColor(k_col)
-        canvas.roundRect(kx, ky + cell_h - 1.5 * mm, cell_w, 1.5 * mm,
-                         radius=1 * mm, fill=1, stroke=0)
+        # Top stripe — contained within rounded corners
+        canvas.setStrokeColor(k_col)
+        canvas.setLineWidth(2 * mm)
+        canvas.setLineCap(0)
+        canvas.line(kx + 2.5 * mm, ky + cell_h - 1 * mm,
+                    kx + cell_w - 2.5 * mm, ky + cell_h - 1 * mm)
         canvas.setFillColor(k_col)
         canvas.setFont("Helvetica-Bold", 22)
-        canvas.drawCentredString(kx + cell_w / 2, ky + cell_h / 2, str(val))
+        canvas.drawCentredString(kx + cell_w / 2, ky + cell_h * 0.52, str(val))
         canvas.setFillColor(GRAY)
         canvas.setFont("Helvetica", 7)
         canvas.drawCentredString(kx + cell_w / 2, ky + 3.5 * mm, lbl)
@@ -384,7 +390,7 @@ def draw_compliance_cover(
     col_gap = 4 * mm
     col_w   = (card_w - col_gap) / ncols
 
-    canvas.setFillColor(GRAY)
+    canvas.setFillColor(col)
     canvas.setFont("Helvetica-Bold", 7)
     canvas.drawString(M, dom_top, "RESULTATS PAR DOMAINE")
 
@@ -506,15 +512,18 @@ def draw_url_scan_cover(
     card_h = 65 * mm
     card_w = W - 2 * M
 
-    canvas.setFillColor(GRAY)
+    canvas.setFillColor(col)
     canvas.setFont("Helvetica-Bold", 7)
     canvas.drawString(M, card_y + card_h + 4 * mm, "RESULTAT DE L'ANALYSE")
 
     canvas.setFillColor(colors.HexColor("#141e30"))
     canvas.roundRect(M, card_y, card_w, card_h, radius=4 * mm, fill=1, stroke=0)
-    canvas.setFillColor(col_mid)
-    canvas.roundRect(M, card_y + card_h - 1.5 * mm, card_w, 1.5 * mm,
-                     radius=2 * mm, fill=1, stroke=0)
+    # Top stripe — contained within card's rounded corners
+    canvas.setStrokeColor(col_mid)
+    canvas.setLineWidth(2 * mm)
+    canvas.setLineCap(0)
+    canvas.line(M + 4 * mm, card_y + card_h - 1 * mm,
+                M + card_w - 4 * mm, card_y + card_h - 1 * mm)
 
     # Verdict (left 45%)
     left_w  = card_w * 0.45
@@ -564,12 +573,15 @@ def draw_url_scan_cover(
         ky = card_y + 7 * mm
         canvas.setFillColor(colors.HexColor("#1e293b"))
         canvas.roundRect(kx, ky, cell_w, cell_h, radius=2.5 * mm, fill=1, stroke=0)
-        canvas.setFillColor(k_col)
-        canvas.roundRect(kx, ky + cell_h - 1.5 * mm, cell_w, 1.5 * mm,
-                         radius=1 * mm, fill=1, stroke=0)
+        # Top stripe — contained within rounded corners
+        canvas.setStrokeColor(k_col)
+        canvas.setLineWidth(2 * mm)
+        canvas.setLineCap(0)
+        canvas.line(kx + 2.5 * mm, ky + cell_h - 1 * mm,
+                    kx + cell_w - 2.5 * mm, ky + cell_h - 1 * mm)
         canvas.setFillColor(k_col)
         canvas.setFont("Helvetica-Bold", 14)
-        canvas.drawCentredString(kx + cell_w / 2, ky + cell_h / 2, val)
+        canvas.drawCentredString(kx + cell_w / 2, ky + cell_h * 0.52, val)
         canvas.setFillColor(GRAY)
         canvas.setFont("Helvetica", 7)
         canvas.drawCentredString(kx + cell_w / 2, ky + 3.5 * mm, lbl)
