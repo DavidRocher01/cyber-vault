@@ -287,19 +287,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  exportCsv(siteId: number) {
-    this.cyberscan.exportCsvBlob(siteId).subscribe({
-      next: blob => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `cyberscan_export_site_${siteId}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-      },
-      error: () => this.snack.open('Erreur lors de l\'export CSV', 'Fermer', { duration: 4000 }),
-    });
-  }
 
   openPlansModal() {
     this.showPlansModal.set(true);

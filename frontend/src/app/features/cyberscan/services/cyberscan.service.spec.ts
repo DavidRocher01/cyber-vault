@@ -148,14 +148,6 @@ describe('CyberscanService', () => {
     );
   });
 
-  it('exportCsvBlob() appelle GET /scans/site/:id/export avec responseType blob', () => {
-    http.get.mockReturnValue(of(new Blob()));
-    service.exportCsvBlob(8).subscribe();
-    expect(http.get).toHaveBeenCalledWith(
-      `${API}/scans/site/8/export`,
-      expect.objectContaining({ responseType: 'blob' })
-    );
-  });
 
   // ── URL Scans ──────────────────────────────────────────────────────────────
 

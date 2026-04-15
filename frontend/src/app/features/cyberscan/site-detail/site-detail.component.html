@@ -67,11 +67,7 @@
 
           <!-- Actions -->
           <div class="flex items-center gap-3 flex-shrink-0">
-            <button mat-stroked-button type="button" (click)="exportCsv()"
-                    class="border-gray-600 text-gray-300">
-              <mat-icon class="mr-1">download</mat-icon>
-              CSV
-            </button>
+
             <button mat-flat-button color="primary" type="button"
                     [disabled]="triggering() || hasActiveScans"
                     (click)="triggerScan()">

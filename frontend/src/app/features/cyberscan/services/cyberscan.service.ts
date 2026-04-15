@@ -197,9 +197,6 @@ export class CyberscanService {
     return this.http.get(`${API}/scans/${scanId}/remediation/${scriptKey}`, { responseType: 'blob' });
   }
 
-  exportCsvBlob(siteId: number): Observable<Blob> {
-    return this.http.get(`${API}/scans/site/${siteId}/export`, { responseType: 'blob' });
-  }
 
   // ── URL Scans ──────────────────────────────────────────────────────────
 
