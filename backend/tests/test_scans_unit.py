@@ -449,3 +449,166 @@ async def test_remediation_import_error_raises_404():
             )
     # Either ImportError caught → 404, or the normal import error path
     assert exc.value.status_code == 404
+
+
+# ─── _REMEDIATION_META completeness ───────────────────────────────────────────
+
+def test_remediation_meta_contains_all_expected_keys():
+    """_REMEDIATION_META must cover every key generate_remediation can return."""
+    from app.api.v1.endpoints.scans import _REMEDIATION_META
+    expected_keys = {
+        "ufw", "ssh", "robots", "nginx_waf", "fastapi", "upgrade",
+        "nginx_ssl", "fastapi_cors", "nginx_cors", "fastapi_cookie",
+        "nginx_methods", "nginx_clickjacking", "fastapi_clickjacking",
+        "nginx_dirlist", "fastapi_open_redirect", "dns_email",
+    }
+    missing = expected_keys - set(_REMEDIATION_META.keys())
+    assert not missing, f"Keys missing from _REMEDIATION_META: {missing}"
+
+
+def test_remediation_meta_values_have_filename_and_mimetype():
+    from app.api.v1.endpoints.scans import _REMEDIATION_META
+    for key, (filename, mimetype) in _REMEDIATION_META.items():
+        assert filename, f"Empty filename for key '{key}'"
+        assert mimetype, f"Empty mimetype for key '{key}'"
+        assert "/" in mimetype, f"Invalid mimetype '{mimetype}' for key '{key}'"
+
+
+@pytest.mark.parametrize("script_key", [
+    "ufw", "ssh", "robots", "nginx_waf", "fastapi", "upgrade",
+    "nginx_ssl", "fastapi_cors", "nginx_cors", "fastapi_cookie",
+    "nginx_methods", "nginx_clickjacking", "fastapi_clickjacking",
+    "nginx_dirlist", "fastapi_open_redirect", "dns_email",
+])
+@pytest.mark.asyncio
+async def test_remediation_all_keys_not_rejected(script_key):
+    """All valid script keys must pass the _REMEDIATION_META guard (not return 404 'Script inconnu')."""
+    import tempfile, os
+    scan = _mock_scan()
+    with tempfile.NamedTemporaryFile(suffix=".sh", delete=False) as f:
+        f.write(b"#!/bin/bash\necho ok")
+        path = f.name
+    scan.results_json = json.dumps({
+        "_meta": {"remediation_scripts": {script_key: path}, "url": "https://example.com"},
+    })
+    db = _make_db(scan)
+    user = _mock_user()
+    try:
+        from fastapi.responses import FileResponse
+        response = await download_remediation_script(
+            scan_id=1, script_key=script_key, current_user=user, db=db
+        )
+        assert response is not None
+    finally:
+        os.unlink(path)
+
+
+# ─── on-the-fly regeneration ──────────────────────────────────────────────────
+
+def _scan_with_results(extra_results: dict | None = None) -> MagicMock:
+    """Scan with full results_json but no on-disk remediation files."""
+    base = {
+        "_meta": {"remediation_scripts": {}, "url": "https://example.com"},
+        "ssl":    {"status": "CRITICAL", "tls_ok": False, "error": None},
+        "headers": {"status": "CRITICAL", "headers_missing": ["Content-Security-Policy"], "error": None},
+        "email":  {"status": "CRITICAL", "spf": False, "dkim": False, "dmarc": False, "domain": "example.com", "issues": [], "error": None},
+        "cookies": {"status": "WARNING", "issues": [{"name": "session", "missing_flags": ["HttpOnly"]}], "error": None},
+        "cors":   {"status": "CRITICAL", "issues": ["Wildcard origin"], "error": None},
+        "http_methods": {"status": "CRITICAL", "dangerous_methods": ["DELETE", "TRACE"], "error": None},
+        "clickjacking": {"status": "CRITICAL", "error": None},
+        "directory_listing": {"status": "CRITICAL", "exposed_paths": ["/backup/"], "error": None},
+        "open_redirect": {"status": "CRITICAL", "error": None},
+        "robots": {"status": "WARNING", "error": None},
+        "waf":    {"status": "WARNING", "error": None},
+        "ports":  {"status": "OK", "critical_ports": [], "error": None},
+    }
+    if extra_results:
+        base.update(extra_results)
+    scan = _mock_scan()
+    scan.results_json = json.dumps(base)
+    return scan
+
+
+@pytest.mark.parametrize("script_key", [
+    "ufw", "ssh", "robots", "nginx_waf", "fastapi",
+    "nginx_ssl", "fastapi_cors", "nginx_cors", "fastapi_cookie",
+    "nginx_methods", "nginx_clickjacking", "fastapi_clickjacking",
+    "nginx_dirlist", "fastapi_open_redirect", "dns_email",
+])
+@pytest.mark.asyncio
+async def test_remediation_regenerated_on_the_fly(script_key):
+    """When file is absent from disk, the script is regenerated from DB data and served."""
+    import sys
+    from pathlib import Path
+    scanner_dir = str(Path(__file__).resolve().parents[2] / "cyber-scanner")
+    if scanner_dir not in sys.path:
+        sys.path.insert(0, scanner_dir)
+
+    scan = _scan_with_results()
+    db = _make_db(scan)
+    user = _mock_user()
+
+    from fastapi.responses import StreamingResponse
+    response = await download_remediation_script(
+        scan_id=1, script_key=script_key, current_user=user, db=db
+    )
+    assert response is not None
+    assert isinstance(response, StreamingResponse)
+
+
+@pytest.mark.asyncio
+async def test_remediation_regeneration_unavailable_script_raises_404():
+    """Script not generated (condition not met) → 404, not a 500."""
+    import sys
+    from pathlib import Path
+    scanner_dir = str(Path(__file__).resolve().parents[2] / "cyber-scanner")
+    if scanner_dir not in sys.path:
+        sys.path.insert(0, scanner_dir)
+
+    scan = _mock_scan()
+    # All OK results → no conditional scripts generated
+    scan.results_json = json.dumps({
+        "_meta": {"remediation_scripts": {}, "url": "https://example.com"},
+        "ssl": {"status": "OK"}, "headers": {"status": "OK", "headers_missing": []},
+        "email": {"status": "OK"}, "cookies": {"status": "OK", "issues": []},
+        "cors": {"status": "OK"}, "http_methods": {"status": "OK"},
+        "clickjacking": {"status": "OK"}, "directory_listing": {"status": "OK"},
+        "open_redirect": {"status": "OK"}, "waf": {"status": "OK"},
+        "robots": {"status": "OK"}, "ports": {"status": "OK", "critical_ports": []},
+    })
+    db = _make_db(scan)
+    user = _mock_user()
+
+    # nginx_ssl requires ssl CRITICAL — should return 404 since ssl is OK
+    with pytest.raises(HTTPException) as exc:
+        await download_remediation_script(
+            scan_id=1, script_key="nginx_ssl", current_user=user, db=db
+        )
+    assert exc.value.status_code == 404
+
+
+# ─── scan_service passes all parameters ───────────────────────────────────────
+
+def test_scan_service_passes_all_remediation_params():
+    """generate_remediation must be called with all scan result parameters."""
+    import inspect, ast
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[1] / "app" / "services" / "scan_service.py").read_text()
+    tree = ast.parse(src)
+
+    required_params = {
+        "ssl_result", "cors_result", "cookie_result", "http_methods_result",
+        "clickjacking_result", "directory_listing_result", "open_redirect_result",
+        "robots_result", "email_result", "waf_result",
+    }
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            func = node.func
+            if isinstance(func, ast.Name) and func.id == "generate_remediation":
+                passed = {kw.arg for kw in node.keywords}
+                missing = required_params - passed
+                assert not missing, f"scan_service missing params: {missing}"
+                return
+
+    raise AssertionError("generate_remediation call not found in scan_service.py")
