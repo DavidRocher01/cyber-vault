@@ -75,8 +75,10 @@
                 <mat-spinner diameter="18" class="mr-2"></mat-spinner>
                 En cours...
               } @else {
-                <mat-icon class="mr-1">play_arrow</mat-icon>
-                Lancer un scan
+                <ng-container>
+                  <mat-icon class="mr-1">play_arrow</mat-icon>
+                  Lancer un scan
+                </ng-container>
               }
             </button>
           </div>
