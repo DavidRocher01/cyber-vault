@@ -244,3 +244,72 @@ async def test_delete_account_token_no_longer_valid_after_deletion():
         await c.request("DELETE", f"{BASE}/users/me", headers=h, json={"password": "StrongPass123!"})
         r = await c.get(f"{BASE}/users/me", headers=h)
     assert r.status_code == 401
+
+
+# ── Notification preferences ───────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_get_notification_preferences_defaults_all_true():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        h = await _auth(c, "notif1@test.com")
+        r = await c.get(f"{BASE}/users/me/notification-preferences", headers=h)
+    assert r.status_code == 200
+    data = r.json()
+    assert data["notif_scan_done"] is True
+    assert data["notif_scan_critical"] is True
+    assert data["notif_url_scan_done"] is True
+    assert data["notif_code_scan_done"] is True
+
+
+@pytest.mark.asyncio
+async def test_update_notification_preferences_success():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        h = await _auth(c, "notif2@test.com")
+        r = await c.put(f"{BASE}/users/me/notification-preferences", headers=h, json={
+            "notif_scan_done": False,
+            "notif_scan_critical": True,
+            "notif_url_scan_done": False,
+            "notif_code_scan_done": True,
+        })
+    assert r.status_code == 200
+    data = r.json()
+    assert data["notif_scan_done"] is False
+    assert data["notif_scan_critical"] is True
+    assert data["notif_url_scan_done"] is False
+    assert data["notif_code_scan_done"] is True
+
+
+@pytest.mark.asyncio
+async def test_update_notification_preferences_persisted():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        h = await _auth(c, "notif3@test.com")
+        await c.put(f"{BASE}/users/me/notification-preferences", headers=h, json={
+            "notif_scan_done": False,
+            "notif_scan_critical": False,
+            "notif_url_scan_done": True,
+            "notif_code_scan_done": True,
+        })
+        r = await c.get(f"{BASE}/users/me/notification-preferences", headers=h)
+    assert r.status_code == 200
+    data = r.json()
+    assert data["notif_scan_done"] is False
+    assert data["notif_scan_critical"] is False
+
+
+@pytest.mark.asyncio
+async def test_get_notification_preferences_unauthenticated_returns_403():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/users/me/notification-preferences")
+    assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_update_notification_preferences_unauthenticated_returns_403():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.put(f"{BASE}/users/me/notification-preferences", json={
+            "notif_scan_done": False,
+            "notif_scan_critical": False,
+            "notif_url_scan_done": False,
+            "notif_code_scan_done": False,
+        })
+    assert r.status_code == 403

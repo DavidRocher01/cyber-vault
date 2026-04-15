@@ -18,5 +18,11 @@ class User(Base):
     totp_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
+    # Notification preferences
+    notif_scan_done: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, server_default="true")
+    notif_scan_critical: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, server_default="true")
+    notif_url_scan_done: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, server_default="true")
+    notif_code_scan_done: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, server_default="true")
+
     notifications: Mapped[list["Notification"]] = relationship(back_populates="user", cascade="all, delete-orphan")  # type: ignore[name-defined]
     code_scans: Mapped[list["CodeScan"]] = relationship(back_populates="user", cascade="all, delete-orphan")  # type: ignore[name-defined]

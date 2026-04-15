@@ -2,8 +2,9 @@
  * ProfileComponent — tests des méthodes pures et guards.
  * On instancie le composant sans DI Angular (Object.create).
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { signal } from '@angular/core';
+import { of } from 'rxjs';
 import { FormBuilder, Validators } from '@angular/forms';
 import { ProfileComponent } from './profile.component';
 
@@ -31,6 +32,8 @@ function make(): ProfileComponent {
   (comp as any).twoFaDisableCode = signal('');
   (comp as any).otpClear = 0;
   (comp as any).otpDisableClear = 0;
+  (comp as any).notifPrefs = signal(null);
+  (comp as any).savingNotifs = signal(false);
   return comp;
 }
 
@@ -199,5 +202,79 @@ describe('ProfileComponent — exportUrl()', () => {
     const comp = make();
     (comp as any).userService = { exportMyData: () => '/api/v1/users/me/export' };
     expect(comp.exportUrl()).toBe('/api/v1/users/me/export');
+  });
+});
+
+// ── toggleNotif ───────────────────────────────────────────────────────────────
+
+describe('ProfileComponent — toggleNotif()', () => {
+  const basePrefs = () => ({
+    notif_scan_done: true,
+    notif_scan_critical: true,
+    notif_url_scan_done: true,
+    notif_code_scan_done: true,
+  });
+
+  it('inverse notif_scan_done de true à false', () => {
+    const comp = make();
+    (comp as any).notifPrefs = signal(basePrefs());
+    comp.toggleNotif('notif_scan_done');
+    expect((comp as any).notifPrefs().notif_scan_done).toBe(false);
+  });
+
+  it('inverse notif_scan_critical de true à false', () => {
+    const comp = make();
+    (comp as any).notifPrefs = signal(basePrefs());
+    comp.toggleNotif('notif_scan_critical');
+    expect((comp as any).notifPrefs().notif_scan_critical).toBe(false);
+  });
+
+  it('inverse notif_url_scan_done de false à true', () => {
+    const comp = make();
+    (comp as any).notifPrefs = signal({ ...basePrefs(), notif_url_scan_done: false });
+    comp.toggleNotif('notif_url_scan_done');
+    expect((comp as any).notifPrefs().notif_url_scan_done).toBe(true);
+  });
+
+  it('ne modifie pas les autres préférences', () => {
+    const comp = make();
+    (comp as any).notifPrefs = signal(basePrefs());
+    comp.toggleNotif('notif_scan_done');
+    const prefs = (comp as any).notifPrefs();
+    expect(prefs.notif_scan_critical).toBe(true);
+    expect(prefs.notif_url_scan_done).toBe(true);
+    expect(prefs.notif_code_scan_done).toBe(true);
+  });
+
+  it('ne fait rien si notifPrefs est null', () => {
+    const comp = make();
+    (comp as any).notifPrefs = signal(null);
+    expect(() => comp.toggleNotif('notif_scan_done')).not.toThrow();
+    expect((comp as any).notifPrefs()).toBeNull();
+  });
+});
+
+// ── saveNotifPrefs guard ──────────────────────────────────────────────────────
+
+describe('ProfileComponent — saveNotifPrefs() guard', () => {
+  it('ne soumet pas si notifPrefs est null', () => {
+    const comp = make();
+    (comp as any).notifPrefs = signal(null);
+    let called = false;
+    (comp as any).userService = { updateNotificationPreferences: () => { called = true; return of(null); } };
+    comp.saveNotifPrefs();
+    expect(called).toBe(false);
+  });
+
+  it('appelle updateNotificationPreferences avec les préférences courantes', () => {
+    const comp = make();
+    const prefs = { notif_scan_done: false, notif_scan_critical: true, notif_url_scan_done: false, notif_code_scan_done: true };
+    (comp as any).notifPrefs = signal(prefs);
+    (comp as any).savingNotifs = signal(false);
+    (comp as any).snack = { open: vi.fn() };
+    const updateFn = vi.fn().mockReturnValue(of(prefs));
+    (comp as any).userService = { updateNotificationPreferences: updateFn };
+    comp.saveNotifPrefs();
+    expect(updateFn).toHaveBeenCalledWith(prefs);
   });
 });

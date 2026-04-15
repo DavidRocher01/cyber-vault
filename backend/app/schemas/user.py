@@ -26,6 +26,22 @@ class UserOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class NotificationPreferencesOut(BaseModel):
+    notif_scan_done: bool
+    notif_scan_critical: bool
+    notif_url_scan_done: bool
+    notif_code_scan_done: bool
+
+    model_config = {"from_attributes": True}
+
+
+class NotificationPreferencesIn(BaseModel):
+    notif_scan_done: bool
+    notif_scan_critical: bool
+    notif_url_scan_done: bool
+    notif_code_scan_done: bool
+
+
 class TokenOut(BaseModel):
     access_token: str
     refresh_token: str

@@ -16,7 +16,7 @@ from app.core.security import hash_password, verify_password
 from app.models.user import User
 from app.models.site import Site
 from app.models.scan import Scan
-from app.schemas.user import UserOut, TwoFactorSetupOut, TwoFactorVerifyIn, TwoFactorDisableIn
+from app.schemas.user import UserOut, TwoFactorSetupOut, TwoFactorVerifyIn, TwoFactorDisableIn, NotificationPreferencesOut, NotificationPreferencesIn
 from pydantic import BaseModel, EmailStr
 
 
@@ -145,6 +145,26 @@ async def delete_my_account(
 
     await db.delete(current_user)
     await db.commit()
+
+
+@router.get("/me/notification-preferences", response_model=NotificationPreferencesOut)
+async def get_notification_preferences(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
+@router.put("/me/notification-preferences", response_model=NotificationPreferencesOut)
+async def update_notification_preferences(
+    payload: NotificationPreferencesIn,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    current_user.notif_scan_done = payload.notif_scan_done
+    current_user.notif_scan_critical = payload.notif_scan_critical
+    current_user.notif_url_scan_done = payload.notif_url_scan_done
+    current_user.notif_code_scan_done = payload.notif_code_scan_done
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
 
 
 @router.post("/me/2fa/setup", response_model=TwoFactorSetupOut)

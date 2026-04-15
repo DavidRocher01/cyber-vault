@@ -355,6 +355,85 @@
 
       </div>
 
+      <!-- Notification preferences -->
+      @if (notifPrefs()) {
+        <div class="bg-gray-800/60 border border-gray-700 rounded-2xl p-6 mb-4">
+          <div class="flex items-center gap-2 mb-5">
+            <div class="w-8 h-8 rounded-lg bg-purple-500/15 flex items-center justify-center">
+              <mat-icon class="text-purple-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">notifications</mat-icon>
+            </div>
+            <h2 class="font-semibold">Préférences de notification</h2>
+          </div>
+
+          <div class="flex flex-col gap-3">
+
+            <!-- notif_scan_done -->
+            <div class="flex items-center justify-between py-3 border-b border-gray-700/50">
+              <div>
+                <p class="text-sm font-medium">Fin de scan externe</p>
+                <p class="text-xs text-gray-500 mt-0.5">Recevoir un email à la fin de chaque scan de site</p>
+              </div>
+              <mat-slide-toggle
+                [checked]="notifPrefs()!.notif_scan_done"
+                (change)="toggleNotif('notif_scan_done')"
+                color="primary">
+              </mat-slide-toggle>
+            </div>
+
+            <!-- notif_scan_critical -->
+            <div class="flex items-center justify-between py-3 border-b border-gray-700/50">
+              <div>
+                <p class="text-sm font-medium">Vulnérabilité critique détectée</p>
+                <p class="text-xs text-gray-500 mt-0.5">Alerte immédiate si une vulnérabilité critique est trouvée</p>
+              </div>
+              <mat-slide-toggle
+                [checked]="notifPrefs()!.notif_scan_critical"
+                (change)="toggleNotif('notif_scan_critical')"
+                color="warn">
+              </mat-slide-toggle>
+            </div>
+
+            <!-- notif_url_scan_done -->
+            <div class="flex items-center justify-between py-3 border-b border-gray-700/50">
+              <div>
+                <p class="text-sm font-medium">Fin de scan URL</p>
+                <p class="text-xs text-gray-500 mt-0.5">Recevoir un email à la fin de chaque analyse d'URL</p>
+              </div>
+              <mat-slide-toggle
+                [checked]="notifPrefs()!.notif_url_scan_done"
+                (change)="toggleNotif('notif_url_scan_done')"
+                color="primary">
+              </mat-slide-toggle>
+            </div>
+
+            <!-- notif_code_scan_done -->
+            <div class="flex items-center justify-between py-3">
+              <div>
+                <p class="text-sm font-medium">Fin d'analyse de code</p>
+                <p class="text-xs text-gray-500 mt-0.5">Recevoir un email à la fin de chaque analyse de dépendances</p>
+              </div>
+              <mat-slide-toggle
+                [checked]="notifPrefs()!.notif_code_scan_done"
+                (change)="toggleNotif('notif_code_scan_done')"
+                color="primary">
+              </mat-slide-toggle>
+            </div>
+
+          </div>
+
+          <button type="button" (click)="saveNotifPrefs()" [disabled]="savingNotifs()"
+                  class="flex items-center justify-center gap-2 w-full mt-5 py-3 rounded-xl font-semibold text-sm transition-all
+                         bg-purple-700 hover:bg-purple-600 disabled:opacity-40 disabled:cursor-not-allowed">
+            @if (savingNotifs()) {
+              <mat-spinner diameter="16"></mat-spinner>
+            } @else {
+              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">save</mat-icon>
+            }
+            Enregistrer les préférences
+          </button>
+        </div>
+      }
+
       <!-- Danger zone -->
       <div class="border border-red-900/50 rounded-2xl p-6 bg-red-950/10">
         <!-- RGPD — Export & Suppression -->

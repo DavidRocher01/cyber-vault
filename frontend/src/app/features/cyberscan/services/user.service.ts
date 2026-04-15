@@ -9,6 +9,13 @@ export interface UserProfile {
   totp_enabled: boolean;
 }
 
+export interface NotificationPreferences {
+  notif_scan_done: boolean;
+  notif_scan_critical: boolean;
+  notif_url_scan_done: boolean;
+  notif_code_scan_done: boolean;
+}
+
 export interface TwoFactorSetup {
   qr_code_b64: string;
   secret: string;
@@ -54,5 +61,13 @@ export class UserService {
 
   deleteAccount(password: string): Observable<void> {
     return this.http.delete<void>(`${API}/users/me`, { body: { password } });
+  }
+
+  getNotificationPreferences(): Observable<NotificationPreferences> {
+    return this.http.get<NotificationPreferences>(`${API}/users/me/notification-preferences`);
+  }
+
+  updateNotificationPreferences(prefs: NotificationPreferences): Observable<NotificationPreferences> {
+    return this.http.put<NotificationPreferences>(`${API}/users/me/notification-preferences`, prefs);
   }
 }

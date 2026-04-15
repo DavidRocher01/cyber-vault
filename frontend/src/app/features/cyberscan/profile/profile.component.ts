@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -11,9 +11,10 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Title } from '@angular/platform-browser';
 
-import { UserService, UserProfile, TwoFactorSetup } from '../services/user.service';
+import { UserService, UserProfile, TwoFactorSetup, NotificationPreferences } from '../services/user.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { OtpInputComponent } from '../../../shared/otp-input/otp-input.component';
 
@@ -23,7 +24,7 @@ import { OtpInputComponent } from '../../../shared/otp-input/otp-input.component
   imports: [
     CommonModule, ReactiveFormsModule, RouterLink,
     MatButtonModule, MatCardModule, MatIconModule,
-    MatFormFieldModule, MatInputModule, MatSnackBarModule, MatDividerModule, MatProgressSpinnerModule, MatTooltipModule, NavButtonsComponent, OtpInputComponent,
+    MatFormFieldModule, MatInputModule, MatSnackBarModule, MatDividerModule, MatProgressSpinnerModule, MatTooltipModule, MatSlideToggleModule, NavButtonsComponent, OtpInputComponent,
   ],
   templateUrl: './profile.component.html',
   styles: [`.twofa-glow { background: radial-gradient(ellipse at 80% 0%, rgba(34,197,94,.4), transparent 60%); }`],
@@ -44,6 +45,10 @@ export class ProfileComponent implements OnInit {
   showNewPw = signal(false);
   showConfirmPw = signal(false);
   showEmailPw = signal(false);
+
+  // Notification preferences
+  notifPrefs = signal<NotificationPreferences | null>(null);
+  savingNotifs = signal(false);
 
   // 2FA state
   twoFaSetup = signal<TwoFactorSetup | null>(null);
@@ -95,6 +100,32 @@ export class ProfileComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
+    });
+    this.userService.getNotificationPreferences().subscribe({
+      next: prefs => this.notifPrefs.set(prefs),
+    });
+  }
+
+  toggleNotif(key: keyof NotificationPreferences) {
+    const current = this.notifPrefs();
+    if (!current) return;
+    this.notifPrefs.set({ ...current, [key]: !current[key] });
+  }
+
+  saveNotifPrefs() {
+    const prefs = this.notifPrefs();
+    if (!prefs) return;
+    this.savingNotifs.set(true);
+    this.userService.updateNotificationPreferences(prefs).subscribe({
+      next: saved => {
+        this.notifPrefs.set(saved);
+        this.savingNotifs.set(false);
+        this.snack.open('Préférences enregistrées', 'OK', { duration: 3000 });
+      },
+      error: () => {
+        this.savingNotifs.set(false);
+        this.snack.open('Erreur lors de la sauvegarde', 'Fermer', { duration: 4000 });
+      },
     });
   }
 

@@ -140,4 +140,37 @@ describe('UserService', () => {
     service.deleteAccount('mypassword').subscribe();
     expect(http.delete).toHaveBeenCalledWith(`${API}/users/me`, { body: { password: 'mypassword' } });
   });
+
+  // ── getNotificationPreferences ───────────────────────────────────────────────
+
+  it('getNotificationPreferences() envoie GET /api/v1/users/me/notification-preferences', () => {
+    service.getNotificationPreferences().subscribe();
+    expect(http.get).toHaveBeenCalledWith(`${API}/users/me/notification-preferences`);
+  });
+
+  it('getNotificationPreferences() retourne les préférences', () => {
+    const prefs = { notif_scan_done: true, notif_scan_critical: true, notif_url_scan_done: false, notif_code_scan_done: true };
+    http.get.mockReturnValue(of(prefs));
+    let result: any;
+    service.getNotificationPreferences().subscribe(r => (result = r));
+    expect(result).toEqual(prefs);
+  });
+
+  // ── updateNotificationPreferences ────────────────────────────────────────────
+
+  it('updateNotificationPreferences() envoie PUT /api/v1/users/me/notification-preferences', () => {
+    const prefs = { notif_scan_done: false, notif_scan_critical: true, notif_url_scan_done: false, notif_code_scan_done: true };
+    http.put.mockReturnValue(of(prefs));
+    service.updateNotificationPreferences(prefs).subscribe();
+    expect(http.put).toHaveBeenCalledWith(`${API}/users/me/notification-preferences`, prefs);
+  });
+
+  it('updateNotificationPreferences() retourne les préférences mises à jour', () => {
+    const prefs = { notif_scan_done: false, notif_scan_critical: false, notif_url_scan_done: true, notif_code_scan_done: true };
+    http.put.mockReturnValue(of(prefs));
+    let result: any;
+    service.updateNotificationPreferences(prefs).subscribe(r => (result = r));
+    expect(result.notif_scan_done).toBe(false);
+    expect(result.notif_url_scan_done).toBe(true);
+  });
 });
