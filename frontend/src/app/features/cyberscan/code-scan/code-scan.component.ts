@@ -265,15 +265,25 @@ export class CodeScanComponent implements OnInit, OnDestroy {
 
   toolBadge(tool: string): string {
     switch (tool) {
-      case 'bandit':         return 'bg-purple-900/40 border-purple-700 text-purple-300';
-      case 'semgrep':        return 'bg-blue-900/40 border-blue-700 text-blue-300';
-      case 'pip-audit':      return 'bg-yellow-900/40 border-yellow-700 text-yellow-300';
-      case 'gitleaks':       return 'bg-red-900/40 border-red-700 text-red-300';
-      case 'detect-secrets': return 'bg-pink-900/40 border-pink-700 text-pink-300';
-      case 'npm-audit':      return 'bg-green-900/40 border-green-700 text-green-300';
-      case 'trivy':          return 'bg-cyan-900/40 border-cyan-700 text-cyan-300';
-      case 'checkov':        return 'bg-orange-900/40 border-orange-700 text-orange-300';
-      default:               return 'bg-gray-700/30 border-gray-600 text-gray-400';
+      case 'bandit':           return 'bg-purple-900/40 border-purple-700 text-purple-300';
+      case 'semgrep':          return 'bg-blue-900/40 border-blue-700 text-blue-300';
+      case 'pip-audit':        return 'bg-yellow-900/40 border-yellow-700 text-yellow-300';
+      case 'gitleaks':         return 'bg-red-900/40 border-red-700 text-red-300';
+      case 'trufflehog':       return 'bg-rose-900/40 border-rose-700 text-rose-300';
+      case 'detect-secrets':   return 'bg-pink-900/40 border-pink-700 text-pink-300';
+      case 'npm-audit':        return 'bg-green-900/40 border-green-700 text-green-300';
+      case 'njsscan':          return 'bg-emerald-900/40 border-emerald-700 text-emerald-300';
+      case 'eslint-security':  return 'bg-lime-900/40 border-lime-700 text-lime-300';
+      case 'trivy':            return 'bg-cyan-900/40 border-cyan-700 text-cyan-300';
+      case 'grype':            return 'bg-teal-900/40 border-teal-700 text-teal-300';
+      case 'osv-scanner':      return 'bg-sky-900/40 border-sky-700 text-sky-300';
+      case 'safety':           return 'bg-amber-900/40 border-amber-700 text-amber-300';
+      case 'checkov':          return 'bg-orange-900/40 border-orange-700 text-orange-300';
+      case 'hadolint':         return 'bg-indigo-900/40 border-indigo-700 text-indigo-300';
+      case 'tfsec':            return 'bg-violet-900/40 border-violet-700 text-violet-300';
+      case 'gosec':            return 'bg-fuchsia-900/40 border-fuchsia-700 text-fuchsia-300';
+      case 'bearer':           return 'bg-red-900/40 border-red-800 text-red-200';
+      default:                 return 'bg-gray-700/30 border-gray-600 text-gray-400';
     }
   }
 

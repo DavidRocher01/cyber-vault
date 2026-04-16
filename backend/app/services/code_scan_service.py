@@ -432,6 +432,438 @@ def _run_pip_audit(repo_dir: str) -> list[dict]:
     return findings
 
 
+def _run_trufflehog(repo_dir: str) -> list[dict]:
+    """Scan filesystem for secrets using trufflehog (entropy + pattern matching)."""
+    code, stdout, stderr = _run(
+        ["trufflehog", "filesystem", ".", "--json", "--no-update"],
+        cwd=repo_dir,
+        timeout=180,
+    )
+    if not stdout:
+        logger.warning(f"trufflehog produced no output: {stderr[:300]}")
+        return []
+    findings = []
+    for line in stdout.strip().splitlines():
+        if not line.strip():
+            continue
+        try:
+            item = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        det = item.get("DetectorName", "secret")
+        raw = item.get("Raw", "") or item.get("RawV2", "")
+        preview = (raw[:60] + "…") if len(raw) > 60 else raw
+        source = item.get("SourceMetadata", {}).get("Data", {})
+        file_path, line_num = "", None
+        for v in source.values():
+            if isinstance(v, dict):
+                file_path = v.get("file", "")
+                line_num = v.get("line")
+                break
+        findings.append({
+            "tool": "trufflehog",
+            "severity": "critical",
+            "rule": det,
+            "title": f"Secret détecté : {det}",
+            "message": f"Valeur : {preview}" if preview else "Secret potentiel détecté",
+            "file": file_path.lstrip("/\\"),
+            "line": line_num,
+            "confidence": "high" if item.get("Verified") else "medium",
+        })
+    return findings
+
+
+def _run_njsscan(repo_dir: str) -> list[dict]:
+    """Run njsscan for Node.js / JavaScript SAST."""
+    code, stdout, stderr = _run(
+        ["njsscan", "--json", "-o", "-", "."],
+        cwd=repo_dir,
+        timeout=120,
+    )
+    if not stdout:
+        logger.warning(f"njsscan produced no output: {stderr[:300]}")
+        return []
+    try:
+        data = json.loads(stdout)
+    except json.JSONDecodeError:
+        logger.warning(f"njsscan JSON parse error: {stdout[:200]}")
+        return []
+
+    severity_map = {"ERROR": "high", "WARNING": "medium", "INFO": "low"}
+    findings = []
+    for section in ("nodejs", "templates"):
+        for rule_id, rule_data in (data.get(section) or {}).items():
+            if not isinstance(rule_data, dict):
+                continue
+            sev = severity_map.get(rule_data.get("metadata", {}).get("severity", "WARNING").upper(), "medium")
+            for match in rule_data.get("files", []):
+                findings.append({
+                    "tool": "njsscan",
+                    "severity": sev,
+                    "rule": rule_id,
+                    "title": rule_data.get("metadata", {}).get("description", rule_id),
+                    "message": rule_data.get("metadata", {}).get("description", ""),
+                    "file": match.get("file_path", "").lstrip("/\\"),
+                    "line": (match.get("match_lines") or [None])[0],
+                    "confidence": "",
+                })
+    return findings
+
+
+def _run_bearer(repo_dir: str) -> list[dict]:
+    """Run Bearer to detect PII leaks and data-security issues."""
+    code, stdout, stderr = _run(
+        ["bearer", "scan", ".", "--format", "json", "--quiet"],
+        cwd=repo_dir,
+        timeout=300,
+    )
+    raw = stdout or stderr
+    if not raw:
+        logger.warning("bearer produced no output")
+        return []
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        logger.warning(f"bearer JSON parse error: {raw[:200]}")
+        return []
+
+    severity_map = {"critical": "critical", "high": "high", "medium": "medium", "low": "low", "warning": "medium"}
+    findings = []
+    for sev_key, items in data.items():
+        if not isinstance(items, list):
+            continue
+        sev = severity_map.get(sev_key.lower(), "medium")
+        for item in items:
+            findings.append({
+                "tool": "bearer",
+                "severity": sev,
+                "rule": item.get("rule_id", ""),
+                "title": item.get("title", item.get("rule_id", "Bearer finding")),
+                "message": item.get("description", item.get("detail", ""))[:300],
+                "file": (item.get("filename") or "").lstrip("/\\"),
+                "line": item.get("line_number"),
+                "confidence": "high",
+            })
+    return findings
+
+
+def _run_gosec(repo_dir: str) -> list[dict]:
+    """Run gosec for Go source security analysis."""
+    import glob as _glob
+    if not _glob.glob(os.path.join(repo_dir, "**/*.go"), recursive=True):
+        logger.info("gosec: no .go files found, skipping")
+        return []
+    code, stdout, stderr = _run(
+        ["gosec", "-fmt", "json", "-stdout", "-quiet", "./..."],
+        cwd=repo_dir,
+        timeout=180,
+    )
+    if not stdout:
+        logger.warning(f"gosec produced no output: {stderr[:300]}")
+        return []
+    try:
+        data = json.loads(stdout)
+    except json.JSONDecodeError:
+        logger.warning(f"gosec JSON parse error: {stdout[:200]}")
+        return []
+
+    severity_map = {"HIGH": "high", "MEDIUM": "medium", "LOW": "low"}
+    findings = []
+    for issue in data.get("Issues", []) or []:
+        sev = severity_map.get(issue.get("severity", "LOW").upper(), "low")
+        findings.append({
+            "tool": "gosec",
+            "severity": sev,
+            "rule": issue.get("rule_id", ""),
+            "title": issue.get("details", issue.get("rule_id", "")),
+            "message": f"{issue.get('details', '')} (confidence: {issue.get('confidence', '')})",
+            "file": (issue.get("file") or "").replace(repo_dir, "").lstrip("/\\"),
+            "line": issue.get("line"),
+            "confidence": issue.get("confidence", ""),
+        })
+    return findings
+
+
+def _run_eslint_security(repo_dir: str) -> list[dict]:
+    """Run eslint with eslint-plugin-security on JS/TS files."""
+    import glob as _glob
+    js_files = [
+        f for ext in ("*.js", "*.ts", "*.jsx", "*.tsx")
+        for f in _glob.glob(os.path.join(repo_dir, "**", ext), recursive=True)
+        if "node_modules" not in f
+    ]
+    if not js_files:
+        logger.info("eslint-security: no JS/TS files found, skipping")
+        return []
+
+    eslint_config = os.path.join(repo_dir, ".eslintrc-cyberscan.json")
+    with open(eslint_config, "w") as f:
+        json.dump({
+            "plugins": ["security"],
+            "rules": {
+                "security/detect-unsafe-regex": "error",
+                "security/detect-buffer-noassert": "error",
+                "security/detect-child-process": "warn",
+                "security/detect-disable-mustache-escape": "error",
+                "security/detect-eval-with-expression": "error",
+                "security/detect-new-buffer": "warn",
+                "security/detect-no-csrf-before-method-override": "error",
+                "security/detect-non-literal-fs-filename": "warn",
+                "security/detect-non-literal-regexp": "warn",
+                "security/detect-non-literal-require": "warn",
+                "security/detect-object-injection": "warn",
+                "security/detect-possible-timing-attacks": "warn",
+                "security/detect-pseudoRandomBytes": "error",
+            },
+        }, f)
+
+    code, stdout, _ = _run(
+        ["eslint", "--config", eslint_config, "--format", "json",
+         "--no-eslintrc", "--ext", ".js,.ts,.jsx,.tsx", "."],
+        cwd=repo_dir,
+        timeout=120,
+    )
+    try:
+        os.unlink(eslint_config)
+    except OSError:
+        pass
+
+    if not stdout:
+        return []
+    try:
+        data = json.loads(stdout)
+    except json.JSONDecodeError:
+        return []
+
+    severity_map = {1: "medium", 2: "high"}
+    findings = []
+    for file_result in data:
+        rel_path = file_result.get("filePath", "").replace(repo_dir, "").lstrip("/\\")
+        for msg in file_result.get("messages", []):
+            sev = severity_map.get(msg.get("severity", 1), "medium")
+            rule = msg.get("ruleId", "")
+            findings.append({
+                "tool": "eslint-security",
+                "severity": sev,
+                "rule": rule,
+                "title": rule.replace("security/", "").replace("-", " ").title() if rule else "ESLint security",
+                "message": msg.get("message", ""),
+                "file": rel_path,
+                "line": msg.get("line"),
+                "confidence": "",
+            })
+    return findings
+
+
+def _run_osv_scanner(repo_dir: str) -> list[dict]:
+    """Run Google OSV-Scanner for multi-ecosystem vulnerability detection."""
+    code, stdout, stderr = _run(
+        ["osv-scanner", "--format", "json", "--recursive", "."],
+        cwd=repo_dir,
+        timeout=180,
+    )
+    raw = stdout or stderr
+    if not raw:
+        logger.warning("osv-scanner produced no output")
+        return []
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        logger.warning(f"osv-scanner JSON parse error: {raw[:200]}")
+        return []
+
+    severity_map = {"CRITICAL": "critical", "HIGH": "high", "MEDIUM": "medium", "LOW": "low"}
+    findings = []
+    for result in data.get("results", []):
+        source_path = result.get("source", {}).get("path", "")
+        for pkg in result.get("packages", []):
+            pkg_name = pkg.get("package", {}).get("name", "?")
+            pkg_version = pkg.get("package", {}).get("version", "")
+            for vuln in pkg.get("vulnerabilities", []):
+                sev = "medium"
+                for s in vuln.get("severity", []):
+                    sev = severity_map.get(s.get("score", "").upper()[:8], sev)
+                    break
+                aliases = vuln.get("aliases", [])
+                cve = next((a for a in aliases if a.startswith("CVE-")), vuln.get("id", ""))
+                findings.append({
+                    "tool": "osv-scanner",
+                    "severity": sev,
+                    "rule": cve,
+                    "title": f"{cve} dans {pkg_name} {pkg_version}",
+                    "message": vuln.get("summary", vuln.get("details", ""))[:300],
+                    "file": source_path.replace(repo_dir, "").lstrip("/\\") or "lockfile",
+                    "line": None,
+                    "confidence": "high",
+                    "fix_versions": [],
+                })
+    return findings
+
+
+def _run_safety(repo_dir: str) -> list[dict]:
+    """Run safety to check Python deps against the PyUp advisory database."""
+    req_path = None
+    for name in ("requirements.txt", "requirements-prod.txt", "requirements/base.txt"):
+        candidate = os.path.join(repo_dir, name)
+        if os.path.isfile(candidate):
+            req_path = (name, candidate)
+            break
+    if not req_path:
+        logger.info("safety: no requirements file found, skipping")
+        return []
+
+    req_name, req_file = req_path
+    code, stdout, stderr = _run(
+        ["safety", "check", "-r", req_file, "--json"],
+        cwd=repo_dir,
+        timeout=120,
+    )
+    raw = stdout or stderr
+    if not raw:
+        logger.warning(f"safety produced no output: {stderr[:300]}")
+        return []
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        logger.warning(f"safety JSON parse error: {raw[:200]}")
+        return []
+
+    # safety 2.x format: list of [pkg, spec, installed, advisory, vuln_id]
+    findings = []
+    for item in data if isinstance(data, list) else []:
+        if not isinstance(item, list) or len(item) < 5:
+            continue
+        findings.append({
+            "tool": "safety",
+            "severity": "high",
+            "rule": str(item[4]),
+            "title": f"Vulnérabilité dans {item[0]} {item[2]}",
+            "message": str(item[3])[:300],
+            "file": req_name,
+            "line": None,
+            "confidence": "high",
+            "fix_versions": [],
+        })
+    return findings
+
+
+def _run_hadolint(repo_dir: str) -> list[dict]:
+    """Run hadolint on Dockerfile(s) for best-practice and security checks."""
+    import glob as _glob
+    dockerfiles = (
+        _glob.glob(os.path.join(repo_dir, "**/Dockerfile"), recursive=True) +
+        _glob.glob(os.path.join(repo_dir, "**/Dockerfile.*"), recursive=True)
+    )
+    if not dockerfiles:
+        logger.info("hadolint: no Dockerfile found, skipping")
+        return []
+
+    severity_map = {"error": "high", "warning": "medium", "info": "low", "style": "low"}
+    findings = []
+    for dockerfile in dockerfiles[:5]:
+        code, stdout, stderr = _run(["hadolint", "-f", "json", dockerfile], cwd=repo_dir, timeout=30)
+        raw = stdout or stderr
+        if not raw:
+            continue
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        for issue in data if isinstance(data, list) else []:
+            sev = severity_map.get(issue.get("level", "warning").lower(), "medium")
+            findings.append({
+                "tool": "hadolint",
+                "severity": sev,
+                "rule": issue.get("code", ""),
+                "title": issue.get("code", "Hadolint"),
+                "message": issue.get("message", ""),
+                "file": (issue.get("file") or dockerfile).replace(repo_dir, "").lstrip("/\\"),
+                "line": issue.get("line"),
+                "confidence": "high",
+            })
+    return findings
+
+
+def _run_tfsec(repo_dir: str) -> list[dict]:
+    """Run tfsec on Terraform files for security misconfigurations."""
+    import glob as _glob
+    if not _glob.glob(os.path.join(repo_dir, "**/*.tf"), recursive=True):
+        logger.info("tfsec: no .tf files found, skipping")
+        return []
+
+    code, stdout, stderr = _run(
+        ["tfsec", ".", "--format", "json", "--no-color", "--soft-fail"],
+        cwd=repo_dir,
+        timeout=120,
+    )
+    raw = stdout or stderr
+    if not raw:
+        logger.warning("tfsec produced no output")
+        return []
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        logger.warning(f"tfsec JSON parse error: {raw[:200]}")
+        return []
+
+    severity_map = {"CRITICAL": "critical", "HIGH": "high", "MEDIUM": "medium", "LOW": "low"}
+    findings = []
+    for result in data.get("results", []) or []:
+        sev = severity_map.get(result.get("severity", "MEDIUM").upper(), "medium")
+        loc = result.get("location", {})
+        findings.append({
+            "tool": "tfsec",
+            "severity": sev,
+            "rule": result.get("rule_id", result.get("long_id", "")),
+            "title": result.get("description", result.get("rule_description", "")),
+            "message": (result.get("impact", "") + (" — " + result.get("resolution", "") if result.get("resolution") else "")),
+            "file": (loc.get("filename") or "").replace(repo_dir, "").lstrip("/\\"),
+            "line": loc.get("start_line"),
+            "confidence": "high",
+        })
+    return findings
+
+
+def _run_grype(repo_dir: str) -> list[dict]:
+    """Run grype for multi-ecosystem CVE scanning (pip, npm, go, cargo, …)."""
+    code, stdout, stderr = _run(
+        ["grype", f"dir:{repo_dir}", "-o", "json", "--quiet"],
+        cwd=repo_dir,
+        timeout=300,
+    )
+    if not stdout:
+        logger.warning(f"grype produced no output: {stderr[:300]}")
+        return []
+    try:
+        data = json.loads(stdout)
+    except json.JSONDecodeError:
+        logger.warning(f"grype JSON parse error: {stdout[:200]}")
+        return []
+
+    severity_map = {"Critical": "critical", "High": "high", "Medium": "medium", "Low": "low", "Negligible": "low", "Unknown": "low"}
+    findings = []
+    for match in data.get("matches", []):
+        vuln = match.get("vulnerability", {})
+        artifact = match.get("artifact", {})
+        sev = severity_map.get(vuln.get("severity", "Unknown"), "low")
+        fix = vuln.get("fix", {})
+        fix_versions = fix.get("versions", []) if isinstance(fix, dict) else []
+        locations = artifact.get("locations", [])
+        file_path = locations[0].get("path", "").lstrip("/\\") if locations else ""
+        findings.append({
+            "tool": "grype",
+            "severity": sev,
+            "rule": vuln.get("id", ""),
+            "title": f"{vuln.get('id', '?')} dans {artifact.get('name', '?')} {artifact.get('version', '')}",
+            "message": (vuln.get("description") or "")[:300],
+            "file": file_path,
+            "line": None,
+            "confidence": "high",
+            "fix_versions": fix_versions,
+        })
+    return findings
+
+
 # ─── severity counters ────────────────────────────────────────────────────────
 
 def _count_severities(findings: list[dict]) -> dict:
@@ -491,17 +923,47 @@ async def run_code_scan(scan_id: int, db: AsyncSession) -> None:
         logger.info(f"CodeScan {scan_id}: running gitleaks")
         all_findings.extend(_run_gitleaks(repo_dir))
 
+        logger.info(f"CodeScan {scan_id}: running trufflehog")
+        all_findings.extend(_run_trufflehog(repo_dir))
+
         logger.info(f"CodeScan {scan_id}: running detect-secrets")
         all_findings.extend(_run_detect_secrets(repo_dir))
 
         logger.info(f"CodeScan {scan_id}: running npm audit")
         all_findings.extend(_run_npm_audit(repo_dir))
 
+        logger.info(f"CodeScan {scan_id}: running njsscan")
+        all_findings.extend(_run_njsscan(repo_dir))
+
+        logger.info(f"CodeScan {scan_id}: running eslint-security")
+        all_findings.extend(_run_eslint_security(repo_dir))
+
         logger.info(f"CodeScan {scan_id}: running trivy")
         all_findings.extend(_run_trivy(repo_dir))
 
+        logger.info(f"CodeScan {scan_id}: running grype")
+        all_findings.extend(_run_grype(repo_dir))
+
+        logger.info(f"CodeScan {scan_id}: running osv-scanner")
+        all_findings.extend(_run_osv_scanner(repo_dir))
+
+        logger.info(f"CodeScan {scan_id}: running safety")
+        all_findings.extend(_run_safety(repo_dir))
+
         logger.info(f"CodeScan {scan_id}: running checkov")
         all_findings.extend(_run_checkov(repo_dir))
+
+        logger.info(f"CodeScan {scan_id}: running hadolint")
+        all_findings.extend(_run_hadolint(repo_dir))
+
+        logger.info(f"CodeScan {scan_id}: running tfsec")
+        all_findings.extend(_run_tfsec(repo_dir))
+
+        logger.info(f"CodeScan {scan_id}: running gosec")
+        all_findings.extend(_run_gosec(repo_dir))
+
+        logger.info(f"CodeScan {scan_id}: running bearer")
+        all_findings.extend(_run_bearer(repo_dir))
 
         # ── Aggregate ──────────────────────────────────────────────────────
         counts = _count_severities(all_findings)
@@ -582,14 +1044,34 @@ async def run_code_scan_zip(scan_id: int, zip_path: str, db: AsyncSession) -> No
         all_findings.extend(_run_pip_audit(repo_dir))
         logger.info(f"CodeScan {scan_id}: running gitleaks")
         all_findings.extend(_run_gitleaks(repo_dir))
+        logger.info(f"CodeScan {scan_id}: running trufflehog")
+        all_findings.extend(_run_trufflehog(repo_dir))
         logger.info(f"CodeScan {scan_id}: running detect-secrets")
         all_findings.extend(_run_detect_secrets(repo_dir))
         logger.info(f"CodeScan {scan_id}: running npm audit")
         all_findings.extend(_run_npm_audit(repo_dir))
+        logger.info(f"CodeScan {scan_id}: running njsscan")
+        all_findings.extend(_run_njsscan(repo_dir))
+        logger.info(f"CodeScan {scan_id}: running eslint-security")
+        all_findings.extend(_run_eslint_security(repo_dir))
         logger.info(f"CodeScan {scan_id}: running trivy")
         all_findings.extend(_run_trivy(repo_dir))
+        logger.info(f"CodeScan {scan_id}: running grype")
+        all_findings.extend(_run_grype(repo_dir))
+        logger.info(f"CodeScan {scan_id}: running osv-scanner")
+        all_findings.extend(_run_osv_scanner(repo_dir))
+        logger.info(f"CodeScan {scan_id}: running safety")
+        all_findings.extend(_run_safety(repo_dir))
         logger.info(f"CodeScan {scan_id}: running checkov")
         all_findings.extend(_run_checkov(repo_dir))
+        logger.info(f"CodeScan {scan_id}: running hadolint")
+        all_findings.extend(_run_hadolint(repo_dir))
+        logger.info(f"CodeScan {scan_id}: running tfsec")
+        all_findings.extend(_run_tfsec(repo_dir))
+        logger.info(f"CodeScan {scan_id}: running gosec")
+        all_findings.extend(_run_gosec(repo_dir))
+        logger.info(f"CodeScan {scan_id}: running bearer")
+        all_findings.extend(_run_bearer(repo_dir))
 
         counts = _count_severities(all_findings)
         total = sum(counts.values())
