@@ -126,8 +126,8 @@
             <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] opacity-70">arrow_forward</mat-icon>
           </button>
         }
-        <a href="#pricing"
-           class="hero-cta-secondary inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-base font-semibold text-gray-200">
+        <a (click)="scrollToPricing($event)"
+           class="hero-cta-secondary inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-base font-semibold text-gray-200 cursor-pointer">
           Voir les tarifs
         </a>
       </div>

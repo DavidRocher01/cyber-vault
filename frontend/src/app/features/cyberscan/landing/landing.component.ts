@@ -511,4 +511,9 @@ export class LandingComponent implements OnInit {
       desc: 'Couverture active pour tous les scans payants. Votre recours en cas de litige sur un résultat.',
     },
   ];
+
+  scrollToPricing(event: Event) {
+    event.preventDefault();
+    document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+  }
 }
