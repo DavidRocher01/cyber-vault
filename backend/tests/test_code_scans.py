@@ -147,7 +147,9 @@ async def test_list_code_scans_after_trigger():
 
 @pytest.mark.asyncio
 async def test_list_code_scans_pagination():
-    with patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock):
+    # Bypass the 429 concurrency guard so we can create multiple scans for pagination.
+    with patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock), \
+         patch("app.api.v1.endpoints.code_scans._check_no_running_scan", new_callable=AsyncMock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "list3@test.com")
             for i in range(3):
@@ -253,3 +255,79 @@ async def test_delete_code_scan_other_user_returns_404():
             scan_id = trig.json()["scan_id"]
             r = await c.delete(f"{BASE}/code-scans/{scan_id}", headers=h2)
     assert r.status_code == 404
+
+
+# ── Concurrency guard (429) ───────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_trigger_second_scan_returns_429_when_pending():
+    """Lancer un 2e scan git pendant qu'un autre est pending → 429."""
+    with patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await _headers(c, "conc1@test.com")
+            r1 = await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo"}, headers=h)
+            assert r1.status_code == 202
+            r2 = await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo2"}, headers=h)
+    assert r2.status_code == 429
+    assert "scan" in r2.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_upload_second_scan_returns_429_when_pending():
+    """Uploader un 2e zip pendant qu'un scan est pending → 429."""
+    with patch("app.api.v1.endpoints.code_scans._run_zip_background", new_callable=AsyncMock), \
+         patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await _headers(c, "conc2@test.com")
+            # First scan via git
+            await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo"}, headers=h)
+            # Second scan via upload → should be blocked
+            r = await c.post(
+                f"{BASE}/code-scans/upload",
+                files={"file": ("app.zip", _make_zip(), "application/zip")},
+                headers=h,
+            )
+    assert r.status_code == 429
+
+
+@pytest.mark.asyncio
+async def test_trigger_scan_allowed_after_previous_done():
+    """Un nouveau scan peut être lancé si le précédent est 'done'."""
+    from app.models.code_scan import CodeScan
+    from app.core.database import AsyncSessionLocal
+    from sqlalchemy import select
+
+    with patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await _headers(c, "conc3@test.com")
+            r1 = await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo"}, headers=h)
+            scan_id = r1.json()["scan_id"]
+
+    # Manually set scan status to 'done' in DB
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(CodeScan).where(CodeScan.id == scan_id))
+        scan = result.scalar_one()
+        scan.status = "done"
+        await db.commit()
+
+    with patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            # Re-authenticate (new client)
+            r_login = await c.post(f"{BASE}/auth/login", json={"email": "conc3@test.com", "password": "StrongPass123!"})
+            h2 = {"Authorization": f"Bearer {r_login.json()['access_token']}"}
+            r2 = await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo2"}, headers=h2)
+    assert r2.status_code == 202
+
+
+@pytest.mark.asyncio
+async def test_trigger_scan_concurrency_isolates_between_users():
+    """Le guard 429 est par utilisateur : User B peut scanner même si User A a un scan pending."""
+    with patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h1 = await _headers(c, "conc_a@test.com")
+            h2 = await _headers(c, "conc_b@test.com")
+            # User A triggers a scan
+            await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo"}, headers=h1)
+            # User B should still be able to scan
+            r = await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo"}, headers=h2)
+    assert r.status_code == 202

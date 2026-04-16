@@ -238,7 +238,7 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
     try:
         # Run all blocking scanner calls in a thread pool so the asyncio event
         # loop stays free to serve other API requests during the scan.
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         result = await loop.run_in_executor(
             None, _run_scan_sync, url, tier, scan_id, hibp_key
         )
