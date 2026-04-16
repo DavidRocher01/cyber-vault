@@ -7,8 +7,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { interval, Subscription as RxSubscription } from 'rxjs';
-import { switchMap, takeWhile } from 'rxjs/operators';
+import { interval, Subscription as RxSubscription, EMPTY } from 'rxjs';
+import { switchMap, takeWhile, catchError } from 'rxjs/operators';
 
 import { CyberscanService, CodeScan, PaginatedCodeScans } from '../services/cyberscan.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
@@ -50,7 +50,7 @@ export class CodeScanComponent implements OnInit, OnDestroy {
   private cyberscan = inject(CyberscanService);
   private fb = inject(FormBuilder);
   private snack = inject(MatSnackBar);
-  private pollSubs: RxSubscription[] = [];
+  private pollSubs = new Map<number, RxSubscription>();
 
   // Accepts: https://, http://, git@host:path, git://
   private static readonly REPO_URL_RE = /^(https?:\/\/.+|git@[^:]+:.+|git:\/\/.+)/;
@@ -78,6 +78,7 @@ export class CodeScanComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.pollSubs.forEach(s => s.unsubscribe());
+    this.pollSubs.clear();
   }
 
   loadHistory(page: number) {
@@ -196,19 +197,27 @@ export class CodeScanComponent implements OnInit, OnDestroy {
   }
 
   startPolling(scanId: number) {
+    if (this.pollSubs.has(scanId)) return;
     const sub = interval(4000).pipe(
-      switchMap(() => this.cyberscan.getCodeScan(scanId)),
+      switchMap(() => this.cyberscan.getCodeScan(scanId).pipe(catchError(() => EMPTY))),
       takeWhile(s => s.status === 'pending' || s.status === 'running', true),
-    ).subscribe(scan => {
-      this.history.update(h => h ? {
-        ...h,
-        items: h.items.map(s => s.id === scan.id ? scan : s),
-      } : h);
-      if (this.activeScan()?.id === scan.id) {
-        this.activeScan.set(scan);
-      }
+    ).subscribe({
+      next: scan => {
+        this.history.update(h => h ? {
+          ...h,
+          items: h.items.map(s => s.id === scan.id ? scan : s),
+        } : h);
+        if (this.activeScan()?.id === scan.id) {
+          this.activeScan.set(scan);
+        }
+        if (scan.status !== 'pending' && scan.status !== 'running') {
+          this.pollSubs.get(scanId)?.unsubscribe();
+          this.pollSubs.delete(scanId);
+        }
+      },
+      error: () => this.pollSubs.delete(scanId),
     });
-    this.pollSubs.push(sub);
+    this.pollSubs.set(scanId, sub);
   }
 
   viewScan(scan: CodeScan) {

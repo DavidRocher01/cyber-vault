@@ -49,6 +49,21 @@ async def _run_zip_background(scan_id: int, zip_path: str) -> None:
         await run_code_scan_zip(scan_id, zip_path, db)
 
 
+async def _check_no_running_scan(user_id: int, db: AsyncSession) -> None:
+    """Raise 429 if the user already has a pending or running code scan."""
+    result = await db.execute(
+        select(CodeScan).where(
+            CodeScan.user_id == user_id,
+            CodeScan.status.in_(["pending", "running"]),
+        )
+    )
+    if result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=429,
+            detail="Un scan est déjà en cours. Attendez qu'il se termine avant d'en lancer un nouveau.",
+        )
+
+
 @router.post("/upload", response_model=CodeScanTriggerOut, status_code=202)
 async def upload_code_scan(
     background_tasks: BackgroundTasks,
@@ -57,6 +72,8 @@ async def upload_code_scan(
     db: AsyncSession = Depends(get_db),
 ):
     """Trigger a code security analysis from an uploaded ZIP archive."""
+    await _check_no_running_scan(current_user.id, db)
+
     if not file.filename or not file.filename.lower().endswith(".zip"):
         raise HTTPException(status_code=422, detail="Seuls les fichiers .zip sont acceptés")
 
@@ -94,6 +111,8 @@ async def trigger_code_scan(
     db: AsyncSession = Depends(get_db),
 ):
     """Trigger a code security analysis on a Git repository."""
+    await _check_no_running_scan(current_user.id, db)
+
     parsed = urlparse(body.repo_url)
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
         raise HTTPException(status_code=422, detail="URL de dépôt invalide (https:// requis)")
