@@ -47,7 +47,8 @@ RUN apt-get update && apt-get upgrade -y \
 WORKDIR /app
 
 COPY backend/requirements.prod.txt .
-RUN pip install --no-cache-dir -r requirements.prod.txt
+RUN pip install --no-cache-dir -r requirements.prod.txt \
+    && pip install --no-cache-dir --no-deps safety==2.3.5
 
 # Copy cyber-scanner and install its dependencies
 COPY cyber-scanner/ /cyber-scanner/
