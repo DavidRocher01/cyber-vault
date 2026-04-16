@@ -1,3 +1,6 @@
+/* Root wrapper — overflow-x:clip instead of hidden to avoid creating a scroll container */
+.landing-root { overflow-x: clip; }
+
 /* Auth modal */
 
 .auth-modal-backdrop {
