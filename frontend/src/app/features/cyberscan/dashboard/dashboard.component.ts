@@ -219,6 +219,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   maybeStartPolling(siteId: number, scans: Scan[]) {
     const hasActive = scans.some(s => s.status === 'pending' || s.status === 'running');
     if (!hasActive || this.pollingMap[siteId]) return;
+    this.forceStartPolling(siteId);
+  }
+
+  /** Start polling unconditionally (used after triggering a new scan). */
+  private forceStartPolling(siteId: number) {
+    this.pollingMap[siteId]?.unsubscribe();
     this.pollingMap[siteId] = pollWithBackoff(
       () => this.cyberscan.getSiteScans(siteId, this.pageMap()[siteId] ?? 1),
       d => !d.items.some(x => x.status === 'pending' || x.status === 'running'),
@@ -279,6 +285,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.triggeringScans.update(m => ({ ...m, [siteId]: false }));
         this.snack.open('Scan lancé — mise à jour automatique en cours', 'OK', { duration: 5000 });
         this.loadScans(siteId, 1);
+        // Force polling regardless of what loadScans returns — covers the race condition
+        // where the scan finishes before the GET response arrives (hasActive = false).
+        this.forceStartPolling(siteId);
       },
       error: err => {
         this.triggeringScans.update(m => ({ ...m, [siteId]: false }));
