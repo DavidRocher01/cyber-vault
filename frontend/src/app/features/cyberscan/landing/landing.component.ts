@@ -515,9 +515,20 @@ export class LandingComponent implements OnInit {
   scrollToPricing(event: Event) {
     event.preventDefault();
     const el = document.getElementById('pricing');
-    if (el) {
-      const top = el.getBoundingClientRect().top + window.scrollY;
-      window.scrollTo({ top, behavior: 'smooth' });
+    if (!el) return;
+    // The root wrapper has overflow-x:hidden which makes it the scroll container.
+    // Walk up the DOM to find the actual scrollable ancestor, fall back to window.
+    let container: Element | null = el.parentElement;
+    while (container && container !== document.documentElement) {
+      const style = getComputedStyle(container);
+      const overflow = style.overflowY + style.overflowX + style.overflow;
+      if (/auto|scroll|hidden/.test(overflow) && container.scrollHeight > container.clientHeight) {
+        container.scrollTo({ top: el.offsetTop, behavior: 'smooth' });
+        return;
+      }
+      container = container.parentElement;
     }
+    // Fallback: scroll window
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'smooth' });
   }
 }
