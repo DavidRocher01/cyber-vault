@@ -514,6 +514,10 @@ export class LandingComponent implements OnInit {
 
   scrollToPricing(event: Event) {
     event.preventDefault();
-    document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+    const el = document.getElementById('pricing');
+    if (el) {
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
   }
 }
