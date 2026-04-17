@@ -123,7 +123,7 @@ def test_run_bandit_parses_findings():
                 "test_id": "B101",
                 "test_name": "assert_used",
                 "issue_text": "Use of assert detected.",
-                "filename": "/tmp/repo/app/main.py",
+                "filename": "/tmp/repo/app/main.py",  # nosec B108
                 "line_number": 10,
                 "issue_severity": "LOW",
                 "issue_confidence": "HIGH",
@@ -131,7 +131,7 @@ def test_run_bandit_parses_findings():
         ]
     })
     with patch("app.services.code_scan_service._run", return_value=(0, bandit_output, "")):
-        findings = _run_bandit("/tmp/repo")
+        findings = _run_bandit("/tmp/repo")  # nosec B108
     assert len(findings) == 1
     assert findings[0]["tool"] == "bandit"
     assert findings[0]["severity"] == "low"
@@ -141,34 +141,34 @@ def test_run_bandit_parses_findings():
 def test_run_bandit_maps_high_severity():
     bandit_output = json.dumps({
         "results": [{"test_id": "B602", "test_name": "subprocess_popen", "issue_text": "msg",
-                      "filename": "/tmp/repo/a.py", "line_number": 1,
+                      "filename": "/tmp/repo/a.py", "line_number": 1,  # nosec B108
                       "issue_severity": "HIGH", "issue_confidence": "MEDIUM"}]
     })
     with patch("app.services.code_scan_service._run", return_value=(0, bandit_output, "")):
-        findings = _run_bandit("/tmp/repo")
+        findings = _run_bandit("/tmp/repo")  # nosec B108
     assert findings[0]["severity"] == "high"
 
 
 def test_run_bandit_empty_output_returns_empty():
     with patch("app.services.code_scan_service._run", return_value=(1, "", "bandit not found")):
-        findings = _run_bandit("/tmp/repo")
+        findings = _run_bandit("/tmp/repo")  # nosec B108
     assert findings == []
 
 
 def test_run_bandit_invalid_json_returns_empty():
     with patch("app.services.code_scan_service._run", return_value=(0, "not-json", "")):
-        findings = _run_bandit("/tmp/repo")
+        findings = _run_bandit("/tmp/repo")  # nosec B108
     assert findings == []
 
 
 def test_run_bandit_strips_repo_dir_from_filename():
     bandit_output = json.dumps({
         "results": [{"test_id": "B1", "test_name": "test", "issue_text": "msg",
-                      "filename": "/tmp/repo/src/app.py", "line_number": 5,
+                      "filename": "/tmp/repo/src/app.py", "line_number": 5,  # nosec B108
                       "issue_severity": "MEDIUM", "issue_confidence": "LOW"}]
     })
     with patch("app.services.code_scan_service._run", return_value=(0, bandit_output, "")):
-        findings = _run_bandit("/tmp/repo")
+        findings = _run_bandit("/tmp/repo")  # nosec B108
     assert findings[0]["file"] == "src/app.py"
 
 
@@ -179,14 +179,14 @@ def test_run_semgrep_parses_findings():
         "results": [
             {
                 "check_id": "python.lang.security.audit.insecure-hash.insecure-md5",
-                "path": "/tmp/repo/utils/crypto.py",
+                "path": "/tmp/repo/utils/crypto.py",  # nosec B108
                 "start": {"line": 42},
                 "extra": {"severity": "WARNING", "message": "MD5 is insecure"},
             }
         ]
     })
     with patch("app.services.code_scan_service._run", return_value=(0, semgrep_output, "")):
-        findings = _run_semgrep("/tmp/repo")
+        findings = _run_semgrep("/tmp/repo")  # nosec B108
     assert len(findings) == 1
     assert findings[0]["tool"] == "semgrep"
     assert findings[0]["severity"] == "medium"
@@ -198,26 +198,26 @@ def test_run_semgrep_critical_severity():
         "results": [
             {
                 "check_id": "rule.critical",
-                "path": "/tmp/repo/app.py",
+                "path": "/tmp/repo/app.py",  # nosec B108
                 "start": {"line": 1},
                 "extra": {"severity": "CRITICAL", "message": "Critical issue"},
             }
         ]
     })
     with patch("app.services.code_scan_service._run", return_value=(0, semgrep_output, "")):
-        findings = _run_semgrep("/tmp/repo")
+        findings = _run_semgrep("/tmp/repo")  # nosec B108
     assert findings[0]["severity"] == "critical"
 
 
 def test_run_semgrep_empty_output_returns_empty():
     with patch("app.services.code_scan_service._run", return_value=(1, "", "semgrep not found")):
-        findings = _run_semgrep("/tmp/repo")
+        findings = _run_semgrep("/tmp/repo")  # nosec B108
     assert findings == []
 
 
 def test_run_semgrep_invalid_json_returns_empty():
     with patch("app.services.code_scan_service._run", return_value=(0, "broken{json", "")):
-        findings = _run_semgrep("/tmp/repo")
+        findings = _run_semgrep("/tmp/repo")  # nosec B108
     assert findings == []
 
 
@@ -369,7 +369,7 @@ def _make_zip_bytes(filename: str = "main.py", content: str = "print('hello')") 
 @pytest.mark.asyncio
 async def test_run_code_scan_zip_scan_not_found():
     db = _make_mock_db(None)
-    await run_code_scan_zip(999, "/tmp/fake.zip", db)
+    await run_code_scan_zip(999, "/tmp/fake.zip", db)  # nosec B108
     db.commit.assert_not_called()
 
 

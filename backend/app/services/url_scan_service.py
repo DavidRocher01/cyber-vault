@@ -32,7 +32,7 @@ PHISHING_KEYWORDS = [
     "login-update", "billing", "suspended",
 ]
 
-PRIVATE_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "::1"}
+PRIVATE_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "::1"}  # nosec B104 — set of strings, not a socket binding
 
 HEADERS = {
     "User-Agent": (

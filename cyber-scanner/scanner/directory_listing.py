@@ -45,7 +45,7 @@ SENSITIVE_PATHS: list[dict[str, Any]] = [
     {"path": "/uploads/",           "category": "listing",      "severity": "WARNING",  "pattern": r"Index of"},
     {"path": "/files/",             "category": "listing",      "severity": "WARNING",  "pattern": r"Index of"},
     {"path": "/logs/",              "category": "listing",      "severity": "CRITICAL", "pattern": r"Index of"},
-    {"path": "/tmp/",               "category": "listing",      "severity": "CRITICAL", "pattern": r"Index of"},
+    {"path": "/tmp/",               "category": "listing",      "severity": "CRITICAL", "pattern": r"Index of"},  # nosec B108 — literal path tested on remote target, not local
 ]
 
 DIRECTORY_LISTING_PATTERNS = [

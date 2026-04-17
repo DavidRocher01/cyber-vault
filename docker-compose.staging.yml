@@ -1,3 +1,4 @@
+# checkov:skip=CKV_SECRET_6,CKV_SECRET_80: Placeholder values reference env vars — real secrets injected at runtime
 services:
   postgres:
     image: postgres:17-alpine

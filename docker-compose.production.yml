@@ -1,3 +1,4 @@
+# checkov:skip=CKV_SECRET_6,CKV_SECRET_80: Placeholder values reference env vars — real secrets injected at runtime
 services:
   # PostgreSQL utilisé uniquement en local pour simuler la prod.
   # En production AWS : RDS PostgreSQL t4g.micro (géré par AWS).

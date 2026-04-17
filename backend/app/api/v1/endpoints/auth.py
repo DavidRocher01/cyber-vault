@@ -70,7 +70,7 @@ async def login(request: Request, payload: UserLogin, db: AsyncSession = Depends
                 minutes=settings.LOCKOUT_MINUTES
             )
             logger.warning(
-                f"Account locked after {user.failed_login_attempts} attempts: {user.email}"
+                f"Account locked after {user.failed_login_attempts} attempts: user_id={user.id}"
             )
         await db.commit()  # Must commit before raising — rollback would undo the counter
         raise invalid_exc
@@ -151,7 +151,7 @@ async def forgot_password(
 
     reset_url = f"{settings.FRONTEND_URL}/auth/reset-password?token={raw_token}"
     background_tasks.add_task(send_password_reset, user.email, reset_url)
-    logger.info(f"Password reset requested for: {user.email}")
+    logger.info(f"Password reset requested for: user_id={user.id}")
 
 
 @router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)

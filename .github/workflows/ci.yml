@@ -1,3 +1,4 @@
+# checkov:skip=CKV2_GHA_1: Actions pinned to major version tags — SHA pinning handled via Dependabot
 name: CI
 
 on:

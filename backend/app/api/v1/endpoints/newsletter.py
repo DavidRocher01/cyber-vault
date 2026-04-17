@@ -88,7 +88,7 @@ async def subscribe(
 
     confirm_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/confirm?token={confirmation_token}"
     background_tasks.add_task(send_confirmation_email, payload.email, confirm_url)
-    logger.info(f"Newsletter subscription pending confirmation: {payload.email}")
+    logger.info(f"Newsletter subscription pending confirmation: subscriber_id={subscriber.id}")
     return NewsletterSubscribeOut(message="Vérifiez votre boîte mail pour confirmer votre inscription !")
 
 
@@ -114,7 +114,7 @@ async def confirm(
 
     unsubscribe_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?token={subscriber.unsubscribe_token}"
     background_tasks.add_task(send_newsletter_welcome, subscriber.email, unsubscribe_url)
-    logger.info(f"Newsletter confirmed: {subscriber.email}")
+    logger.info(f"Newsletter confirmed: subscriber_id={subscriber.id}")
     return RedirectResponse(
         url=f"{settings.FRONTEND_URL}/cyberscan/newsletter/confirm?status=ok",
         status_code=302,
@@ -139,7 +139,7 @@ async def unsubscribe(
     subscriber.is_active = False
     await db.flush()
     background_tasks.add_task(send_unsubscribe_confirmation, subscriber.email)
-    logger.info(f"Newsletter unsubscribe: {subscriber.email}")
+    logger.info(f"Newsletter unsubscribe: subscriber_id={subscriber.id}")
     return RedirectResponse(
         url=f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?status=ok",
         status_code=302,
