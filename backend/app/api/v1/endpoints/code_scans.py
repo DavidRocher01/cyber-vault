@@ -17,6 +17,7 @@ from app.schemas.cyberscan import (
     CodeScanTriggerOut,
     PaginatedCodeScans,
 )
+from app.core.ssrf import assert_no_ssrf
 from app.services.code_scan_service import run_code_scan, run_code_scan_zip
 
 router = APIRouter(prefix="/code-scans", tags=["code-scans"])
@@ -39,9 +40,9 @@ def _repo_name(url: str) -> str:
     return parts[-1]
 
 
-async def _run_background(scan_id: int) -> None:
+async def _run_background(scan_id: int, clone_url: str | None = None) -> None:
     async with AsyncSessionLocal() as db:
-        await run_code_scan(scan_id, db)
+        await run_code_scan(scan_id, db, clone_url=clone_url)
 
 
 async def _run_zip_background(scan_id: int, zip_path: str) -> None:
@@ -117,6 +118,7 @@ async def trigger_code_scan(
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
         raise HTTPException(status_code=422, detail="URL de dépôt invalide (https:// requis)")
 
+    assert_no_ssrf(body.repo_url)
     clone_url = _embed_token(body.repo_url, body.github_token)
 
     scan = CodeScan(
@@ -130,13 +132,7 @@ async def trigger_code_scan(
     await db.commit()
     await db.refresh(scan)
 
-    if body.github_token:
-        scan.repo_url = clone_url
-        await db.commit()
-
-    background_tasks.add_task(_run_background, scan.id)
-
-    scan.repo_url = body.repo_url
+    background_tasks.add_task(_run_background, scan.id, clone_url if body.github_token else None)
     return {"scan_id": scan.id, "message": "Analyse de code lancée en arrière-plan"}
 
 

@@ -14,6 +14,7 @@ from app.core.security import (
     create_access_token,
     create_refresh_token,
     hash_password,
+    hash_token,
     verify_password,
 )
 from app.models.password_reset_token import PasswordResetToken
@@ -91,7 +92,7 @@ async def login(request: Request, payload: UserLogin, db: AsyncSession = Depends
     access_token = create_access_token(subject=str(user.id))
     raw_refresh = create_refresh_token()
     expires = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    db.add(RefreshToken(user_id=user.id, token=raw_refresh, expires_at=expires))
+    db.add(RefreshToken(user_id=user.id, token=hash_token(raw_refresh), expires_at=expires))
     await db.flush()
     logger.info("User logged in (id={})", user.id)
     return TokenOut(access_token=access_token, refresh_token=raw_refresh)
@@ -100,7 +101,7 @@ async def login(request: Request, payload: UserLogin, db: AsyncSession = Depends
 @router.post("/refresh", response_model=TokenOut)
 async def refresh(payload: RefreshIn, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(RefreshToken).where(RefreshToken.token == payload.refresh_token)
+        select(RefreshToken).where(RefreshToken.token == hash_token(payload.refresh_token))
     )
     stored = result.scalar_one_or_none()
     expires_at = stored.expires_at if stored else None
@@ -115,7 +116,7 @@ async def refresh(payload: RefreshIn, db: AsyncSession = Depends(get_db)):
     new_access = create_access_token(subject=str(stored.user_id))
     new_raw_refresh = create_refresh_token()
     new_expires = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    db.add(RefreshToken(user_id=stored.user_id, token=new_raw_refresh, expires_at=new_expires))
+    db.add(RefreshToken(user_id=stored.user_id, token=hash_token(new_raw_refresh), expires_at=new_expires))
     await db.flush()
     return TokenOut(access_token=new_access, refresh_token=new_raw_refresh)
 
@@ -123,7 +124,7 @@ async def refresh(payload: RefreshIn, db: AsyncSession = Depends(get_db)):
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(payload: RefreshIn, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(RefreshToken).where(RefreshToken.token == payload.refresh_token)
+        select(RefreshToken).where(RefreshToken.token == hash_token(payload.refresh_token))
     )
     stored = result.scalar_one_or_none()
     if stored and not stored.revoked:
@@ -148,7 +149,7 @@ async def forgot_password(
 
     raw_token = create_refresh_token()
     expires = datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
-    db.add(PasswordResetToken(user_id=user.id, token=raw_token, expires_at=expires))
+    db.add(PasswordResetToken(user_id=user.id, token=hash_token(raw_token), expires_at=expires))
     await db.flush()
 
     reset_url = f"{settings.FRONTEND_URL}/auth/reset-password?token={raw_token}"
@@ -159,7 +160,7 @@ async def forgot_password(
 @router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
 async def reset_password(payload: ResetPasswordIn, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(PasswordResetToken).where(PasswordResetToken.token == payload.token)
+        select(PasswordResetToken).where(PasswordResetToken.token == hash_token(payload.token))
     )
     stored = result.scalar_one_or_none()
 

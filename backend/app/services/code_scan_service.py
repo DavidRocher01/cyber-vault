@@ -877,9 +877,10 @@ def _count_severities(findings: list[dict]) -> dict:
 
 # ─── main entry point ─────────────────────────────────────────────────────────
 
-async def run_code_scan(scan_id: int, db: AsyncSession) -> None:
+async def run_code_scan(scan_id: int, db: AsyncSession, clone_url: str | None = None) -> None:
     """
     Background task: clone repo, run tools, persist results.
+    clone_url — URL with embedded token if provided; never stored in DB.
     """
     from sqlalchemy import select
 
@@ -896,10 +897,10 @@ async def run_code_scan(scan_id: int, db: AsyncSession) -> None:
     tmp_dir = tempfile.mkdtemp(prefix="cyberscan_code_")
     try:
         # ── Clone ──────────────────────────────────────────────────────────
+        effective_clone_url = clone_url or scan.repo_url
         logger.info(f"CodeScan {scan_id}: cloning {scan.repo_url}")
-        clone_url = scan.repo_url  # token already embedded if provided
         rc, _, stderr = _run(
-            ["git", "clone", "--depth=1", clone_url, "repo"],
+            ["git", "clone", "--depth=1", effective_clone_url, "repo"],
             cwd=tmp_dir,
             timeout=120,
         )

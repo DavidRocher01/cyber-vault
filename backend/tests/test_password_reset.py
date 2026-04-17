@@ -13,6 +13,12 @@ from app.main import app
 BASE = "/api/v1"
 
 
+def _extract_token_from_mock(mock_send) -> str:
+    """Extract the raw reset token from the URL passed to send_password_reset."""
+    reset_url = mock_send.call_args[0][1]
+    return reset_url.split("token=")[1]
+
+
 # ── Forgot password ────────────────────────────────────────────────────────────
 
 @pytest.mark.asyncio
@@ -59,17 +65,10 @@ async def test_reset_password_valid_token_returns_204():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         await c.post(f"{BASE}/auth/register", json={"email": "r1@test.com", "password": "StrongPass123!"})
 
-        with patch("app.api.v1.endpoints.auth.send_password_reset"):
+        with patch("app.api.v1.endpoints.auth.send_password_reset") as mock_send:
             await c.post(f"{BASE}/auth/forgot-password", json={"email": "r1@test.com"})
 
-        # Retrieve the token directly from the DB
-        from app.models.password_reset_token import PasswordResetToken
-        from sqlalchemy import select
-        import app.core.database as db_mod
-        async with db_mod.AsyncSessionLocal() as session:
-            result = await session.execute(select(PasswordResetToken))
-            token_obj = result.scalars().first()
-            raw_token = token_obj.token
+        raw_token = _extract_token_from_mock(mock_send)
 
         r = await c.post(f"{BASE}/auth/reset-password", json={
             "token": raw_token,
@@ -83,15 +82,10 @@ async def test_reset_password_allows_login_with_new_password():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         await c.post(f"{BASE}/auth/register", json={"email": "r2@test.com", "password": "StrongPass123!"})
 
-        with patch("app.api.v1.endpoints.auth.send_password_reset"):
+        with patch("app.api.v1.endpoints.auth.send_password_reset") as mock_send:
             await c.post(f"{BASE}/auth/forgot-password", json={"email": "r2@test.com"})
 
-        from app.models.password_reset_token import PasswordResetToken
-        from sqlalchemy import select
-        import app.core.database as db_mod
-        async with db_mod.AsyncSessionLocal() as session:
-            result = await session.execute(select(PasswordResetToken))
-            raw_token = result.scalars().first().token
+        raw_token = _extract_token_from_mock(mock_send)
 
         await c.post(f"{BASE}/auth/reset-password", json={
             "token": raw_token,
@@ -108,15 +102,10 @@ async def test_reset_password_old_password_no_longer_works():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         await c.post(f"{BASE}/auth/register", json={"email": "r3@test.com", "password": "StrongPass123!"})
 
-        with patch("app.api.v1.endpoints.auth.send_password_reset"):
+        with patch("app.api.v1.endpoints.auth.send_password_reset") as mock_send:
             await c.post(f"{BASE}/auth/forgot-password", json={"email": "r3@test.com"})
 
-        from app.models.password_reset_token import PasswordResetToken
-        from sqlalchemy import select
-        import app.core.database as db_mod
-        async with db_mod.AsyncSessionLocal() as session:
-            result = await session.execute(select(PasswordResetToken))
-            raw_token = result.scalars().first().token
+        raw_token = _extract_token_from_mock(mock_send)
 
         await c.post(f"{BASE}/auth/reset-password", json={
             "token": raw_token,
@@ -144,15 +133,10 @@ async def test_reset_password_used_token_returns_400():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         await c.post(f"{BASE}/auth/register", json={"email": "r4@test.com", "password": "StrongPass123!"})
 
-        with patch("app.api.v1.endpoints.auth.send_password_reset"):
+        with patch("app.api.v1.endpoints.auth.send_password_reset") as mock_send:
             await c.post(f"{BASE}/auth/forgot-password", json={"email": "r4@test.com"})
 
-        from app.models.password_reset_token import PasswordResetToken
-        from sqlalchemy import select
-        import app.core.database as db_mod
-        async with db_mod.AsyncSessionLocal() as session:
-            result = await session.execute(select(PasswordResetToken))
-            raw_token = result.scalars().first().token
+        raw_token = _extract_token_from_mock(mock_send)
 
         await c.post(f"{BASE}/auth/reset-password", json={"token": raw_token, "password": "NewPass456!"})
         r2 = await c.post(f"{BASE}/auth/reset-password", json={"token": raw_token, "password": "AnotherPass789!"})
@@ -164,7 +148,7 @@ async def test_reset_password_expired_token_returns_400():
     """Un token expiré (> 30 min) doit être rejeté."""
     from app.models.password_reset_token import PasswordResetToken
     from app.models.user import User
-    from app.core.security import create_refresh_token
+    from app.core.security import create_refresh_token, hash_token
     import app.core.database as db_mod
     from sqlalchemy import select
 
@@ -175,14 +159,14 @@ async def test_reset_password_expired_token_returns_400():
             user_result = await session.execute(select(User).where(User.email == "r5@test.com"))
             user = user_result.scalar_one()
             expired = datetime.now(timezone.utc) - timedelta(hours=2)
+            raw_token = create_refresh_token()
             token_obj = PasswordResetToken(
                 user_id=user.id,
-                token=create_refresh_token(),
+                token=hash_token(raw_token),
                 expires_at=expired,
             )
             session.add(token_obj)
             await session.commit()
-            raw_token = token_obj.token
 
         r = await c.post(f"{BASE}/auth/reset-password", json={"token": raw_token, "password": "NewPass456!"})
     assert r.status_code == 400
@@ -193,15 +177,10 @@ async def test_reset_password_weak_password_rejected():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         await c.post(f"{BASE}/auth/register", json={"email": "r6@test.com", "password": "StrongPass123!"})
 
-        with patch("app.api.v1.endpoints.auth.send_password_reset"):
+        with patch("app.api.v1.endpoints.auth.send_password_reset") as mock_send:
             await c.post(f"{BASE}/auth/forgot-password", json={"email": "r6@test.com"})
 
-        from app.models.password_reset_token import PasswordResetToken
-        from sqlalchemy import select
-        import app.core.database as db_mod
-        async with db_mod.AsyncSessionLocal() as session:
-            result = await session.execute(select(PasswordResetToken))
-            raw_token = result.scalars().first().token
+        raw_token = _extract_token_from_mock(mock_send)
 
         r = await c.post(f"{BASE}/auth/reset-password", json={"token": raw_token, "password": "abc"})
     # Pydantic validates min length at schema level

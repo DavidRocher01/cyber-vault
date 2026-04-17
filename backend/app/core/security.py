@@ -1,3 +1,4 @@
+import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -33,3 +34,8 @@ def decode_access_token(token: str) -> str | None:
 
 def create_refresh_token() -> str:
     return secrets.token_urlsafe(64)
+
+
+def hash_token(raw_token: str) -> str:
+    """SHA-256 hash of a token for safe DB storage (one-way, constant-time lookup)."""
+    return hashlib.sha256(raw_token.encode()).hexdigest()

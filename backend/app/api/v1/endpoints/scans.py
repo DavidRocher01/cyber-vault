@@ -16,6 +16,7 @@ from app.models.scan import Scan
 from app.models.subscription import Subscription
 from app.models.plan import Plan
 from app.schemas.cyberscan import ScanOut, ScanTriggerOut, PaginatedScans
+from app.core.ssrf import assert_no_ssrf
 from app.services.scan_service import run_scan
 
 router = APIRouter(prefix="/scans", tags=["scans"])
@@ -39,6 +40,8 @@ async def trigger_scan(
     site = result.scalar_one_or_none()
     if not site:
         raise HTTPException(status_code=404, detail="Site non trouvé")
+
+    assert_no_ssrf(site.url)
 
     # Enforce scan frequency based on active subscription plan
     plan_result = await db.execute(
