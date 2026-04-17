@@ -165,17 +165,17 @@ describe('DashboardComponent — globalCategoryScores', () => {
 
 describe('DashboardComponent — criticalCount / warningCount / okCount', () => {
   it('criticalCount = 0 si aucun site critique', () => {
-    const comp = makeWithScans({ 1: [{ status: 'done', results_json: SCAN_OK, created_at: '2024-01-01' }] });
+    const comp = makeWithScans({ 1: [{ status: 'done', results_json: SCAN_OK, overall_status: 'OK', created_at: '2024-01-01' }] });
     expect(comp.criticalCount).toBe(0);
   });
 
   it('criticalCount = 1 si un site CRITICAL', () => {
-    const comp = makeWithScans({ 1: [{ status: 'done', results_json: SCAN_CRITICAL, created_at: '2024-01-01' }] });
+    const comp = makeWithScans({ 1: [{ status: 'done', results_json: SCAN_CRITICAL, overall_status: 'CRITICAL', created_at: '2024-01-01' }] });
     expect(comp.criticalCount).toBe(1);
   });
 
   it('okCount = 1 si un site OK', () => {
-    const comp = makeWithScans({ 1: [{ status: 'done', results_json: SCAN_OK, created_at: '2024-01-01' }] });
+    const comp = makeWithScans({ 1: [{ status: 'done', results_json: SCAN_OK, overall_status: 'OK', created_at: '2024-01-01' }] });
     expect(comp.okCount).toBe(1);
   });
 });
