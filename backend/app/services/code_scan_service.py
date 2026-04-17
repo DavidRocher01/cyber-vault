@@ -50,7 +50,7 @@ def _extract_repo_name(url: str) -> str:
 def _run(cmd: list[str], cwd: str, timeout: int = 120) -> tuple[int, str, str]:
     """Run a subprocess, return (returncode, stdout, stderr)."""
     try:
-        proc = subprocess.run(
+        proc = subprocess.run(  # nosec B603 — cmd is always a hardcoded list, never a shell string
             cmd,
             cwd=cwd,
             capture_output=True,
