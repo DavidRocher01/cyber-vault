@@ -26,14 +26,13 @@ export interface Iso27001Category {
 }
 
 @Component({
-  selector: 'app-iso27001',
-  standalone: true,
-  imports: [
-    CommonModule, RouterLink,
-    MatIconModule, MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule,
-    NavButtonsComponent,
-  ],
-  templateUrl: './iso27001.component.html',
+    selector: 'app-iso27001',
+    imports: [
+        CommonModule, RouterLink,
+        MatIconModule, MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule,
+        NavButtonsComponent,
+    ],
+    templateUrl: './iso27001.component.html'
 })
 export class Iso27001Component implements OnInit {
   private cyberscan = inject(CyberscanService);

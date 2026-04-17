@@ -38,7 +38,7 @@ def _fetch_response(url: str) -> dict[str, Any] | None:
         resp = requests.get(
             url,
             timeout=REQUEST_TIMEOUT,
-            verify=False,
+            verify=False,  # nosec B501 nosemgrep: python.requests.security.verify-disabled
             allow_redirects=True,
         )
         return {

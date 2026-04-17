@@ -2,10 +2,9 @@ import { Component, EventEmitter, Input, Output, QueryList, ViewChildren, Elemen
 import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: 'app-otp-input',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-otp-input',
+    imports: [CommonModule],
+    template: `
     <div class="flex gap-2 justify-center">
       @for (i of indices; track i) {
         <input
@@ -28,7 +27,7 @@ import { CommonModule } from '@angular/common';
       }
     </div>
   `,
-  styles: [`
+    styles: [`
     input:focus {
       border-color: #22d3ee !important;
       box-shadow: 0 0 0 3px rgba(34,211,238,.15);
@@ -36,7 +35,7 @@ import { CommonModule } from '@angular/common';
     .shadow-otp-active {
       box-shadow: 0 0 0 1px rgba(34,211,238,.2);
     }
-  `],
+  `]
 })
 export class OtpInputComponent implements OnChanges {
   /** Set to true to clear and refocus the component */

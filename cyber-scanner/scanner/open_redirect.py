@@ -44,7 +44,7 @@ def _probe_redirect(url: str, param: str, payload: str) -> dict[str, Any]:
         resp = requests.get(
             test_url,
             timeout=REQUEST_TIMEOUT,
-            verify=False,
+            verify=False,  # nosec B501 nosemgrep: python.requests.security.verify-disabled
             allow_redirects=False,
         )
         location = resp.headers.get("Location", "")

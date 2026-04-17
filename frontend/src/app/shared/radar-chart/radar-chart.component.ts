@@ -11,10 +11,9 @@ interface AxisData {
 }
 
 @Component({
-  selector: 'app-radar-chart',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-radar-chart',
+    imports: [CommonModule],
+    template: `
     <svg viewBox="0 0 300 300" class="w-full h-full">
 
       <!-- Grid polygons -->
@@ -71,7 +70,7 @@ interface AxisData {
       <!-- Center dot -->
       <circle [attr.cx]="cx" [attr.cy]="cy" r="3" fill="#374151"/>
     </svg>
-  `,
+  `
 })
 export class RadarChartComponent implements OnChanges {
   @Input() scores: number[] = [];

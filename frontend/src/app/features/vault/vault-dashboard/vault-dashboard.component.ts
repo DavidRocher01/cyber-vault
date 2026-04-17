@@ -25,15 +25,14 @@ export interface CategoryMeta {
 }
 
 @Component({
-  selector: 'app-vault-dashboard',
-  standalone: true,
-  imports: [
-    CommonModule, RouterLink, ReactiveFormsModule, FormsModule,
-    MatIconModule, MatTooltipModule, MatProgressSpinnerModule,
-  ],
-  providers: [VaultStore],
-  templateUrl: './vault-dashboard.component.html',
-  styles: [`
+    selector: 'app-vault-dashboard',
+    imports: [
+        CommonModule, RouterLink, ReactiveFormsModule, FormsModule,
+        MatIconModule, MatTooltipModule, MatProgressSpinnerModule,
+    ],
+    providers: [VaultStore],
+    templateUrl: './vault-dashboard.component.html',
+    styles: [`
     .vault-bg { background: #080d1a; min-height: 100vh; }
     .vault-card {
       background: rgba(255,255,255,0.03);
@@ -87,7 +86,7 @@ export interface CategoryMeta {
       to   { opacity: 1; transform: scale(1)    translateY(0);     }
     }
     .modal-animate { animation: modal-in 0.18s ease-out forwards; }
-  `],
+  `]
 })
 export class VaultDashboardComponent implements OnInit {
   private store = inject(VaultStore);

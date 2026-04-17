@@ -64,7 +64,7 @@ def _probe_path(base_url: str, path_def: dict[str, Any]) -> dict[str, Any] | Non
         resp = requests.get(
             url,
             timeout=REQUEST_TIMEOUT,
-            verify=False,
+            verify=False,  # nosec B501 nosemgrep: python.requests.security.verify-disabled
             allow_redirects=False,
         )
         if resp.status_code not in (200, 403):

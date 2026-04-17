@@ -17,14 +17,13 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
 import { ScoreTrendComponent, ScoreTrendPoint } from '../../../shared/score-trend/score-trend.component';
 
 @Component({
-  selector: 'app-site-detail',
-  standalone: true,
-  imports: [
-    CommonModule, RouterLink,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule,
-    MatSnackBarModule, MatPaginatorModule, ScoreGaugeComponent, NavButtonsComponent, ScoreTrendComponent,
-  ],
-  templateUrl: './site-detail.component.html',
+    selector: 'app-site-detail',
+    imports: [
+        CommonModule, RouterLink,
+        MatButtonModule, MatIconModule, MatProgressSpinnerModule,
+        MatSnackBarModule, MatPaginatorModule, ScoreGaugeComponent, NavButtonsComponent, ScoreTrendComponent,
+    ],
+    templateUrl: './site-detail.component.html'
 })
 export class SiteDetailComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);

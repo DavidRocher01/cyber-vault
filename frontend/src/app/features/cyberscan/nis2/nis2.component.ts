@@ -25,15 +25,14 @@ export interface Nis2Category {
 }
 
 @Component({
-  selector: 'app-nis2',
-  standalone: true,
-  imports: [
-    CommonModule, RouterLink,
-    MatIconModule, MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule,
-    NavButtonsComponent,
-  ],
-  templateUrl: './nis2.component.html',
-  styleUrl: './nis2.component.css',
+    selector: 'app-nis2',
+    imports: [
+        CommonModule, RouterLink,
+        MatIconModule, MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule,
+        NavButtonsComponent,
+    ],
+    templateUrl: './nis2.component.html',
+    styleUrl: './nis2.component.css'
 })
 export class Nis2Component implements OnInit {
   private cyberscan = inject(CyberscanService);

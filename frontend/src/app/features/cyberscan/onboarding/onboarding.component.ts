@@ -11,14 +11,13 @@ import { Title } from '@angular/platform-browser';
 import { CyberscanService, Plan } from '../services/cyberscan.service';
 
 @Component({
-  selector: 'app-onboarding',
-  standalone: true,
-  imports: [
-    CommonModule, ReactiveFormsModule, RouterLink,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
-  ],
-  templateUrl: './onboarding.component.html',
-  styleUrl: './onboarding.component.css',
+    selector: 'app-onboarding',
+    imports: [
+        CommonModule, ReactiveFormsModule, RouterLink,
+        MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
+    ],
+    templateUrl: './onboarding.component.html',
+    styleUrl: './onboarding.component.css'
 })
 export class OnboardingComponent implements OnInit {
   private cyberscan = inject(CyberscanService);

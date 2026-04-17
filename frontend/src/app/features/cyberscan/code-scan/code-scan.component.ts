@@ -37,14 +37,13 @@ interface ScanResults {
 }
 
 @Component({
-  selector: 'app-code-scan',
-  standalone: true,
-  imports: [
-    CommonModule, ReactiveFormsModule, RouterLink,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule,
-    MatSnackBarModule, MatPaginatorModule, NavButtonsComponent,
-  ],
-  templateUrl: './code-scan.component.html',
+    selector: 'app-code-scan',
+    imports: [
+        CommonModule, ReactiveFormsModule, RouterLink,
+        MatButtonModule, MatIconModule, MatProgressSpinnerModule,
+        MatSnackBarModule, MatPaginatorModule, NavButtonsComponent,
+    ],
+    templateUrl: './code-scan.component.html'
 })
 export class CodeScanComponent implements OnInit, OnDestroy {
   private cyberscan = inject(CyberscanService);

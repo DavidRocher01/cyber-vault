@@ -39,8 +39,8 @@ def _get_supported_protocols(hostname: str, port: int = 443) -> list[str]:
     supported = []
 
     version_map = {
-        "TLSv1.0": ssl.TLSVersion.TLSv1,
-        "TLSv1.1": ssl.TLSVersion.TLSv1_1,
+        "TLSv1.0": ssl.TLSVersion.TLSv1,  # nosec B502 — intentional: testing if target supports deprecated TLS
+        "TLSv1.1": ssl.TLSVersion.TLSv1_1,  # nosec B502 — intentional: testing if target supports deprecated TLS
         "TLSv1.2": ssl.TLSVersion.TLSv1_2,
         "TLSv1.3": ssl.TLSVersion.TLSv1_3,
     }
@@ -92,7 +92,7 @@ def _check_hsts(hostname: str) -> dict[str, Any]:
         resp = requests.get(
             f"https://{hostname}",
             timeout=REQUEST_TIMEOUT,
-            verify=False,
+            verify=False,  # nosec B501 nosemgrep: python.requests.security.verify-disabled
             allow_redirects=True,
         )
         hsts = resp.headers.get("Strict-Transport-Security", "")

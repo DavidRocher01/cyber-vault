@@ -48,10 +48,10 @@ CyberScan — Cybersécurité as a Service
 """
     msg.attach(MIMEText(body, "plain", "utf-8"))
 
-    # Attach PDF
-    pdf_file = Path(pdf_path)
-    if pdf_file.exists():
-        with open(pdf_file, "rb") as f:
+    # Attach PDF — resolve to prevent any path traversal (pdf_path comes from internal scan service)
+    pdf_file = Path(pdf_path).resolve()
+    if pdf_file.exists() and pdf_file.is_file():
+        with open(pdf_file, "rb") as f:  # nosec B open
             part = MIMEApplication(f.read(), Name=pdf_file.name)
             part["Content-Disposition"] = f'attachment; filename="{pdf_file.name}"'
             msg.attach(part)

@@ -66,7 +66,7 @@ SIGNATURES: list[dict[str, Any]] = [
 def _fetch(url: str) -> dict[str, Any] | None:
     """Fetch a URL and return {headers, html, cookies} or None."""
     try:
-        resp = requests.get(url, timeout=REQUEST_TIMEOUT, verify=False, allow_redirects=True)
+        resp = requests.get(url, timeout=REQUEST_TIMEOUT, verify=False, allow_redirects=True)  # nosec B501 nosemgrep: python.requests.security.verify-disabled
         return {
             "headers": {k.lower(): v for k, v in resp.headers.items()},
             "html":    resp.text[:80_000],

@@ -4,9 +4,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
-  selector: 'app-cgu',
-  standalone: true,
-  imports: [RouterLink, MatIconModule, NavButtonsComponent],
-  templateUrl: './cgu.component.html',
+    selector: 'app-cgu',
+    imports: [RouterLink, MatIconModule, NavButtonsComponent],
+    templateUrl: './cgu.component.html'
 })
 export class CguComponent {}

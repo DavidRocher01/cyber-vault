@@ -19,14 +19,13 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
 }
 
 @Component({
-  selector: 'app-register',
-  standalone: true,
-  imports: [
-    CommonModule, ReactiveFormsModule, RouterLink,
-    MatCardModule, MatFormFieldModule, MatInputModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule,
-  ],
-  templateUrl: './register.component.html',
+    selector: 'app-register',
+    imports: [
+        CommonModule, ReactiveFormsModule, RouterLink,
+        MatCardModule, MatFormFieldModule, MatInputModule,
+        MatButtonModule, MatIconModule, MatProgressSpinnerModule,
+    ],
+    templateUrl: './register.component.html'
 })
 export class RegisterComponent {
   private fb = inject(FormBuilder);

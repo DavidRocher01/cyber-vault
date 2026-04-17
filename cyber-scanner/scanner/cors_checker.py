@@ -21,7 +21,7 @@ def _probe(url: str, origin: str, timeout: int = 10) -> dict[str, str]:
             url,
             headers={"Origin": origin},
             timeout=timeout,
-            verify=False,
+            verify=False,  # nosec B501 nosemgrep: python.requests.security.verify-disabled
             allow_redirects=True,
         )
         acao = response.headers.get("Access-Control-Allow-Origin", "")

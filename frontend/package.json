@@ -14,15 +14,15 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
-    "@angular/animations": "^17.3.0",
-    "@angular/common": "^17.3.0",
-    "@angular/compiler": "^17.3.0",
-    "@angular/core": "^17.3.0",
-    "@angular/forms": "^17.3.0",
+    "@angular/animations": "^19.2.21",
+    "@angular/common": "^19.2.21",
+    "@angular/compiler": "^19.2.21",
+    "@angular/core": "^19.2.21",
+    "@angular/forms": "^19.2.21",
     "@angular/material": "^17.3.0",
-    "@angular/platform-browser": "^17.3.0",
-    "@angular/platform-browser-dynamic": "^17.3.0",
-    "@angular/router": "^17.3.0",
+    "@angular/platform-browser": "^19.2.21",
+    "@angular/platform-browser-dynamic": "^19.2.21",
+    "@angular/router": "^19.2.21",
     "@ngneat/hot-toast": "^6.0.0",
     "@ngrx/component-store": "^17.2.0",
     "@ngrx/operators": "^17.2.0",
@@ -34,16 +34,16 @@
     "ngx-skeleton-loader": "^9.0.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.6.0",
-    "zone.js": "~0.14.0"
+    "zone.js": "~0.15.1"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^17.3.0",
+    "@angular-devkit/build-angular": "^19.2.24",
     "@angular-eslint/builder": "^17.5.3",
     "@angular-eslint/eslint-plugin": "^17.5.3",
     "@angular-eslint/eslint-plugin-template": "^17.5.3",
     "@angular-eslint/template-parser": "^17.5.3",
-    "@angular/cli": "^17.3.0",
-    "@angular/compiler-cli": "^17.3.0",
+    "@angular/cli": "^19.2.24",
+    "@angular/compiler-cli": "^19.2.21",
     "@compodoc/compodoc": "^1.1.23",
     "@playwright/test": "^1.44.0",
     "@storybook/addon-a11y": "^8.0.0",
@@ -63,7 +63,7 @@
     "prettier": "^3.2.5",
     "storybook": "^8.0.0",
     "tailwindcss": "^3.4.3",
-    "typescript": "~5.4.0",
+    "typescript": "~5.8.3",
     "vitest": "^1.6.0"
   }
 }

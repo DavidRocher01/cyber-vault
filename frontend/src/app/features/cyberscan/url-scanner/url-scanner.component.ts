@@ -36,14 +36,13 @@ interface UrlScanResults {
 }
 
 @Component({
-  selector: 'app-url-scanner',
-  standalone: true,
-  imports: [
-    CommonModule, ReactiveFormsModule, RouterLink,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, NavButtonsComponent,
-    MatSnackBarModule, MatPaginatorModule,
-  ],
-  templateUrl: './url-scanner.component.html',
+    selector: 'app-url-scanner',
+    imports: [
+        CommonModule, ReactiveFormsModule, RouterLink,
+        MatButtonModule, MatIconModule, MatProgressSpinnerModule, NavButtonsComponent,
+        MatSnackBarModule, MatPaginatorModule,
+    ],
+    templateUrl: './url-scanner.component.html'
 })
 export class UrlScannerComponent implements OnInit, OnDestroy {
   private cyberscan = inject(CyberscanService);

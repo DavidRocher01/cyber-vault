@@ -44,7 +44,7 @@ def _fetch(url: str) -> str | None:
         resp = requests.get(
             url,
             timeout=REQUEST_TIMEOUT,
-            verify=False,
+            verify=False,  # nosec B501 nosemgrep: python.requests.security.verify-disabled
             allow_redirects=True,
         )
         if resp.status_code == 200:

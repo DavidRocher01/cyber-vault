@@ -17,14 +17,13 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
 }
 
 @Component({
-  selector: 'app-reset-password',
-  standalone: true,
-  imports: [
-    CommonModule, ReactiveFormsModule, RouterLink,
-    MatFormFieldModule, MatInputModule, MatButtonModule,
-    MatIconModule, MatProgressSpinnerModule,
-  ],
-  templateUrl: './reset-password.component.html',
+    selector: 'app-reset-password',
+    imports: [
+        CommonModule, ReactiveFormsModule, RouterLink,
+        MatFormFieldModule, MatInputModule, MatButtonModule,
+        MatIconModule, MatProgressSpinnerModule,
+    ],
+    templateUrl: './reset-password.component.html'
 })
 export class ResetPasswordComponent implements OnInit {
   private http = inject(HttpClient);

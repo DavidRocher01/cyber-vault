@@ -28,7 +28,7 @@ def check_headers(url: str) -> dict[str, Any]:
     }
 
     try:
-        response = requests.get(url, timeout=10, verify=False)
+        response = requests.get(url, timeout=10, verify=False)  # nosec B501 nosemgrep: python.requests.security.verify-disabled
         result["status_code"] = response.status_code
 
         headers_found: list[str] = []

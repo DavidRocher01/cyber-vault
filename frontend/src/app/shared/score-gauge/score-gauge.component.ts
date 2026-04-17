@@ -3,10 +3,9 @@ import { CommonModule } from '@angular/common';
 import { getGrade, getScoreColor } from '../score-utils';
 
 @Component({
-  selector: 'app-score-gauge',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-score-gauge',
+    imports: [CommonModule],
+    template: `
     <svg viewBox="0 0 120 120" class="w-full h-full" style="overflow:visible">
       <!-- Outer glow ring -->
       <circle cx="60" cy="60" r="52" fill="none" [attr.stroke]="color"
@@ -31,7 +30,7 @@ import { getGrade, getScoreColor } from '../score-utils';
       <text x="60" y="74" text-anchor="middle" dominant-baseline="middle"
             font-size="11" fill="#6b7280" font-weight="600">{{ grade }}</text>
     </svg>
-  `,
+  `
 })
 export class ScoreGaugeComponent implements OnChanges {
   @Input() score: number = 0;

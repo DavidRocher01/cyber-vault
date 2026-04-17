@@ -7,10 +7,9 @@ import { MatIconModule } from '@angular/material/icon';
 const STORAGE_KEY = 'cyberscan_cookie_consent';
 
 @Component({
-  selector: 'app-cookie-banner',
-  standalone: true,
-  imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule],
-  template: `
+    selector: 'app-cookie-banner',
+    imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule],
+    template: `
     @if (visible()) {
       <div class="fixed bottom-0 left-0 right-0 z-50 p-4 md:p-6 bg-gray-900/95 border-t border-gray-700 backdrop-blur-sm">
         <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -36,7 +35,7 @@ const STORAGE_KEY = 'cyberscan_cookie_consent';
         </div>
       </div>
     }
-  `,
+  `
 })
 export class CookieBannerComponent {
   visible = signal(false);

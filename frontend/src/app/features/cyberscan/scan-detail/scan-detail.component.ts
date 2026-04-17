@@ -14,10 +14,9 @@ import { Finding, getFindings } from '../../../shared/scan-findings';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
-  selector: 'app-scan-detail',
-  standalone: true,
-  imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule, MatProgressSpinnerModule, ScoreGaugeComponent, RadarChartComponent, NavButtonsComponent],
-  templateUrl: './scan-detail.component.html',
+    selector: 'app-scan-detail',
+    imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule, MatProgressSpinnerModule, ScoreGaugeComponent, RadarChartComponent, NavButtonsComponent],
+    templateUrl: './scan-detail.component.html'
 })
 export class ScanDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);

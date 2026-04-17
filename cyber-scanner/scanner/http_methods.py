@@ -37,7 +37,7 @@ def _probe_method(url: str, method: str) -> dict[str, Any]:
             method,
             url,
             timeout=REQUEST_TIMEOUT,
-            verify=False,
+            verify=False,  # nosec B501 nosemgrep: python.requests.security.verify-disabled
             allow_redirects=False,
         )
         # A 2xx/3xx response or a non-405/501 means the method may be accepted
@@ -66,7 +66,7 @@ def _parse_options(url: str) -> list[str]:
         resp = requests.options(
             url,
             timeout=REQUEST_TIMEOUT,
-            verify=False,
+            verify=False,  # nosec B501 nosemgrep: python.requests.security.verify-disabled
             allow_redirects=False,
         )
         allow_header = resp.headers.get("Allow", "")

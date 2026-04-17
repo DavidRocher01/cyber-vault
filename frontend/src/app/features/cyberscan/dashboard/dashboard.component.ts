@@ -36,16 +36,15 @@ interface PaginatedScans {
 }
 
 @Component({
-  selector: 'app-cyberscan-dashboard',
-  standalone: true,
-  imports: [
-    CommonModule, ReactiveFormsModule, RouterLink,
-    MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule,
-    MatChipsModule, MatSnackBarModule,
-    MatDialogModule, MatPaginatorModule, SkeletonComponent, ScoreGaugeComponent, NavButtonsComponent,
-  ],
-  templateUrl: './dashboard.component.html',
-  styleUrl: './dashboard.component.css',
+    selector: 'app-cyberscan-dashboard',
+    imports: [
+        CommonModule, ReactiveFormsModule, RouterLink,
+        MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule,
+        MatChipsModule, MatSnackBarModule,
+        MatDialogModule, MatPaginatorModule, SkeletonComponent, ScoreGaugeComponent, NavButtonsComponent,
+    ],
+    templateUrl: './dashboard.component.html',
+    styleUrl: './dashboard.component.css'
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   private cyberscan = inject(CyberscanService);

@@ -11,14 +11,13 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
 
 @Component({
-  selector: 'app-forgot-password',
-  standalone: true,
-  imports: [
-    CommonModule, ReactiveFormsModule, RouterLink,
-    MatFormFieldModule, MatInputModule, MatButtonModule,
-    MatIconModule, MatProgressSpinnerModule,
-  ],
-  templateUrl: './forgot-password.component.html',
+    selector: 'app-forgot-password',
+    imports: [
+        CommonModule, ReactiveFormsModule, RouterLink,
+        MatFormFieldModule, MatInputModule, MatButtonModule,
+        MatIconModule, MatProgressSpinnerModule,
+    ],
+    templateUrl: './forgot-password.component.html'
 })
 export class ForgotPasswordComponent {
   private http = inject(HttpClient);

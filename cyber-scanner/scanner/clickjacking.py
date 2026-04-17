@@ -22,7 +22,7 @@ def _fetch_headers(url: str) -> dict[str, str] | None:
         resp = requests.get(
             url,
             timeout=REQUEST_TIMEOUT,
-            verify=False,
+            verify=False,  # nosec B501 nosemgrep: python.requests.security.verify-disabled
             allow_redirects=True,
         )
         return {k.lower(): v for k, v in resp.headers.items()}

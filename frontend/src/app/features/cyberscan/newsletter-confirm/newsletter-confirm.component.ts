@@ -4,10 +4,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
-  selector: 'app-newsletter-confirm',
-  standalone: true,
-  imports: [RouterLink, MatIconModule, NavButtonsComponent],
-  template: `
+    selector: 'app-newsletter-confirm',
+    imports: [RouterLink, MatIconModule, NavButtonsComponent],
+    template: `
     <div style="min-height:100vh;background:#0f172a;display:flex;flex-direction:column;">
 
       <!-- Navbar -->
@@ -74,7 +73,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
         </div>
       </div>
     </div>
-  `,
+  `
 })
 export class NewsletterConfirmComponent implements OnInit {
   private route = inject(ActivatedRoute);

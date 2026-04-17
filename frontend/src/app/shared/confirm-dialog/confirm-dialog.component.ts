@@ -11,10 +11,9 @@ export interface ConfirmDialogData {
 }
 
 @Component({
-  selector: 'app-confirm-dialog',
-  standalone: true,
-  imports: [MatDialogModule, MatButtonModule, MatIconModule],
-  template: `
+    selector: 'app-confirm-dialog',
+    imports: [MatDialogModule, MatButtonModule, MatIconModule],
+    template: `
     <div class="bg-gray-900 rounded-2xl overflow-hidden w-full" style="min-width:380px;max-width:440px">
 
       <!-- Header -->
@@ -59,7 +58,7 @@ export interface ConfirmDialogData {
       </div>
 
     </div>
-  `,
+  `
 })
 export class ConfirmDialogComponent {
   data = inject<ConfirmDialogData>(MAT_DIALOG_DATA);

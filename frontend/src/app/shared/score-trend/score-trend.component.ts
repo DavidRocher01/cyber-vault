@@ -14,10 +14,9 @@ interface ChartPoint {
 }
 
 @Component({
-  selector: 'app-score-trend',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-score-trend',
+    imports: [CommonModule],
+    template: `
     @if (points.length < 2) {
       <div class="flex items-center justify-center h-full text-gray-500 text-sm">
         Pas encore assez de scans pour afficher la tendance.
@@ -58,7 +57,7 @@ interface ChartPoint {
         }
       </svg>
     }
-  `,
+  `
 })
 export class ScoreTrendComponent implements OnChanges {
   @Input() data: ScoreTrendPoint[] = [];

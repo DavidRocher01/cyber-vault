@@ -7,10 +7,9 @@ import { CommonModule } from '@angular/common';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
-  selector: 'app-checkout-success',
-  standalone: true,
-  imports: [CommonModule, RouterLink, MatIconModule, NavButtonsComponent],
-  template: `
+    selector: 'app-checkout-success',
+    imports: [CommonModule, RouterLink, MatIconModule, NavButtonsComponent],
+    template: `
     <div class="min-h-screen bg-gray-900 text-white relative overflow-hidden flex flex-col items-center justify-center px-8">
 
       <!-- Background -->
@@ -85,7 +84,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
       <p class="relative z-10 text-gray-600 text-xs">Une confirmation a été envoyée à votre adresse email.</p>
 
     </div>
-  `,
+  `
 })
 export class CheckoutSuccessComponent implements OnInit {
   private cyberscan = inject(CyberscanService);

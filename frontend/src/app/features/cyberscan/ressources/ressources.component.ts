@@ -6,10 +6,9 @@ import { Title, Meta } from '@angular/platform-browser';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
-  selector: 'app-ressources',
-  standalone: true,
-  imports: [RouterLink, MatIconModule, MatButtonModule, NavButtonsComponent],
-  templateUrl: './ressources.component.html',
+    selector: 'app-ressources',
+    imports: [RouterLink, MatIconModule, MatButtonModule, NavButtonsComponent],
+    templateUrl: './ressources.component.html'
 })
 export class RessourcesComponent {
   private titleService = inject(Title);

@@ -21,24 +21,23 @@ import { I18nService } from '../../../core/services/i18n.service';
 import { Title, Meta } from '@angular/platform-browser';
 
 @Component({
-  selector: 'app-cyberscan-landing',
-  standalone: true,
-  imports: [
-    CommonModule,
-    NgClass,
-    RouterLink,
-    ReactiveFormsModule,
-    MatButtonModule,
-    MatCardModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    GlobeComponent,
-    OtpInputComponent,
-    MatFormFieldModule,
-    MatInputModule,
-  ],
-  templateUrl: './landing.component.html',
-  styleUrl: './landing.component.css',
+    selector: 'app-cyberscan-landing',
+    imports: [
+        CommonModule,
+        NgClass,
+        RouterLink,
+        ReactiveFormsModule,
+        MatButtonModule,
+        MatCardModule,
+        MatIconModule,
+        MatProgressSpinnerModule,
+        GlobeComponent,
+        OtpInputComponent,
+        MatFormFieldModule,
+        MatInputModule,
+    ],
+    templateUrl: './landing.component.html',
+    styleUrl: './landing.component.css'
 })
 export class LandingComponent implements OnInit {
   private cyberscan = inject(CyberscanService);

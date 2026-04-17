@@ -4,13 +4,12 @@ import { NavHistoryService } from './core/services/nav-history.service';
 import { CookieBannerComponent } from './shared/cookie-banner/cookie-banner.component';
 
 @Component({
-  selector: 'app-root',
-  standalone: true,
-  imports: [RouterOutlet, CookieBannerComponent],
-  template: `
+    selector: 'app-root',
+    imports: [RouterOutlet, CookieBannerComponent],
+    template: `
     <router-outlet />
     <app-cookie-banner />
-  `,
+  `
 })
 export class AppComponent {
   // Eagerly instantiate so it captures ALL navigation events from app start

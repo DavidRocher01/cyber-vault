@@ -6,10 +6,9 @@ import { Title, Meta } from '@angular/platform-browser';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
-  selector: 'app-bonnes-pratiques',
-  standalone: true,
-  imports: [RouterLink, MatIconModule, MatButtonModule, NavButtonsComponent],
-  templateUrl: './bonnes-pratiques.component.html',
+    selector: 'app-bonnes-pratiques',
+    imports: [RouterLink, MatIconModule, MatButtonModule, NavButtonsComponent],
+    templateUrl: './bonnes-pratiques.component.html'
 })
 export class BonnesPratiquesComponent {
   private titleService = inject(Title);

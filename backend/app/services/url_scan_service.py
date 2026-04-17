@@ -112,7 +112,7 @@ async def _analyze_url(url: str) -> dict:
                 async with httpx.AsyncClient(
                     follow_redirects=True,
                     timeout=15.0,
-                    verify=False,
+                    verify=False,  # nosec B501 — fallback scan for sites with invalid certs
                     headers=HEADERS,
                 ) as client:
                     resp = await client.get(url)

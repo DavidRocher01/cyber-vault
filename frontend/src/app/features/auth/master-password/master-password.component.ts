@@ -9,14 +9,13 @@ import { CryptoService } from '../../../core/services/crypto.service';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
-  selector: 'app-master-password',
-  standalone: true,
-  imports: [
-    CommonModule, ReactiveFormsModule, RouterLink,
-    MatIconModule, MatProgressSpinnerModule,
-  ],
-  templateUrl: './master-password.component.html',
-  styles: [`
+    selector: 'app-master-password',
+    imports: [
+        CommonModule, ReactiveFormsModule, RouterLink,
+        MatIconModule, MatProgressSpinnerModule,
+    ],
+    templateUrl: './master-password.component.html',
+    styles: [`
     .mp-bg {
       background: #080d1a;
     }
@@ -47,7 +46,7 @@ import { AuthService } from '../../../core/services/auth.service';
       background: linear-gradient(135deg, #22d3ee, #0ea5e9);
       box-shadow: 0 0 24px rgba(6,182,212,0.35);
     }
-  `],
+  `]
 })
 export class MasterPasswordComponent {
   private fb = inject(FormBuilder);

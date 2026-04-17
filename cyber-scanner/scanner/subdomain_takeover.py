@@ -110,7 +110,7 @@ def _fetch_body(hostname: str) -> str | None:
             resp = requests.get(
                 f"{scheme}://{hostname}",
                 timeout=REQUEST_TIMEOUT,
-                verify=False,
+                verify=False,  # nosec B501 nosemgrep: python.requests.security.verify-disabled
                 allow_redirects=True,
             )
             return resp.text[:20_000]

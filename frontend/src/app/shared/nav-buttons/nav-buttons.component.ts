@@ -4,10 +4,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { NavHistoryService } from '../../core/services/nav-history.service';
 
 @Component({
-  selector: 'app-nav-buttons',
-  standalone: true,
-  imports: [MatIconModule, MatTooltipModule],
-  template: `
+    selector: 'app-nav-buttons',
+    imports: [MatIconModule, MatTooltipModule],
+    template: `
     <div style="display:flex;align-items:center;gap:2px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:3px">
       <button type="button"
               (click)="nav.back()"
@@ -34,7 +33,7 @@ import { NavHistoryService } from '../../core/services/nav-history.service';
         <mat-icon style="font-size:18px;width:18px;height:18px">arrow_forward</mat-icon>
       </button>
     </div>
-  `,
+  `
 })
 export class NavButtonsComponent {
   readonly nav = inject(NavHistoryService);
