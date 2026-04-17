@@ -13,7 +13,7 @@ import pytest
 from pathlib import Path
 
 # Add cyber-scanner to path (mirrors scan_service.py setup)
-SCANNER_DIR = Path(__file__).resolve().parents[3] / "cyber-scanner"
+SCANNER_DIR = Path(__file__).resolve().parents[2] / "cyber-scanner"
 if str(SCANNER_DIR) not in sys.path:
     sys.path.insert(0, str(SCANNER_DIR))
 
