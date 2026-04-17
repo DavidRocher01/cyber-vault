@@ -4,6 +4,7 @@ import { NavHistoryService } from './core/services/nav-history.service';
 import { CookieBannerComponent } from './shared/cookie-banner/cookie-banner.component';
 
 @Component({
+    standalone: true,
     selector: 'app-root',
     imports: [RouterOutlet, CookieBannerComponent],
     template: `

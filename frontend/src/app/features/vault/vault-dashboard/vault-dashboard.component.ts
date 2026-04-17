@@ -25,6 +25,7 @@ export interface CategoryMeta {
 }
 
 @Component({
+    standalone: true,
     selector: 'app-vault-dashboard',
     imports: [
         CommonModule, RouterLink, ReactiveFormsModule, FormsModule,

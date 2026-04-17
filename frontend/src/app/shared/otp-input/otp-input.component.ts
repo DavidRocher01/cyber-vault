@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, Output, QueryList, ViewChildren, Elemen
 import { CommonModule } from '@angular/common';
 
 @Component({
+    standalone: true,
     selector: 'app-otp-input',
     imports: [CommonModule],
     template: `

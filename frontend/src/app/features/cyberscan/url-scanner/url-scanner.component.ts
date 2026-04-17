@@ -36,6 +36,7 @@ interface UrlScanResults {
 }
 
 @Component({
+    standalone: true,
     selector: 'app-url-scanner',
     imports: [
         CommonModule, ReactiveFormsModule, RouterLink,

@@ -7,6 +7,7 @@ import { CommonModule } from '@angular/common';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
+    standalone: true,
     selector: 'app-checkout-success',
     imports: [CommonModule, RouterLink, MatIconModule, NavButtonsComponent],
     template: `

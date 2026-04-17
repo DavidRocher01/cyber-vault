@@ -26,6 +26,7 @@ export interface Iso27001Category {
 }
 
 @Component({
+    standalone: true,
     selector: 'app-iso27001',
     imports: [
         CommonModule, RouterLink,

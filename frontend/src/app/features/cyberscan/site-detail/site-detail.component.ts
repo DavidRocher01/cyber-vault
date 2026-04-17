@@ -17,6 +17,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
 import { ScoreTrendComponent, ScoreTrendPoint } from '../../../shared/score-trend/score-trend.component';
 
 @Component({
+    standalone: true,
     selector: 'app-site-detail',
     imports: [
         CommonModule, RouterLink,

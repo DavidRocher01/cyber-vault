@@ -6,6 +6,7 @@ import { Title, Meta } from '@angular/platform-browser';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
+    standalone: true,
     selector: 'app-bonnes-pratiques',
     imports: [RouterLink, MatIconModule, MatButtonModule, NavButtonsComponent],
     templateUrl: './bonnes-pratiques.component.html'

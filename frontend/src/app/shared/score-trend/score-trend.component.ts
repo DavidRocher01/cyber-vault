@@ -14,6 +14,7 @@ interface ChartPoint {
 }
 
 @Component({
+    standalone: true,
     selector: 'app-score-trend',
     imports: [CommonModule],
     template: `

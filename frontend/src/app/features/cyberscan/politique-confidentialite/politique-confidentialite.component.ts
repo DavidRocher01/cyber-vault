@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
+    standalone: true,
     selector: 'app-politique-confidentialite',
     imports: [CommonModule, RouterLink, MatIconModule, NavButtonsComponent],
     templateUrl: './politique-confidentialite.component.html'

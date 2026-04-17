@@ -14,6 +14,7 @@ import { Finding, getFindings } from '../../../shared/scan-findings';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
+    standalone: true,
     selector: 'app-scan-detail',
     imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule, MatProgressSpinnerModule, ScoreGaugeComponent, RadarChartComponent, NavButtonsComponent],
     templateUrl: './scan-detail.component.html'

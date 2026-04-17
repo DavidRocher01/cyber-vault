@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 const STORAGE_KEY = 'cyberscan_cookie_consent';
 
 @Component({
+    standalone: true,
     selector: 'app-cookie-banner',
     imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule],
     template: `

@@ -19,6 +19,7 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
 }
 
 @Component({
+    standalone: true,
     selector: 'app-register',
     imports: [
         CommonModule, ReactiveFormsModule, RouterLink,

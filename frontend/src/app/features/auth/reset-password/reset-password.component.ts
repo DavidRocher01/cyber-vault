@@ -17,6 +17,7 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
 }
 
 @Component({
+    standalone: true,
     selector: 'app-reset-password',
     imports: [
         CommonModule, ReactiveFormsModule, RouterLink,

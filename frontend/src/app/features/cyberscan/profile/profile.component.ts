@@ -19,6 +19,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
 import { OtpInputComponent } from '../../../shared/otp-input/otp-input.component';
 
 @Component({
+    standalone: true,
     selector: 'app-profile',
     imports: [
         CommonModule, ReactiveFormsModule, RouterLink,

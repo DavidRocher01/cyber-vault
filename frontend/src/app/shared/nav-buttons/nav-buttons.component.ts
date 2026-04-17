@@ -4,6 +4,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { NavHistoryService } from '../../core/services/nav-history.service';
 
 @Component({
+    standalone: true,
     selector: 'app-nav-buttons',
     imports: [MatIconModule, MatTooltipModule],
     template: `

@@ -13,6 +13,7 @@ import { AuthStore } from '../auth.store';
 import { OtpInputComponent } from '../../../shared/otp-input/otp-input.component';
 
 @Component({
+    standalone: true,
     selector: 'app-login',
     imports: [
         CommonModule, ReactiveFormsModule, FormsModule, RouterLink,

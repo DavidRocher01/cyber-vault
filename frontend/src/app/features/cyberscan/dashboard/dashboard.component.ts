@@ -36,6 +36,7 @@ interface PaginatedScans {
 }
 
 @Component({
+    standalone: true,
     selector: 'app-cyberscan-dashboard',
     imports: [
         CommonModule, ReactiveFormsModule, RouterLink,

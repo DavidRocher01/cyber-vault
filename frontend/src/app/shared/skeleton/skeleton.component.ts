@@ -2,6 +2,7 @@ import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
+    standalone: true,
     selector: 'app-skeleton',
     imports: [CommonModule],
     template: `

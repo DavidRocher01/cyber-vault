@@ -37,6 +37,7 @@ interface ScanResults {
 }
 
 @Component({
+    standalone: true,
     selector: 'app-code-scan',
     imports: [
         CommonModule, ReactiveFormsModule, RouterLink,

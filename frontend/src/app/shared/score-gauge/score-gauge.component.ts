@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { getGrade, getScoreColor } from '../score-utils';
 
 @Component({
+    standalone: true,
     selector: 'app-score-gauge',
     imports: [CommonModule],
     template: `

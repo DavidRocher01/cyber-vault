@@ -11,6 +11,7 @@ interface AxisData {
 }
 
 @Component({
+    standalone: true,
     selector: 'app-radar-chart',
     imports: [CommonModule],
     template: `

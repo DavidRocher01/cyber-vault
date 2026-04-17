@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
+    standalone: true,
     selector: 'app-newsletter-confirm',
     imports: [RouterLink, MatIconModule, NavButtonsComponent],
     template: `

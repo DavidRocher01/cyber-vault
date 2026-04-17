@@ -21,6 +21,7 @@ import { I18nService } from '../../../core/services/i18n.service';
 import { Title, Meta } from '@angular/platform-browser';
 
 @Component({
+    standalone: true,
     selector: 'app-cyberscan-landing',
     imports: [
         CommonModule,

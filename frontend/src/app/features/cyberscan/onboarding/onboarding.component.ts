@@ -11,6 +11,7 @@ import { Title } from '@angular/platform-browser';
 import { CyberscanService, Plan } from '../services/cyberscan.service';
 
 @Component({
+    standalone: true,
     selector: 'app-onboarding',
     imports: [
         CommonModule, ReactiveFormsModule, RouterLink,

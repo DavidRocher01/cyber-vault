@@ -25,6 +25,7 @@ export interface Nis2Category {
 }
 
 @Component({
+    standalone: true,
     selector: 'app-nis2',
     imports: [
         CommonModule, RouterLink,

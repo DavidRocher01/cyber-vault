@@ -9,6 +9,7 @@ import { CryptoService } from '../../../core/services/crypto.service';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
+    standalone: true,
     selector: 'app-master-password',
     imports: [
         CommonModule, ReactiveFormsModule, RouterLink,
