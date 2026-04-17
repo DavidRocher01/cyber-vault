@@ -5,7 +5,7 @@ Cover page drawn directly on canvas. Tables for summary + detail.
 from __future__ import annotations
 
 import io
-from datetime import datetime
+from datetime import datetime, timezone
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -63,7 +63,7 @@ def generate_iso27001_pdf(
         topMargin=22 * mm, bottomMargin=18 * mm,
     )
 
-    date_str    = updated_at.strftime("%d/%m/%Y à %H:%M") if updated_at else datetime.utcnow().strftime("%d/%m/%Y à %H:%M")
+    date_str    = updated_at.strftime("%d/%m/%Y à %H:%M") if updated_at else datetime.now(timezone.utc).strftime("%d/%m/%Y à %H:%M")
     score_label = "Conforme" if score >= 80 else "En cours" if score >= 50 else "Non conforme"
 
     all_ids     = [it["id"] for cat in categories for it in cat["items"]]
@@ -256,7 +256,7 @@ def generate_iso27001_pdf(
     story.append(HRFlowable(width=W, thickness=0.5, color=BORDER, spaceAfter=4))
     story.append(Paragraph(
         f"Rapport ISO 27001:2022 généré par CyberScan le "
-        f"{datetime.utcnow().strftime('%d/%m/%Y à %H:%M')} UTC — "
+        f"{datetime.now(timezone.utc).strftime('%d/%m/%Y à %H:%M')} UTC — "
         "Ce rapport est fourni à titre indicatif et ne constitue pas une certification ISO/IEC 27001.",
         _st("Disc", fontSize=7, textColor=GRAY),
     ))

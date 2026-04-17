@@ -1,10 +1,11 @@
 import os
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal, get_db
@@ -94,10 +95,17 @@ async def upload_code_scan(
         repo_url=f"upload:{file.filename}",
         repo_name=repo_name,
         status="pending",
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     db.add(scan)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=429,
+            detail="Un scan est déjà en cours. Attendez qu'il se termine avant d'en lancer un nouveau.",
+        )
     await db.refresh(scan)
 
     background_tasks.add_task(_run_zip_background, scan.id, zip_path)
@@ -126,10 +134,17 @@ async def trigger_code_scan(
         repo_url=body.repo_url,
         repo_name=_repo_name(body.repo_url),
         status="pending",
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     db.add(scan)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=429,
+            detail="Un scan est déjà en cours. Attendez qu'il se termine avant d'en lancer un nouveau.",
+        )
     await db.refresh(scan)
 
     background_tasks.add_task(_run_background, scan.id, clone_url if body.github_token else None)

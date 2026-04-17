@@ -6,7 +6,7 @@ Playwright (deep JS sandbox) is planned for V2.
 
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 import httpx
@@ -307,14 +307,14 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
         return
 
     url_scan.status = "running"
-    url_scan.started_at = datetime.utcnow()
+    url_scan.started_at = datetime.now(timezone.utc)
     await db.commit()
 
     try:
         analysis = await _analyze_url(url_scan.url)
 
         url_scan.status = "done"
-        url_scan.finished_at = datetime.utcnow()
+        url_scan.finished_at = datetime.now(timezone.utc)
         url_scan.verdict = analysis["verdict"]
         url_scan.threat_type = analysis["threat_type"]
         url_scan.threat_score = analysis["threat_score"]
@@ -361,6 +361,6 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
 
     except Exception as exc:
         url_scan.status = "error"
-        url_scan.finished_at = datetime.utcnow()
+        url_scan.finished_at = datetime.now(timezone.utc)
         url_scan.error_message = str(exc)[:500]
         await db.commit()

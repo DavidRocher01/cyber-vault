@@ -14,3 +14,4 @@ from app.models.newsletter_schedule import NewsletterScheduleItem  # noqa: F401
 from app.models.code_scan import CodeScan  # noqa: F401
 from app.models.nis2_assessment import Nis2Assessment  # noqa: F401
 from app.models.iso27001_assessment import Iso27001Assessment  # noqa: F401
+from app.models.app_setting import AppSetting  # noqa: F401

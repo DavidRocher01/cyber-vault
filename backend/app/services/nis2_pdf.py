@@ -6,7 +6,7 @@ Uses shared visual identity from pdf_brand.
 from __future__ import annotations
 
 import io
-from datetime import datetime
+from datetime import datetime, timezone
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -243,7 +243,7 @@ def generate_nis2_pdf(
     story.append(Spacer(1, 4 * mm))
     story.append(HRFlowable(width=W, thickness=0.5, color=BORDER, spaceAfter=4))
     story.append(Paragraph(
-        f"Rapport NIS2 généré par CyberScan le {datetime.utcnow().strftime('%d/%m/%Y à %H:%M')} UTC — "
+        f"Rapport NIS2 généré par CyberScan le {datetime.now(timezone.utc).strftime('%d/%m/%Y à %H:%M')} UTC — "
         "Ce rapport est fourni à titre indicatif et ne constitue pas un audit légal de conformité.",
         _st("Disc", fontSize=7, textColor=GRAY),
     ))

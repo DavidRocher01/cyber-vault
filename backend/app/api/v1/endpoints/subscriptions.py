@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +17,7 @@ from app.core.config import settings
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
 
 FRONTEND_URL = settings.FRONTEND_URL
-DEV_MODE = settings.APP_ENV != "production"
+DEV_MODE = settings.APP_ENV == "development"
 
 
 @router.get("/me", response_model=SubscriptionOut | None)
@@ -51,7 +51,7 @@ async def create_checkout(
             select(Subscription).where(Subscription.user_id == current_user.id)
         )
         existing = result.scalar_one_or_none()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if existing:
             existing.plan_id = plan.id
             existing.status = "active"

@@ -35,12 +35,12 @@ async def trigger_url_scan(
     db: AsyncSession = Depends(get_db),
 ):
     """Submit a URL for suspicious content analysis."""
-    from datetime import datetime
+    from datetime import datetime, timezone
     url_scan = UrlScan(
         user_id=current_user.id,
         url=payload.url,
         status="pending",
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     db.add(url_scan)
     await db.commit()

@@ -3,7 +3,7 @@ NIS2 Compliance endpoints — save/load user assessment and export PDF.
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -202,7 +202,7 @@ async def save_assessment(
             raise HTTPException(status_code=422, detail=f"Statut invalide : {status}")
 
     score = _compute_score(payload.items)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     result = await db.execute(
         select(Nis2Assessment).where(Nis2Assessment.user_id == current_user.id)

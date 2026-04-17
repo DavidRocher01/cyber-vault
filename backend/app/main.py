@@ -14,7 +14,7 @@ import app.models  # noqa: F401 — register all models with Base.metadata
 from app.__version__ import __version__
 from app.api.v1.router import api_router
 from app.core.config import settings
-from app.core.database import Base, engine, get_db
+from app.core.database import get_db
 from app.core.limiter import limiter
 from app.core.logging import setup_logging
 from app.services.scheduler import start_scheduler, stop_scheduler
@@ -52,25 +52,20 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
-async def _create_tables() -> None:
-    """Create any missing tables without dropping existing ones (idempotent)."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("Database tables verified/created")
-    await _seed_plans()
-
-
 async def _seed_plans() -> None:
-    """Insert default plans if they don't exist yet (idempotent)."""
+    """Insert default plans if they don't exist yet (idempotent).
+    stripe_price_id is intentionally excluded — set it via admin or migration
+    to avoid overwriting live Stripe IDs on restart.
+    """
     from app.core.database import AsyncSessionLocal
     from app.models.plan import Plan
     from sqlalchemy import select
 
     PLANS = [
-        {"name": "free",     "display_name": "Gratuit",  "price_eur": 0,    "max_sites": 1,  "scan_interval_days": 0,  "tier_level": 1, "stripe_price_id": ""},
-        {"name": "starter",  "display_name": "Starter",  "price_eur": 990,  "max_sites": 1,  "scan_interval_days": 30, "tier_level": 2, "stripe_price_id": ""},
-        {"name": "pro",      "display_name": "Pro",       "price_eur": 3990, "max_sites": 3,  "scan_interval_days": 7,  "tier_level": 3, "stripe_price_id": ""},
-        {"name": "business", "display_name": "Business",  "price_eur": 4990, "max_sites": 10, "scan_interval_days": 1,  "tier_level": 4, "stripe_price_id": ""},
+        {"name": "free",     "display_name": "Gratuit",  "price_eur": 0,    "max_sites": 1,  "scan_interval_days": 0,  "tier_level": 1},
+        {"name": "starter",  "display_name": "Starter",  "price_eur": 990,  "max_sites": 1,  "scan_interval_days": 30, "tier_level": 2},
+        {"name": "pro",      "display_name": "Pro",       "price_eur": 3990, "max_sites": 3,  "scan_interval_days": 7,  "tier_level": 3},
+        {"name": "business", "display_name": "Business",  "price_eur": 4990, "max_sites": 10, "scan_interval_days": 1,  "tier_level": 4},
     ]
     async with AsyncSessionLocal() as db:
         for plan_data in PLANS:
@@ -84,7 +79,7 @@ async def _seed_plans() -> None:
 app = FastAPI(
     title=settings.APP_NAME,
     version=__version__,
-    on_startup=[_create_tables, start_scheduler],
+    on_startup=[_seed_plans, start_scheduler],
     on_shutdown=[stop_scheduler],
 )
 
@@ -95,7 +90,6 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
-    allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
 )

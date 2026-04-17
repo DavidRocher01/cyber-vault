@@ -875,7 +875,37 @@ def _count_severities(findings: list[dict]) -> dict:
     return counts
 
 
-# ─── main entry point ─────────────────────────────────────────────────────────
+# ─── shared tool runner ───────────────────────────────────────────────────────
+
+def _run_all_tools(scan_id: int, repo_dir: str) -> tuple[list[dict], dict]:
+    """Run every security tool on repo_dir. Returns (all_findings, severity_counts)."""
+    all_findings: list[dict] = []
+    for name, runner in [
+        ("Bandit",          _run_bandit),
+        ("Semgrep",         _run_semgrep),
+        ("pip-audit",       _run_pip_audit),
+        ("gitleaks",        _run_gitleaks),
+        ("trufflehog",      _run_trufflehog),
+        ("detect-secrets",  _run_detect_secrets),
+        ("npm audit",       _run_npm_audit),
+        ("njsscan",         _run_njsscan),
+        ("eslint-security", _run_eslint_security),
+        ("trivy",           _run_trivy),
+        ("grype",           _run_grype),
+        ("osv-scanner",     _run_osv_scanner),
+        ("safety",          _run_safety),
+        ("checkov",         _run_checkov),
+        ("hadolint",        _run_hadolint),
+        ("tfsec",           _run_tfsec),
+        ("gosec",           _run_gosec),
+        ("bearer",          _run_bearer),
+    ]:
+        logger.info(f"CodeScan {scan_id}: running {name}")
+        all_findings.extend(runner(repo_dir))
+    return all_findings, _count_severities(all_findings)
+
+
+# ─── main entry points ────────────────────────────────────────────────────────
 
 async def run_code_scan(scan_id: int, db: AsyncSession, clone_url: str | None = None) -> None:
     """
@@ -909,65 +939,8 @@ async def run_code_scan(scan_id: int, db: AsyncSession, clone_url: str | None = 
 
         repo_dir = os.path.join(tmp_dir, "repo")
 
-        # ── Run tools ──────────────────────────────────────────────────────
-        all_findings: list[dict] = []
-
-        logger.info(f"CodeScan {scan_id}: running Bandit")
-        all_findings.extend(_run_bandit(repo_dir))
-
-        logger.info(f"CodeScan {scan_id}: running Semgrep")
-        all_findings.extend(_run_semgrep(repo_dir))
-
-        logger.info(f"CodeScan {scan_id}: running pip-audit")
-        all_findings.extend(_run_pip_audit(repo_dir))
-
-        logger.info(f"CodeScan {scan_id}: running gitleaks")
-        all_findings.extend(_run_gitleaks(repo_dir))
-
-        logger.info(f"CodeScan {scan_id}: running trufflehog")
-        all_findings.extend(_run_trufflehog(repo_dir))
-
-        logger.info(f"CodeScan {scan_id}: running detect-secrets")
-        all_findings.extend(_run_detect_secrets(repo_dir))
-
-        logger.info(f"CodeScan {scan_id}: running npm audit")
-        all_findings.extend(_run_npm_audit(repo_dir))
-
-        logger.info(f"CodeScan {scan_id}: running njsscan")
-        all_findings.extend(_run_njsscan(repo_dir))
-
-        logger.info(f"CodeScan {scan_id}: running eslint-security")
-        all_findings.extend(_run_eslint_security(repo_dir))
-
-        logger.info(f"CodeScan {scan_id}: running trivy")
-        all_findings.extend(_run_trivy(repo_dir))
-
-        logger.info(f"CodeScan {scan_id}: running grype")
-        all_findings.extend(_run_grype(repo_dir))
-
-        logger.info(f"CodeScan {scan_id}: running osv-scanner")
-        all_findings.extend(_run_osv_scanner(repo_dir))
-
-        logger.info(f"CodeScan {scan_id}: running safety")
-        all_findings.extend(_run_safety(repo_dir))
-
-        logger.info(f"CodeScan {scan_id}: running checkov")
-        all_findings.extend(_run_checkov(repo_dir))
-
-        logger.info(f"CodeScan {scan_id}: running hadolint")
-        all_findings.extend(_run_hadolint(repo_dir))
-
-        logger.info(f"CodeScan {scan_id}: running tfsec")
-        all_findings.extend(_run_tfsec(repo_dir))
-
-        logger.info(f"CodeScan {scan_id}: running gosec")
-        all_findings.extend(_run_gosec(repo_dir))
-
-        logger.info(f"CodeScan {scan_id}: running bearer")
-        all_findings.extend(_run_bearer(repo_dir))
-
-        # ── Aggregate ──────────────────────────────────────────────────────
-        counts = _count_severities(all_findings)
+        # ── Run all tools ──────────────────────────────────────────────────
+        all_findings, counts = _run_all_tools(scan_id, repo_dir)
         total = sum(counts.values())
 
         results = {
@@ -1036,45 +1009,7 @@ async def run_code_scan_zip(scan_id: int, zip_path: str, db: AsyncSession) -> No
         if len(entries) == 1 and os.path.isdir(os.path.join(repo_dir, entries[0])):
             repo_dir = os.path.join(repo_dir, entries[0])
 
-        all_findings: list[dict] = []
-        logger.info(f"CodeScan {scan_id}: running Bandit")
-        all_findings.extend(_run_bandit(repo_dir))
-        logger.info(f"CodeScan {scan_id}: running Semgrep")
-        all_findings.extend(_run_semgrep(repo_dir))
-        logger.info(f"CodeScan {scan_id}: running pip-audit")
-        all_findings.extend(_run_pip_audit(repo_dir))
-        logger.info(f"CodeScan {scan_id}: running gitleaks")
-        all_findings.extend(_run_gitleaks(repo_dir))
-        logger.info(f"CodeScan {scan_id}: running trufflehog")
-        all_findings.extend(_run_trufflehog(repo_dir))
-        logger.info(f"CodeScan {scan_id}: running detect-secrets")
-        all_findings.extend(_run_detect_secrets(repo_dir))
-        logger.info(f"CodeScan {scan_id}: running npm audit")
-        all_findings.extend(_run_npm_audit(repo_dir))
-        logger.info(f"CodeScan {scan_id}: running njsscan")
-        all_findings.extend(_run_njsscan(repo_dir))
-        logger.info(f"CodeScan {scan_id}: running eslint-security")
-        all_findings.extend(_run_eslint_security(repo_dir))
-        logger.info(f"CodeScan {scan_id}: running trivy")
-        all_findings.extend(_run_trivy(repo_dir))
-        logger.info(f"CodeScan {scan_id}: running grype")
-        all_findings.extend(_run_grype(repo_dir))
-        logger.info(f"CodeScan {scan_id}: running osv-scanner")
-        all_findings.extend(_run_osv_scanner(repo_dir))
-        logger.info(f"CodeScan {scan_id}: running safety")
-        all_findings.extend(_run_safety(repo_dir))
-        logger.info(f"CodeScan {scan_id}: running checkov")
-        all_findings.extend(_run_checkov(repo_dir))
-        logger.info(f"CodeScan {scan_id}: running hadolint")
-        all_findings.extend(_run_hadolint(repo_dir))
-        logger.info(f"CodeScan {scan_id}: running tfsec")
-        all_findings.extend(_run_tfsec(repo_dir))
-        logger.info(f"CodeScan {scan_id}: running gosec")
-        all_findings.extend(_run_gosec(repo_dir))
-        logger.info(f"CodeScan {scan_id}: running bearer")
-        all_findings.extend(_run_bearer(repo_dir))
-
-        counts = _count_severities(all_findings)
+        all_findings, counts = _run_all_tools(scan_id, repo_dir)
         total = sum(counts.values())
         results = {"findings": all_findings, "summary": {"total": total, **counts}}
 

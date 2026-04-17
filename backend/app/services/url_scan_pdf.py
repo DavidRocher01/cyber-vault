@@ -6,7 +6,7 @@ Uses shared visual identity from pdf_brand.
 from __future__ import annotations
 
 import io
-from datetime import datetime
+from datetime import datetime, timezone
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -212,7 +212,7 @@ def generate_url_scan_pdf(url_scan_data: dict) -> bytes:
     story.append(Spacer(1, 4 * mm))
     story.append(HRFlowable(width=W, thickness=0.5, color=BORDER, spaceAfter=4))
     story.append(Paragraph(
-        f"Rapport généré par CyberScan le {datetime.utcnow().strftime('%d/%m/%Y à %H:%M')} UTC — "
+        f"Rapport généré par CyberScan le {datetime.now(timezone.utc).strftime('%d/%m/%Y à %H:%M')} UTC — "
         "Ce rapport est fourni à titre informatif uniquement.",
         st["small"],
     ))

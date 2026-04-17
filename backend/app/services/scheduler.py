@@ -5,13 +5,14 @@ Business : toutes les 7 nuits à 2h00.
 """
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy import select, func
 
 from app.core.database import AsyncSessionLocal
+from app.models.app_setting import AppSetting
 from app.models.scan import Scan
 from app.models.site import Site
 from app.models.subscription import Subscription
@@ -23,8 +24,7 @@ from app.models.newsletter_subscriber import NewsletterSubscriber
 
 scheduler = AsyncIOScheduler()
 
-# Edition counter (persisted in-memory; reset on restart — acceptable for now)
-_newsletter_edition = 1
+_NEWSLETTER_EDITION_KEY = "newsletter_edition"
 
 
 async def _schedule_due_scans() -> None:
@@ -62,7 +62,7 @@ async def _schedule_due_scans() -> None:
         users_result = await db.execute(select(User).where(User.id.in_(user_ids)))
         user_map: dict[int, User] = {u.id: u for u in users_result.scalars().all()}
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         for site, plan in rows:
             last_scan = last_scan_map.get(site.id)
             if last_scan and last_scan.finished_at:
@@ -97,14 +97,24 @@ async def _schedule_due_scans() -> None:
 
 async def _send_biweekly_newsletter() -> None:
     """Send the Radar Cyber newsletter to all active subscribers."""
-    global _newsletter_edition
+    from app.core.config import settings
+    from loguru import logger
+
     async with AsyncSessionLocal() as db:
+        # Read and atomically increment the persisted edition counter
+        setting = await db.get(AppSetting, _NEWSLETTER_EDITION_KEY)
+        if setting is None:
+            setting = AppSetting(key=_NEWSLETTER_EDITION_KEY, value_int=1)
+            db.add(setting)
+            await db.flush()
+        edition = setting.value_int
+        setting.value_int = edition + 1
+
         result = await db.execute(
             select(NewsletterSubscriber).where(NewsletterSubscriber.is_active == True)
         )
         subscribers = result.scalars().all()
-
-    from app.core.config import settings
+        await db.commit()
 
     # Default editorial content — update each edition
     flash_title = "Ransomware : une vague mondiale frappe les PME"
@@ -132,7 +142,7 @@ async def _send_biweekly_newsletter() -> None:
             send_newsletter_issue(
                 to_email=sub.email,
                 unsubscribe_url=unsubscribe_url,
-                edition=_newsletter_edition,
+                edition=edition,
                 flash_title=flash_title,
                 flash_body=flash_body,
                 reflex_title=reflex_title,
@@ -143,9 +153,7 @@ async def _send_biweekly_newsletter() -> None:
         except Exception:
             pass  # Ne pas bloquer si un envoi échoue
 
-    from loguru import logger
-    logger.info(f"Newsletter édition #{_newsletter_edition} envoyée à {len(subscribers)} abonné(s)")
-    _newsletter_edition += 1
+    logger.info(f"Newsletter édition #{edition} envoyée à {len(subscribers)} abonné(s)")
 
 
 def start_scheduler() -> None:
