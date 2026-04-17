@@ -10,6 +10,8 @@ from sqlalchemy import select, func
 
 from app.core.database import get_db, AsyncSessionLocal
 from app.core.deps import get_current_user
+from app.core.datetime_utils import ensure_utc
+from app.core.pagination import paginate
 from app.models.user import User
 from app.models.site import Site
 from app.models.scan import Scan
@@ -18,6 +20,7 @@ from app.models.plan import Plan
 from app.schemas.cyberscan import ScanOut, ScanTriggerOut, PaginatedScans
 from app.core.ssrf import assert_no_ssrf
 from app.services.scan_service import run_scan
+from app.services.subscription_service import get_active_plan
 
 router = APIRouter(prefix="/scans", tags=["scans"])
 
@@ -44,12 +47,7 @@ async def trigger_scan(
     assert_no_ssrf(site.url)
 
     # Enforce scan frequency based on active subscription plan
-    plan_result = await db.execute(
-        select(Plan)
-        .join(Subscription, Subscription.plan_id == Plan.id)
-        .where(Subscription.user_id == current_user.id, Subscription.status == "active")
-    )
-    plan = plan_result.scalar_one_or_none()
+    plan = await get_active_plan(db, current_user.id)
     interval_days = plan.scan_interval_days if plan else 30
 
     last_result = await db.execute(
@@ -61,9 +59,7 @@ async def trigger_scan(
     last_scan = last_result.scalar_one_or_none()
 
     if last_scan and last_scan.finished_at:
-        finished_at = last_scan.finished_at
-        if finished_at.tzinfo is None:
-            finished_at = finished_at.replace(tzinfo=timezone.utc)
+        finished_at = ensure_utc(last_scan.finished_at)
         days_since = (datetime.now(timezone.utc) - finished_at).days
         if days_since < interval_days:
             days_left = interval_days - days_since
@@ -95,27 +91,13 @@ async def list_scans(
     if not result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Site non trouvé")
 
-    total_result = await db.execute(
-        select(func.count()).where(Scan.site_id == site_id)
+    return await paginate(
+        db,
+        base_query=select(Scan).where(Scan.site_id == site_id).order_by(Scan.created_at.desc()),
+        count_query=select(func.count()).where(Scan.site_id == site_id),
+        page=page,
+        per_page=per_page,
     )
-    total = total_result.scalar_one()
-
-    scans_result = await db.execute(
-        select(Scan)
-        .where(Scan.site_id == site_id)
-        .order_by(Scan.created_at.desc())
-        .offset((page - 1) * per_page)
-        .limit(per_page)
-    )
-    items = scans_result.scalars().all()
-
-    return {
-        "items": items,
-        "total": total,
-        "page": page,
-        "per_page": per_page,
-        "pages": max(1, -(-total // per_page)),  # ceiling division
-    }
 
 
 @router.get("/site/{site_id}/export")

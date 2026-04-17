@@ -8,8 +8,10 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.crud import get_user_resource
 from app.core.database import AsyncSessionLocal, get_db
 from app.core.deps import get_current_user
+from app.core.pagination import paginate
 from app.models.code_scan import CodeScan
 from app.models.user import User
 from app.schemas.cyberscan import (
@@ -158,27 +160,13 @@ async def list_code_scans(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    total_result = await db.execute(
-        select(func.count()).select_from(CodeScan).where(CodeScan.user_id == current_user.id)
+    return await paginate(
+        db,
+        base_query=select(CodeScan).where(CodeScan.user_id == current_user.id).order_by(CodeScan.created_at.desc()),
+        count_query=select(func.count()).select_from(CodeScan).where(CodeScan.user_id == current_user.id),
+        page=page,
+        per_page=per_page,
     )
-    total = total_result.scalar_one()
-
-    scans_result = await db.execute(
-        select(CodeScan)
-        .where(CodeScan.user_id == current_user.id)
-        .order_by(CodeScan.created_at.desc())
-        .offset((page - 1) * per_page)
-        .limit(per_page)
-    )
-    items = scans_result.scalars().all()
-
-    return {
-        "items": items,
-        "total": total,
-        "page": page,
-        "per_page": per_page,
-        "pages": max(1, -(-total // per_page)),
-    }
 
 
 @router.get("/{scan_id}", response_model=CodeScanOut)
@@ -187,13 +175,7 @@ async def get_code_scan(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(CodeScan).where(CodeScan.id == scan_id, CodeScan.user_id == current_user.id)
-    )
-    scan = result.scalar_one_or_none()
-    if not scan:
-        raise HTTPException(status_code=404, detail="Analyse non trouvée")
-    return scan
+    return await get_user_resource(db, CodeScan, scan_id, current_user.id, "Analyse non trouvée")
 
 
 @router.delete("/{scan_id}", status_code=204)
@@ -202,11 +184,6 @@ async def delete_code_scan(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(CodeScan).where(CodeScan.id == scan_id, CodeScan.user_id == current_user.id)
-    )
-    scan = result.scalar_one_or_none()
-    if not scan:
-        raise HTTPException(status_code=404, detail="Analyse non trouvée")
+    scan = await get_user_resource(db, CodeScan, scan_id, current_user.id, "Analyse non trouvée")
     await db.delete(scan)
     await db.commit()

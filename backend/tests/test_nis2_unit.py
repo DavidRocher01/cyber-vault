@@ -10,8 +10,11 @@ import pytest
 from app.api.v1.endpoints.nis2 import (
     ALL_ITEM_IDS,
     NIS2_CATEGORIES,
-    _compute_score,
 )
+from app.services.assessment_service import compute_assessment_score
+
+def _compute_score(items):
+    return compute_assessment_score(items, ALL_ITEM_IDS)
 
 
 # ── Structure des données ─────────────────────────────────────────────────────

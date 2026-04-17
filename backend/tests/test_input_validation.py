@@ -16,7 +16,7 @@ Catégories :
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from unittest.mock import patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.main import app
 
@@ -87,7 +87,7 @@ async def test_login_missing_password_returns_422():
 async def test_create_site_missing_url_returns_422():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "site_val1@test.com")
-        with patch("app.api.v1.endpoints.sites._get_max_sites", return_value=5):
+        with patch("app.api.v1.endpoints.sites.get_active_plan", new=AsyncMock(return_value=MagicMock(max_sites=5))):
             r = await c.post(f"{BASE}/sites", json={"name": "Mon site"}, headers=h)
     assert r.status_code == 422
 
@@ -96,7 +96,7 @@ async def test_create_site_missing_url_returns_422():
 async def test_create_site_missing_name_returns_422():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "site_val2@test.com")
-        with patch("app.api.v1.endpoints.sites._get_max_sites", return_value=5):
+        with patch("app.api.v1.endpoints.sites.get_active_plan", new=AsyncMock(return_value=MagicMock(max_sites=5))):
             r = await c.post(f"{BASE}/sites", json={"url": "https://example.com"}, headers=h)
     assert r.status_code == 422
 
@@ -106,7 +106,7 @@ async def test_create_site_no_protocol_autocorrected_to_https():
     """L'endpoint auto-corrige les URLs sans protocole → https:// est ajouté, 201 retourné."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "site_val3@test.com")
-        with patch("app.api.v1.endpoints.sites._get_max_sites", return_value=5):
+        with patch("app.api.v1.endpoints.sites.get_active_plan", new=AsyncMock(return_value=MagicMock(max_sites=5))):
             r = await c.post(f"{BASE}/sites", json={"url": "example.com", "name": "Test"}, headers=h)
     assert r.status_code == 201
     assert r.json()["url"] == "https://example.com"
@@ -116,7 +116,7 @@ async def test_create_site_no_protocol_autocorrected_to_https():
 async def test_create_site_ftp_url_returns_422():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "site_val4@test.com")
-        with patch("app.api.v1.endpoints.sites._get_max_sites", return_value=5):
+        with patch("app.api.v1.endpoints.sites.get_active_plan", new=AsyncMock(return_value=MagicMock(max_sites=5))):
             r = await c.post(f"{BASE}/sites", json={"url": "ftp://files.example.com", "name": "FTP"}, headers=h)
     assert r.status_code == 422
 

@@ -2,10 +2,11 @@
 Notification endpoints — in-app notification center.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.crud import get_user_resource
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.notification import Notification
@@ -44,15 +45,7 @@ async def mark_read(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(Notification).where(
-            Notification.id == notification_id,
-            Notification.user_id == current_user.id,
-        )
-    )
-    notif = result.scalar_one_or_none()
-    if not notif:
-        raise HTTPException(status_code=404, detail="Notification introuvable")
+    notif = await get_user_resource(db, Notification, notification_id, current_user.id, "Notification introuvable")
     notif.read = True
     await db.flush()
     return notif
@@ -80,14 +73,6 @@ async def delete_notification(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(Notification).where(
-            Notification.id == notification_id,
-            Notification.user_id == current_user.id,
-        )
-    )
-    notif = result.scalar_one_or_none()
-    if not notif:
-        raise HTTPException(status_code=404, detail="Notification introuvable")
+    notif = await get_user_resource(db, Notification, notification_id, current_user.id, "Notification introuvable")
     await db.delete(notif)
     await db.flush()

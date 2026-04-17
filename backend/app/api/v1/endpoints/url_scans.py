@@ -9,8 +9,10 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
+from app.core.crud import get_user_resource
 from app.core.database import get_db, AsyncSessionLocal
 from app.core.deps import get_current_user
+from app.core.pagination import paginate
 from app.models.user import User
 from app.models.url_scan import UrlScan
 from app.schemas.url_scan import UrlScanCreate, UrlScanOut, PaginatedUrlScans
@@ -58,27 +60,13 @@ async def list_url_scans(
     db: AsyncSession = Depends(get_db),
 ):
     """List all URL scans for the authenticated user."""
-    total_result = await db.execute(
-        select(func.count()).where(UrlScan.user_id == current_user.id)
+    return await paginate(
+        db,
+        base_query=select(UrlScan).where(UrlScan.user_id == current_user.id).order_by(UrlScan.created_at.desc()),
+        count_query=select(func.count()).where(UrlScan.user_id == current_user.id),
+        page=page,
+        per_page=per_page,
     )
-    total = total_result.scalar_one()
-
-    scans_result = await db.execute(
-        select(UrlScan)
-        .where(UrlScan.user_id == current_user.id)
-        .order_by(UrlScan.created_at.desc())
-        .offset((page - 1) * per_page)
-        .limit(per_page)
-    )
-    items = scans_result.scalars().all()
-
-    return {
-        "items": items,
-        "total": total,
-        "page": page,
-        "per_page": per_page,
-        "pages": max(1, -(-total // per_page)),
-    }
 
 
 @router.get("/{scan_id}", response_model=UrlScanOut)
@@ -88,16 +76,7 @@ async def get_url_scan(
     db: AsyncSession = Depends(get_db),
 ):
     """Get a specific URL scan by ID."""
-    result = await db.execute(
-        select(UrlScan).where(
-            UrlScan.id == scan_id,
-            UrlScan.user_id == current_user.id,
-        )
-    )
-    scan = result.scalar_one_or_none()
-    if not scan:
-        raise HTTPException(status_code=404, detail="Scan introuvable")
-    return scan
+    return await get_user_resource(db, UrlScan, scan_id, current_user.id, "Scan introuvable")
 
 
 @router.get("/{scan_id}/pdf")
@@ -107,15 +86,7 @@ async def download_url_scan_pdf(
     db: AsyncSession = Depends(get_db),
 ):
     """Generate and return a PDF report for a completed URL scan."""
-    result = await db.execute(
-        select(UrlScan).where(
-            UrlScan.id == scan_id,
-            UrlScan.user_id == current_user.id,
-        )
-    )
-    scan = result.scalar_one_or_none()
-    if not scan:
-        raise HTTPException(status_code=404, detail="Scan introuvable")
+    scan = await get_user_resource(db, UrlScan, scan_id, current_user.id, "Scan introuvable")
     if scan.status != "done" or not scan.results_json:
         raise HTTPException(status_code=404, detail="Rapport non disponible — scan non terminé")
 
@@ -144,14 +115,6 @@ async def delete_url_scan(
     db: AsyncSession = Depends(get_db),
 ):
     """Delete a URL scan (RGPD — droit à l'oubli)."""
-    result = await db.execute(
-        select(UrlScan).where(
-            UrlScan.id == scan_id,
-            UrlScan.user_id == current_user.id,
-        )
-    )
-    scan = result.scalar_one_or_none()
-    if not scan:
-        raise HTTPException(status_code=404, detail="Scan introuvable")
+    scan = await get_user_resource(db, UrlScan, scan_id, current_user.id, "Scan introuvable")
     await db.delete(scan)
     await db.commit()

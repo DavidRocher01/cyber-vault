@@ -15,6 +15,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.models.iso27001_assessment import Iso27001Assessment
+from app.services.assessment_service import compute_assessment_score
 
 router = APIRouter(prefix="/iso27001", tags=["iso27001"])
 
@@ -143,17 +144,6 @@ ISO27001_CATEGORIES = [
 ALL_ITEM_IDS = {item["id"] for cat in ISO27001_CATEGORIES for item in cat["items"]}
 
 
-def _compute_score(items: dict[str, str]) -> int:
-    """Compute 0-100 score against all ISO 27001 items.
-    compliant=2pts, partial=1pt, non_compliant=0, na excluded from denominator."""
-    all_statuses = [items.get(id, "non_compliant") for id in ALL_ITEM_IDS]
-    scorable = [s for s in all_statuses if s != "na"]
-    if not scorable:
-        return 0
-    total = sum(2 if s == "compliant" else 1 if s == "partial" else 0 for s in scorable)
-    max_pts = len(scorable) * 2
-    return round(total / max_pts * 100) if max_pts else 0
-
 
 # ---------------------------------------------------------------------------
 # Schemas
@@ -204,7 +194,7 @@ async def save_assessment(
         if status not in VALID_STATUSES:
             raise HTTPException(status_code=422, detail=f"Statut invalide : {status}")
 
-    score = _compute_score(payload.items)
+    score = compute_assessment_score(payload.items, ALL_ITEM_IDS)
     now = datetime.now(timezone.utc)
 
     result = await db.execute(
@@ -242,7 +232,7 @@ async def export_assessment_pdf(
     )
     assessment = result.scalar_one_or_none()
     items = json.loads(assessment.items_json) if assessment else {}
-    score = _compute_score(items)
+    score = compute_assessment_score(items, ALL_ITEM_IDS)
     updated_at = assessment.updated_at if assessment else None
 
     from app.services.iso27001_pdf import generate_iso27001_pdf

@@ -7,7 +7,7 @@ Covers: trigger (202), frequency enforcement (429), list (pagination),
 import pytest
 from datetime import datetime, timedelta, timezone
 from httpx import ASGITransport, AsyncClient
-from unittest.mock import patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.main import app
 
@@ -21,7 +21,7 @@ async def _headers(client: AsyncClient, email: str) -> dict:
 
 
 async def _site(client: AsyncClient, headers: dict, url: str = "https://example.com") -> int:
-    with patch("app.api.v1.endpoints.sites._get_max_sites", return_value=5):
+    with patch("app.api.v1.endpoints.sites.get_active_plan", new=AsyncMock(return_value=MagicMock(max_sites=5))):
         r = await client.post(f"{BASE}/sites", json={"url": url, "name": "Test"}, headers=headers)
     return r.json()["id"]
 

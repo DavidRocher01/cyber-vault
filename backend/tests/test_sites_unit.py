@@ -11,8 +11,8 @@ from app.api.v1.endpoints.sites import (
     list_sites,
     add_site,
     delete_site,
-    _get_max_sites,
 )
+from app.services.subscription_service import get_active_plan
 from app.models.site import Site
 from app.models.user import User
 
@@ -39,21 +39,21 @@ def _payload(url: str = "https://example.com", name: str = "Test") -> MagicMock:
     return p
 
 
-# ─── _get_max_sites ───────────────────────────────────────────────────────────
+# ─── get_active_plan ──────────────────────────────────────────────────────────
 
 @pytest.mark.asyncio
-async def test_get_max_sites_no_plan_returns_zero():
+async def test_get_active_plan_no_plan_returns_none():
     db = AsyncMock()
     r = MagicMock()
     r.scalar_one_or_none.return_value = None
     db.execute = AsyncMock(return_value=r)
 
-    result = await _get_max_sites(db, user_id=1)
-    assert result == 0
+    result = await get_active_plan(db, user_id=1)
+    assert result is None
 
 
 @pytest.mark.asyncio
-async def test_get_max_sites_with_plan():
+async def test_get_active_plan_with_plan():
     plan = MagicMock()
     plan.max_sites = 5
     db = AsyncMock()
@@ -61,8 +61,8 @@ async def test_get_max_sites_with_plan():
     r.scalar_one_or_none.return_value = plan
     db.execute = AsyncMock(return_value=r)
 
-    result = await _get_max_sites(db, user_id=1)
-    assert result == 5
+    result = await get_active_plan(db, user_id=1)
+    assert result.max_sites == 5
 
 
 # ─── list_sites ───────────────────────────────────────────────────────────────

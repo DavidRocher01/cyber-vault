@@ -2,25 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
+
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.models.site import Site
-from app.models.subscription import Subscription
-from app.models.plan import Plan
 from app.schemas.cyberscan import SiteCreate, SiteOut
+from app.services.subscription_service import get_active_plan
 
 router = APIRouter(prefix="/sites", tags=["sites"])
-
-
-async def _get_max_sites(db: AsyncSession, user_id: int) -> int:
-    result = await db.execute(
-        select(Plan)
-        .join(Subscription, Subscription.plan_id == Plan.id)
-        .where(Subscription.user_id == user_id, Subscription.status == "active")
-    )
-    plan = result.scalar_one_or_none()
-    return plan.max_sites if plan else 0
 
 
 @router.get("", response_model=list[SiteOut])
@@ -40,7 +30,8 @@ async def add_site(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    max_sites = await _get_max_sites(db, current_user.id)
+    plan = await get_active_plan(db, current_user.id)
+    max_sites = plan.max_sites if plan else 0
     if max_sites == 0:
         raise HTTPException(status_code=403, detail="Abonnement requis pour ajouter un site")
 

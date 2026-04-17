@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.datetime_utils import ensure_utc
 from app.core.limiter import limiter
 from app.core.security import (
     REFRESH_TOKEN_EXPIRE_DAYS,
@@ -54,9 +55,7 @@ async def login(request: Request, payload: UserLogin, db: AsyncSession = Depends
         raise invalid_exc
 
     now_utc = datetime.now(timezone.utc)
-    locked_until = user.locked_until
-    if locked_until and locked_until.tzinfo is None:
-        locked_until = locked_until.replace(tzinfo=timezone.utc)
+    locked_until = ensure_utc(user.locked_until)
     if locked_until and locked_until > now_utc:
         remaining = int((locked_until - now_utc).total_seconds() / 60) + 1
         raise HTTPException(
@@ -104,9 +103,7 @@ async def refresh(payload: RefreshIn, db: AsyncSession = Depends(get_db)):
         select(RefreshToken).where(RefreshToken.token == hash_token(payload.refresh_token))
     )
     stored = result.scalar_one_or_none()
-    expires_at = stored.expires_at if stored else None
-    if expires_at is not None and expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    expires_at = ensure_utc(stored.expires_at if stored else None)
     if not stored or stored.revoked or (expires_at is not None and expires_at < datetime.now(timezone.utc)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
@@ -169,9 +166,7 @@ async def reset_password(payload: ResetPasswordIn, db: AsyncSession = Depends(ge
         detail="Lien invalide ou expiré",
     )
 
-    expires_at = stored.expires_at if stored else None
-    if expires_at is not None and expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    expires_at = ensure_utc(stored.expires_at if stored else None)
     if not stored or stored.used or (expires_at is not None and expires_at < datetime.now(timezone.utc)):
         raise invalid_exc
 
