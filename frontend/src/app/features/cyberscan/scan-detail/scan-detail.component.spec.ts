@@ -29,3 +29,32 @@ describe('ScanDetailComponent — formatDate()', () => {
   it('formate une date ISO', () => expect(make().formatDate('2024-03-15T10:30:00Z')).toContain('2024'));
   it('inclut l\'heure', () => expect(make().formatDate('2024-03-15T10:30:00Z')).toMatch(/\d+:\d+/));
 });
+
+describe('ScanDetailComponent — toggleFlip()', () => {
+  it('ajoute la clé au premier clic', () => {
+    const c = make();
+    c.flippedCards = new Set();
+    c.toggleFlip('ssl');
+    expect(c.flippedCards.has('ssl')).toBe(true);
+  });
+
+  it('retire la clé au second clic', () => {
+    const c = make();
+    c.flippedCards = new Set();
+    c.toggleFlip('ssl');
+    c.toggleFlip('ssl');
+    expect(c.flippedCards.has('ssl')).toBe(false);
+  });
+
+  it('gère plusieurs cartes indépendamment', () => {
+    const c = make();
+    c.flippedCards = new Set();
+    c.toggleFlip('ssl');
+    c.toggleFlip('headers');
+    expect(c.flippedCards.has('ssl')).toBe(true);
+    expect(c.flippedCards.has('headers')).toBe(true);
+    c.toggleFlip('ssl');
+    expect(c.flippedCards.has('ssl')).toBe(false);
+    expect(c.flippedCards.has('headers')).toBe(true);
+  });
+});

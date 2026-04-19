@@ -24,7 +24,8 @@ import { ScoreTrendComponent, ScoreTrendPoint } from '../../../shared/score-tren
         MatButtonModule, MatIconModule, MatProgressSpinnerModule,
         MatSnackBarModule, MatPaginatorModule, ScoreGaugeComponent, NavButtonsComponent, ScoreTrendComponent,
     ],
-    templateUrl: './site-detail.component.html'
+    templateUrl: './site-detail.component.html',
+    styleUrl: './site-detail.component.css'
 })
 export class SiteDetailComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
@@ -40,6 +41,12 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
   triggering = signal(false);
   currentPage = signal(1);
   activeTab = signal<'failles' | 'historique' | 'rapports'>('failles');
+  flippedFindings = new Set<string>();
+
+  toggleFinding(key: string) {
+    if (this.flippedFindings.has(key)) this.flippedFindings.delete(key);
+    else this.flippedFindings.add(key);
+  }
 
   ngOnInit() {
     const id = Number(this.route.snapshot.paramMap.get('id'));

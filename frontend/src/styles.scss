@@ -135,3 +135,52 @@ app-cyberscan-landing mat-expansion-panel.mat-expanded {
     will-change: transform;
   }
 }
+
+/* ── Flip card ─────────────────────────────────────────────────────────────── */
+.flip-container {
+  position: relative;
+  min-height: 130px;
+}
+
+.flip-container--row {
+  min-height: 80px;
+}
+
+.flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+}
+
+.flip-front {
+  position: absolute;
+  inset: 0;
+  opacity: 1;
+  pointer-events: auto;
+  transform: rotateY(0deg);
+  transition: transform 0.35s ease, opacity 0.15s ease;
+}
+
+.flip-inner.flipped .flip-front {
+  opacity: 0;
+  pointer-events: none;
+  transform: rotateY(-90deg);
+  transition: transform 0.35s ease, opacity 0.15s 0.2s ease;
+}
+
+.flip-back {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: rotateY(90deg);
+  transition: transform 0.35s ease, opacity 0.15s ease;
+}
+
+.flip-inner.flipped .flip-back {
+  opacity: 1;
+  pointer-events: auto;
+  transform: rotateY(0deg);
+  transition: transform 0.35s ease, opacity 0.15s 0.2s ease;
+}
