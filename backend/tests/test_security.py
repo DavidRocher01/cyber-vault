@@ -14,6 +14,7 @@ from app.core.security import (
     create_refresh_token,
     decode_access_token,
     hash_password,
+    hash_token,
     verify_password,
 )
 
@@ -82,6 +83,39 @@ class TestAccessToken:
         t1 = create_access_token("a@test.com")
         t2 = create_access_token("b@test.com")
         assert t1 != t2
+
+
+# ── hash_token (HMAC-SHA256) ──────────────────────────────────────────────────
+
+class TestHashToken:
+    def test_output_is_64_hex_chars(self):
+        h = hash_token("any-raw-token")
+        assert len(h) == 64
+        assert all(c in "0123456789abcdef" for c in h)
+
+    def test_same_token_same_hash(self):
+        assert hash_token("tok") == hash_token("tok")
+
+    def test_different_tokens_different_hashes(self):
+        assert hash_token("token-a") != hash_token("token-b")
+
+    def test_raw_token_not_in_hash(self):
+        raw = "supersecret123"
+        assert raw not in hash_token(raw)
+
+    def test_hash_changes_with_secret_key(self):
+        """HMAC-SHA256 output depends on the key — changing the key changes the hash."""
+        from unittest.mock import patch
+        h1 = hash_token("same-token")
+        with patch("app.core.security.settings") as mock_settings:
+            mock_settings.SECRET_KEY = "different-secret"
+            h2 = hash_token("same-token")
+        assert h1 != h2
+
+    def test_consistent_across_calls(self):
+        """hash_token must be deterministic for DB lookups to work."""
+        raw = create_refresh_token()
+        assert hash_token(raw) == hash_token(raw)
 
 
 # ── create_refresh_token ─────────────────────────────────────────────────────

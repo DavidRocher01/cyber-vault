@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -37,5 +38,13 @@ def create_refresh_token() -> str:
 
 
 def hash_token(raw_token: str) -> str:
-    """SHA-256 hash of a token for safe DB storage (one-way, constant-time lookup)."""
-    return hashlib.sha256(raw_token.encode()).hexdigest()
+    """HMAC-SHA256 of a token for safe DB storage.
+    Using SECRET_KEY as the HMAC key means a DB dump alone cannot be used to
+    build rainbow tables — the attacker also needs the application secret.
+    Output is always 64 hex chars.
+    """
+    return hmac.new(
+        settings.SECRET_KEY.encode(),
+        raw_token.encode(),
+        hashlib.sha256,
+    ).hexdigest()
