@@ -32,7 +32,11 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 465
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
-    SMTP_FROM: str = "noreply@cyberscan.io"
+    SMTP_FROM: str = ""
+
+    @property
+    def smtp_from_address(self) -> str:
+        return self.SMTP_FROM or self.SMTP_USER
 
     # Admin
     ADMIN_API_KEY: str = ""

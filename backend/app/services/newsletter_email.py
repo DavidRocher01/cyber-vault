@@ -41,7 +41,7 @@ def _wrap(rows: str) -> str:
 
 def _send(to_email: str, subject: str, html: str, plain: str) -> None:
     msg = MIMEMultipart("alternative")
-    msg["From"] = settings.SMTP_FROM
+    msg["From"] = settings.smtp_from_address
     msg["To"] = to_email
     msg["Subject"] = subject
     msg.attach(MIMEText(plain, "plain", "utf-8"))
@@ -49,7 +49,7 @@ def _send(to_email: str, subject: str, html: str, plain: str) -> None:
     context = ssl.create_default_context()
     with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, context=context) as server:
         server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-        server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
+        server.sendmail(settings.smtp_from_address, to_email, msg.as_string())
 
 
 # ── 1. Confirmation email (double opt-in) ─────────────────────────────────────
