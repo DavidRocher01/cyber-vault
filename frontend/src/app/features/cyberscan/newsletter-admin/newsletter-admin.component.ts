@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { FormArray, FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
@@ -125,6 +125,7 @@ const ACCENT = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#a855f7'];
                   <div style="margin-bottom:10px;">
                     <label style="display:block;color:#475569;font-size:11px;font-weight:600;letter-spacing:1px;margin-bottom:4px;">URL DE L'ARTICLE</label>
                     <input formControlName="actu_url" placeholder="https://..."
+                      (blur)="fetchOgImage($index)"
                       style="width:100%;box-sizing:border-box;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:9px 12px;color:#f1f5f9;font-size:13px;outline:none;">
                   </div>
 
@@ -265,6 +266,19 @@ export class NewsletterAdminComponent implements OnInit {
     this.http.put<Article[]>(`${environment.apiUrl}/newsletter/admin/schedule`, items, { headers: this.headers() }).subscribe({
       next: () => { this.savingSchedule.set(false); this.saveOk.set(true); },
       error: () => this.savingSchedule.set(false),
+    });
+  }
+
+  fetchOgImage(index: number) {
+    const arr = this.scheduleForm.get('articles') as FormArray;
+    const ctrl = arr.at(index);
+    const url = ctrl.get('actu_url')?.value;
+    if (!url || ctrl.get('image_url')?.value) return;
+    this.http.get<{ image_url: string | null }>(
+      `${environment.apiUrl}/newsletter/admin/og-image`,
+      { params: { url }, headers: this.headers() }
+    ).subscribe({
+      next: res => { if (res.image_url) ctrl.patchValue({ image_url: res.image_url }); },
     });
   }
 

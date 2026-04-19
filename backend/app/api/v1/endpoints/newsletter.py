@@ -1,5 +1,7 @@
+import re
 from datetime import datetime, timezone
 
+import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from app.core.limiter import limiter
@@ -237,6 +239,24 @@ async def admin_send_from_schedule(
 
     logger.info(f"Newsletter articles issue #{payload.edition} queued for {count} subscribers")
     return SendIssueOut(sent=count, message=f"Édition #{payload.edition} envoyée à {count} abonné(s).")
+
+
+# ── OG image scraper ──────────────────────────────────────────────────────────
+
+@router.get("/admin/og-image", dependencies=[Depends(_require_admin)])
+async def fetch_og_image(url: str):
+    """Fetch the og:image meta tag from a given URL."""
+    try:
+        async with httpx.AsyncClient(timeout=8, follow_redirects=True) as client:
+            resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
+            html = resp.text
+        match = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
+        if not match:
+            match = re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']', html, re.IGNORECASE)
+        image_url = match.group(1) if match else None
+        return {"image_url": image_url}
+    except Exception:
+        return {"image_url": None}
 
 
 # ── Schedule endpoints ─────────────────────────────────────────────────────────
