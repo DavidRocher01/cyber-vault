@@ -7,7 +7,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
 import { environment } from '../../../../environments/environment';
 
 interface Stats { total: number; active: number; pending_confirmation: number; }
-interface Article { position: number; actu_title: string; actu_url: string; actu_source: string; reflex: string; }
+interface Article { position: number; actu_title: string; actu_url: string; actu_source: string; reflex: string; image_url?: string | null; }
 
 @Component({
   standalone: true,
@@ -98,6 +98,8 @@ interface Article { position: number; actu_title: string; actu_url: string; actu
                     style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#f1f5f9;font-size:13px;outline:none;">
                   <input formControlName="reflex" placeholder="Note courte (pourquoi lire cet article ?)"
                     style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#f1f5f9;font-size:13px;outline:none;">
+                  <input formControlName="image_url" placeholder="URL image (optionnel — ex: https://site.com/image.jpg)"
+                    style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#f1f5f9;font-size:13px;outline:none;">
                   <div style="display:flex;gap:8px;">
                     <button type="submit" [disabled]="articleForm.invalid"
                       style="background:#0891b2;color:#fff;border:none;border-radius:6px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;">
@@ -150,6 +152,8 @@ interface Article { position: number; actu_title: string; actu_url: string; actu
                 <input formControlName="actu_url" placeholder="URL de l'article"
                   style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#f1f5f9;font-size:13px;outline:none;">
                 <input formControlName="reflex" placeholder="Note courte (pourquoi lire cet article ?)"
+                  style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#f1f5f9;font-size:13px;outline:none;">
+                <input formControlName="image_url" placeholder="URL image (optionnel — ex: https://site.com/image.jpg)"
                   style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#f1f5f9;font-size:13px;outline:none;">
                 <div style="display:flex;gap:8px;">
                   <button type="submit" [disabled]="articleForm.invalid"
@@ -236,6 +240,7 @@ export class NewsletterAdminComponent implements OnInit {
     actu_url:    ['',  Validators.required],
     actu_source: ['',  Validators.required],
     reflex:      ['',  Validators.required],
+    image_url:   ['' as string | null],
   });
 
   ngOnInit() {
@@ -282,7 +287,7 @@ export class NewsletterAdminComponent implements OnInit {
   startEdit(a: Article) {
     this.adding.set(false);
     this.editingPosition.set(a.position);
-    this.articleForm.setValue({ position: a.position, actu_title: a.actu_title, actu_url: a.actu_url, actu_source: a.actu_source, reflex: a.reflex });
+    this.articleForm.setValue({ position: a.position, actu_title: a.actu_title, actu_url: a.actu_url, actu_source: a.actu_source, reflex: a.reflex, image_url: a.image_url ?? null });
   }
 
   cancelEdit() {

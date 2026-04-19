@@ -15,4 +15,5 @@ class NewsletterScheduleItem(Base):
     actu_url: Mapped[str] = mapped_column(String(1000), nullable=False)
     actu_source: Mapped[str] = mapped_column(String(100), nullable=False)        # e.g. "BleepingComputer"
     reflex: Mapped[str] = mapped_column(String(300), nullable=False)
+    image_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

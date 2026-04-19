@@ -221,7 +221,7 @@ async def admin_send_from_schedule(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Aucun article dans le planning.")
 
     articles = [
-        {"actu_title": it.actu_title, "actu_url": it.actu_url, "actu_source": it.actu_source, "reflex": it.reflex}
+        {"actu_title": it.actu_title, "actu_url": it.actu_url, "actu_source": it.actu_source, "reflex": it.reflex, "image_url": it.image_url}
         for it in items
     ]
 
