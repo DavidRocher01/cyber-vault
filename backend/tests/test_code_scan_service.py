@@ -17,6 +17,7 @@ import pytest
 from app.services.code_scan_service import (
     _count_severities,
     _extract_repo_name,
+    _redact_url,
     _run,
     _run_bandit,
     _run_checkov,
@@ -30,6 +31,26 @@ from app.services.code_scan_service import (
     run_code_scan,
     run_code_scan_zip,
 )
+
+
+# ─── _redact_url ─────────────────────────────────────────────────────────────
+
+def test_redact_url_strips_token():
+    text = "fatal: Authentication failed for 'https://ghp_abc123@github.com/user/repo.git/'"
+    assert "ghp_abc123" not in _redact_url(text)
+    assert "github.com" in _redact_url(text)
+
+
+def test_redact_url_no_token_unchanged():
+    text = "fatal: repository 'https://github.com/user/repo' not found"
+    assert _redact_url(text) == text
+
+
+def test_redact_url_multiple_occurrences():
+    text = "https://tok1@host.com and https://tok2@host2.com"
+    result = _redact_url(text)
+    assert "tok1" not in result
+    assert "tok2" not in result
 
 
 # ─── _sanitize_repo_url ────────────────────────────────────────────────────────
@@ -343,6 +364,23 @@ async def test_run_code_scan_git_clone_failure():
 
     assert scan.status == "failed"
     assert "git clone failed" in scan.error_message
+
+
+@pytest.mark.asyncio
+async def test_run_code_scan_token_not_stored_in_error_message():
+    """PAT embedded in clone_url must never appear in error_message stored in DB."""
+    scan = _make_mock_scan()
+    db = _make_mock_db(scan)
+    token = "ghp_supersecrettoken"
+    clone_url = f"https://{token}@github.com/user/private-repo.git"
+    stderr_with_token = f"fatal: Authentication failed for '{clone_url}'"
+
+    with patch("app.services.code_scan_service._run", return_value=(1, "", stderr_with_token)):
+        with patch("shutil.rmtree"):
+            await run_code_scan(1, db, clone_url=clone_url)
+
+    assert scan.status == "failed"
+    assert token not in (scan.error_message or "")
 
 
 @pytest.mark.asyncio

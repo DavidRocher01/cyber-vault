@@ -38,6 +38,11 @@ def _sanitize_repo_url(url: str, token: str | None) -> str:
     return url
 
 
+def _redact_url(text: str) -> str:
+    """Strip embedded credentials from URLs in text to prevent token leakage."""
+    return re.sub(r"https?://[^@\s/]+@", "https://", text)
+
+
 def _extract_repo_name(url: str) -> str:
     """Extract owner/repo from a GitHub URL."""
     url = url.rstrip("/").rstrip(".git")
@@ -935,7 +940,7 @@ async def run_code_scan(scan_id: int, db: AsyncSession, clone_url: str | None = 
             timeout=120,
         )
         if rc != 0:
-            raise RuntimeError(f"git clone failed: {stderr[:300]}")
+            raise RuntimeError(f"git clone failed: {_redact_url(stderr[:300])}")
 
         repo_dir = os.path.join(tmp_dir, "repo")
 
