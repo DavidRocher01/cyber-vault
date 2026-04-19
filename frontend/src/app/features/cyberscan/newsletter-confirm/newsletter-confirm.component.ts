@@ -1,7 +1,9 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { environment } from '../../../../environments/environment';
 
 @Component({
     standalone: true,
@@ -78,10 +80,21 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
 })
 export class NewsletterConfirmComponent implements OnInit {
   private route = inject(ActivatedRoute);
+  private http = inject(HttpClient);
   readonly status = signal<'loading' | 'ok' | 'invalid'>('loading');
 
   ngOnInit() {
     const s = this.route.snapshot.queryParamMap.get('status');
-    this.status.set(s === 'ok' ? 'ok' : s === 'invalid' ? 'invalid' : 'loading');
+    if (s === 'ok' || s === 'invalid') {
+      this.status.set(s);
+      return;
+    }
+    const token = this.route.snapshot.queryParamMap.get('token');
+    if (!token) { this.status.set('invalid'); return; }
+    this.http.get(`${environment.apiUrl}/newsletter/confirm`, { params: { token }, observe: 'response', responseType: 'text' })
+      .subscribe({
+        next: () => this.status.set('ok'),
+        error: () => this.status.set('invalid'),
+      });
   }
 }

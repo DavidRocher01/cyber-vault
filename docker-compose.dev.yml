@@ -22,6 +22,8 @@ services:
       dockerfile: backend/Dockerfile
     container_name: cybervault_dev_backend
     restart: unless-stopped
+    env_file:
+      - ./backend/.env
     environment:
       APP_ENV: development
       SECRET_KEY: dev-secret-key-not-for-production-64chars
@@ -40,16 +42,6 @@ services:
       retries: 3
       start_period: 20s
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: cybervault_dev_frontend
-    ports:
-      - "4200:80"
-    depends_on:
-      backend:
-        condition: service_healthy
 
 volumes:
   postgres_dev_data:
