@@ -4,6 +4,8 @@ Covers: _validate_url, _analyze_url (mocked httpx), verdict/scoring logic,
         SSL error path, SSRF guard, threat type classification.
 """
 
+import socket
+
 import pytest
 import httpx
 
@@ -11,6 +13,9 @@ from unittest.mock import AsyncMock, MagicMock, patch, call
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.url_scan_service import _validate_url, _analyze_url, run_url_scan
+
+# Fake DNS response that returns a public IP — used to keep tests hermetic
+_PUBLIC_DNS = [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("93.184.216.34", 0))]
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -41,10 +46,12 @@ def _mock_client(final_url: str, html: str, history_urls: list[str] | None = Non
 
 class TestValidateUrl:
     def test_https_ok(self):
-        _validate_url("https://example.com")  # must not raise
+        with patch("app.services.url_scan_service.socket.getaddrinfo", return_value=_PUBLIC_DNS):
+            _validate_url("https://example.com")  # must not raise
 
     def test_http_ok(self):
-        _validate_url("http://example.com")
+        with patch("app.services.url_scan_service.socket.getaddrinfo", return_value=_PUBLIC_DNS):
+            _validate_url("http://example.com")
 
     def test_ftp_rejected(self):
         with pytest.raises(ValueError, match="http"):
@@ -87,10 +94,31 @@ class TestValidateUrl:
         with pytest.raises(ValueError):
             _validate_url("http://[::1]")
 
+    def test_aws_imds_literal_ip_rejected(self):
+        with pytest.raises(ValueError, match="private"):
+            _validate_url("http://169.254.169.254/latest/meta-data/")
+
+    def test_dns_rebinding_rejected(self):
+        # Domain that resolves to a private IP must be blocked
+        private_dns = [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("169.254.169.254", 0))]
+        with patch("app.services.url_scan_service.socket.getaddrinfo", return_value=private_dns):
+            with pytest.raises(ValueError, match="private"):
+                _validate_url("https://evil.rebind.com")
+
+    def test_unresolvable_host_rejected(self):
+        with patch("app.services.url_scan_service.socket.getaddrinfo", side_effect=socket.gaierror):
+            with pytest.raises(ValueError, match="résoudre"):
+                _validate_url("https://this-does-not-exist.invalid")
+
 
 # ── _analyze_url ─────────────────────────────────────────────────────────────
 
 class TestAnalyzeUrl:
+    @pytest.fixture(autouse=True)
+    def skip_url_validation(self, monkeypatch):
+        """_analyze_url tests focus on content analysis — bypass SSRF validation."""
+        monkeypatch.setattr("app.services.url_scan_service._validate_url", lambda url: None)
+
 
     @pytest.mark.asyncio
     async def test_clean_page_is_safe(self):
@@ -301,6 +329,7 @@ class TestAnalyzeUrl:
         assert "suspicious_tld" in types or "phishing_keyword" in types
 
 
+
     @pytest.mark.asyncio
     async def test_ssl_retry_also_fails_continues_with_empty_html(self):
         """When the SSL retry (verify=False) also raises, the scan continues with
@@ -330,6 +359,27 @@ class TestAnalyzeUrl:
         assert result["ssl_valid"] is False
         types = [f["type"] for f in result["findings"]]
         assert "ssl_error" in types
+
+
+# ── SSRF redirect detection (real _validate_url needed) ───────────────────────
+
+class TestAnalyzeUrlSsrf:
+    @pytest.mark.asyncio
+    async def test_redirect_to_internal_ip_adds_ssrf_finding(self):
+        """Redirect chain through a private IP must trigger ssrf_redirect finding."""
+        ctx = _mock_client(
+            final_url="http://169.254.169.254/latest/meta-data/",
+            html="ami-id=xxx",
+            history_urls=["https://legit.com/click"],
+        )
+        with patch("app.services.url_scan_service.httpx.AsyncClient", return_value=ctx):
+            # Mock DNS for the initial URL; the redirect target is a literal private IP (no DNS needed)
+            with patch("app.services.url_scan_service.socket.getaddrinfo", return_value=_PUBLIC_DNS):
+                result = await _analyze_url("https://legit.com/click")
+        types = [f["type"] for f in result["findings"]]
+        assert "ssrf_redirect" in types
+        severities = [f["severity"] for f in result["findings"] if f["type"] == "ssrf_redirect"]
+        assert severities[0] == "critical"
 
 
 # ── run_url_scan (background task) ────────────────────────────────────────────

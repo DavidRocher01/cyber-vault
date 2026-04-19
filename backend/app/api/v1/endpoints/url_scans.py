@@ -18,6 +18,7 @@ from app.models.url_scan import UrlScan
 from app.schemas.url_scan import UrlScanCreate, UrlScanOut, PaginatedUrlScans
 from app.services.url_scan_service import run_url_scan
 from app.core.limiter import limiter
+from app.core.ssrf import assert_no_ssrf
 
 router = APIRouter(prefix="/url-scans", tags=["url-scans"])
 
@@ -37,6 +38,7 @@ async def trigger_url_scan(
     db: AsyncSession = Depends(get_db),
 ):
     """Submit a URL for suspicious content analysis."""
+    assert_no_ssrf(payload.url)
     from datetime import datetime, timezone
     url_scan = UrlScan(
         user_id=current_user.id,

@@ -4,8 +4,10 @@ Detects redirects, SSL issues, phishing patterns, and malicious JS.
 Playwright (deep JS sandbox) is planned for V2.
 """
 
+import ipaddress
 import json
 import re
+import socket
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
@@ -32,8 +34,6 @@ PHISHING_KEYWORDS = [
     "login-update", "billing", "suspended",
 ]
 
-PRIVATE_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "::1"}  # nosec B104 — set of strings, not a socket binding
-
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -47,22 +47,67 @@ HEADERS = {
 # SSRF guard
 # ---------------------------------------------------------------------------
 
+_PRIVATE_NETWORKS = [
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("169.254.0.0/16"),  # AWS IMDS + link-local
+    ipaddress.ip_network("100.64.0.0/10"),   # Carrier-grade NAT
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fc00::/7"),
+    ipaddress.ip_network("fe80::/10"),
+]
+
+# Known internal hostnames that must never be scanned
+_INTERNAL_HOSTNAMES = {"localhost", "0.0.0.0", "127.0.0.1", "::1", "metadata.google.internal"}  # nosec B104
+
+
+def _is_private_ip(ip_str: str) -> bool:
+    try:
+        addr = ipaddress.ip_address(ip_str)
+        return any(addr in net for net in _PRIVATE_NETWORKS)
+    except ValueError:
+        return True  # unparseable → block
+
+
 def _validate_url(url: str) -> None:
-    """Raise ValueError if URL points to an internal/private resource."""
+    """
+    Raise ValueError if URL points to an internal/private resource.
+    Uses DNS resolution to catch rebinding attacks — not just string matching.
+    """
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
         raise ValueError("URL must start with http:// or https://")
-    host = (parsed.hostname or "").lower()
-    if host in PRIVATE_HOSTS:
+    hostname = (parsed.hostname or "").lower()
+    if not hostname:
+        raise ValueError("URL invalide : hôte manquant")
+
+    # Fast path: block well-known internal hostnames by name
+    if hostname in _INTERNAL_HOSTNAMES:
         raise ValueError("Scan of internal addresses is not allowed")
-    parts = host.split(".")
-    # Block 10.x.x.x, 172.16–31.x.x, 192.168.x.x
-    if parts[0] == "10":
-        raise ValueError("Scan of private network addresses is not allowed")
-    if parts[0] == "172" and 16 <= int(parts[1]) <= 31:
-        raise ValueError("Scan of private network addresses is not allowed")
-    if parts[0] == "192" and parts[1] == "168":
-        raise ValueError("Scan of private network addresses is not allowed")
+
+    # If the hostname is a literal IP, check it directly (no DNS needed)
+    try:
+        ipaddress.ip_address(hostname)
+        is_literal_ip = True
+    except ValueError:
+        is_literal_ip = False
+
+    if is_literal_ip:
+        if _is_private_ip(hostname):
+            raise ValueError("Scan of private network addresses is not allowed")
+        return
+
+    # Resolve hostname → check every returned IP (guards against DNS rebinding)
+    try:
+        infos = socket.getaddrinfo(hostname, None)
+    except socket.gaierror:
+        raise ValueError(f"Impossible de résoudre l'hôte : {hostname}")
+    for info in infos:
+        ip = info[4][0]
+        if _is_private_ip(ip):
+            raise ValueError("Scan of private network addresses is not allowed")
 
 
 # ---------------------------------------------------------------------------
@@ -127,6 +172,21 @@ async def _analyze_url(url: str) -> dict:
         raise ValueError(f"Erreur réseau : {exc}")
 
     final_domain = urlparse(final_url).hostname or original_domain
+
+    # ── 1b. SSRF guard on redirect targets ────────────────────────────────────
+    for redir_url in redirect_chain + ([final_url] if final_url != url else []):
+        try:
+            _validate_url(redir_url)
+        except ValueError:
+            score = min(score + 50, 100)
+            findings.append({
+                "type": "ssrf_redirect",
+                "severity": "critical",
+                "time_ms": None,
+                "detail": f"Redirection vers une adresse interne détectée : {urlparse(redir_url).hostname}",
+            })
+            html = ""  # discard any fetched content from internal address
+            break
 
     # ── 2. Redirect chain analysis ──────────────────────────────────────────
     if redirect_chain:
