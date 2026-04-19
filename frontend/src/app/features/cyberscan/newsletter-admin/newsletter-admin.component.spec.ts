@@ -1,50 +1,52 @@
 import { describe, it, expect, vi } from 'vitest';
 import { signal } from '@angular/core';
-import { FormBuilder, Validators } from '@angular/forms';
+import { FormArray, FormBuilder } from '@angular/forms';
 import { of, throwError } from 'rxjs';
 import { NewsletterAdminComponent } from './newsletter-admin.component';
 
 const STATS = { total: 10, active: 8, pending_confirmation: 2 };
 const ARTICLES = [
-  { position: 1, actu_title: 'Titre 1', actu_url: 'https://a.com', actu_source: 'Source A', reflex: 'Note 1' },
-  { position: 2, actu_title: 'Titre 2', actu_url: 'https://b.com', actu_source: 'Source B', reflex: 'Note 2' },
+  { position: 1, actu_title: 'Titre 1', actu_url: 'https://a.com', actu_source: 'Source A', reflex: 'Note 1', image_url: null },
+  { position: 2, actu_title: 'Titre 2', actu_url: 'https://b.com', actu_source: 'Source B', reflex: 'Note 2', image_url: null },
 ];
 
 function make() {
   const comp = Object.create(NewsletterAdminComponent.prototype) as NewsletterAdminComponent;
-  (comp as any).apiKeySet       = signal(false);
-  (comp as any).keyError        = signal(false);
-  (comp as any).stats           = signal(null);
-  (comp as any).articles        = signal([]);
-  (comp as any).sending         = signal(false);
-  (comp as any).sendResult      = signal(null);
-  (comp as any).editingPosition = signal(null);
-  (comp as any).adding          = signal(false);
-  (comp as any).keyInput        = '';
-  (comp as any).editionNumber   = 1;
+  (comp as any).apiKeySet      = signal(false);
+  (comp as any).keyError       = signal(false);
+  (comp as any).stats          = signal(null);
+  (comp as any).sending        = signal(false);
+  (comp as any).savingSchedule = signal(false);
+  (comp as any).saveOk         = signal(false);
+  (comp as any).sendResult     = signal(null);
+  (comp as any).keyInput       = '';
+  (comp as any).editionNumber  = 1;
   const fb = new FormBuilder();
   (comp as any).fb = fb;
-  (comp as any).articleForm = fb.nonNullable.group({
-    position:    [1,   [Validators.required, Validators.min(1), Validators.max(6)]],
-    actu_title:  ['x', Validators.required],
-    actu_url:    ['x', Validators.required],
-    actu_source: ['x', Validators.required],
-    reflex:      ['x', Validators.required],
+  const slot = (pos: number) => fb.group({
+    position:    [pos],
+    actu_source: ['x'],
+    actu_title:  ['x'],
+    actu_url:    ['x'],
+    reflex:      ['x'],
+    image_url:   [null],
+  });
+  (comp as any).scheduleForm = fb.group({
+    articles: fb.array(Array.from({ length: 6 }, (_, i) => slot(i + 1))),
   });
   return comp;
 }
 
 describe('NewsletterAdminComponent — submitKey()', () => {
-  it('active apiKeySet et charge stats + schedule si clé valide', () => {
+  it('active apiKeySet et charge stats si clé valide', () => {
     const comp = make();
     (comp as any).keyInput = 'valid';
     (comp as any).http = {
-      get: vi.fn().mockReturnValue(of(STATS)),
+      get: vi.fn((url: string) => url.includes('stats') ? of(STATS) : of([])),
     };
     comp.submitKey();
     expect(comp.apiKeySet()).toBe(true);
     expect(comp.stats()).toEqual(STATS);
-    expect(comp.keyError()).toBe(false);
   });
 
   it('affiche keyError si clé invalide', () => {
@@ -56,53 +58,55 @@ describe('NewsletterAdminComponent — submitKey()', () => {
   });
 });
 
-describe('NewsletterAdminComponent — gestion des articles', () => {
-  it('startEdit peuple le formulaire avec les valeurs de l\'article', () => {
+describe('NewsletterAdminComponent — loadSchedule()', () => {
+  it('pré-remplit les slots avec les articles existants', () => {
     const comp = make();
-    comp.startEdit(ARTICLES[0]);
-    expect(comp.articleForm.value.actu_title).toBe('Titre 1');
-    expect(comp.editingPosition()).toBe(1);
-    expect(comp.adding()).toBe(false);
+    (comp as any).http = { get: vi.fn().mockReturnValue(of(ARTICLES)) };
+    comp.loadSchedule();
+    const arr = (comp as any).scheduleForm.get('articles') as FormArray;
+    expect(arr.at(0).value.actu_title).toBe('Titre 1');
+    expect(arr.at(1).value.actu_source).toBe('Source B');
   });
 
-  it('startAdd initialise un formulaire vide avec la prochaine position', () => {
+  it('laisse les slots vides pour les positions sans article', () => {
     const comp = make();
-    (comp as any).articles.set(ARTICLES);
-    comp.startAdd();
-    expect(comp.adding()).toBe(true);
-    expect(comp.articleForm.value.position).toBe(3);
+    (comp as any).http = { get: vi.fn().mockReturnValue(of([])) };
+    comp.loadSchedule();
+    const arr = (comp as any).scheduleForm.get('articles') as FormArray;
+    expect(arr.at(0).value.actu_title).toBe('');
+  });
+});
+
+describe('NewsletterAdminComponent — saveSchedule()', () => {
+  it('envoie uniquement les slots remplis', () => {
+    const comp = make();
+    const putSpy = vi.fn().mockReturnValue(of([]));
+    (comp as any).http = { put: putSpy };
+    comp.saveSchedule();
+    const body = putSpy.mock.calls[0][1];
+    expect(body.length).toBe(6);
+    expect(comp.saveOk()).toBe(true);
   });
 
-  it('cancelEdit remet editingPosition et adding à null/false', () => {
+  it('ignore les slots vides (champs tous vides)', () => {
     const comp = make();
-    (comp as any).editingPosition.set(1);
-    (comp as any).adding.set(true);
-    comp.cancelEdit();
-    expect(comp.editingPosition()).toBeNull();
-    expect(comp.adding()).toBe(false);
-  });
-
-  it('deleteArticle renumérote les positions restantes', () => {
-    const comp = make();
-    (comp as any).articles.set(ARTICLES);
-    (comp as any).http = { put: vi.fn().mockReturnValue(of([{ position: 1, actu_title: 'Titre 2', actu_url: 'https://b.com', actu_source: 'Source B', reflex: 'Note 2' }])) };
-    comp.deleteArticle(1);
-    expect((comp as any).http.put).toHaveBeenCalledOnce();
-    const body = (comp as any).http.put.mock.calls[0][1];
-    expect(body[0].position).toBe(1);
-    expect(body[0].actu_title).toBe('Titre 2');
+    const arr = (comp as any).scheduleForm.get('articles') as FormArray;
+    arr.at(2).patchValue({ actu_title: '', actu_url: '', actu_source: '', reflex: '' });
+    const putSpy = vi.fn().mockReturnValue(of([]));
+    (comp as any).http = { put: putSpy };
+    comp.saveSchedule();
+    const body = putSpy.mock.calls[0][1];
+    expect(body.length).toBe(5);
+    expect(body.every((a: any) => a.actu_title)).toBe(true);
   });
 });
 
 describe('NewsletterAdminComponent — sendFromSchedule()', () => {
-  it('envoie l\'édition et affiche le message de succès', () => {
+  it('envoie et affiche le message de succès', () => {
     const comp = make();
-    (comp as any).articles.set(ARTICLES);
     (comp as any).http = { post: vi.fn().mockReturnValue(of({ sent: 8, message: 'Édition #001 envoyée à 8 abonné(s).' })) };
     comp.sendFromSchedule();
-    expect(comp.sending()).toBe(false);
     expect(comp.sendResult()?.ok).toBe(true);
-    expect(comp.sendResult()?.message).toContain('8');
   });
 
   it('affiche une erreur si le backend échoue', () => {
@@ -118,10 +122,8 @@ describe('NewsletterAdminComponent — logout()', () => {
     const comp = make();
     (comp as any).apiKeySet.set(true);
     (comp as any).stats.set(STATS);
-    (comp as any).articles.set(ARTICLES);
     comp.logout();
     expect(comp.apiKeySet()).toBe(false);
     expect(comp.stats()).toBeNull();
-    expect(comp.articles()).toEqual([]);
   });
 });

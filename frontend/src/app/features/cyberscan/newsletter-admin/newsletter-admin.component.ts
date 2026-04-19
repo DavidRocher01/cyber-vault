@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
@@ -8,6 +8,8 @@ import { environment } from '../../../../environments/environment';
 
 interface Stats { total: number; active: number; pending_confirmation: number; }
 interface Article { position: number; actu_title: string; actu_url: string; actu_source: string; reflex: string; image_url?: string | null; }
+
+const ACCENT = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#a855f7'];
 
 @Component({
   standalone: true,
@@ -24,20 +26,18 @@ interface Article { position: number; actu_title: string; actu_url: string; actu
       <span style="color:#64748b;font-size:14px;">Admin Newsletter</span>
     </nav>
 
-    <div style="max-width:800px;margin:0 auto;padding:40px 24px;">
+    <div style="max-width:820px;margin:0 auto;padding:40px 24px;">
 
       <!-- Clé admin -->
       @if (!apiKeySet()) {
         <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:32px;text-align:center;">
           <mat-icon style="font-size:40px;width:40px;height:40px;color:#f59e0b;margin-bottom:16px;">lock</mat-icon>
           <h2 style="color:#f1f5f9;margin:0 0 8px;">Accès admin requis</h2>
-          <p style="color:#64748b;font-size:14px;margin:0 0 24px;">Entrez votre clé admin pour accéder au tableau de bord newsletter.</p>
+          <p style="color:#64748b;font-size:14px;margin:0 0 24px;">Entrez votre clé admin pour continuer.</p>
           <form (ngSubmit)="submitKey()" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-            <input type="password" [(ngModel)]="keyInput" [ngModelOptions]="{standalone:true}"
-              placeholder="Admin API Key"
+            <input type="password" [(ngModel)]="keyInput" [ngModelOptions]="{standalone:true}" placeholder="Admin API Key"
               style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px 16px;color:#f1f5f9;font-size:14px;width:280px;outline:none;">
-            <button type="submit"
-              style="background:#0891b2;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;">
+            <button type="submit" style="background:#0891b2;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;">
               Valider
             </button>
           </form>
@@ -65,133 +65,97 @@ interface Article { position: number; actu_title: string; actu_url: string; actu
           </div>
         </div>
 
-        <!-- Liste des articles -->
+        <!-- Planning — 6 slots -->
         <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:32px;margin-bottom:24px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
             <div>
-              <h2 style="color:#f1f5f9;margin:0 0 4px;font-size:20px;">Articles de l'édition</h2>
-              <p style="color:#64748b;font-size:13px;margin:0;">{{ articles().length }}/6 articles · <a href="#" (click)="loadSchedule();$event.preventDefault()" style="color:#22d3ee;text-decoration:none;">Actualiser</a></p>
+              <h2 style="color:#f1f5f9;margin:0 0 4px;font-size:20px;">Planning de l'édition</h2>
+              <p style="color:#64748b;font-size:13px;margin:0;">Remplissez les articles puis enregistrez.</p>
             </div>
-            @if (articles().length < 6) {
-              <button (click)="startAdd()"
-                style="background:#0891b2;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
-                <mat-icon style="font-size:16px;width:16px;height:16px;">add</mat-icon> Ajouter
-              </button>
-            }
+            <button (click)="saveSchedule()" [disabled]="scheduleForm.invalid || savingSchedule()"
+              style="background:#0891b2;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;"
+              [style.opacity]="savingSchedule() ? '0.5' : '1'">
+              @if (savingSchedule()) { Enregistrement… } @else { Enregistrer le planning }
+            </button>
           </div>
 
-          <!-- Articles existants -->
-          @for (a of articles(); track a.position) {
-            <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:16px;margin-bottom:12px;">
-              @if (editingPosition() === a.position) {
-                <!-- Formulaire édition inline -->
-                <form [formGroup]="articleForm" (ngSubmit)="saveArticle(a.position)" style="display:flex;flex-direction:column;gap:10px;">
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                    <input formControlName="actu_source" placeholder="Source (ex: BleepingComputer)"
-                      style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#f1f5f9;font-size:13px;outline:none;">
-                    <input type="number" formControlName="position" placeholder="Position (1-6)"
-                      style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#f1f5f9;font-size:13px;outline:none;">
+          @if (saveOk()) {
+            <div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
+              <mat-icon style="color:#4ade80;font-size:18px;width:18px;height:18px;">check_circle</mat-icon>
+              <span style="color:#4ade80;font-size:13px;">Planning enregistré avec succès.</span>
+            </div>
+          }
+
+          <form [formGroup]="scheduleForm">
+            <div formArrayName="articles">
+              @for (ctrl of articleControls; track $index) {
+                <div [formGroupName]="$index"
+                  style="border:1px solid #1e293b;border-radius:10px;padding:20px;margin-bottom:16px;background:#0f172a;">
+
+                  <!-- En-tête slot -->
+                  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+                    <span [style.background]="accent($index) + '22'" [style.color]="accent($index)"
+                      style="font-size:11px;font-weight:800;letter-spacing:2px;padding:4px 12px;border-radius:20px;">
+                      ARTICLE {{ $index + 1 }}
+                    </span>
                   </div>
-                  <input formControlName="actu_title" placeholder="Titre de l'article"
-                    style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#f1f5f9;font-size:13px;outline:none;">
-                  <input formControlName="actu_url" placeholder="URL de l'article"
-                    style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#f1f5f9;font-size:13px;outline:none;">
-                  <input formControlName="reflex" placeholder="Note courte (pourquoi lire cet article ?)"
-                    style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#f1f5f9;font-size:13px;outline:none;">
-                  <input formControlName="image_url" placeholder="URL image (optionnel — ex: https://site.com/image.jpg)"
-                    style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#f1f5f9;font-size:13px;outline:none;">
-                  <div style="display:flex;gap:8px;">
-                    <button type="submit" [disabled]="articleForm.invalid"
-                      style="background:#0891b2;color:#fff;border:none;border-radius:6px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;">
-                      Enregistrer
-                    </button>
-                    <button type="button" (click)="cancelEdit()"
-                      style="background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer;">
-                      Annuler
-                    </button>
+
+                  <!-- Ligne 1 : source + URL image -->
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                    <div>
+                      <label style="display:block;color:#475569;font-size:11px;font-weight:600;letter-spacing:1px;margin-bottom:4px;">SOURCE</label>
+                      <input formControlName="actu_source" placeholder="Ex: BleepingComputer"
+                        style="width:100%;box-sizing:border-box;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:9px 12px;color:#f1f5f9;font-size:13px;outline:none;">
+                    </div>
+                    <div>
+                      <label style="display:block;color:#475569;font-size:11px;font-weight:600;letter-spacing:1px;margin-bottom:4px;">URL IMAGE <span style="color:#334155;">(optionnel)</span></label>
+                      <input formControlName="image_url" placeholder="https://..."
+                        style="width:100%;box-sizing:border-box;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:9px 12px;color:#f1f5f9;font-size:13px;outline:none;">
+                    </div>
                   </div>
-                </form>
-              } @else {
-                <div style="display:flex;align-items:flex-start;gap:12px;">
-                  <span style="background:#22d3ee22;color:#22d3ee;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;white-space:nowrap;">
-                    #{{ a.position }}
-                  </span>
-                  <div style="flex:1;min-width:0;">
-                    <p style="margin:0 0 2px;color:#475569;font-size:11px;font-weight:600;letter-spacing:1px;">{{ a.actu_source }}</p>
-                    <p style="margin:0 0 4px;color:#f1f5f9;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ a.actu_title }}</p>
-                    <p style="margin:0;color:#64748b;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ a.reflex }}</p>
+
+                  <!-- Ligne 2 : titre -->
+                  <div style="margin-bottom:10px;">
+                    <label style="display:block;color:#475569;font-size:11px;font-weight:600;letter-spacing:1px;margin-bottom:4px;">TITRE DE L'ARTICLE</label>
+                    <input formControlName="actu_title" placeholder="Ex: Campagne ransomware vise les PME européennes"
+                      style="width:100%;box-sizing:border-box;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:9px 12px;color:#f1f5f9;font-size:13px;outline:none;">
                   </div>
-                  <div style="display:flex;gap:4px;flex-shrink:0;">
-                    <button (click)="startEdit(a)"
-                      style="background:none;border:1px solid #334155;border-radius:6px;padding:6px;cursor:pointer;color:#94a3b8;display:flex;align-items:center;">
-                      <mat-icon style="font-size:15px;width:15px;height:15px;">edit</mat-icon>
-                    </button>
-                    <button (click)="deleteArticle(a.position)"
-                      style="background:none;border:1px solid #334155;border-radius:6px;padding:6px;cursor:pointer;color:#f87171;display:flex;align-items:center;">
-                      <mat-icon style="font-size:15px;width:15px;height:15px;">delete</mat-icon>
-                    </button>
+
+                  <!-- Ligne 3 : URL article -->
+                  <div style="margin-bottom:10px;">
+                    <label style="display:block;color:#475569;font-size:11px;font-weight:600;letter-spacing:1px;margin-bottom:4px;">URL DE L'ARTICLE</label>
+                    <input formControlName="actu_url" placeholder="https://..."
+                      style="width:100%;box-sizing:border-box;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:9px 12px;color:#f1f5f9;font-size:13px;outline:none;">
                   </div>
+
+                  <!-- Ligne 4 : note -->
+                  <div>
+                    <label style="display:block;color:#475569;font-size:11px;font-weight:600;letter-spacing:1px;margin-bottom:4px;">NOTE (pourquoi lire cet article ?)</label>
+                    <input formControlName="reflex" placeholder="Ex: Réduire le délai de détection grâce à un EDR/SIEM"
+                      style="width:100%;box-sizing:border-box;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:9px 12px;color:#f1f5f9;font-size:13px;outline:none;">
+                  </div>
+
                 </div>
               }
             </div>
-          }
-
-          <!-- Formulaire ajout -->
-          @if (adding()) {
-            <div style="background:#0f172a;border:1px dashed #334155;border-radius:10px;padding:16px;margin-bottom:12px;">
-              <p style="color:#22d3ee;font-size:12px;font-weight:600;margin:0 0 12px;">Nouvel article</p>
-              <form [formGroup]="articleForm" (ngSubmit)="saveNewArticle()" style="display:flex;flex-direction:column;gap:10px;">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                  <input formControlName="actu_source" placeholder="Source (ex: BleepingComputer)"
-                    style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#f1f5f9;font-size:13px;outline:none;">
-                  <input type="number" formControlName="position" placeholder="Position (1-6)"
-                    style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#f1f5f9;font-size:13px;outline:none;">
-                </div>
-                <input formControlName="actu_title" placeholder="Titre de l'article"
-                  style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#f1f5f9;font-size:13px;outline:none;">
-                <input formControlName="actu_url" placeholder="URL de l'article"
-                  style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#f1f5f9;font-size:13px;outline:none;">
-                <input formControlName="reflex" placeholder="Note courte (pourquoi lire cet article ?)"
-                  style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#f1f5f9;font-size:13px;outline:none;">
-                <input formControlName="image_url" placeholder="URL image (optionnel — ex: https://site.com/image.jpg)"
-                  style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#f1f5f9;font-size:13px;outline:none;">
-                <div style="display:flex;gap:8px;">
-                  <button type="submit" [disabled]="articleForm.invalid"
-                    style="background:#0891b2;color:#fff;border:none;border-radius:6px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;">
-                    Ajouter
-                  </button>
-                  <button type="button" (click)="cancelEdit()"
-                    style="background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:6px;padding:8px 16px;font-size:13px;cursor:pointer;">
-                    Annuler
-                  </button>
-                </div>
-              </form>
-            </div>
-          }
-
-          @if (articles().length === 0 && !adding()) {
-            <p style="color:#475569;font-size:14px;text-align:center;padding:20px 0;">Aucun article. Cliquez sur "Ajouter" pour commencer.</p>
-          }
+          </form>
         </div>
 
-        <!-- Envoyer l'édition -->
+        <!-- Envoyer -->
         <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:32px;">
           <h2 style="color:#f1f5f9;margin:0 0 4px;font-size:20px;">Envoyer l'édition</h2>
           <p style="color:#64748b;font-size:13px;margin:0 0 20px;">
-            Sera envoyée aux <strong style="color:#22d3ee;">{{ stats()?.active ?? '?' }} abonnés actifs</strong>
-            avec les <strong style="color:#f1f5f9;">{{ articles().length }} articles</strong> ci-dessus.
+            Sera envoyée aux <strong style="color:#22d3ee;">{{ stats()?.active ?? '?' }} abonnés actifs</strong>.
           </p>
-
-          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
             <div>
-              <label style="display:block;color:#94a3b8;font-size:12px;font-weight:600;letter-spacing:1px;margin-bottom:6px;">NUMÉRO D'ÉDITION</label>
+              <label style="display:block;color:#475569;font-size:11px;font-weight:600;letter-spacing:1px;margin-bottom:6px;">NUMÉRO D'ÉDITION</label>
               <input type="number" [(ngModel)]="editionNumber"
                 style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px 14px;color:#f1f5f9;font-size:14px;outline:none;width:100px;">
             </div>
-            <button (click)="sendFromSchedule()"
-              [disabled]="articles().length === 0 || sending()"
-              style="margin-top:20px;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;"
-              [style.opacity]="articles().length === 0 || sending() ? '0.5' : '1'">
+            <button (click)="sendFromSchedule()" [disabled]="sending()"
+              style="background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;"
+              [style.opacity]="sending() ? '0.5' : '1'">
               @if (sending()) { Envoi en cours… } @else { Envoyer l'édition #{{ editionNumber }} }
             </button>
           </div>
@@ -221,36 +185,45 @@ interface Article { position: number; actu_title: string; actu_url: string; actu
 })
 export class NewsletterAdminComponent implements OnInit {
   private http = inject(HttpClient);
-  private fb = inject(FormBuilder);
+  private fb   = inject(FormBuilder);
 
-  apiKeySet        = signal(false);
-  keyInput         = '';
-  keyError         = signal(false);
-  stats            = signal<Stats | null>(null);
-  articles         = signal<Article[]>([]);
-  sending          = signal(false);
-  sendResult       = signal<{ ok: boolean; message: string } | null>(null);
-  editingPosition  = signal<number | null>(null);
-  adding           = signal(false);
-  editionNumber    = 1;
+  apiKeySet     = signal(false);
+  keyInput      = '';
+  keyError      = signal(false);
+  stats         = signal<Stats | null>(null);
+  sending       = signal(false);
+  savingSchedule = signal(false);
+  saveOk        = signal(false);
+  sendResult    = signal<{ ok: boolean; message: string } | null>(null);
+  editionNumber = 1;
 
-  articleForm = this.fb.nonNullable.group({
-    position:    [1,   [Validators.required, Validators.min(1), Validators.max(6)]],
-    actu_title:  ['',  Validators.required],
-    actu_url:    ['',  Validators.required],
-    actu_source: ['',  Validators.required],
-    reflex:      ['',  Validators.required],
-    image_url:   ['' as string | null],
+  scheduleForm = this.fb.group({
+    articles: this.fb.array(Array.from({ length: 6 }, (_, i) => this._blankSlot(i + 1))),
   });
+
+  get articleControls() {
+    return (this.scheduleForm.get('articles') as FormArray).controls;
+  }
+
+  accent(i: number) { return ACCENT[i % ACCENT.length]; }
+
+  private _blankSlot(position: number) {
+    return this.fb.group({
+      position:    [position],
+      actu_source: [''],
+      actu_title:  [''],
+      actu_url:    [''],
+      reflex:      [''],
+      image_url:   [null as string | null],
+    });
+  }
 
   ngOnInit() {
     const saved = sessionStorage.getItem('admin_key');
     if (saved) { this.apiKeySet.set(true); this.keyInput = saved; this.loadStats(); this.loadSchedule(); }
   }
 
-  private headers() {
-    return new HttpHeaders({ 'X-Admin-Key': this.keyInput });
-  }
+  private headers() { return new HttpHeaders({ 'X-Admin-Key': this.keyInput }); }
 
   submitKey() {
     this.keyError.set(false);
@@ -273,53 +246,25 @@ export class NewsletterAdminComponent implements OnInit {
 
   loadSchedule() {
     this.http.get<Article[]>(`${environment.apiUrl}/newsletter/schedule`).subscribe({
-      next: data => this.articles.set(data),
+      next: articles => {
+        const arr = this.scheduleForm.get('articles') as FormArray;
+        arr.controls.forEach((ctrl, i) => {
+          const pos = i + 1;
+          const a = articles.find(x => x.position === pos);
+          ctrl.patchValue(a ? { ...a } : { position: pos, actu_source: '', actu_title: '', actu_url: '', reflex: '', image_url: null });
+        });
+      },
     });
   }
 
-  startAdd() {
-    this.editingPosition.set(null);
-    this.adding.set(true);
-    const nextPos = this.articles().length + 1;
-    this.articleForm.reset({ position: nextPos, actu_title: '', actu_url: '', actu_source: '', reflex: '' });
-  }
-
-  startEdit(a: Article) {
-    this.adding.set(false);
-    this.editingPosition.set(a.position);
-    this.articleForm.setValue({ position: a.position, actu_title: a.actu_title, actu_url: a.actu_url, actu_source: a.actu_source, reflex: a.reflex, image_url: a.image_url ?? null });
-  }
-
-  cancelEdit() {
-    this.editingPosition.set(null);
-    this.adding.set(false);
-  }
-
-  saveArticle(oldPosition: number) {
-    if (this.articleForm.invalid) return;
-    const current = this.articles();
-    const updated = current.map(a => a.position === oldPosition ? { ...a, ...this.articleForm.getRawValue() } : a);
-    this._saveSchedule(updated);
-  }
-
-  saveNewArticle() {
-    if (this.articleForm.invalid) return;
-    const newArticle = this.articleForm.getRawValue() as Article;
-    const updated = [...this.articles().filter(a => a.position !== newArticle.position), newArticle]
-      .sort((a, b) => a.position - b.position);
-    this._saveSchedule(updated);
-  }
-
-  deleteArticle(position: number) {
-    const updated = this.articles()
-      .filter(a => a.position !== position)
-      .map((a, i) => ({ ...a, position: i + 1 }));
-    this._saveSchedule(updated);
-  }
-
-  private _saveSchedule(items: Article[]) {
+  saveSchedule() {
+    this.savingSchedule.set(true);
+    this.saveOk.set(false);
+    const items = (this.scheduleForm.get('articles') as FormArray).getRawValue()
+      .filter((a: Article) => a.actu_title && a.actu_url && a.actu_source && a.reflex);
     this.http.put<Article[]>(`${environment.apiUrl}/newsletter/admin/schedule`, items, { headers: this.headers() }).subscribe({
-      next: data => { this.articles.set(data); this.cancelEdit(); },
+      next: () => { this.savingSchedule.set(false); this.saveOk.set(true); },
+      error: () => this.savingSchedule.set(false),
     });
   }
 
@@ -341,6 +286,5 @@ export class NewsletterAdminComponent implements OnInit {
     this.apiKeySet.set(false);
     this.keyInput = '';
     this.stats.set(null);
-    this.articles.set([]);
   }
 }
