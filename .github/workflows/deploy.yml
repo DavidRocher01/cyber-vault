@@ -33,7 +33,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG:    ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
+          docker build -f backend/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push    $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker tag     $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
                          $ECR_REGISTRY/$ECR_REPOSITORY:latest
@@ -113,7 +113,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install & build (production)
-        run: npm ci && npm run build -- --configuration=production
+        run: npm ci --legacy-peer-deps && npm run build -- --configuration=production
         working-directory: frontend
 
       - name: Configure AWS credentials
