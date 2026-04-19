@@ -300,6 +300,7 @@ async def update_schedule(
             actu_url=item.actu_url,
             actu_source=item.actu_source,
             reflex=item.reflex,
+            image_url=item.image_url,
             updated_at=now,
         )
         db.add(row)
