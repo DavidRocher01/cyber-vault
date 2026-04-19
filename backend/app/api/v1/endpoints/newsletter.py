@@ -18,12 +18,14 @@ from app.schemas.newsletter import (
     NewsletterSubscribeOut,
     ScheduleItemIn,
     ScheduleItemOut,
+    SendFromScheduleIn,
     SendIssueIn,
     SendIssueOut,
     SubscriberOut,
 )
 from app.services.newsletter_email import (
     send_confirmation_email,
+    send_newsletter_articles,
     send_newsletter_issue,
     send_newsletter_welcome,
     send_unsubscribe_confirmation,
@@ -202,6 +204,38 @@ async def admin_send_issue(
         )
         count += 1
     logger.info(f"Newsletter issue #{payload.edition} queued for {count} subscribers")
+    return SendIssueOut(sent=count, message=f"Édition #{payload.edition} envoyée à {count} abonné(s).")
+
+
+@router.post("/admin/send-from-schedule", response_model=SendIssueOut, dependencies=[Depends(_require_admin)])
+async def admin_send_from_schedule(
+    payload: SendFromScheduleIn,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
+    schedule_result = await db.execute(
+        select(NewsletterScheduleItem).order_by(NewsletterScheduleItem.position)
+    )
+    items = schedule_result.scalars().all()
+    if not items:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Aucun article dans le planning.")
+
+    articles = [
+        {"actu_title": it.actu_title, "actu_url": it.actu_url, "actu_source": it.actu_source, "reflex": it.reflex}
+        for it in items
+    ]
+
+    subscribers_result = await db.execute(
+        select(NewsletterSubscriber).where(NewsletterSubscriber.is_active == True)  # noqa: E712
+    )
+    subscribers = subscribers_result.scalars().all()
+    count = 0
+    for sub in subscribers:
+        unsubscribe_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?token={sub.unsubscribe_token}"
+        background_tasks.add_task(send_newsletter_articles, sub.email, unsubscribe_url, payload.edition, articles)
+        count += 1
+
+    logger.info(f"Newsletter articles issue #{payload.edition} queued for {count} subscribers")
     return SendIssueOut(sent=count, message=f"Édition #{payload.edition} envoyée à {count} abonné(s).")
 
 

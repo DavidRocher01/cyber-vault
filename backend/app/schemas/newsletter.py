@@ -38,6 +38,10 @@ class SendIssueIn(BaseModel):
     legal_body: str
 
 
+class SendFromScheduleIn(BaseModel):
+    edition: int
+
+
 class SendIssueOut(BaseModel):
     sent: int
     message: str

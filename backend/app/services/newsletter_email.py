@@ -176,7 +176,64 @@ def send_unsubscribe_confirmation(to_email: str) -> None:
     _send(to_email, "Desabonnement confirme — Radar Cyber", html, plain)
 
 
-# ── 4. Newsletter issue ────────────────────────────────────────────────────────
+# ── 4. Newsletter issue (articles) ────────────────────────────────────────────
+
+def send_newsletter_articles(
+    to_email: str,
+    unsubscribe_url: str,
+    edition: int,
+    articles: list[dict],
+) -> None:
+    """articles: list of {actu_title, actu_url, actu_source, reflex}"""
+    edition_str = f"{edition:03d}"
+    article_rows = ""
+    plain_articles = ""
+    for i, a in enumerate(articles, 1):
+        article_rows += (
+            f'<tr><td style="padding:0 40px 20px;">'
+            f'<table width="100%" cellpadding="0" cellspacing="0"><tr>'
+            f'<td width="4" style="background:#22d3ee;border-radius:2px;vertical-align:top;"></td>'
+            f'<td style="padding-left:16px;">'
+            f'<p style="margin:0 0 2px;color:#475569;font-size:11px;font-weight:600;letter-spacing:1px;">'
+            f'{i}. {a["actu_source"].upper()}</p>'
+            f'<a href="{a["actu_url"]}" style="color:#f1f5f9;font-size:15px;font-weight:700;text-decoration:none;line-height:1.4;">'
+            f'{a["actu_title"]}</a>'
+            f'<p style="margin:6px 0 0;color:#64748b;font-size:13px;line-height:1.6;">{a["reflex"]}</p>'
+            f'</td></tr></table>'
+            f'</td></tr>'
+        )
+        plain_articles += f'{i}. [{a["actu_source"]}] {a["actu_title"]}\n   {a["actu_url"]}\n   {a["reflex"]}\n\n'
+
+    rows = (
+        f'<tr><td style="{_HEADER_STYLE}">'
+        f'<p style="margin:0 0 4px;color:#67e8f9;font-size:12px;letter-spacing:2px;">LE RADAR CYBER · EDITION #{edition_str}</p>'
+        '<h1 style="margin:0;color:#fff;font-size:24px;">Votre brief cybersecurite</h1>'
+        '<p style="margin:8px 0 0;color:#94a3b8;font-size:13px;">Toutes les deux semaines — 5 minutes chrono</p>'
+        '</td></tr>'
+        '<tr><td style="padding:28px 40px 8px;">'
+        '<p style="margin:0;color:#94a3b8;font-size:13px;">Au programme cette semaine :</p>'
+        '</td></tr>'
+        + article_rows +
+        '<tr><td style="padding:8px 40px 28px;text-align:center;">'
+        f'<a href="{settings.FRONTEND_URL}/cyberscan/dashboard"'
+        ' style="display:inline-block;background:#0891b2;color:#fff;text-decoration:none;'
+        'padding:12px 32px;border-radius:8px;font-weight:bold;font-size:14px;">'
+        'Acceder a mon dashboard'
+        '</a>'
+        '</td></tr>'
+        + _footer(settings.FRONTEND_URL, unsubscribe_url)
+    )
+    html = _wrap(rows)
+    plain = (
+        f"RADAR CYBER · Edition #{edition_str}\n\n"
+        f"{plain_articles}"
+        f"Dashboard : {settings.FRONTEND_URL}/cyberscan/dashboard\n"
+        f"Se desabonner : {unsubscribe_url}\n---\nCyberScan"
+    )
+    _send(to_email, f"Le Radar Cyber #{edition_str}", html, plain)
+
+
+# ── 5. Newsletter issue (legacy editorial) ────────────────────────────────────
 
 def send_newsletter_issue(
     to_email: str,
