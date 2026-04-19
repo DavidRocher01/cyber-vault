@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     # HaveIBeenPwned API (breach checker)
     HIBP_API_KEY: str = ""
 
+    # Number of trusted reverse proxies in front of the app.
+    # 0 = no proxy (local dev), 1 = ALB only, 2 = CloudFront + ALB.
+    # Determines how many IPs to strip from the right of X-Forwarded-For.
+    TRUSTED_PROXY_COUNT: int = 1
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
