@@ -250,10 +250,20 @@ async def fetch_og_image(url: str):
         async with httpx.AsyncClient(timeout=8, follow_redirects=True) as client:
             resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
             html = resp.text
+            final_url = str(resp.url)
         match = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
         if not match:
             match = re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']', html, re.IGNORECASE)
-        image_url = match.group(1) if match else None
+        if not match:
+            return {"image_url": None}
+        image_url = match.group(1).strip()
+        # Résoudre les URLs relatives
+        if image_url.startswith("//"):
+            image_url = "https:" + image_url
+        elif image_url.startswith("/"):
+            from urllib.parse import urlparse
+            parsed = urlparse(final_url)
+            image_url = f"{parsed.scheme}://{parsed.netloc}{image_url}"
         return {"image_url": image_url}
     except Exception:
         return {"image_url": None}
