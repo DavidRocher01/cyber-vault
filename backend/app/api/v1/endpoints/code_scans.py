@@ -25,6 +25,8 @@ from app.services.code_scan_service import run_code_scan, run_code_scan_zip
 
 router = APIRouter(prefix="/code-scans", tags=["code-scans"])
 
+_GIT_ALLOWED_HOSTS = {"github.com", "gitlab.com", "bitbucket.org"}
+
 
 def _embed_token(url: str, token: str | None) -> str:
     if not token:
@@ -127,6 +129,10 @@ async def trigger_code_scan(
     parsed = urlparse(body.repo_url)
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
         raise HTTPException(status_code=422, detail="URL de dépôt invalide (https:// requis)")
+
+    host = parsed.hostname or ""
+    if host not in _GIT_ALLOWED_HOSTS:
+        raise HTTPException(status_code=422, detail=f"Hôte non autorisé. Plateformes acceptées : {', '.join(sorted(_GIT_ALLOWED_HOSTS))}")
 
     assert_no_ssrf(body.repo_url)
     clone_url = _embed_token(body.repo_url, body.github_token)

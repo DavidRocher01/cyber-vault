@@ -310,18 +310,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.cyberscan.createCheckout(plan.id).subscribe({
       next: res => {
         const url = res.checkout_url;
-        // Internal route → use Angular router to preserve nav history
         try {
           const parsed = new URL(url);
           if (parsed.hostname === window.location.hostname) {
             this.router.navigateByUrl(parsed.pathname + parsed.search);
-            return;
+          } else if (parsed.hostname === 'checkout.stripe.com') {
+            window.location.href = url;
           }
-        } catch { /* url is relative */ }
-        if (url.startsWith('/')) {
-          this.router.navigateByUrl(url);
-        } else {
-          window.location.href = url;
+        } catch {
+          if (url.startsWith('/')) this.router.navigateByUrl(url);
         }
       },
       error: () => this.checkoutLoading.set(null),
@@ -329,7 +326,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   openBillingPortal() {
-    this.cyberscan.getBillingPortal().subscribe({ next: res => window.location.href = res.checkout_url });
+    this.cyberscan.getBillingPortal().subscribe({
+      next: res => {
+        try {
+          const parsed = new URL(res.checkout_url);
+          if (parsed.hostname === 'billing.stripe.com' || parsed.hostname === 'checkout.stripe.com') {
+            window.location.href = res.checkout_url;
+          }
+        } catch { /* URL invalide ignorée */ }
+      },
+    });
   }
 
   formatPrice(cents: number): string {

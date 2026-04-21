@@ -12,6 +12,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -102,8 +103,9 @@ async def run_public_scan(public_scan_id: int, db: AsyncSession) -> None:
         scan.results_json = json.dumps(outcome["results"], default=str)
         scan.finished_at = datetime.now(timezone.utc)
     except Exception as exc:
+        logger.error(f"Public scan {scan_id} failed: {exc}")
         scan.status = "failed"
-        scan.error_message = str(exc)[:512]
+        scan.error_message = "Scan échoué. Veuillez réessayer ultérieurement."
         scan.finished_at = datetime.now(timezone.utc)
 
     await db.commit()

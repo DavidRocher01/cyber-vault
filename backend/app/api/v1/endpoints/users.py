@@ -16,7 +16,7 @@ from app.core.security import hash_password, verify_password
 from app.models.user import User
 from app.models.site import Site
 from app.models.scan import Scan
-from app.schemas.user import UserOut, TwoFactorSetupOut, TwoFactorVerifyIn, TwoFactorDisableIn, NotificationPreferencesOut, NotificationPreferencesIn
+from app.schemas.user import UserOut, TwoFactorSetupOut, TwoFactorSetupIn, TwoFactorVerifyIn, TwoFactorDisableIn, NotificationPreferencesOut, NotificationPreferencesIn
 from pydantic import BaseModel, EmailStr
 
 
@@ -170,15 +170,25 @@ async def update_notification_preferences(
 
 @router.post("/me/2fa/setup", response_model=TwoFactorSetupOut)
 async def setup_2fa(
+    payload: TwoFactorSetupIn,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Generate a new TOTP secret and return QR code. Does NOT enable 2FA yet."""
+    """Generate a new TOTP secret and return QR code. Does NOT enable 2FA yet.
+    If 2FA is already active, the current TOTP code must be provided to prevent
+    account takeover via stolen JWT.
+    """
+    if current_user.totp_enabled:
+        if not payload.current_code:
+            raise HTTPException(status_code=400, detail="Code TOTP actuel requis pour reconfigurer la 2FA")
+        totp = pyotp.TOTP(current_user.totp_secret)
+        if not totp.verify(payload.current_code, valid_window=1):
+            raise HTTPException(status_code=400, detail="Code TOTP invalide")
+
     secret = pyotp.random_base32()
     totp = pyotp.TOTP(secret)
     uri = totp.provisioning_uri(name=current_user.email, issuer_name="CyberScan")
 
-    # Store the pending secret (not yet active)
     current_user.totp_secret = secret
     await db.commit()
 

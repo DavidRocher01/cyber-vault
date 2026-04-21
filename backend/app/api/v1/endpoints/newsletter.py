@@ -1,4 +1,5 @@
 import re
+import secrets
 from datetime import datetime, timezone
 
 import httpx
@@ -12,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import create_refresh_token
+from app.core.ssrf import assert_no_ssrf
 from app.models.newsletter_subscriber import NewsletterSubscriber
 from app.models.newsletter_schedule import NewsletterScheduleItem
 from app.schemas.newsletter import (
@@ -39,7 +41,7 @@ router = APIRouter(prefix="/newsletter", tags=["newsletter"])
 # ── Guard admin ────────────────────────────────────────────────────────────────
 
 def _require_admin(x_admin_key: str = Header(default="")) -> None:
-    if not settings.ADMIN_API_KEY or x_admin_key != settings.ADMIN_API_KEY:
+    if not settings.ADMIN_API_KEY or not secrets.compare_digest(x_admin_key, settings.ADMIN_API_KEY):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès refusé")
 
 
@@ -247,8 +249,14 @@ async def admin_send_from_schedule(
 async def fetch_og_image(url: str):
     """Fetch the og:image meta tag from a given URL."""
     try:
-        async with httpx.AsyncClient(timeout=8, follow_redirects=True) as client:
+        assert_no_ssrf(url)
+        async with httpx.AsyncClient(timeout=8, follow_redirects=False) as client:
             resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
+            if resp.is_redirect:
+                location = resp.headers.get("location", "")
+                assert_no_ssrf(location)
+                async with httpx.AsyncClient(timeout=8, follow_redirects=False) as c2:
+                    resp = await c2.get(location, headers={"User-Agent": "Mozilla/5.0"})
             html = resp.text
             final_url = str(resp.url)
         match = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', html, re.IGNORECASE)

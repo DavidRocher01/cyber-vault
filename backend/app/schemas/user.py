@@ -68,6 +68,10 @@ class TwoFactorSetupOut(BaseModel):
     secret: str        # manual entry fallback
 
 
+class TwoFactorSetupIn(BaseModel):
+    current_code: str | None = None  # required when 2FA is already active
+
+
 class TwoFactorVerifyIn(BaseModel):
     code: str          # 6-digit TOTP code
 

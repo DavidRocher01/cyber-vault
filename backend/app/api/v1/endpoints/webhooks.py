@@ -3,7 +3,7 @@ Stripe webhook handler.
 Listens for subscription lifecycle events and updates DB accordingly.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -73,8 +73,8 @@ async def _handle_checkout_completed(session: dict, db: AsyncSession) -> None:
     )
     sub = sub_result.scalar_one_or_none()
 
-    period_start = datetime.utcfromtimestamp(stripe_sub["current_period_start"])
-    period_end   = datetime.utcfromtimestamp(stripe_sub["current_period_end"])
+    period_start = datetime.fromtimestamp(stripe_sub["current_period_start"], tz=timezone.utc)
+    period_end   = datetime.fromtimestamp(stripe_sub["current_period_end"], tz=timezone.utc)
 
     if sub:
         sub.plan_id                 = plan.id
@@ -113,5 +113,5 @@ async def _handle_subscription_updated(stripe_sub: dict, db: AsyncSession) -> No
 
     sub.status = stripe_sub.get("status", sub.status)
     if stripe_sub.get("current_period_end"):
-        sub.current_period_end = datetime.utcfromtimestamp(stripe_sub["current_period_end"])
+        sub.current_period_end = datetime.fromtimestamp(stripe_sub["current_period_end"], tz=timezone.utc)
     await db.commit()

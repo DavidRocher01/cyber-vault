@@ -2,6 +2,7 @@
 Newsletter email service — confirmation, welcome, unsubscribe, bi-weekly issue.
 """
 
+import html as _html
 import smtplib
 import ssl
 from email.mime.multipart import MIMEMultipart
@@ -10,6 +11,19 @@ from email.mime.text import MIMEText
 import resend
 
 from app.core.config import settings
+
+
+def _e(text: str) -> str:
+    """Escape text for safe HTML interpolation."""
+    return _html.escape(str(text), quote=True)
+
+
+def _safe_url(url: str) -> str:
+    """Allow only http/https URLs to prevent javascript: injection."""
+    stripped = url.strip()
+    if not stripped.startswith(("https://", "http://")):
+        return "#"
+    return _e(stripped)
 
 _HEADER_STYLE = "background:linear-gradient(135deg,#0e7490,#0c4a6e);padding:32px 40px;"
 _CARD_BG = "background:#1e293b;border-radius:12px;overflow:hidden;border:1px solid #334155;"
@@ -203,30 +217,29 @@ def send_newsletter_articles(
     accent_colors = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#a855f7"]
     for i, a in enumerate(articles, 1):
         color = accent_colors[(i - 1) % len(accent_colors)]
+        url = _safe_url(a["actu_url"])
+        title = _e(a["actu_title"])
+        source = _e(a["actu_source"])
+        note = _e(a["reflex"])
         image_block = (
-            f'<a href="{a["actu_url"]}" style="display:block;">'
-            f'<img src="{a["image_url"]}" alt="" width="556" style="display:block;width:100%;max-width:556px;height:200px;object-fit:cover;border-radius:0;">'
+            f'<a href="{url}" style="display:block;">'
+            f'<img src="{_safe_url(a["image_url"])}" alt="" width="556" style="display:block;width:100%;max-width:556px;height:200px;object-fit:cover;border-radius:0;">'
             f'</a>'
         ) if a.get("image_url") else ""
         article_rows += (
             f'<tr><td style="padding:0 28px 14px;">'
             f'<table width="100%" cellpadding="0" cellspacing="0" style="border-radius:12px;overflow:hidden;border:1px solid #1e293b;">'
-            # image optionnelle
             + (f'<tr><td style="padding:0;line-height:0;">{image_block}</td></tr>' if image_block else "")
             + f'<tr><td style="background:linear-gradient(135deg,#0f172a 0%,#0d1b2a 100%);padding:18px 22px 18px;">'
-            # source + numéro
             f'<table width="100%" cellpadding="0" cellspacing="0"><tr>'
-            f'<td><span style="background:{color}22;color:{color};font-size:10px;font-weight:800;letter-spacing:2px;padding:4px 10px;border-radius:20px;">{a["actu_source"].upper()}</span></td>'
+            f'<td><span style="background:{color}22;color:{color};font-size:10px;font-weight:800;letter-spacing:2px;padding:4px 10px;border-radius:20px;">{source.upper()}</span></td>'
             f'<td align="right"><span style="color:#334155;font-size:12px;font-weight:700;">0{i}</span></td>'
             f'</tr></table>'
-            # titre cliquable
-            f'<a href="{a["actu_url"]}" style="display:block;margin:12px 0 8px;color:#f8fafc;font-size:16px;font-weight:800;text-decoration:none;line-height:1.45;letter-spacing:-0.2px;">'
-            f'{a["actu_title"]}'
+            f'<a href="{url}" style="display:block;margin:12px 0 8px;color:#f8fafc;font-size:16px;font-weight:800;text-decoration:none;line-height:1.45;letter-spacing:-0.2px;">'
+            f'{title}'
             f'</a>'
-            # note
-            f'<p style="margin:0 0 16px;color:#94a3b8;font-size:13px;line-height:1.65;">{a["reflex"]}</p>'
-            # CTA
-            f'<a href="{a["actu_url"]}" style="display:inline-block;background:{color};color:#fff;font-size:12px;font-weight:700;text-decoration:none;padding:8px 18px;border-radius:6px;letter-spacing:0.5px;">'
+            f'<p style="margin:0 0 16px;color:#94a3b8;font-size:13px;line-height:1.65;">{note}</p>'
+            f'<a href="{url}" style="display:inline-block;background:{color};color:#fff;font-size:12px;font-weight:700;text-decoration:none;padding:8px 18px;border-radius:6px;letter-spacing:0.5px;">'
             f'Lire l\'article &rarr;'
             f'</a>'
             f'</td></tr>'
@@ -289,8 +302,8 @@ def send_newsletter_issue(
         '<td width="4" style="background:#ef4444;border-radius:2px;"></td>'
         '<td style="padding-left:16px;">'
         '<p style="margin:0 0 4px;color:#ef4444;font-size:11px;font-weight:bold;letter-spacing:1px;">🌍 FLASH INTERNATIONAL</p>'
-        f'<h2 style="margin:0 0 10px;color:#f1f5f9;font-size:17px;">{flash_title}</h2>'
-        f'<p style="margin:0;color:#94a3b8;font-size:14px;line-height:1.7;">{flash_body}</p>'
+        f'<h2 style="margin:0 0 10px;color:#f1f5f9;font-size:17px;">{_e(flash_title)}</h2>'
+        f'<p style="margin:0;color:#94a3b8;font-size:14px;line-height:1.7;">{_e(flash_body)}</p>'
         '</td></tr></table>'
         '</td></tr>'
         '<tr><td style="padding:18px 40px;"><hr style="border:none;border-top:1px solid #334155;"></td></tr>'
@@ -299,8 +312,8 @@ def send_newsletter_issue(
         '<td width="4" style="background:#22d3ee;border-radius:2px;"></td>'
         '<td style="padding-left:16px;">'
         '<p style="margin:0 0 4px;color:#22d3ee;font-size:11px;font-weight:bold;letter-spacing:1px;">💡 LE BON REFLEXE</p>'
-        f'<h2 style="margin:0 0 10px;color:#f1f5f9;font-size:17px;">{reflex_title}</h2>'
-        f'<p style="margin:0;color:#94a3b8;font-size:14px;line-height:1.7;">{reflex_body}</p>'
+        f'<h2 style="margin:0 0 10px;color:#f1f5f9;font-size:17px;">{_e(reflex_title)}</h2>'
+        f'<p style="margin:0;color:#94a3b8;font-size:14px;line-height:1.7;">{_e(reflex_body)}</p>'
         '</td></tr></table>'
         '</td></tr>'
         '<tr><td style="padding:18px 40px;"><hr style="border:none;border-top:1px solid #334155;"></td></tr>'
@@ -309,8 +322,8 @@ def send_newsletter_issue(
         '<td width="4" style="background:#a855f7;border-radius:2px;"></td>'
         '<td style="padding-left:16px;">'
         '<p style="margin:0 0 4px;color:#a855f7;font-size:11px;font-weight:bold;letter-spacing:1px;">⚖️ COIN DES DIRIGEANTS</p>'
-        f'<h2 style="margin:0 0 10px;color:#f1f5f9;font-size:17px;">{legal_title}</h2>'
-        f'<p style="margin:0;color:#94a3b8;font-size:14px;line-height:1.7;">{legal_body}</p>'
+        f'<h2 style="margin:0 0 10px;color:#f1f5f9;font-size:17px;">{_e(legal_title)}</h2>'
+        f'<p style="margin:0;color:#94a3b8;font-size:14px;line-height:1.7;">{_e(legal_body)}</p>'
         '</td></tr></table>'
         '</td></tr>'
         '<tr><td style="padding:28px 40px;text-align:center;">'

@@ -60,11 +60,17 @@ export class OnboardingComponent implements OnInit {
     this.cyberscan.createCheckout(plan.id).subscribe({
       next: res => {
         const url = res.checkout_url;
-        if (url.startsWith('/') || url.includes(window.location.host)) {
-          const path = url.startsWith('/') ? url : new URL(url).pathname;
-          this.router.navigateByUrl(path);
+        if (url.startsWith('/')) {
+          this.router.navigateByUrl(url);
         } else {
-          window.location.href = url;
+          try {
+            const parsed = new URL(url);
+            if (parsed.hostname === window.location.hostname) {
+              this.router.navigateByUrl(parsed.pathname + parsed.search);
+            } else if (parsed.hostname === 'checkout.stripe.com') {
+              window.location.href = url;
+            }
+          } catch { /* URL invalide ignorée */ }
         }
       },
       error: () => this.checkoutLoading.set(false),
