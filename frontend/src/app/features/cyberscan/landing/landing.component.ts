@@ -302,6 +302,10 @@ export class LandingComponent implements OnInit {
       q: 'CyberScan peut-il m\'aider pour ma conformité NIS2 ou ISO 27001 ?',
       a: 'Oui. L\'outil d\'auto-évaluation NIS2 et ISO 27001 vous guide item par item et génère un rapport PDF de conformité avec un score et un plan d\'action. Il ne remplace pas un audit légal, mais constitue un excellent point de départ pour structurer votre démarche.',
     },
+    {
+      q: 'Mes données de scan sont-elles confidentielles ?',
+      a: 'Oui. Les résultats de vos scans sont strictement privés et accessibles uniquement à vous depuis votre dashboard. Nous ne revendons aucune donnée à des tiers. Les données sont hébergées en Europe (AWS EU-West-3, Paris) et chiffrées au repos.',
+    },
   ];
 
   auditOffers = [
