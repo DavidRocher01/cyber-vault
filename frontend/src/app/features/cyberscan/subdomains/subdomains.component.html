@@ -1,0 +1,125 @@
+<div class="min-h-screen bg-gray-900 text-white">
+
+  <!-- Navbar -->
+  <nav class="flex items-center justify-between px-6 py-4 border-b border-gray-800">
+    <a routerLink="/cyberscan" class="flex items-center gap-2">
+      <mat-icon class="text-cyan-400">shield</mat-icon>
+      <span class="text-xl font-bold text-cyan-400">CyberScan</span>
+    </a>
+    <app-nav-buttons />
+  </nav>
+
+  <div class="max-w-4xl mx-auto px-6 py-10">
+
+    <!-- Back -->
+    <a routerLink="/cyberscan/dashboard" mat-button class="!text-gray-400 hover:!text-white !pl-0 mb-6 flex items-center gap-1 w-fit">
+      <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_back</mat-icon>
+      Dashboard
+    </a>
+
+    <h1 class="text-2xl font-bold mb-1">Sous-domaines</h1>
+
+    <!-- Loading -->
+    @if (loading()) {
+      <div class="flex justify-center py-20">
+        <mat-spinner diameter="48" color="accent"></mat-spinner>
+      </div>
+    }
+
+    <!-- Error -->
+    @if (error()) {
+      <div class="flex items-center gap-3 rounded-xl border border-red-800/50 bg-red-900/10 px-5 py-4 mt-6">
+        <mat-icon class="text-red-400">error</mat-icon>
+        <p class="text-red-300 text-sm">{{ error() }}</p>
+      </div>
+    }
+
+    @if (!loading() && result()) {
+      @let r = result()!;
+
+      <!-- Meta -->
+      <div class="flex flex-wrap items-center gap-4 mt-2 mb-8">
+        <span class="text-gray-400 text-sm break-all">{{ r.site_url }}</span>
+        @if (r.scan_date) {
+          <span class="text-xs text-gray-600">Dernier scan : {{ formatDate(r.scan_date) }}</span>
+        }
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-800/40">
+          {{ r.total_found }} sous-domaine{{ r.total_found > 1 ? 's' : '' }} trouvé{{ r.total_found > 1 ? 's' : '' }}
+        </span>
+      </div>
+
+      <!-- Zone transfer alert -->
+      @if (r.zone_transfer?.vulnerable) {
+        <div class="flex items-start gap-3 rounded-xl border border-red-700/50 bg-red-900/15 px-5 py-4 mb-6">
+          <mat-icon class="text-red-400 flex-shrink-0 mt-0.5">gpp_bad</mat-icon>
+          <div>
+            <p class="font-semibold text-red-300 text-sm">Transfert de zone DNS détecté (CRITICAL)</p>
+            <p class="text-xs text-gray-400 mt-1">Le serveur DNS autorise les transferts de zone (AXFR), exposant l'intégralité de votre infrastructure DNS.</p>
+          </div>
+        </div>
+      }
+
+      <!-- Search -->
+      @if (r.subdomains.length > 0) {
+        <div class="mb-4">
+          <input type="text" placeholder="Filtrer par sous-domaine ou IP…"
+                 [value]="search()"
+                 (input)="search.set($any($event.target).value)"
+                 class="w-full max-w-sm bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-cyan-500/40 focus:border-cyan-500/60 transition-all" />
+        </div>
+
+        <!-- Table -->
+        <div class="rounded-2xl border border-gray-700/60 overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-gray-800/60 border-b border-gray-700/60">
+                <th class="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Sous-domaine</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">IP</th>
+                <th class="px-5 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (sub of filtered; track sub.subdomain) {
+                <tr class="border-b border-gray-700/30 hover:bg-gray-800/30 transition-colors last:border-0">
+                  <td class="px-5 py-3">
+                    <div class="flex items-center gap-2">
+                      <mat-icon class="text-cyan-600 !text-[0.9rem] !w-[0.9rem] !h-[0.9rem] flex-shrink-0">dns</mat-icon>
+                      <span class="font-mono text-sm text-white">{{ sub.subdomain }}</span>
+                    </div>
+                  </td>
+                  <td class="px-5 py-3">
+                    <span class="font-mono text-sm text-gray-400">{{ sub.ip || '—' }}</span>
+                  </td>
+                  <td class="px-5 py-3 text-right">
+                    <a [href]="'https://' + sub.subdomain" target="_blank" rel="noopener noreferrer"
+                       mat-icon-button class="!text-gray-500 hover:!text-cyan-400 !w-7 !h-7"
+                       matTooltip="Ouvrir dans un nouvel onglet">
+                      <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">open_in_new</mat-icon>
+                    </a>
+                  </td>
+                </tr>
+              }
+              @if (filtered.length === 0) {
+                <tr>
+                  <td colspan="3" class="px-5 py-8 text-center text-gray-500 text-sm">Aucun résultat pour "{{ search() }}"</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+      } @else {
+        <!-- Empty state -->
+        <div class="flex flex-col items-center gap-3 py-16 text-center">
+          <mat-icon class="text-gray-600 !text-5xl !w-12 !h-12">dns</mat-icon>
+          <p class="text-gray-400 font-medium">Aucun sous-domaine trouvé</p>
+          <p class="text-gray-600 text-sm max-w-sm">Lancez un scan depuis le dashboard pour analyser les sous-domaines de ce site.</p>
+          <a routerLink="/cyberscan/dashboard" mat-flat-button color="primary" class="!text-sm mt-2">
+            Aller au dashboard
+          </a>
+        </div>
+      }
+    }
+
+  </div>
+</div>

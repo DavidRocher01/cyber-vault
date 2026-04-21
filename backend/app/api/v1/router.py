@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, vault, plans, subscriptions, sites, scans, webhooks, users, newsletter, url_scans, notifications, code_scans, nis2, iso27001
+from app.api.v1.endpoints import auth, vault, plans, subscriptions, sites, scans, webhooks, users, newsletter, url_scans, notifications, code_scans, nis2, iso27001, public_scans
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth.router)
@@ -17,3 +17,4 @@ api_router.include_router(notifications.router)
 api_router.include_router(code_scans.router)
 api_router.include_router(nis2.router)
 api_router.include_router(iso27001.router)
+api_router.include_router(public_scans.router)
