@@ -45,7 +45,7 @@
     "@angular/cli": "^19.2.24",
     "@angular/compiler-cli": "^19.2.21",
     "@compodoc/compodoc": "^1.1.23",
-    "@playwright/test": "^1.44.0",
+    "@playwright/test": "^1.59.1",
     "@storybook/addon-a11y": "^8.0.0",
     "@storybook/addon-essentials": "^8.0.0",
     "@storybook/addon-interactions": "^8.0.0",
