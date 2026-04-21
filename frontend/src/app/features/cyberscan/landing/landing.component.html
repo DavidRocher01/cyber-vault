@@ -215,9 +215,47 @@
     </div>
   </section>
 
+  <!-- Comment ça fonctionne -->
+  <section class="px-8 py-20 bg-gray-900 border-t border-gray-800">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-14">
+        <span class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-cyan-400 mb-4">
+          <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">help_outline</mat-icon>
+          Simple & rapide
+        </span>
+        <h2 class="text-3xl font-bold mb-3">Comment ça fonctionne ?</h2>
+        <p class="text-gray-400 max-w-xl mx-auto text-sm leading-relaxed">Un audit complet en 3 étapes, sans installation, sans configuration.</p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+        <!-- Connecting line -->
+        <div class="hidden md:block absolute top-10 left-1/6 right-1/6 h-px bg-gradient-to-r from-transparent via-cyan-700/50 to-transparent"></div>
+        @for (step of howItWorks; track step.step) {
+          <div class="flex flex-col items-center text-center gap-4">
+            <div class="relative">
+              <div class="w-20 h-20 rounded-2xl bg-gray-800 border border-cyan-700/60 flex items-center justify-center shadow-lg shadow-cyan-900/20">
+                <mat-icon class="text-cyan-400 !text-[2rem] !w-[2rem] !h-[2rem]">{{ step.icon }}</mat-icon>
+              </div>
+              <span class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-cyan-500 text-gray-900 text-xs font-extrabold flex items-center justify-center">{{ step.step }}</span>
+            </div>
+            <h3 class="text-lg font-bold text-white">{{ step.title }}</h3>
+            <p class="text-gray-400 text-sm leading-relaxed max-w-xs">{{ step.desc }}</p>
+          </div>
+        }
+      </div>
+      <div class="text-center mt-12">
+        <button type="button" (click)="openAuth('register')"
+          class="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-all">
+          <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">rocket_launch</mat-icon>
+          Essayer maintenant — c'est gratuit
+        </button>
+      </div>
+    </div>
+  </section>
+
   <!-- Features -->
   <section class="px-8 py-16 bg-gray-800/50">
-    <h2 class="text-3xl font-bold text-center mb-12">Ce que nous analysons</h2>
+    <h2 class="text-3xl font-bold text-center mb-3">Ce que nous analysons</h2>
+    <p class="text-gray-400 text-center mb-12">21 modules de sécurité couvrant l'ensemble des vecteurs d'attaque OWASP</p>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
       @for (feature of features; track feature.title) {
         <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 hover:border-cyan-600 hover:shadow-lg hover:shadow-cyan-900/20 transition-all cursor-default">
@@ -232,11 +270,72 @@
     </div>
   </section>
 
+  <!-- Cas d'usage -->
+  <section class="px-8 py-20 bg-gray-900 border-t border-gray-800">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-14">
+        <span class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-cyan-400 mb-4">
+          <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">people</mat-icon>
+          Pour tous les profils
+        </span>
+        <h2 class="text-3xl font-bold mb-3">Qui utilise CyberScan ?</h2>
+        <p class="text-gray-400 max-w-xl mx-auto text-sm leading-relaxed">De la startup au grand compte, CyberScan s'adapte à votre contexte.</p>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        @for (uc of useCases; track uc.title) {
+          <div class="rounded-2xl border p-7 flex flex-col gap-4 transition-all hover:scale-[1.01]" [ngClass]="uc.bg">
+            <div class="flex items-center gap-3">
+              <mat-icon class="!text-[1.6rem] !w-[1.6rem] !h-[1.6rem]" [ngClass]="uc.color">{{ uc.icon }}</mat-icon>
+              <h3 class="text-xl font-bold text-white">{{ uc.title }}</h3>
+            </div>
+            <p class="text-gray-300 text-sm leading-relaxed">{{ uc.desc }}</p>
+            <div class="flex flex-col gap-1.5 mt-1">
+              @for (point of uc.points; track point) {
+                <div class="flex items-center gap-2 text-sm text-gray-300">
+                  <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] flex-shrink-0" [ngClass]="uc.color">check_circle</mat-icon>
+                  {{ point }}
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Le coût d'une cyberattaque -->
+  <section class="px-8 py-20 bg-gray-800/40 border-t border-gray-800">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-14">
+        <span class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-red-400 mb-4">
+          <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">warning</mat-icon>
+          Le risque en chiffres
+        </span>
+        <h2 class="text-3xl font-bold mb-3">Le coût d'une cyberattaque</h2>
+        <p class="text-gray-400 max-w-xl mx-auto text-sm leading-relaxed">Les chiffres parlent d'eux-mêmes. Peut-on vraiment se permettre de ne pas scanner ?</p>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        @for (stat of cyberStats; track stat.label) {
+          <div class="rounded-2xl border p-6 flex flex-col gap-3 text-center"
+               [ngClass]="stat.source === 'CyberScan'
+                 ? 'border-cyan-800 bg-cyan-900/20'
+                 : 'border-gray-700 bg-gray-800'">
+            <p class="text-3xl font-extrabold"
+               [class.text-red-400]="stat.source !== 'CyberScan'"
+               [class.text-cyan-400]="stat.source === 'CyberScan'">{{ stat.value }}</p>
+            <p class="text-gray-300 text-sm leading-snug">{{ stat.label }}</p>
+            <p class="text-xs text-gray-600 mt-auto">{{ stat.source }}</p>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
   <!-- Testimonials -->
   <section class="px-8 py-16">
     <h2 class="text-3xl font-bold text-center mb-2">Ils nous font confiance</h2>
     <p class="text-gray-300 text-center mb-10">Des équipes qui protègent leurs assets avec CyberScan</p>
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-5xl mx-auto">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
       @for (t of testimonials; track t.name) {
         <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 flex flex-col gap-4">
           <div class="flex gap-1">
@@ -263,35 +362,41 @@
   <section id="audits" class="px-8 py-20 border-t border-gray-800">
     <h2 class="text-3xl font-bold text-center mb-3">Audits à la demande</h2>
     <p class="text-gray-300 text-center mb-12">Des diagnostics complets, réalisés par un expert, avec rapport détaillé et plan d'action</p>
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-5xl mx-auto">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
       @for (offer of auditOffers; track offer.name) {
-        <div class="relative rounded-2xl border p-8 flex flex-col gap-5 transition-all"
-             [ngClass]="offer.featured ? 'border-cyan-500 bg-gray-800/80 md:scale-105' : 'border-gray-700 bg-gray-800'">
+        <div class="relative rounded-2xl border p-7 flex flex-col gap-5 transition-all"
+             [ngClass]="offer.featured ? 'border-cyan-500 bg-gray-800/80' : 'border-gray-700 bg-gray-800'">
           @if (offer.badge) {
-            <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-500 text-gray-900 text-xs font-bold px-3 py-1 rounded-full">
+            <div class="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold px-3 py-1 rounded-full"
+                 [class.bg-cyan-500]="offer.badge === 'Recommandé'"
+                 [class.text-gray-900]="offer.badge === 'Recommandé'"
+                 [class.bg-violet-500]="offer.badge === 'Nouveau'"
+                 [class.text-white]="offer.badge === 'Nouveau'">
               {{ offer.badge }}
             </div>
           }
           <div class="flex items-center gap-3">
-            <mat-icon class="text-cyan-400 !text-[1.5rem] !w-[1.5rem] !h-[1.5rem]">{{ offer.icon }}</mat-icon>
-            <h3 class="text-xl font-bold">{{ offer.name }}</h3>
+            <mat-icon class="text-cyan-400 !text-[1.4rem] !w-[1.4rem] !h-[1.4rem]">{{ offer.icon }}</mat-icon>
+            <h3 class="text-lg font-bold">{{ offer.name }}</h3>
           </div>
           <div>
             <div class="flex items-end gap-2 mb-1">
-              <span class="text-4xl font-extrabold text-cyan-400">{{ offer.price }}</span>
-              <span class="text-gray-400 mb-1">HT</span>
+              <span class="text-3xl font-extrabold text-cyan-400">{{ offer.price }}</span>
+              @if (offer.price !== 'Sur devis') {
+                <span class="text-gray-400 mb-1">HT</span>
+              }
             </div>
             <p class="text-xs text-gray-400">{{ offer.duration }} de travail · {{ offer.target }}</p>
           </div>
-          <div class="flex flex-col gap-2 flex-1" role="list">
+          <div class="flex flex-col gap-2 flex-1">
             @for (item of offer.items; track item) {
-              <div role="listitem" class="flex items-start gap-2 text-sm text-gray-300">
+              <div class="flex items-start gap-2 text-sm text-gray-300">
                 <mat-icon class="text-cyan-400 !text-[1rem] !w-[1rem] !h-[1rem] mt-0.5 flex-shrink-0">check_circle</mat-icon>
                 <span>{{ item }}</span>
               </div>
             }
           </div>
-          <a href="mailto:contact@cyberscan.fr?subject=Demande audit {{ offer.name }}"
+          <a [href]="'mailto:contact@cyberscanapp.com?subject=Demande audit ' + offer.name"
              mat-flat-button
              [color]="offer.featured ? 'primary' : undefined"
              [class.bg-gray-700]="!offer.featured"
@@ -317,10 +422,10 @@
         <mat-spinner diameter="48"></mat-spinner>
       </div>
     } @else {
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-5xl mx-auto">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
         @for (plan of plans; track plan.id) {
-          <div class="relative rounded-2xl border p-8 flex flex-col gap-6 transition-all"
-               [ngClass]="plan.name === 'pro' ? 'border-cyan-500 bg-gray-800/80 shadow-xl shadow-cyan-900/30 md:scale-105' : 'border-gray-700 bg-gray-800'">
+          <div class="relative rounded-2xl border p-7 flex flex-col gap-5 transition-all"
+               [ngClass]="plan.name === 'pro' ? 'border-cyan-500 bg-gray-800/80 shadow-xl shadow-cyan-900/30' : 'border-gray-700 bg-gray-800'">
 
             @if (getPlanBadge(plan)) {
               <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-500 text-gray-900 text-xs font-bold px-3 py-1 rounded-full">
@@ -329,17 +434,17 @@
             }
 
             <div>
-              <h3 class="text-xl font-bold mb-1">{{ plan.display_name }}</h3>
+              <h3 class="text-lg font-bold mb-1">{{ plan.display_name }}</h3>
               <div class="flex items-end gap-1">
-                <span class="text-4xl font-extrabold text-cyan-400">{{ formatPrice(plan.price_eur) }}</span>
+                <span class="text-3xl font-extrabold text-cyan-400">{{ formatPrice(plan.price_eur) }}</span>
                 <span class="text-gray-400 mb-1">/mois</span>
               </div>
             </div>
 
-            <div class="flex flex-col gap-2 flex-1" role="list">
+            <div class="flex flex-col gap-2 flex-1">
               @for (f of getPlanFeatures(plan); track f) {
-                <div role="listitem" class="flex items-center gap-2 text-sm text-gray-300">
-                  <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">check_circle</mat-icon>
+                <div class="flex items-center gap-2 text-sm text-gray-300">
+                  <mat-icon class="text-cyan-400 !text-[1rem] !w-[1rem] !h-[1rem] flex-shrink-0">check_circle</mat-icon>
                   <span>{{ f }}</span>
                 </div>
               }
@@ -361,6 +466,32 @@
             </button>
           </div>
         }
+
+        <!-- Enterprise (statique) -->
+        <div class="relative rounded-2xl border border-violet-600/60 bg-gray-800 p-7 flex flex-col gap-5">
+          <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-violet-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+            Sur mesure
+          </div>
+          <div>
+            <h3 class="text-lg font-bold mb-1">Enterprise</h3>
+            <div class="flex items-end gap-1">
+              <span class="text-3xl font-extrabold text-violet-400">Sur devis</span>
+            </div>
+            <p class="text-xs text-gray-400 mt-1">Facturation annuelle · Volume</p>
+          </div>
+          <div class="flex flex-col gap-2 flex-1">
+            @for (f of ['Sites illimités', 'Scans en temps réel', 'Accès API REST', 'Webhooks & intégrations', 'White-label complet', 'Account manager dédié', 'SLA garanti 99,9 %']; track f) {
+              <div class="flex items-center gap-2 text-sm text-gray-300">
+                <mat-icon class="text-violet-400 !text-[1rem] !w-[1rem] !h-[1rem] flex-shrink-0">check_circle</mat-icon>
+                <span>{{ f }}</span>
+              </div>
+            }
+          </div>
+          <a href="mailto:contact@cyberscanapp.com?subject=Demande Enterprise CyberScan"
+             class="w-full py-3 rounded-lg font-semibold text-center text-sm bg-violet-600 hover:bg-violet-500 text-white transition-all block">
+            Nous contacter
+          </a>
+        </div>
       </div>
     }
   </section>
@@ -373,43 +504,52 @@
       <table class="w-full text-sm">
         <thead>
           <tr class="border-b-2 border-gray-700">
-            <th class="text-left py-4 px-4 text-gray-300 uppercase text-xs tracking-wider w-1/2">Fonctionnalité</th>
-            <th class="text-center py-4 px-4 font-bold uppercase text-xs tracking-wider">Starter</th>
-            <th class="text-center py-4 px-4 font-bold uppercase text-xs tracking-wider text-cyan-400 bg-cyan-900/10">Pro</th>
-            <th class="text-center py-4 px-4 font-bold uppercase text-xs tracking-wider">Business</th>
+            <th class="text-left py-4 px-4 text-gray-300 uppercase text-xs tracking-wider">Fonctionnalité</th>
+            <th class="text-center py-4 px-3 font-bold uppercase text-xs tracking-wider">Starter</th>
+            <th class="text-center py-4 px-3 font-bold uppercase text-xs tracking-wider text-cyan-400 bg-cyan-900/10">Pro</th>
+            <th class="text-center py-4 px-3 font-bold uppercase text-xs tracking-wider">Business</th>
+            <th class="text-center py-4 px-3 font-bold uppercase text-xs tracking-wider text-violet-400 bg-violet-900/10">Enterprise</th>
           </tr>
         </thead>
         <tbody>
           @for (row of comparisonRows; track row.label; let odd = $odd) {
             <tr class="border-b border-gray-700/50 hover:bg-gray-700/20 transition-colors"
-                [ngClass]="odd ? 'bg-gray-800/30' : ''"
-            >
+                [ngClass]="odd ? 'bg-gray-800/30' : ''">
               <td class="py-3 px-4 text-gray-200">{{ row.label }}</td>
-              <td class="py-3 px-4 text-center">
+              <td class="py-3 px-3 text-center">
                 @if (row.starter === true) {
-                  <mat-icon class="text-green-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">check_circle</mat-icon>
+                  <mat-icon class="text-green-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">check_circle</mat-icon>
                 } @else if (row.starter === false) {
-                  <mat-icon class="text-gray-600 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">remove_circle_outline</mat-icon>
+                  <mat-icon class="text-gray-700 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">remove_circle_outline</mat-icon>
                 } @else {
-                  <span class="text-gray-300 font-medium">{{ row.starter }}</span>
+                  <span class="text-gray-300 font-medium text-xs">{{ row.starter }}</span>
                 }
               </td>
-              <td class="py-3 px-4 text-center bg-cyan-900/10">
+              <td class="py-3 px-3 text-center bg-cyan-900/10">
                 @if (row.pro === true) {
-                  <mat-icon class="text-green-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">check_circle</mat-icon>
+                  <mat-icon class="text-green-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">check_circle</mat-icon>
                 } @else if (row.pro === false) {
-                  <mat-icon class="text-gray-600 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">remove_circle_outline</mat-icon>
+                  <mat-icon class="text-gray-700 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">remove_circle_outline</mat-icon>
                 } @else {
-                  <span class="text-gray-300 font-medium">{{ row.pro }}</span>
+                  <span class="text-gray-300 font-medium text-xs">{{ row.pro }}</span>
                 }
               </td>
-              <td class="py-3 px-4 text-center">
+              <td class="py-3 px-3 text-center">
                 @if (row.business === true) {
-                  <mat-icon class="text-green-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">check_circle</mat-icon>
+                  <mat-icon class="text-green-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">check_circle</mat-icon>
                 } @else if (row.business === false) {
-                  <mat-icon class="text-gray-600 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">remove_circle_outline</mat-icon>
+                  <mat-icon class="text-gray-700 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">remove_circle_outline</mat-icon>
                 } @else {
-                  <span class="text-gray-300 font-medium">{{ row.business }}</span>
+                  <span class="text-gray-300 font-medium text-xs">{{ row.business }}</span>
+                }
+              </td>
+              <td class="py-3 px-3 text-center bg-violet-900/10">
+                @if (row.enterprise === true) {
+                  <mat-icon class="text-green-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">check_circle</mat-icon>
+                } @else if (row.enterprise === false) {
+                  <mat-icon class="text-gray-700 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">remove_circle_outline</mat-icon>
+                } @else {
+                  <span class="text-violet-300 font-medium text-xs">{{ row.enterprise }}</span>
                 }
               </td>
             </tr>
