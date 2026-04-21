@@ -26,6 +26,7 @@
     "@ngneat/hot-toast": "^6.0.0",
     "@ngrx/component-store": "^17.2.0",
     "@ngrx/operators": "^17.2.0",
+    "@sentry/angular": "^10.49.0",
     "animate.css": "^4.1.1",
     "aos": "^2.3.4",
     "gsap": "^3.12.0",
