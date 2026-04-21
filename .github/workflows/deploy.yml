@@ -49,6 +49,7 @@ jobs:
           SMTP_PASSWORD:           ${{ secrets.SMTP_PASSWORD }}
           FRONTEND_URL:            ${{ secrets.FRONTEND_URL }}
           ADMIN_API_KEY:           ${{ secrets.ADMIN_API_KEY }}
+          RESEND_API_KEY:          ${{ secrets.RESEND_API_KEY }}
         run: |
           # Retrieve the current task definition ARN from the service
           TASK_DEF_ARN=$(aws ecs describe-services \
@@ -72,6 +73,7 @@ jobs:
               --arg SMTP_PASSWORD         "$SMTP_PASSWORD" \
               --arg FRONTEND_URL          "$FRONTEND_URL" \
               --arg ADMIN_API_KEY         "$ADMIN_API_KEY" \
+              --arg RESEND_API_KEY        "$RESEND_API_KEY" \
               'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)
                | .containerDefinitions[0].image = $IMAGE
                | .containerDefinitions[0].environment = (
@@ -82,7 +84,8 @@ jobs:
                        .name != "SMTP_USER" and
                        .name != "SMTP_PASSWORD" and
                        .name != "FRONTEND_URL" and
-                       .name != "ADMIN_API_KEY"
+                       .name != "ADMIN_API_KEY" and
+                       .name != "RESEND_API_KEY"
                      ))
                    + [
                        {"name": "STRIPE_SECRET_KEY",     "value": $STRIPE_SECRET_KEY},
@@ -90,7 +93,8 @@ jobs:
                        {"name": "SMTP_USER",             "value": $SMTP_USER},
                        {"name": "SMTP_PASSWORD",         "value": $SMTP_PASSWORD},
                        {"name": "FRONTEND_URL",          "value": $FRONTEND_URL},
-                       {"name": "ADMIN_API_KEY",         "value": $ADMIN_API_KEY}
+                       {"name": "ADMIN_API_KEY",         "value": $ADMIN_API_KEY},
+                       {"name": "RESEND_API_KEY",        "value": $RESEND_API_KEY}
                      ]
                  )')
 
