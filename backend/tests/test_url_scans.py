@@ -83,7 +83,8 @@ async def test_list_url_scans_after_trigger():
 
 @pytest.mark.asyncio
 async def test_list_url_scans_pagination():
-    with patch("app.api.v1.endpoints.url_scans.run_url_scan", new_callable=AsyncMock):
+    with patch("app.api.v1.endpoints.url_scans.run_url_scan", new_callable=AsyncMock), \
+         patch("app.api.v1.endpoints.url_scans.assert_no_ssrf"):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "urlpage@test.com")
             for i in range(3):

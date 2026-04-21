@@ -215,12 +215,15 @@ export class LandingComponent implements OnInit {
   ];
 
   features = [
-    { icon: 'security', title: 'Analyse SSL/TLS', desc: 'Audit complet des protocoles, chiffrements et certificats' },
-    { icon: 'bug_report', title: 'Détection de vulnérabilités', desc: 'Headers HTTP, injections, XSS, CSRF et plus' },
-    { icon: 'dns', title: 'Prise d\'empreinte technologique', desc: 'Identification des frameworks, CMS, CDN utilisés' },
-    { icon: 'vpn_key', title: 'Audit JWT', desc: 'Détection des tokens faibles, alg:none, secrets par défaut' },
-    { icon: 'warning', title: 'Threat Intelligence', desc: 'Corrélation avec Shodan InternetDB et bases CVE' },
-    { icon: 'picture_as_pdf', title: 'Rapport PDF', desc: 'Rapport complet avec score de risque et recommandations' },
+    { icon: 'security', title: 'Analyse SSL/TLS', desc: 'Audit complet des protocoles, chiffrements et certificats. Détection des suites faibles et certificats expirés.' },
+    { icon: 'bug_report', title: 'Détection de vulnérabilités', desc: 'Headers HTTP dangereux, injections, XSS, CSRF et 15+ vérifications OWASP Top 10.' },
+    { icon: 'dns', title: 'Prise d\'empreinte technologique', desc: 'Identification des frameworks, CMS, CDN utilisés — et des CVE connues associées.' },
+    { icon: 'vpn_key', title: 'Audit JWT', desc: 'Détection des tokens faibles, algorithme alg:none, secrets par défaut et mauvaise expiration.' },
+    { icon: 'warning', title: 'Threat Intelligence', desc: 'Corrélation avec Shodan InternetDB, bases CVE et réputation IP en temps réel.' },
+    { icon: 'picture_as_pdf', title: 'Rapport PDF', desc: 'Rapport complet avec score de risque global, findings classés et plan de remédiation.' },
+    { icon: 'link', title: 'Scanner URL', desc: 'Analysez n\'importe quelle URL suspecte : phishing, malware, scripts malveillants, domaines blacklistés.' },
+    { icon: 'code', title: 'Scan de code', desc: 'Analyse statique SAST, détection de secrets, SCA sur vos repositories GitHub publics ou privés.' },
+    { icon: 'policy', title: 'Conformité NIS2 / ISO 27001', desc: 'Auto-évaluation guidée de votre conformité réglementaire avec score et plan d\'action exportable en PDF.' },
   ];
 
   testimonials = [
@@ -229,21 +232,36 @@ export class LandingComponent implements OnInit {
       role: 'CTO, StartupTech',
       avatar: 'S',
       text: 'CyberScan nous a permis de détecter une fuite de configuration en production avant qu\'elle ne soit exploitée. Indispensable.',
-      stars: 5,
     },
     {
       name: 'Thomas R.',
       role: 'Développeur indépendant',
       avatar: 'T',
       text: 'J\'utilise le plan Starter pour mes clients. Les rapports PDF sont clairs et je peux les transmettre directement sans explication.',
-      stars: 5,
     },
     {
       name: 'Lucie B.',
       role: 'RSSI, PME industrielle',
       avatar: 'L',
       text: 'Le scan hebdomadaire Business nous donne une visibilité continue sur nos 8 sites. La détection TLS est particulièrement précise.',
-      stars: 5,
+    },
+    {
+      name: 'Marc D.',
+      role: 'Responsable SI, cabinet comptable',
+      avatar: 'M',
+      text: 'L\'auto-évaluation NIS2 intégrée nous a évité de faire appel à un cabinet externe. Le plan d\'action PDF est directement exploitable.',
+    },
+    {
+      name: 'Chloé V.',
+      role: 'Lead Dev, agence web',
+      avatar: 'C',
+      text: 'On livre le rapport CyberScan à chaque client en fin de projet. Ça devient un vrai argument commercial et ça rassure les décideurs.',
+    },
+    {
+      name: 'Antoine P.',
+      role: 'Fondateur, SaaS RH',
+      avatar: 'A',
+      text: 'Le scanner de code a trouvé une clé AWS hardcodée dans un vieux fichier de config. Sans CyberScan, on ne l\'aurait jamais vu.',
     },
   ];
 
@@ -276,6 +294,18 @@ export class LandingComponent implements OnInit {
       q: 'Puis-je analyser une URL suspecte pour savoir si elle est malveillante ?',
       a: 'Oui. L\'outil Scanner URL disponible dans votre dashboard permet d\'analyser n\'importe quelle URL en quelques secondes : détection de phishing, malware, scripts malveillants, redirections suspectes et domaines blacklistés. Idéal pour vérifier un lien reçu par email ou message avant de cliquer.',
     },
+    {
+      q: 'Le scan de code fonctionne-t-il sur des dépôts privés ?',
+      a: 'Oui. Vous pouvez fournir un Personal Access Token GitHub pour analyser vos repositories privés. Le token est utilisé uniquement pendant le scan et n\'est jamais stocké sur nos serveurs.',
+    },
+    {
+      q: 'CyberScan peut-il m\'aider pour ma conformité NIS2 ou ISO 27001 ?',
+      a: 'Oui. L\'outil d\'auto-évaluation NIS2 et ISO 27001 vous guide item par item et génère un rapport PDF de conformité avec un score et un plan d\'action. Il ne remplace pas un audit légal, mais constitue un excellent point de départ pour structurer votre démarche.',
+    },
+    {
+      q: 'Mes données de scan sont-elles confidentielles ?',
+      a: 'Oui. Les résultats de vos scans sont strictement privés et accessibles uniquement à vous depuis votre dashboard. Nous ne revendons aucune donnée à des tiers. Les données sont hébergées en Europe (AWS EU-West-3, Paris) et chiffrées au repos.',
+    },
   ];
 
   auditOffers = [
@@ -299,7 +329,7 @@ export class LandingComponent implements OnInit {
       icon: 'code',
       name: 'Audit Standard',
       target: 'Startups, SaaS, applications métiers',
-      price: '390 € HT',
+      price: '390 €',
       duration: '1 jour',
       badge: 'Recommandé',
       featured: true,
@@ -318,7 +348,7 @@ export class LandingComponent implements OnInit {
       target: 'E-commerce, santé, finance, données sensibles',
       price: 'Sur devis',
       duration: '2-3 jours',
-      badge: 'Haut de gamme',
+      badge: '',
       featured: false,
       items: [
         'Tout l\'Audit Standard inclus',
@@ -327,6 +357,23 @@ export class LandingComponent implements OnInit {
         'Audit configuration Cloud (AWS / Azure / OVH)',
         'Rapport complet avec preuves d\'exploitation',
         'Recommandations de code précises',
+      ],
+    },
+    {
+      icon: 'policy',
+      name: 'Conformité NIS2 / RGPD',
+      target: 'Entreprises soumises à NIS2 ou RGPD',
+      price: '890 €',
+      duration: '2 jours',
+      badge: 'Nouveau',
+      featured: false,
+      items: [
+        'Cartographie des traitements de données',
+        'Analyse des écarts NIS2 (34 contrôles)',
+        'Revue des contrats sous-traitants (DPA)',
+        'Plan de remédiation priorisé',
+        'Rapport de conformité certifiable',
+        'Accompagnement déclaration CNIL si incident',
       ],
     },
   ];
@@ -355,15 +402,22 @@ export class LandingComponent implements OnInit {
   ];
 
   comparisonRows = [
-    { label: 'Sites surveillés', starter: '1', pro: '3', business: '10' },
-    { label: 'Fréquence des scans', starter: 'Mensuel', pro: 'Hebdomadaire', business: 'Quotidien' },
-    { label: 'Rapport PDF', starter: true, pro: true, business: true },
-    { label: 'Headers & SSL', starter: true, pro: true, business: true },
-    { label: 'TLS audit / Threat Intel', starter: false, pro: true, business: true },
-    { label: 'JWT / Clickjacking / Redirects', starter: false, pro: false, business: true },
-    { label: 'Alerte email CRITICAL', starter: false, pro: true, business: true },
-    { label: 'Rapport blanc (logo client)', starter: false, pro: false, business: true },
-    { label: 'Support prioritaire 24h', starter: false, pro: false, business: true },
+    { label: 'Sites surveillés',              starter: '1',          pro: '3',            business: '10',          enterprise: 'Illimités' },
+    { label: 'Fréquence des scans',           starter: 'Mensuel',    pro: 'Hebdomadaire', business: 'Quotidien',   enterprise: 'Temps réel' },
+    { label: 'Rapport PDF',                   starter: true,         pro: true,           business: true,          enterprise: true },
+    { label: 'Headers & SSL',                 starter: true,         pro: true,           business: true,          enterprise: true },
+    { label: 'Scanner URL',                   starter: true,         pro: true,           business: true,          enterprise: true },
+    { label: 'TLS audit / Threat Intel',      starter: false,        pro: true,           business: true,          enterprise: true },
+    { label: 'JWT / Clickjacking / Redirects',starter: false,        pro: false,          business: true,          enterprise: true },
+    { label: 'Scan de code (SAST/SCA)',        starter: false,        pro: true,           business: true,          enterprise: true },
+    { label: 'Conformité NIS2 / ISO 27001',   starter: false,        pro: true,           business: true,          enterprise: true },
+    { label: 'Alerte email CRITICAL',          starter: false,        pro: true,           business: true,          enterprise: true },
+    { label: 'Alerte SSL expiration',          starter: false,        pro: true,           business: true,          enterprise: true },
+    { label: 'Rapport blanc (logo client)',    starter: false,        pro: false,          business: true,          enterprise: true },
+    { label: 'Accès API REST',                 starter: false,        pro: false,          business: false,         enterprise: true },
+    { label: 'Webhooks & intégrations',        starter: false,        pro: false,          business: false,         enterprise: true },
+    { label: 'Account manager dédié',          starter: false,        pro: false,          business: false,         enterprise: true },
+    { label: 'Support prioritaire 24h',        starter: false,        pro: false,          business: true,          enterprise: true },
   ];
 
   private _setCanonical(url: string): void {
@@ -551,6 +605,69 @@ export class LandingComponent implements OnInit {
       },
     });
   }
+
+  readonly howItWorks = [
+    {
+      step: '01',
+      icon: 'link',
+      title: 'Entrez votre URL',
+      desc: 'Renseignez l\'adresse de votre site ou de l\'URL suspecte à analyser. Aucune installation requise.',
+    },
+    {
+      step: '02',
+      icon: 'radar',
+      title: 'Analyse automatique',
+      desc: 'Nos 21 modules passent votre site au crible en 2 minutes : SSL, headers, ports, CVE, threat intel et bien plus.',
+    },
+    {
+      step: '03',
+      icon: 'picture_as_pdf',
+      title: 'Rapport PDF + plan d\'action',
+      desc: 'Téléchargez un rapport complet avec score de risque, liste des findings et recommandations de remédiation.',
+    },
+  ];
+
+  readonly useCases = [
+    {
+      icon: 'rocket_launch',
+      color: 'text-cyan-400',
+      bg: 'bg-cyan-900/20 border-cyan-800/40',
+      title: 'Startups & SaaS',
+      desc: 'Sécurisez votre MVP avant le lancement. Montrez à vos investisseurs que la sécurité est prise au sérieux dès le Day 1.',
+      points: ['Audit pré-lancement', 'Rapport pour due diligence', 'Conformité RGPD dès le départ'],
+    },
+    {
+      icon: 'web',
+      color: 'text-violet-400',
+      bg: 'bg-violet-900/20 border-violet-800/40',
+      title: 'Agences web',
+      desc: 'Livrez un rapport de sécurité avec chaque projet client. Différenciez-vous et couvrez votre responsabilité.',
+      points: ['Rapport blanc à votre logo', 'Scan en fin de projet', 'Argument commercial différenciant'],
+    },
+    {
+      icon: 'business',
+      color: 'text-amber-400',
+      bg: 'bg-amber-900/20 border-amber-800/40',
+      title: 'PME & ETI',
+      desc: 'Surveillez vos sites en continu sans recruter un expert. Recevez une alerte dès qu\'une faille est détectée.',
+      points: ['Surveillance continue', 'Alertes email CRITICAL', 'Conformité NIS2 guidée'],
+    },
+    {
+      icon: 'shopping_cart',
+      color: 'text-green-400',
+      bg: 'bg-green-900/20 border-green-800/40',
+      title: 'E-commerce',
+      desc: 'Protégez les données de paiement de vos clients. Évitez les fuites de données et les sanctions CNIL.',
+      points: ['Analyse cookies & CORS', 'Détection de skimmers', 'Conformité PCI-DSS partielle'],
+    },
+  ];
+
+  readonly cyberStats = [
+    { value: '4,88 M$', label: 'Coût moyen d\'une violation de données en 2024', source: 'IBM Cost of a Data Breach 2024' },
+    { value: '194 jours', label: 'Délai moyen avant détection d\'une intrusion', source: 'Mandiant M-Trends 2024' },
+    { value: '82 %', label: 'Des violations impliquent une erreur humaine ou une mauvaise config', source: 'Verizon DBIR 2024' },
+    { value: '9,90 €', label: 'Le prix d\'un abonnement Starter CyberScan par mois', source: 'CyberScan' },
+  ];
 
   scrollToPricing(event: Event) {
     event.preventDefault();

@@ -270,6 +270,7 @@ async def test_update_notification_preferences_success():
             "notif_scan_critical": True,
             "notif_url_scan_done": False,
             "notif_code_scan_done": True,
+            "notif_ssl_expiry": True,
         })
     assert r.status_code == 200
     data = r.json()
@@ -288,6 +289,7 @@ async def test_update_notification_preferences_persisted():
             "notif_scan_critical": False,
             "notif_url_scan_done": True,
             "notif_code_scan_done": True,
+            "notif_ssl_expiry": True,
         })
         r = await c.get(f"{BASE}/users/me/notification-preferences", headers=h)
     assert r.status_code == 200
