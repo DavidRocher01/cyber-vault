@@ -25,7 +25,7 @@
     "@angular/platform-browser-dynamic": "^19.2.21",
     "@angular/router": "^19.2.21",
     "@ngneat/hot-toast": "^6.0.0",
-    "@ngneat/overview": "^8.1.0",
+    "@ngneat/overview": "^6.2.0",
     "@ngrx/component-store": "^17.2.0",
     "@ngrx/operators": "^17.2.0",
     "@sentry/angular": "^10.49.0",
