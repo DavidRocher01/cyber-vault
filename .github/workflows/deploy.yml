@@ -145,6 +145,23 @@ jobs:
             s3://${{ secrets.S3_BUCKET_NAME }}/index.html \
             --cache-control "no-cache, no-store, must-revalidate"
 
+      - name: Configure CloudFront SPA error pages (403/404 → index.html)
+        run: |
+          DIST_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}"
+          CONFIG=$(aws cloudfront get-distribution-config --id "$DIST_ID")
+          ETAG=$(echo "$CONFIG" | jq -r '.ETag')
+          UPDATED=$(echo "$CONFIG" | jq '.DistributionConfig | .CustomErrorResponses = {
+            "Quantity": 2,
+            "Items": [
+              {"ErrorCode": 403, "ResponsePagePath": "/index.html", "ResponseCode": "200", "ErrorCachingMinTTL": 300},
+              {"ErrorCode": 404, "ResponsePagePath": "/index.html", "ResponseCode": "200", "ErrorCachingMinTTL": 300}
+            ]
+          }')
+          aws cloudfront update-distribution \
+            --id "$DIST_ID" \
+            --distribution-config "$UPDATED" \
+            --if-match "$ETAG"
+
       - name: Invalidate CloudFront
         run: |
           aws cloudfront create-invalidation \
