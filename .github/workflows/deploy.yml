@@ -3,7 +3,7 @@ name: Deploy — Production
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
 
 env:
   AWS_REGION: eu-west-3
@@ -33,7 +33,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG:    ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
+          docker build -f backend/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push    $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker tag     $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
                          $ECR_REGISTRY/$ECR_REPOSITORY:latest
@@ -47,6 +47,10 @@ jobs:
           STRIPE_WEBHOOK_SECRET:   ${{ secrets.STRIPE_WEBHOOK_SECRET }}
           SMTP_USER:               ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD:           ${{ secrets.SMTP_PASSWORD }}
+          FRONTEND_URL:            ${{ secrets.FRONTEND_URL }}
+          ADMIN_API_KEY:           ${{ secrets.ADMIN_API_KEY }}
+          RESEND_API_KEY:          ${{ secrets.RESEND_API_KEY }}
+          SENTRY_DSN:              ${{ secrets.SENTRY_DSN_BACKEND }}
         run: |
           # Retrieve the current task definition ARN from the service
           TASK_DEF_ARN=$(aws ecs describe-services \
@@ -57,7 +61,7 @@ jobs:
 
           # Build a new task definition JSON:
           #   - update the Docker image
-          #   - inject/update Stripe + SMTP env vars from GitHub Secrets
+          #   - inject/update Stripe + SMTP + app env vars from GitHub Secrets
           #     (existing env vars not listed here are kept as-is)
           NEW_TASK_DEF=$(aws ecs describe-task-definition \
             --task-definition "$TASK_DEF_ARN" \
@@ -68,6 +72,10 @@ jobs:
               --arg STRIPE_WEBHOOK_SECRET "$STRIPE_WEBHOOK_SECRET" \
               --arg SMTP_USER             "$SMTP_USER" \
               --arg SMTP_PASSWORD         "$SMTP_PASSWORD" \
+              --arg FRONTEND_URL          "$FRONTEND_URL" \
+              --arg ADMIN_API_KEY         "$ADMIN_API_KEY" \
+              --arg RESEND_API_KEY        "$RESEND_API_KEY" \
+              --arg SENTRY_DSN           "$SENTRY_DSN" \
               'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)
                | .containerDefinitions[0].image = $IMAGE
                | .containerDefinitions[0].environment = (
@@ -76,13 +84,21 @@ jobs:
                        .name != "STRIPE_SECRET_KEY" and
                        .name != "STRIPE_WEBHOOK_SECRET" and
                        .name != "SMTP_USER" and
-                       .name != "SMTP_PASSWORD"
+                       .name != "SMTP_PASSWORD" and
+                       .name != "FRONTEND_URL" and
+                       .name != "ADMIN_API_KEY" and
+                       .name != "RESEND_API_KEY" and
+                       .name != "SENTRY_DSN"
                      ))
                    + [
                        {"name": "STRIPE_SECRET_KEY",     "value": $STRIPE_SECRET_KEY},
                        {"name": "STRIPE_WEBHOOK_SECRET", "value": $STRIPE_WEBHOOK_SECRET},
                        {"name": "SMTP_USER",             "value": $SMTP_USER},
-                       {"name": "SMTP_PASSWORD",         "value": $SMTP_PASSWORD}
+                       {"name": "SMTP_PASSWORD",         "value": $SMTP_PASSWORD},
+                       {"name": "FRONTEND_URL",          "value": $FRONTEND_URL},
+                       {"name": "ADMIN_API_KEY",         "value": $ADMIN_API_KEY},
+                       {"name": "RESEND_API_KEY",        "value": $RESEND_API_KEY},
+                       {"name": "SENTRY_DSN",            "value": $SENTRY_DSN}
                      ]
                  )')
 
@@ -113,7 +129,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install & build (production)
-        run: npm ci && npm run build -- --configuration=production
+        run: npm ci --legacy-peer-deps && npm run build -- --configuration=production
         working-directory: frontend
 
       - name: Configure AWS credentials
@@ -136,6 +152,23 @@ jobs:
           aws s3 cp frontend/dist/cyber-vault-frontend/browser/index.html \
             s3://${{ secrets.S3_BUCKET_NAME }}/index.html \
             --cache-control "no-cache, no-store, must-revalidate"
+
+      - name: Configure CloudFront SPA error pages (403/404 → index.html)
+        run: |
+          DIST_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}"
+          CONFIG=$(aws cloudfront get-distribution-config --id "$DIST_ID")
+          ETAG=$(echo "$CONFIG" | jq -r '.ETag')
+          UPDATED=$(echo "$CONFIG" | jq '.DistributionConfig | .CustomErrorResponses = {
+            "Quantity": 2,
+            "Items": [
+              {"ErrorCode": 403, "ResponsePagePath": "/index.html", "ResponseCode": "200", "ErrorCachingMinTTL": 300},
+              {"ErrorCode": 404, "ResponsePagePath": "/index.html", "ResponseCode": "200", "ErrorCachingMinTTL": 300}
+            ]
+          }')
+          aws cloudfront update-distribution \
+            --id "$DIST_ID" \
+            --distribution-config "$UPDATED" \
+            --if-match "$ETAG"
 
       - name: Invalidate CloudFront
         run: |

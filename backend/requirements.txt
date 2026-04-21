@@ -3,7 +3,7 @@ fastapi==0.111.0
 uvicorn[standard]==0.30.1
 
 # Base de données
-sqlalchemy==2.0.48
+sqlalchemy==2.0.49
 asyncpg==0.31.0
 alembic==1.13.1
 
@@ -33,7 +33,7 @@ aiosqlite==0.22.1
 
 # Qualité & Sécurité
 bandit==1.7.9
-pip-audit==2.7.3
+pip-audit==2.10.0
 semgrep==1.72.0
 detect-secrets==1.5.0
 checkov==3.2.0
@@ -43,9 +43,12 @@ stripe==10.5.0
 apscheduler==3.10.4
 reportlab==4.4.10
 
+# Email transactionnel
+resend==2.7.0
+
 # 2FA
 pyotp==2.9.0
 qrcode[pil]==7.4.2
 
 # Dev
-pre-commit==3.7.1
+pre-commit==4.5.1

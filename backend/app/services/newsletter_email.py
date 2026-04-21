@@ -7,6 +7,8 @@ import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+import resend
+
 from app.core.config import settings
 
 _HEADER_STYLE = "background:linear-gradient(135deg,#0e7490,#0c4a6e);padding:32px 40px;"
@@ -40,6 +42,16 @@ def _wrap(rows: str) -> str:
 
 
 def _send(to_email: str, subject: str, html: str, plain: str) -> None:
+    if settings.RESEND_API_KEY:
+        resend.api_key = settings.RESEND_API_KEY
+        resend.Emails.send({
+            "from": settings.RESEND_FROM,
+            "to": [to_email],
+            "subject": subject,
+            "html": html,
+            "text": plain,
+        })
+        return
     msg = MIMEMultipart("alternative")
     msg["From"] = settings.smtp_from_address
     msg["To"] = to_email

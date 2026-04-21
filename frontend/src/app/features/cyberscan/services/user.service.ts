@@ -14,6 +14,7 @@ export interface NotificationPreferences {
   notif_scan_critical: boolean;
   notif_url_scan_done: boolean;
   notif_code_scan_done: boolean;
+  notif_ssl_expiry: boolean;
 }
 
 export interface TwoFactorSetup {

@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { Title, Meta } from '@angular/platform-browser';
+import { DOCUMENT } from '@angular/common';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
@@ -14,6 +15,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
 export class RessourcesComponent {
   private titleService = inject(Title);
   private meta = inject(Meta);
+  private doc = inject(DOCUMENT);
 
   constructor() {
     this.titleService.setTitle('Ressources cybersécurité — CyberScan');
@@ -21,8 +23,18 @@ export class RessourcesComponent {
     this.meta.updateTag({ property: 'og:title', content: 'Ressources cybersécurité — CyberScan' });
     this.meta.updateTag({ property: 'og:description', content: 'Outils, plateformes et chaînes YouTube pour approfondir vos connaissances en cybersécurité.' });
     this.meta.updateTag({ property: 'og:url', content: 'https://cyberscanapp.com/cyberscan/ressources' });
-    this.meta.updateTag({ property: 'og:title', content: 'Ressources cybersécurité — CyberScan' });
-    this.meta.updateTag({ property: 'og:description', content: 'Outils, plateformes et chaînes YouTube pour la cybersécurité.' });
+    this.meta.updateTag({ property: 'og:type', content: 'website' });
+    this._setCanonical('https://cyberscanapp.com/cyberscan/ressources');
+  }
+
+  private _setCanonical(url: string): void {
+    let link = this.doc.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!link) {
+      link = this.doc.createElement('link');
+      link.setAttribute('rel', 'canonical');
+      this.doc.head.appendChild(link);
+    }
+    link.setAttribute('href', url);
   }
 
   categories = [
