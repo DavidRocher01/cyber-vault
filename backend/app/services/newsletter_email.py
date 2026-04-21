@@ -41,7 +41,7 @@ def _wrap(rows: str) -> str:
 
 def _send(to_email: str, subject: str, html: str, plain: str) -> None:
     msg = MIMEMultipart("alternative")
-    msg["From"] = settings.SMTP_FROM
+    msg["From"] = settings.smtp_from_address
     msg["To"] = to_email
     msg["Subject"] = subject
     msg.attach(MIMEText(plain, "plain", "utf-8"))
@@ -49,7 +49,7 @@ def _send(to_email: str, subject: str, html: str, plain: str) -> None:
     context = ssl.create_default_context()
     with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, context=context) as server:
         server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-        server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
+        server.sendmail(settings.smtp_from_address, to_email, msg.as_string())
 
 
 # ── 1. Confirmation email (double opt-in) ─────────────────────────────────────
@@ -176,7 +176,83 @@ def send_unsubscribe_confirmation(to_email: str) -> None:
     _send(to_email, "Desabonnement confirme — Radar Cyber", html, plain)
 
 
-# ── 4. Newsletter issue ────────────────────────────────────────────────────────
+# ── 4. Newsletter issue (articles) ────────────────────────────────────────────
+
+def send_newsletter_articles(
+    to_email: str,
+    unsubscribe_url: str,
+    edition: int,
+    articles: list[dict],
+) -> None:
+    """articles: list of {actu_title, actu_url, actu_source, reflex}"""
+    edition_str = f"{edition:03d}"
+    article_rows = ""
+    plain_articles = ""
+    accent_colors = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#a855f7"]
+    for i, a in enumerate(articles, 1):
+        color = accent_colors[(i - 1) % len(accent_colors)]
+        image_block = (
+            f'<a href="{a["actu_url"]}" style="display:block;">'
+            f'<img src="{a["image_url"]}" alt="" width="556" style="display:block;width:100%;max-width:556px;height:200px;object-fit:cover;border-radius:0;">'
+            f'</a>'
+        ) if a.get("image_url") else ""
+        article_rows += (
+            f'<tr><td style="padding:0 28px 14px;">'
+            f'<table width="100%" cellpadding="0" cellspacing="0" style="border-radius:12px;overflow:hidden;border:1px solid #1e293b;">'
+            # image optionnelle
+            + (f'<tr><td style="padding:0;line-height:0;">{image_block}</td></tr>' if image_block else "")
+            + f'<tr><td style="background:linear-gradient(135deg,#0f172a 0%,#0d1b2a 100%);padding:18px 22px 18px;">'
+            # source + numéro
+            f'<table width="100%" cellpadding="0" cellspacing="0"><tr>'
+            f'<td><span style="background:{color}22;color:{color};font-size:10px;font-weight:800;letter-spacing:2px;padding:4px 10px;border-radius:20px;">{a["actu_source"].upper()}</span></td>'
+            f'<td align="right"><span style="color:#334155;font-size:12px;font-weight:700;">0{i}</span></td>'
+            f'</tr></table>'
+            # titre cliquable
+            f'<a href="{a["actu_url"]}" style="display:block;margin:12px 0 8px;color:#f8fafc;font-size:16px;font-weight:800;text-decoration:none;line-height:1.45;letter-spacing:-0.2px;">'
+            f'{a["actu_title"]}'
+            f'</a>'
+            # note
+            f'<p style="margin:0 0 16px;color:#94a3b8;font-size:13px;line-height:1.65;">{a["reflex"]}</p>'
+            # CTA
+            f'<a href="{a["actu_url"]}" style="display:inline-block;background:{color};color:#fff;font-size:12px;font-weight:700;text-decoration:none;padding:8px 18px;border-radius:6px;letter-spacing:0.5px;">'
+            f'Lire l\'article &rarr;'
+            f'</a>'
+            f'</td></tr>'
+            f'</table>'
+            f'</td></tr>'
+        )
+        plain_articles += f'{i}. [{a["actu_source"]}] {a["actu_title"]}\n   {a["reflex"]}\n   {a["actu_url"]}\n\n'
+
+    rows = (
+        f'<tr><td style="{_HEADER_STYLE}">'
+        f'<p style="margin:0 0 6px;color:#67e8f9;font-size:11px;font-weight:700;letter-spacing:3px;">LE RADAR CYBER &middot; #{edition_str}</p>'
+        '<h1 style="margin:0 0 8px;color:#fff;font-size:26px;font-weight:900;letter-spacing:-0.5px;">Votre brief cybersecurite</h1>'
+        '<p style="margin:0;color:#94a3b8;font-size:13px;">Les actus qui comptent &mdash; en 5 minutes chrono</p>'
+        '</td></tr>'
+        '<tr><td style="padding:24px 28px 10px;">'
+        '<p style="margin:0;color:#475569;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Au programme cette semaine</p>'
+        '</td></tr>'
+        + article_rows +
+        '<tr><td style="padding:10px 28px 32px;text-align:center;">'
+        f'<a href="{settings.FRONTEND_URL}/cyberscan/dashboard"'
+        ' style="display:inline-block;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;text-decoration:none;'
+        'padding:13px 36px;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:0.3px;">'
+        'Acceder a mon tableau de bord &rarr;'
+        '</a>'
+        '</td></tr>'
+        + _footer(settings.FRONTEND_URL, unsubscribe_url)
+    )
+    html = _wrap(rows)
+    plain = (
+        f"RADAR CYBER · Edition #{edition_str}\n\n"
+        f"{plain_articles}"
+        f"Dashboard : {settings.FRONTEND_URL}/cyberscan/dashboard\n"
+        f"Se desabonner : {unsubscribe_url}\n---\nCyberScan"
+    )
+    _send(to_email, f"Le Radar Cyber #{edition_str}", html, plain)
+
+
+# ── 5. Newsletter issue (legacy editorial) ────────────────────────────────────
 
 def send_newsletter_issue(
     to_email: str,

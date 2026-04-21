@@ -45,3 +45,32 @@ describe('SiteDetailComponent — formatDateShort()', () => {
     expect(make().formatDateShort(d)).not.toBe(make().formatDate(d));
   });
 });
+
+describe('SiteDetailComponent — toggleFinding()', () => {
+  it('ajoute la clé au premier clic', () => {
+    const c = make();
+    c.flippedFindings = new Set();
+    c.toggleFinding('ssl');
+    expect(c.flippedFindings.has('ssl')).toBe(true);
+  });
+
+  it('retire la clé au second clic', () => {
+    const c = make();
+    c.flippedFindings = new Set();
+    c.toggleFinding('ssl');
+    c.toggleFinding('ssl');
+    expect(c.flippedFindings.has('ssl')).toBe(false);
+  });
+
+  it('gère plusieurs failles indépendamment', () => {
+    const c = make();
+    c.flippedFindings = new Set();
+    c.toggleFinding('ssl');
+    c.toggleFinding('headers');
+    expect(c.flippedFindings.has('ssl')).toBe(true);
+    expect(c.flippedFindings.has('headers')).toBe(true);
+    c.toggleFinding('ssl');
+    expect(c.flippedFindings.has('ssl')).toBe(false);
+    expect(c.flippedFindings.has('headers')).toBe(true);
+  });
+});

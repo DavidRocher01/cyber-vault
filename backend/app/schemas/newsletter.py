@@ -38,6 +38,10 @@ class SendIssueIn(BaseModel):
     legal_body: str
 
 
+class SendFromScheduleIn(BaseModel):
+    edition: int
+
+
 class SendIssueOut(BaseModel):
     sent: int
     message: str
@@ -50,6 +54,7 @@ class ScheduleItemOut(BaseModel):
     actu_url: str
     actu_source: str
     reflex: str
+    image_url: str | None = None
     updated_at: datetime
 
     model_config = {"from_attributes": True}
@@ -61,3 +66,4 @@ class ScheduleItemIn(BaseModel):
     actu_url: str
     actu_source: str
     reflex: str
+    image_url: str | None = None

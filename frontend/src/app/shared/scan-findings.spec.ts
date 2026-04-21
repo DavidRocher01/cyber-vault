@@ -2,7 +2,7 @@
  * Tests des utilitaires scan-findings — fonctions pures, 0 dépendance Angular.
  */
 import { describe, it, expect } from 'vitest';
-import { extractSummary, getFindings, MODULE_META } from './scan-findings';
+import { extractSummary, getExplanation, getFindings, MODULE_META } from './scan-findings';
 
 describe('extractSummary() — ssl', () => {
   it('affiche la durée de validité restante', () => {
@@ -244,5 +244,55 @@ describe('getFindings()', () => {
     const findings = getFindings(json);
     const jwtFinding = findings.find(f => f.key === 'jwt');
     expect(jwtFinding?.status).toBeNull();
+  });
+
+  it('peuple le champ explanation pour les modules actifs', () => {
+    const json = JSON.stringify({ _meta: { tier: 2 }, ssl: { status: 'OK', valid: true } });
+    const findings = getFindings(json);
+    const ssl = findings.find(f => f.key === 'ssl');
+    expect(ssl?.explanation).toBeTruthy();
+    expect(typeof ssl?.explanation).toBe('string');
+  });
+
+  it('laisse explanation vide pour les modules skipped', () => {
+    const json = JSON.stringify({ _meta: { tier: 1 }, jwt: { status: 'OK' } });
+    const findings = getFindings(json);
+    const jwt = findings.find(f => f.key === 'jwt');
+    expect(jwt?.explanation).toBe('');
+  });
+});
+
+describe('getExplanation()', () => {
+  it('retourne le texte OK pour ssl status OK', () => {
+    const text = getExplanation('ssl', 'OK');
+    expect(text).toBeTruthy();
+    expect(text.toLowerCase()).toContain('chiffr');
+  });
+
+  it('retourne le texte WARNING pour ssl status WARNING', () => {
+    const text = getExplanation('ssl', 'WARNING');
+    expect(text).toBeTruthy();
+    expect(text).not.toBe(getExplanation('ssl', 'OK'));
+  });
+
+  it('retourne le texte CRITICAL pour ssl status CRITICAL', () => {
+    const text = getExplanation('ssl', 'CRITICAL');
+    expect(text).toBeTruthy();
+    expect(text).not.toBe(getExplanation('ssl', 'OK'));
+  });
+
+  it('retourne une chaîne vide pour une clé inconnue', () => {
+    expect(getExplanation('module_inexistant', 'OK')).toBe('');
+  });
+
+  it('retourne une chaîne vide pour status null', () => {
+    expect(getExplanation('ssl', null)).toBe('');
+  });
+
+  it('couvre tous les modules de MODULE_META', () => {
+    for (const m of MODULE_META) {
+      const text = getExplanation(m.key, 'OK');
+      expect(typeof text).toBe('string');
+    }
   });
 });

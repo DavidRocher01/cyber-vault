@@ -181,25 +181,38 @@
                 </div>
                 <div class="flex flex-col gap-2">
                   @for (f of criticalFindings; track f.key) {
-                    <div class="bg-red-400/5 border border-red-700/50 rounded-xl px-5 py-4 flex items-start gap-4">
-                      <div class="w-9 h-9 rounded-lg bg-red-900/40 border border-red-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <mat-icon class="text-red-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ f.icon }}</mat-icon>
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-1.5 flex-wrap">
-                          <span class="font-semibold text-white">{{ f.label }}</span>
-                          <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-red-600 text-red-400">CRITIQUE</span>
-                        </div>
-                        @if (f.summary.length > 0) {
-                          <div class="flex flex-wrap gap-x-4 gap-y-1">
-                            @for (s of f.summary; track s.label) {
-                              <span class="text-xs text-gray-400">
-                                <span class="opacity-60">{{ s.label }} :</span>
-                                <span class="text-gray-200 ml-1">{{ s.value }}</span>
-                              </span>
+                    <div class="flip-container flip-container--row cursor-pointer" (click)="toggleFinding(f.key)">
+                      <div class="flip-inner" [class.flipped]="flippedFindings.has(f.key)">
+                        <div class="flip-front bg-red-400/5 border border-red-700/50 rounded-xl px-5 py-4 flex items-start gap-4">
+                          <div class="w-9 h-9 rounded-lg bg-red-900/40 border border-red-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <mat-icon class="text-red-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ f.icon }}</mat-icon>
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                              <span class="font-semibold text-white">{{ f.label }}</span>
+                              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-red-600 text-red-400">CRITIQUE</span>
+                              @if (f.explanation) {
+                                <mat-icon class="!text-[0.8rem] !w-[0.8rem] !h-[0.8rem] text-gray-500">info</mat-icon>
+                              }
+                            </div>
+                            @if (f.summary.length > 0) {
+                              <div class="flex flex-wrap gap-x-4 gap-y-1">
+                                @for (s of f.summary; track s.label) {
+                                  <span class="text-xs text-gray-400">
+                                    <span class="opacity-60">{{ s.label }} :</span>
+                                    <span class="text-gray-200 ml-1">{{ s.value }}</span>
+                                  </span>
+                                }
+                              </div>
                             }
                           </div>
-                        }
+                        </div>
+                        <div class="flip-back bg-red-400/5 border border-red-700/50 rounded-xl px-5 py-4 flex items-start gap-4">
+                          <div class="w-9 h-9 rounded-lg bg-red-900/40 border border-red-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <mat-icon class="text-red-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">menu_book</mat-icon>
+                          </div>
+                          <p class="text-xs text-gray-300 leading-relaxed flex-1">{{ f.explanation }}</p>
+                        </div>
                       </div>
                     </div>
                   }
@@ -218,25 +231,38 @@
                 </div>
                 <div class="flex flex-col gap-2">
                   @for (f of warningFindings; track f.key) {
-                    <div class="bg-yellow-400/5 border border-yellow-700/50 rounded-xl px-5 py-4 flex items-start gap-4">
-                      <div class="w-9 h-9 rounded-lg bg-yellow-900/30 border border-yellow-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <mat-icon class="text-yellow-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ f.icon }}</mat-icon>
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-1.5 flex-wrap">
-                          <span class="font-semibold text-white">{{ f.label }}</span>
-                          <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-yellow-600 text-yellow-400">WARNING</span>
-                        </div>
-                        @if (f.summary.length > 0) {
-                          <div class="flex flex-wrap gap-x-4 gap-y-1">
-                            @for (s of f.summary; track s.label) {
-                              <span class="text-xs text-gray-400">
-                                <span class="opacity-60">{{ s.label }} :</span>
-                                <span class="text-gray-200 ml-1">{{ s.value }}</span>
-                              </span>
+                    <div class="flip-container flip-container--row cursor-pointer" (click)="toggleFinding(f.key)">
+                      <div class="flip-inner" [class.flipped]="flippedFindings.has(f.key)">
+                        <div class="flip-front bg-yellow-400/5 border border-yellow-700/50 rounded-xl px-5 py-4 flex items-start gap-4">
+                          <div class="w-9 h-9 rounded-lg bg-yellow-900/30 border border-yellow-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <mat-icon class="text-yellow-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ f.icon }}</mat-icon>
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                              <span class="font-semibold text-white">{{ f.label }}</span>
+                              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-yellow-600 text-yellow-400">WARNING</span>
+                              @if (f.explanation) {
+                                <mat-icon class="!text-[0.8rem] !w-[0.8rem] !h-[0.8rem] text-gray-500">info</mat-icon>
+                              }
+                            </div>
+                            @if (f.summary.length > 0) {
+                              <div class="flex flex-wrap gap-x-4 gap-y-1">
+                                @for (s of f.summary; track s.label) {
+                                  <span class="text-xs text-gray-400">
+                                    <span class="opacity-60">{{ s.label }} :</span>
+                                    <span class="text-gray-200 ml-1">{{ s.value }}</span>
+                                  </span>
+                                }
+                              </div>
                             }
                           </div>
-                        }
+                        </div>
+                        <div class="flip-back bg-yellow-400/5 border border-yellow-700/50 rounded-xl px-5 py-4 flex items-start gap-4">
+                          <div class="w-9 h-9 rounded-lg bg-yellow-900/30 border border-yellow-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <mat-icon class="text-yellow-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">menu_book</mat-icon>
+                          </div>
+                          <p class="text-xs text-gray-300 leading-relaxed flex-1">{{ f.explanation }}</p>
+                        </div>
                       </div>
                     </div>
                   }

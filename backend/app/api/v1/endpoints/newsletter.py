@@ -1,5 +1,7 @@
+import re
 from datetime import datetime, timezone
 
+import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from app.core.limiter import limiter
@@ -18,12 +20,14 @@ from app.schemas.newsletter import (
     NewsletterSubscribeOut,
     ScheduleItemIn,
     ScheduleItemOut,
+    SendFromScheduleIn,
     SendIssueIn,
     SendIssueOut,
     SubscriberOut,
 )
 from app.services.newsletter_email import (
     send_confirmation_email,
+    send_newsletter_articles,
     send_newsletter_issue,
     send_newsletter_welcome,
     send_unsubscribe_confirmation,
@@ -205,6 +209,66 @@ async def admin_send_issue(
     return SendIssueOut(sent=count, message=f"Édition #{payload.edition} envoyée à {count} abonné(s).")
 
 
+@router.post("/admin/send-from-schedule", response_model=SendIssueOut, dependencies=[Depends(_require_admin)])
+async def admin_send_from_schedule(
+    payload: SendFromScheduleIn,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
+    schedule_result = await db.execute(
+        select(NewsletterScheduleItem).order_by(NewsletterScheduleItem.position)
+    )
+    items = schedule_result.scalars().all()
+    if not items:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Aucun article dans le planning.")
+
+    articles = [
+        {"actu_title": it.actu_title, "actu_url": it.actu_url, "actu_source": it.actu_source, "reflex": it.reflex, "image_url": it.image_url}
+        for it in items
+    ]
+
+    subscribers_result = await db.execute(
+        select(NewsletterSubscriber).where(NewsletterSubscriber.is_active == True)  # noqa: E712
+    )
+    subscribers = subscribers_result.scalars().all()
+    count = 0
+    for sub in subscribers:
+        unsubscribe_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?token={sub.unsubscribe_token}"
+        background_tasks.add_task(send_newsletter_articles, sub.email, unsubscribe_url, payload.edition, articles)
+        count += 1
+
+    logger.info(f"Newsletter articles issue #{payload.edition} queued for {count} subscribers")
+    return SendIssueOut(sent=count, message=f"Édition #{payload.edition} envoyée à {count} abonné(s).")
+
+
+# ── OG image scraper ──────────────────────────────────────────────────────────
+
+@router.get("/admin/og-image", dependencies=[Depends(_require_admin)])
+async def fetch_og_image(url: str):
+    """Fetch the og:image meta tag from a given URL."""
+    try:
+        async with httpx.AsyncClient(timeout=8, follow_redirects=True) as client:
+            resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
+            html = resp.text
+            final_url = str(resp.url)
+        match = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
+        if not match:
+            match = re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']', html, re.IGNORECASE)
+        if not match:
+            return {"image_url": None}
+        image_url = match.group(1).strip()
+        # Résoudre les URLs relatives
+        if image_url.startswith("//"):
+            image_url = "https:" + image_url
+        elif image_url.startswith("/"):
+            from urllib.parse import urlparse
+            parsed = urlparse(final_url)
+            image_url = f"{parsed.scheme}://{parsed.netloc}{image_url}"
+        return {"image_url": image_url}
+    except Exception:
+        return {"image_url": None}
+
+
 # ── Schedule endpoints ─────────────────────────────────────────────────────────
 
 @router.get("/schedule", response_model=list[ScheduleItemOut])
@@ -246,6 +310,7 @@ async def update_schedule(
             actu_url=item.actu_url,
             actu_source=item.actu_source,
             reflex=item.reflex,
+            image_url=item.image_url,
             updated_at=now,
         )
         db.add(row)

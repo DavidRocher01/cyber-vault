@@ -31,7 +31,7 @@ def send_scan_report(
     status_emoji = {"OK": "✅", "WARNING": "⚠️", "CRITICAL": "🚨"}.get(overall_status, "📋")
 
     msg = MIMEMultipart()
-    msg["From"]    = settings.SMTP_FROM
+    msg["From"]    = settings.smtp_from_address
     msg["To"]      = to_email
     msg["Subject"] = f"[CyberScan] Rapport de scan — {site_url} {status_emoji}"
 
@@ -59,7 +59,7 @@ CyberScan — Cybersécurité as a Service
     context = ssl.create_default_context()
     with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, context=context) as server:
         server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-        server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
+        server.sendmail(settings.smtp_from_address, to_email, msg.as_string())
 
 
 def send_url_scan_alert(
@@ -107,7 +107,7 @@ CyberScan — Cybersécurité as a Service
 """
 
     msg = MIMEMultipart()
-    msg["From"] = settings.SMTP_FROM
+    msg["From"] = settings.smtp_from_address
     msg["To"] = to_email
     msg["Subject"] = f"[ScanURL] {verdict_emoji} {verdict_fr} — Score {threat_score}/100 — {scanned_url[:60]}"
     msg.attach(MIMEText(body, "plain", "utf-8"))
@@ -115,13 +115,13 @@ CyberScan — Cybersécurité as a Service
     context = ssl.create_default_context()
     with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, context=context) as server:
         server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-        server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
+        server.sendmail(settings.smtp_from_address, to_email, msg.as_string())
 
 
 def send_password_reset(to_email: str, reset_url: str) -> None:
     """Send a password-reset link to the user."""
     msg = MIMEMultipart()
-    msg["From"] = settings.SMTP_FROM
+    msg["From"] = settings.smtp_from_address
     msg["To"] = to_email
     msg["Subject"] = "[CyberScan] Réinitialisation de votre mot de passe"
 
@@ -143,4 +143,4 @@ CyberScan — Cybersécurité as a Service
     context = ssl.create_default_context()
     with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, context=context) as server:
         server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-        server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
+        server.sendmail(settings.smtp_from_address, to_email, msg.as_string())

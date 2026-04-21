@@ -17,7 +17,8 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
     standalone: true,
     selector: 'app-scan-detail',
     imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule, MatProgressSpinnerModule, ScoreGaugeComponent, RadarChartComponent, NavButtonsComponent],
-    templateUrl: './scan-detail.component.html'
+    templateUrl: './scan-detail.component.html',
+    styleUrl: './scan-detail.component.css'
 })
 export class ScanDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
@@ -26,6 +27,12 @@ export class ScanDetailComponent implements OnInit {
   scan = signal<Scan | null>(null);
   loading = signal(true);
   error = signal<string | null>(null);
+  flippedCards = new Set<string>();
+
+  toggleFlip(key: string) {
+    if (this.flippedCards.has(key)) this.flippedCards.delete(key);
+    else this.flippedCards.add(key);
+  }
 
   ngOnInit() {
     const id = Number(this.route.snapshot.paramMap.get('id'));
