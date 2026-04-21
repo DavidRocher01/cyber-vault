@@ -117,14 +117,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download backend results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: backend-test-results
           path: test-results
         continue-on-error: true
 
       - name: Download frontend results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: frontend-test-results
           path: test-results
