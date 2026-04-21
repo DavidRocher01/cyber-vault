@@ -93,6 +93,17 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Mentions légales — CyberScan',
   },
   {
+    path: 'demo-result/:token',
+    loadComponent: () => import('./demo-result/demo-result.component').then(m => m.DemoResultComponent),
+    title: 'Résultat demo — CyberScan',
+  },
+  {
+    path: 'subdomains/:id',
+    loadComponent: () => import('./subdomains/subdomains.component').then(m => m.SubdomainsComponent),
+    canActivate: [authGuard],
+    title: 'Sous-domaines — CyberScan',
+  },
+  {
     path: 'admin/newsletter',
     loadComponent: () => import('./newsletter-admin/newsletter-admin.component').then(m => m.NewsletterAdminComponent),
     title: 'Admin Newsletter — CyberScan',

@@ -1,0 +1,108 @@
+<div class="min-h-screen bg-gray-900 text-white">
+
+  <!-- Navbar -->
+  <nav class="flex items-center justify-between px-6 py-4 border-b border-gray-800">
+    <a routerLink="/cyberscan" class="flex items-center gap-2">
+      <mat-icon class="text-cyan-400">shield</mat-icon>
+      <span class="text-xl font-bold text-cyan-400">CyberScan</span>
+    </a>
+    <app-nav-buttons />
+  </nav>
+
+  <div class="max-w-3xl mx-auto px-6 py-12">
+
+    <!-- Loading / running -->
+    @if (loading() || isRunning) {
+      <div class="flex flex-col items-center gap-6 py-24">
+        <mat-spinner diameter="56" color="accent"></mat-spinner>
+        <div class="text-center">
+          <p class="text-xl font-semibold text-white">Analyse en cours…</p>
+          <p class="text-gray-400 mt-2 text-sm">SSL · Headers · DNS · CMS · WAF · CORS · Email · IP</p>
+          <p class="text-gray-600 mt-1 text-xs">Cela prend généralement 30 à 90 secondes</p>
+        </div>
+      </div>
+    }
+
+    <!-- Error -->
+    @if (error()) {
+      <div class="flex flex-col items-center gap-4 py-24 text-center">
+        <mat-icon class="text-red-400 !text-5xl !w-12 !h-12">error_outline</mat-icon>
+        <p class="text-lg font-semibold text-red-300">{{ error() }}</p>
+        <a routerLink="/cyberscan" mat-flat-button color="primary">Retour à l'accueil</a>
+      </div>
+    }
+
+    <!-- Results -->
+    @if (!loading() && !isRunning && scan() && !error()) {
+      @let s = scan()!;
+
+      <!-- Header -->
+      <div class="text-center mb-10">
+        <p class="text-sm text-gray-500 mb-2">Résultat du scan demo pour</p>
+        <h1 class="text-2xl font-bold text-white break-all">{{ s.results_json ? (s.results_json | json | slice:0:0) : '' }}{{ s.token }}</h1>
+        <p class="text-sm text-gray-500 mt-1">{{ s.overall_status === 'OK' ? 'Aucun problème critique détecté' : s.overall_status === 'WARNING' ? 'Des points d\'attention ont été trouvés' : 'Des problèmes critiques ont été détectés' }}</p>
+      </div>
+
+      <!-- Score + overall badge -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-8 mb-10">
+        @if (score !== null) {
+          <div class="w-28 h-28">
+            <app-score-gauge [score]="score"></app-score-gauge>
+          </div>
+          <div class="text-center sm:text-left">
+            <p class="text-5xl font-black" [class]="getScoreColor(score)">{{ score }}<span class="text-2xl text-gray-500">/100</span></p>
+            <p class="text-lg font-semibold mt-1" [class]="getScoreColor(score)">{{ getGrade(score) }}</p>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold mt-2"
+                  [class]="s.overall_status === 'OK' ? 'bg-green-500/15 text-green-400 border border-green-700' :
+                           s.overall_status === 'WARNING' ? 'bg-yellow-500/15 text-yellow-400 border border-yellow-700' :
+                           'bg-red-500/15 text-red-400 border border-red-700'">
+              <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">
+                {{ s.overall_status === 'OK' ? 'verified_user' : s.overall_status === 'WARNING' ? 'warning' : 'gpp_bad' }}
+              </mat-icon>
+              {{ s.overall_status }}
+            </span>
+          </div>
+        }
+      </div>
+
+      <!-- Module cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-10">
+        @for (m of modules; track m.key) {
+          <div class="flex items-center gap-3 rounded-xl border px-4 py-3"
+               [class]="m.status === 'OK' ? 'border-green-800/40 bg-green-900/10' :
+                        m.status === 'WARNING' ? 'border-yellow-800/40 bg-yellow-900/10' :
+                        m.status === 'CRITICAL' ? 'border-red-800/40 bg-red-900/10' :
+                        'border-gray-700/40 bg-gray-800/30'">
+            <mat-icon class="!text-[1.3rem] !w-[1.3rem] !h-[1.3rem] flex-shrink-0 text-gray-500">{{ m.icon }}</mat-icon>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-white">{{ m.label }}</p>
+              @if (m.detail) { <p class="text-xs text-gray-500 mt-0.5">{{ m.detail }}</p> }
+            </div>
+            <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0" [class]="moduleColor(m.status)">
+              {{ moduleIcon(m.status) }}
+            </mat-icon>
+          </div>
+        }
+      </div>
+
+      <!-- CTA -->
+      <div class="rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-cyan-950/60 to-gray-800/60 p-8 text-center">
+        <mat-icon class="text-cyan-400 !text-4xl !w-10 !h-10 mb-3">workspace_premium</mat-icon>
+        <h2 class="text-xl font-bold text-white mb-2">Obtenez le rapport complet</h2>
+        <p class="text-gray-400 text-sm mb-6 max-w-md mx-auto">
+          Rapport PDF détaillé · Scan des ports · Analyse TLS · Scripts de remédiation · Suivi mensuel automatisé
+        </p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <a routerLink="/cyberscan" [queryParams]="{action:'register'}" mat-flat-button color="primary" class="!px-6 !py-2.5 !text-sm !font-bold">
+            Créer un compte gratuit
+          </a>
+          <a routerLink="/cyberscan" mat-button class="!text-gray-300">
+            Voir les tarifs
+          </a>
+        </div>
+        <p class="text-xs text-gray-600 mt-4">Essai gratuit · Sans carte bancaire</p>
+      </div>
+
+    }
+  </div>
+</div>

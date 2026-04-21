@@ -1,12 +1,13 @@
+import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.models.site import Site
+from app.models.scan import Scan
 from app.schemas.cyberscan import SiteCreate, SiteOut
 from app.services.subscription_service import get_active_plan
 
@@ -70,3 +71,42 @@ async def delete_site(
         raise HTTPException(status_code=404, detail="Site non trouvé")
     site.is_active = False
     await db.commit()
+
+
+@router.get("/{site_id}/subdomains")
+async def get_site_subdomains(
+    site_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return DNS/subdomain results from the latest completed scan for the site."""
+    result = await db.execute(
+        select(Site).where(Site.id == site_id, Site.user_id == current_user.id, Site.is_active == True)
+    )
+    site = result.scalar_one_or_none()
+    if not site:
+        raise HTTPException(status_code=404, detail="Site non trouvé")
+
+    scan_result = await db.execute(
+        select(Scan)
+        .where(Scan.site_id == site_id, Scan.status == "done", Scan.results_json.isnot(None))
+        .order_by(Scan.finished_at.desc())
+        .limit(1)
+    )
+    scan = scan_result.scalar_one_or_none()
+    if not scan or not scan.results_json:
+        return {"site_url": site.url, "subdomains": [], "zone_transfer": None, "scan_date": None}
+
+    try:
+        results = json.loads(scan.results_json)
+        dns = results.get("dns") or {}
+    except Exception:
+        dns = {}
+
+    return {
+        "site_url": site.url,
+        "subdomains": dns.get("found", []),
+        "zone_transfer": dns.get("zone_transfer"),
+        "total_found": dns.get("total_found", 0),
+        "scan_date": scan.finished_at,
+    }

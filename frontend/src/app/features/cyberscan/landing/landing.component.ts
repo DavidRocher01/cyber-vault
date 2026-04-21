@@ -527,6 +527,31 @@ export class LandingComponent implements OnInit {
     },
   ];
 
+  // ── Demo scan ─────────────────────────────────────────────────────────────
+  demoUrl = signal('');
+  demoLoading = signal(false);
+  demoError = signal<string | null>(null);
+
+  submitDemoScan() {
+    let url = this.demoUrl().trim();
+    if (!url) return;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url;
+    }
+    this.demoLoading.set(true);
+    this.demoError.set(null);
+    this.cyberscan.createPublicScan(url).subscribe({
+      next: res => {
+        this.demoLoading.set(false);
+        this.router.navigate(['/cyberscan/demo-result', res.token]);
+      },
+      error: err => {
+        this.demoLoading.set(false);
+        this.demoError.set(err.error?.detail || 'Erreur lors du lancement du scan. Réessayez.');
+      },
+    });
+  }
+
   scrollToPricing(event: Event) {
     event.preventDefault();
     document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });

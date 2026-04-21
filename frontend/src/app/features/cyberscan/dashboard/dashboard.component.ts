@@ -496,6 +496,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.sites().filter(s => this.lastScanStatus(s.id) === 'WARNING').length;
   }
 
+  getSslDaysRemaining(siteId: number): number | null {
+    const scan = (this.scansMap()[siteId]?.items ?? []).find(s => s.status === 'done' && s.results_json);
+    if (!scan?.results_json) return null;
+    try { return JSON.parse(scan.results_json)?.ssl?.days_remaining ?? null; }
+    catch { return null; }
+  }
+
   get okCount(): number {
     return this.sites().filter(s => this.lastScanStatus(s.id) === 'OK').length;
   }

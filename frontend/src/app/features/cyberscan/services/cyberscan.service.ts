@@ -124,6 +124,30 @@ export interface NotificationList {
   unread_count: number;
 }
 
+export interface PublicScanResult {
+  token: string;
+  status: string;
+  overall_status: string | null;
+  results_json: string | null;
+  error_message: string | null;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface SubdomainEntry {
+  subdomain: string;
+  ip: string;
+}
+
+export interface SubdomainResult {
+  site_url: string;
+  subdomains: SubdomainEntry[];
+  zone_transfer: { vulnerable: boolean; nameservers: string[]; records_found: string[] } | null;
+  total_found: number;
+  scan_date: string | null;
+}
+
 const API = '/api/v1';
 
 @Injectable({ providedIn: 'root' })
@@ -291,5 +315,21 @@ export class CyberscanService {
 
   deleteNotification(id: number): Observable<void> {
     return this.http.delete<void>(`${API}/notifications/${id}`);
+  }
+
+  // ── Public Scans (no auth) ─────────────────────────────────────────────
+
+  createPublicScan(url: string): Observable<PublicScanResult> {
+    return this.http.post<PublicScanResult>(`${API}/public-scans`, { url });
+  }
+
+  getPublicScan(token: string): Observable<PublicScanResult> {
+    return this.http.get<PublicScanResult>(`${API}/public-scans/${token}`);
+  }
+
+  // ── Subdomains ─────────────────────────────────────────────────────────
+
+  getSiteSubdomains(siteId: number): Observable<SubdomainResult> {
+    return this.http.get<SubdomainResult>(`${API}/sites/${siteId}/subdomains`);
   }
 }
