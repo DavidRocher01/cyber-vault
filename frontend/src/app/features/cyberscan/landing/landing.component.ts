@@ -19,6 +19,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { Title, Meta } from '@angular/platform-browser';
+import { DOCUMENT } from '@angular/common';
 
 @Component({
     standalone: true,
@@ -48,6 +49,7 @@ export class LandingComponent implements OnInit {
   private fb = inject(FormBuilder);
   private titleService = inject(Title);
   private meta = inject(Meta);
+  private doc = inject(DOCUMENT);
   readonly themeService = inject(ThemeService);
   readonly i18n = inject(I18nService);
 
@@ -364,14 +366,27 @@ export class LandingComponent implements OnInit {
     { label: 'Support prioritaire 24h', starter: false, pro: false, business: true },
   ];
 
+  private _setCanonical(url: string): void {
+    let link = this.doc.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!link) {
+      link = this.doc.createElement('link');
+      link.setAttribute('rel', 'canonical');
+      this.doc.head.appendChild(link);
+    }
+    link.setAttribute('href', url);
+  }
+
   ngOnInit() {
     this.titleService.setTitle('CyberScan — Audit de sécurité web automatisé');
-    this.meta.updateTag({ name: 'description', content: 'Scannez vos sites web, détectez les vulnérabilités SSL, headers et ports, et recevez des rapports PDF complets. Plans à partir de 29€/mois.' });
+    this.meta.updateTag({ name: 'description', content: 'Auditez la sécurité de vos sites web : SSL, headers HTTP, ports ouverts. Rapports PDF automatiques et alertes en temps réel.' });
     this.meta.updateTag({ property: 'og:title', content: 'CyberScan — Audit de sécurité web automatisé' });
-    this.meta.updateTag({ property: 'og:description', content: 'Scannez vos sites web, détectez les vulnérabilités SSL, headers et ports, et recevez des rapports PDF complets. Plans à partir de 29€/mois.' });
+    this.meta.updateTag({ property: 'og:description', content: 'Auditez la sécurité de vos sites web : SSL, headers HTTP, ports ouverts. Rapports PDF automatiques et alertes en temps réel.' });
     this.meta.updateTag({ property: 'og:url', content: 'https://cyberscanapp.com/cyberscan' });
+    this.meta.updateTag({ property: 'og:type', content: 'website' });
+    this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
     this.meta.updateTag({ name: 'twitter:title', content: 'CyberScan — Audit de sécurité web automatisé' });
-    this.meta.updateTag({ name: 'twitter:description', content: 'Scannez vos sites, détectez les vulnérabilités SSL, headers et ports. Rapports PDF inclus.' });
+    this.meta.updateTag({ name: 'twitter:description', content: 'Auditez la sécurité de vos sites : SSL, headers HTTP, ports ouverts. Rapports PDF inclus.' });
+    this._setCanonical('https://cyberscanapp.com/cyberscan');
     this.themeService.apply();
     this.cyberscan.getPlans().subscribe({
       next: plans => { this.plans = plans; this.loading = false; },

@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { Title, Meta } from '@angular/platform-browser';
+import { DOCUMENT } from '@angular/common';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
@@ -14,12 +15,26 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
 export class BonnesPratiquesComponent {
   private titleService = inject(Title);
   private meta = inject(Meta);
+  private doc = inject(DOCUMENT);
 
   constructor() {
     this.titleService.setTitle('Bonnes pratiques cybersécurité — CyberScan');
     this.meta.updateTag({ name: 'description', content: 'Conseils pratiques pour renforcer votre sécurité : mots de passe, MFA, phishing, Wi-Fi public, sécurité physique. Accessibles à tous.' });
     this.meta.updateTag({ property: 'og:title', content: 'Bonnes pratiques cybersécurité — CyberScan' });
     this.meta.updateTag({ property: 'og:description', content: 'Mots de passe, MFA, phishing, Wi-Fi — les fondamentaux de la cybersécurité.' });
+    this.meta.updateTag({ property: 'og:url', content: 'https://cyberscanapp.com/cyberscan/bonnes-pratiques' });
+    this.meta.updateTag({ property: 'og:type', content: 'website' });
+    this._setCanonical('https://cyberscanapp.com/cyberscan/bonnes-pratiques');
+  }
+
+  private _setCanonical(url: string): void {
+    let link = this.doc.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!link) {
+      link = this.doc.createElement('link');
+      link.setAttribute('rel', 'canonical');
+      this.doc.head.appendChild(link);
+    }
+    link.setAttribute('href', url);
   }
 
   sections = [
