@@ -137,6 +137,110 @@ export class BonnesPratiquesComponent {
         },
       ],
     },
+    {
+      icon: 'code',
+      title: 'Sécurité CI/CD & DevSecOps',
+      badge: 'Développeurs & Ops',
+      badgeClass: 'bg-cyan-900/50 text-cyan-400 border border-cyan-700',
+      iconClass: 'text-cyan-400',
+      items: [
+        {
+          icon: 'key_off',
+          title: 'Ne jamais committer de secrets dans le code',
+          desc: 'Clés API, mots de passe, tokens — aucun secret ne doit figurer dans un dépôt Git, même privé. Utilisez des variables d\'environnement et des outils comme detect-secrets ou GitGuardian pour scanner automatiquement vos commits.',
+          link: 'https://github.com/Yelp/detect-secrets',
+          linkLabel: 'detect-secrets — scanner de secrets open source',
+        },
+        {
+          icon: 'inventory_2',
+          title: 'Auditer les dépendances tiers (SCA)',
+          desc: 'Chaque dépendance npm ou pip est une surface d\'attaque potentielle. Intégrez un outil SCA (Snyk, pip-audit, npm audit) dans votre pipeline CI pour détecter les CVE avant la mise en production.',
+          link: 'https://snyk.io',
+          linkLabel: 'Snyk — audit de dépendances',
+        },
+        {
+          icon: 'lock',
+          title: 'Sécuriser les secrets CI/CD',
+          desc: 'Stockez vos secrets GitHub Actions, GitLab CI ou autres dans les vaults chiffrés de la plateforme, jamais en clair dans les fichiers de workflow. Limitez leur durée de vie et leur périmètre d\'accès (least privilege).',
+          link: null,
+          linkLabel: null,
+        },
+        {
+          icon: 'policy',
+          title: 'Activer la revue de code (Pull Request)',
+          desc: 'Aucun code ne devrait atteindre la production sans avoir été relu par au moins un autre développeur. La revue de code est l\'une des mesures les plus efficaces contre les injections et les régressions de sécurité.',
+          link: null,
+          linkLabel: null,
+        },
+      ],
+    },
+    {
+      icon: 'cloud',
+      title: 'Cloud & Infrastructure',
+      badge: 'AWS / GCP / Azure',
+      badgeClass: 'bg-orange-900/50 text-orange-400 border border-orange-700',
+      iconClass: 'text-orange-400',
+      items: [
+        {
+          icon: 'manage_accounts',
+          title: 'Principe du moindre privilège (Least Privilege)',
+          desc: 'Chaque compte, rôle IAM ou service ne doit avoir accès qu\'à ce dont il a strictement besoin. Auditez régulièrement vos permissions cloud et supprimez les droits inutilisés — ils représentent la première source de compromission cloud.',
+          link: null,
+          linkLabel: null,
+        },
+        {
+          icon: 'folder_off',
+          title: 'Vérifier la visibilité de vos buckets S3 / GCS',
+          desc: 'Des buckets S3 publics par erreur ont exposé des millions de données sensibles. Activez l\'option "Block Public Access" par défaut et auditez vos ACL régulièrement. Jamais de données clients dans un bucket public.',
+          link: null,
+          linkLabel: null,
+        },
+        {
+          icon: 'router',
+          title: 'Réduire la surface d\'exposition réseau',
+          desc: 'Fermez tous les ports inutiles dans vos Security Groups. SSH (22) et RDP (3389) ne doivent jamais être ouverts à 0.0.0.0/0. Utilisez un bastion ou un VPN pour les accès d\'administration.',
+          link: null,
+          linkLabel: null,
+        },
+        {
+          icon: 'receipt_long',
+          title: 'Activer les logs et alertes cloud',
+          desc: 'CloudTrail (AWS), Cloud Audit Logs (GCP) — activez l\'enregistrement de toutes les actions sur vos ressources cloud. Configurez des alertes pour les actions anormales : création d\'utilisateur IAM, suppression de logs, ouverture de port.',
+          link: null,
+          linkLabel: null,
+        },
+      ],
+    },
+    {
+      icon: 'system_update',
+      title: 'Mises à Jour & Gestion des Patchs',
+      badge: 'Fondamental',
+      badgeClass: 'bg-red-900/50 text-red-400 border border-red-700',
+      iconClass: 'text-red-400',
+      items: [
+        {
+          icon: 'update',
+          title: 'Appliquer les correctifs dès leur publication',
+          desc: '60 % des violations exploitent des vulnérabilités pour lesquelles un patch existait. Configurez les mises à jour automatiques sur vos systèmes d\'exploitation et planifiez une fenêtre de maintenance hebdomadaire pour vos serveurs.',
+          link: null,
+          linkLabel: null,
+        },
+        {
+          icon: 'track_changes',
+          title: 'Surveiller les CVE de vos composants',
+          desc: 'Abonnez-vous aux alertes CERT-FR et aux flux de sécurité de vos fournisseurs. Pour vos applications, un outil SCA dans le CI détectera automatiquement les nouvelles CVE publiées sur vos dépendances.',
+          link: 'https://www.cert.ssi.gouv.fr',
+          linkLabel: 'CERT-FR — alertes de sécurité officielles',
+        },
+        {
+          icon: 'verified',
+          title: 'Tester les patchs en staging avant prod',
+          desc: 'Un patch peut casser une fonctionnalité ou introduire une régression. Toujours valider en environnement de pré-production avant de déployer sur les serveurs critiques.',
+          link: null,
+          linkLabel: null,
+        },
+      ],
+    },
   ];
 
   tableRows = [
@@ -145,5 +249,10 @@ export class BonnesPratiquesComponent {
     { risk: 'Bureau', bad: 'Écran allumé pendant la pause café', good: 'Raccourci de verrouillage (Win+L)' },
     { risk: 'Wi-Fi public', bad: 'Connexion au Wi-Fi "Gare_Gratuit"', good: 'Utilisation de la 4G/5G ou d\'un VPN' },
     { risk: 'USB', bad: 'Brancher une clé trouvée par terre', good: 'Ne jamais connecter un périphérique inconnu' },
+    { risk: 'Code source', bad: 'Token API hardcodé dans le dépôt Git', good: 'Variable d\'environnement + detect-secrets en CI' },
+    { risk: 'Cloud IAM', bad: 'Compte admin avec droits wildcard (*)', good: 'Rôle IAM restreint au strict nécessaire' },
+    { risk: 'S3 / Stockage', bad: 'Bucket public "par défaut"', good: 'Block Public Access activé + audit ACL régulier' },
+    { risk: 'Patchs', bad: 'Mettre à jour "quand on a le temps"', good: 'Fenêtre de maintenance hebdomadaire + alertes CVE' },
+    { risk: 'CI/CD', bad: 'Secrets en clair dans le fichier workflow', good: 'Vault CI chiffré + least privilege sur les tokens' },
   ];
 }

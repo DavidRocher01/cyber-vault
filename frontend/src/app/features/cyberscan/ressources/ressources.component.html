@@ -122,6 +122,34 @@
     </div>
   </section>
 
+  <!-- Glossaire -->
+  <section class="px-8 py-16 bg-gray-800/30 border-t border-gray-800">
+    <div class="max-w-5xl mx-auto">
+      <div class="flex items-center gap-3 mb-3">
+        <mat-icon class="text-violet-400 !text-[2rem] !w-[2rem] !h-[2rem]">menu_book</mat-icon>
+        <h2 class="text-2xl font-bold">Glossaire Cybersécurité</h2>
+      </div>
+      <p class="text-gray-400 text-sm mb-8 ml-11">15 termes indispensables pour parler cybersécurité sans jargon</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        @for (entry of glossary; track entry.term) {
+          <div class="bg-gray-800 border border-gray-700 rounded-xl p-5 flex flex-col gap-2">
+            <span class="text-xs font-bold text-violet-400 tracking-widest uppercase">{{ entry.term }}</span>
+            <p class="text-gray-300 text-sm leading-relaxed">{{ entry.def }}</p>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="px-8 py-16 text-center bg-cyan-900/20 border-t border-cyan-900/40">
+    <h2 class="text-2xl font-bold mb-3">Passez à la pratique</h2>
+    <p class="text-gray-400 mb-6">Toutes ces ressources sont utiles — mais rien ne vaut un scan réel de votre infrastructure.</p>
+    <a routerLink="/cyberscan" mat-flat-button color="primary" class="px-8 py-3">
+      Auditer mon site gratuitement
+    </a>
+  </section>
+
   <!-- Footer -->
   <footer class="border-t border-gray-800 px-8 py-8 text-center text-gray-500 text-sm">
     <p>© 2025 CyberScan. Tous droits réservés.</p>
