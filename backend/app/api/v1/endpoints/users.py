@@ -162,6 +162,7 @@ async def update_notification_preferences(
     current_user.notif_scan_critical = payload.notif_scan_critical
     current_user.notif_url_scan_done = payload.notif_url_scan_done
     current_user.notif_code_scan_done = payload.notif_code_scan_done
+    current_user.notif_ssl_expiry = payload.notif_ssl_expiry
     await db.commit()
     await db.refresh(current_user)
     return current_user

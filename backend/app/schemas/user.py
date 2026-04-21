@@ -31,6 +31,7 @@ class NotificationPreferencesOut(BaseModel):
     notif_scan_critical: bool
     notif_url_scan_done: bool
     notif_code_scan_done: bool
+    notif_ssl_expiry: bool
 
     model_config = {"from_attributes": True}
 
@@ -40,6 +41,7 @@ class NotificationPreferencesIn(BaseModel):
     notif_scan_critical: bool
     notif_url_scan_done: bool
     notif_code_scan_done: bool
+    notif_ssl_expiry: bool
 
 
 class TokenOut(BaseModel):

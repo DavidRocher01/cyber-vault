@@ -18,7 +18,7 @@ from app.models.site import Site
 from app.models.subscription import Subscription
 from app.models.plan import Plan
 from app.services.scan_service import run_scan
-from app.services.email_service import send_scan_report
+from app.services.email_service import send_scan_report, send_ssl_expiry_alert
 from app.services.newsletter_email import send_newsletter_issue
 from app.models.newsletter_subscriber import NewsletterSubscriber
 
@@ -95,6 +95,94 @@ async def _schedule_due_scans() -> None:
                         pass  # Ne pas bloquer si l'email échoue
 
 
+_SSL_THRESHOLDS = [7, 14, 30]
+
+
+async def _check_ssl_alerts() -> None:
+    """Daily job: send SSL expiry alerts when cert expires within 30/14/7 days."""
+    from app.models.user import User
+    from app.core.config import settings
+    import json
+
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(Site, Plan)
+            .join(Subscription, Subscription.user_id == Site.user_id)
+            .join(Plan, Plan.id == Subscription.plan_id)
+            .where(Site.is_active == True, Subscription.status == "active")
+        )
+        rows = result.all()
+        if not rows:
+            return
+
+        site_ids = [site.id for site, _ in rows]
+        subq = (
+            select(func.max(Scan.id).label("max_id"))
+            .where(Scan.site_id.in_(site_ids), Scan.status == "done")
+            .group_by(Scan.site_id)
+            .subquery()
+        )
+        last_scans_result = await db.execute(
+            select(Scan).where(Scan.id.in_(select(subq.c.max_id)))
+        )
+        last_scan_map: dict[int, Scan] = {s.site_id: s for s in last_scans_result.scalars().all()}
+
+        user_ids = list({site.user_id for site, _ in rows})
+        users_result = await db.execute(select(User).where(User.id.in_(user_ids)))
+        user_map: dict[int, User] = {u.id: u for u in users_result.scalars().all()}
+
+        for site, _ in rows:
+            user = user_map.get(site.user_id)
+            if not user or not user.notif_ssl_expiry:
+                continue
+
+            last_scan = last_scan_map.get(site.id)
+            if not last_scan or not last_scan.results_json:
+                continue
+
+            try:
+                results = json.loads(last_scan.results_json)
+                ssl = results.get("ssl") or {}
+                days = ssl.get("days_remaining")
+                expiry_date = ssl.get("expiry_date", "")
+                if days is None:
+                    continue
+            except Exception:
+                continue
+
+            # Reset alert state if cert was renewed
+            if days > 30 and site.ssl_alert_threshold is not None:
+                site.ssl_alert_threshold = None
+                site.ssl_alert_sent_at = None
+                await db.commit()
+                continue
+
+            # Find the applicable threshold
+            threshold = next((t for t in _SSL_THRESHOLDS if days <= t), None)
+            if threshold is None:
+                continue
+
+            # Skip if already alerted for this threshold or a lower one
+            if site.ssl_alert_threshold is not None and site.ssl_alert_threshold <= threshold:
+                continue
+
+            dashboard_url = f"{settings.FRONTEND_URL}/cyberscan/dashboard"
+            try:
+                await asyncio.to_thread(
+                    send_ssl_expiry_alert,
+                    to_email=user.email,
+                    site_url=site.url,
+                    days_remaining=days,
+                    expiry_date=expiry_date,
+                    dashboard_url=dashboard_url,
+                )
+                site.ssl_alert_threshold = threshold
+                site.ssl_alert_sent_at = datetime.now(timezone.utc)
+                await db.commit()
+            except Exception:
+                pass
+
+
 async def _send_biweekly_newsletter() -> None:
     """Send the Radar Cyber newsletter to all active subscribers."""
     from app.core.config import settings
@@ -162,6 +250,12 @@ def start_scheduler() -> None:
         _schedule_due_scans,
         trigger=CronTrigger(hour=2, minute=0),
         id="nightly_scans",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        _check_ssl_alerts,
+        trigger=CronTrigger(hour=9, minute=0),
+        id="daily_ssl_alerts",
         replace_existing=True,
     )
     # Newsletter toutes les 2 semaines, lundi à 8h00 UTC

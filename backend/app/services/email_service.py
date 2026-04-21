@@ -150,6 +150,74 @@ CyberScan — Cybersécurité as a Service
     _send(to_email, subject, html, plain)
 
 
+def send_ssl_expiry_alert(to_email: str, site_url: str, days_remaining: int, expiry_date: str, dashboard_url: str) -> None:
+    if days_remaining <= 7:
+        urgency = "CRITIQUE"
+        color = "#ef4444"
+        emoji = "🚨"
+    elif days_remaining <= 14:
+        urgency = "URGENT"
+        color = "#f97316"
+        emoji = "⚠️"
+    else:
+        urgency = "ATTENTION"
+        color = "#eab308"
+        emoji = "⚠️"
+
+    subject = f"[CyberScan] {emoji} Certificat SSL expirant dans {days_remaining} jour(s) — {site_url}"
+    html = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0f172a;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;">
+<tr><td align="center" style="padding:40px 20px;">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#1e293b;border-radius:12px;border:1px solid #334155;">
+<tr><td style="background:linear-gradient(135deg,{color}22,{color}11);padding:32px 40px;border-bottom:2px solid {color};text-align:center;">
+<p style="margin:0 0 6px;color:{color};font-size:12px;font-weight:800;letter-spacing:2px;">{urgency} — CERTIFICAT SSL</p>
+<h1 style="margin:0;color:#f8fafc;font-size:24px;">Votre certificat expire bientôt</h1>
+</td></tr>
+<tr><td style="padding:32px 40px;">
+<p style="color:#94a3b8;font-size:15px;line-height:1.7;margin:0 0 24px;">
+Le certificat SSL de <strong style="color:#f8fafc;">{site_url}</strong> expire dans
+<strong style="color:{color};font-size:18px;"> {days_remaining} jour(s)</strong> (le {expiry_date}).
+</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;border-radius:8px;padding:20px;margin-bottom:24px;">
+<tr><td>
+<p style="margin:0 0 8px;color:#475569;font-size:11px;font-weight:700;letter-spacing:2px;">SITE CONCERNÉ</p>
+<p style="margin:0;color:#22d3ee;font-size:15px;font-weight:700;">{site_url}</p>
+</td></tr>
+<tr><td style="padding-top:12px;">
+<p style="margin:0 0 8px;color:#475569;font-size:11px;font-weight:700;letter-spacing:2px;">DATE D'EXPIRATION</p>
+<p style="margin:0;color:{color};font-size:15px;font-weight:700;">{expiry_date}</p>
+</td></tr>
+</table>
+<p style="color:#64748b;font-size:13px;line-height:1.7;margin:0 0 28px;">
+Renouvelez votre certificat auprès de votre hébergeur ou via Let's Encrypt avant cette date pour éviter
+une interruption de service et des alertes de sécurité chez vos visiteurs.
+</p>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+<a href="{dashboard_url}" style="display:inline-block;background:{color};color:#fff;text-decoration:none;
+padding:13px 36px;border-radius:8px;font-weight:700;font-size:14px;">
+Voir le rapport SSL →
+</a>
+</td></tr></table>
+</td></tr>
+<tr><td style="padding:20px 40px;border-top:1px solid #334155;text-align:center;">
+<p style="margin:0;color:#475569;font-size:12px;">CyberScan — Cybersécurité as a Service</p>
+</td></tr>
+</table></td></tr></table></body></html>"""
+
+    plain = f"""{emoji} Certificat SSL expirant dans {days_remaining} jour(s)
+
+Site : {site_url}
+Expiration : {expiry_date}
+
+Renouvelez votre certificat avant cette date.
+Tableau de bord : {dashboard_url}
+
+---
+CyberScan
+"""
+    _send(to_email, subject, html, plain)
+
+
 def send_password_reset(to_email: str, reset_url: str) -> None:
     plain = f"""Bonjour,
 

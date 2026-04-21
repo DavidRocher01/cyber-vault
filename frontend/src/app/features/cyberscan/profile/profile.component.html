@@ -407,7 +407,7 @@
             </div>
 
             <!-- notif_code_scan_done -->
-            <div class="flex items-center justify-between py-3">
+            <div class="flex items-center justify-between py-3 border-b border-gray-700/50">
               <div>
                 <p class="text-sm font-medium">Fin d'analyse de code</p>
                 <p class="text-xs text-gray-500 mt-0.5">Recevoir un email à la fin de chaque analyse de dépendances</p>
@@ -415,6 +415,19 @@
               <mat-slide-toggle
                 [checked]="notifPrefs()!.notif_code_scan_done"
                 (change)="toggleNotif('notif_code_scan_done')"
+                color="primary">
+              </mat-slide-toggle>
+            </div>
+
+            <!-- notif_ssl_expiry -->
+            <div class="flex items-center justify-between py-3">
+              <div>
+                <p class="text-sm font-medium">Expiration certificat SSL</p>
+                <p class="text-xs text-gray-500 mt-0.5">Recevoir une alerte 30, 14 et 7 jours avant l'expiration d'un certificat SSL</p>
+              </div>
+              <mat-slide-toggle
+                [checked]="notifPrefs()!.notif_ssl_expiry"
+                (change)="toggleNotif('notif_ssl_expiry')"
                 color="primary">
               </mat-slide-toggle>
             </div>
