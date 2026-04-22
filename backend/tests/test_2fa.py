@@ -38,7 +38,7 @@ async def _register_login(client: AsyncClient, email: str) -> dict:
 
 async def _setup_and_enable_2fa(client: AsyncClient, headers: dict) -> str:
     """Run setup + enable flow, return the TOTP secret."""
-    setup = await client.post(f"{BASE}/users/me/2fa/setup", headers=headers)
+    setup = await client.post(f"{BASE}/users/me/2fa/setup", headers=headers, json={})
     assert setup.status_code == 200
     secret = setup.json()["secret"]
     code = pyotp.TOTP(secret).now()
@@ -58,7 +58,7 @@ async def _setup_and_enable_2fa(client: AsyncClient, headers: dict) -> str:
 async def test_setup_2fa_returns_qr_and_secret():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         headers = await _register_login(c, "setup@2fa.com")
-        r = await c.post(f"{BASE}/users/me/2fa/setup", headers=headers)
+        r = await c.post(f"{BASE}/users/me/2fa/setup", headers=headers, json={})
 
     assert r.status_code == 200
     data = r.json()
@@ -71,8 +71,8 @@ async def test_setup_2fa_returns_qr_and_secret():
 @pytest.mark.asyncio
 async def test_setup_2fa_requires_auth():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        r = await c.post(f"{BASE}/users/me/2fa/setup")
-    assert r.status_code == 403
+        r = await c.post(f"{BASE}/users/me/2fa/setup", json={})
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -80,7 +80,7 @@ async def test_setup_2fa_does_not_enable_totp_yet():
     """Setup stores the secret but totp_enabled must stay False until verified."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         headers = await _register_login(c, "notyet@2fa.com")
-        await c.post(f"{BASE}/users/me/2fa/setup", headers=headers)
+        await c.post(f"{BASE}/users/me/2fa/setup", headers=headers, json={})
         me = await c.get(f"{BASE}/users/me", headers=headers)
 
     assert me.json()["totp_enabled"] is False
@@ -92,7 +92,7 @@ async def test_setup_2fa_does_not_enable_totp_yet():
 async def test_enable_2fa_with_valid_code():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         headers = await _register_login(c, "enable@2fa.com")
-        setup = await c.post(f"{BASE}/users/me/2fa/setup", headers=headers)
+        setup = await c.post(f"{BASE}/users/me/2fa/setup", headers=headers, json={})
         secret = setup.json()["secret"]
         code = pyotp.TOTP(secret).now()
 
@@ -106,7 +106,7 @@ async def test_enable_2fa_with_valid_code():
 async def test_enable_2fa_with_invalid_code_returns_400():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         headers = await _register_login(c, "badenab@2fa.com")
-        await c.post(f"{BASE}/users/me/2fa/setup", headers=headers)
+        await c.post(f"{BASE}/users/me/2fa/setup", headers=headers, json={})
 
         r = await c.post(f"{BASE}/users/me/2fa/enable", headers=headers, json={"code": "000000"})
 
