@@ -50,6 +50,7 @@ jobs:
           # The task definition references them via valueFrom ARN — no plain
           # text secrets are passed through GitHub Actions env vars.
           SM_ARN: arn:aws:secretsmanager:eu-west-3:328646895533:secret:cybervault/prod-Uqdfdg
+          STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
         run: |
           # Retrieve the current task definition ARN from the service
           TASK_DEF_ARN=$(aws ecs describe-services \
@@ -66,8 +67,9 @@ jobs:
             --task-definition "$TASK_DEF_ARN" \
             --query 'taskDefinition' \
             --output json | jq \
-              --arg IMAGE   "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
-              --arg SM_ARN  "$SM_ARN" \
+              --arg IMAGE      "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+              --arg SM_ARN     "$SM_ARN" \
+              --arg PK_LIVE    "$STRIPE_PUBLISHABLE_KEY" \
               'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)
                | .containerDefinitions[0].image = $IMAGE
                | .containerDefinitions[0].environment = (
@@ -80,8 +82,10 @@ jobs:
                        .name != "SMTP_PASSWORD" and
                        .name != "ADMIN_API_KEY" and
                        .name != "RESEND_API_KEY" and
-                       .name != "SENTRY_DSN"
+                       .name != "SENTRY_DSN" and
+                       .name != "STRIPE_PUBLISHABLE_KEY"
                      ))
+                 + [{"name": "STRIPE_PUBLISHABLE_KEY", "value": $PK_LIVE}]
                  )
                | .containerDefinitions[0].secrets = [
                    {"name": "SECRET_KEY",            "valueFrom": ($SM_ARN + ":SECRET_KEY::")},

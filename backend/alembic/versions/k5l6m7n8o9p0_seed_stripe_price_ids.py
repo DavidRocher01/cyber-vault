@@ -18,9 +18,9 @@ branch_labels = None
 depends_on = None
 
 PRICE_IDS = {
-    "starter":  "price_1TOwwb22WVBQ28elQg3Zyzn1",
-    "pro":      "price_1TOwx822WVBQ28elrRKjFOPZ",
-    "business": "price_1TOwxP22WVBQ28elsWUTRnKN",
+    "starter":  "price_1TOzSg1kFVtkWldS7qBgnmh6",
+    "pro":      "price_1TOzSk1kFVtkWldSj1Z5U49V",
+    "business": "price_1TOzSk1kFVtkWldS4RJ2u8pf",
 }
 
 
