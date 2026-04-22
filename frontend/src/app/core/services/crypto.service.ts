@@ -2,13 +2,15 @@ import { Injectable } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class CryptoService {
+  private static readonly ITERATIONS = 600_000;
+
   private key: CryptoKey | null = null;
 
   hasKey(): boolean {
     return !!this.key;
   }
 
-  async deriveKey(masterPassword: string, email: string): Promise<void> {
+  async deriveKey(masterPassword: string, email: string, iterations = CryptoService.ITERATIONS): Promise<void> {
     const enc = new TextEncoder();
     const keyMaterial = await crypto.subtle.importKey(
       'raw',
@@ -18,7 +20,7 @@ export class CryptoService {
       ['deriveKey']
     );
     this.key = await crypto.subtle.deriveKey(
-      { name: 'PBKDF2', salt: enc.encode(email), iterations: 100000, hash: 'SHA-256' },
+      { name: 'PBKDF2', salt: enc.encode(email), iterations, hash: 'SHA-256' },
       keyMaterial,
       { name: 'AES-GCM', length: 256 },
       false,
@@ -44,6 +46,12 @@ export class CryptoService {
     const ciphertext = combined.slice(12);
     const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, this.key, ciphertext);
     return new TextDecoder().decode(decrypted);
+  }
+
+  /** Returns null instead of throwing — useful for migration canary checks. */
+  async tryDecrypt(encryptedBase64: string): Promise<string | null> {
+    try { return await this.decrypt(encryptedBase64); }
+    catch { return null; }
   }
 
   clearKey(): void {

@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.security import create_refresh_token
+from app.core.security import create_refresh_token, hash_token, make_unsubscribe_token
 from app.core.ssrf import assert_no_ssrf
 from app.models.newsletter_subscriber import NewsletterSubscriber
 from app.models.newsletter_schedule import NewsletterScheduleItem
@@ -65,34 +65,33 @@ async def subscribe(
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Déjà abonné(e)")
         # Not yet confirmed — resend confirmation
         if not existing.confirmed_at:
-            token = create_refresh_token()
-            existing.confirmation_token = token
+            raw_token = create_refresh_token()
+            existing.confirmation_token = hash_token(raw_token)
             existing.subscribed_at = datetime.now(timezone.utc)
             await db.flush()
-            confirm_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/confirm?token={token}"
+            confirm_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/confirm?token={raw_token}"
             background_tasks.add_task(send_confirmation_email, existing.email, confirm_url)
             return NewsletterSubscribeOut(message="Un email de confirmation vous a été renvoyé.")
         # Was confirmed but unsubscribed — re-activate directly
         existing.is_active = True
         existing.subscribed_at = datetime.now(timezone.utc)
         await db.flush()
-        unsubscribe_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?token={existing.unsubscribe_token}"
+        unsubscribe_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?token={make_unsubscribe_token(existing.email)}"
         background_tasks.add_task(send_newsletter_welcome, existing.email, unsubscribe_url)
         return NewsletterSubscribeOut(message="Réabonnement confirmé !")
 
-    confirmation_token = create_refresh_token()
-    unsubscribe_token = create_refresh_token()
+    raw_confirmation = create_refresh_token()
     subscriber = NewsletterSubscriber(
         email=payload.email,
         subscribed_at=datetime.now(timezone.utc),
         is_active=False,
-        confirmation_token=confirmation_token,
-        unsubscribe_token=unsubscribe_token,
+        confirmation_token=hash_token(raw_confirmation),
+        unsubscribe_token=make_unsubscribe_token(payload.email),
     )
     db.add(subscriber)
     await db.flush()
 
-    confirm_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/confirm?token={confirmation_token}"
+    confirm_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/confirm?token={raw_confirmation}"
     background_tasks.add_task(send_confirmation_email, payload.email, confirm_url)
     logger.info(f"Newsletter subscription pending confirmation: subscriber_id={subscriber.id}")
     return NewsletterSubscribeOut(message="Vérifiez votre boîte mail pour confirmer votre inscription !")
@@ -105,7 +104,7 @@ async def confirm(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(NewsletterSubscriber).where(NewsletterSubscriber.confirmation_token == token)
+        select(NewsletterSubscriber).where(NewsletterSubscriber.confirmation_token == hash_token(token))
     )
     subscriber = result.scalar_one_or_none()
     if not subscriber:
@@ -118,7 +117,7 @@ async def confirm(
     subscriber.confirmation_token = None
     await db.flush()
 
-    unsubscribe_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?token={subscriber.unsubscribe_token}"
+    unsubscribe_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?token={make_unsubscribe_token(subscriber.email)}"
     background_tasks.add_task(send_newsletter_welcome, subscriber.email, unsubscribe_url)
     logger.info(f"Newsletter confirmed: subscriber_id={subscriber.id}")
     return RedirectResponse(
@@ -193,7 +192,7 @@ async def admin_send_issue(
     subscribers = result.scalars().all()
     count = 0
     for sub in subscribers:
-        unsubscribe_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?token={sub.unsubscribe_token}"
+        unsubscribe_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?token={make_unsubscribe_token(sub.email)}"
         background_tasks.add_task(
             send_newsletter_issue,
             sub.email,
@@ -235,7 +234,7 @@ async def admin_send_from_schedule(
     subscribers = subscribers_result.scalars().all()
     count = 0
     for sub in subscribers:
-        unsubscribe_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?token={sub.unsubscribe_token}"
+        unsubscribe_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?token={make_unsubscribe_token(sub.email)}"
         background_tasks.add_task(send_newsletter_articles, sub.email, unsubscribe_url, payload.edition, articles)
         count += 1
 
