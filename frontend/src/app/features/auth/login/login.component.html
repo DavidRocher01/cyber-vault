@@ -86,7 +86,7 @@
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider text-center mb-3">Code à 6 chiffres</p>
             <app-otp-input [clearTrigger]="otpClear"
                            (codeChange)="totpCode = $event"
-                           (complete)="submitTotp()"></app-otp-input>
+                           (otpComplete)="submitTotp()"></app-otp-input>
             <p class="text-xs text-gray-600 text-center mt-3">Google Authenticator, Authy ou toute app TOTP compatible</p>
           </div>
 
