@@ -29,6 +29,7 @@ def create_checkout_session(
         mode="subscription",
         success_url=success_url,
         cancel_url=cancel_url,
+        automatic_tax={"enabled": True},
     )
     return session.url
 
