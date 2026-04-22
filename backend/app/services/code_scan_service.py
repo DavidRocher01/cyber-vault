@@ -945,7 +945,7 @@ async def run_code_scan(scan_id: int, db: AsyncSession, clone_url: str | None = 
         repo_dir = os.path.join(tmp_dir, "repo")
 
         # ── Run all tools ──────────────────────────────────────────────────
-        all_findings, counts = _run_all_tools(scan_id, repo_dir)
+        all_findings, counts = await asyncio.to_thread(_run_all_tools, scan_id, repo_dir)
         total = sum(counts.values())
 
         results = {
@@ -1014,7 +1014,7 @@ async def run_code_scan_zip(scan_id: int, zip_path: str, db: AsyncSession) -> No
         if len(entries) == 1 and os.path.isdir(os.path.join(repo_dir, entries[0])):
             repo_dir = os.path.join(repo_dir, entries[0])
 
-        all_findings, counts = _run_all_tools(scan_id, repo_dir)
+        all_findings, counts = await asyncio.to_thread(_run_all_tools, scan_id, repo_dir)
         total = sum(counts.values())
         results = {"findings": all_findings, "summary": {"total": total, **counts}}
 
