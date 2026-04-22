@@ -576,11 +576,6 @@ export class LandingComponent implements OnInit {
       title: 'NIS 2',
       desc: "Signalement d'incident en moins de 72h si votre compte est affecté. Obligations respectées.",
     },
-    {
-      icon: 'verified',
-      title: 'Assurance RC Pro Cyber',
-      desc: 'Couverture active pour tous les scans payants. Votre recours en cas de litige sur un résultat.',
-    },
   ];
 
   // ── Demo scan ─────────────────────────────────────────────────────────────
