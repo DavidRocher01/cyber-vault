@@ -115,12 +115,13 @@ async def test_subscribe_pending_resends_confirmation():
 
 @pytest.mark.asyncio
 async def test_confirm_valid_token_activates_subscriber():
-    with _no_email():
+    with _no_email() as mocks_sub:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             await c.post(f"{BASE}/newsletter/subscribe", json={"email": "confirm@test.com"})
 
-    sub = await _get_subscriber("confirm@test.com")
-    token = sub.confirmation_token
+    # Extract the raw token from the confirm URL passed to send_confirmation_email
+    confirm_url = mocks_sub["send_confirmation_email"].call_args[0][1]
+    token = confirm_url.split("token=")[1]
 
     with _no_email() as mocks:
         async with AsyncClient(
