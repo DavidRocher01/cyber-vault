@@ -50,6 +50,19 @@ async def trigger_scan(
     plan = await get_active_plan(db, current_user.id)
     interval_days = plan.scan_interval_days if plan else 30
 
+    # Free plan: 1 scan total ever across all sites
+    if plan and plan.price_eur == 0:
+        total_result = await db.execute(
+            select(func.count(Scan.id))
+            .join(Site, Scan.site_id == Site.id)
+            .where(Site.user_id == current_user.id)
+        )
+        if total_result.scalar() >= 1:
+            raise HTTPException(
+                status_code=403,
+                detail="Le plan gratuit inclut 1 scan unique. Passez à un plan payant pour continuer."
+            )
+
     last_result = await db.execute(
         select(Scan)
         .where(Scan.site_id == site_id, Scan.status == "done")
