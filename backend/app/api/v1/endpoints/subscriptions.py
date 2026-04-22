@@ -70,6 +70,31 @@ async def create_checkout(
         await db.commit()
         return {"checkout_url": f"{FRONTEND_URL}/cyberscan/success"}
 
+    # Free plan: activate directly without Stripe
+    if plan.price_cents == 0:
+        result = await db.execute(
+            select(Subscription).where(Subscription.user_id == current_user.id)
+        )
+        existing = result.scalar_one_or_none()
+        now = datetime.now(timezone.utc)
+        if existing:
+            existing.plan_id = plan.id
+            existing.status = "active"
+            existing.current_period_start = now
+            existing.current_period_end = now + timedelta(days=365 * 10)
+        else:
+            db.add(Subscription(
+                user_id=current_user.id,
+                plan_id=plan.id,
+                stripe_customer_id=None,
+                stripe_subscription_id=None,
+                status="active",
+                current_period_start=now,
+                current_period_end=now + timedelta(days=365 * 10),
+            ))
+        await db.commit()
+        return {"checkout_url": f"{FRONTEND_URL}/cyberscan/dashboard"}
+
     # Production: real Stripe flow
     if not plan.stripe_price_id:
         raise HTTPException(status_code=400, detail="Plan not configured in Stripe yet")
