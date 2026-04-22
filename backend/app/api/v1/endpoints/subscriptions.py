@@ -71,7 +71,7 @@ async def create_checkout(
         return {"checkout_url": f"{FRONTEND_URL}/cyberscan/success"}
 
     # Free plan: activate directly without Stripe
-    if plan.price_cents == 0:
+    if plan.price_eur == 0:
         result = await db.execute(
             select(Subscription).where(Subscription.user_id == current_user.id)
         )
