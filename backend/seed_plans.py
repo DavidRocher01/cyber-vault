@@ -32,7 +32,7 @@ PLANS = [
         "max_sites":          1,
         "scan_interval_days": 30,
         "tier_level":         2,
-        "stripe_price_id":    "",          # À remplir après création dans Stripe
+        "stripe_price_id":    "price_1TOwwb22WVBQ28elQg3Zyzn1",
     },
     {
         "name":               "pro",
@@ -41,7 +41,7 @@ PLANS = [
         "max_sites":          3,
         "scan_interval_days": 7,
         "tier_level":         3,
-        "stripe_price_id":    "",
+        "stripe_price_id":    "price_1TOwx822WVBQ28elrRKjFOPZ",
     },
     {
         "name":               "business",
@@ -50,7 +50,7 @@ PLANS = [
         "max_sites":          10,
         "scan_interval_days": 1,
         "tier_level":         4,
-        "stripe_price_id":    "",
+        "stripe_price_id":    "price_1TOwxP22WVBQ28elsWUTRnKN",
     },
 ]
 
@@ -61,14 +61,16 @@ async def seed():
             result = await db.execute(select(Plan).where(Plan.name == plan_data["name"]))
             existing = result.scalar_one_or_none()
             if existing:
-                # Mettre à jour le prix si différent
+                changed = False
                 if existing.price_eur != plan_data["price_eur"]:
                     existing.price_eur = plan_data["price_eur"]
                     existing.max_sites = plan_data["max_sites"]
                     existing.scan_interval_days = plan_data["scan_interval_days"]
-                    print(f"Plan '{plan_data['name']}' mis à jour")
-                else:
-                    print(f"Plan '{plan_data['name']}' déjà à jour — ignoré")
+                    changed = True
+                if plan_data["stripe_price_id"] and existing.stripe_price_id != plan_data["stripe_price_id"]:
+                    existing.stripe_price_id = plan_data["stripe_price_id"]
+                    changed = True
+                print(f"Plan '{plan_data['name']}' {'mis à jour' if changed else 'déjà à jour — ignoré'}")
                 continue
             plan = Plan(**plan_data)
             db.add(plan)
