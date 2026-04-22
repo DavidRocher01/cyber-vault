@@ -296,7 +296,7 @@
               </p>
               <app-otp-input [clearTrigger]="otpClear"
                              (codeChange)="twoFaCode.set($event)"
-                             (complete)="confirm2FA()"></app-otp-input>
+                             (otpComplete)="confirm2FA()"></app-otp-input>
             </div>
 
             <div class="flex gap-3">

@@ -46,7 +46,8 @@ jobs:
         working-directory: backend
 
       - name: pip-audit (vulnérabilités)
-        run: pip-audit
+        # GHSA-jr27-m4p2-rc6r: pyasn1 CVE ignoré — python-jose@3.4.0 impose pyasn1<0.5.0, upgrade impossible sans changer de lib JWT
+        run: pip-audit --ignore-vuln GHSA-jr27-m4p2-rc6r
         working-directory: backend
 
       - name: Alembic migrations check

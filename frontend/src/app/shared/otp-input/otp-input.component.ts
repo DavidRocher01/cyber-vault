@@ -43,7 +43,7 @@ export class OtpInputComponent implements OnChanges {
   @Input() clearTrigger = 0;
   @Output() codeChange = new EventEmitter<string>();
   /** Emitted when all 6 digits are filled */
-  @Output() complete = new EventEmitter<string>();
+  @Output() otpComplete = new EventEmitter<string>();
 
   @ViewChildren('otpInput') inputs!: QueryList<ElementRef<HTMLInputElement>>;
 
@@ -104,7 +104,7 @@ export class OtpInputComponent implements OnChanges {
     const code = this.digits.join('');
     this.codeChange.emit(code);
     if (code.length === 6 && !this.digits.includes('')) {
-      this.complete.emit(code);
+      this.otpComplete.emit(code);
     }
   }
 
