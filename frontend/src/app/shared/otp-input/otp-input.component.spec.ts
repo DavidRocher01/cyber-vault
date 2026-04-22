@@ -115,7 +115,7 @@ describe('OtpInputComponent — logique interne', () => {
 
   it('émet complete quand les 6 cases sont remplies', () => {
     const spy = vi.fn();
-    comp.complete.subscribe(spy);
+    comp.otpComplete.subscribe(spy);
     ['1', '2', '3', '4', '5', '6'].forEach((d, i) =>
       comp.onInput(makeInputEvent(d), i)
     );
@@ -124,7 +124,7 @@ describe('OtpInputComponent — logique interne', () => {
 
   it("n'émet pas complete avec seulement 5 cases", () => {
     const spy = vi.fn();
-    comp.complete.subscribe(spy);
+    comp.otpComplete.subscribe(spy);
     ['1', '2', '3', '4', '5'].forEach((d, i) =>
       comp.onInput(makeInputEvent(d), i)
     );
@@ -133,7 +133,7 @@ describe('OtpInputComponent — logique interne', () => {
 
   it("n'émet pas complete si un digit est vide au milieu", () => {
     const spy = vi.fn();
-    comp.complete.subscribe(spy);
+    comp.otpComplete.subscribe(spy);
     comp.digits = ['1', '', '3', '4', '5', '6'];
     comp.onInput(makeInputEvent('7'), 5); // trigger emit
     expect(spy).not.toHaveBeenCalled();

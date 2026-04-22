@@ -38,7 +38,7 @@ jobs:
           cache-dependency-path: backend/requirements.prod.txt
 
       - name: Install dependencies
-        run: pip install -r requirements.prod.txt aiosqlite bandit pip-audit pytest pytest-asyncio httpx
+        run: pip install -r requirements.prod.txt aiosqlite bandit pip-audit pytest pytest-asyncio httpx email-validator
         working-directory: backend
 
       - name: Bandit (sécurité statique)
