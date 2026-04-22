@@ -48,3 +48,16 @@ def hash_token(raw_token: str) -> str:
         raw_token.encode(),
         hashlib.sha256,
     ).hexdigest()
+
+
+def make_unsubscribe_token(email: str) -> str:
+    """Deterministic HMAC-SHA256 unsubscribe token derived from email + SECRET_KEY.
+    Recomputable at any time (no raw value to store), and constant across newsletter
+    sends so old links remain valid indefinitely.
+    Output is 64 hex chars.
+    """
+    return hmac.new(
+        settings.SECRET_KEY.encode(),
+        f"newsletter:unsub:{email}".encode(),
+        hashlib.sha256,
+    ).hexdigest()

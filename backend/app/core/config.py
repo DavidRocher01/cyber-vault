@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     # Email transactionnel Resend
     RESEND_API_KEY: str = ""
-    RESEND_FROM: str = "CyberScan <onboarding@resend.dev>"
+    RESEND_FROM: str = "CyberScan <no-reply@cyberscanapp.com>"
 
     # Admin
     ADMIN_API_KEY: str = ""
