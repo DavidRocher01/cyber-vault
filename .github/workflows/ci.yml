@@ -38,7 +38,7 @@ jobs:
           cache-dependency-path: backend/requirements.prod.txt
 
       - name: Install dependencies
-        run: pip install -r requirements.prod.txt aiosqlite bandit pip-audit
+        run: pip install -r requirements.prod.txt aiosqlite bandit pip-audit pytest pytest-asyncio httpx
         working-directory: backend
 
       - name: Bandit (sécurité statique)
@@ -94,7 +94,7 @@ jobs:
         working-directory: frontend
 
       - name: Vitest (tests unitaires + couverture)
-        run: npm run test:coverage -- --reporter=verbose --reporter=junit --outputFile=../test-results/frontend-junit.xml
+        run: npm run test:coverage
         working-directory: frontend
 
       - name: Upload frontend test results
@@ -102,7 +102,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-test-results
-          path: test-results/frontend-junit.xml
+          path: frontend/test-results/results.xml
 
       - name: Build
         run: npm run build
@@ -149,9 +149,9 @@ jobs:
           fi
 
           # Parse JUnit XML — frontend
-          if [ -f test-results/frontend-junit.xml ]; then
-            FE_TESTS=$(grep -oP 'tests="\K[^"]+' test-results/frontend-junit.xml | head -1 || echo "?")
-            FE_FAIL=$(grep -oP 'failures="\K[^"]+' test-results/frontend-junit.xml | head -1 || echo "0")
+          if [ -f test-results/results.xml ]; then
+            FE_TESTS=$(grep -oP 'tests="\K[^"]+' test-results/results.xml | head -1 || echo "?")
+            FE_FAIL=$(grep -oP 'failures="\K[^"]+' test-results/results.xml | head -1 || echo "0")
             FE_PASS=$(( ${FE_TESTS:-0} - ${FE_FAIL:-0} ))
             FE_STATUS=$([ "$FE_FAIL" = "0" ] && echo "✅" || echo "❌")
           else
