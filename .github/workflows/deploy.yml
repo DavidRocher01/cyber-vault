@@ -5,24 +5,27 @@ on:
   push:
     branches: [main, master]
 
+permissions:
+  id-token: write   # required for OIDC token request
+  contents: read
+
 env:
   AWS_REGION: eu-west-3
   ECR_REPOSITORY: cybervault-backend
 
 jobs:
-  # ── Backend : ECR → App Runner ──────────────────────────────────────────────
+  # ── Backend : ECR → ECS ─────────────────────────────────────────────────────
   deploy-backend:
-    name: Backend → ECR + App Runner
+    name: Backend → ECR + ECS
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region:     ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -43,9 +46,9 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG:    ${{ github.sha }}
-          # Secrets are now stored in AWS Secrets Manager (cybervault/prod).
+          # Secrets are stored in AWS Secrets Manager (cybervault/prod).
           # The task definition references them via valueFrom ARN — no plain
-          # text secrets are passed through GitHub Actions env vars anymore.
+          # text secrets are passed through GitHub Actions env vars.
           SM_ARN: arn:aws:secretsmanager:eu-west-3:328646895533:secret:cybervault/prod-Uqdfdg
         run: |
           # Retrieve the current task definition ARN from the service
@@ -121,12 +124,11 @@ jobs:
         run: npm ci --legacy-peer-deps && npm run build -- --configuration=production
         working-directory: frontend
 
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region:     ${{ env.AWS_REGION }}
 
       - name: Sync assets (cache long terme — hash dans le nom de fichier)
         run: |
