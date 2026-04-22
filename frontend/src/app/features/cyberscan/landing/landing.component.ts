@@ -20,6 +20,7 @@ import { ThemeService } from '../../../core/services/theme.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { Title, Meta } from '@angular/platform-browser';
 import { DOCUMENT } from '@angular/common';
+import { EasterEggService } from '../../../shared/easter-eggs/easter-egg.service';
 
 @Component({
     standalone: true,
@@ -44,6 +45,7 @@ import { DOCUMENT } from '@angular/common';
 export class LandingComponent implements OnInit {
   private cyberscan = inject(CyberscanService);
   readonly auth = inject(AuthService);
+  readonly easterEgg = inject(EasterEggService);
   private router = inject(Router);
   private http = inject(HttpClient);
   private fb = inject(FormBuilder);

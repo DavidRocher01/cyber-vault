@@ -118,4 +118,9 @@ export const CYBERSCAN_ROUTES: Routes = [
     loadComponent: () => import('./newsletter-unsubscribe/newsletter-unsubscribe.component').then(m => m.NewsletterUnsubscribeComponent),
     title: 'Désabonnement newsletter — CyberScan',
   },
+  {
+    path: 'r00t',
+    loadComponent: () => import('./r00t/r00t.component').then(m => m.R00tComponent),
+    title: 'r00t@cyberscan — terminal',
+  },
 ];
