@@ -63,22 +63,24 @@ async def trigger_scan(
                 detail="Le plan gratuit inclut 1 scan unique. Passez à un plan payant pour continuer."
             )
 
-    last_result = await db.execute(
-        select(Scan)
-        .where(Scan.site_id == site_id, Scan.status == "done")
-        .order_by(Scan.finished_at.desc())
-        .limit(1)
-    )
-    last_scan = last_result.scalar_one_or_none()
-
-    if last_scan and last_scan.finished_at:
-        finished_at = ensure_utc(last_scan.finished_at)
-        days_since = (datetime.now(timezone.utc) - finished_at).days
-        if days_since < interval_days:
-            days_left = interval_days - days_since
+    # Enforce interval globally across all user sites to prevent bypass via delete+recreate
+    if interval_days > 0:
+        from datetime import timedelta
+        since = datetime.now(timezone.utc) - timedelta(days=interval_days)
+        max_scans = plan.max_sites if plan else 1
+        recent_result = await db.execute(
+            select(func.count(Scan.id))
+            .join(Site, Scan.site_id == Site.id)
+            .where(
+                Site.user_id == current_user.id,
+                Scan.status == "done",
+                Scan.finished_at >= since,
+            )
+        )
+        if recent_result.scalar() >= max_scans:
             raise HTTPException(
                 status_code=429,
-                detail=f"Scan trop récent. Prochain scan disponible dans {days_left} jour(s) selon votre plan.",
+                detail=f"Limite de scans atteinte. Prochain scan disponible dans {interval_days} jour(s) selon votre plan.",
             )
 
     scan = Scan(site_id=site_id, status="pending")
