@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -35,6 +36,22 @@ async def add_site(
     max_sites = plan.max_sites if plan else 0
     if max_sites == 0:
         raise HTTPException(status_code=403, detail="Abonnement requis pour ajouter un site")
+
+    # Free plan: count all sites created in the last 30 days (including deleted)
+    # to prevent abuse via add → scan → delete cycles
+    if plan and plan.price_eur == 0:
+        since = datetime.now(timezone.utc) - timedelta(days=30)
+        monthly_result = await db.execute(
+            select(func.count(Site.id)).where(
+                Site.user_id == current_user.id,
+                Site.created_at >= since,
+            )
+        )
+        if monthly_result.scalar() >= max_sites:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Limite de {max_sites} site(s) par mois atteinte pour le plan gratuit"
+            )
 
     count_result = await db.execute(
         select(func.count(Site.id)).where(Site.user_id == current_user.id, Site.is_active == True)
