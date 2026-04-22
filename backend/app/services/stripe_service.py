@@ -30,6 +30,8 @@ def create_checkout_session(
         success_url=success_url,
         cancel_url=cancel_url,
         automatic_tax={"enabled": True},
+        billing_address_collection="auto",
+        customer_update={"address": "auto"},
     )
     return session.url
 
