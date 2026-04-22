@@ -32,7 +32,7 @@ PLANS = [
         "max_sites":          1,
         "scan_interval_days": 30,
         "tier_level":         2,
-        "stripe_price_id":    "price_1TOwwb22WVBQ28elQg3Zyzn1",
+        "stripe_price_id":    "price_1TOzSg1kFVtkWldS7qBgnmh6",
     },
     {
         "name":               "pro",
@@ -41,7 +41,7 @@ PLANS = [
         "max_sites":          3,
         "scan_interval_days": 7,
         "tier_level":         3,
-        "stripe_price_id":    "price_1TOwx822WVBQ28elrRKjFOPZ",
+        "stripe_price_id":    "price_1TOzSk1kFVtkWldSj1Z5U49V",
     },
     {
         "name":               "business",
@@ -50,7 +50,7 @@ PLANS = [
         "max_sites":          10,
         "scan_interval_days": 1,
         "tier_level":         4,
-        "stripe_price_id":    "price_1TOwxP22WVBQ28elsWUTRnKN",
+        "stripe_price_id":    "price_1TOzSk1kFVtkWldS4RJ2u8pf",
     },
 ]
 
