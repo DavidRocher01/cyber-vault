@@ -41,16 +41,12 @@ jobs:
 
       - name: Deploy to ECS
         env:
-          ECR_REGISTRY:           ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG:               ${{ github.sha }}
-          STRIPE_SECRET_KEY:       ${{ secrets.STRIPE_SECRET_KEY }}
-          STRIPE_WEBHOOK_SECRET:   ${{ secrets.STRIPE_WEBHOOK_SECRET }}
-          SMTP_USER:               ${{ secrets.SMTP_USER }}
-          SMTP_PASSWORD:           ${{ secrets.SMTP_PASSWORD }}
-          FRONTEND_URL:            ${{ secrets.FRONTEND_URL }}
-          ADMIN_API_KEY:           ${{ secrets.ADMIN_API_KEY }}
-          RESEND_API_KEY:          ${{ secrets.RESEND_API_KEY }}
-          SENTRY_DSN:              ${{ secrets.SENTRY_DSN_BACKEND }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG:    ${{ github.sha }}
+          # Secrets are now stored in AWS Secrets Manager (cybervault/prod).
+          # The task definition references them via valueFrom ARN — no plain
+          # text secrets are passed through GitHub Actions env vars anymore.
+          SM_ARN: arn:aws:secretsmanager:eu-west-3:328646895533:secret:cybervault/prod-Uqdfdg
         run: |
           # Retrieve the current task definition ARN from the service
           TASK_DEF_ARN=$(aws ecs describe-services \
@@ -61,46 +57,39 @@ jobs:
 
           # Build a new task definition JSON:
           #   - update the Docker image
-          #   - inject/update Stripe + SMTP + app env vars from GitHub Secrets
-          #     (existing env vars not listed here are kept as-is)
+          #   - remove sensitive env vars (now sourced from Secrets Manager)
+          #   - set secrets[] array pointing to cybervault/prod ARN
           NEW_TASK_DEF=$(aws ecs describe-task-definition \
             --task-definition "$TASK_DEF_ARN" \
             --query 'taskDefinition' \
             --output json | jq \
-              --arg IMAGE                 "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
-              --arg STRIPE_SECRET_KEY     "$STRIPE_SECRET_KEY" \
-              --arg STRIPE_WEBHOOK_SECRET "$STRIPE_WEBHOOK_SECRET" \
-              --arg SMTP_USER             "$SMTP_USER" \
-              --arg SMTP_PASSWORD         "$SMTP_PASSWORD" \
-              --arg FRONTEND_URL          "$FRONTEND_URL" \
-              --arg ADMIN_API_KEY         "$ADMIN_API_KEY" \
-              --arg RESEND_API_KEY        "$RESEND_API_KEY" \
-              --arg SENTRY_DSN           "$SENTRY_DSN" \
+              --arg IMAGE   "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+              --arg SM_ARN  "$SM_ARN" \
               'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)
                | .containerDefinitions[0].image = $IMAGE
                | .containerDefinitions[0].environment = (
                    (.containerDefinitions[0].environment // [])
                    | map(select(
+                       .name != "SECRET_KEY" and
+                       .name != "DATABASE_URL" and
                        .name != "STRIPE_SECRET_KEY" and
                        .name != "STRIPE_WEBHOOK_SECRET" and
-                       .name != "SMTP_USER" and
                        .name != "SMTP_PASSWORD" and
-                       .name != "FRONTEND_URL" and
                        .name != "ADMIN_API_KEY" and
                        .name != "RESEND_API_KEY" and
                        .name != "SENTRY_DSN"
                      ))
-                   + [
-                       {"name": "STRIPE_SECRET_KEY",     "value": $STRIPE_SECRET_KEY},
-                       {"name": "STRIPE_WEBHOOK_SECRET", "value": $STRIPE_WEBHOOK_SECRET},
-                       {"name": "SMTP_USER",             "value": $SMTP_USER},
-                       {"name": "SMTP_PASSWORD",         "value": $SMTP_PASSWORD},
-                       {"name": "FRONTEND_URL",          "value": $FRONTEND_URL},
-                       {"name": "ADMIN_API_KEY",         "value": $ADMIN_API_KEY},
-                       {"name": "RESEND_API_KEY",        "value": $RESEND_API_KEY},
-                       {"name": "SENTRY_DSN",            "value": $SENTRY_DSN}
-                     ]
-                 )')
+                 )
+               | .containerDefinitions[0].secrets = [
+                   {"name": "SECRET_KEY",            "valueFrom": ($SM_ARN + ":SECRET_KEY::")},
+                   {"name": "DATABASE_URL",          "valueFrom": ($SM_ARN + ":DATABASE_URL::")},
+                   {"name": "STRIPE_SECRET_KEY",     "valueFrom": ($SM_ARN + ":STRIPE_SECRET_KEY::")},
+                   {"name": "STRIPE_WEBHOOK_SECRET", "valueFrom": ($SM_ARN + ":STRIPE_WEBHOOK_SECRET::")},
+                   {"name": "SMTP_PASSWORD",         "valueFrom": ($SM_ARN + ":SMTP_PASSWORD::")},
+                   {"name": "ADMIN_API_KEY",         "valueFrom": ($SM_ARN + ":ADMIN_API_KEY::")},
+                   {"name": "RESEND_API_KEY",        "valueFrom": ($SM_ARN + ":RESEND_API_KEY::")},
+                   {"name": "SENTRY_DSN",            "valueFrom": ($SM_ARN + ":SENTRY_DSN::")}
+                 ]')
 
           # Register the new revision
           NEW_ARN=$(aws ecs register-task-definition \
