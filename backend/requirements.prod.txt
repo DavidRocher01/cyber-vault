@@ -1,5 +1,5 @@
 # Web Framework
-fastapi==0.111.0
+fastapi==0.136.0
 uvicorn[standard]==0.30.1
 
 # Base de données
@@ -8,6 +8,7 @@ asyncpg==0.31.0
 alembic==1.13.1
 
 # Sécurité
+pyasn1==0.6.3
 python-jose[cryptography]==3.4.0
 bcrypt==5.0.0
 python-multipart==0.0.26
