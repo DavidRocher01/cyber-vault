@@ -71,6 +71,8 @@ jobs:
               --arg SM_ARN     "$SM_ARN" \
               --arg PK_LIVE    "$STRIPE_PUBLISHABLE_KEY" \
               'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)
+               | .cpu = "1024"
+               | .memory = "2048"
                | .containerDefinitions[0].image = $IMAGE
                | .containerDefinitions[0].environment = (
                    (.containerDefinitions[0].environment // [])

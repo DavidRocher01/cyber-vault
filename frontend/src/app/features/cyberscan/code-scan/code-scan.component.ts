@@ -220,6 +220,21 @@ export class CodeScanComponent implements OnInit, OnDestroy {
     this.pollSubs.set(scanId, sub);
   }
 
+  refreshScan(scanId: number) {
+    this.cyberscan.getCodeScan(scanId).subscribe({
+      next: scan => {
+        this.history.update(h => h ? {
+          ...h,
+          items: h.items.map(s => s.id === scan.id ? scan : s),
+        } : h);
+        if (this.activeScan()?.id === scan.id) this.activeScan.set(scan);
+        if (scan.status === 'pending' || scan.status === 'running') {
+          this.startPolling(scanId);
+        }
+      },
+    });
+  }
+
   viewScan(scan: CodeScan) {
     this.activeScan.set(scan);
     this.activeTab.set('all');
