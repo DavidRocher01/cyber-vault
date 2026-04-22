@@ -46,8 +46,10 @@ jobs:
         working-directory: backend
 
       - name: pip-audit (vulnérabilités)
-        # GHSA-jr27-m4p2-rc6r: pyasn1 CVE ignoré — python-jose@3.4.0 impose pyasn1<0.5.0, upgrade impossible sans changer de lib JWT
-        run: pip-audit --ignore-vuln GHSA-jr27-m4p2-rc6r
+        # GHSA-jr27-m4p2-rc6r : pyasn1 — python-jose@3.4.0 impose pyasn1<0.5.0, upgrade impossible sans migration JWT
+        # GHSA-f96h-pmfr-66vw : starlette — fastapi@0.111.0 impose starlette<0.38.0, upgrade vers fastapi≥0.114 casse 44 tests (breaking changes)
+        # GHSA-2c2j-9gv5-cj73 : starlette — même raison, sera traité lors de la migration fastapi
+        run: pip-audit --ignore-vuln GHSA-jr27-m4p2-rc6r --ignore-vuln GHSA-f96h-pmfr-66vw --ignore-vuln GHSA-2c2j-9gv5-cj73
         working-directory: backend
 
       - name: Alembic migrations check
