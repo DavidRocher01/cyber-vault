@@ -1,7 +1,8 @@
 """
 Unit tests — app.core.security
 Covers: hash_password, verify_password, create_access_token,
-        decode_access_token, create_refresh_token
+        decode_access_token, create_refresh_token, hash_token,
+        make_unsubscribe_token
 """
 
 import time
@@ -15,6 +16,7 @@ from app.core.security import (
     decode_access_token,
     hash_password,
     hash_token,
+    make_unsubscribe_token,
     verify_password,
 )
 
@@ -131,3 +133,36 @@ class TestRefreshToken:
     def test_tokens_are_unique(self):
         tokens = {create_refresh_token() for _ in range(100)}
         assert len(tokens) == 100
+
+
+# ── make_unsubscribe_token ───────────────────────────────────────────────────
+
+class TestMakeUnsubscribeToken:
+    def test_output_is_64_hex_chars(self):
+        t = make_unsubscribe_token("user@example.com")
+        assert len(t) == 64
+        assert all(c in "0123456789abcdef" for c in t)
+
+    def test_deterministic_same_email(self):
+        """Same email must always produce the same token (used in newsletter URLs)."""
+        assert make_unsubscribe_token("a@b.com") == make_unsubscribe_token("a@b.com")
+
+    def test_different_emails_different_tokens(self):
+        assert make_unsubscribe_token("a@b.com") != make_unsubscribe_token("c@d.com")
+
+    def test_distinct_from_hash_token(self):
+        """make_unsubscribe_token uses a namespaced message — output must differ from hash_token."""
+        email = "user@example.com"
+        assert make_unsubscribe_token(email) != hash_token(email)
+
+    def test_changes_with_secret_key(self):
+        from unittest.mock import patch
+        t1 = make_unsubscribe_token("user@example.com")
+        with patch("app.core.security.settings") as mock_settings:
+            mock_settings.SECRET_KEY = "other-secret"
+            t2 = make_unsubscribe_token("user@example.com")
+        assert t1 != t2
+
+    def test_email_not_in_output(self):
+        email = "identifiable@example.com"
+        assert email not in make_unsubscribe_token(email)
