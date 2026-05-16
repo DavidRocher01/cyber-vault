@@ -212,11 +212,29 @@
                   </div>
                 </div>
 
+                @if (results.tool_errors && results.tool_errors.length > 0) {
+                  <div class="bg-yellow-900/20 border border-yellow-700/50 rounded-xl p-4 mb-4">
+                    <div class="flex items-start gap-3">
+                      <mat-icon class="text-yellow-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem] mt-0.5 shrink-0">warning</mat-icon>
+                      <div>
+                        <p class="text-yellow-300 text-sm font-semibold mb-1">{{ results.tool_errors.length }} outil(s) non disponible(s) sur ce serveur</p>
+                        <p class="text-yellow-400/70 text-xs">{{ results.tool_errors.join(', ') }}</p>
+                        <p class="text-yellow-400/50 text-xs mt-1">Les résultats peuvent être incomplets. Ces outils sont disponibles en production.</p>
+                      </div>
+                    </div>
+                  </div>
+                }
                 @if (results.summary.total === 0) {
                   <div class="flex flex-col items-center py-10 gap-3">
-                    <mat-icon class="text-green-400 !text-[2.5rem] !w-[2.5rem] !h-[2.5rem]">verified_user</mat-icon>
-                    <p class="text-green-400 font-semibold">Aucune faille détectée</p>
-                    <p class="text-xs text-gray-500">Le code analysé ne présente pas de vulnérabilités connues.</p>
+                    @if (results.tool_errors && results.tool_errors.length > 0) {
+                      <mat-icon class="text-yellow-400 !text-[2.5rem] !w-[2.5rem] !h-[2.5rem]">help_outline</mat-icon>
+                      <p class="text-yellow-400 font-semibold">Analyse partielle — résultat non fiable</p>
+                      <p class="text-xs text-gray-500">Certains outils n'ont pas pu s'exécuter.</p>
+                    } @else {
+                      <mat-icon class="text-green-400 !text-[2.5rem] !w-[2.5rem] !h-[2.5rem]">verified_user</mat-icon>
+                      <p class="text-green-400 font-semibold">Aucune faille détectée</p>
+                      <p class="text-xs text-gray-500">Le code analysé ne présente pas de vulnérabilités connues.</p>
+                    }
                   </div>
                 } @else {
                   <!-- Filter tabs -->
@@ -323,10 +341,17 @@
                       <span class="text-xs text-yellow-400">{{ scan.medium_count }} moyen{{ scan.medium_count > 1 ? 's' : '' }}</span>
                     }
                     @if (totalFindings(scan) === 0) {
-                      <span class="text-xs text-green-400 flex items-center gap-1">
-                        <mat-icon class="!text-[0.8rem] !w-[0.8rem] !h-[0.8rem]">check_circle</mat-icon>
-                        Aucune faille
-                      </span>
+                      @if (hasToolErrors(scan)) {
+                        <span class="text-xs text-yellow-400 flex items-center gap-1">
+                          <mat-icon class="!text-[0.8rem] !w-[0.8rem] !h-[0.8rem]">warning</mat-icon>
+                          Analyse partielle
+                        </span>
+                      } @else {
+                        <span class="text-xs text-green-400 flex items-center gap-1">
+                          <mat-icon class="!text-[0.8rem] !w-[0.8rem] !h-[0.8rem]">check_circle</mat-icon>
+                          Aucune faille
+                        </span>
+                      }
                     }
                   </div>
                 } @else if (scan.status === 'running' || scan.status === 'pending') {

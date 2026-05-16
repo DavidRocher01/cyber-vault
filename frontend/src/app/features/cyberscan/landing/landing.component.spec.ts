@@ -6,6 +6,8 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { LandingComponent } from './landing.component';
 
+const html = readFileSync(resolve(__dirname, './landing.component.html'), 'utf-8');
+
 function make(): LandingComponent {
   return Object.create(LandingComponent.prototype) as LandingComponent;
 }
@@ -450,5 +452,44 @@ describe('LandingComponent — non-régression comportement', () => {
   it('[RÉGRESSION] l\'Enterprise est sur devis (pas un prix fixe)', () => {
     expect(src).not.toContain("'Enterprise': '");
     expect(src).toContain("enterprise: 'Illimités'");
+  });
+});
+
+// ── Navbar — liens pages publiques ───────────────────────────────────────────
+
+describe('LandingComponent — navbar (liens pages publiques)', () => {
+  it('contient un lien vers /cyberscan/blog dans la navbar', () => {
+    expect(html).toContain('/cyberscan/blog');
+  });
+
+  it('contient un lien vers /cyberscan/audit-cybersecurite-pme dans la navbar', () => {
+    expect(html).toContain('/cyberscan/audit-cybersecurite-pme');
+  });
+
+  it('contient un lien vers /cyberscan/scan-gratuit dans la navbar', () => {
+    expect(html).toContain('/cyberscan/scan-gratuit');
+  });
+
+  it('[RÉGRESSION] la navbar contient toujours Ressources', () => {
+    expect(html).toContain('/cyberscan/ressources');
+  });
+
+  it('[RÉGRESSION] la navbar contient toujours Bonnes pratiques', () => {
+    expect(html).toContain('/cyberscan/bonnes-pratiques');
+  });
+
+  it('[RÉGRESSION] la navbar contient toujours le lien Dashboard pour les connectés', () => {
+    expect(html).toContain('/cyberscan/dashboard');
+  });
+
+  it('[RÉGRESSION] la navbar contient toujours le lien coffre-fort pour les connectés', () => {
+    expect(html).toContain('/vault');
+  });
+
+  it('les trois nouveaux liens sont des éléments <a> dans le nav', () => {
+    const navBlock = html.match(/<nav[\s\S]*?<\/nav>/)?.[0] ?? '';
+    expect(navBlock).toContain('/cyberscan/blog');
+    expect(navBlock).toContain('/cyberscan/audit-cybersecurite-pme');
+    expect(navBlock).toContain('/cyberscan/scan-gratuit');
   });
 });

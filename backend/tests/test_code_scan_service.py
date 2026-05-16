@@ -15,10 +15,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.services.code_scan_service import (
+    NOT_INSTALLED,
     _count_severities,
     _extract_repo_name,
     _redact_url,
     _run,
+    _run_all_tools,
     _run_bandit,
     _run_checkov,
     _run_detect_secrets,
@@ -104,7 +106,8 @@ def test_run_timeout():
 def test_run_command_not_found():
     with tempfile.TemporaryDirectory() as d:
         rc, stdout, stderr = _run(["nonexistent_tool_xyz"], cwd=d)
-    assert rc == 1
+    assert rc == NOT_INSTALLED  # -2, not 1 — FileNotFoundError sentinel
+    assert stdout == ""
     assert "not found" in stderr
 
 
@@ -915,3 +918,121 @@ def test_run_checkov_strips_leading_slash_from_file(tmp_path):
     with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
         findings = _run_checkov(str(tmp_path))
     assert not findings[0]["file"].startswith("/")
+
+
+# ─── _run_all_tools — tool availability ──────────────────────────────────────
+
+def test_run_all_tools_all_missing_returns_18_unavailable(tmp_path):
+    with patch("shutil.which", return_value=None):
+        findings, counts, unavailable = _run_all_tools(1, str(tmp_path))
+    assert findings == []
+    assert counts == {"critical": 0, "high": 0, "medium": 0, "low": 0}
+    assert len(unavailable) == 18
+
+
+def test_run_all_tools_missing_tools_have_human_readable_names(tmp_path):
+    with patch("shutil.which", return_value=None):
+        _, _, unavailable = _run_all_tools(1, str(tmp_path))
+    assert "Bandit" in unavailable
+    assert "Semgrep" in unavailable
+    assert "gitleaks" in unavailable
+    assert "trufflehog" in unavailable
+    assert "npm audit" in unavailable
+
+
+def test_run_all_tools_returns_three_tuple(tmp_path):
+    with patch("shutil.which", return_value=None):
+        result = _run_all_tools(1, str(tmp_path))
+    assert isinstance(result, tuple) and len(result) == 3
+    findings, counts, unavailable = result
+    assert isinstance(findings, list)
+    assert isinstance(counts, dict)
+    assert isinstance(unavailable, list)
+
+
+def test_run_all_tools_runs_available_tool(tmp_path):
+    finding = {
+        "severity": "high", "tool": "bandit", "rule": "B101",
+        "title": "assert", "message": "m", "file": "x.py",
+        "line": 1, "confidence": "HIGH",
+    }
+
+    def fake_which(binary):
+        return "/usr/bin/bandit" if binary == "bandit" else None
+
+    with patch("shutil.which", side_effect=fake_which), \
+         patch("app.services.code_scan_service._run_bandit", return_value=[finding]):
+        findings, counts, unavailable = _run_all_tools(1, str(tmp_path))
+
+    assert len(findings) == 1
+    assert counts["high"] == 1
+    assert "Bandit" not in unavailable
+    assert len(unavailable) == 17
+
+
+def test_run_all_tools_aggregates_multiple_tool_findings(tmp_path):
+    fa = {"severity": "critical", "tool": "bandit", "rule": "B501",
+          "title": "t", "message": "m", "file": "f.py", "line": 1, "confidence": "h"}
+    fb = {"severity": "high", "tool": "semgrep", "rule": "SG1",
+          "title": "t", "message": "m", "file": "g.py", "line": 2, "confidence": "h"}
+
+    def fake_which(binary):
+        return "/bin/x" if binary in ("bandit", "semgrep") else None
+
+    with patch("shutil.which", side_effect=fake_which), \
+         patch("app.services.code_scan_service._run_bandit", return_value=[fa]), \
+         patch("app.services.code_scan_service._run_semgrep", return_value=[fb]):
+        findings, counts, unavailable = _run_all_tools(42, str(tmp_path))
+
+    assert len(findings) == 2
+    assert counts["critical"] == 1
+    assert counts["high"] == 1
+    assert "Bandit" not in unavailable
+    assert "Semgrep" not in unavailable
+
+
+def test_run_all_tools_all_available_none_unavailable(tmp_path):
+    all_runners = [
+        "_run_bandit", "_run_semgrep", "_run_pip_audit", "_run_gitleaks",
+        "_run_trufflehog", "_run_detect_secrets", "_run_npm_audit", "_run_njsscan",
+        "_run_eslint_security", "_run_trivy", "_run_grype", "_run_osv_scanner",
+        "_run_safety", "_run_checkov", "_run_hadolint", "_run_tfsec",
+        "_run_gosec", "_run_bearer",
+    ]
+    patches = [
+        patch(f"app.services.code_scan_service.{name}", return_value=[])
+        for name in all_runners
+    ]
+    with patch("shutil.which", return_value="/usr/bin/tool"):
+        for p in patches:
+            p.start()
+        try:
+            _, _, unavailable = _run_all_tools(1, str(tmp_path))
+        finally:
+            for p in patches:
+                p.stop()
+    assert unavailable == []
+
+
+def test_run_all_tools_severity_counts_sum_correctly(tmp_path):
+    findings = [
+        {"severity": "critical", "tool": "bandit", "rule": "B1", "title": "t",
+         "message": "m", "file": "f.py", "line": 1, "confidence": "h"},
+        {"severity": "critical", "tool": "bandit", "rule": "B2", "title": "t",
+         "message": "m", "file": "g.py", "line": 2, "confidence": "h"},
+        {"severity": "medium", "tool": "semgrep", "rule": "S1", "title": "t",
+         "message": "m", "file": "h.py", "line": 3, "confidence": "h"},
+    ]
+
+    def fake_which(binary):
+        return "/bin/x" if binary in ("bandit", "semgrep") else None
+
+    with patch("shutil.which", side_effect=fake_which), \
+         patch("app.services.code_scan_service._run_bandit", return_value=findings[:2]), \
+         patch("app.services.code_scan_service._run_semgrep", return_value=findings[2:]):
+        _, counts, _ = _run_all_tools(1, str(tmp_path))
+
+    assert counts["critical"] == 2
+    assert counts["medium"] == 1
+    assert counts["high"] == 0
+    assert counts["low"] == 0

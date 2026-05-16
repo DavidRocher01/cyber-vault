@@ -52,8 +52,13 @@ def _extract_repo_name(url: str) -> str:
     return parts[-1]
 
 
+NOT_INSTALLED = -2  # sentinel returncode meaning the binary was not found on PATH
+
+
 def _run(cmd: list[str], cwd: str, timeout: int = 120) -> tuple[int, str, str]:
-    """Run a subprocess, return (returncode, stdout, stderr)."""
+    """Run a subprocess, return (returncode, stdout, stderr).
+    Returns (NOT_INSTALLED, "", ...) when the binary is absent from PATH.
+    """
     try:
         proc = subprocess.run(  # nosec B603 — cmd is always a hardcoded list, never a shell string
             cmd,
@@ -66,7 +71,7 @@ def _run(cmd: list[str], cwd: str, timeout: int = 120) -> tuple[int, str, str]:
     except subprocess.TimeoutExpired:
         return 1, "", f"Timeout after {timeout}s"
     except FileNotFoundError:
-        return 1, "", f"Command not found: {cmd[0]}"
+        return NOT_INSTALLED, "", f"Command not found: {cmd[0]}"
 
 
 # ─── individual tool runners ──────────────────────────────────────────────────
@@ -197,14 +202,21 @@ def _run_npm_audit(repo_dir: str) -> list[dict]:
         logger.info("npm audit: no package.json found, skipping")
         return []
 
-    # Generate lock file without installing if missing
+    # Generate lock file without installing if missing.
+    # Skip if node_modules exists (large project) to avoid multi-minute install.
     if not os.path.isfile(os.path.join(repo_dir, "package-lock.json")):
+        if os.path.isdir(os.path.join(repo_dir, "node_modules")):
+            logger.info("npm audit: node_modules present but no lock file, skipping to avoid slow install")
+            return []
         logger.info("npm audit: generating package-lock.json")
-        _run(
+        rc, _, _ = _run(
             ["npm", "install", "--package-lock-only", "--ignore-scripts", "--no-audit"],
             cwd=repo_dir,
-            timeout=120,
+            timeout=60,
         )
+        if rc != 0:
+            logger.warning("npm audit: failed to generate package-lock.json, skipping")
+            return []
 
     _code, stdout, stderr = _run(
         ["npm", "audit", "--json"],
@@ -882,32 +894,53 @@ def _count_severities(findings: list[dict]) -> dict:
 
 # ─── shared tool runner ───────────────────────────────────────────────────────
 
-def _run_all_tools(scan_id: int, repo_dir: str) -> tuple[list[dict], dict]:
-    """Run every security tool on repo_dir. Returns (all_findings, severity_counts)."""
+def _run_all_tools(scan_id: int, repo_dir: str) -> tuple[list[dict], dict, list[str]]:
+    """Run every security tool on repo_dir.
+    Returns (all_findings, severity_counts, unavailable_tools).
+    """
+    import shutil as _shutil
+    import sys
+
+    # Ensure the current venv's Scripts/bin directory is on PATH so pip-installed
+    # tools (bandit, semgrep, pip-audit, …) are found even if not in the system PATH.
+    venv_scripts = os.path.dirname(sys.executable)
+    current_path = os.environ.get("PATH", "")
+    if venv_scripts not in current_path:
+        os.environ["PATH"] = venv_scripts + os.pathsep + current_path
+
     all_findings: list[dict] = []
-    for name, runner in [
-        ("Bandit",          _run_bandit),
-        ("Semgrep",         _run_semgrep),
-        ("pip-audit",       _run_pip_audit),
-        ("gitleaks",        _run_gitleaks),
-        ("trufflehog",      _run_trufflehog),
-        ("detect-secrets",  _run_detect_secrets),
-        ("npm audit",       _run_npm_audit),
-        ("njsscan",         _run_njsscan),
-        ("eslint-security", _run_eslint_security),
-        ("trivy",           _run_trivy),
-        ("grype",           _run_grype),
-        ("osv-scanner",     _run_osv_scanner),
-        ("safety",          _run_safety),
-        ("checkov",         _run_checkov),
-        ("hadolint",        _run_hadolint),
-        ("tfsec",           _run_tfsec),
-        ("gosec",           _run_gosec),
-        ("bearer",          _run_bearer),
-    ]:
+    unavailable: list[str] = []
+
+    TOOLS = [
+        ("Bandit",          _run_bandit,          "bandit"),
+        ("Semgrep",         _run_semgrep,         "semgrep"),
+        ("pip-audit",       _run_pip_audit,       "pip-audit"),
+        ("gitleaks",        _run_gitleaks,        "gitleaks"),
+        ("trufflehog",      _run_trufflehog,      "trufflehog"),
+        ("detect-secrets",  _run_detect_secrets,  "detect-secrets"),
+        ("npm audit",       _run_npm_audit,       "npm"),
+        ("njsscan",         _run_njsscan,         "njsscan"),
+        ("eslint-security", _run_eslint_security, "eslint"),
+        ("trivy",           _run_trivy,           "trivy"),
+        ("grype",           _run_grype,           "grype"),
+        ("osv-scanner",     _run_osv_scanner,     "osv-scanner"),
+        ("safety",          _run_safety,          "safety"),
+        ("checkov",         _run_checkov,         "checkov"),
+        ("hadolint",        _run_hadolint,        "hadolint"),
+        ("tfsec",           _run_tfsec,           "tfsec"),
+        ("gosec",           _run_gosec,           "gosec"),
+        ("bearer",          _run_bearer,          "bearer"),
+    ]
+
+    for name, runner, binary in TOOLS:
+        if not _shutil.which(binary):
+            logger.warning(f"CodeScan {scan_id}: {name} not installed, skipping")
+            unavailable.append(name)
+            continue
         logger.info(f"CodeScan {scan_id}: running {name}")
         all_findings.extend(runner(repo_dir))
-    return all_findings, _count_severities(all_findings)
+
+    return all_findings, _count_severities(all_findings), unavailable
 
 
 # ─── main entry points ────────────────────────────────────────────────────────
@@ -945,7 +978,7 @@ async def run_code_scan(scan_id: int, db: AsyncSession, clone_url: str | None = 
         repo_dir = os.path.join(tmp_dir, "repo")
 
         # ── Run all tools ──────────────────────────────────────────────────
-        all_findings, counts = await asyncio.to_thread(_run_all_tools, scan_id, repo_dir)
+        all_findings, counts, unavailable = await asyncio.to_thread(_run_all_tools, scan_id, repo_dir)
         total = sum(counts.values())
 
         results = {
@@ -954,6 +987,7 @@ async def run_code_scan(scan_id: int, db: AsyncSession, clone_url: str | None = 
                 "total": total,
                 **counts,
             },
+            "tool_errors": unavailable,
         }
 
         scan.status = "done"
@@ -1014,9 +1048,9 @@ async def run_code_scan_zip(scan_id: int, zip_path: str, db: AsyncSession) -> No
         if len(entries) == 1 and os.path.isdir(os.path.join(repo_dir, entries[0])):
             repo_dir = os.path.join(repo_dir, entries[0])
 
-        all_findings, counts = await asyncio.to_thread(_run_all_tools, scan_id, repo_dir)
+        all_findings, counts, unavailable = await asyncio.to_thread(_run_all_tools, scan_id, repo_dir)
         total = sum(counts.values())
-        results = {"findings": all_findings, "summary": {"total": total, **counts}}
+        results = {"findings": all_findings, "summary": {"total": total, **counts}, "tool_errors": unavailable}
 
         scan.status = "done"
         scan.critical_count = counts["critical"]

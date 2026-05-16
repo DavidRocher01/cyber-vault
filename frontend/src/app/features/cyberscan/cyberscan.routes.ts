@@ -123,4 +123,29 @@ export const CYBERSCAN_ROUTES: Routes = [
     loadComponent: () => import('./r00t/r00t.component').then(m => m.R00tComponent),
     title: 'r00t@cyberscan — terminal',
   },
+  {
+    path: 'audit-cybersecurite-pme',
+    loadComponent: () => import('./audit-pme/audit-pme.component').then(m => m.AuditPmeComponent),
+    title: 'Audit cybersécurité PME — Flash, App-Check, Pentest | CyberScan',
+  },
+  {
+    path: 'scan-gratuit',
+    loadComponent: () => import('./scan-gratuit/scan-gratuit.component').then(m => m.ScanGratuitComponent),
+    title: 'Scan de sécurité gratuit — Audit en 90 secondes | CyberScan',
+  },
+  {
+    path: 'contact',
+    loadComponent: () => import('./contact/contact.component').then(m => m.ContactComponent),
+    title: 'Contact — Réserver un audit cybersécurité | CyberScan',
+  },
+  {
+    path: 'blog',
+    loadComponent: () => import('./blog/blog-list.component').then(m => m.BlogListComponent),
+    title: 'Blog cybersécurité — Conseils & analyses | CyberScan',
+  },
+  {
+    path: 'blog/:slug',
+    loadComponent: () => import('./blog/blog-article.component').then(m => m.BlogArticleComponent),
+    title: 'Blog | CyberScan',
+  },
 ];

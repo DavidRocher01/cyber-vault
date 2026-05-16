@@ -34,6 +34,7 @@ interface ScanResults {
     medium: number;
     low: number;
   };
+  tool_errors?: string[];
 }
 
 @Component({
@@ -346,6 +347,11 @@ export class CodeScanComponent implements OnInit, OnDestroy {
 
   totalFindings(scan: CodeScan): number {
     return scan.critical_count + scan.high_count + scan.medium_count + scan.low_count;
+  }
+
+  hasToolErrors(scan: CodeScan): boolean {
+    const r = this.getResults(scan);
+    return !!r?.tool_errors?.length;
   }
 
   get isRunning(): boolean {

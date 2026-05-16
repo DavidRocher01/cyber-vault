@@ -1,5 +1,13 @@
 User-agent: *
 Allow: /
+
+# Pages publiques indexées
+Allow: /cyberscan/audit-cybersecurite-pme
+Allow: /cyberscan/scan-gratuit
+Allow: /cyberscan/contact
+Allow: /cyberscan/blog
+
+# Pages privées (non indexées)
 Disallow: /cyberscan/dashboard
 Disallow: /cyberscan/scan/
 Disallow: /cyberscan/site/
@@ -9,6 +17,9 @@ Disallow: /cyberscan/success
 Disallow: /cyberscan/url-scanner
 Disallow: /cyberscan/code-scan
 Disallow: /cyberscan/nis2
+Disallow: /cyberscan/iso27001
+Disallow: /cyberscan/subdomains/
+Disallow: /cyberscan/admin/
 Disallow: /vault
 Disallow: /auth/
 
