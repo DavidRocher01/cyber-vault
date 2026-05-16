@@ -5,7 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 // ⚠️ Remplacez cette URL par votre vrai lien Calendly
-export const CALENDLY_URL = 'https://calendly.com/david-rocher-cyberscan/audit-decouverte';
+export const CALENDLY_URL = 'https://calendly.com/activatecyberscan/30min';
 
 @Component({
   standalone: true,
