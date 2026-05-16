@@ -1,0 +1,73 @@
+<app-nav-buttons />
+
+<div class="min-h-screen bg-gray-950 px-4 py-12">
+  @if (article) {
+    <article class="max-w-3xl mx-auto">
+
+      <!-- Breadcrumb -->
+      <nav class="flex items-center gap-2 text-sm text-gray-500 mb-8">
+        <a routerLink="/cyberscan" class="hover:text-gray-300 transition-colors">Accueil</a>
+        <mat-icon class="text-xs">chevron_right</mat-icon>
+        <a routerLink="/cyberscan/blog" class="hover:text-gray-300 transition-colors">Blog</a>
+        <mat-icon class="text-xs">chevron_right</mat-icon>
+        <span class="text-gray-400 truncate max-w-[200px]">{{ article.title }}</span>
+      </nav>
+
+      <!-- Header article -->
+      <header class="mb-10">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="px-3 py-1 rounded-full text-xs font-medium bg-cyan-900/40 text-cyan-300 border border-cyan-800">
+            {{ article.category }}
+          </span>
+          <span class="text-gray-500 text-sm">{{ formatDate(article.date) }}</span>
+          <span class="text-gray-500 text-sm flex items-center gap-1">
+            <mat-icon class="text-xs !h-3 !w-3">schedule</mat-icon>
+            {{ article.readTime }} min de lecture
+          </span>
+        </div>
+        <h1 class="text-3xl md:text-4xl font-bold text-white leading-tight mb-4">
+          {{ article.title }}
+        </h1>
+        <p class="text-gray-400 text-lg leading-relaxed">{{ article.description }}</p>
+        <div class="flex flex-wrap gap-2 mt-4">
+          @for (tag of article.tags; track tag) {
+            <span class="px-2 py-0.5 rounded text-xs bg-gray-800 text-gray-400">#{{ tag }}</span>
+          }
+        </div>
+      </header>
+
+      <!-- Contenu article -->
+      <div class="prose-cyberscan" [innerHTML]="article.htmlContent"></div>
+
+      <!-- CTA en bas d'article -->
+      <div class="mt-12 bg-gradient-to-r from-cyan-950 to-gray-900 border border-cyan-900 rounded-2xl p-6">
+        <h3 class="text-white font-semibold text-lg mb-2">Vérifiez l'état de votre site</h3>
+        <p class="text-gray-400 text-sm mb-4">
+          Scan gratuit en 90 secondes : SSL, headers, réputation IP, DNS.
+          Ou réservez un audit complet avec rapport PDF sous 24 h.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <a routerLink="/cyberscan/scan-gratuit"
+             class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm transition-all">
+            <mat-icon>radar</mat-icon>
+            Scan gratuit
+          </a>
+          <a routerLink="/cyberscan/audit-cybersecurite-pme"
+             class="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-600 hover:border-cyan-600 text-white text-sm transition-all">
+            Voir les offres d'audit
+          </a>
+        </div>
+      </div>
+
+      <!-- Retour au blog -->
+      <div class="mt-8 pt-8 border-t border-gray-800">
+        <a routerLink="/cyberscan/blog"
+           class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm">
+          <mat-icon class="text-base">arrow_back</mat-icon>
+          Retour au blog
+        </a>
+      </div>
+
+    </article>
+  }
+</div>
