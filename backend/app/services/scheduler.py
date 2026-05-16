@@ -227,7 +227,8 @@ async def _send_biweekly_newsletter() -> None:
     for sub in subscribers:
         unsubscribe_url = f"{settings.FRONTEND_URL}/newsletter/unsubscribe?token={sub.unsubscribe_token}"
         try:
-            send_newsletter_issue(
+            await asyncio.to_thread(
+                send_newsletter_issue,
                 to_email=sub.email,
                 unsubscribe_url=unsubscribe_url,
                 edition=edition,
@@ -258,11 +259,15 @@ def start_scheduler() -> None:
         id="daily_ssl_alerts",
         replace_existing=True,
     )
-    # Newsletter toutes les 2 semaines, lundi à 8h00 UTC
+    # Newsletter toutes les 2 semaines — première exécution dans 2 semaines (pas au démarrage)
     from apscheduler.triggers.interval import IntervalTrigger
     scheduler.add_job(
         _send_biweekly_newsletter,
-        trigger=IntervalTrigger(weeks=2, timezone="UTC"),
+        trigger=IntervalTrigger(
+            weeks=2,
+            timezone="UTC",
+            start_date=datetime.now(timezone.utc) + timedelta(weeks=2),
+        ),
         id="biweekly_newsletter",
         replace_existing=True,
     )
