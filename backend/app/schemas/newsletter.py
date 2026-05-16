@@ -67,3 +67,16 @@ class ScheduleItemIn(BaseModel):
     actu_source: str
     reflex: str
     image_url: str | None = None
+
+
+class NewsletterContentIn(BaseModel):
+    flash_title: str
+    flash_body: str
+    reflex_title: str
+    reflex_body: str
+    legal_title: str
+    legal_body: str
+
+
+class NewsletterContentOut(NewsletterContentIn):
+    pass

@@ -183,8 +183,34 @@ async def _check_ssl_alerts() -> None:
                 pass
 
 
+_NEWSLETTER_CONTENT_KEY = "newsletter_content"
+
+_DEFAULT_NEWSLETTER_CONTENT = {
+    "flash_title": "Ransomware : une vague mondiale frappe les PME",
+    "flash_body": (
+        "Cette quinzaine, plusieurs campagnes de ransomware ont ciblé des PME européennes via "
+        "des emails de phishing imitant des factures. Les secteurs les plus touchés : BTP, santé "
+        "et services juridiques. Coût moyen estimé : 85 000 € par incident."
+    ),
+    "reflex_title": "Activez le MFA sur tous vos comptes critiques",
+    "reflex_body": (
+        "La double authentification bloque 99,9 % des attaques automatisées selon Microsoft. "
+        "Commencez par votre messagerie professionnelle, puis votre gestionnaire de mots de passe. "
+        "Outils recommandés : Bitwarden, Aegis (Android), Raivo (iOS)."
+    ),
+    "legal_title": "NIS2 : êtes-vous concerné(e) ?",
+    "legal_body": (
+        "La directive NIS2, transposée en droit français depuis octobre 2024, élargit les "
+        "obligations cyber à ~15 000 nouvelles entités (ETI, collectivités, sous-traitants). "
+        "Vérifiez votre périmètre sur le site de l'ANSSI et anticipez l'audit obligatoire."
+    ),
+}
+
+
 async def _send_biweekly_newsletter() -> None:
     """Send the Radar Cyber newsletter to all active subscribers."""
+    import json as _json
+
     from app.core.config import settings
     from loguru import logger
 
@@ -198,31 +224,27 @@ async def _send_biweekly_newsletter() -> None:
         edition = setting.value_int
         setting.value_int = edition + 1
 
+        # Read editorial content from DB; fall back to defaults if not set
+        content_setting = await db.get(AppSetting, _NEWSLETTER_CONTENT_KEY)
+        content = _DEFAULT_NEWSLETTER_CONTENT
+        if content_setting and content_setting.value_text:
+            try:
+                content = _json.loads(content_setting.value_text)
+            except Exception:
+                pass
+
         result = await db.execute(
             select(NewsletterSubscriber).where(NewsletterSubscriber.is_active == True)
         )
         subscribers = result.scalars().all()
         await db.commit()
 
-    # Default editorial content — update each edition
-    flash_title = "Ransomware : une vague mondiale frappe les PME"
-    flash_body = (
-        "Cette quinzaine, plusieurs campagnes de ransomware ont ciblé des PME européennes via "
-        "des emails de phishing imitant des factures. Les secteurs les plus touchés : BTP, santé "
-        "et services juridiques. Coût moyen estimé : 85 000 € par incident."
-    )
-    reflex_title = "Activez le MFA sur tous vos comptes critiques"
-    reflex_body = (
-        "La double authentification bloque 99,9 % des attaques automatisées selon Microsoft. "
-        "Commencez par votre messagerie professionnelle, puis votre gestionnaire de mots de passe. "
-        "Outils recommandés : Bitwarden, Aegis (Android), Raivo (iOS)."
-    )
-    legal_title = "NIS2 : êtes-vous concerné(e) ?"
-    legal_body = (
-        "La directive NIS2, transposée en droit français depuis octobre 2024, élargit les "
-        "obligations cyber à ~15 000 nouvelles entités (ETI, collectivités, sous-traitants). "
-        "Vérifiez votre périmètre sur le site de l'ANSSI et anticipez l'audit obligatoire."
-    )
+    flash_title = content["flash_title"]
+    flash_body = content["flash_body"]
+    reflex_title = content["reflex_title"]
+    reflex_body = content["reflex_body"]
+    legal_title = content["legal_title"]
+    legal_body = content["legal_body"]
 
     for sub in subscribers:
         unsubscribe_url = f"{settings.FRONTEND_URL}/newsletter/unsubscribe?token={sub.unsubscribe_token}"
