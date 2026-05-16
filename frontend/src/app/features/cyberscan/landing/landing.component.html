@@ -396,13 +396,13 @@
               </div>
             }
           </div>
-          <a [href]="'mailto:contact@cyberscanapp.com?subject=Demande audit ' + offer.name"
+          <a routerLink="/cyberscan/contact"
              mat-flat-button
              [color]="offer.featured ? 'primary' : undefined"
              [class.bg-gray-700]="!offer.featured"
              [class.text-white]="!offer.featured"
              class="w-full py-3 rounded-lg font-semibold text-center">
-            Demander un devis
+            Prendre rendez-vous
           </a>
         </div>
       }
@@ -849,13 +849,20 @@
       <mat-icon class="!text-[20rem] !w-[20rem] !h-[20rem] text-cyan-400">shield</mat-icon>
     </div>
     <div class="relative z-10">
-      <h2 class="text-3xl font-bold mb-4">Prêt à sécuriser votre site ?</h2>
-      <p class="text-gray-300 mb-8">Commencez en moins de 2 minutes. Sans carte bancaire pour démarrer.</p>
-      <a routerLink="/auth/register" mat-flat-button color="primary"
-         class="text-lg px-10 py-4 shadow-lg shadow-cyan-900/50">
-        Démarrer gratuitement
-      </a>
-      <p class="text-gray-500 text-sm mt-4">Pas de carte bancaire requise · Annulation à tout moment</p>
+      <h2 class="text-3xl font-bold mb-4">Prêt à sécuriser votre activité ?</h2>
+      <p class="text-gray-300 mb-8">Scan gratuit en 90 secondes, ou prenez rendez-vous pour un audit complet.</p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a routerLink="/cyberscan/scan-gratuit" mat-flat-button color="primary"
+           class="text-lg px-10 py-4 shadow-lg shadow-cyan-900/50">
+          Scan gratuit
+        </a>
+        <a routerLink="/cyberscan/contact"
+           class="inline-flex items-center justify-center gap-2 px-10 py-4 rounded-lg border border-gray-600 hover:border-cyan-500 text-white font-semibold text-lg transition-all">
+          <mat-icon>calendar_today</mat-icon>
+          Prendre rendez-vous
+        </a>
+      </div>
+      <p class="text-gray-500 text-sm mt-4">Appel découverte 30 min · Gratuit · Sans engagement</p>
     </div>
   </section>
 
@@ -885,7 +892,9 @@
         <div class="flex flex-col gap-2 text-xs">
           <a routerLink="/auth/login" class="hover:text-cyan-400 transition-colors">Connexion</a>
           <a routerLink="/auth/register" class="hover:text-cyan-400 transition-colors">Créer un compte</a>
-          <a href="mailto:contact@cyberscan.fr" class="hover:text-cyan-400 transition-colors">Contact</a>
+          <a routerLink="/cyberscan/contact" class="hover:text-cyan-400 transition-colors">Contact & RDV</a>
+          <a routerLink="/cyberscan/blog" class="hover:text-cyan-400 transition-colors">Blog</a>
+          <a routerLink="/cyberscan/audit-cybersecurite-pme" class="hover:text-cyan-400 transition-colors">Audit PME</a>
           <a routerLink="/cyberscan/mentions-legales" class="hover:text-cyan-400 transition-colors">Mentions légales</a>
           <a routerLink="/cyberscan/cgu" class="hover:text-cyan-400 transition-colors">CGU</a>
         </div>
