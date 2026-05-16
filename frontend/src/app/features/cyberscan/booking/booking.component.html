@@ -1,0 +1,276 @@
+<app-nav-buttons />
+
+<div class="min-h-screen bg-gray-950 px-4 py-16">
+  <div class="max-w-3xl mx-auto">
+
+    <!-- ── Mode annulation ───────────────────────────────────────────────── -->
+    @if (cancelMode()) {
+      <div class="text-center py-20">
+        @if (cancelLoading()) {
+          <mat-icon class="text-cyan-400 text-5xl animate-spin">autorenew</mat-icon>
+          <p class="text-gray-400 mt-4">Annulation en cours...</p>
+        } @else {
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-800 mb-4">
+            <mat-icon class="text-cyan-400 text-3xl">event_busy</mat-icon>
+          </div>
+          <h1 class="text-white font-bold text-2xl mb-2">Réservation annulée</h1>
+          <p class="text-gray-400 mb-6">{{ cancelResult() }}</p>
+          <a routerLink="/cyberscan/reserver" class="text-cyan-400 hover:text-cyan-300 text-sm transition-colors">
+            Réserver un autre créneau →
+          </a>
+        }
+      </div>
+    }
+
+    <!-- ── Flux normal ────────────────────────────────────────────────────── -->
+    @if (!cancelMode()) {
+
+      <!-- Header -->
+      <div class="text-center mb-10">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-700 text-cyan-400 text-sm mb-4 bg-cyan-900/20">
+          <mat-icon class="text-sm !h-4 !w-4">calendar_month</mat-icon>
+          Prise de rendez-vous
+        </div>
+        <h1 class="text-3xl md:text-4xl font-bold text-white mb-3">Réserver un créneau</h1>
+        <p class="text-gray-400 max-w-xl mx-auto text-sm">
+          Choisissez une date et un horaire disponible. Confirmation par email immédiate.
+        </p>
+      </div>
+
+      <!-- ── Étape 1 : Calendrier ─────────────────────────────────────────── -->
+      @if (step() === 'calendar') {
+        <div class="bg-gray-800/50 border border-gray-700 rounded-2xl overflow-hidden">
+
+          <!-- Navigation mois -->
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-700">
+            <button (click)="prevMonth()" [disabled]="!canPrevMonth()"
+                    class="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+            <h2 class="text-white font-semibold capitalize">{{ monthLabel() }}</h2>
+            <button (click)="nextMonth()"
+                    class="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+
+          <!-- En-têtes jours -->
+          <div class="grid grid-cols-7 text-center text-xs text-gray-500 font-medium border-b border-gray-700">
+            @for (d of ['Lu','Ma','Me','Je','Ve','Sa','Di']; track d) {
+              <div class="py-2">{{ d }}</div>
+            }
+          </div>
+
+          <!-- Grille calendrier -->
+          @if (loadingSlots()) {
+            <div class="py-12 text-center">
+              <mat-icon class="text-cyan-400 text-3xl animate-spin">autorenew</mat-icon>
+            </div>
+          } @else {
+            <div class="grid grid-cols-7 gap-1 p-3">
+              @for (day of calendarDays(); track $index) {
+                @if (day === null) {
+                  <div></div>
+                } @else {
+                  @let isAvail = availableDays().has(day);
+                  @let isPast = isPast(day);
+                  @let isSelected = selectedDay() === day;
+                  <button
+                    (click)="selectDay(day)"
+                    [disabled]="!isAvail || isPast"
+                    class="aspect-square flex flex-col items-center justify-center rounded-xl text-sm font-medium transition-all"
+                    [class.bg-cyan-600]="isAvail && !isPast && isSelected"
+                    [class.text-white]="isAvail && !isPast"
+                    [class.hover:bg-cyan-700]="isAvail && !isPast && !isSelected"
+                    [class.ring-2]="isAvail && !isPast && !isSelected"
+                    [class.ring-cyan-800]="isAvail && !isPast && !isSelected"
+                    [class.bg-gray-700]="isAvail && !isPast && !isSelected"
+                    [class.text-gray-600]="!isAvail || isPast"
+                    [class.cursor-not-allowed]="!isAvail || isPast">
+                    <span>{{ getDayNum(day) }}</span>
+                    @if (isAvail && !isPast) {
+                      <span class="w-1 h-1 rounded-full bg-cyan-400 mt-0.5"></span>
+                    }
+                  </button>
+                }
+              }
+            </div>
+          }
+
+          <!-- Légende -->
+          <div class="px-6 py-3 border-t border-gray-700 flex items-center gap-4 text-xs text-gray-500">
+            <span class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-cyan-400"></span> Disponible
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-gray-600"></span> Indisponible
+            </span>
+          </div>
+        </div>
+
+        <!-- Créneaux du jour sélectionné -->
+        @if (selectedDay()) {
+          <div class="mt-6 bg-gray-800/50 border border-gray-700 rounded-2xl p-5">
+            <h3 class="text-white font-semibold mb-4 flex items-center gap-2">
+              <mat-icon class="text-cyan-400">schedule</mat-icon>
+              Créneaux disponibles — {{ formatDayFr(selectedDay()!) }}
+            </h3>
+            @if (daySlotsSelected().length === 0) {
+              <p class="text-gray-400 text-sm">Aucun créneau disponible ce jour.</p>
+            } @else {
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                @for (slot of daySlotsSelected(); track slot.id) {
+                  <button (click)="selectSlot(slot)"
+                          class="flex flex-col items-center p-3 rounded-xl border border-cyan-800 bg-cyan-900/20 hover:bg-cyan-800/40 hover:border-cyan-600 transition-all group">
+                    <span class="text-white font-bold text-lg">{{ slot.time }}</span>
+                    <span class="text-cyan-400 text-xs mt-0.5">{{ slot.duration_minutes }} min</span>
+                    <span class="text-gray-400 text-xs mt-1 text-center leading-tight">{{ slot.label }}</span>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Aucun créneau ce mois -->
+        @if (!loadingSlots() && slots().length === 0) {
+          <div class="mt-6 p-5 rounded-2xl border border-gray-700 bg-gray-800/30 text-center">
+            <mat-icon class="text-gray-600 text-3xl mb-2">event_busy</mat-icon>
+            <p class="text-gray-400 text-sm">Aucun créneau disponible ce mois. Essayez le mois suivant ou</p>
+            <a routerLink="/cyberscan/contact" class="text-cyan-400 hover:text-cyan-300 text-sm transition-colors">
+              envoyez-moi un message →
+            </a>
+          </div>
+        }
+      }
+
+      <!-- ── Étape 2 : Formulaire de réservation ──────────────────────────── -->
+      @if (step() === 'form') {
+        <div>
+          <!-- Récap créneau -->
+          <div class="mb-5 p-4 rounded-xl border border-cyan-800 bg-cyan-900/20 flex items-center gap-3">
+            <mat-icon class="text-cyan-400 flex-shrink-0">event</mat-icon>
+            <div>
+              <p class="text-white font-semibold">{{ formatDayFr(selectedSlot()!.date) }} à {{ selectedSlot()!.time }}</p>
+              <p class="text-cyan-300 text-sm">{{ selectedSlot()!.label }} · {{ selectedSlot()!.duration_minutes }} min</p>
+            </div>
+            <button (click)="backToCalendar()" class="ml-auto text-gray-500 hover:text-gray-300 transition-colors">
+              <mat-icon class="text-base">close</mat-icon>
+            </button>
+          </div>
+
+          <form [formGroup]="form" (ngSubmit)="submit()" novalidate
+                class="bg-gray-800/50 border border-gray-700 rounded-2xl p-6 space-y-5">
+            <h2 class="text-white font-semibold text-lg flex items-center gap-2">
+              <mat-icon class="text-cyan-400">person_add</mat-icon>
+              Vos coordonnées
+            </h2>
+
+            <!-- Nom -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">Nom complet <span class="text-cyan-400">*</span></label>
+              <input formControlName="name" type="text" placeholder="Jean Dupont"
+                     class="w-full px-4 py-2.5 rounded-lg bg-gray-900 border text-white placeholder-gray-500 text-sm outline-none transition-colors focus:ring-1 focus:ring-cyan-500"
+                     [class.border-gray-600]="!f['name'].invalid || !f['name'].touched"
+                     [class.border-red-500]="f['name'].invalid && f['name'].touched">
+              @if (f['name'].invalid && f['name'].touched) {
+                <p class="mt-1 text-xs text-red-400">Nom requis (2–100 caractères)</p>
+              }
+            </div>
+
+            <!-- Email -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">Email <span class="text-cyan-400">*</span></label>
+              <input formControlName="email" type="email" placeholder="jean@entreprise.fr"
+                     class="w-full px-4 py-2.5 rounded-lg bg-gray-900 border text-white placeholder-gray-500 text-sm outline-none transition-colors focus:ring-1 focus:ring-cyan-500"
+                     [class.border-gray-600]="!f['email'].invalid || !f['email'].touched"
+                     [class.border-red-500]="f['email'].invalid && f['email'].touched">
+              @if (f['email'].invalid && f['email'].touched) {
+                <p class="mt-1 text-xs text-red-400">Email valide requis</p>
+              }
+            </div>
+
+            <!-- Téléphone -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">Téléphone <span class="text-gray-500 font-normal">(facultatif)</span></label>
+              <input formControlName="phone" type="tel" placeholder="06 12 34 56 78"
+                     class="w-full px-4 py-2.5 rounded-lg bg-gray-900 border border-gray-600 text-white placeholder-gray-500 text-sm outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors">
+            </div>
+
+            <!-- Type de prestation -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">Type de prestation <span class="text-cyan-400">*</span></label>
+              <select formControlName="need_type" title="Type de prestation"
+                      class="w-full px-4 py-2.5 rounded-lg bg-gray-900 border text-sm outline-none transition-colors focus:ring-1 focus:ring-cyan-500 appearance-none cursor-pointer"
+                      [class.border-gray-600]="!f['need_type'].invalid || !f['need_type'].touched"
+                      [class.border-red-500]="f['need_type'].invalid && f['need_type'].touched"
+                      [class.text-gray-500]="!f['need_type'].value"
+                      [class.text-white]="f['need_type'].value">
+                <option value="" disabled>Sélectionnez...</option>
+                @for (opt of needOptions; track opt.value) {
+                  <option [value]="opt.value" class="bg-gray-900 text-white">{{ opt.label }}</option>
+                }
+              </select>
+              @if (f['need_type'].invalid && f['need_type'].touched) {
+                <p class="mt-1 text-xs text-red-400">Veuillez sélectionner une prestation</p>
+              }
+            </div>
+
+            <!-- Message -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">Message <span class="text-gray-500 font-normal">(facultatif)</span></label>
+              <textarea formControlName="message" rows="3"
+                        placeholder="Votre site, vos contraintes, vos questions..."
+                        class="w-full px-4 py-2.5 rounded-lg bg-gray-900 border border-gray-600 text-white placeholder-gray-500 text-sm outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors resize-none"></textarea>
+            </div>
+
+            <!-- Erreur API -->
+            @if (apiError()) {
+              <div class="flex items-start gap-2 p-3 rounded-lg bg-red-900/20 border border-red-800">
+                <mat-icon class="text-red-400 text-base flex-shrink-0 mt-0.5">error_outline</mat-icon>
+                <p class="text-red-300 text-sm">{{ apiError() }}</p>
+              </div>
+            }
+
+            <div class="flex gap-3 pt-1">
+              <button type="button" (click)="backToCalendar()"
+                      class="flex-1 px-4 py-3 rounded-xl border border-gray-600 text-gray-300 hover:border-gray-400 text-sm transition-all">
+                ← Retour
+              </button>
+              <button type="submit" [disabled]="form.invalid || submitting()"
+                      class="flex-2 flex-grow flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                @if (submitting()) {
+                  <mat-icon class="animate-spin text-base">autorenew</mat-icon>
+                  Confirmation...
+                } @else {
+                  <mat-icon class="text-base">event_available</mat-icon>
+                  Confirmer la réservation
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      <!-- ── Étape 3 : Confirmé ───────────────────────────────────────────── -->
+      @if (step() === 'confirmed') {
+        <div class="text-center py-8">
+          <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-emerald-900/30 border border-emerald-700 mb-6">
+            <mat-icon class="text-emerald-400 !text-4xl">event_available</mat-icon>
+          </div>
+          <h2 class="text-white font-bold text-2xl mb-3">Réservation confirmée !</h2>
+          <p class="text-gray-400 mb-2">{{ confirmedMessage() }}</p>
+          <p class="text-gray-500 text-sm mb-8">Un email de confirmation avec le lien d'annulation vous a été envoyé.</p>
+          <div class="flex flex-col sm:flex-row gap-3 justify-center">
+            <a routerLink="/cyberscan"
+               class="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-600 hover:border-gray-400 text-white text-sm transition-all">
+              <mat-icon class="text-base">home</mat-icon>
+              Retour à l'accueil
+            </a>
+          </div>
+        </div>
+      }
+
+    }
+  </div>
+</div>

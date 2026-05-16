@@ -218,6 +218,116 @@ CyberScan
     _send(to_email, subject, html, plain)
 
 
+def send_booking_confirmation(
+    to_email: str,
+    name: str,
+    date_label: str,
+    time_label: str,
+    duration_minutes: int,
+    slot_label: str,
+    need_type: str,
+    cancel_url: str,
+) -> None:
+    need_labels = {
+        "audit-flash": "Audit Flash",
+        "audit-app": "Audit App-Check",
+        "pentest": "Pentest léger",
+        "abonnement": "Abonnement surveillance",
+        "autre": "Autre / Devis",
+    }
+    need_label = need_labels.get(need_type, need_type)
+    subject = f"[CyberScan] Réservation confirmée — {date_label} à {time_label}"
+    plain = f"""Bonjour {name},
+
+Votre rendez-vous est confirmé :
+
+  Date     : {date_label}
+  Heure    : {time_label} ({duration_minutes} min)
+  Objet    : {slot_label}
+  Prestation : {need_label}
+
+Pour annuler votre réservation :
+{cancel_url}
+
+À bientôt,
+David Rocher — CyberScan
+"""
+    html = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0f172a;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;">
+<tr><td align="center" style="padding:40px 20px;">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#1e293b;border-radius:12px;border:1px solid #334155;">
+<tr><td style="background:linear-gradient(135deg,#065f46,#0369a1);padding:28px 40px;border-radius:12px 12px 0 0;text-align:center;">
+<p style="margin:0 0 4px;color:#6ee7b7;font-size:12px;font-weight:700;letter-spacing:2px;">RÉSERVATION CONFIRMÉE ✓</p>
+<h1 style="margin:0;color:#fff;font-size:22px;">{slot_label}</h1>
+</td></tr>
+<tr><td style="padding:32px 40px;">
+<p style="color:#94a3b8;font-size:15px;margin:0 0 24px;">Bonjour <strong style="color:#f8fafc;">{name}</strong>,</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;border-radius:8px;padding:20px;margin-bottom:24px;">
+<tr><td style="padding:8px 0;border-bottom:1px solid #1e293b;">
+  <p style="margin:0;color:#64748b;font-size:11px;font-weight:700;letter-spacing:1px;">DATE</p>
+  <p style="margin:4px 0 0;color:#f8fafc;font-size:16px;font-weight:700;">{date_label}</p>
+</td></tr>
+<tr><td style="padding:8px 0;border-bottom:1px solid #1e293b;">
+  <p style="margin:0;color:#64748b;font-size:11px;font-weight:700;letter-spacing:1px;">HEURE</p>
+  <p style="margin:4px 0 0;color:#22d3ee;font-size:16px;font-weight:700;">{time_label} ({duration_minutes} min)</p>
+</td></tr>
+<tr><td style="padding:8px 0;">
+  <p style="margin:0;color:#64748b;font-size:11px;font-weight:700;letter-spacing:1px;">PRESTATION</p>
+  <p style="margin:4px 0 0;color:#f8fafc;font-size:15px;">{need_label}</p>
+</td></tr>
+</table>
+<p style="color:#64748b;font-size:13px;line-height:1.7;margin:0 0 24px;">
+Pour annuler votre réservation, cliquez ci-dessous (jusqu'à 24h avant le rendez-vous).
+</p>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+<a href="{cancel_url}" style="display:inline-block;background:#475569;color:#fff;text-decoration:none;
+padding:11px 24px;border-radius:8px;font-size:13px;">Annuler ma réservation</a>
+</td></tr></table>
+</td></tr>
+<tr><td style="padding:20px 40px;border-top:1px solid #334155;text-align:center;">
+<p style="margin:0;color:#475569;font-size:12px;">David Rocher — CyberScan · Trévoux (01)</p>
+</td></tr>
+</table></td></tr></table></body></html>"""
+    _send(to_email, subject, html, plain)
+
+
+def send_booking_admin_notification(
+    admin_email: str,
+    name: str,
+    email: str,
+    phone: str | None,
+    date_label: str,
+    time_label: str,
+    need_type: str,
+    message: str | None,
+) -> None:
+    need_labels = {
+        "audit-flash": "Audit Flash (245 €)",
+        "audit-app": "Audit App-Check (725 €)",
+        "pentest": "Pentest léger (1 900 €)",
+        "abonnement": "Abonnement surveillance",
+        "autre": "Autre / Devis",
+    }
+    need_label = need_labels.get(need_type, need_type)
+    subject = f"[CyberScan] Nouvelle réservation — {name} le {date_label} à {time_label}"
+    plain = f"""Nouvelle réservation
+
+  Nom      : {name}
+  Email    : {email}
+  Tél.     : {phone or '—'}
+  Date     : {date_label} à {time_label}
+  Prestation : {need_label}
+  Message  : {message or '—'}
+
+Répondre à : {email}
+"""
+    html = f"""<p>Nouvelle réservation de <strong>{name}</strong> ({email})<br>
+Le <strong>{date_label} à {time_label}</strong> — {need_label}</p>
+<p>Message : {message or '—'}</p>
+<p><a href="mailto:{email}">Répondre</a></p>"""
+    _send(admin_email, subject, html, plain)
+
+
 def send_contact_email(
     name: str,
     email: str,
