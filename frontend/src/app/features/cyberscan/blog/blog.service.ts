@@ -28,7 +28,7 @@ export class BlogService {
 
 <h2>Les 4 types d'audits de sécurité</h2>
 
-<h3>1. Audit Flash — le premier pas (à partir de 490 € HT)</h3>
+<h3>1. Audit Flash — le premier pas (à partir de 245 € HT)</h3>
 <p>Idéal pour un site vitrine, un blog professionnel ou un site e-commerce simple. En une demi-journée :</p>
 <ul>
   <li>Analyse SSL/TLS — certificat, configuration, grade (A à F)</li>
@@ -41,7 +41,7 @@ export class BlogService {
 <p><strong>Livrable :</strong> rapport PDF de 8 à 12 pages + plan d'action priorisé sous 24 h.</p>
 <p><em>Pour qui ?</em> Artisans, professions libérales, collectivités, sites vitrines e-commerce.</p>
 
-<h3>2. Audit App-Check — pour les applications web (1 450 € HT)</h3>
+<h3>2. Audit App-Check — pour les applications web (725 € HT)</h3>
 <p>Pensé pour les SaaS, applications métier et plateformes e-commerce complexes. Durée : 1,5 jour.</p>
 <ul>
   <li>Tout l'Audit Flash +</li>
@@ -54,7 +54,7 @@ export class BlogService {
 <p><strong>Livrable :</strong> rapport de 20 à 30 pages + atelier restitution 1 h + plan de remédiation chiffré.</p>
 <p><em>Pour qui ?</em> Startups SaaS, agences e-commerce, éditeurs de logiciels.</p>
 
-<h3>3. Pentest léger — simulation d'attaque (3 800 € HT)</h3>
+<h3>3. Pentest léger — simulation d'attaque (1 900 € HT)</h3>
 <p>Pour les e-commerces gérant des données de paiement, les cabinets médicaux, juridiques, ou tout acteur traitant des données sensibles. Durée : 4 jours.</p>
 <ul>
   <li>Tout l'App-Check +</li>
@@ -71,9 +71,9 @@ export class BlogService {
 <h2>Les abonnements de surveillance continue</h2>
 <p>Un audit ponctuel est un instantané. Votre application évolue, de nouvelles vulnérabilités sont publiées chaque jour (CVE). Les abonnements permettent une détection en continu :</p>
 <ul>
-  <li><strong>Vigie (~120 €/mois)</strong> — scan hebdomadaire automatisé + alerte immédiate en cas de nouveau risque</li>
-  <li><strong>Sentinelle (~350 €/mois)</strong> — scan quotidien + rapport mensuel + ligne directe en cas d'incident</li>
-  <li><strong>Blindage 360 (~950 €/mois)</strong> — surveillance continue + audit trimestriel + revue de code mensuelle</li>
+  <li><strong>Vigie (~99 €/mois)</strong> — scan hebdomadaire automatisé + alerte immédiate en cas de nouveau risque</li>
+  <li><strong>Sentinelle (~199 €/mois)</strong> — scan quotidien + rapport mensuel + ligne directe en cas d'incident</li>
+  <li><strong>Blindage 360 (~499 €/mois)</strong> — surveillance continue + audit trimestriel + revue de code mensuelle</li>
 </ul>
 
 <h2>Le vrai coût d'une faille non détectée</h2>
@@ -90,9 +90,9 @@ export class BlogService {
 <table>
   <thead><tr><th>Votre situation</th><th>Audit recommandé</th><th>Budget</th></tr></thead>
   <tbody>
-    <tr><td>Site vitrine / blog professionnel</td><td>Flash</td><td>490 € HT</td></tr>
-    <tr><td>Application SaaS / e-commerce</td><td>App-Check</td><td>1 450 € HT</td></tr>
-    <tr><td>Données sensibles / obligation légale</td><td>Pentest léger</td><td>3 800 € HT</td></tr>
+    <tr><td>Site vitrine / blog professionnel</td><td>Flash</td><td>245 € HT</td></tr>
+    <tr><td>Application SaaS / e-commerce</td><td>App-Check</td><td>725 € HT</td></tr>
+    <tr><td>Données sensibles / obligation légale</td><td>Pentest léger</td><td>1 900 € HT</td></tr>
     <tr><td>Surveillance continue</td><td>Abonnement Sentinelle</td><td>350 € HT/mois</td></tr>
   </tbody>
 </table>
@@ -195,7 +195,7 @@ export class BlogService {
 
 <h2>Ce que ça signifie pour vous</h2>
 <p>Si votre site e-commerce présente 3 de ces 10 vulnérabilités, il est potentiellement exploitable aujourd'hui. Les attaques automatisées ne ciblent pas les entreprises — elles ciblent les vulnérabilités. Et les scanners automatiques tournent 24/7.</p>
-<p>Un audit Flash (490 € HT, demi-journée) permet de vérifier tous ces points et de recevoir un plan d'action priorisé sous 24 h. <strong>Le coût d'une fuite de données clients dépasse systématiquement les 15 000 €</strong> pour une PME — sans compter l'amende CNIL et l'atteinte à la réputation.</p>
+<p>Un audit Flash (245 € HT, demi-journée) permet de vérifier tous ces points et de recevoir un plan d'action priorisé sous 24 h. <strong>Le coût d'une fuite de données clients dépasse systématiquement les 15 000 €</strong> pour une PME — sans compter l'amende CNIL et l'atteinte à la réputation.</p>
 <p>Commencez par un scan gratuit de votre site pour avoir une première indication.</p>
       `,
     },
