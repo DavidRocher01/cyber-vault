@@ -1,4 +1,5 @@
 import { Component, inject, signal, computed } from '@angular/core';
+import { NgClass } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -20,7 +21,7 @@ interface AdminBooking {
 @Component({
   standalone: true,
   selector: 'app-booking-admin',
-  imports: [ReactiveFormsModule, MatIconModule, NavButtonsComponent],
+  imports: [NgClass, ReactiveFormsModule, MatIconModule, NavButtonsComponent],
   templateUrl: './booking-admin.component.html',
 })
 export class BookingAdminComponent {

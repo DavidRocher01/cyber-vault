@@ -1,4 +1,5 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { NgClass } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Title, Meta } from '@angular/platform-browser';
@@ -12,7 +13,7 @@ type Step = 'calendar' | 'form' | 'confirmed';
 @Component({
   standalone: true,
   selector: 'app-booking',
-  imports: [RouterLink, ReactiveFormsModule, MatIconModule, NavButtonsComponent],
+  imports: [NgClass, RouterLink, ReactiveFormsModule, MatIconModule, NavButtonsComponent],
   templateUrl: './booking.component.html',
 })
 export class BookingComponent implements OnInit {

@@ -73,22 +73,19 @@
                   <div></div>
                 } @else {
                   @let isAvail = availableDays().has(day);
-                  @let isPast = isPast(day);
+                  @let dayIsPast = isPast(day);
                   @let isSelected = selectedDay() === day;
                   <button
                     (click)="selectDay(day)"
-                    [disabled]="!isAvail || isPast"
-                    class="aspect-square flex flex-col items-center justify-center rounded-xl text-sm font-medium transition-all"
-                    [class.bg-cyan-600]="isAvail && !isPast && isSelected"
-                    [class.text-white]="isAvail && !isPast"
-                    [class.hover:bg-cyan-700]="isAvail && !isPast && !isSelected"
-                    [class.ring-2]="isAvail && !isPast && !isSelected"
-                    [class.ring-cyan-800]="isAvail && !isPast && !isSelected"
-                    [class.bg-gray-700]="isAvail && !isPast && !isSelected"
-                    [class.text-gray-600]="!isAvail || isPast"
-                    [class.cursor-not-allowed]="!isAvail || isPast">
+                    [disabled]="!isAvail || dayIsPast"
+                    [ngClass]="isAvail && !dayIsPast && isSelected
+                      ? 'bg-cyan-600 text-white'
+                      : isAvail && !dayIsPast
+                        ? 'bg-gray-700 text-white ring-2 ring-cyan-800 hover:bg-cyan-700'
+                        : 'text-gray-600 cursor-not-allowed'"
+                    class="aspect-square flex flex-col items-center justify-center rounded-xl text-sm font-medium transition-all">
                     <span>{{ getDayNum(day) }}</span>
-                    @if (isAvail && !isPast) {
+                    @if (isAvail && !dayIsPast) {
                       <span class="w-1 h-1 rounded-full bg-cyan-400 mt-0.5"></span>
                     }
                   </button>

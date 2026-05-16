@@ -40,23 +40,23 @@
             <form [formGroup]="slotForm" (ngSubmit)="addSlot()" class="space-y-3">
               <div>
                 <label class="block text-xs text-gray-400 mb-1">Date</label>
-                <input formControlName="date" type="date"
+                <input formControlName="date" type="date" title="Date" placeholder="YYYY-MM-DD"
                        class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm outline-none focus:border-cyan-500">
               </div>
               <div>
                 <label class="block text-xs text-gray-400 mb-1">Heure</label>
-                <input formControlName="time" type="time"
+                <input formControlName="time" type="time" title="Heure" placeholder="HH:MM"
                        class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm outline-none focus:border-cyan-500">
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="block text-xs text-gray-400 mb-1">Durée (min)</label>
-                  <input formControlName="duration_minutes" type="number" min="15" max="120"
+                  <input formControlName="duration_minutes" type="number" min="15" max="120" title="Durée en minutes" placeholder="30"
                          class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm outline-none focus:border-cyan-500">
                 </div>
                 <div>
                   <label class="block text-xs text-gray-400 mb-1">Label</label>
-                  <input formControlName="label" type="text"
+                  <input formControlName="label" type="text" title="Label du créneau" placeholder="Appel découverte"
                          class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm outline-none focus:border-cyan-500">
                 </div>
               </div>
@@ -87,7 +87,7 @@
                         <p class="text-cyan-400 text-xs">{{ slotDateLabel(b.slot_id) }}</p>
                         <p class="text-gray-400 text-xs">{{ b.email }} · {{ needLabel(b.need_type) }}</p>
                       </div>
-                      <button (click)="cancelBooking(b.id)"
+                      <button type="button" (click)="cancelBooking(b.id)"
                               class="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded border border-red-800 hover:border-red-600 transition-all flex-shrink-0">
                         Annuler
                       </button>
@@ -107,10 +107,10 @@
               <span class="capitalize">{{ formatMonthLabel() }}</span>
             </h2>
             <div class="flex gap-1">
-              <button (click)="prevMonth()" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
+              <button type="button" (click)="prevMonth()" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
                 <mat-icon class="text-base">chevron_left</mat-icon>
               </button>
-              <button (click)="nextMonth()" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
+              <button type="button" (click)="nextMonth()" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
                 <mat-icon class="text-base">chevron_right</mat-icon>
               </button>
             </div>
@@ -124,10 +124,9 @@
             <div class="space-y-2 max-h-[500px] overflow-y-auto pr-1">
               @for (slot of slots(); track slot.id) {
                 <div class="flex items-center justify-between p-3 rounded-lg border transition-colors"
-                     [class.border-emerald-800]="!slot.is_booked"
-                     [class.bg-emerald-900/10]="!slot.is_booked"
-                     [class.border-gray-700]="slot.is_booked"
-                     [class.bg-gray-900/50]="slot.is_booked">
+                     [ngClass]="slot.is_booked
+                       ? 'border-gray-700 bg-gray-900/50'
+                       : 'border-emerald-800 bg-emerald-900/10'">
                   <div>
                     <p class="text-white text-sm font-medium">{{ slot.date }} à {{ slot.time }}</p>
                     <p class="text-xs mt-0.5"
@@ -137,7 +136,7 @@
                     </p>
                   </div>
                   @if (!slot.is_booked) {
-                    <button (click)="deleteSlot(slot.id)"
+                    <button type="button" (click)="deleteSlot(slot.id)"
                             class="text-gray-500 hover:text-red-400 transition-colors ml-2 flex-shrink-0">
                       <mat-icon class="text-base">delete</mat-icon>
                     </button>
