@@ -39,10 +39,19 @@ describe('AUDIT_SUBSCRIPTIONS', () => {
     expect(AUDIT_SUBSCRIPTIONS.length).toBe(3);
   });
 
-  it('l\'abonnement Sentinelle est recommandé (popular)', () => {
+  it('l\'abonnement Sentinelle est recommandé (popular) à ~199€', () => {
     const sentinelle = AUDIT_SUBSCRIPTIONS.find(s => s.name === 'Sentinelle');
     expect(sentinelle).toBeDefined();
     expect(sentinelle!.popular).toBe(true);
+    expect(sentinelle!.price).toBe('~199');
+  });
+
+  it('Vigie est à ~99€/mois', () => {
+    expect(AUDIT_SUBSCRIPTIONS[0].price).toBe('~99');
+  });
+
+  it('Blindage 360 est à ~499€/mois', () => {
+    expect(AUDIT_SUBSCRIPTIONS[2].price).toBe('~499');
   });
 
   it('chaque abonnement a au moins 2 features', () => {

@@ -67,14 +67,14 @@ export const AUDIT_OFFERS = [
 export const AUDIT_SUBSCRIPTIONS = [
   {
     name: 'Vigie',
-    price: '~120',
+    price: '~99',
     icon: 'visibility',
     color: 'border-gray-600',
     features: ['Scan hebdomadaire automatisé', 'Alerte immédiate nouveau risque', 'Rapport mensuel synthétique'],
   },
   {
     name: 'Sentinelle',
-    price: '~350',
+    price: '~199',
     icon: 'shield',
     color: 'border-cyan-600',
     popular: true,
@@ -82,7 +82,7 @@ export const AUDIT_SUBSCRIPTIONS = [
   },
   {
     name: 'Blindage 360',
-    price: '~950',
+    price: '~499',
     icon: 'security',
     color: 'border-purple-600',
     features: ['Surveillance continue 24/7', 'Audit trimestriel', 'Revue de code mensuelle', 'Conseil stratégique RSSI externalisé'],

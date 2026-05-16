@@ -71,9 +71,9 @@ export class BlogService {
 <h2>Les abonnements de surveillance continue</h2>
 <p>Un audit ponctuel est un instantané. Votre application évolue, de nouvelles vulnérabilités sont publiées chaque jour (CVE). Les abonnements permettent une détection en continu :</p>
 <ul>
-  <li><strong>Vigie (~120 €/mois)</strong> — scan hebdomadaire automatisé + alerte immédiate en cas de nouveau risque</li>
-  <li><strong>Sentinelle (~350 €/mois)</strong> — scan quotidien + rapport mensuel + ligne directe en cas d'incident</li>
-  <li><strong>Blindage 360 (~950 €/mois)</strong> — surveillance continue + audit trimestriel + revue de code mensuelle</li>
+  <li><strong>Vigie (~99 €/mois)</strong> — scan hebdomadaire automatisé + alerte immédiate en cas de nouveau risque</li>
+  <li><strong>Sentinelle (~199 €/mois)</strong> — scan quotidien + rapport mensuel + ligne directe en cas d'incident</li>
+  <li><strong>Blindage 360 (~499 €/mois)</strong> — surveillance continue + audit trimestriel + revue de code mensuelle</li>
 </ul>
 
 <h2>Le vrai coût d'une faille non détectée</h2>
