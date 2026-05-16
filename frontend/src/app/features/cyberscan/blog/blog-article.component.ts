@@ -23,17 +23,18 @@ export class BlogArticleComponent implements OnInit {
 
   ngOnInit() {
     const slug = this.route.snapshot.paramMap.get('slug') ?? '';
-    const found = this.blog.getBySlug(slug);
-    if (!found) {
-      this.router.navigate(['/cyberscan/blog']);
-      return;
-    }
-    this.article = found;
-    this.titleService.setTitle(`${found.title} | CyberScan Blog`);
-    this.meta.updateTag({ name: 'description', content: found.description });
-    this.meta.updateTag({ property: 'og:title', content: found.title });
-    this.meta.updateTag({ property: 'og:description', content: found.description });
-    this.meta.updateTag({ name: 'robots', content: 'index, follow' });
+    this.blog.getBySlug(slug).subscribe(found => {
+      if (!found) {
+        this.router.navigate(['/cyberscan/blog']);
+        return;
+      }
+      this.article = found;
+      this.titleService.setTitle(`${found.title} | CyberScan Blog`);
+      this.meta.updateTag({ name: 'description', content: found.description });
+      this.meta.updateTag({ property: 'og:title', content: found.title });
+      this.meta.updateTag({ property: 'og:description', content: found.description });
+      this.meta.updateTag({ name: 'robots', content: 'index, follow' });
+    });
   }
 
   formatDate(iso: string): string {

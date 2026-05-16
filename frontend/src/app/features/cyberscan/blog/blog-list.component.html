@@ -18,7 +18,7 @@
 
     <!-- Articles list -->
     <div class="space-y-5">
-      @for (article of articles; track article.slug) {
+      @for (article of (articles$ | async) ?? []; track article.slug) {
         <a [routerLink]="['/cyberscan/blog', article.slug]"
            class="block bg-gray-800/50 border border-gray-700 rounded-2xl p-6 hover:border-cyan-700 transition-all group">
           <div class="flex items-start justify-between gap-4">

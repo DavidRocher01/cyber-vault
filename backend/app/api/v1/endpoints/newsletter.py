@@ -1,3 +1,4 @@
+import json
 import re
 import secrets
 from datetime import datetime, timezone
@@ -14,9 +15,12 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import create_refresh_token, hash_token, make_unsubscribe_token
 from app.core.ssrf import assert_no_ssrf
+from app.models.app_setting import AppSetting
 from app.models.newsletter_subscriber import NewsletterSubscriber
 from app.models.newsletter_schedule import NewsletterScheduleItem
 from app.schemas.newsletter import (
+    NewsletterContentIn,
+    NewsletterContentOut,
     NewsletterStatsOut,
     NewsletterSubscribeIn,
     NewsletterSubscribeOut,
@@ -26,6 +30,29 @@ from app.schemas.newsletter import (
     SendIssueIn,
     SendIssueOut,
     SubscriberOut,
+)
+
+NEWSLETTER_CONTENT_KEY = "newsletter_content"
+
+_DEFAULT_CONTENT = NewsletterContentOut(
+    flash_title="Ransomware : une vague mondiale frappe les PME",
+    flash_body=(
+        "Cette quinzaine, plusieurs campagnes de ransomware ont ciblé des PME européennes via "
+        "des emails de phishing imitant des factures. Les secteurs les plus touchés : BTP, santé "
+        "et services juridiques. Coût moyen estimé : 85 000 € par incident."
+    ),
+    reflex_title="Activez le MFA sur tous vos comptes critiques",
+    reflex_body=(
+        "La double authentification bloque 99,9 % des attaques automatisées selon Microsoft. "
+        "Commencez par votre messagerie professionnelle, puis votre gestionnaire de mots de passe. "
+        "Outils recommandés : Bitwarden, Aegis (Android), Raivo (iOS)."
+    ),
+    legal_title="NIS2 : êtes-vous concerné(e) ?",
+    legal_body=(
+        "La directive NIS2, transposée en droit français depuis octobre 2024, élargit les "
+        "obligations cyber à ~15 000 nouvelles entités (ETI, collectivités, sous-traitants). "
+        "Vérifiez votre périmètre sur le site de l'ANSSI et anticipez l'audit obligatoire."
+    ),
 )
 from app.services.newsletter_email import (
     send_confirmation_email,
@@ -326,3 +353,35 @@ async def update_schedule(
 
     logger.info(f"Newsletter schedule updated — {len(created)} items")
     return created
+
+
+# ── Newsletter content (editorial draft) ──────────────────────────────────────
+
+@router.get("/admin/content", response_model=NewsletterContentOut, dependencies=[Depends(_require_admin)])
+async def get_newsletter_content(db: AsyncSession = Depends(get_db)):
+    """Return the current newsletter editorial draft (flash/reflex/legal)."""
+    setting = await db.get(AppSetting, NEWSLETTER_CONTENT_KEY)
+    if not setting or not setting.value_text:
+        return _DEFAULT_CONTENT
+    try:
+        data = json.loads(setting.value_text)
+        return NewsletterContentOut(**data)
+    except Exception:
+        return _DEFAULT_CONTENT
+
+
+@router.put("/admin/content", response_model=NewsletterContentOut, dependencies=[Depends(_require_admin)])
+async def update_newsletter_content(
+    payload: NewsletterContentIn,
+    db: AsyncSession = Depends(get_db),
+):
+    """Persist the newsletter editorial draft so the scheduler picks it up."""
+    setting = await db.get(AppSetting, NEWSLETTER_CONTENT_KEY)
+    if setting is None:
+        setting = AppSetting(key=NEWSLETTER_CONTENT_KEY, value_int=0, value_text=payload.model_dump_json())
+        db.add(setting)
+    else:
+        setting.value_text = payload.model_dump_json()
+    await db.flush()
+    logger.info("Newsletter content updated")
+    return payload
