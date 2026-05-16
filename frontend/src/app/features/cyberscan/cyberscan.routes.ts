@@ -148,4 +148,19 @@ export const CYBERSCAN_ROUTES: Routes = [
     loadComponent: () => import('./blog/blog-article.component').then(m => m.BlogArticleComponent),
     title: 'Blog | CyberScan',
   },
+  {
+    path: 'reserver',
+    loadComponent: () => import('./booking/booking.component').then(m => m.BookingComponent),
+    title: 'Réserver un créneau — CyberScan',
+  },
+  {
+    path: 'reserver/annuler',
+    loadComponent: () => import('./booking/booking.component').then(m => m.BookingComponent),
+    title: 'Annulation réservation — CyberScan',
+  },
+  {
+    path: 'admin/agenda',
+    loadComponent: () => import('./booking-admin/booking-admin.component').then(m => m.BookingAdminComponent),
+    title: 'Admin — Agenda | CyberScan',
+  },
 ];
