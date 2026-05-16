@@ -84,7 +84,7 @@ async def test_scan_frequency_enforcement_429():
             r2 = await c.post(f"{BASE}/scans/trigger/{site_id}", headers=h)
 
     assert r2.status_code == 429
-    assert "Scan trop récent" in r2.json()["detail"]
+    assert "Limite de scans atteinte" in r2.json()["detail"]
 
 
 @pytest.mark.asyncio

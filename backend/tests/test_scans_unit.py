@@ -56,6 +56,16 @@ def _mock_scan(scan_id: int = 1, site_id: int = 1, status: str = "done") -> Magi
     return s
 
 
+def _scalar_result(val):
+    """Return a MagicMock execute result with scalar_one_or_none = val."""
+    r = MagicMock()
+    r.scalar_one_or_none.return_value = val
+    r.scalar_one.return_value = val
+    r.scalar.return_value = val if isinstance(val, int) else 0
+    r.scalars.return_value.all.return_value = val if isinstance(val, list) else []
+    return r
+
+
 def _make_db(*results):
     """Return an AsyncMock db that returns successive scalar_one_or_none results."""
     call_count = {"n": 0}
@@ -97,16 +107,25 @@ async def test_trigger_scan_unknown_site_raises_404():
 @pytest.mark.asyncio
 async def test_trigger_scan_success_returns_scan_id():
     site = _mock_site()
-    scan = _mock_scan(scan_id=42)
 
-    # Sequence: site found, no plan, no last scan → scan refresh returns scan
-    db = _make_db(site, None, None)
+    db = _make_db(site)
     db.refresh = AsyncMock(side_effect=lambda obj: setattr(obj, "id", 42))
 
     user = _mock_user()
     bg = MagicMock(spec=BackgroundTasks)
 
-    result = await trigger_scan(site_id=1, background_tasks=bg, current_user=user, db=db)
+    # get_active_plan returns None (no subscription) → interval=30, max_scans=1
+    # scalar() for count of recent scans returns 0 → scan allowed
+    with patch("app.api.v1.endpoints.scans.get_active_plan", new_callable=AsyncMock, return_value=None), \
+         patch("app.api.v1.endpoints.scans.assert_no_ssrf"):
+        count_result = MagicMock()
+        count_result.scalar.return_value = 0
+        db.execute = AsyncMock(side_effect=[
+            _scalar_result(site),   # site query
+            count_result,           # recent scans count
+        ])
+        result = await trigger_scan(site_id=1, background_tasks=bg, current_user=user, db=db)
+
     assert "scan_id" in result or hasattr(result, "scan_id")
     bg.add_task.assert_called_once()
 
@@ -114,37 +133,58 @@ async def test_trigger_scan_success_returns_scan_id():
 @pytest.mark.asyncio
 async def test_trigger_scan_recent_scan_raises_429():
     site = _mock_site()
-    last_scan = _mock_scan()
-    last_scan.status = "done"
-    last_scan.finished_at = datetime.now(timezone.utc)  # just now
-
-    # Sequence: site found, no plan (interval=30), last done scan = just now
-    db = _make_db(site, None, last_scan)
     user = _mock_user()
     bg = MagicMock(spec=BackgroundTasks)
 
-    with pytest.raises(HTTPException) as exc:
-        await trigger_scan(site_id=1, background_tasks=bg, current_user=user, db=db)
+    # Plan with interval=30, max_sites=1. Count of recent scans = 1 → 429.
+    mock_plan = MagicMock()
+    mock_plan.scan_interval_days = 30
+    mock_plan.max_sites = 1
+    mock_plan.price_eur = 10
+
+    count_result = MagicMock()
+    count_result.scalar.return_value = 1  # >= max_sites → blocked
+
+    with patch("app.api.v1.endpoints.scans.get_active_plan", new_callable=AsyncMock, return_value=mock_plan), \
+         patch("app.api.v1.endpoints.scans.assert_no_ssrf"):
+        db = AsyncMock()
+        db.execute = AsyncMock(side_effect=[
+            _scalar_result(site),
+            count_result,
+        ])
+        with pytest.raises(HTTPException) as exc:
+            await trigger_scan(site_id=1, background_tasks=bg, current_user=user, db=db)
+
     assert exc.value.status_code == 429
-    assert "Scan trop récent" in exc.value.detail
+    assert "Limite de scans atteinte" in exc.value.detail
 
 
 @pytest.mark.asyncio
-async def test_trigger_scan_naive_datetime_handled():
-    """Naive finished_at (SQLite) should not raise TypeError."""
+async def test_trigger_scan_free_plan_blocks_after_one_scan():
+    """Free plan (price_eur=0) allows only 1 scan total ever."""
     site = _mock_site()
-    last_scan = _mock_scan()
-    last_scan.status = "done"
-    last_scan.finished_at = datetime.now()  # naive — no tzinfo
-
-    db = _make_db(site, None, last_scan)
     user = _mock_user()
     bg = MagicMock(spec=BackgroundTasks)
 
-    # Should not raise TypeError even with naive datetime
-    with pytest.raises(HTTPException) as exc:
-        await trigger_scan(site_id=1, background_tasks=bg, current_user=user, db=db)
-    assert exc.value.status_code == 429  # 0 days since "now"
+    mock_plan = MagicMock()
+    mock_plan.scan_interval_days = 30
+    mock_plan.max_sites = 1
+    mock_plan.price_eur = 0  # free plan
+
+    count_result = MagicMock()
+    count_result.scalar.return_value = 1  # already has 1 scan
+
+    with patch("app.api.v1.endpoints.scans.get_active_plan", new_callable=AsyncMock, return_value=mock_plan), \
+         patch("app.api.v1.endpoints.scans.assert_no_ssrf"):
+        db = AsyncMock()
+        db.execute = AsyncMock(side_effect=[
+            _scalar_result(site),
+            count_result,
+        ])
+        with pytest.raises(HTTPException) as exc:
+            await trigger_scan(site_id=1, background_tasks=bg, current_user=user, db=db)
+
+    assert exc.value.status_code == 403
 
 
 # ─── list_scans ───────────────────────────────────────────────────────────────
