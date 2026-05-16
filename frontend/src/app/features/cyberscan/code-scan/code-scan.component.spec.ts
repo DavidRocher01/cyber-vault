@@ -215,4 +215,101 @@ describe('CodeScanComponent — getResults()', () => {
     const scan: any = { results_json: 'not-valid-json' };
     expect(makeComponent().getResults(scan)).toBeNull();
   });
+
+  it('parse le JSON avec tool_errors', () => {
+    const data = {
+      findings: [],
+      summary: { total: 0, critical: 0, high: 0, medium: 0, low: 0 },
+      tool_errors: ['Bandit', 'Semgrep'],
+    };
+    const scan: any = { results_json: JSON.stringify(data) };
+    const result = makeComponent().getResults(scan);
+    expect(result?.tool_errors).toEqual(['Bandit', 'Semgrep']);
+  });
+});
+
+describe('CodeScanComponent — hasToolErrors()', () => {
+  it('retourne false si results_json est null', () => {
+    const scan: any = { results_json: null };
+    expect(makeComponent().hasToolErrors(scan)).toBe(false);
+  });
+
+  it('retourne false si tool_errors est absent', () => {
+    const data = { findings: [], summary: { total: 0, critical: 0, high: 0, medium: 0, low: 0 } };
+    const scan: any = { results_json: JSON.stringify(data) };
+    expect(makeComponent().hasToolErrors(scan)).toBe(false);
+  });
+
+  it('retourne false si tool_errors est vide', () => {
+    const data = { findings: [], summary: { total: 0, critical: 0, high: 0, medium: 0, low: 0 }, tool_errors: [] };
+    const scan: any = { results_json: JSON.stringify(data) };
+    expect(makeComponent().hasToolErrors(scan)).toBe(false);
+  });
+
+  it('retourne true si tool_errors contient des outils', () => {
+    const data = { findings: [], summary: { total: 0, critical: 0, high: 0, medium: 0, low: 0 }, tool_errors: ['Bandit'] };
+    const scan: any = { results_json: JSON.stringify(data) };
+    expect(makeComponent().hasToolErrors(scan)).toBe(true);
+  });
+
+  it('retourne true si plusieurs outils manquants', () => {
+    const data = { findings: [], summary: { total: 0, critical: 0, high: 0, medium: 0, low: 0 }, tool_errors: ['Bandit', 'Semgrep', 'trivy'] };
+    const scan: any = { results_json: JSON.stringify(data) };
+    expect(makeComponent().hasToolErrors(scan)).toBe(true);
+  });
+
+  it('retourne false si le JSON est invalide', () => {
+    const scan: any = { results_json: 'broken-json' };
+    expect(makeComponent().hasToolErrors(scan)).toBe(false);
+  });
+});
+
+describe('CodeScanComponent — filteredFindings()', () => {
+  const results: any = {
+    findings: [
+      { severity: 'critical', tool: 'bandit', rule: 'B1', title: 't', message: 'm', file: 'f', line: 1, confidence: 'h' },
+      { severity: 'high',     tool: 'semgrep', rule: 'S1', title: 't', message: 'm', file: 'f', line: 2, confidence: 'h' },
+      { severity: 'high',     tool: 'bandit',  rule: 'B2', title: 't', message: 'm', file: 'g', line: 3, confidence: 'h' },
+      { severity: 'medium',   tool: 'trivy',   rule: 'T1', title: 't', message: 'm', file: 'h', line: 4, confidence: 'h' },
+      { severity: 'low',      tool: 'trivy',   rule: 'T2', title: 't', message: 'm', file: 'i', line: 5, confidence: 'h' },
+    ],
+    summary: { total: 5, critical: 1, high: 2, medium: 1, low: 1 },
+  };
+
+  it("retourne tous les findings pour l'onglet 'all'", () => {
+    const fakeComp: any = { activeTab: () => 'all', filteredFindings: CodeScanComponent.prototype.filteredFindings };
+    expect(fakeComp.filteredFindings(results).length).toBe(5);
+  });
+
+  it("filtre uniquement les critical pour l'onglet 'critical'", () => {
+    const fakeComp: any = { activeTab: () => 'critical', filteredFindings: CodeScanComponent.prototype.filteredFindings };
+    const filtered = fakeComp.filteredFindings(results);
+    expect(filtered.length).toBe(1);
+    expect(filtered[0].severity).toBe('critical');
+  });
+
+  it("filtre uniquement les high pour l'onglet 'high'", () => {
+    const fakeComp: any = { activeTab: () => 'high', filteredFindings: CodeScanComponent.prototype.filteredFindings };
+    expect(fakeComp.filteredFindings(results).length).toBe(2);
+  });
+
+  it("filtre uniquement les medium pour l'onglet 'medium'", () => {
+    const fakeComp: any = { activeTab: () => 'medium', filteredFindings: CodeScanComponent.prototype.filteredFindings };
+    const filtered = fakeComp.filteredFindings(results);
+    expect(filtered.length).toBe(1);
+    expect(filtered[0].severity).toBe('medium');
+  });
+
+  it("filtre uniquement les low pour l'onglet 'low'", () => {
+    const fakeComp: any = { activeTab: () => 'low', filteredFindings: CodeScanComponent.prototype.filteredFindings };
+    const filtered = fakeComp.filteredFindings(results);
+    expect(filtered.length).toBe(1);
+    expect(filtered[0].severity).toBe('low');
+  });
+
+  it("retourne un tableau vide si aucun finding ne correspond", () => {
+    const fakeComp: any = { activeTab: () => 'critical', filteredFindings: CodeScanComponent.prototype.filteredFindings };
+    const noFindings: any = { findings: [{ severity: 'low', tool: 'x', rule: 'r', title: 't', message: 'm', file: 'f', line: 1, confidence: '' }], summary: { total: 1, critical: 0, high: 0, medium: 0, low: 1 } };
+    expect(fakeComp.filteredFindings(noFindings).length).toBe(0);
+  });
 });
