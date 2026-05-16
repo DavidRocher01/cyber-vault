@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     # Admin
     ADMIN_API_KEY: str = ""
 
+    # Contact form recipient
+    CONTACT_EMAIL: str = "rocherdavid@ymail.com"
+
     # HaveIBeenPwned API (breach checker)
     HIBP_API_KEY: str = ""
 

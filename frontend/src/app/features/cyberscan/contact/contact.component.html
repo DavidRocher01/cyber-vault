@@ -6,42 +6,167 @@
     <!-- Header -->
     <div class="text-center mb-12">
       <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-700 text-cyan-400 text-sm mb-4 bg-cyan-900/20">
-        <mat-icon class="text-sm !h-4 !w-4">calendar_today</mat-icon>
+        <mat-icon class="text-sm !h-4 !w-4">mail</mat-icon>
         Prise de contact
       </div>
       <h1 class="text-3xl md:text-4xl font-bold text-white mb-3">Parlons de votre projet</h1>
       <p class="text-gray-400 max-w-xl mx-auto">
-        Réservez un appel découverte de 15 minutes. Gratuit, sans engagement.
-        Je vous dis rapidement si votre situation nécessite un audit et lequel.
+        Décrivez votre besoin, je vous réponds sous 4 h (jours ouvrés 9h–18h) avec un devis sous 24 h.
       </p>
     </div>
 
     <div class="grid md:grid-cols-5 gap-8">
 
-      <!-- Calendly embed (3 cols) -->
+      <!-- Formulaire (3 cols) -->
       <div class="md:col-span-3">
-        <div class="bg-gray-800/50 border border-gray-700 rounded-2xl overflow-hidden">
-          <div class="px-6 py-4 border-b border-gray-700">
-            <h2 class="text-white font-semibold flex items-center gap-2">
-              <mat-icon class="text-cyan-400">event</mat-icon>
-              Réserver un créneau
-            </h2>
+
+        <!-- Confirmation envoi -->
+        @if (status === 'sent') {
+          <div class="bg-gray-800/50 border border-emerald-700 rounded-2xl p-8 text-center">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-900/40 mb-4">
+              <mat-icon class="text-emerald-400 text-3xl">check_circle</mat-icon>
+            </div>
+            <h2 class="text-white font-semibold text-xl mb-2">Message envoyé !</h2>
+            <p class="text-gray-400 text-sm leading-relaxed">
+              Je vous répondrai sous 4 h. Un email de confirmation vous a été envoyé.
+            </p>
           </div>
-          <!-- Remplacer l'href par votre URL Calendly réelle -->
-          <div class="p-6 text-center">
-            <mat-icon class="text-cyan-400 text-5xl mb-4">calendar_month</mat-icon>
-            <p class="text-gray-300 mb-2">Appel découverte — 15 min</p>
-            <p class="text-gray-400 text-sm mb-6">Visio ou téléphone · 100 % gratuit · Sans engagement</p>
-            <a [href]="calendlyUrl"
-               target="_blank"
-               rel="noopener noreferrer"
-               class="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition-all">
-              <mat-icon>open_in_new</mat-icon>
-              Choisir mon créneau
-            </a>
-            <p class="text-gray-500 text-xs mt-4">Vous serez redirigé vers Calendly</p>
-          </div>
-        </div>
+        }
+
+        <!-- Formulaire -->
+        @if (status !== 'sent') {
+          <form [formGroup]="form" (ngSubmit)="submit()" novalidate
+                class="bg-gray-800/50 border border-gray-700 rounded-2xl p-6 space-y-5">
+
+            <!-- Nom -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">
+                Nom complet <span class="text-cyan-400">*</span>
+              </label>
+              <input formControlName="name" type="text" placeholder="Jean Dupont"
+                     class="w-full px-4 py-2.5 rounded-lg bg-gray-900 border text-white placeholder-gray-500 text-sm outline-none transition-colors focus:ring-1 focus:ring-cyan-500"
+                     [class.border-gray-600]="!f['name'].invalid || !f['name'].touched"
+                     [class.border-red-500]="f['name'].invalid && f['name'].touched"
+                     [class.focus:border-cyan-500]="!f['name'].invalid">
+              @if (f['name'].invalid && f['name'].touched) {
+                <p class="mt-1 text-xs text-red-400">Nom requis (2–100 caractères)</p>
+              }
+            </div>
+
+            <!-- Email -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">
+                Email <span class="text-cyan-400">*</span>
+              </label>
+              <input formControlName="email" type="email" placeholder="jean@entreprise.fr"
+                     class="w-full px-4 py-2.5 rounded-lg bg-gray-900 border text-white placeholder-gray-500 text-sm outline-none transition-colors focus:ring-1 focus:ring-cyan-500"
+                     [class.border-gray-600]="!f['email'].invalid || !f['email'].touched"
+                     [class.border-red-500]="f['email'].invalid && f['email'].touched">
+              @if (f['email'].invalid && f['email'].touched) {
+                <p class="mt-1 text-xs text-red-400">Adresse email valide requise</p>
+              }
+            </div>
+
+            <!-- Téléphone -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">
+                Téléphone <span class="text-gray-500 font-normal">(facultatif)</span>
+              </label>
+              <input formControlName="phone" type="tel" placeholder="06 12 34 56 78"
+                     class="w-full px-4 py-2.5 rounded-lg bg-gray-900 border border-gray-600 text-white placeholder-gray-500 text-sm outline-none transition-colors focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500">
+            </div>
+
+            <!-- Type de besoin -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">
+                Type de prestation <span class="text-cyan-400">*</span>
+              </label>
+              <select formControlName="need_type"
+                      title="Type de prestation"
+                      class="w-full px-4 py-2.5 rounded-lg bg-gray-900 border text-sm outline-none transition-colors focus:ring-1 focus:ring-cyan-500 appearance-none cursor-pointer"
+                      [class.border-gray-600]="!f['need_type'].invalid || !f['need_type'].touched"
+                      [class.border-red-500]="f['need_type'].invalid && f['need_type'].touched"
+                      [class.text-gray-500]="!f['need_type'].value"
+                      [class.text-white]="f['need_type'].value">
+                <option value="" disabled>Sélectionnez une option...</option>
+                @for (opt of needOptions; track opt.value) {
+                  <option [value]="opt.value" class="bg-gray-900 text-white">{{ opt.label }}</option>
+                }
+              </select>
+              @if (f['need_type'].invalid && f['need_type'].touched) {
+                <p class="mt-1 text-xs text-red-400">Veuillez sélectionner un type de prestation</p>
+              }
+            </div>
+
+            <!-- Site / URL -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">
+                Site web ou URL à auditer <span class="text-gray-500 font-normal">(facultatif)</span>
+              </label>
+              <input formControlName="site_url" type="url" placeholder="https://monentreprise.fr"
+                     class="w-full px-4 py-2.5 rounded-lg bg-gray-900 border border-gray-600 text-white placeholder-gray-500 text-sm outline-none transition-colors focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500">
+            </div>
+
+            <!-- Message -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">
+                Votre message <span class="text-cyan-400">*</span>
+              </label>
+              <textarea formControlName="message" rows="5"
+                        placeholder="Décrivez votre contexte, vos contraintes, votre délai souhaité..."
+                        class="w-full px-4 py-2.5 rounded-lg bg-gray-900 border text-white placeholder-gray-500 text-sm outline-none transition-colors focus:ring-1 focus:ring-cyan-500 resize-none"
+                        [class.border-gray-600]="!f['message'].invalid || !f['message'].touched"
+                        [class.border-red-500]="f['message'].invalid && f['message'].touched"></textarea>
+              <div class="flex justify-between mt-1">
+                @if (f['message'].invalid && f['message'].touched) {
+                  <p class="text-xs text-red-400">Message requis (10–2000 caractères)</p>
+                } @else {
+                  <span></span>
+                }
+                <span class="text-xs text-gray-500">{{ messageLength }}/2000</span>
+              </div>
+            </div>
+
+            <!-- RGPD -->
+            <div class="flex items-start gap-3">
+              <input formControlName="rgpd" type="checkbox" id="rgpd"
+                     class="mt-0.5 h-4 w-4 rounded border-gray-600 bg-gray-900 text-cyan-500 accent-cyan-500 cursor-pointer flex-shrink-0">
+              <label for="rgpd" class="text-xs text-gray-400 leading-relaxed cursor-pointer">
+                J'accepte que mes données soient utilisées pour traiter ma demande de contact.
+                Conformément au RGPD, vous disposez d'un droit d'accès, de rectification et de suppression.
+              </label>
+            </div>
+            @if (f['rgpd'].invalid && f['rgpd'].touched) {
+              <p class="-mt-3 text-xs text-red-400">Veuillez accepter la politique de confidentialité</p>
+            }
+
+            <!-- Erreur API -->
+            @if (status === 'error') {
+              <div class="flex items-start gap-2 p-3 rounded-lg bg-red-900/20 border border-red-800">
+                <mat-icon class="text-red-400 text-base flex-shrink-0 mt-0.5">error_outline</mat-icon>
+                <p class="text-red-300 text-sm">{{ errorMessage }}</p>
+              </div>
+            }
+
+            <!-- Submit -->
+            <button type="submit"
+                    [disabled]="form.invalid || status === 'sending'"
+                    class="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    [class.bg-cyan-600]="status !== 'sending'"
+                    [class.hover:bg-cyan-500]="status !== 'sending'"
+                    [class.text-white]="true"
+                    [class.bg-gray-700]="status === 'sending'">
+              @if (status === 'sending') {
+                <mat-icon class="animate-spin text-base">autorenew</mat-icon>
+                Envoi en cours...
+              } @else {
+                <mat-icon class="text-base">send</mat-icon>
+                Envoyer ma demande
+              }
+            </button>
+
+          </form>
+        }
       </div>
 
       <!-- Infos contact (2 cols) -->
@@ -63,7 +188,7 @@
             </li>
             <li class="flex items-center gap-3">
               <mat-icon class="text-gray-500 text-base">schedule</mat-icon>
-              <span>Délai de réponse : &lt; 4 h<br><span class="text-gray-500 text-xs">Jours ouvrés 9 h – 18 h</span></span>
+              <span>Réponse sous 4 h<br><span class="text-gray-500 text-xs">Jours ouvrés 9h – 18h</span></span>
             </li>
           </ul>
         </div>
@@ -76,7 +201,7 @@
           <ol class="space-y-2 text-sm text-gray-300">
             <li class="flex items-start gap-2">
               <span class="text-cyan-400 font-bold text-base leading-none mt-0.5 flex-shrink-0">1.</span>
-              Appel découverte (15 min) — périmètre et besoins
+              Réponse sous 4 h avec un devis sous 24 h
             </li>
             <li class="flex items-start gap-2">
               <span class="text-cyan-400 font-bold text-base leading-none mt-0.5 flex-shrink-0">2.</span>
@@ -84,11 +209,11 @@
             </li>
             <li class="flex items-start gap-2">
               <span class="text-cyan-400 font-bold text-base leading-none mt-0.5 flex-shrink-0">3.</span>
-              Devis envoyé sous 24 h
+              Audit réalisé selon le périmètre convenu
             </li>
             <li class="flex items-start gap-2">
               <span class="text-cyan-400 font-bold text-base leading-none mt-0.5 flex-shrink-0">4.</span>
-              Rapport + plan d'action sous 24 h après l'audit
+              Rapport PDF + plan d'action sous 24 h
             </li>
           </ol>
         </div>
@@ -96,7 +221,7 @@
         <div class="bg-cyan-900/20 border border-cyan-800 rounded-2xl p-5">
           <p class="text-cyan-300 text-sm flex items-start gap-2">
             <mat-icon class="text-base flex-shrink-0 mt-0.5">tips_and_tricks</mat-icon>
-            Commencez par un scan gratuit avant l'appel pour arriver avec vos résultats.
+            Commencez par un scan gratuit avant d'envoyer votre demande.
           </p>
           <a routerLink="/cyberscan/scan-gratuit"
              class="mt-3 inline-flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300 transition-colors">

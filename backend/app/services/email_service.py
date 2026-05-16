@@ -218,6 +218,122 @@ CyberScan
     _send(to_email, subject, html, plain)
 
 
+def send_contact_email(
+    name: str,
+    email: str,
+    phone: str | None,
+    need_type: str,
+    site_url: str | None,
+    message: str,
+    contact_email: str,
+) -> None:
+    need_labels = {
+        "audit-flash": "Audit Flash (245 € HT)",
+        "audit-app": "Audit App-Check (725 € HT)",
+        "pentest": "Pentest léger (1 900 € HT)",
+        "abonnement": "Abonnement surveillance continue",
+        "autre": "Autre / Demande de devis",
+    }
+    need_label = need_labels.get(need_type, need_type)
+
+    subject = f"[CyberScan Contact] {need_label} — {name} <{email}>"
+
+    plain_owner = f"""Nouvelle demande de contact via CyberScan
+
+Nom     : {name}
+Email   : {email}
+Tél.    : {phone or '—'}
+Besoin  : {need_label}
+Site    : {site_url or '—'}
+
+Message :
+{message}
+
+---
+Répondre à : {email}
+"""
+    html_owner = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0f172a;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;">
+<tr><td align="center" style="padding:40px 20px;">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#1e293b;border-radius:12px;border:1px solid #334155;">
+<tr><td style="background:linear-gradient(135deg,#0e7490,#0369a1);padding:28px 40px;border-radius:12px 12px 0 0;">
+<h1 style="margin:0;color:#fff;font-size:20px;">Nouvelle demande de contact</h1>
+<p style="margin:6px 0 0;color:#bae6fd;font-size:13px;">{need_label}</p>
+</td></tr>
+<tr><td style="padding:32px 40px;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;border-radius:8px;padding:20px;margin-bottom:24px;">
+<tr><td style="padding:8px 0;border-bottom:1px solid #1e293b;">
+  <p style="margin:0;color:#64748b;font-size:11px;font-weight:700;letter-spacing:1px;">NOM</p>
+  <p style="margin:4px 0 0;color:#f8fafc;font-size:15px;">{name}</p>
+</td></tr>
+<tr><td style="padding:8px 0;border-bottom:1px solid #1e293b;">
+  <p style="margin:0;color:#64748b;font-size:11px;font-weight:700;letter-spacing:1px;">EMAIL</p>
+  <p style="margin:4px 0 0;color:#22d3ee;font-size:15px;"><a href="mailto:{email}" style="color:#22d3ee;">{email}</a></p>
+</td></tr>
+<tr><td style="padding:8px 0;border-bottom:1px solid #1e293b;">
+  <p style="margin:0;color:#64748b;font-size:11px;font-weight:700;letter-spacing:1px;">TÉLÉPHONE</p>
+  <p style="margin:4px 0 0;color:#f8fafc;font-size:15px;">{phone or '—'}</p>
+</td></tr>
+<tr><td style="padding:8px 0;">
+  <p style="margin:0;color:#64748b;font-size:11px;font-weight:700;letter-spacing:1px;">SITE / URL</p>
+  <p style="margin:4px 0 0;color:#f8fafc;font-size:15px;">{site_url or '—'}</p>
+</td></tr>
+</table>
+<p style="color:#64748b;font-size:11px;font-weight:700;letter-spacing:1px;margin:0 0 8px;">MESSAGE</p>
+<div style="background:#0f172a;border-radius:8px;padding:16px;color:#cbd5e1;font-size:14px;line-height:1.7;white-space:pre-wrap;">{message}</div>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;"><tr><td>
+<a href="mailto:{email}" style="display:inline-block;background:#0e7490;color:#fff;text-decoration:none;
+padding:12px 28px;border-radius:8px;font-weight:700;font-size:14px;">Répondre à {name} →</a>
+</td></tr></table>
+</td></tr>
+<tr><td style="padding:20px 40px;border-top:1px solid #334155;text-align:center;">
+<p style="margin:0;color:#475569;font-size:12px;">CyberScan — Formulaire de contact</p>
+</td></tr>
+</table></td></tr></table></body></html>"""
+
+    _send(contact_email, subject, html_owner, plain_owner)
+
+    # Confirmation to sender
+    plain_confirm = f"""Bonjour {name},
+
+Votre message a bien été reçu. Je reviendrai vers vous sous 4 h (jours ouvrés 9h–18h).
+
+Récapitulatif de votre demande :
+  Type : {need_label}
+  Site : {site_url or '—'}
+
+---
+David Rocher — CyberScan
+rocherdavid@ymail.com
+"""
+    html_confirm = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0f172a;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;">
+<tr><td align="center" style="padding:40px 20px;">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#1e293b;border-radius:12px;border:1px solid #334155;">
+<tr><td style="background:linear-gradient(135deg,#0e7490,#0369a1);padding:28px 40px;border-radius:12px 12px 0 0;text-align:center;">
+<h1 style="margin:0;color:#fff;font-size:22px;">Message bien reçu ✓</h1>
+</td></tr>
+<tr><td style="padding:32px 40px;">
+<p style="color:#94a3b8;font-size:15px;line-height:1.7;margin:0 0 20px;">
+Bonjour <strong style="color:#f8fafc;">{name}</strong>,
+</p>
+<p style="color:#94a3b8;font-size:15px;line-height:1.7;margin:0 0 20px;">
+Votre demande concernant <strong style="color:#22d3ee;">{need_label}</strong> a bien été reçue.
+Je vous répondrai sous <strong style="color:#f8fafc;">4 heures</strong> (jours ouvrés, 9h–18h).
+</p>
+<p style="color:#475569;font-size:13px;line-height:1.7;margin:0;">
+David Rocher — CyberScan<br>
+Trévoux (01) · <a href="mailto:rocherdavid@ymail.com" style="color:#22d3ee;">rocherdavid@ymail.com</a>
+</p>
+</td></tr>
+</table></td></tr></table></body></html>"""
+
+    try:
+        _send(email, "[CyberScan] Votre message a bien été reçu", html_confirm, plain_confirm)
+    except Exception:
+        pass  # Ne pas bloquer si la confirmation échoue
+
+
 def send_password_reset(to_email: str, reset_url: str) -> None:
     plain = f"""Bonjour,
 
