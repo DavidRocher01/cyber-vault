@@ -9,7 +9,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
 export const AUDIT_OFFERS = [
   {
     name: 'Audit Flash',
-    price: '490',
+    price: '245',
     duration: '½ journée',
     target: 'Sites vitrines, blogs pro, e-commerce simples',
     icon: 'flash_on',
@@ -27,7 +27,7 @@ export const AUDIT_OFFERS = [
   },
   {
     name: 'App-Check',
-    price: '1 450',
+    price: '725',
     duration: '1,5 jour',
     target: 'SaaS, applications métier, e-commerce complexe',
     icon: 'manage_search',
@@ -47,7 +47,7 @@ export const AUDIT_OFFERS = [
   },
   {
     name: 'Pentest léger',
-    price: '3 800',
+    price: '1 900',
     duration: '4 jours',
     target: 'E-commerce, données sensibles, obligations légales',
     icon: 'bug_report',
@@ -123,10 +123,10 @@ export class AuditPmeComponent implements OnInit {
     this.titleService.setTitle('Audit cybersécurité PME — Flash, App-Check, Pentest | CyberScan');
     this.meta.updateTag({
       name: 'description',
-      content: 'Audit cybersécurité pour TPE/PME à partir de 490 € HT. Flash, App-Check, Pentest. Développeur full-stack ET auditeur : rapport PDF + plan d\'action sous 24 h. Zone Auvergne-Rhône-Alpes.',
+      content: 'Audit cybersécurité pour TPE/PME à partir de 245 € HT. Flash, App-Check, Pentest. Développeur full-stack ET auditeur : rapport PDF + plan d\'action sous 24 h. Zone Auvergne-Rhône-Alpes.',
     });
     this.meta.updateTag({ property: 'og:title', content: 'Audit cybersécurité PME — CyberScan' });
-    this.meta.updateTag({ property: 'og:description', content: 'Audit de sécurité web pour TPE/PME à partir de 490 € HT. Rapport + plan d\'action concret sous 24 h.' });
+    this.meta.updateTag({ property: 'og:description', content: 'Audit de sécurité web pour TPE/PME à partir de 245 € HT. Rapport + plan d\'action concret sous 24 h.' });
     this.meta.updateTag({ name: 'robots', content: 'index, follow' });
   }
 }
