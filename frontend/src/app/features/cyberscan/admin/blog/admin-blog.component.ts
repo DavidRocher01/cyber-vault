@@ -31,7 +31,7 @@ export class AdminBlogComponent implements OnInit {
   articles = signal<BlogPost[]>([]);
   loading = signal(true);
   view = signal<'list' | 'edit'>('list');
-  editingId = signal<number | null>(null);
+  editingSlug = signal<string | null>(null);
   saving = signal(false);
   saveMsg = signal('');
   saveError = signal('');
@@ -51,23 +51,23 @@ export class AdminBlogComponent implements OnInit {
   ngOnInit() { this.load(); }
 
   load() {
-    this.http.get<BlogPost[]>('/api/v1/blog/articles', { headers: this.auth.headers() }).subscribe({
+    this.http.get<BlogPost[]>('/api/v1/blog/admin/articles', { headers: this.auth.headers() }).subscribe({
       next: a => { this.articles.set(a); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
   }
 
   openNew() {
-    this.editingId.set(null);
+    this.editingSlug.set(null);
     this.form.reset({ readTime: 5, isPublished: true });
     this.saveMsg.set(''); this.saveError.set('');
     this.view.set('edit');
   }
 
   openEdit(article: BlogPost) {
-    this.editingId.set(article.id);
+    this.editingSlug.set(article.slug);
     this.saveMsg.set(''); this.saveError.set('');
-    this.http.get<BlogPost>(`/api/v1/blog/articles/${article.slug}`, { headers: this.auth.headers() }).subscribe({
+    this.http.get<BlogPost>(`/api/v1/blog/admin/articles/${article.slug}`, { headers: this.auth.headers() }).subscribe({
       next: a => {
         this.form.setValue({
           slug: a.slug, title: a.title, description: a.description,
@@ -90,9 +90,9 @@ export class AdminBlogComponent implements OnInit {
       htmlContent: v.htmlContent!, isPublished: v.isPublished ?? true,
     };
     this.saving.set(true); this.saveMsg.set(''); this.saveError.set('');
-    const id = this.editingId();
-    const req = id
-      ? this.http.put(`/api/v1/blog/admin/articles/${id}`, payload, { headers: this.auth.headers() })
+    const currentSlug = this.editingSlug();
+    const req = currentSlug
+      ? this.http.put(`/api/v1/blog/admin/articles/${currentSlug}`, payload, { headers: this.auth.headers() })
       : this.http.post('/api/v1/blog/admin/articles', payload, { headers: this.auth.headers() });
     req.subscribe({
       next: () => { this.saveMsg.set('Enregistré ✓'); this.saving.set(false); this.load(); },
@@ -100,16 +100,16 @@ export class AdminBlogComponent implements OnInit {
     });
   }
 
-  delete(id: number) {
-    this.http.delete(`/api/v1/blog/admin/articles/${id}`, { headers: this.auth.headers() }).subscribe({
-      next: () => this.articles.update(a => a.filter(x => x.id !== id)),
+  delete(slug: string) {
+    this.http.delete(`/api/v1/blog/admin/articles/${slug}`, { headers: this.auth.headers() }).subscribe({
+      next: () => this.articles.update(a => a.filter(x => x.slug !== slug)),
     });
   }
 
   togglePublish(article: BlogPost) {
     const payload = { ...article, tags: article.tags, htmlContent: article.htmlContent ?? '', isPublished: !article.isPublished };
-    this.http.put(`/api/v1/blog/admin/articles/${article.id}`, payload, { headers: this.auth.headers() }).subscribe({
-      next: () => this.articles.update(a => a.map(x => x.id === article.id ? { ...x, isPublished: !x.isPublished } : x)),
+    this.http.put(`/api/v1/blog/admin/articles/${article.slug}`, payload, { headers: this.auth.headers() }).subscribe({
+      next: () => this.articles.update(a => a.map(x => x.slug === article.slug ? { ...x, isPublished: !x.isPublished } : x)),
     });
   }
 }
