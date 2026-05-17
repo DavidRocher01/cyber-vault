@@ -372,10 +372,8 @@
              [ngClass]="offer.featured ? 'border-cyan-500 bg-gray-800/80' : 'border-gray-700 bg-gray-800'">
           @if (offer.badge) {
             <div class="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold px-3 py-1 rounded-full"
-                 [class.bg-cyan-500]="offer.badge === 'Recommandé'"
-                 [class.text-gray-900]="offer.badge === 'Recommandé'"
-                 [class.bg-violet-500]="offer.badge === 'Nouveau'"
-                 [class.text-white]="offer.badge === 'Nouveau'">
+                 [class.bg-violet-500]="offer.badge === 'Le plus demandé' || offer.badge === 'Nouveau'"
+                 [class.text-white]="offer.badge === 'Le plus demandé' || offer.badge === 'Nouveau'">
               {{ offer.badge }}
             </div>
           }
@@ -406,7 +404,7 @@
              [class.bg-gray-700]="!offer.featured"
              [class.text-white]="!offer.featured"
              class="w-full py-3 rounded-lg font-semibold text-center">
-            Prendre rendez-vous
+            {{ offer.cta }}
           </a>
         </div>
       }
