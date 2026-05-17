@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.database import get_db
@@ -59,6 +60,7 @@ async def list_slots(month: str, db: AsyncSession = Depends(get_db)):
         select(BookingSlot)
         .where(BookingSlot.date.like(f"{month}-%"))
         .order_by(BookingSlot.date, BookingSlot.time)
+        .options(selectinload(BookingSlot.bookings))
     )
     slots = result.scalars().unique().all()
     return [_slot_to_out(s) for s in slots]
@@ -178,7 +180,7 @@ async def add_slots(payload: SlotBatchIn, db: AsyncSession = Depends(get_db)):
                dependencies=[Depends(_require_admin)])
 async def delete_slot(slot_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(BookingSlot).where(BookingSlot.id == slot_id))
-    slot = result.scalars().unique().scalar_one_or_none()
+    slot = result.scalars().unique().one_or_none()
     if not slot:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Créneau introuvable")
     await db.delete(slot)
@@ -186,7 +188,9 @@ async def delete_slot(slot_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.get("/admin/slots", response_model=list[SlotOut], dependencies=[Depends(_require_admin)])
 async def admin_list_slots(month: str | None = None, db: AsyncSession = Depends(get_db)):
-    q = select(BookingSlot).order_by(BookingSlot.date, BookingSlot.time)
+    q = (select(BookingSlot)
+         .order_by(BookingSlot.date, BookingSlot.time)
+         .options(selectinload(BookingSlot.bookings)))
     if month:
         q = q.where(BookingSlot.date.like(f"{month}-%"))
     result = await db.execute(q)
