@@ -163,4 +163,36 @@ export const CYBERSCAN_ROUTES: Routes = [
     loadComponent: () => import('./booking-admin/booking-admin.component').then(m => m.BookingAdminComponent),
     title: 'Admin — Agenda | CyberScan',
   },
+  {
+    path: 'admin',
+    loadComponent: () => import('./admin/admin-shell.component').then(m => m.AdminShellComponent),
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        loadComponent: () => import('./admin/dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent),
+        title: 'Admin — Vue d\'ensemble | CyberScan',
+      },
+      {
+        path: 'contacts',
+        loadComponent: () => import('./admin/contacts/admin-contacts.component').then(m => m.AdminContactsComponent),
+        title: 'Admin — Contacts | CyberScan',
+      },
+      {
+        path: 'blog',
+        loadComponent: () => import('./admin/blog/admin-blog.component').then(m => m.AdminBlogComponent),
+        title: 'Admin — Blog | CyberScan',
+      },
+      {
+        path: 'users',
+        loadComponent: () => import('./admin/users/admin-users.component').then(m => m.AdminUsersComponent),
+        title: 'Admin — Utilisateurs | CyberScan',
+      },
+      {
+        path: 'scans',
+        loadComponent: () => import('./admin/scans/admin-scans.component').then(m => m.AdminScansComponent),
+        title: 'Admin — Scans | CyberScan',
+      },
+    ],
+  },
 ];

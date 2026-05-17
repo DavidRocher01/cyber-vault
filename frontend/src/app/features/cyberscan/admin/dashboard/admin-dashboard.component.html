@@ -1,0 +1,86 @@
+<div class="p-6 space-y-6">
+  <h1 class="text-xl font-bold text-white">Vue d'ensemble</h1>
+
+  @if (loading()) {
+    <p class="text-gray-500 text-sm">Chargement...</p>
+  } @else if (stats()) {
+
+    <!-- KPI cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      @for (kpi of [
+        { label: 'Utilisateurs', value: stats()!.users_total, icon: 'people', color: 'text-cyan-400' },
+        { label: 'Abonnements actifs', value: stats()!.active_subscriptions, icon: 'workspace_premium', color: 'text-emerald-400' },
+        { label: 'Abonnés newsletter', value: stats()!.newsletter_subscribers, icon: 'mail', color: 'text-purple-400' },
+        { label: 'RDV ce mois', value: stats()!.bookings_this_month, icon: 'calendar_month', color: 'text-orange-400' },
+        { label: 'Contacts non lus', value: stats()!.new_contacts, icon: 'mark_unread_chat_alt', color: 'text-red-400' }
+      ]; track kpi.label) {
+        <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-4">
+          <div class="flex items-center gap-2 mb-1">
+            <mat-icon class="text-base !h-4 !w-4" [class]="kpi.color">{{ kpi.icon }}</mat-icon>
+            <span class="text-gray-400 text-xs">{{ kpi.label }}</span>
+          </div>
+          <p class="text-white text-2xl font-bold">{{ kpi.value }}</p>
+        </div>
+      }
+    </div>
+
+    <!-- Activité récente -->
+    <div class="grid md:grid-cols-2 gap-6">
+
+      <!-- Derniers contacts -->
+      <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-white font-semibold text-sm flex items-center gap-2">
+            <mat-icon class="text-cyan-400 text-base">mail_outline</mat-icon>
+            Derniers contacts
+          </h2>
+          <a routerLink="/cyberscan/admin/contacts" class="text-cyan-400 text-xs hover:text-cyan-300">Voir tout →</a>
+        </div>
+        @if (stats()!.recent_contacts.length === 0) {
+          <p class="text-gray-500 text-sm">Aucun contact.</p>
+        } @else {
+          <div class="space-y-2">
+            @for (c of stats()!.recent_contacts; track c.id) {
+              <div class="flex items-center justify-between p-2.5 rounded-lg bg-gray-900/50">
+                <div>
+                  <p class="text-white text-xs font-medium">{{ c.name }}</p>
+                  <p class="text-gray-500 text-xs">{{ needLabel(c.need_type) }} · {{ formatDate(c.created_at) }}</p>
+                </div>
+                <span class="text-xs px-2 py-0.5 rounded-full"
+                      [class.bg-red-900]="c.status === 'new'" [class.text-red-300]="c.status === 'new'"
+                      [class.bg-emerald-900]="c.status === 'handled'" [class.text-emerald-300]="c.status === 'handled'"
+                      [class.bg-gray-700]="c.status === 'archived'" [class.text-gray-400]="c.status === 'archived'">
+                  {{ c.status === 'new' ? 'Nouveau' : c.status === 'handled' ? 'Traité' : 'Archivé' }}
+                </span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Derniers RDV -->
+      <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-white font-semibold text-sm flex items-center gap-2">
+            <mat-icon class="text-orange-400 text-base">calendar_month</mat-icon>
+            Derniers rendez-vous
+          </h2>
+          <a routerLink="/cyberscan/admin/agenda" class="text-cyan-400 text-xs hover:text-cyan-300">Voir tout →</a>
+        </div>
+        @if (stats()!.recent_bookings.length === 0) {
+          <p class="text-gray-500 text-sm">Aucun rendez-vous.</p>
+        } @else {
+          <div class="space-y-2">
+            @for (b of stats()!.recent_bookings; track b.id) {
+              <div class="p-2.5 rounded-lg bg-gray-900/50">
+                <p class="text-white text-xs font-medium">{{ b.name }}</p>
+                <p class="text-gray-500 text-xs">{{ b.date }} à {{ b.time }} · {{ formatDate(b.created_at) }}</p>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+    </div>
+  }
+</div>

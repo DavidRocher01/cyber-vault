@@ -19,3 +19,4 @@ from app.models.public_scan import PublicScan  # noqa: F401
 from app.models.blog_post import BlogPost  # noqa: F401
 from app.models.booking_slot import BookingSlot  # noqa: F401
 from app.models.booking import Booking  # noqa: F401
+from app.models.contact_message import ContactMessage  # noqa: F401
