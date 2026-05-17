@@ -125,8 +125,8 @@ export const CYBERSCAN_ROUTES: Routes = [
   },
   {
     path: 'audit-cybersecurite-pme',
-    loadComponent: () => import('./audit-pme/audit-pme.component').then(m => m.AuditPmeComponent),
-    title: 'Audit cybersécurité PME — Flash, App-Check, Pentest | CyberScan',
+    redirectTo: '/cyberscan',
+    pathMatch: 'full',
   },
   {
     path: 'scan-gratuit',
