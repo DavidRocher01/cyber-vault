@@ -206,7 +206,7 @@ def upgrade() -> None:
     )
     op.create_index("ix_blog_posts_slug", "blog_posts", ["slug"])
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(timezone.utc)
     conn = op.get_bind()
     conn.execute(
         sa.text(
