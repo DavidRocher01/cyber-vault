@@ -64,6 +64,21 @@ async def get_article(slug: str, db: AsyncSession = Depends(get_db)):
     return _to_detail(post)
 
 
+@router.get("/admin/articles", response_model=list[BlogPostOut], dependencies=[Depends(_require_admin)])
+async def admin_list_articles(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(BlogPost).order_by(BlogPost.date.desc()))
+    return [_to_out(p) for p in result.scalars().all()]
+
+
+@router.get("/admin/articles/{slug}", response_model=BlogPostDetailOut, dependencies=[Depends(_require_admin)])
+async def admin_get_article(slug: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(BlogPost).where(BlogPost.slug == slug))
+    post = result.scalar_one_or_none()
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Article introuvable")
+    return _to_detail(post)
+
+
 @router.post(
     "/admin/articles",
     response_model=BlogPostDetailOut,
