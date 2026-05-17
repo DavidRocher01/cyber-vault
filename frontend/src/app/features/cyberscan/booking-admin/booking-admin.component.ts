@@ -102,14 +102,14 @@ export class BookingAdminComponent {
   prevMonth() {
     const [y, m] = this.currentMonth().split('-').map(Number);
     const d = new Date(y, m - 2, 1);
-    this.currentMonth.set(d.toISOString().slice(0, 7));
+    this.currentMonth.set(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
     this.loadData();
   }
 
   nextMonth() {
     const [y, m] = this.currentMonth().split('-').map(Number);
     const d = new Date(y, m, 1);
-    this.currentMonth.set(d.toISOString().slice(0, 7));
+    this.currentMonth.set(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
     this.loadData();
   }
 
