@@ -1,0 +1,123 @@
+<div class="p-6 space-y-5">
+
+  @if (view() === 'list') {
+    <div class="flex items-center justify-between">
+      <h1 class="text-xl font-bold text-white">Articles du blog</h1>
+      <button type="button" (click)="openNew()"
+              class="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium transition-all">
+        <mat-icon class="text-base">add</mat-icon>
+        Nouvel article
+      </button>
+    </div>
+
+    @if (loading()) {
+      <p class="text-gray-500 text-sm">Chargement...</p>
+    } @else if (articles().length === 0) {
+      <p class="text-gray-500 text-sm">Aucun article.</p>
+    } @else {
+      <div class="space-y-2">
+        @for (a of articles(); track a.id) {
+          <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-4 flex items-start justify-between gap-4">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap mb-1">
+                <p class="text-white font-medium text-sm">{{ a.title }}</p>
+                <span class="text-xs px-2 py-0.5 rounded-full"
+                      [class.bg-emerald-900]="a.isPublished" [class.text-emerald-400]="a.isPublished"
+                      [class.bg-gray-700]="!a.isPublished" [class.text-gray-400]="!a.isPublished">
+                  {{ a.isPublished ? 'Publié' : 'Brouillon' }}
+                </span>
+                <span class="text-xs text-gray-500">{{ a.category }}</span>
+              </div>
+              <p class="text-gray-400 text-xs">{{ a.date }} · {{ a.readTime }} min · /blog/{{ a.slug }}</p>
+            </div>
+            <div class="flex gap-2 shrink-0">
+              <button type="button" (click)="togglePublish(a)"
+                      class="text-xs px-2.5 py-1 rounded-lg bg-gray-700 text-gray-400 hover:bg-gray-600 transition-colors">
+                {{ a.isPublished ? 'Dépublier' : 'Publier' }}
+              </button>
+              <button type="button" (click)="openEdit(a)"
+                      class="text-xs px-2.5 py-1 rounded-lg bg-cyan-900/30 text-cyan-400 hover:bg-cyan-900/60 transition-colors">
+                <mat-icon class="text-sm">edit</mat-icon>
+              </button>
+              <button type="button" (click)="delete(a.id)"
+                      class="text-xs px-2.5 py-1 rounded-lg bg-red-900/20 text-red-400 hover:bg-red-900/40 transition-colors">
+                <mat-icon class="text-sm">delete</mat-icon>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+  } @else {
+    <!-- Edit form -->
+    <div class="flex items-center gap-3 mb-2">
+      <button type="button" (click)="view.set('list')" class="text-gray-400 hover:text-white transition-colors">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <h1 class="text-xl font-bold text-white">{{ editingId() ? 'Modifier l\'article' : 'Nouvel article' }}</h1>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="save()" class="grid md:grid-cols-2 gap-4">
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Titre *</label>
+          <input formControlName="title" type="text" placeholder="Titre de l'article"
+                 class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm outline-none focus:border-cyan-500">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Slug *</label>
+          <input formControlName="slug" type="text" placeholder="mon-article-url"
+                 class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm outline-none focus:border-cyan-500">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Description *</label>
+          <textarea formControlName="description" rows="2" placeholder="Description courte (SEO)"
+                    class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm outline-none focus:border-cyan-500 resize-none"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Date *</label>
+            <input formControlName="date" type="date"
+                   class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm outline-none focus:border-cyan-500">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Lecture (min)</label>
+            <input formControlName="readTime" type="number" min="1"
+                   class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm outline-none focus:border-cyan-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Catégorie *</label>
+          <input formControlName="category" type="text" placeholder="Audit & Conseils"
+                 class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm outline-none focus:border-cyan-500">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Tags (séparés par virgule)</label>
+          <input formControlName="tags" type="text" placeholder="sécurité, PME, audit"
+                 class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm outline-none focus:border-cyan-500">
+        </div>
+        <div class="flex items-center gap-2">
+          <input formControlName="isPublished" type="checkbox" id="published" class="w-4 h-4 accent-cyan-500">
+          <label for="published" class="text-gray-300 text-sm">Publier immédiatement</label>
+        </div>
+      </div>
+
+      <div class="flex flex-col">
+        <label class="block text-xs text-gray-400 mb-1">Contenu HTML *</label>
+        <textarea formControlName="htmlContent" rows="20"
+                  placeholder="<p>Contenu de l'article en HTML...</p>"
+                  class="flex-1 w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-xs font-mono outline-none focus:border-cyan-500 resize-none"></textarea>
+      </div>
+
+      <div class="md:col-span-2 flex items-center gap-4">
+        <button type="submit" [disabled]="form.invalid || saving()"
+                class="px-6 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm transition-all disabled:opacity-50">
+          {{ saving() ? 'Enregistrement...' : 'Enregistrer' }}
+        </button>
+        @if (saveMsg()) { <p class="text-emerald-400 text-sm">{{ saveMsg() }}</p> }
+        @if (saveError()) { <p class="text-red-400 text-sm">{{ saveError() }}</p> }
+      </div>
+    </form>
+  }
+</div>

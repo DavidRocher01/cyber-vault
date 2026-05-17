@@ -1,0 +1,77 @@
+<div class="p-6 space-y-5">
+  <div class="flex items-center justify-between flex-wrap gap-3">
+    <h1 class="text-xl font-bold text-white">Scans publics</h1>
+    <div class="flex gap-2">
+      @for (tab of [
+        { key: 'all', label: 'Tous' },
+        { key: 'completed', label: 'Terminés' },
+        { key: 'failed', label: 'Échoués' },
+        { key: 'pending', label: 'En cours' }
+      ]; track tab.key) {
+        <button type="button"
+          (click)="filter.set($any(tab.key))"
+          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+          [class.bg-cyan-600]="filter() === tab.key"
+          [class.text-white]="filter() === tab.key"
+          [class.bg-gray-800]="filter() !== tab.key"
+          [class.text-gray-400]="filter() !== tab.key">
+          {{ tab.label }}
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (loading()) {
+    <p class="text-gray-500 text-sm">Chargement...</p>
+  } @else if (filtered().length === 0) {
+    <p class="text-gray-500 text-sm">Aucun scan.</p>
+  } @else {
+    <div class="bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="border-b border-gray-700">
+          <tr class="text-gray-400 text-xs">
+            <th class="text-left px-4 py-3">ID</th>
+            <th class="text-left px-4 py-3">URL cible</th>
+            <th class="text-left px-4 py-3">Statut</th>
+            <th class="text-left px-4 py-3">Résultat</th>
+            <th class="text-left px-4 py-3">Lancé le</th>
+            <th class="text-left px-4 py-3">Terminé le</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (s of filtered(); track s.id) {
+            <tr class="border-b border-gray-700/50 hover:bg-gray-700/20 transition-colors">
+              <td class="px-4 py-3 text-gray-500 text-xs">#{{ s.id }}</td>
+              <td class="px-4 py-3 text-white font-mono text-xs" [title]="s.target_url">
+                {{ truncate(s.target_url) }}
+              </td>
+              <td class="px-4 py-3">
+                <span class="text-xs px-2 py-0.5 rounded-full" [class]="statusColor(s.status)">
+                  {{ s.status }}
+                </span>
+              </td>
+              <td class="px-4 py-3">
+                @if (s.overall_status) {
+                  <span class="text-xs px-2 py-0.5 rounded-full" [class]="overallColor(s.overall_status)">
+                    {{ s.overall_status }}
+                  </span>
+                } @else if (s.error_message) {
+                  <span class="text-xs text-red-400 truncate max-w-xs block" [title]="s.error_message">
+                    {{ truncate(s.error_message, 40) }}
+                  </span>
+                } @else {
+                  <span class="text-gray-600 text-xs">—</span>
+                }
+              </td>
+              <td class="px-4 py-3 text-gray-400 text-xs">{{ formatDate(s.created_at) }}</td>
+              <td class="px-4 py-3 text-gray-400 text-xs">{{ formatDate(s.finished_at) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <div class="px-4 py-2 text-xs text-gray-500 border-t border-gray-700">
+        {{ filtered().length }} scan{{ filtered().length > 1 ? 's' : '' }}
+      </div>
+    </div>
+  }
+</div>

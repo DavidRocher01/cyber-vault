@@ -1,10 +1,46 @@
-from fastapi import APIRouter, BackgroundTasks, Request, status
-from app.core.limiter import limiter
+import secrets
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, status
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.config import settings
+from app.core.database import get_db
+from app.core.limiter import limiter
+from app.models.contact_message import ContactMessage
 from app.schemas.contact import ContactIn
 from app.services.email_service import send_contact_email
 
 router = APIRouter(prefix="/contact", tags=["contact"])
+
+NEED_LABELS = {
+    "audit-flash": "Audit Flash",
+    "audit-app": "Audit App-Check",
+    "pentest": "Pentest léger",
+    "abonnement": "Abonnement surveillance",
+    "autre": "Autre / Devis",
+}
+
+
+def _require_admin(x_admin_key: str = Header(default="")) -> None:
+    if not settings.ADMIN_API_KEY or not secrets.compare_digest(x_admin_key, settings.ADMIN_API_KEY):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès refusé")
+
+
+class ContactMessageOut(BaseModel):
+    id: int
+    name: str
+    email: str
+    phone: str | None
+    need_type: str
+    site_url: str | None
+    message: str
+    status: str
+    created_at: str
+
+    model_config = {"from_attributes": True}
 
 
 @router.post("", status_code=status.HTTP_200_OK)
@@ -13,7 +49,19 @@ async def submit_contact(
     request: Request,
     payload: ContactIn,
     background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
 ):
+    msg = ContactMessage(
+        name=payload.name,
+        email=str(payload.email),
+        phone=payload.phone,
+        need_type=payload.need_type,
+        site_url=payload.site_url,
+        message=payload.message,
+        status="new",
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(msg)
     background_tasks.add_task(
         send_contact_email,
         name=payload.name,
@@ -25,3 +73,36 @@ async def submit_contact(
         contact_email=settings.CONTACT_EMAIL,
     )
     return {"message": "Votre message a bien été envoyé. Je vous répondrai sous 4 h."}
+
+
+@router.get("/admin/messages", response_model=list[ContactMessageOut],
+            dependencies=[Depends(_require_admin)])
+async def admin_list_messages(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(ContactMessage).order_by(ContactMessage.created_at.desc())
+    )
+    msgs = result.scalars().all()
+    return [ContactMessageOut(
+        id=m.id, name=m.name, email=m.email, phone=m.phone,
+        need_type=m.need_type, site_url=m.site_url, message=m.message,
+        status=m.status, created_at=m.created_at.isoformat(),
+    ) for m in msgs]
+
+
+@router.patch("/admin/messages/{msg_id}/status", dependencies=[Depends(_require_admin)])
+async def admin_update_status(
+    msg_id: int,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+):
+    allowed = {"new", "handled", "archived"}
+    new_status = body.get("status", "")
+    if new_status not in allowed:
+        raise HTTPException(status_code=422, detail=f"Statut invalide. Valeurs : {allowed}")
+    result = await db.execute(select(ContactMessage).where(ContactMessage.id == msg_id))
+    msg = result.scalar_one_or_none()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message introuvable")
+    msg.status = new_status
+    await db.flush()
+    return {"message": "Statut mis à jour."}

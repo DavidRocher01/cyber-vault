@@ -1,0 +1,89 @@
+<div class="p-6 space-y-5">
+  <div class="flex items-center justify-between">
+    <h1 class="text-xl font-bold text-white">Contacts</h1>
+    <div class="flex gap-2">
+      @for (f of ['all','new','handled','archived']; track f) {
+        <button type="button" (click)="filter.set($any(f))"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                [class.bg-cyan-600]="filter() === f" [class.text-white]="filter() === f"
+                [class.bg-gray-800]="filter() !== f" [class.text-gray-400]="filter() !== f">
+          {{ f === 'all' ? 'Tous' : f === 'new' ? 'Nouveaux' : f === 'handled' ? 'Traités' : 'Archivés' }}
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (loading()) {
+    <p class="text-gray-500 text-sm">Chargement...</p>
+  } @else if (filtered().length === 0) {
+    <p class="text-gray-500 text-sm">Aucun message.</p>
+  } @else {
+    <div class="space-y-2">
+      @for (m of filtered(); track m.id) {
+        <div class="bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden">
+          <!-- Header row -->
+          <div class="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-700/20 transition-colors"
+               (click)="toggleExpand(m.id)">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <p class="text-white text-sm font-medium">{{ m.name }}</p>
+                <span class="text-xs px-2 py-0.5 rounded-full"
+                      [class.bg-red-900]="m.status==='new'" [class.text-red-300]="m.status==='new'"
+                      [class.bg-emerald-900]="m.status==='handled'" [class.text-emerald-300]="m.status==='handled'"
+                      [class.bg-gray-700]="m.status==='archived'" [class.text-gray-400]="m.status==='archived'">
+                  {{ m.status === 'new' ? 'Nouveau' : m.status === 'handled' ? 'Traité' : 'Archivé' }}
+                </span>
+                <span class="text-xs text-cyan-400 bg-cyan-900/20 px-2 py-0.5 rounded-full">{{ needLabel(m.need_type) }}</span>
+              </div>
+              <p class="text-gray-400 text-xs mt-0.5">{{ m.email }} · {{ formatDate(m.created_at) }}</p>
+            </div>
+            <div class="flex gap-2 shrink-0">
+              @if (m.status !== 'handled') {
+                <button type="button" (click)="$event.stopPropagation(); updateStatus(m.id, 'handled')"
+                        class="text-xs px-2.5 py-1 rounded-lg bg-emerald-900/30 text-emerald-400 hover:bg-emerald-900/60 transition-colors border border-emerald-800">
+                  Traité
+                </button>
+              }
+              @if (m.status !== 'archived') {
+                <button type="button" (click)="$event.stopPropagation(); updateStatus(m.id, 'archived')"
+                        class="text-xs px-2.5 py-1 rounded-lg bg-gray-700 text-gray-400 hover:bg-gray-600 transition-colors">
+                  Archiver
+                </button>
+              }
+              <mat-icon class="text-gray-500 text-base transition-transform"
+                        [class.rotate-180]="expanded() === m.id">expand_more</mat-icon>
+            </div>
+          </div>
+
+          <!-- Expanded detail -->
+          @if (expanded() === m.id) {
+            <div class="border-t border-gray-700 px-4 py-4 space-y-3 bg-gray-900/30">
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p class="text-gray-500 text-xs mb-0.5">Email</p>
+                  <a [href]="'mailto:' + m.email" class="text-cyan-400 hover:underline">{{ m.email }}</a>
+                </div>
+                @if (m.phone) {
+                  <div>
+                    <p class="text-gray-500 text-xs mb-0.5">Téléphone</p>
+                    <p class="text-white">{{ m.phone }}</p>
+                  </div>
+                }
+                @if (m.site_url) {
+                  <div>
+                    <p class="text-gray-500 text-xs mb-0.5">Site</p>
+                    <p class="text-white text-xs break-all">{{ m.site_url }}</p>
+                  </div>
+                }
+              </div>
+              <div>
+                <p class="text-gray-500 text-xs mb-1">Message</p>
+                <p class="text-gray-300 text-sm whitespace-pre-wrap">{{ m.message }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>
