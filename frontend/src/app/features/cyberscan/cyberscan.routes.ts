@@ -173,6 +173,11 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Contact — Réserver un audit cybersécurité | CyberScan',
   },
   {
+    path: 'collab/accept/:token',
+    loadComponent: () => import('./collab-accept/collab-accept.component').then(m => m.CollabAcceptComponent),
+    title: 'Accepter l\'invitation — CyberScan',
+  },
+  {
     path: 'cout-cyberattaque',
     loadComponent: () => import('./cost-calculator/cost-calculator.component').then(m => m.CostCalculatorComponent),
     title: 'Calculateur coût cyberattaque PME — CyberScan',
