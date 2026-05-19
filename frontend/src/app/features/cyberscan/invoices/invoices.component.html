@@ -1,0 +1,121 @@
+<div class="min-h-screen bg-gray-950 text-white">
+  <div class="max-w-4xl mx-auto px-4 py-10">
+
+    <app-nav-buttons />
+
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold text-white flex items-center gap-3">
+        <mat-icon class="text-cyan-400">receipt_long</mat-icon>
+        Mes factures
+      </h1>
+      <p class="text-gray-400 text-sm mt-1">Téléchargez vos factures en PDF</p>
+    </div>
+
+    @if (loading()) {
+      <div class="flex justify-center py-20">
+        <mat-spinner diameter="40" />
+      </div>
+    } @else if (!data() || data()!.total === 0) {
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-12 text-center">
+        <mat-icon class="text-gray-600 text-6xl mb-4" style="font-size:48px;width:48px;height:48px">receipt_long</mat-icon>
+        <p class="text-gray-400 text-lg font-medium">Aucune facture pour l'instant</p>
+        <p class="text-gray-500 text-sm mt-1">Vos factures apparaîtront ici après chaque paiement.</p>
+      </div>
+    } @else {
+      <!-- Table -->
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
+              <th class="px-5 py-3 text-left">N° Facture</th>
+              <th class="px-5 py-3 text-left">Date</th>
+              <th class="px-5 py-3 text-left">Type</th>
+              <th class="px-5 py-3 text-left">Description</th>
+              <th class="px-5 py-3 text-right">Montant</th>
+              <th class="px-5 py-3 text-center">PDF</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (inv of data()!.items; track inv.id) {
+              <tr
+                class="border-b border-gray-800/60 hover:bg-gray-800/40 cursor-pointer transition-colors"
+                [class.bg-gray-800/30]="selected()?.id === inv.id"
+                (click)="selectInvoice(inv)"
+              >
+                <td class="px-5 py-3 font-mono text-cyan-400 font-medium">{{ inv.invoice_number }}</td>
+                <td class="px-5 py-3 text-gray-300">{{ formatDate(inv.issue_date) }}</td>
+                <td class="px-5 py-3">
+                  <span class="px-2 py-0.5 rounded-full text-xs border {{ typeClass(inv.type) }}">
+                    {{ typeLabel(inv.type) }}
+                  </span>
+                </td>
+                <td class="px-5 py-3 text-gray-300 max-w-xs truncate">{{ inv.description }}</td>
+                <td class="px-5 py-3 text-right font-semibold text-white">{{ formatAmount(inv.amount_cents) }}</td>
+                <td class="px-5 py-3 text-center">
+                  <button
+                    mat-icon-button
+                    [disabled]="downloading() === inv.id"
+                    (click)="download(inv, $event)"
+                    class="!text-cyan-400 hover:!text-cyan-300"
+                    title="Télécharger PDF"
+                  >
+                    @if (downloading() === inv.id) {
+                      <mat-spinner diameter="18" class="inline-block" />
+                    } @else {
+                      <mat-icon>download</mat-icon>
+                    }
+                  </button>
+                </td>
+              </tr>
+
+              <!-- Expanded detail row -->
+              @if (selected()?.id === inv.id) {
+                <tr class="bg-gray-800/20">
+                  <td colspan="6" class="px-5 py-4">
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p class="text-gray-400 text-xs mb-1">Client</p>
+                        <p class="text-white font-medium">{{ inv.client_name }}</p>
+                        <p class="text-gray-400">{{ inv.client_email }}</p>
+                        @if (inv.client_address) {
+                          <p class="text-gray-400 text-xs mt-1 whitespace-pre-line">{{ inv.client_address }}</p>
+                        }
+                      </div>
+                      <div>
+                        <p class="text-gray-400 text-xs mb-1">Détail</p>
+                        <p class="text-white">{{ inv.description }}</p>
+                        <p class="text-gray-400 text-xs mt-1">TVA non applicable, art. 293 B du CGI</p>
+                      </div>
+                    </div>
+                    <button
+                      mat-stroked-button
+                      color="primary"
+                      class="mt-4"
+                      [disabled]="downloading() === inv.id"
+                      (click)="download(inv, $event)"
+                    >
+                      <mat-icon class="mr-1">download</mat-icon>
+                      Télécharger {{ inv.invoice_number }}.pdf
+                    </button>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      @if (data()!.pages > 1) {
+        <mat-paginator
+          [length]="data()!.total"
+          [pageSize]="data()!.per_page"
+          [pageIndex]="data()!.page - 1"
+          [hidePageSize]="true"
+          (page)="onPage($event)"
+          class="bg-transparent text-gray-400 mt-2"
+        />
+      }
+    }
+  </div>
+</div>

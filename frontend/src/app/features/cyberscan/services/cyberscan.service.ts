@@ -135,6 +135,29 @@ export interface PublicScanResult {
   finished_at: string | null;
 }
 
+export interface Invoice {
+  id: number;
+  invoice_number: string;
+  type: 'subscription' | 'audit';
+  client_name: string;
+  client_email: string;
+  client_address: string | null;
+  description: string;
+  amount_cents: number;
+  amount_eur: number;
+  status: string;
+  issue_date: string;
+  created_at: string;
+}
+
+export interface PaginatedInvoices {
+  items: Invoice[];
+  total: number;
+  page: number;
+  per_page: number;
+  pages: number;
+}
+
 export interface SubdomainEntry {
   subdomain: string;
   ip: string;
@@ -331,5 +354,19 @@ export class CyberscanService {
 
   getSiteSubdomains(siteId: number): Observable<SubdomainResult> {
     return this.http.get<SubdomainResult>(`${API}/sites/${siteId}/subdomains`);
+  }
+
+  // ── Invoices ───────────────────────────────────────────────────────────
+
+  getMyInvoices(page = 1, perPage = 20): Observable<PaginatedInvoices> {
+    return this.http.get<PaginatedInvoices>(`${API}/invoices?page=${page}&per_page=${perPage}`);
+  }
+
+  getInvoice(id: number): Observable<Invoice> {
+    return this.http.get<Invoice>(`${API}/invoices/${id}`);
+  }
+
+  downloadInvoicePdfBlob(id: number): Observable<Blob> {
+    return this.http.get(`${API}/invoices/${id}/pdf`, { responseType: 'blob' });
   }
 }

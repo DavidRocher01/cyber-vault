@@ -13,6 +13,7 @@ from sqlalchemy import select
 from app.core.database import get_db
 from app.models.plan import Plan
 from app.models.subscription import Subscription
+from app.services.invoice_service import create_invoice
 from app.services.stripe_service import construct_webhook_event
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
@@ -37,6 +38,9 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
 
     elif event["type"] in ("customer.subscription.updated", "customer.subscription.deleted"):
         await _handle_subscription_updated(data, db)
+
+    elif event["type"] == "invoice.payment_succeeded":
+        await _handle_invoice_payment_succeeded(data, db)
 
     return {"status": "ok"}
 
@@ -114,4 +118,52 @@ async def _handle_subscription_updated(stripe_sub: dict, db: AsyncSession) -> No
     sub.status = stripe_sub.get("status", sub.status)
     if stripe_sub.get("current_period_end"):
         sub.current_period_end = datetime.fromtimestamp(stripe_sub["current_period_end"], tz=timezone.utc)
+    await db.commit()
+
+
+async def _handle_invoice_payment_succeeded(stripe_inv: dict, db: AsyncSession) -> None:
+    """Auto-create a subscription invoice when Stripe confirms payment."""
+    stripe_invoice_id = stripe_inv.get("id")
+    customer_email    = stripe_inv.get("customer_email") or (
+        stripe_inv.get("customer_details") or {}
+    ).get("email")
+    amount_paid       = stripe_inv.get("amount_paid", 0)  # cents
+
+    if not stripe_invoice_id or not customer_email or amount_paid <= 0:
+        return
+
+    # Avoid duplicate invoices for the same Stripe invoice ID
+    from app.models.invoice import Invoice
+    existing = await db.execute(
+        select(Invoice).where(Invoice.stripe_invoice_id == stripe_invoice_id)
+    )
+    if existing.scalar_one_or_none():
+        return
+
+    # Resolve user
+    from app.models.user import User
+    user_result = await db.execute(select(User).where(User.email == customer_email))
+    user = user_result.scalar_one_or_none()
+
+    # Build description from Stripe line items if available
+    lines = stripe_inv.get("lines", {}).get("data", [])
+    description = lines[0].get("description", "Abonnement CyberScan") if lines else "Abonnement CyberScan"
+
+    invoice_date = datetime.fromtimestamp(
+        stripe_inv.get("created", datetime.now(timezone.utc).timestamp()), tz=timezone.utc
+    ).date()
+
+    await create_invoice(
+        db,
+        user_id=user.id if user else None,
+        type="subscription",
+        client_name=stripe_inv.get("customer_name") or (user.email if user else customer_email),
+        client_email=customer_email,
+        client_address=None,
+        description=description,
+        amount_cents=amount_paid,
+        status="paid",
+        stripe_invoice_id=stripe_invoice_id,
+        issue_date=invoice_date,
+    )
     await db.commit()
