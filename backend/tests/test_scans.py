@@ -28,7 +28,8 @@ async def _site(client: AsyncClient, headers: dict, url: str = "https://example.
 
 @pytest.mark.asyncio
 async def test_trigger_scan_returns_202():
-    with patch("app.services.scan_service.run_scan", new_callable=AsyncMock):
+    with patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock), \
+         patch("app.api.v1.endpoints.scans.get_active_plan", new=AsyncMock(return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990))):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "scan1@test.com")
             site_id = await _site(c, h)
@@ -47,7 +48,8 @@ async def test_trigger_scan_unknown_site_returns_404():
 
 @pytest.mark.asyncio
 async def test_trigger_scan_other_user_site_returns_404():
-    with patch("app.services.scan_service.run_scan", new_callable=AsyncMock):
+    with patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock), \
+         patch("app.api.v1.endpoints.scans.get_active_plan", new=AsyncMock(return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990))):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h1 = await _headers(c, "owner3@test.com")
             site_id = await _site(c, h1)
@@ -60,7 +62,8 @@ async def test_trigger_scan_other_user_site_returns_404():
 @pytest.mark.asyncio
 async def test_scan_frequency_enforcement_429():
     """Second scan within the interval window must return 429."""
-    with patch("app.services.scan_service.run_scan", new_callable=AsyncMock):
+    with patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock), \
+         patch("app.api.v1.endpoints.scans.get_active_plan", new=AsyncMock(return_value=MagicMock(scan_interval_days=30, max_sites=1, price_eur=990))):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "freq@test.com")
             site_id = await _site(c, h)
@@ -100,7 +103,8 @@ async def test_list_scans_empty():
 
 @pytest.mark.asyncio
 async def test_list_scans_after_trigger():
-    with patch("app.services.scan_service.run_scan", new_callable=AsyncMock):
+    with patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock), \
+         patch("app.api.v1.endpoints.scans.get_active_plan", new=AsyncMock(return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990))):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "list2@test.com")
             site_id = await _site(c, h)
@@ -113,7 +117,8 @@ async def test_list_scans_after_trigger():
 
 @pytest.mark.asyncio
 async def test_list_scans_pagination():
-    with patch("app.services.scan_service.run_scan", new_callable=AsyncMock):
+    with patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock), \
+         patch("app.api.v1.endpoints.scans.get_active_plan", new=AsyncMock(return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990))):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "page@test.com")
             site_id = await _site(c, h)
@@ -128,7 +133,8 @@ async def test_list_scans_pagination():
 
 @pytest.mark.asyncio
 async def test_get_scan_returns_correct_scan():
-    with patch("app.services.scan_service.run_scan", new_callable=AsyncMock):
+    with patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock), \
+         patch("app.api.v1.endpoints.scans.get_active_plan", new=AsyncMock(return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990))):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "get1@test.com")
             site_id = await _site(c, h)
@@ -142,7 +148,8 @@ async def test_get_scan_returns_correct_scan():
 
 @pytest.mark.asyncio
 async def test_get_scan_other_user_returns_404():
-    with patch("app.services.scan_service.run_scan", new_callable=AsyncMock):
+    with patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock), \
+         patch("app.api.v1.endpoints.scans.get_active_plan", new=AsyncMock(return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990))):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h1 = await _headers(c, "owner4@test.com")
             site_id = await _site(c, h1)
@@ -156,7 +163,8 @@ async def test_get_scan_other_user_returns_404():
 
 @pytest.mark.asyncio
 async def test_pdf_not_ready_returns_404():
-    with patch("app.services.scan_service.run_scan", new_callable=AsyncMock):
+    with patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock), \
+         patch("app.api.v1.endpoints.scans.get_active_plan", new=AsyncMock(return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990))):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "pdf@test.com")
             site_id = await _site(c, h)
@@ -171,8 +179,8 @@ async def test_pdf_not_ready_returns_404():
 async def test_csv_export_requires_auth():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get(f"{BASE}/scans/site/1/export")
-    # HTTPBearer raises 403 when no Authorization header is provided
-    assert r.status_code == 403
+    # FastAPI HTTPBearer raises 401 when no Authorization header is provided
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio
