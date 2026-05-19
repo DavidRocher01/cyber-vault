@@ -25,3 +25,4 @@ from app.models.quote import Quote  # noqa: F401
 from app.models.finding_status import FindingStatus  # noqa: F401
 from app.models.rssi_client import RssiClient  # noqa: F401
 from app.models.training_progress import TrainingProgress  # noqa: F401
+from app.models.darkweb_scan import DarkwebScan  # noqa: F401

@@ -68,6 +68,12 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'PCA Light — CyberScan',
   },
   {
+    path: 'darkweb',
+    loadComponent: () => import('./darkweb/darkweb.component').then(m => m.DarkwebComponent),
+    canActivate: [authGuard],
+    title: 'Surveillance Dark Web — CyberScan',
+  },
+  {
     path: 'onboarding',
     loadComponent: () => import('./onboarding/onboarding.component').then(m => m.OnboardingComponent),
     canActivate: [authGuard],
