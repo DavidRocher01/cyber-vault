@@ -1,0 +1,54 @@
+# checkov:skip=CKV2_GHA_1: Actions pinned to major version tags — SHA pinning handled via Dependabot
+name: Changelog PDF
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "Depuis (tag ou date, ex: v1.2.0 ou 2026-01-01). Vide = 30 derniers jours."
+        required: false
+        default: ""
+
+jobs:
+  changelog:
+    name: Générer le changelog PDF
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # historique complet pour git log
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install reportlab
+        run: pip install reportlab
+
+      - name: Generate changelog PDF
+        env:
+          SINCE: ${{ github.event.inputs.since }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          python backend/scripts/generate_changelog_pdf.py \
+            --since "${SINCE:-}" \
+            --tag  "${TAG_NAME:-}" \
+            --out  changelog.pdf
+
+      - name: Write summary
+        run: |
+          echo "## 📋 Changelog généré" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Artifact : \`changelog-pdf\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload changelog PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog-pdf
+          path: changelog.pdf
+          retention-days: 365
