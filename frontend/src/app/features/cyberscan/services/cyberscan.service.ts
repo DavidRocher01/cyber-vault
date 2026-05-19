@@ -20,6 +20,7 @@ export interface Subscription {
   current_period_start: string;
   current_period_end: string;
   plan: Plan;
+  extra_sites: number;
 }
 
 export interface CheckoutSession {
@@ -213,6 +214,10 @@ export class CyberscanService {
 
   getBillingPortal(): Observable<{ checkout_url: string }> {
     return this.http.get<{ checkout_url: string }>(`${API}/subscriptions/portal`);
+  }
+
+  purchaseExtraSites(): Observable<{ checkout_url: string }> {
+    return this.http.post<{ checkout_url: string }>(`${API}/subscriptions/addons/extra-sites/checkout`, {});
   }
 
   getMySites(): Observable<Site[]> {

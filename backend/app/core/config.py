@@ -51,6 +51,11 @@ class Settings(BaseSettings):
     # HaveIBeenPwned API (breach checker)
     HIBP_API_KEY: str = ""
 
+    # Add-on extra sites pack (5 slots per pack, monthly)
+    ADDON_EXTRA_SITES_STRIPE_PRICE_ID: str = ""
+    ADDON_EXTRA_SITES_COUNT: int = 5
+    ADDON_EXTRA_SITES_PRICE_EUR: int = 500  # 5.00€/month
+
     # Number of trusted reverse proxies in front of the app.
     # 0 = no proxy (local dev), 1 = ALB only, 2 = CloudFront + ALB.
     # Determines how many IPs to strip from the right of X-Forwarded-For.

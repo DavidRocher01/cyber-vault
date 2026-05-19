@@ -10,7 +10,7 @@ from app.models.site import Site
 from app.models.scan import Scan
 from app.models.rssi_client import RssiClient
 from app.schemas.cyberscan import SiteCreate, SiteOut
-from app.services.subscription_service import get_active_plan
+from app.services.subscription_service import get_active_plan, get_effective_max_sites
 
 router = APIRouter(prefix="/sites", tags=["sites"])
 
@@ -32,8 +32,7 @@ async def add_site(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    plan = await get_active_plan(db, current_user.id)
-    max_sites = plan.max_sites if plan else 0
+    max_sites = await get_effective_max_sites(db, current_user.id)
     if max_sites == 0:
         raise HTTPException(status_code=403, detail="Abonnement requis pour ajouter un site")
 

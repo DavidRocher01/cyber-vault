@@ -427,7 +427,36 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   get maxSites(): number { return this.subscription()?.plan?.max_sites ?? 0; }
-  get canAddSite(): boolean { return this.sites().length < this.maxSites; }
+  get effectiveMaxSites(): number {
+    const sub = this.subscription();
+    return (sub?.plan?.max_sites ?? 0) + (sub?.extra_sites ?? 0);
+  }
+  get canAddSite(): boolean { return this.sites().length < this.effectiveMaxSites; }
+
+  buyingExtraSites = signal(false);
+
+  purchaseExtraSites() {
+    this.buyingExtraSites.set(true);
+    this.cyberscan.purchaseExtraSites().subscribe({
+      next: res => {
+        this.buyingExtraSites.set(false);
+        try {
+          const parsed = new URL(res.checkout_url);
+          if (parsed.hostname === 'checkout.stripe.com') {
+            window.location.href = res.checkout_url;
+          } else {
+            this.router.navigateByUrl(parsed.pathname + parsed.search);
+          }
+        } catch {
+          if (res.checkout_url.startsWith('/')) this.router.navigateByUrl(res.checkout_url);
+        }
+      },
+      error: () => {
+        this.buyingExtraSites.set(false);
+        this.snack.open('Erreur lors de l\'achat', 'Fermer', { duration: 4000 });
+      },
+    });
+  }
 
   // --- Score & trend ---
   getScanScore(scan: Scan): number | null { return computeScore(scan.results_json ?? null); }
