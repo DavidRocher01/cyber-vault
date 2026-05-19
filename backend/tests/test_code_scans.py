@@ -76,7 +76,7 @@ async def test_trigger_code_scan_non_http_url_returns_422():
 async def test_trigger_code_scan_unauthenticated_returns_403():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo"})
-    assert r.status_code == 403
+    assert r.status_code == 401
 
 
 # ── Upload ZIP ────────────────────────────────────────────────────────────────
@@ -116,7 +116,7 @@ async def test_upload_zip_unauthenticated_returns_403():
             f"{BASE}/code-scans/upload",
             files={"file": ("app.zip", _make_zip(), "application/zip")},
         )
-    assert r.status_code == 403
+    assert r.status_code == 401
 
 
 # ── List ──────────────────────────────────────────────────────────────────────

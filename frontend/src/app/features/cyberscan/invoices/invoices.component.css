@@ -1,0 +1,13 @@
+.icon-xl {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+}
+
+.row-selected {
+  background-color: rgba(31, 41, 55, 0.5);
+}
+
+.detail-row {
+  background-color: rgba(31, 41, 55, 0.3);
+}

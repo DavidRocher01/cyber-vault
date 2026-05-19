@@ -44,6 +44,12 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Mon profil — CyberScan',
   },
   {
+    path: 'factures',
+    loadComponent: () => import('./invoices/invoices.component').then(m => m.InvoicesComponent),
+    canActivate: [authGuard],
+    title: 'Mes factures — CyberScan',
+  },
+  {
     path: 'onboarding',
     loadComponent: () => import('./onboarding/onboarding.component').then(m => m.OnboardingComponent),
     canActivate: [authGuard],
@@ -192,6 +198,11 @@ export const CYBERSCAN_ROUTES: Routes = [
         path: 'scans',
         loadComponent: () => import('./admin/scans/admin-scans.component').then(m => m.AdminScansComponent),
         title: 'Admin — Scans | CyberScan',
+      },
+      {
+        path: 'invoices',
+        loadComponent: () => import('./admin/invoices/admin-invoices.component').then(m => m.AdminInvoicesComponent),
+        title: 'Admin — Factures | CyberScan',
       },
     ],
   },

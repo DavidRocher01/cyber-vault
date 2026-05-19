@@ -1,4 +1,5 @@
 import os
+import tempfile
 
 # Override DATABASE_URL before any app module is imported,
 # so database.py creates a SQLite engine instead of PostgreSQL.
@@ -13,14 +14,19 @@ import app.models  # noqa: F401 — ensure all models registered with Base.metad
 from app.core.database import Base, get_db
 from app.main import app
 
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
-
 BASE = "/api/v1"
 
 
 @pytest.fixture(autouse=True)
 async def setup_db():
-    engine = create_async_engine(TEST_DATABASE_URL)
+    # File-based SQLite avoids connection-sharing issues with :memory: and aiosqlite.
+    # Each test gets its own temp file, cleaned up in teardown.
+    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    tmp.close()
+    db_path = tmp.name
+    db_url = f"sqlite+aiosqlite:///{db_path}"
+
+    engine = create_async_engine(db_url)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
@@ -50,6 +56,12 @@ async def setup_db():
         await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
     app.dependency_overrides.clear()
+
+    # Clean up temp file
+    try:
+        os.unlink(db_path)
+    except OSError:
+        pass
 
     # Reset rate limiter storage so each test starts with a clean slate
     from app.core.limiter import limiter
