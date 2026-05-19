@@ -54,10 +54,53 @@ async def test_admin_stats_has_all_required_keys():
     for key in (
         "users_total", "active_subscriptions", "newsletter_subscribers",
         "bookings_this_month", "new_contacts", "recent_contacts", "recent_bookings",
+        "weekly_activity", "revenue_per_month",
     ):
         assert key in data, f"Missing key: {key}"
     assert isinstance(data["recent_contacts"], list)
     assert isinstance(data["recent_bookings"], list)
+    assert isinstance(data["weekly_activity"], list)
+    assert isinstance(data["revenue_per_month"], list)
+
+
+@pytest.mark.asyncio
+async def test_admin_stats_weekly_activity_has_8_buckets():
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.get(f"{BASE}/admin/stats", headers={"x-admin-key": "test-secret-key"})
+    buckets = r.json()["weekly_activity"]
+    assert len(buckets) == 8
+    for b in buckets:
+        assert "label" in b
+        assert "users" in b
+        assert "scans" in b
+        assert isinstance(b["users"], int)
+        assert isinstance(b["scans"], int)
+
+
+@pytest.mark.asyncio
+async def test_admin_stats_revenue_per_month_has_6_buckets():
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.get(f"{BASE}/admin/stats", headers={"x-admin-key": "test-secret-key"})
+    buckets = r.json()["revenue_per_month"]
+    assert len(buckets) == 6
+    for b in buckets:
+        assert "label" in b
+        assert "cents" in b
+        assert isinstance(b["cents"], int)
+
+
+@pytest.mark.asyncio
+async def test_admin_stats_weekly_activity_counts_new_user():
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            await c.post(f"{BASE}/auth/register", json={
+                "email": "weekly_user@test.com", "password": "StrongPass123!"
+            })
+            r = await c.get(f"{BASE}/admin/stats", headers={"x-admin-key": "test-secret-key"})
+    total_users = sum(b["users"] for b in r.json()["weekly_activity"])
+    assert total_users == 1
 
 
 @pytest.mark.asyncio
