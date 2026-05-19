@@ -1,0 +1,208 @@
+<div class="p-6 space-y-5">
+
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-white">Devis</h1>
+      <p class="text-gray-500 text-sm mt-0.5">Création et envoi automatique par email</p>
+    </div>
+    <button type="button" (click)="showForm.set(!showForm())"
+            class="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium transition-all">
+      <mat-icon class="text-base">add</mat-icon>
+      Nouveau devis
+    </button>
+  </div>
+
+  <!-- Formulaire -->
+  @if (showForm()) {
+    <div class="bg-gray-800/50 border border-gray-700 rounded-2xl p-6 space-y-5">
+      <h2 class="text-white font-semibold">Nouveau devis</h2>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-5">
+
+        <!-- Client -->
+        <div class="grid grid-cols-2 gap-4">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Nom du client *</label>
+            <input formControlName="client_name" type="text" placeholder="Dupont Jean"
+                   class="w-full bg-gray-900 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition-colors"
+                   [class.border-gray-600]="!itemCtrl(-1,'') || !ctrl('client_name').invalid || !ctrl('client_name').touched"
+                   [class.border-red-500]="ctrl('client_name').invalid && ctrl('client_name').touched" />
+            @if (ctrl('client_name').invalid && ctrl('client_name').touched) {
+              <p class="text-red-400 text-xs">Nom requis</p>
+            }
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Email du client *</label>
+            <input formControlName="client_email" type="email" placeholder="jean@exemple.com"
+                   class="w-full bg-gray-900 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition-colors"
+                   [class.border-gray-600]="!ctrl('client_email').invalid || !ctrl('client_email').touched"
+                   [class.border-red-500]="ctrl('client_email').invalid && ctrl('client_email').touched" />
+            @if (ctrl('client_email').invalid && ctrl('client_email').touched) {
+              <p class="text-red-400 text-xs">Email valide requis</p>
+            }
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Adresse (optionnel)</label>
+          <textarea formControlName="client_address" rows="2" placeholder="12 rue de la Paix, 75001 Paris"
+                    class="w-full bg-gray-900 border border-gray-600 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-cyan-500 transition-colors resize-none"></textarea>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Objet du devis *</label>
+          <input formControlName="subject" type="text" placeholder="Audit cybersécurité Flash — exemple.com"
+                 class="w-full bg-gray-900 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition-colors"
+                 [class.border-gray-600]="!ctrl('subject').invalid || !ctrl('subject').touched"
+                 [class.border-red-500]="ctrl('subject').invalid && ctrl('subject').touched" />
+          @if (ctrl('subject').invalid && ctrl('subject').touched) {
+            <p class="text-red-400 text-xs">Objet requis</p>
+          }
+        </div>
+
+        <!-- Lignes de prestation -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Lignes de prestation *</label>
+            <button type="button" (click)="addItem()"
+                    class="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300 transition-colors">
+              <mat-icon class="!text-sm !w-4 !h-4">add_circle_outline</mat-icon>
+              Ajouter une ligne
+            </button>
+          </div>
+
+          <!-- Header colonnes -->
+          <div class="grid grid-cols-12 gap-2 px-1">
+            <div class="col-span-6 text-xs text-gray-500">Désignation</div>
+            <div class="col-span-2 text-xs text-gray-500 text-center">Qté</div>
+            <div class="col-span-2 text-xs text-gray-500 text-right">P.U. HT (€)</div>
+            <div class="col-span-2 text-xs text-gray-500 text-right">Total HT</div>
+          </div>
+
+          <div formArrayName="items" class="space-y-2">
+            @for (item of itemsArray.controls; track $index) {
+              <div [formGroupName]="$index"
+                   class="grid grid-cols-12 gap-2 bg-gray-900/60 border border-gray-700 rounded-xl px-3 py-2.5 items-center">
+                <div class="col-span-6">
+                  <input formControlName="description" type="text" placeholder="Audit Flash — scan complet"
+                         class="w-full bg-transparent text-sm text-white placeholder-gray-500 outline-none border-b border-gray-700 focus:border-cyan-500 py-0.5 transition-colors" />
+                </div>
+                <div class="col-span-2">
+                  <input formControlName="quantity" type="number" min="1"
+                         class="w-full bg-transparent text-sm text-white text-center outline-none border-b border-gray-700 focus:border-cyan-500 py-0.5 transition-colors" />
+                </div>
+                <div class="col-span-2">
+                  <input formControlName="unit_price_eur" type="number" step="0.01" min="0" placeholder="0.00"
+                         class="w-full bg-transparent text-sm text-white text-right outline-none border-b border-gray-700 focus:border-cyan-500 py-0.5 transition-colors" />
+                </div>
+                <div class="col-span-1 text-right text-sm font-medium text-white">
+                  {{ lineTotal($index) | number:'1.2-2' }} €
+                </div>
+                <div class="col-span-1 flex justify-end">
+                  @if (itemsArray.length > 1) {
+                    <button type="button" (click)="removeItem($index)"
+                            class="text-gray-600 hover:text-red-400 transition-colors">
+                      <mat-icon class="!text-base !w-4 !h-4">delete_outline</mat-icon>
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Total -->
+          <div class="flex justify-end pr-1 pt-1">
+            <div class="text-right space-y-0.5">
+              <p class="text-xs text-gray-500">Total HT</p>
+              <p class="text-lg font-bold text-white">{{ grandTotal | number:'1.2-2' }} €</p>
+              <p class="text-xs text-gray-600 italic">TVA non applicable, art. 293 B du CGI</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Options -->
+        <div class="grid grid-cols-3 gap-4">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Validité (jours) *</label>
+            <input formControlName="validity_days" type="number" min="1" placeholder="30"
+                   class="w-full bg-gray-900 border border-gray-600 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-cyan-500 transition-colors" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Date d'émission (optionnel)</label>
+            <input formControlName="issue_date" type="date"
+                   class="w-full bg-gray-900 border border-gray-600 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-cyan-500 transition-colors" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Compte utilisateur (optionnel)</label>
+            <input formControlName="user_email" type="email" placeholder="jean@exemple.com"
+                   class="w-full bg-gray-900 border border-gray-600 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-cyan-500 transition-colors" />
+          </div>
+        </div>
+
+        @if (form.invalid && submitAttempted()) {
+          <div class="bg-red-900/30 border border-red-700 rounded-xl px-4 py-3 text-red-300 text-sm">
+            Certains champs sont invalides. Vérifiez les champs requis ci-dessus.
+          </div>
+        }
+
+        <div class="flex justify-end gap-3 pt-1">
+          <button type="button" (click)="showForm.set(false)"
+                  class="px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 text-sm transition-colors">
+            Annuler
+          </button>
+          <button type="submit"
+                  class="flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium transition-all"
+                  [class.bg-cyan-600]="form.valid && !creating()"
+                  [class.hover:bg-cyan-500]="form.valid && !creating()"
+                  [class.bg-gray-600]="form.invalid"
+                  [class.cursor-not-allowed]="form.invalid"
+                  [class.opacity-60]="form.invalid || creating()">
+            @if (creating()) { <mat-spinner diameter="16" /> }
+            <mat-icon class="text-base">send</mat-icon>
+            {{ form.invalid ? 'Remplir les champs requis' : 'Créer et envoyer par email' }}
+          </button>
+        </div>
+
+      </form>
+    </div>
+  }
+
+  <!-- Liste -->
+  @if (loading()) {
+    <p class="text-gray-500 text-sm">Chargement...</p>
+  } @else if (quotes().length === 0) {
+    <div class="bg-gray-800/30 border border-gray-800 rounded-2xl p-10 text-center text-gray-500 text-sm">
+      Aucun devis pour l'instant.
+    </div>
+  } @else {
+    <div class="space-y-2">
+      @for (q of quotes(); track q.id) {
+        <div class="bg-gray-800/50 border border-gray-700 rounded-xl px-5 py-3 flex items-center gap-4">
+          <div class="font-mono text-cyan-400 text-sm font-medium w-40 shrink-0">{{ q.quote_number }}</div>
+          <div class="text-gray-400 text-sm w-24 shrink-0">{{ formatDate(q.issue_date) }}</div>
+          <div class="shrink-0">
+            <span class="px-2 py-0.5 rounded-full text-xs border" [class]="statusClasses(q.status)">
+              {{ statusLabel(q.status) }}
+            </span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-white text-sm font-medium truncate">{{ q.client_name }}</p>
+            <p class="text-gray-500 text-xs truncate">{{ q.subject }}</p>
+          </div>
+          <div class="text-xs text-gray-500 shrink-0">{{ q.validity_days }}j</div>
+          <div class="text-white font-semibold text-sm shrink-0">{{ formatAmount(q.total_cents) }} HT</div>
+          <button type="button" (click)="download(q)" [disabled]="downloading() === q.id"
+                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 text-xs transition-colors disabled:opacity-50 shrink-0">
+            @if (downloading() === q.id) {
+              <mat-spinner diameter="14" />
+            } @else {
+              <mat-icon class="!text-sm !w-4 !h-4">download</mat-icon>
+            }
+            PDF
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+</div>

@@ -90,6 +90,7 @@ export class AdminShellComponent {
     { path: '/cyberscan/admin/users', label: 'Utilisateurs', icon: 'people', exact: false },
     { path: '/cyberscan/admin/scans', label: 'Scans publics', icon: 'radar', exact: false },
     { path: '/cyberscan/admin/invoices', label: 'Factures', icon: 'receipt_long', exact: false },
+    { path: '/cyberscan/admin/quotes',   label: 'Devis',    icon: 'request_quote', exact: false },
   ];
 
   login() {
