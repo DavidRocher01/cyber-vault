@@ -85,7 +85,91 @@
         }
       </div>
 
-      <!-- CTA -->
+      <!-- #3 — Comparateur Pro -->
+      <div class="bg-gray-800/30 border border-gray-700/50 rounded-2xl overflow-hidden mb-6">
+        <div class="px-5 py-3.5 border-b border-gray-700/50 flex items-center gap-2">
+          <mat-icon class="text-purple-400 !text-base !h-4 !w-4">lock</mat-icon>
+          <h3 class="text-white text-sm font-semibold">Avec CyberScan Pro, vous auriez aussi vu</h3>
+        </div>
+        <div class="divide-y divide-gray-700/30">
+          <div class="flex items-center justify-between px-5 py-3">
+            <div class="flex items-center gap-3">
+              <mat-icon class="text-gray-600 !text-base !h-4 !w-4">terminal</mat-icon>
+              <div>
+                <p class="text-gray-400 text-sm">Scripts de correction personnalisés</p>
+                <p class="text-gray-600 text-xs">UFW, SSH, Nginx, SSL générés pour votre configuration</p>
+              </div>
+            </div>
+            <mat-icon class="text-purple-500 !text-base !h-4 !w-4 flex-shrink-0">lock</mat-icon>
+          </div>
+          <div class="flex items-center justify-between px-5 py-3">
+            <div class="flex items-center gap-3">
+              <mat-icon class="text-gray-600 !text-base !h-4 !w-4">info</mat-icon>
+              <div>
+                <p class="text-gray-400 text-sm">Explications détaillées par module</p>
+                <p class="text-gray-600 text-xs">Ce qui a échoué, pourquoi, et la marche à suivre</p>
+              </div>
+            </div>
+            <mat-icon class="text-purple-500 !text-base !h-4 !w-4 flex-shrink-0">lock</mat-icon>
+          </div>
+          <div class="flex items-center justify-between px-5 py-3">
+            <div class="flex items-center gap-3">
+              <mat-icon class="text-gray-600 !text-base !h-4 !w-4">radar</mat-icon>
+              <div>
+                <p class="text-gray-400 text-sm">Graphique radar — 8 catégories de sécurité</p>
+                <p class="text-gray-600 text-xs">Infrastructure · Auth · Données · Réseau · Conformité…</p>
+              </div>
+            </div>
+            <mat-icon class="text-purple-500 !text-base !h-4 !w-4 flex-shrink-0">lock</mat-icon>
+          </div>
+          <div class="flex items-center justify-between px-5 py-3">
+            <div class="flex items-center gap-3">
+              <mat-icon class="text-gray-600 !text-base !h-4 !w-4">notifications_active</mat-icon>
+              <div>
+                <p class="text-gray-400 text-sm">Surveillance continue + alertes email</p>
+                <p class="text-gray-600 text-xs">Re-scan automatique dès qu'une nouvelle faille apparaît</p>
+              </div>
+            </div>
+            <mat-icon class="text-purple-500 !text-base !h-4 !w-4 flex-shrink-0">lock</mat-icon>
+          </div>
+          <div class="flex items-center justify-between px-5 py-3">
+            <div class="flex items-center gap-3">
+              <mat-icon class="text-gray-600 !text-base !h-4 !w-4">picture_as_pdf</mat-icon>
+              <div>
+                <p class="text-gray-400 text-sm">Rapport PDF professionnel</p>
+                <p class="text-gray-600 text-xs">À remettre à votre direction ou prestataire IT</p>
+              </div>
+            </div>
+            <mat-icon class="text-purple-500 !text-base !h-4 !w-4 flex-shrink-0">lock</mat-icon>
+          </div>
+        </div>
+        <div class="px-5 py-3.5 bg-gray-900/40 flex items-center justify-between">
+          <p class="text-gray-500 text-xs">À partir de <strong class="text-gray-300">9,90 € / mois</strong> · Sans engagement</p>
+          <a routerLink="/cyberscan" [queryParams]="{action:'register'}"
+             class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold transition-all">
+            <mat-icon class="!text-base !h-4 !w-4">lock_open</mat-icon>
+            Débloquer
+          </a>
+        </div>
+      </div>
+
+      <!-- #13 — Expert CTA -->
+      <div class="flex flex-col sm:flex-row items-center gap-4 border border-gray-700/60 rounded-2xl px-5 py-4 mb-6">
+        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-cyan-900/40 border border-cyan-700/40 flex items-center justify-center">
+          <mat-icon class="text-cyan-400">person</mat-icon>
+        </div>
+        <div class="flex-1 text-center sm:text-left">
+          <p class="text-white text-sm font-semibold">Parler à un expert — créneau de 30 min offert</p>
+          <p class="text-gray-500 text-xs mt-0.5">Un auditeur cybersécurité analyse vos résultats avec vous, sans engagement.</p>
+        </div>
+        <a routerLink="/cyberscan/reserver"
+           class="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold transition-all">
+          <mat-icon class="!text-base !h-4 !w-4">calendar_today</mat-icon>
+          Réserver
+        </a>
+      </div>
+
+      <!-- CTA compte -->
       <div class="rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-cyan-950/60 to-gray-800/60 p-8 text-center">
         <mat-icon class="text-cyan-400 !text-4xl !w-10 !h-10 mb-3">workspace_premium</mat-icon>
         <h2 class="text-xl font-bold text-white mb-2">Obtenez le rapport complet</h2>
