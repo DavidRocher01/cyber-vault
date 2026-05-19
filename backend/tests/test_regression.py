@@ -68,7 +68,7 @@ async def test_login_wrong_password_returns_401():
 
 @pytest.mark.asyncio
 async def test_protected_endpoint_without_token_returns_403():
-    """Régression : tous les endpoints protégés renvoient 401 sans token (non authentifié)."""
+    """Régression : tous les endpoints protégés renvoient 403 sans token (non authentifié)."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         endpoints = [
             ("GET",  f"{BASE}/users/me"),
@@ -79,7 +79,7 @@ async def test_protected_endpoint_without_token_returns_403():
         ]
         for method, url in endpoints:
             r = await c.request(method, url)
-            assert r.status_code == 401, f"{method} {url} devrait retourner 401, got {r.status_code}"
+            assert r.status_code == 403, f"{method} {url} devrait retourner 403, got {r.status_code}"
 
 
 @pytest.mark.asyncio

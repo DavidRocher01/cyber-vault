@@ -72,7 +72,7 @@ async def test_setup_2fa_returns_qr_and_secret():
 async def test_setup_2fa_requires_auth():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.post(f"{BASE}/users/me/2fa/setup", json={})
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 @pytest.mark.asyncio

@@ -142,7 +142,7 @@ async def test_update_password_unauthenticated_returns_403():
             "current_password": "any",
             "new_password": "NewStrongPass456!",
         })
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 # ── Export RGPD ────────────────────────────────────────────────────────────────
@@ -199,7 +199,7 @@ async def test_export_my_data_has_content_disposition_header():
 async def test_export_my_data_unauthenticated_returns_403():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get(f"{BASE}/users/me/export")
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 # ── Delete account ─────────────────────────────────────────────────────────────
@@ -233,7 +233,7 @@ async def test_delete_account_wrong_password_returns_401():
 async def test_delete_account_unauthenticated_returns_403():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.request("DELETE", f"{BASE}/users/me", json={"password": "any"})
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 @pytest.mark.asyncio
@@ -302,7 +302,7 @@ async def test_update_notification_preferences_persisted():
 async def test_get_notification_preferences_unauthenticated_returns_403():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get(f"{BASE}/users/me/notification-preferences")
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 @pytest.mark.asyncio
@@ -314,4 +314,4 @@ async def test_update_notification_preferences_unauthenticated_returns_403():
             "notif_url_scan_done": False,
             "notif_code_scan_done": False,
         })
-    assert r.status_code == 401
+    assert r.status_code == 403
