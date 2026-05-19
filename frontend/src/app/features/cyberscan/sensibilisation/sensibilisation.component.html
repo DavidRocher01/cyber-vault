@@ -1,0 +1,163 @@
+<app-nav-buttons />
+
+<div class="min-h-screen bg-gray-950 text-gray-100 p-4 md:p-8">
+
+  <!-- Header -->
+  <div class="max-w-3xl mx-auto mb-8">
+    <div class="flex items-center gap-3 mb-1">
+      <span class="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+        Sensibilisation
+      </span>
+      <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-purple-500/20 text-purple-300 border border-purple-600/40">
+        5 MODULES
+      </span>
+    </div>
+    <p class="text-gray-400 text-sm">Formez vos équipes aux bonnes pratiques cybersécurité en quelques minutes</p>
+  </div>
+
+  @if (loading()) {
+    <div class="flex justify-center py-24"><mat-spinner [diameter]="40" /></div>
+  } @else {
+
+    <div class="max-w-3xl mx-auto">
+
+      <!-- Global progress bar -->
+      @if (progress(); as prog) {
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-8">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-medium text-gray-300">Progression globale</span>
+            <span class="text-sm font-bold text-white">{{ prog.completed }}/{{ prog.total }}</span>
+          </div>
+          <mat-progress-bar mode="determinate" [value]="prog.percentage" color="accent" class="rounded-full" />
+          <div class="flex justify-between text-xs text-gray-500 mt-2">
+            <span>{{ prog.percentage }}% complété</span>
+            @if (prog.percentage === 100) {
+              <span class="text-green-400 font-semibold">Tous les modules complétés !</span>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Modules list -->
+      <div class="flex flex-col gap-4">
+        @for (mod of modules(); track mod.id) {
+
+          <div class="bg-gray-900 border rounded-xl overflow-hidden transition-all"
+               [ngClass]="colorClass(mod.color).border">
+
+            <!-- Module header -->
+            <button
+              type="button"
+              class="w-full flex items-center gap-4 p-5 text-left hover:bg-gray-800/40 transition-colors"
+              (click)="toggleModule(mod.id)"
+            >
+              <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center"
+                   [ngClass]="colorClass(mod.color).icon">
+                <mat-icon class="mat-icon-lg">{{ mod.icon }}</mat-icon>
+              </div>
+
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-semibold text-white">{{ mod.title }}</span>
+                  @if (mod.completed) {
+                    <span class="flex items-center gap-0.5 text-xs text-green-400 font-semibold">
+                      <mat-icon class="mat-icon-sm">check_circle</mat-icon> Complété
+                    </span>
+                  }
+                </div>
+                <div class="text-xs text-gray-400 mt-0.5 truncate">{{ mod.description }}</div>
+              </div>
+
+              <div class="flex items-center gap-3 flex-shrink-0">
+                <span class="text-xs px-2 py-0.5 rounded-full" [ngClass]="colorClass(mod.color).badge">
+                  {{ mod.duration_min }} min
+                </span>
+                <mat-icon class="text-gray-500 transition-transform"
+                          [style.transform]="getState(mod.id).open ? 'rotate(180deg)' : ''">
+                  expand_more
+                </mat-icon>
+              </div>
+            </button>
+
+            <!-- Module body -->
+            @if (getState(mod.id).open) {
+              <div class="border-t border-gray-800 p-5 flex flex-col gap-5">
+
+                <!-- Scenario -->
+                <div class="bg-gray-800/60 rounded-xl p-4 text-sm text-gray-300 italic leading-relaxed">
+                  {{ mod.scenario }}
+                </div>
+
+                <!-- Quiz (idle) -->
+                @if (getState(mod.id).quizState === 'idle') {
+                  <div class="flex flex-col gap-2">
+                    @for (choice of mod.choices; track choice.id) {
+                      <button
+                        type="button"
+                        class="w-full text-left px-4 py-3 rounded-xl border text-sm transition-all"
+                        [ngClass]="getState(mod.id).selected === choice.id
+                          ? 'border-blue-500 bg-blue-900/30 text-blue-200'
+                          : 'border-gray-700 bg-gray-800 text-gray-300 hover:border-gray-500'"
+                        (click)="selectChoice(mod.id, choice.id)"
+                      >
+                        <span class="font-semibold mr-2">{{ choice.id | uppercase }}.</span>
+                        {{ choice.text }}
+                      </button>
+                    }
+                  </div>
+
+                  <div class="flex justify-end">
+                    <button
+                      type="button"
+                      mat-flat-button color="primary"
+                      [disabled]="!getState(mod.id).selected || getState(mod.id).submitting"
+                      (click)="submitAnswer(mod.id)"
+                    >
+                      @if (getState(mod.id).submitting) {
+                        <mat-spinner [diameter]="18" class="inline-block mr-2" />
+                      }
+                      Valider ma réponse
+                    </button>
+                  </div>
+                }
+
+                <!-- Result -->
+                @if (getState(mod.id).quizState === 'answered' && getState(mod.id).result; as result) {
+                  <div class="rounded-xl p-4 border"
+                       [ngClass]="result.correct
+                         ? 'bg-green-900/20 border-green-600/40'
+                         : 'bg-red-900/20 border-red-600/40'">
+
+                    <div class="flex items-center gap-2 mb-3">
+                      <mat-icon [ngClass]="result.correct ? 'text-green-400' : 'text-red-400'">
+                        {{ result.correct ? 'check_circle' : 'cancel' }}
+                      </mat-icon>
+                      <span class="font-semibold"
+                            [ngClass]="result.correct ? 'text-green-400' : 'text-red-400'">
+                        {{ result.correct ? 'Bonne réponse !' : 'Mauvaise réponse' }}
+                      </span>
+                    </div>
+
+                    <p class="text-sm text-gray-300 leading-relaxed">{{ result.explanation }}</p>
+                  </div>
+
+                  @if (!result.correct) {
+                    <div class="flex justify-end">
+                      <button type="button" mat-stroked-button (click)="resetQuiz(mod.id)">
+                        <mat-icon>refresh</mat-icon> Réessayer
+                      </button>
+                    </div>
+                  }
+                }
+
+              </div>
+            }
+
+          </div>
+
+        }
+      </div>
+
+    </div>
+  }
+</div>

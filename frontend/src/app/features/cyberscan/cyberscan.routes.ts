@@ -56,6 +56,12 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'RSSI Externalisé — CyberScan',
   },
   {
+    path: 'sensibilisation',
+    loadComponent: () => import('./sensibilisation/sensibilisation.component').then(m => m.SensibilisationComponent),
+    canActivate: [authGuard],
+    title: 'Sensibilisation — CyberScan',
+  },
+  {
     path: 'onboarding',
     loadComponent: () => import('./onboarding/onboarding.component').then(m => m.OnboardingComponent),
     canActivate: [authGuard],
