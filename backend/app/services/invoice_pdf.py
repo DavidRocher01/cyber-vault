@@ -21,24 +21,19 @@ from reportlab.platypus import (
 )
 
 # ── Palette ────────────────────────────────────────────────────────────────────
-NAVY      = colors.HexColor("#0f172a")
-NAVY_MID  = colors.HexColor("#1e293b")
-CYAN      = colors.HexColor("#06b6d4")
-CYAN_DARK = colors.HexColor("#0891b2")
-LIGHT     = colors.HexColor("#f8fafc")
-LIGHT2    = colors.HexColor("#f1f5f9")
-MID       = colors.HexColor("#64748b")
-DARK      = colors.HexColor("#1e293b")
-WHITE     = colors.white
-BORDER    = colors.HexColor("#e2e8f0")
-GREEN     = colors.HexColor("#10b981")
+NAVY   = colors.HexColor("#0f172a")
+CYAN   = colors.HexColor("#06b6d4")
+GRAY   = colors.HexColor("#64748b")
+LGRAY  = colors.HexColor("#f1f5f9")
+BORDER = colors.HexColor("#e2e8f0")
+GREEN  = colors.HexColor("#059669")
+WHITE  = colors.white
 
 # ── Vendor ────────────────────────────────────────────────────────────────────
 VENDOR = {
     "name":    "David Rocher",
     "status":  "Entrepreneur individuel",
-    "address": "546 Montée Carriat",
-    "city":    "01600 Reyrieux, France",
+    "address": "546 Montée Carriat, 01600 Reyrieux, France",
     "siret":   "104 009 634 00015",
     "ape":     "6202A",
     "email":   "contact@cyberscanapp.com",
@@ -47,19 +42,17 @@ VENDOR = {
 
 
 def _p(text: str, **kw) -> Paragraph:
-    style = ParagraphStyle("_", **kw)
-    return Paragraph(text, style)
+    return Paragraph(text, ParagraphStyle("_", **kw))
 
 
-def _fmt_amount(cents: int) -> str:
-    euros = cents / 100
-    return f"{euros:,.2f} €".replace(",", " ")
+def _fmt(cents: int) -> str:
+    return f"{cents / 100:,.2f} €".replace(",", " ")
 
 
-def _fmt_date(d: date) -> str:
-    MONTHS = ["janvier","février","mars","avril","mai","juin",
-              "juillet","août","septembre","octobre","novembre","décembre"]
-    return f"{d.day} {MONTHS[d.month - 1]} {d.year}"
+def _date(d: date) -> str:
+    m = ["janvier","février","mars","avril","mai","juin",
+         "juillet","août","septembre","octobre","novembre","décembre"]
+    return f"{d.day} {m[d.month - 1]} {d.year}"
 
 
 def generate_invoice_pdf(
@@ -72,198 +65,191 @@ def generate_invoice_pdf(
     amount_cents: int,
 ) -> bytes:
     buf = io.BytesIO()
-    W, H = A4
-    margin = 16 * mm
+    W, _ = A4
+    mg = 18 * mm
+    cw = W - 2 * mg
 
     doc = SimpleDocTemplate(
-        buf,
-        pagesize=A4,
-        leftMargin=margin,
-        rightMargin=margin,
-        topMargin=0,
-        bottomMargin=16 * mm,
+        buf, pagesize=A4,
+        leftMargin=mg, rightMargin=mg,
+        topMargin=16 * mm, bottomMargin=18 * mm,
     )
+    s = []
 
-    cw = W - 2 * margin
-    story = []
+    # ── Top accent strip ──────────────────────────────────────────────────────
+    strip = Table([[""]], colWidths=[cw])
+    strip.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), CYAN),
+        ("TOPPADDING",    (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]))
+    s.append(strip)
+    s.append(Spacer(1, 6 * mm))
 
-    # ── Hero header (dark band) ───────────────────────────────────────────────
-    hero = Table([[
-        # Left: brand
-        _p(f"<b>{VENDOR['name']}</b>",
-           fontSize=14, fontName="Helvetica-Bold", textColor=WHITE, leading=18),
-        # Right: FACTURE label
-        _p("<b>FACTURE</b>",
-           fontSize=28, fontName="Helvetica-Bold", textColor=CYAN,
-           alignment=2),
-    ]], colWidths=[cw * 0.6, cw * 0.4])
-    hero.setStyle(TableStyle([
+    # ── Header: company left — FACTURE box right ──────────────────────────────
+    facture_box = Table(
+        [[_p("FACTURE", fontSize=18, fontName="Helvetica-Bold",
+             textColor=WHITE, alignment=1)]],
+        colWidths=[46 * mm],
+    )
+    facture_box.setStyle(TableStyle([
         ("BACKGROUND",    (0, 0), (-1, -1), NAVY),
-        ("TOPPADDING",    (0, 0), (-1, -1), 14),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 14),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 14),
-        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING",    (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
     ]))
-    story.append(hero)
 
-    # Sub-header: vendor details left, invoice number right
-    sub = Table([[
-        _p(f"{VENDOR['status']}  ·  {VENDOR['address']}, {VENDOR['city']}<br/>"
-           f"SIRET {VENDOR['siret']}  ·  APE {VENDOR['ape']}  ·  {VENDOR['email']}",
-           fontSize=7.5, fontName="Helvetica", textColor=colors.HexColor("#94a3b8"),
-           leading=12),
+    header = Table([[
+        _p(f"<b>{VENDOR['name']}</b><br/>"
+           f"<font color='#64748b' size='8'>{VENDOR['status']}</font>",
+           fontSize=13, fontName="Helvetica-Bold", textColor=NAVY, leading=18),
+        facture_box,
+    ]], colWidths=[cw - 50 * mm, 50 * mm])
+    header.setStyle(TableStyle([
+        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
+        ("ALIGN",         (1, 0), (1, 0),   "RIGHT"),
+    ]))
+    s.append(header)
+    s.append(Spacer(1, 3 * mm))
+
+    # Sub-line: vendor details
+    s.append(_p(
+        f"{VENDOR['address']}  ·  SIRET {VENDOR['siret']}  "
+        f"·  APE {VENDOR['ape']}  ·  {VENDOR['email']}",
+        fontSize=7.5, fontName="Helvetica", textColor=GRAY, leading=11,
+    ))
+    s.append(Spacer(1, 5 * mm))
+    s.append(HRFlowable(width=cw, thickness=0.6, color=BORDER, spaceAfter=6 * mm))
+
+    # ── Invoice number + date ─────────────────────────────────────────────────
+    meta = Table([[
         _p(f"N° <b>{invoice_number}</b>",
-           fontSize=9, fontName="Helvetica", textColor=colors.HexColor("#94a3b8"),
-           alignment=2),
-    ]], colWidths=[cw * 0.65, cw * 0.35])
-    sub.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, -1), NAVY_MID),
-        ("TOPPADDING",    (0, 0), (-1, -1), 8),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 14),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 14),
-        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+           fontSize=10, fontName="Helvetica", textColor=NAVY),
+        _p(f"<font color='#64748b' size='8'>Date d'émission</font><br/>"
+           f"<b>{_date(issue_date)}</b>",
+           fontSize=9, fontName="Helvetica", textColor=NAVY,
+           alignment=2, leading=13),
+    ]], colWidths=[cw * 0.5, cw * 0.5])
+    meta.setStyle(TableStyle([
+        ("VALIGN",       (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING",  (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
     ]))
-    story.append(sub)
+    s.append(meta)
+    s.append(Spacer(1, 6 * mm))
 
-    # Cyan accent line
-    story.append(HRFlowable(width=cw, thickness=2.5, color=CYAN, spaceAfter=7 * mm, spaceBefore=0))
-
-    # ── Meta + client (two columns) ──────────────────────────────────────────
-    # Build client address lines
-    client_lines = f"<b>{client_name}</b><br/>{client_email}"
+    # ── Client block ──────────────────────────────────────────────────────────
+    addr_lines = f"<b>{client_name}</b><br/>{client_email}"
     if client_address:
-        client_lines += f"<br/>{client_address}"
+        addr_lines += f"<br/><font color='#64748b'>{client_address}</font>"
 
-    client_block = Table(
-        [[_p(f"<b>Facturé à</b><br/>{client_lines}",
-             fontSize=9, fontName="Helvetica", textColor=DARK, leading=14)]],
-        colWidths=[cw * 0.42],
+    client_tbl = Table(
+        [[_p(addr_lines, fontSize=9, fontName="Helvetica", textColor=NAVY, leading=14)]],
+        colWidths=[cw * 0.44],
     )
-    client_block.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, -1), LIGHT2),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 12),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 12),
-        ("TOPPADDING",    (0, 0), (-1, -1), 10),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
-        ("LINEABOVE",     (0, 0), (-1, 0), 2.5, CYAN),
+    client_tbl.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), LGRAY),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 11),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 11),
+        ("TOPPADDING",    (0, 0), (-1, -1), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+        ("LINEBEFORE",    (0, 0), (0, -1), 3, CYAN),
         ("BOX",           (0, 0), (-1, -1), 0.5, BORDER),
     ]))
 
-    date_block = Table(
-        [[
-            _p("Date d'émission", fontSize=7.5, fontName="Helvetica",
-               textColor=MID, alignment=2),
-        ], [
-            _p(f"<b>{_fmt_date(issue_date)}</b>", fontSize=10,
-               fontName="Helvetica-Bold", textColor=DARK, alignment=2),
-        ], [
-            _p("Statut", fontSize=7.5, fontName="Helvetica",
-               textColor=MID, alignment=2, spaceBefore=8),
-        ], [
-            _p("<b>● Payée</b>", fontSize=9, fontName="Helvetica-Bold",
-               textColor=GREEN, alignment=2),
-        ]],
-        colWidths=[cw * 0.38],
-    )
-    date_block.setStyle(TableStyle([
-        ("LEFTPADDING",   (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
-        ("TOPPADDING",    (0, 0), (-1, -1), 2),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+    status_tbl = Table([[
+        _p("● Payée",
+           fontSize=9, fontName="Helvetica-Bold", textColor=GREEN, alignment=2),
+    ]], colWidths=[cw * 0.44])
+    status_tbl.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), colors.HexColor("#f0fdf4")),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 11),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 11),
+        ("TOPPADDING",    (0, 0), (-1, -1), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+        ("BOX",           (0, 0), (-1, -1), 0.5, colors.HexColor("#bbf7d0")),
     ]))
 
-    meta_row = Table(
-        [[client_block, Spacer(1, 1), date_block]],
-        colWidths=[cw * 0.42, cw * 0.15, cw * 0.43],
-    )
-    meta_row.setStyle(TableStyle([
-        ("VALIGN",        (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
+    row = Table([[client_tbl, "", status_tbl]],
+                colWidths=[cw * 0.44, cw * 0.12, cw * 0.44])
+    row.setStyle(TableStyle([
+        ("VALIGN",       (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING",  (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
     ]))
-    story.append(meta_row)
-    story.append(Spacer(1, 8 * mm))
+    s.append(row)
+    s.append(Spacer(1, 8 * mm))
 
-    # ── Items table ──────────────────────────────────────────────────────────
-    col_desc = cw * 0.70
-    col_amt  = cw * 0.30
+    # ── Items table ───────────────────────────────────────────────────────────
+    col_d, col_a = cw * 0.70, cw * 0.30
 
-    items_table = Table(
+    tbl = Table([
         [
-            # Header row
-            [
-                _p("Description", fontSize=8.5, fontName="Helvetica-Bold",
-                   textColor=WHITE),
-                _p("Montant TTC", fontSize=8.5, fontName="Helvetica-Bold",
-                   textColor=WHITE, alignment=2),
-            ],
-            # Data row
-            [
-                _p(description, fontSize=9, fontName="Helvetica", textColor=DARK, leading=13),
-                _p(_fmt_amount(amount_cents), fontSize=9, fontName="Helvetica",
-                   textColor=DARK, alignment=2),
-            ],
+            _p("Description", fontSize=8.5, fontName="Helvetica-Bold", textColor=WHITE),
+            _p("Montant TTC", fontSize=8.5, fontName="Helvetica-Bold",
+               textColor=WHITE, alignment=2),
         ],
-        colWidths=[col_desc, col_amt],
-    )
-    items_table.setStyle(TableStyle([
-        # Header
-        ("BACKGROUND",    (0, 0), (-1, 0), NAVY),
-        ("TEXTCOLOR",     (0, 0), (-1, 0), WHITE),
-        ("TOPPADDING",    (0, 0), (-1, 0), 9),
-        ("BOTTOMPADDING", (0, 0), (-1, 0), 9),
-        ("LEFTPADDING",   (0, 0), (-1, 0), 12),
-        ("RIGHTPADDING",  (0, 0), (-1, 0), 12),
-        # Data rows
+        [
+            _p(description, fontSize=9, fontName="Helvetica", textColor=NAVY, leading=13),
+            _p(_fmt(amount_cents), fontSize=9, fontName="Helvetica",
+               textColor=NAVY, alignment=2),
+        ],
+    ], colWidths=[col_d, col_a])
+    tbl.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, 0),  NAVY),
+        ("TOPPADDING",    (0, 0), (-1, 0),  9),
+        ("BOTTOMPADDING", (0, 0), (-1, 0),  9),
+        ("LEFTPADDING",   (0, 0), (-1, 0),  12),
+        ("RIGHTPADDING",  (0, 0), (-1, 0),  12),
+        ("LINEBELOW",     (0, 0), (-1, 0),  2.5, CYAN),
         ("BACKGROUND",    (0, 1), (-1, -1), WHITE),
-        ("TOPPADDING",    (0, 1), (-1, -1), 11),
-        ("BOTTOMPADDING", (0, 1), (-1, -1), 11),
+        ("TOPPADDING",    (0, 1), (-1, -1), 12),
+        ("BOTTOMPADDING", (0, 1), (-1, -1), 12),
         ("LEFTPADDING",   (0, 1), (-1, -1), 12),
         ("RIGHTPADDING",  (0, 1), (-1, -1), 12),
-        # Borders
-        ("LINEBELOW",     (0, 0), (-1, 0), 2, CYAN),
-        ("LINEBELOW",     (0, 1), (-1, -1), 0.5, BORDER),
         ("BOX",           (0, 0), (-1, -1), 0.5, BORDER),
+        ("LINEBELOW",     (0, 1), (-1, -1), 0.4, BORDER),
         ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
     ]))
-    story.append(items_table)
+    s.append(tbl)
 
-    # ── Total row ─────────────────────────────────────────────────────────────
-    total_table = Table(
-        [["", _p("Total TTC", fontSize=10, fontName="Helvetica-Bold",
-                 textColor=NAVY, alignment=2),
-              _p(f"<b>{_fmt_amount(amount_cents)}</b>", fontSize=11,
-                 fontName="Helvetica-Bold", textColor=NAVY, alignment=2)]],
-        colWidths=[col_desc * 0.55, col_desc * 0.45, col_amt],
-    )
-    total_table.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, -1), LIGHT2),
+    # ── Total ─────────────────────────────────────────────────────────────────
+    tot = Table([[
+        _p("Total TTC", fontSize=10, fontName="Helvetica-Bold",
+           textColor=NAVY, alignment=2),
+        _p(f"<b>{_fmt(amount_cents)}</b>", fontSize=11, fontName="Helvetica-Bold",
+           textColor=NAVY, alignment=2),
+    ]], colWidths=[col_d, col_a])
+    tot.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), LGRAY),
         ("TOPPADDING",    (0, 0), (-1, -1), 10),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
         ("LEFTPADDING",   (0, 0), (-1, -1), 12),
         ("RIGHTPADDING",  (0, 0), (-1, -1), 12),
-        ("LINEABOVE",     (0, 0), (-1, 0), 2, CYAN),
+        ("LINEABOVE",     (0, 0), (-1, 0),  1.5, CYAN),
         ("BOX",           (0, 0), (-1, -1), 0.5, BORDER),
         ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
     ]))
-    story.append(total_table)
-    story.append(Spacer(1, 5 * mm))
+    s.append(tot)
+    s.append(Spacer(1, 5 * mm))
 
     # ── TVA notice ────────────────────────────────────────────────────────────
-    story.append(_p(
+    s.append(_p(
         "TVA non applicable, art. 293 B du CGI",
-        fontSize=7.5, fontName="Helvetica-Oblique", textColor=MID,
+        fontSize=7.5, fontName="Helvetica-Oblique", textColor=GRAY,
     ))
-    story.append(Spacer(1, 12 * mm))
+    s.append(Spacer(1, 14 * mm))
 
     # ── Footer ────────────────────────────────────────────────────────────────
-    story.append(HRFlowable(width=cw, thickness=0.5, color=BORDER, spaceAfter=3 * mm))
-    story.append(_p(
-        f"{VENDOR['name']} — SIRET {VENDOR['siret']} — {VENDOR['email']} — {VENDOR['website']}",
-        fontSize=7, fontName="Helvetica", textColor=MID, alignment=1,
+    s.append(HRFlowable(width=cw, thickness=0.5, color=BORDER, spaceAfter=3 * mm))
+    s.append(_p(
+        f"{VENDOR['name']} — SIRET {VENDOR['siret']} — "
+        f"{VENDOR['email']} — {VENDOR['website']}",
+        fontSize=7, fontName="Helvetica", textColor=GRAY, alignment=1,
     ))
 
-    doc.build(story)
+    doc.build(s)
     return buf.getvalue()
