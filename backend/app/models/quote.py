@@ -23,7 +23,6 @@ class Quote(Base):
     client_email: Mapped[str] = mapped_column(String(255), nullable=False)
     client_address: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    # Global subject / title of the quote
     subject: Mapped[str] = mapped_column(String(500), nullable=False)
 
     # List of dicts: [{description, quantity, unit_price_cents}]
@@ -39,5 +38,10 @@ class Quote(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
+
+    # Client acceptance flow
+    acceptance_token: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True, index=True)
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    rejected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     user: Mapped["User"] = relationship()  # type: ignore[name-defined]

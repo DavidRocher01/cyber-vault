@@ -5,9 +5,9 @@ Format: DEVIS-YYYY-NNNN (per-year sequence, zero-padded to 4 digits).
 from __future__ import annotations
 
 import base64
-import json
 import os
-from datetime import date, datetime, timezone
+import secrets
+from datetime import date, datetime, timedelta, timezone
 
 import httpx
 from sqlalchemy import func, select
@@ -15,6 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.quote import Quote
 from app.services.quote_pdf import generate_quote_pdf
+
+BASE_URL = os.getenv("APP_BASE_URL", "https://cyberscanapp.com")
 
 
 async def _next_seq(db: AsyncSession, year: int) -> int:
@@ -59,6 +61,7 @@ async def create_quote(
         validity_days=validity_days,
         status="sent",
         issue_date=today,
+        acceptance_token=secrets.token_urlsafe(32),
     )
     db.add(quote)
     await db.flush()
@@ -83,39 +86,43 @@ async def send_quote_by_email(quote: Quote) -> None:
     )
     pdf_b64 = base64.b64encode(pdf_bytes).decode()
 
-    from datetime import timedelta
     expiry = quote.issue_date + timedelta(days=quote.validity_days)
-
-    total_eur = f"{quote.total_cents / 100:,.2f} €".replace(",", " ")
+    total_eur = f"{quote.total_cents / 100:,.2f} €".replace(",", " ")
     expiry_str = expiry.strftime("%d/%m/%Y")
+    token = quote.acceptance_token or ""
+    accept_url = f"{BASE_URL}/cyberscan/devis/{token}/accepter"
+    reject_url = f"{BASE_URL}/cyberscan/devis/{token}/refuser"
 
-    html = f"""
-    <div style="font-family:sans-serif;max-width:600px;color:#1e293b">
-      <div style="background:#0f172a;padding:20px 24px;border-radius:12px 12px 0 0">
-        <span style="color:#fff;font-size:20px;font-weight:700">CyberScan</span>
-        <span style="color:#06b6d4;font-size:24px;margin-left:4px">●</span>
-      </div>
-      <div style="border:1px solid #e2e8f0;border-top:none;padding:28px 24px;border-radius:0 0 12px 12px">
-        <p>Bonjour <strong>{quote.client_name}</strong>,</p>
-        <p>Veuillez trouver ci-joint votre devis <strong>{quote.quote_number}</strong>
-           pour la prestation suivante :</p>
-        <div style="background:#f1f5f9;border-left:3px solid #06b6d4;padding:12px 16px;
-                    border-radius:6px;margin:16px 0">
-          <strong>{quote.subject}</strong><br>
-          <span style="color:#64748b;font-size:14px">Montant : {total_eur} HT<br>
-          Valable jusqu'au : {expiry_str}</span>
-        </div>
-        <p>Pour accepter ce devis, il vous suffit de me répondre par email
-           en indiquant votre accord.</p>
-        <p style="color:#64748b;font-size:13px">
-          TVA non applicable, art. 293 B du CGI.
-        </p>
-        <p>Cordialement,<br><strong>David Rocher</strong><br>
-           CyberScan — <a href="https://cyberscanapp.com" style="color:#06b6d4">cyberscanapp.com</a>
-        </p>
-      </div>
-    </div>
-    """
+    html = (
+        '<div style="font-family:sans-serif;max-width:600px;color:#1e293b">'
+        '<div style="background:#0f172a;padding:20px 24px;border-radius:12px 12px 0 0">'
+        '<span style="color:#fff;font-size:20px;font-weight:700">CyberScan</span>'
+        '<span style="color:#06b6d4;font-size:24px;margin-left:4px">&#9679;</span>'
+        "</div>"
+        '<div style="border:1px solid #e2e8f0;border-top:none;padding:28px 24px;border-radius:0 0 12px 12px">'
+        f"<p>Bonjour <strong>{quote.client_name}</strong>,</p>"
+        f"<p>Veuillez trouver ci-joint votre devis <strong>{quote.quote_number}</strong>"
+        " pour la prestation suivante :</p>"
+        '<div style="background:#f1f5f9;border-left:3px solid #06b6d4;padding:12px 16px;'
+        'border-radius:6px;margin:16px 0">'
+        f"<strong>{quote.subject}</strong><br>"
+        f'<span style="color:#64748b;font-size:14px">Montant : {total_eur} HT<br>'
+        f"Valable jusqu'au : {expiry_str}</span>"
+        "</div>"
+        "<p>Vous pouvez répondre directement à ce devis :</p>"
+        '<div style="margin:20px 0">'
+        f'<a href="{accept_url}" style="display:inline-block;background:#06b6d4;color:#fff;'
+        'font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:15px">'
+        "&#10003; Accepter le devis</a>"
+        f'<a href="{reject_url}" style="display:inline-block;background:#e2e8f0;color:#64748b;'
+        'font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;'
+        'font-size:15px;margin-left:12px">Refuser</a>'
+        "</div>"
+        '<p style="color:#64748b;font-size:13px">TVA non applicable, art. 293 B du CGI.</p>'
+        "<p>Cordialement,<br><strong>David Rocher</strong><br>"
+        'CyberScan — <a href="https://cyberscanapp.com" style="color:#06b6d4">cyberscanapp.com</a></p>'
+        "</div></div>"
+    )
 
     payload = {
         "from": "CyberScan <contact@cyberscanapp.com>",

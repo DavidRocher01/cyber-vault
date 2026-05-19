@@ -155,6 +155,16 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Blog | CyberScan',
   },
   {
+    path: 'devis/:token/accepter',
+    loadComponent: () => import('./quote-action/quote-action.component').then(m => m.QuoteActionComponent),
+    title: 'Acceptation du devis — CyberScan',
+  },
+  {
+    path: 'devis/:token/refuser',
+    loadComponent: () => import('./quote-action/quote-action.component').then(m => m.QuoteActionComponent),
+    title: 'Refus du devis — CyberScan',
+  },
+  {
     path: 'reserver',
     loadComponent: () => import('./booking/booking.component').then(m => m.BookingComponent),
     title: 'Réserver un créneau — CyberScan',

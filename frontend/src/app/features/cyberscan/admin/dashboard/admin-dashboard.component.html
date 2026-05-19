@@ -24,6 +24,62 @@
       }
     </div>
 
+    <!-- Graphiques -->
+    <div class="grid md:grid-cols-2 gap-6">
+
+      <!-- Activité hebdo -->
+      <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-5">
+        <h2 class="text-white font-semibold text-sm mb-1">Activité — 8 dernières semaines</h2>
+        <div class="flex gap-4 mb-4 text-xs text-gray-500">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-sm bg-cyan-500 inline-block"></span>Utilisateurs
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-sm bg-purple-500 inline-block"></span>Scans
+          </span>
+        </div>
+        <div class="flex items-end gap-1.5 h-28">
+          @for (w of stats()!.weekly_activity; track w.label) {
+            <div class="flex-1 flex flex-col items-center gap-0.5 h-full justify-end">
+              <div class="w-full flex gap-0.5 items-end h-full">
+                <div class="flex-1 bg-cyan-500/80 rounded-t-sm transition-all min-h-[2px]"
+                     [style.height.%]="barHeight(w.users, maxWeekValue())"
+                     [title]="w.users + ' utilisateurs'"></div>
+                <div class="flex-1 bg-purple-500/80 rounded-t-sm transition-all min-h-[2px]"
+                     [style.height.%]="barHeight(w.scans, maxWeekValue())"
+                     [title]="w.scans + ' scans'"></div>
+              </div>
+              <span class="text-gray-600 text-[10px] w-full text-center mt-1">{{ w.label }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Revenus par mois -->
+      <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-5">
+        <h2 class="text-white font-semibold text-sm mb-1">Facturation — 6 derniers mois</h2>
+        <div class="flex gap-4 mb-4 text-xs text-gray-500">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block"></span>CA HT
+          </span>
+        </div>
+        <div class="flex items-end gap-2 h-28">
+          @for (m of stats()!.revenue_per_month; track m.label) {
+            <div class="flex-1 flex flex-col items-center gap-0.5 h-full justify-end">
+              <div class="w-full bg-emerald-500/80 rounded-t-sm transition-all min-h-[2px]"
+                   [style.height.%]="barHeight(m.cents, maxRevenue())"
+                   [title]="formatEur(m.cents)"></div>
+              <span class="text-gray-600 text-[10px] w-full text-center mt-1">{{ m.label }}</span>
+            </div>
+          }
+        </div>
+        <p class="text-right text-xs text-gray-500 mt-3">
+          Total 6 mois : <strong class="text-white">{{ formatEur(totalRevenue()) }}</strong>
+        </p>
+      </div>
+
+    </div>
+
     <!-- Activité récente -->
     <div class="grid md:grid-cols-2 gap-6">
 
