@@ -41,11 +41,12 @@ export class AdminInvoicesComponent implements OnInit {
   private fb     = inject(FormBuilder);
   private snack  = inject(MatSnackBar);
 
-  invoices  = signal<AdminInvoice[]>([]);
-  loading   = signal(true);
-  creating  = signal(false);
-  showForm  = signal(false);
-  downloading = signal<number | null>(null);
+  invoices       = signal<AdminInvoice[]>([]);
+  loading        = signal(true);
+  creating       = signal(false);
+  showForm       = signal(false);
+  downloading    = signal<number | null>(null);
+  submitAttempted = signal(false);
 
   form = this.fb.group({
     client_name:    ['', Validators.required],
@@ -72,6 +73,7 @@ export class AdminInvoicesComponent implements OnInit {
   }
 
   submit() {
+    this.submitAttempted.set(true);
     if (this.form.invalid) return;
     const v = this.form.getRawValue();
     const body = {

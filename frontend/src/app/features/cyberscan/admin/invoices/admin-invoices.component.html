@@ -22,12 +22,23 @@
           <div class="flex flex-col gap-1">
             <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Nom du client *</label>
             <input formControlName="client_name" type="text" placeholder="Dupont Jean"
-                   class="w-full bg-gray-900 border border-gray-600 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-cyan-500 transition-colors" />
+                   class="w-full bg-gray-900 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition-colors"
+                   [class.border-gray-600]="!ctrl('client_name').invalid || !ctrl('client_name').touched"
+                   [class.border-red-500]="ctrl('client_name').invalid && ctrl('client_name').touched"
+                   [class.focus:border-cyan-500]="!ctrl('client_name').invalid" />
+            @if (ctrl('client_name').invalid && ctrl('client_name').touched) {
+              <p class="text-red-400 text-xs">Nom requis</p>
+            }
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Email du client *</label>
             <input formControlName="client_email" type="email" placeholder="jean@exemple.com"
-                   class="w-full bg-gray-900 border border-gray-600 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-cyan-500 transition-colors" />
+                   class="w-full bg-gray-900 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition-colors"
+                   [class.border-gray-600]="!ctrl('client_email').invalid || !ctrl('client_email').touched"
+                   [class.border-red-500]="ctrl('client_email').invalid && ctrl('client_email').touched" />
+            @if (ctrl('client_email').invalid && ctrl('client_email').touched) {
+              <p class="text-red-400 text-xs">Email valide requis (ex: jean&#64;exemple.com)</p>
+            }
           </div>
         </div>
 
@@ -40,14 +51,24 @@
         <div class="flex flex-col gap-1">
           <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Description *</label>
           <input formControlName="description" type="text" placeholder="Audit cybersécurité Flash — exemple.com"
-                 class="w-full bg-gray-900 border border-gray-600 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-cyan-500 transition-colors" />
+                 class="w-full bg-gray-900 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition-colors"
+                 [class.border-gray-600]="!ctrl('description').invalid || !ctrl('description').touched"
+                 [class.border-red-500]="ctrl('description').invalid && ctrl('description').touched" />
+          @if (ctrl('description').invalid && ctrl('description').touched) {
+            <p class="text-red-400 text-xs">Description requise</p>
+          }
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
             <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Montant TTC (€) *</label>
-            <input formControlName="amount_eur" type="number" step="0.01" min="0" placeholder="290.00"
-                   class="w-full bg-gray-900 border border-gray-600 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-cyan-500 transition-colors" />
+            <input formControlName="amount_eur" type="number" step="0.01" min="0.01" placeholder="290.00"
+                   class="w-full bg-gray-900 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition-colors"
+                   [class.border-gray-600]="!ctrl('amount_eur').invalid || !ctrl('amount_eur').touched"
+                   [class.border-red-500]="ctrl('amount_eur').invalid && ctrl('amount_eur').touched" />
+            @if (ctrl('amount_eur').invalid && ctrl('amount_eur').touched) {
+              <p class="text-red-400 text-xs">Montant requis (ex: 290.00)</p>
+            }
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Date d'émission (optionnel)</label>
@@ -62,17 +83,29 @@
                  class="w-full bg-gray-900 border border-gray-600 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-cyan-500 transition-colors" />
         </div>
 
+        <!-- Résumé erreurs si tentative de submit avec form invalide -->
+        @if (form.invalid && submitAttempted()) {
+          <div class="bg-red-900/30 border border-red-700 rounded-xl px-4 py-3 text-red-300 text-sm">
+            Certains champs sont invalides. Vérifiez les champs en rouge ci-dessus.
+          </div>
+        }
+
         <div class="flex justify-end gap-3 pt-2">
           <button type="button" (click)="showForm.set(false)"
                   class="px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 text-sm transition-colors">
             Annuler
           </button>
-          <button type="submit" [disabled]="form.invalid || creating()"
-                  class="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium transition-all disabled:opacity-50">
+          <button type="submit"
+                  class="flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium transition-all"
+                  [class.bg-cyan-600]="form.valid && !creating()"
+                  [class.hover:bg-cyan-500]="form.valid && !creating()"
+                  [class.bg-gray-600]="form.invalid"
+                  [class.cursor-not-allowed]="form.invalid"
+                  [class.opacity-60]="form.invalid || creating()">
             @if (creating()) {
               <mat-spinner diameter="16" />
             }
-            Créer la facture
+            {{ form.invalid ? 'Remplir les champs requis' : 'Créer la facture' }}
           </button>
         </div>
       </form>

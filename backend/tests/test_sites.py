@@ -113,5 +113,5 @@ async def test_sites_not_visible_to_other_users():
 async def test_unauthenticated_sites_returns_401():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get(f"{BASE}/sites")
-    # HTTPBearer raises 403 when no Authorization header is provided
-    assert r.status_code == 403
+    # FastAPI HTTPBearer raises 401 when no Authorization header is provided
+    assert r.status_code == 401
