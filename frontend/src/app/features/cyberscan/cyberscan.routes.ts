@@ -204,6 +204,11 @@ export const CYBERSCAN_ROUTES: Routes = [
         loadComponent: () => import('./admin/invoices/admin-invoices.component').then(m => m.AdminInvoicesComponent),
         title: 'Admin — Factures | CyberScan',
       },
+      {
+        path: 'quotes',
+        loadComponent: () => import('./admin/quotes/admin-quotes.component').then(m => m.AdminQuotesComponent),
+        title: 'Admin — Devis | CyberScan',
+      },
     ],
   },
 ];
