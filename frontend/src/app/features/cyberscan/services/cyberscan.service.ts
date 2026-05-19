@@ -324,6 +324,10 @@ export class CyberscanService {
     return this.http.get(`${API}/nis2/me/pdf`, { responseType: 'blob' });
   }
 
+  downloadNis2AuditorPdfBlob(): Observable<Blob> {
+    return this.http.get(`${API}/nis2/me/pdf/auditor`, { responseType: 'blob' });
+  }
+
   // ── ISO 27001 ──────────────────────────────────────────────────────────
 
   getIso27001Assessment(): Observable<any> {
