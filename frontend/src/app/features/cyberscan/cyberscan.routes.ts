@@ -173,6 +173,11 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Contact — Réserver un audit cybersécurité | CyberScan',
   },
   {
+    path: 'cout-cyberattaque',
+    loadComponent: () => import('./cost-calculator/cost-calculator.component').then(m => m.CostCalculatorComponent),
+    title: 'Calculateur coût cyberattaque PME — CyberScan',
+  },
+  {
     path: 'quiz-maturite',
     loadComponent: () => import('./quiz/quiz.component').then(m => m.QuizComponent),
     title: 'Quiz maturité cybersécurité NIS2 / ISO 27001 — CyberScan',
