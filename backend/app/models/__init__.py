@@ -23,3 +23,4 @@ from app.models.contact_message import ContactMessage  # noqa: F401
 from app.models.invoice import Invoice  # noqa: F401
 from app.models.quote import Quote  # noqa: F401
 from app.models.finding_status import FindingStatus  # noqa: F401
+from app.models.rssi_client import RssiClient  # noqa: F401

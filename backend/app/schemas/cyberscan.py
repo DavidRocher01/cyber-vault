@@ -36,6 +36,7 @@ class CheckoutSessionOut(BaseModel):
 class SiteCreate(BaseModel):
     url: str
     name: str
+    rssi_client_id: int | None = None
 
 
 class SiteOut(BaseModel):
@@ -44,6 +45,7 @@ class SiteOut(BaseModel):
     name: str
     is_active: bool
     created_at: datetime
+    rssi_client_id: int | None = None
 
     model_config = {"from_attributes": True}
 

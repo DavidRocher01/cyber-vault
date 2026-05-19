@@ -50,6 +50,12 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Mes factures — CyberScan',
   },
   {
+    path: 'consultant',
+    loadComponent: () => import('./consultant-dashboard/consultant-dashboard.component').then(m => m.ConsultantDashboardComponent),
+    canActivate: [authGuard],
+    title: 'RSSI Externalisé — CyberScan',
+  },
+  {
     path: 'onboarding',
     loadComponent: () => import('./onboarding/onboarding.component').then(m => m.OnboardingComponent),
     canActivate: [authGuard],

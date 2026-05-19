@@ -8,6 +8,7 @@ from app.core.deps import get_current_user
 from app.models.user import User
 from app.models.site import Site
 from app.models.scan import Scan
+from app.models.rssi_client import RssiClient
 from app.schemas.cyberscan import SiteCreate, SiteOut
 from app.services.subscription_service import get_active_plan
 
@@ -50,7 +51,15 @@ async def add_site(
     if not url.startswith(("http://", "https://")):
         url = f"https://{url}"
 
-    site = Site(user_id=current_user.id, url=url, name=payload.name)
+    rssi_client_id = payload.rssi_client_id
+    if rssi_client_id is not None:
+        client_result = await db.execute(
+            select(RssiClient).where(RssiClient.id == rssi_client_id, RssiClient.consultant_user_id == current_user.id)
+        )
+        if not client_result.scalar_one_or_none():
+            raise HTTPException(status_code=404, detail="Client RSSI non trouvé")
+
+    site = Site(user_id=current_user.id, url=url, name=payload.name, rssi_client_id=rssi_client_id)
     db.add(site)
     await db.commit()
     await db.refresh(site)

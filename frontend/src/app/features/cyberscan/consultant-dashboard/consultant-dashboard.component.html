@@ -1,0 +1,190 @@
+<app-nav-buttons />
+
+<div class="min-h-screen bg-gray-950 text-gray-100 p-4 md:p-8">
+
+  <!-- Header -->
+  <div class="max-w-6xl mx-auto mb-8">
+    <div class="flex items-center gap-3 mb-1">
+      <span class="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+        RSSI Externalisé
+      </span>
+      <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-600/40">
+        CONSULTANT
+      </span>
+    </div>
+    <p class="text-gray-400 text-sm">Tableau de bord multi-clients — gérez la sécurité de tous vos clients en un seul endroit</p>
+  </div>
+
+  @if (loading()) {
+    <div class="flex justify-center py-24">
+      <mat-spinner [diameter]="40" />
+    </div>
+  } @else {
+
+    <div class="max-w-6xl mx-auto">
+
+      <!-- Stats bar -->
+      @if (clients().length > 0) {
+        <div class="grid grid-cols-3 gap-4 mb-8">
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
+            <div class="text-2xl font-bold text-white">{{ clients().length }}</div>
+            <div class="text-xs text-gray-400 mt-0.5">Clients</div>
+          </div>
+          <div class="bg-red-500/10 border border-red-600/30 rounded-xl p-4 text-center">
+            <div class="text-2xl font-bold text-red-400">{{ criticalCount }}</div>
+            <div class="text-xs text-gray-400 mt-0.5">Critiques</div>
+          </div>
+          <div class="bg-green-500/10 border border-green-600/30 rounded-xl p-4 text-center">
+            <div class="text-2xl font-bold text-green-400">{{ okCount }}</div>
+            <div class="text-xs text-gray-400 mt-0.5">Sécurisés</div>
+          </div>
+        </div>
+      }
+
+      <!-- Add client button -->
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-200">Mes clients</h2>
+        <button mat-flat-button color="primary" (click)="showAddForm.set(!showAddForm())">
+          <mat-icon>{{ showAddForm() ? 'close' : 'add' }}</mat-icon>
+          {{ showAddForm() ? 'Annuler' : 'Ajouter un client' }}
+        </button>
+      </div>
+
+      <!-- Add client form -->
+      @if (showAddForm()) {
+        <div class="bg-gray-900 border border-cyan-700/50 rounded-xl p-5 mb-6">
+          <h3 class="text-sm font-semibold text-cyan-300 mb-4">Nouveau client</h3>
+          <form [formGroup]="addForm" (ngSubmit)="addClient()" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Nom du client *</mat-label>
+              <input matInput formControlName="name" placeholder="Acme Corp" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Email (optionnel)</mat-label>
+              <input matInput formControlName="email" type="email" placeholder="contact@acme.fr" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Notes (optionnel)</mat-label>
+              <input matInput formControlName="description" placeholder="PME, secteur santé..." />
+            </mat-form-field>
+            <div class="md:col-span-3 flex justify-end gap-3">
+              <button type="button" mat-stroked-button (click)="showAddForm.set(false)">Annuler</button>
+              <button type="submit" mat-flat-button color="primary" [disabled]="addForm.invalid || saving()">
+                @if (saving()) { <mat-spinner [diameter]="18" class="inline-block mr-2" /> }
+                Ajouter
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      <!-- Empty state -->
+      @if (clients().length === 0) {
+        <div class="text-center py-16 text-gray-500">
+          <mat-icon class="text-6xl mb-4 opacity-30" style="font-size:64px;height:64px;width:64px">business</mat-icon>
+          <p class="text-lg font-medium text-gray-400 mb-2">Aucun client pour l'instant</p>
+          <p class="text-sm mb-6">Ajoutez votre premier client pour commencer à gérer sa sécurité.</p>
+          <button mat-flat-button color="primary" (click)="showAddForm.set(true)">
+            <mat-icon>add</mat-icon> Ajouter un client
+          </button>
+        </div>
+      }
+
+      <!-- Client grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        @for (client of clients(); track client.id) {
+
+          @if (editingId() === client.id) {
+            <!-- Inline edit form -->
+            <div class="bg-gray-900 border border-blue-700/50 rounded-xl p-5 col-span-1">
+              <h3 class="text-sm font-semibold text-blue-300 mb-3">Modifier "{{ client.name }}"</h3>
+              <form [formGroup]="editForm" (ngSubmit)="saveEdit(client.id)" class="flex flex-col gap-3">
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Nom *</mat-label>
+                  <input matInput formControlName="name" />
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Email</mat-label>
+                  <input matInput formControlName="email" type="email" />
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Notes</mat-label>
+                  <input matInput formControlName="description" />
+                </mat-form-field>
+                <div class="flex gap-2 justify-end">
+                  <button type="button" mat-stroked-button (click)="cancelEdit()">Annuler</button>
+                  <button type="submit" mat-flat-button color="primary" [disabled]="editForm.invalid">Sauvegarder</button>
+                </div>
+              </form>
+            </div>
+          } @else {
+            <!-- Client card -->
+            <div class="bg-gray-900 border rounded-xl p-5 flex flex-col gap-3 transition-all hover:border-gray-600"
+                 [ngClass]="statusBgClass(client.worst_status)">
+
+              <!-- Client header -->
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex-1 min-w-0">
+                  <div class="font-semibold text-white truncate">{{ client.name }}</div>
+                  @if (client.email) {
+                    <div class="text-xs text-gray-400 truncate">{{ client.email }}</div>
+                  }
+                </div>
+                <!-- Status badge -->
+                <div class="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border"
+                     [ngClass]="statusBgClass(client.worst_status)">
+                  <mat-icon class="text-sm leading-none" [ngClass]="statusColor(client.worst_status)"
+                            style="font-size:14px;height:14px;width:14px">{{ statusIcon(client.worst_status) }}</mat-icon>
+                  <span [ngClass]="statusColor(client.worst_status)">{{ statusLabel(client.worst_status) }}</span>
+                </div>
+              </div>
+
+              @if (client.description) {
+                <p class="text-xs text-gray-400 line-clamp-2">{{ client.description }}</p>
+              }
+
+              <!-- Stats row -->
+              <div class="flex items-center gap-4 text-xs text-gray-400 border-t border-gray-800/60 pt-3">
+                <div class="flex items-center gap-1">
+                  <mat-icon style="font-size:14px;height:14px;width:14px">language</mat-icon>
+                  <span>{{ client.sites_count }} site{{ client.sites_count !== 1 ? 's' : '' }}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <mat-icon style="font-size:14px;height:14px;width:14px">schedule</mat-icon>
+                  <span>{{ formatDate(client.last_scan_at) }}</span>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="flex items-center justify-between border-t border-gray-800/60 pt-3">
+                <a [routerLink]="['/cyberscan/dashboard']"
+                   [queryParams]="{ client: client.id }"
+                   class="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
+                  <mat-icon style="font-size:14px;height:14px;width:14px">open_in_new</mat-icon>
+                  Voir les sites
+                </a>
+                <div class="flex gap-1">
+                  <button mat-icon-button [matTooltip]="'Modifier'" (click)="startEdit(client)">
+                    <mat-icon class="text-gray-400 text-sm">edit</mat-icon>
+                  </button>
+                  <button mat-icon-button [matTooltip]="'Supprimer'"
+                          (click)="deleteClient(client)"
+                          [disabled]="deletingId() === client.id">
+                    @if (deletingId() === client.id) {
+                      <mat-spinner [diameter]="16" />
+                    } @else {
+                      <mat-icon class="text-red-400 text-sm">delete</mat-icon>
+                    }
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          }
+
+        }
+      </div>
+
+    </div>
+  }
+</div>
