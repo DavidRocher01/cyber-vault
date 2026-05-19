@@ -1,7 +1,7 @@
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { Title, Meta } from '@angular/platform-browser';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -37,6 +37,7 @@ interface Module {
 export class ScanGratuitComponent implements OnInit, OnDestroy {
   private cyberscan = inject(CyberscanService);
   private http = inject(HttpClient);
+  private router = inject(Router);
   private fb = inject(FormBuilder);
   private titleService = inject(Title);
   private meta = inject(Meta);
@@ -83,14 +84,12 @@ export class ScanGratuitComponent implements OnInit, OnDestroy {
 
     this.cyberscan.createPublicScan(trimmedUrl).subscribe({
       next: result => {
-        this.scan.set(result);
         this.submitting.set(false);
-        this.startPolling(result.token);
-
         if (email && consent) {
           this.http.post(`${environment.apiUrl}/newsletter/subscribe`, { email })
-            .subscribe({ next: () => this.emailSent.set(true), error: () => {} });
+            .subscribe({ next: () => {}, error: () => {} });
         }
+        this.router.navigate(['/cyberscan/demo-result', result.token]);
       },
       error: err => {
         this.submitting.set(false);

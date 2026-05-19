@@ -104,6 +104,10 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Résultat demo — CyberScan',
   },
   {
+    path: 'r/:token',
+    redirectTo: ({ params }) => `/cyberscan/demo-result/${params['token']}`,
+  },
+  {
     path: 'subdomains/:id',
     loadComponent: () => import('./subdomains/subdomains.component').then(m => m.SubdomainsComponent),
     canActivate: [authGuard],
