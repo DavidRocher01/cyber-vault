@@ -40,6 +40,44 @@
         </div>
       </div>
 
+      <!-- Badges section -->
+      @if (badges().length > 0) {
+        <div class="bg-gray-800/60 border border-gray-700 rounded-2xl p-6 mb-4">
+          <div class="flex items-center gap-2 mb-5">
+            <div class="w-8 h-8 rounded-lg bg-yellow-500/15 flex items-center justify-center">
+              <mat-icon class="text-yellow-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">emoji_events</mat-icon>
+            </div>
+            <h2 class="font-semibold">Mes badges</h2>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400 font-semibold ml-1">
+              {{ earnedBadgesCount }} / {{ badges().length }}
+            </span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            @for (b of badges(); track b.id) {
+              <div class="flex items-start gap-3 rounded-xl border px-4 py-3 transition-all"
+                   [class]="b.earned
+                     ? 'border-yellow-700/40 bg-yellow-900/10'
+                     : 'border-gray-700/30 bg-gray-800/20 opacity-50'">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                     [class]="b.earned ? 'bg-yellow-900/40 border border-yellow-700' : 'bg-gray-700/40 border border-gray-700'">
+                  <mat-icon [class]="b.earned ? 'text-yellow-400' : 'text-gray-600'"
+                            class="!text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">{{ b.icon }}</mat-icon>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <p class="text-sm font-semibold" [class]="b.earned ? 'text-white' : 'text-gray-500'">{{ b.label }}</p>
+                    @if (b.earned) {
+                      <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-700/40">OBTENU</span>
+                    }
+                  </div>
+                  <p class="text-xs mt-0.5" [class]="b.earned ? 'text-gray-400' : 'text-gray-600'">{{ b.description }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
       <!-- Email section -->
       <div class="bg-gray-800/60 border border-gray-700 rounded-2xl p-6 mb-4">
         <div class="flex items-center gap-2 mb-5">

@@ -14,7 +14,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Title } from '@angular/platform-browser';
 
-import { UserService, UserProfile, TwoFactorSetup, NotificationPreferences } from '../services/user.service';
+import { UserService, UserProfile, TwoFactorSetup, NotificationPreferences, Badge } from '../services/user.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { OtpInputComponent } from '../../../shared/otp-input/otp-input.component';
 
@@ -37,6 +37,7 @@ export class ProfileComponent implements OnInit {
   private router = inject(Router);
 
   profile = signal<UserProfile | null>(null);
+  badges = signal<Badge[]>([]);
   loading = signal(true);
   savingEmail = signal(false);
   savingPassword = signal(false);
@@ -59,6 +60,10 @@ export class ProfileComponent implements OnInit {
   twoFaDisableCode = signal('');
   otpClear = 0;
   otpDisableClear = 0;
+
+  get earnedBadgesCount(): number {
+    return this.badges().filter(b => b.earned).length;
+  }
 
   get initials(): string {
     const email = this.profile()?.email ?? '';
@@ -103,6 +108,9 @@ export class ProfileComponent implements OnInit {
     });
     this.userService.getNotificationPreferences().subscribe({
       next: prefs => this.notifPrefs.set(prefs),
+    });
+    this.userService.getBadges().subscribe({
+      next: b => this.badges.set(b),
     });
   }
 

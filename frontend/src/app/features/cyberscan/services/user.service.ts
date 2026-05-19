@@ -22,6 +22,15 @@ export interface TwoFactorSetup {
   secret: string;
 }
 
+export interface Badge {
+  id: string;
+  label: string;
+  description: string;
+  icon: string;
+  earned: boolean;
+  earned_at: string | null;
+}
+
 const API = '/api/v1';
 
 @Injectable({ providedIn: 'root' })
@@ -70,5 +79,9 @@ export class UserService {
 
   updateNotificationPreferences(prefs: NotificationPreferences): Observable<NotificationPreferences> {
     return this.http.put<NotificationPreferences>(`${API}/users/me/notification-preferences`, prefs);
+  }
+
+  getBadges(): Observable<Badge[]> {
+    return this.http.get<Badge[]>(`${API}/users/me/badges`);
   }
 }
