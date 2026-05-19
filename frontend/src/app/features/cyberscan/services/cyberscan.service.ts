@@ -109,6 +109,13 @@ export interface PaginatedCodeScans {
   pages: number;
 }
 
+export interface FindingStatus {
+  module_key: string;
+  status: 'todo' | 'in_progress' | 'resolved' | 'accepted_risk';
+  note: string | null;
+  updated_at: string;
+}
+
 export interface AppNotification {
   id: number;
   type: string;
@@ -368,5 +375,16 @@ export class CyberscanService {
 
   downloadInvoicePdfBlob(id: number): Observable<Blob> {
     return this.http.get(`${API}/invoices/${id}/pdf`, { responseType: 'blob' });
+  }
+
+  getFindingStatuses(siteId: number): Observable<FindingStatus[]> {
+    return this.http.get<FindingStatus[]>(`${API}/scans/site/${siteId}/finding-status`);
+  }
+
+  updateFindingStatus(siteId: number, moduleKey: string, status: string, note?: string): Observable<FindingStatus> {
+    return this.http.put<FindingStatus>(
+      `${API}/scans/site/${siteId}/finding-status/${moduleKey}`,
+      { status, note: note ?? null },
+    );
   }
 }

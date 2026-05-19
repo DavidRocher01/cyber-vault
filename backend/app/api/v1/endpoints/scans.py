@@ -3,7 +3,7 @@ import io
 import json
 import os
 from datetime import datetime, timezone
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -17,6 +17,7 @@ from app.models.site import Site
 from app.models.scan import Scan
 from app.models.subscription import Subscription
 from app.models.plan import Plan
+from app.models.finding_status import FindingStatus
 from app.schemas.cyberscan import ScanOut, ScanTriggerOut, PaginatedScans
 from app.core.ssrf import assert_no_ssrf
 from app.services.scan_service import run_scan
@@ -291,3 +292,70 @@ async def download_remediation_script(
         raise
     except Exception:
         raise HTTPException(status_code=404, detail="Script non trouvé")
+
+
+# ── Finding status (suivi de correction) ─────────────────────────────────────
+
+VALID_STATUSES = {"todo", "in_progress", "resolved", "accepted_risk"}
+
+
+async def _get_owned_site(site_id: int, user: User, db: AsyncSession) -> Site:
+    result = await db.execute(select(Site).where(Site.id == site_id, Site.user_id == user.id))
+    site = result.scalar_one_or_none()
+    if not site:
+        raise HTTPException(status_code=404, detail="Site non trouvé")
+    return site
+
+
+@router.get("/site/{site_id}/finding-status")
+async def list_finding_statuses(
+    site_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_owned_site(site_id, current_user, db)
+    rows = await db.execute(select(FindingStatus).where(FindingStatus.site_id == site_id))
+    return [
+        {"module_key": r.module_key, "status": r.status, "note": r.note, "updated_at": r.updated_at.isoformat()}
+        for r in rows.scalars().all()
+    ]
+
+
+@router.put("/site/{site_id}/finding-status/{module_key}")
+async def upsert_finding_status(
+    site_id: int,
+    module_key: str,
+    status: str = Body(..., embed=True),
+    note: str | None = Body(None, embed=True),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if status not in VALID_STATUSES:
+        raise HTTPException(status_code=422, detail=f"Statut invalide. Valeurs acceptées : {VALID_STATUSES}")
+
+    await _get_owned_site(site_id, current_user, db)
+
+    result = await db.execute(
+        select(FindingStatus).where(
+            FindingStatus.site_id == site_id,
+            FindingStatus.module_key == module_key,
+        )
+    )
+    row = result.scalar_one_or_none()
+
+    if row:
+        row.status = status
+        row.note = note
+        row.updated_at = datetime.now(timezone.utc)
+    else:
+        row = FindingStatus(
+            site_id=site_id,
+            module_key=module_key,
+            status=status,
+            note=note,
+            updated_at=datetime.now(timezone.utc),
+        )
+        db.add(row)
+
+    await db.commit()
+    return {"module_key": row.module_key, "status": row.status, "note": row.note, "updated_at": row.updated_at.isoformat()}
