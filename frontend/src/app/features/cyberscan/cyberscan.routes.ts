@@ -62,6 +62,12 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Sensibilisation — CyberScan',
   },
   {
+    path: 'pca',
+    loadComponent: () => import('./pca/pca.component').then(m => m.PcaComponent),
+    canActivate: [authGuard],
+    title: 'PCA Light — CyberScan',
+  },
+  {
     path: 'onboarding',
     loadComponent: () => import('./onboarding/onboarding.component').then(m => m.OnboardingComponent),
     canActivate: [authGuard],
