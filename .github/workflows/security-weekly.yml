@@ -1,0 +1,260 @@
+# checkov:skip=CKV2_GHA_1: Actions pinned to major version tags — SHA pinning handled via Dependabot
+name: Audit sécurité hebdomadaire
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"   # Lundi 7h UTC
+  workflow_dispatch:
+
+jobs:
+  audit:
+    name: Audit dépendances + analyse statique
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Python ───────────────────────────────────────────────────────────────
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.prod.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.prod.txt bandit pip-audit
+        working-directory: backend
+
+      # ── pip-audit ────────────────────────────────────────────────────────────
+      - name: pip-audit (JSON)
+        id: pip_audit
+        run: |
+          pip-audit --format=json \
+            --ignore-vuln GHSA-jr27-m4p2-rc6r \
+            --ignore-vuln GHSA-f96h-pmfr-66vw \
+            --ignore-vuln GHSA-2c2j-9gv5-cj73 \
+            --output pip-audit.json \
+            || true
+        working-directory: backend
+
+      # ── Bandit ───────────────────────────────────────────────────────────────
+      - name: Bandit (JSON)
+        id: bandit
+        run: |
+          bandit -r app/ -f json -o bandit-report.json -ll || true
+        working-directory: backend
+
+      # ── Node.js ──────────────────────────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install npm dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: npm audit (JSON)
+        id: npm_audit
+        run: |
+          npm audit --json > npm-audit.json || true
+        working-directory: frontend
+
+      # ── Parse & résumé ───────────────────────────────────────────────────────
+      - name: Parse results and write summary
+        id: parse
+        run: |
+          python - << 'PYEOF'
+          import json, os, sys
+          from pathlib import Path
+
+          lines = []
+          has_vulns = False
+
+          # ── pip-audit ──────────────────────────────────────────────────────
+          pip_path = Path("backend/pip-audit.json")
+          pip_vulns = []
+          if pip_path.exists():
+              try:
+                  data = json.loads(pip_path.read_text())
+                  # pip-audit JSON format: list of dicts with "name", "version", "vulns"
+                  for pkg in (data if isinstance(data, list) else []):
+                      for v in pkg.get("vulns", []):
+                          pip_vulns.append({
+                              "pkg":  pkg.get("name", "?"),
+                              "ver":  pkg.get("version", "?"),
+                              "id":   v.get("id", "?"),
+                              "desc": v.get("description", "")[:120],
+                              "fix":  ", ".join(v.get("fix_versions", [])) or "—",
+                          })
+              except Exception as e:
+                  lines.append(f"> ⚠️ Erreur parsing pip-audit : {e}")
+
+          # ── Bandit ─────────────────────────────────────────────────────────
+          bandit_path = Path("backend/bandit-report.json")
+          bandit_issues = []
+          if bandit_path.exists():
+              try:
+                  data = json.loads(bandit_path.read_text())
+                  for issue in data.get("results", []):
+                      if issue.get("issue_severity") in ("HIGH", "MEDIUM"):
+                          bandit_issues.append({
+                              "file":     issue.get("filename", "?").replace("app/", "", 1),
+                              "line":     issue.get("line_number", "?"),
+                              "severity": issue.get("issue_severity", "?"),
+                              "text":     issue.get("issue_text", "")[:100],
+                              "test_id":  issue.get("test_id", "?"),
+                          })
+              except Exception as e:
+                  lines.append(f"> ⚠️ Erreur parsing bandit : {e}")
+
+          # ── npm audit ──────────────────────────────────────────────────────
+          npm_path = Path("frontend/npm-audit.json")
+          npm_vulns = []
+          if npm_path.exists():
+              try:
+                  data = json.loads(npm_path.read_text())
+                  vulns = data.get("vulnerabilities", {})
+                  for name, info in vulns.items():
+                      sev = info.get("severity", "?")
+                      if sev in ("critical", "high", "moderate"):
+                          npm_vulns.append({
+                              "pkg":  name,
+                              "sev":  sev,
+                              "via":  ", ".join(
+                                  v if isinstance(v, str) else v.get("title", "?")
+                                  for v in info.get("via", [])[:3]
+                              ),
+                              "fix":  info.get("fixAvailable", False),
+                          })
+              except Exception as e:
+                  lines.append(f"> ⚠️ Erreur parsing npm audit : {e}")
+
+          has_vulns = bool(pip_vulns or npm_vulns or bandit_issues)
+
+          # ── GitHub Step Summary ────────────────────────────────────────────
+          from datetime import datetime
+          date = datetime.utcnow().strftime("%Y-%m-%d")
+
+          summary_lines = [
+              f"## 🔐 Audit sécurité — {date}",
+              "",
+              f"| Outil | Findings |",
+              f"|-------|----------|",
+              f"| pip-audit | {'⚠️ ' + str(len(pip_vulns)) + ' CVE(s)' if pip_vulns else '✅ Aucune CVE'} |",
+              f"| bandit | {'⚠️ ' + str(len(bandit_issues)) + ' issue(s) HIGH/MEDIUM' if bandit_issues else '✅ Aucun finding'} |",
+              f"| npm audit | {'⚠️ ' + str(len(npm_vulns)) + ' vulnérabilité(s)' if npm_vulns else '✅ Aucune vulnérabilité'} |",
+              "",
+          ]
+
+          if pip_vulns:
+              summary_lines += ["### Python — CVEs pip-audit", ""]
+              summary_lines += ["| Package | Version | CVE | Fix | Description |",
+                                 "|---------|---------|-----|-----|-------------|"]
+              for v in pip_vulns:
+                  summary_lines.append(f"| {v['pkg']} | {v['ver']} | `{v['id']}` | {v['fix']} | {v['desc']} |")
+              summary_lines.append("")
+
+          if bandit_issues:
+              summary_lines += ["### Python — Bandit (HIGH/MEDIUM)", ""]
+              summary_lines += ["| Fichier | Ligne | Sévérité | Test | Description |",
+                                 "|---------|-------|----------|------|-------------|"]
+              for b in bandit_issues:
+                  summary_lines.append(f"| {b['file']} | {b['line']} | {b['severity']} | {b['test_id']} | {b['text']} |")
+              summary_lines.append("")
+
+          if npm_vulns:
+              summary_lines += ["### JavaScript — npm audit (≥ moderate)", ""]
+              summary_lines += ["| Package | Sévérité | Via | Fix dispo |",
+                                 "|---------|----------|-----|-----------|"]
+              for v in npm_vulns:
+                  fix = "✅" if v["fix"] else "❌"
+                  summary_lines.append(f"| {v['pkg']} | {v['sev']} | {v['via']} | {fix} |")
+              summary_lines.append("")
+
+          if not has_vulns:
+              summary_lines.append("✅ **Aucune vulnérabilité détectée cette semaine.**")
+
+          summary = "\n".join(summary_lines)
+
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write(summary + "\n")
+
+          # Persist data for email step
+          Path("audit-summary.json").write_text(json.dumps({
+              "has_vulns": has_vulns,
+              "pip_count": len(pip_vulns),
+              "bandit_count": len(bandit_issues),
+              "npm_count": len(npm_vulns),
+              "date": date,
+              "html_summary": summary.replace("\n", "<br>").replace("| ", "<td>").replace(" |", "</td>"),
+          }))
+          print(f"has_vulns={str(has_vulns).lower()}")
+          PYEOF
+
+          HAS=$(python -c "import json; d=json.load(open('audit-summary.json')); print(str(d['has_vulns']).lower())")
+          echo "has_vulns=$HAS" >> $GITHUB_OUTPUT
+
+      # ── Upload artifacts ─────────────────────────────────────────────────────
+      - name: Upload audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit
+          path: |
+            backend/pip-audit.json
+            backend/bandit-report.json
+            frontend/npm-audit.json
+          retention-days: 90
+
+      # ── Email si vulnérabilités ──────────────────────────────────────────────
+      - name: Envoyer alerte email
+        if: steps.parse.outputs.has_vulns == 'true'
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          python - << 'PYEOF'
+          import json, os, urllib.request
+          from pathlib import Path
+
+          d = json.loads(Path("audit-summary.json").read_text())
+          date = d["date"]
+
+          lines = []
+          if d["pip_count"]:  lines.append(f"• <b>{d['pip_count']} CVE(s)</b> Python (pip-audit)")
+          if d["bandit_count"]: lines.append(f"• <b>{d['bandit_count']} finding(s)</b> Bandit HIGH/MEDIUM")
+          if d["npm_count"]:  lines.append(f"• <b>{d['npm_count']} vulnérabilité(s)</b> npm")
+
+          html = f"""
+          <div style="font-family:sans-serif;max-width:600px">
+            <h2 style="color:#0f172a">⚠️ Alerte sécurité CyberScan — {date}</h2>
+            <p>Des vulnérabilités ont été détectées lors de l'audit hebdomadaire :</p>
+            <ul>{"".join(f"<li>{l}</li>" for l in lines)}</ul>
+            <p>Consultez les <a href="https://github.com/DavidRocher01/cyber-vault/actions">artifacts GitHub Actions</a>
+            pour le détail complet.</p>
+            <hr style="border:1px solid #e2e8f0">
+            <p style="color:#64748b;font-size:12px">CyberScan — Audit automatique hebdomadaire</p>
+          </div>
+          """
+
+          payload = json.dumps({
+              "from": "CyberScan <contact@cyberscanapp.com>",
+              "to": ["rocherdavid@ymail.com"],
+              "subject": f"[CyberScan] ⚠️ Alerte sécurité — {date}",
+              "html": html,
+          }).encode()
+
+          req = urllib.request.Request(
+              "https://api.resend.com/emails",
+              data=payload,
+              headers={
+                  "Authorization": f"Bearer {os.environ['RESEND_API_KEY']}",
+                  "Content-Type": "application/json",
+              },
+          )
+          with urllib.request.urlopen(req) as resp:
+              print(f"Email envoyé : {resp.status}")
+          PYEOF
