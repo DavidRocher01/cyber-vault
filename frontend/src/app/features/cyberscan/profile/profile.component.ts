@@ -15,6 +15,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Title } from '@angular/platform-browser';
 
 import { UserService, UserProfile, TwoFactorSetup, NotificationPreferences, Badge } from '../services/user.service';
+import { BrandService, BrandProfile } from '../services/brand.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { OtpInputComponent } from '../../../shared/otp-input/otp-input.component';
 
@@ -31,6 +32,7 @@ import { OtpInputComponent } from '../../../shared/otp-input/otp-input.component
 })
 export class ProfileComponent implements OnInit {
   private userService = inject(UserService);
+  private brandService = inject(BrandService);
   private fb = inject(FormBuilder);
   private snack = inject(MatSnackBar);
   private title = inject(Title);
@@ -111,6 +113,17 @@ export class ProfileComponent implements OnInit {
     });
     this.userService.getBadges().subscribe({
       next: b => this.badges.set(b),
+    });
+    this.brandService.get().subscribe({
+      next: brand => {
+        if (brand) {
+          this.brandForm.patchValue({ company_name: brand.company_name, accent_color: brand.accent_color });
+          if (brand.logo_b64) {
+            this._brandLogoB64 = brand.logo_b64;
+            this.brandLogoPreview.set(brand.logo_b64);
+          }
+        }
+      },
     });
   }
 
@@ -204,6 +217,54 @@ export class ProfileComponent implements OnInit {
       error: err => {
         this.twoFaLoading.set(false);
         this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
+      },
+    });
+  }
+
+  // ── Brand ─────────────────────────────────────────────────────────────────
+  brandLogoPreview = signal<string | null>(null);
+  savingBrand = signal(false);
+
+  brandForm = this.fb.nonNullable.group({
+    company_name: ['', Validators.required],
+    accent_color: ['#06b6d4'],
+  });
+
+  private _brandLogoB64: string | null = null;
+
+  onLogoChange(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    if (file.size > 200 * 1024) {
+      this.snack.open('Le logo ne doit pas dépasser 200 Ko', 'Fermer', { duration: 4000 });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      this._brandLogoB64 = result;
+      this.brandLogoPreview.set(result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  removeLogo() {
+    this._brandLogoB64 = null;
+    this.brandLogoPreview.set(null);
+  }
+
+  saveBrand() {
+    if (this.brandForm.invalid) return;
+    this.savingBrand.set(true);
+    const { company_name, accent_color } = this.brandForm.getRawValue();
+    this.brandService.upsert({ company_name, accent_color, logo_b64: this._brandLogoB64 }).subscribe({
+      next: () => {
+        this.savingBrand.set(false);
+        this.snack.open('Personnalisation enregistrée', 'OK', { duration: 3000 });
+      },
+      error: () => {
+        this.savingBrand.set(false);
+        this.snack.open('Erreur lors de la sauvegarde', 'Fermer', { duration: 4000 });
       },
     });
   }

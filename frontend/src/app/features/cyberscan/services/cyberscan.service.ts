@@ -252,6 +252,10 @@ export class CyberscanService {
     return this.http.get(`${API}/scans/${scanId}/pdf`, { responseType: 'blob' });
   }
 
+  downloadBrandedPdfBlob(scanId: number): Observable<Blob> {
+    return this.http.get(`${API}/scans/${scanId}/pdf/branded`, { responseType: 'blob' });
+  }
+
   downloadRemediationBlob(scanId: number, scriptKey: string): Observable<Blob> {
     return this.http.get(`${API}/scans/${scanId}/remediation/${scriptKey}`, { responseType: 'blob' });
   }

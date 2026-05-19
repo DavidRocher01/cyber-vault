@@ -27,6 +27,7 @@ export class ScanDetailComponent implements OnInit {
   scan = signal<Scan | null>(null);
   loading = signal(true);
   error = signal<string | null>(null);
+  downloadingBranded = signal(false);
   flippedCards = new Set<string>();
 
   toggleFlip(key: string) {
@@ -75,6 +76,24 @@ export class ScanDetailComponent implements OnInit {
         URL.revokeObjectURL(url);
       },
       error: () => console.error('Erreur téléchargement PDF'),
+    });
+  }
+
+  downloadBrandedPdf() {
+    const s = this.scan();
+    if (!s) return;
+    this.downloadingBranded.set(true);
+    this.cyberscan.downloadBrandedPdfBlob(s.id).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cyberscan_marque_blanche_${s.id}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.downloadingBranded.set(false);
+      },
+      error: () => this.downloadingBranded.set(false),
     });
   }
 

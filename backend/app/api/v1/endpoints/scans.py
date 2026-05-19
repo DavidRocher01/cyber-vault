@@ -198,6 +198,65 @@ async def download_pdf(
     )
 
 
+@router.get("/{scan_id}/pdf/branded")
+async def download_branded_pdf(
+    scan_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate a white-label management summary PDF using the user's brand profile."""
+    from app.models.brand_profile import BrandProfile
+    from app.services.branded_scan_pdf import generate_branded_pdf, _extract_findings, _compute_score
+
+    scan_result = await db.execute(
+        select(Scan)
+        .join(Site, Site.id == Scan.site_id)
+        .where(Scan.id == scan_id, Site.user_id == current_user.id)
+    )
+    scan = scan_result.scalar_one_or_none()
+    if not scan:
+        raise HTTPException(status_code=404, detail="Scan non trouvé")
+    if scan.status != "done":
+        raise HTTPException(status_code=404, detail="Scan non terminé")
+
+    site_result = await db.execute(select(Site).where(Site.id == scan.site_id))
+    site = site_result.scalar_one_or_none()
+    domain = site.url if site else "inconnu"
+
+    brand_result = await db.execute(
+        select(BrandProfile).where(BrandProfile.user_id == current_user.id)
+    )
+    brand = brand_result.scalar_one_or_none()
+
+    company_name = brand.company_name if brand else "CyberScan"
+    accent_color = brand.accent_color if brand else "#06b6d4"
+    logo_b64 = brand.logo_b64 if brand else None
+
+    findings = _extract_findings(scan.results_json)
+    score = _compute_score(findings, scan.overall_status)
+    scan_date = (scan.finished_at or scan.created_at).strftime("%d/%m/%Y") if (scan.finished_at or scan.created_at) else ""
+
+    pdf_bytes = generate_branded_pdf(
+        company_name=company_name,
+        accent_color=accent_color,
+        logo_b64=logo_b64,
+        domain=domain,
+        overall_status=scan.overall_status or "OK",
+        score_pct=score,
+        scan_date=scan_date,
+        findings=findings,
+    )
+
+    safe_company = "".join(c if c.isalnum() else "_" for c in company_name)[:30]
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="cyberscan_{safe_company}_{scan_id}.pdf"'
+        },
+    )
+
+
 _REMEDIATION_META: dict[str, tuple[str, str]] = {
     "ufw":                   ("ufw_setup.sh",                    "text/x-sh"),
     "ssh":                   ("ssh_hardening.sh",                "text/x-sh"),
