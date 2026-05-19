@@ -2,10 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
@@ -34,8 +31,7 @@ const API = '/api/v1';
   selector: 'app-admin-invoices',
   imports: [
     CommonModule, ReactiveFormsModule,
-    MatButtonModule, MatIconModule, MatInputModule, MatFormFieldModule,
-    MatSnackBarModule, MatProgressSpinnerModule,
+    MatIconModule, MatSnackBarModule, MatProgressSpinnerModule,
   ],
   templateUrl: './admin-invoices.component.html',
 })
