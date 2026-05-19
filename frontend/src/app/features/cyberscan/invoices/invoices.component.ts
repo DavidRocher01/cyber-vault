@@ -19,6 +19,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
     MatProgressSpinnerModule, MatSnackBarModule, MatChipsModule, NavButtonsComponent,
   ],
   templateUrl: './invoices.component.html',
+  styleUrl: './invoices.component.css',
 })
 export class InvoicesComponent implements OnInit {
   private service = inject(CyberscanService);

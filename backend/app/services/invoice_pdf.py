@@ -160,7 +160,7 @@ def generate_invoice_pdf(
     # ── Line items table ───────────────────────────────────────────────────────
     items_header = [
         Paragraph("Description", st["bold"]),
-        Paragraph("Montant HT", ParagraphStyle(
+        Paragraph("Montant TTC", ParagraphStyle(
             "RBold", fontSize=9, fontName="Helvetica-Bold",
             textColor=BLACK, alignment=2,
         )),
@@ -194,24 +194,19 @@ def generate_invoice_pdf(
 
     # ── Total block ────────────────────────────────────────────────────────────
     total_data = [
-        ["Total HT", _fmt_amount(amount_cents)],
-        ["TVA",      "Non applicable"],
         ["Total TTC", _fmt_amount(amount_cents)],
     ]
     total_styles_list = [
-        ("FONTNAME",      (0, 0), (-1, 1), "Helvetica"),
-        ("FONTNAME",      (0, 2), (-1, 2), "Helvetica-Bold"),
-        ("FONTSIZE",      (0, 0), (-1, -1), 9),
+        ("FONTNAME",      (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE",      (0, 0), (-1, 0), 11),
         ("ALIGN",         (0, 0), (-1, -1), "RIGHT"),
-        ("TOPPADDING",    (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("TOPPADDING",    (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
         ("LEFTPADDING",   (0, 0), (-1, -1), 10),
         ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
-        ("TEXTCOLOR",     (0, 0), (-1, 1), MID),
-        ("TEXTCOLOR",     (0, 2), (-1, 2), NAVY),
-        ("FONTSIZE",      (0, 2), (-1, 2), 11),
-        ("BACKGROUND",    (0, 2), (-1, 2), LIGHT),
-        ("LINEABOVE",     (0, 2), (-1, 2), 1, ACCENT),
+        ("TEXTCOLOR",     (0, 0), (-1, 0), NAVY),
+        ("BACKGROUND",    (0, 0), (-1, 0), LIGHT),
+        ("LINEABOVE",     (0, 0), (-1, 0), 1, ACCENT),
     ]
     total_table = Table(total_data, colWidths=[content_w * 0.72, content_w * 0.28])
     total_table.setStyle(TableStyle(total_styles_list))

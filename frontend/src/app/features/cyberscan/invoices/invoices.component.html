@@ -17,7 +17,7 @@
       </div>
     } @else if (!data() || data()!.total === 0) {
       <div class="bg-gray-900 border border-gray-800 rounded-2xl p-12 text-center">
-        <mat-icon class="text-gray-600 text-6xl mb-4" style="font-size:48px;width:48px;height:48px">receipt_long</mat-icon>
+        <mat-icon class="text-gray-600 mb-4 icon-xl">receipt_long</mat-icon>
         <p class="text-gray-400 text-lg font-medium">Aucune facture pour l'instant</p>
         <p class="text-gray-500 text-sm mt-1">Vos factures apparaîtront ici après chaque paiement.</p>
       </div>
@@ -50,9 +50,10 @@
                   </span>
                 </td>
                 <td class="px-5 py-3 text-gray-300 max-w-xs truncate">{{ inv.description }}</td>
-                <td class="px-5 py-3 text-right font-semibold text-white">{{ formatAmount(inv.amount_cents) }}</td>
+                <td class="px-5 py-3 text-right font-semibold text-white">{{ formatAmount(inv.amount_cents) }} TTC</td>
                 <td class="px-5 py-3 text-center">
                   <button
+                    type="button"
                     mat-icon-button
                     [disabled]="downloading() === inv.id"
                     (click)="download(inv, $event)"
@@ -88,6 +89,7 @@
                       </div>
                     </div>
                     <button
+                      type="button"
                       mat-stroked-button
                       color="primary"
                       class="mt-4"
