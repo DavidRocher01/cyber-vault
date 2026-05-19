@@ -159,7 +159,7 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Annulation réservation — CyberScan',
   },
   {
-    path: 'admin/agenda',
+    path: 'admin/ba61c5a60113/agenda',
     loadComponent: () => import('./booking-admin/booking-admin.component').then(m => m.BookingAdminComponent),
     title: 'Admin — Agenda | CyberScan',
   },
