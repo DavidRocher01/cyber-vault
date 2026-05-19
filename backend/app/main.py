@@ -99,6 +99,59 @@ app.add_middleware(
 app.include_router(api_router)
 
 
+@app.get("/sitemap.xml", include_in_schema=False)
+async def sitemap(db: AsyncSession = Depends(get_db)):
+    from sqlalchemy import select, text as sa_text
+    from app.models.blog_post import BlogPost  # noqa: F401
+
+    base = "https://cyberscanapp.com"
+    static_urls = [
+        ("", "weekly", "1.0"),
+        ("/cyberscan", "weekly", "0.9"),
+        ("/cyberscan/scan-gratuit", "weekly", "0.9"),
+        ("/cyberscan/contact", "monthly", "0.8"),
+        ("/cyberscan/reserver", "monthly", "0.8"),
+        ("/cyberscan/ressources", "weekly", "0.7"),
+        ("/cyberscan/bonnes-pratiques", "monthly", "0.6"),
+        ("/cyberscan/blog", "daily", "0.8"),
+        ("/cyberscan/nis2", "monthly", "0.6"),
+        ("/cyberscan/iso27001", "monthly", "0.6"),
+        ("/cyberscan/cgu", "yearly", "0.3"),
+        ("/cyberscan/politique-confidentialite", "yearly", "0.3"),
+        ("/cyberscan/mentions-legales", "yearly", "0.3"),
+    ]
+
+    result = await db.execute(
+        select(BlogPost.slug, BlogPost.updated_at).where(BlogPost.is_published == True)  # noqa: E712
+    )
+    blog_slugs = result.all()
+
+    urls = "\n".join(
+        f"  <url><loc>{base}{path}</loc><changefreq>{freq}</changefreq><priority>{prio}</priority></url>"
+        for path, freq, prio in static_urls
+    )
+    for slug, updated_at in blog_slugs:
+        lastmod = f"<lastmod>{updated_at.date().isoformat()}</lastmod>" if updated_at else ""
+        urls += f"\n  <url><loc>{base}/cyberscan/blog/{slug}</loc>{lastmod}<changefreq>monthly</changefreq><priority>0.7</priority></url>"
+
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{urls}
+</urlset>"""
+
+    from fastapi.responses import Response as FastAPIResponse
+    return FastAPIResponse(content=xml, media_type="application/xml")
+
+
+@app.get("/robots.txt", include_in_schema=False)
+async def robots():
+    from fastapi.responses import PlainTextResponse
+    return PlainTextResponse(
+        "User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /cyberscan/admin\n"
+        "Sitemap: https://cyberscanapp.com/sitemap.xml\n"
+    )
+
+
 @app.get("/health")
 async def health(db: AsyncSession = Depends(get_db)):
     try:

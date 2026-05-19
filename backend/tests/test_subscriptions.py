@@ -55,7 +55,7 @@ async def test_get_subscription_returns_none_when_no_subscription():
 async def test_get_subscription_unauthenticated_returns_403():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get(f"{BASE}/subscriptions/me")
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 @pytest.mark.asyncio
@@ -95,7 +95,7 @@ async def test_checkout_unknown_plan_returns_404():
 async def test_checkout_unauthenticated_returns_403():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.post(f"{BASE}/subscriptions/checkout/1")
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 @pytest.mark.asyncio
@@ -154,4 +154,4 @@ async def test_portal_dev_mode_returns_dashboard_url():
 async def test_portal_unauthenticated_returns_403():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get(f"{BASE}/subscriptions/portal")
-    assert r.status_code == 401
+    assert r.status_code == 403
