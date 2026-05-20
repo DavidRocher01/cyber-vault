@@ -280,6 +280,18 @@
           </a>
         }
 
+        <a routerLink="/cyberscan/phishing/campaigns"
+           class="group flex items-center gap-4 rounded-xl border border-gray-700/60 bg-gray-800/40 hover:bg-gray-800/80 hover:border-orange-700/50 px-5 py-4 transition-all">
+          <div class="w-10 h-10 rounded-xl bg-orange-900/30 border border-orange-800/50 flex items-center justify-center flex-shrink-0 group-hover:bg-orange-900/50 transition-colors">
+            <mat-icon class="text-orange-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">phishing</mat-icon>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-sm text-white group-hover:text-orange-300 transition-colors">Simulation phishing</p>
+            <p class="text-xs text-gray-500 mt-0.5">Campagnes · Rapport · Sensibilisation</p>
+          </div>
+          <mat-icon class="text-gray-600 group-hover:text-orange-400 transition-colors !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">arrow_forward</mat-icon>
+        </a>
+
         <!-- #1 — Modules grisés Pro (affichés uniquement sur plan gratuit / sans abonnement) -->
         @if (!subscription() || (subscription()?.plan?.tier_level ?? 0) <= 1) {
           <button type="button" (click)="openPlansModal()"

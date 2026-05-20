@@ -46,6 +46,9 @@ reportlab==4.4.10
 # Email transactionnel
 resend==2.7.0
 
+# DNS resolution (phishing domain verification)
+dnspython==2.7.0
+
 # 2FA
 pyotp==2.9.0
 qrcode[pil]==7.4.2

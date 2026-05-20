@@ -51,6 +51,12 @@ class Settings(BaseSettings):
     # HaveIBeenPwned API (breach checker)
     HIBP_API_KEY: str = ""
 
+    # GoPhish integration (phishing simulation)
+    GOPHISH_API_URL: str = ""          # e.g. https://gophish.cyberscanapp.com:3333
+    GOPHISH_API_KEY: str = ""
+    GOPHISH_SMTP_PROFILE: str = "CyberScan SMTP"
+    GOPHISH_PHISHING_URL: str = ""     # base URL of the look-alike domain, e.g. https://cyberscan-sim.com
+
     # Add-on extra sites pack (5 slots per pack, monthly)
     ADDON_EXTRA_SITES_STRIPE_PRICE_ID: str = ""
     ADDON_EXTRA_SITES_COUNT: int = 5

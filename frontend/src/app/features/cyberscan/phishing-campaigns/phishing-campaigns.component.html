@@ -1,0 +1,123 @@
+<app-nav-buttons />
+
+<div class="min-h-screen bg-gray-950 text-white p-4 md:p-8">
+  <div class="max-w-4xl mx-auto">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <mat-icon class="text-cyan-400">phishing</mat-icon>
+          <h1 class="text-2xl font-bold">Simulation de phishing</h1>
+        </div>
+        <p class="text-gray-400 text-sm">Gérez vos campagnes et téléchargez vos rapports.</p>
+      </div>
+      <a routerLink="/cyberscan/phishing/new" mat-flat-button color="primary" class="!rounded-xl">
+        <mat-icon class="mr-1">add</mat-icon>
+        Nouvelle campagne
+      </a>
+    </div>
+
+    @if (loading()) {
+      <div class="flex justify-center py-24"><mat-spinner [diameter]="40" /></div>
+    } @else if (campaigns().length === 0) {
+
+      <!-- Empty state -->
+      <div class="rounded-2xl border border-gray-800 bg-gray-900 p-16 text-center">
+        <mat-icon class="text-gray-600 !text-[4rem] !w-[4rem] !h-[4rem] mb-4">phishing</mat-icon>
+        <h2 class="text-xl font-semibold text-gray-300 mb-2">Aucune campagne</h2>
+        <p class="text-gray-500 mb-8 max-w-sm mx-auto">
+          Créez votre première campagne de simulation pour mesurer la vigilance de vos équipes.
+        </p>
+        <a routerLink="/cyberscan/phishing/new" mat-flat-button color="primary" class="!rounded-xl !px-8">
+          Démarrer une campagne
+        </a>
+      </div>
+
+    } @else {
+
+      <!-- Campaigns list -->
+      <div class="flex flex-col gap-4">
+        @for (c of campaigns(); track c.id) {
+          <div class="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden hover:border-gray-700 transition-colors">
+
+            <div class="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+              <!-- Left: icon + name -->
+              <div class="flex items-center gap-3 flex-1 min-w-0">
+                <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                  <mat-icon class="text-cyan-400 !text-[1.2rem]">phishing</mat-icon>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-semibold text-white truncate">{{ c.name }}</span>
+                    <span class="text-[0.7rem] font-semibold px-2 py-0.5 rounded-full border"
+                          [class]="statusColor(c.status)">
+                      {{ statusLabel(c.status) }}
+                    </span>
+                  </div>
+                  <div class="text-xs text-gray-500 mt-0.5">
+                    {{ c.plan_tier | titlecase }} · {{ formatDate(c.created_at) }}
+                    @if (c.domain) { · {{ c.domain }} }
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stats -->
+              <div class="flex items-center gap-6 text-center flex-shrink-0">
+                <div>
+                  <div class="text-lg font-bold text-white">{{ c.targets_count }}</div>
+                  <div class="text-[0.65rem] text-gray-500 uppercase tracking-wider">Cibles</div>
+                </div>
+                <div>
+                  <div class="text-lg font-bold" [class]="clickRateColor(c)">{{ clickRateLabel(c) }}</div>
+                  <div class="text-[0.65rem] text-gray-500 uppercase tracking-wider">Taux clic</div>
+                </div>
+                <div>
+                  <div class="text-lg font-bold text-white">{{ c.clicked_count }}</div>
+                  <div class="text-[0.65rem] text-gray-500 uppercase tracking-wider">Clics</div>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="flex items-center gap-2 flex-shrink-0">
+                @if (c.status === 'draft' || c.status === 'pending_verification' || c.status === 'ready') {
+                  <a [routerLink]="['/cyberscan/phishing/campaigns', c.id, 'edit']"
+                     mat-stroked-button
+                     class="!text-sm !border-gray-700 !text-gray-300 !rounded-lg">
+                    <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] mr-1">edit</mat-icon>
+                    Configurer
+                  </a>
+                }
+                @if (c.status === 'active' || c.status === 'completed') {
+                  <a [routerLink]="['/cyberscan/phishing/campaigns', c.id]"
+                     mat-flat-button color="primary"
+                     class="!text-sm !rounded-lg">
+                    <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] mr-1">bar_chart</mat-icon>
+                    Résultats
+                  </a>
+                }
+              </div>
+            </div>
+
+            <!-- Active campaign progress bar -->
+            @if (c.status === 'active' && c.targets_count > 0) {
+              <div class="px-5 pb-4">
+                <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
+                  <span>{{ c.emails_sent }}/{{ c.targets_count }} emails envoyés</span>
+                  <span>{{ c.opened_count }} ouvertures · {{ c.clicked_count }} clics</span>
+                </div>
+                <div class="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                  <div class="h-full bg-cyan-500 rounded-full transition-all"
+                       [style.width.%]="(c.emails_sent / c.targets_count) * 100"></div>
+                </div>
+              </div>
+            }
+
+          </div>
+        }
+      </div>
+
+    }
+
+  </div>
+</div>

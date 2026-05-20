@@ -163,6 +163,18 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Simulation de Phishing PME — Test et Sensibilisation | CyberScan',
   },
   {
+    path: 'phishing/campaigns',
+    loadComponent: () => import('./phishing-campaigns/phishing-campaigns.component').then(m => m.PhishingCampaignsComponent),
+    canActivate: [authGuard],
+    title: 'Mes campagnes phishing — CyberScan',
+  },
+  {
+    path: 'phishing/new',
+    loadComponent: () => import('./phishing-campaign-creator/phishing-campaign-creator.component').then(m => m.PhishingCampaignCreatorComponent),
+    canActivate: [authGuard],
+    title: 'Nouvelle campagne phishing — CyberScan',
+  },
+  {
     path: 'scan-gratuit',
     loadComponent: () => import('./scan-gratuit/scan-gratuit.component').then(m => m.ScanGratuitComponent),
     title: 'Scan de sécurité gratuit — Audit en 90 secondes | CyberScan',

@@ -397,6 +397,15 @@ def start_scheduler() -> None:
         id="monthly_digest",
         replace_existing=True,
     )
+    # Phishing campaign results polling — every 15 minutes for active campaigns
+    from apscheduler.triggers.interval import IntervalTrigger as _IT
+    from app.services.phishing_service import sync_active_campaigns
+    scheduler.add_job(
+        sync_active_campaigns,
+        trigger=_IT(minutes=15),
+        id="phishing_sync",
+        replace_existing=True,
+    )
     scheduler.start()
 
 
