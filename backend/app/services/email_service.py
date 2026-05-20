@@ -305,6 +305,7 @@ def send_booking_admin_notification(
         "audit-flash": "Audit Flash (290 €)",
         "audit-app": "Audit App-Check (725 €)",
         "pentest": "Pentest léger (1 900 €)",
+        "simulation-phishing": "Simulation de phishing",
         "abonnement": "Abonnement surveillance",
         "autre": "Autre / Devis",
     }
@@ -341,6 +342,7 @@ def send_contact_email(
         "audit-flash": "Audit Flash (290 € HT)",
         "audit-app": "Audit App-Check (725 € HT)",
         "pentest": "Pentest léger (1 900 € HT)",
+        "simulation-phishing": "Simulation de phishing",
         "abonnement": "Abonnement surveillance continue",
         "autre": "Autre / Demande de devis",
     }

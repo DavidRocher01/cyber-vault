@@ -158,6 +158,11 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'r00t@cyberscan — terminal',
   },
   {
+    path: 'simulation-phishing',
+    loadComponent: () => import('./phishing/phishing.component').then(m => m.PhishingComponent),
+    title: 'Simulation de Phishing PME — Test et Sensibilisation | CyberScan',
+  },
+  {
     path: 'scan-gratuit',
     loadComponent: () => import('./scan-gratuit/scan-gratuit.component').then(m => m.ScanGratuitComponent),
     title: 'Scan de sécurité gratuit — Audit en 90 secondes | CyberScan',
