@@ -10,18 +10,14 @@ from sqlalchemy import select, func
 
 from app.core.database import get_db, AsyncSessionLocal
 from app.core.deps import get_current_user
-from app.core.datetime_utils import ensure_utc
 from app.core.pagination import paginate
 from app.models.user import User
 from app.models.site import Site
 from app.models.scan import Scan
-from app.models.subscription import Subscription
-from app.models.plan import Plan
 from app.models.finding_status import FindingStatus
 from app.schemas.cyberscan import ScanOut, ScanTriggerOut, PaginatedScans
 from app.core.ssrf import assert_no_ssrf
 from app.services.scan_service import run_scan
-from app.services.subscription_service import get_active_plan
 
 router = APIRouter(prefix="/scans", tags=["scans"])
 

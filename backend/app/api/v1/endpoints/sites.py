@@ -10,7 +10,7 @@ from app.models.site import Site
 from app.models.scan import Scan
 from app.models.rssi_client import RssiClient
 from app.schemas.cyberscan import SiteCreate, SiteOut
-from app.services.subscription_service import get_active_plan, get_effective_max_sites
+from app.services.subscription_service import get_effective_max_sites
 
 router = APIRouter(prefix="/sites", tags=["sites"])
 

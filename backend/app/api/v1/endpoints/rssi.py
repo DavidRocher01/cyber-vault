@@ -1,5 +1,5 @@
 """RSSI Externalisé — multi-client dashboard for security consultants."""
-from datetime import datetime, timezone
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel

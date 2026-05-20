@@ -1,5 +1,5 @@
 """Module sensibilisation employés — 5 mini-modules + progress tracking."""
-from datetime import datetime, timezone
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel

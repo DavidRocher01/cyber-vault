@@ -101,7 +101,7 @@ app.include_router(api_router)
 
 @app.get("/sitemap.xml", include_in_schema=False)
 async def sitemap(db: AsyncSession = Depends(get_db)):
-    from sqlalchemy import select, text as sa_text
+    from sqlalchemy import select
     from app.models.blog_post import BlogPost  # noqa: F401
 
     base = "https://cyberscanapp.com"

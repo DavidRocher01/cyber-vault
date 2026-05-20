@@ -2,16 +2,10 @@
 Public maturity quiz — 10 questions on NIS2/ISO 27001 topics.
 No authentication required. Results are stored with optional email.
 """
-from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter
 from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import select
-
-from app.core.database import get_db
-from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/quiz", tags=["quiz"])
 
