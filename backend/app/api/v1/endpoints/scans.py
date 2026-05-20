@@ -18,6 +18,7 @@ from app.models.finding_status import FindingStatus
 from app.schemas.cyberscan import ScanOut, ScanTriggerOut, PaginatedScans
 from app.core.ssrf import assert_no_ssrf
 from app.services.scan_service import run_scan
+from app.services.subscription_service import get_active_plan
 
 router = APIRouter(prefix="/scans", tags=["scans"])
 
