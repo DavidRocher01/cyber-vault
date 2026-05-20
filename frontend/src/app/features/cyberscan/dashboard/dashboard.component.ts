@@ -100,6 +100,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
       if (params['subscribed'] === 'true') {
         this.snack.open('Abonnement activé ! Bienvenue sur CyberScan.', 'Super', { duration: 6000 });
       }
+      if (params['upgrade'] === 'true') {
+        this.openPlansModal();
+      }
     });
     this.loadDashboard();
   }
@@ -482,6 +485,63 @@ export class DashboardComponent implements OnInit, OnDestroy {
   getScoreColor(score: number): string { return getScoreColor(score); }
 
   // ── Analytics ─────────────────────────────────────────────────────────────
+
+  /** Average delta of last-vs-prev score across all sites with at least 2 scans */
+  get globalTrend(): number | null {
+    const deltas = this.sites()
+      .map(s => this.getTrend(s.id))
+      .filter((t): t is number => t !== null);
+    if (deltas.length === 0) return null;
+    return Math.round(deltas.reduce((a, b) => a + b, 0) / deltas.length);
+  }
+
+  get globalTrendAnnotation(): string | null {
+    const score = this.averageScore;
+    if (score === null) return null;
+    const trend = this.globalTrend;
+    if (trend === null) return `Score global : ${score}/100`;
+    if (Math.abs(trend) < 2) return `Score stable à ${score}/100 depuis le dernier scan`;
+    if (trend > 0) return `+${trend} pts depuis le dernier scan — score global : ${score}/100`;
+    return `${trend} pts depuis le dernier scan — score global : ${score}/100`;
+  }
+
+  /** All score/date points from all sites merged and sorted by date (for global chart) */
+  get globalScoreTimeline(): { date: string; score: number }[] {
+    const all: { date: string; score: number }[] = [];
+    for (const site of this.sites()) {
+      for (const pt of this.scoreHistory(site.id, 8)) {
+        all.push(pt);
+      }
+    }
+    return all.sort((a, b) => a.date.localeCompare(b.date)).slice(-16);
+  }
+
+  private _trendGeometry(w = 360, h = 56): { points: string; dots: { cx: number; cy: number }[] } {
+    const history = this.globalScoreTimeline;
+    if (history.length < 2) return { points: '', dots: [] };
+    const min = Math.min(...history.map(p => p.score));
+    const max = Math.max(...history.map(p => p.score));
+    const range = max - min || 1;
+    const xs = history.map((_, i) => (i / (history.length - 1)) * w);
+    const ys = history.map(p => h - ((p.score - min) / range) * (h - 8) - 4);
+    return {
+      points: xs.map((x, i) => `${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' '),
+      dots: xs.map((cx, i) => ({ cx, cy: ys[i] })),
+    };
+  }
+
+  globalTrendChartPoints(w = 360, h = 56): string {
+    return this._trendGeometry(w, h).points;
+  }
+
+  get globalTrendDots(): { cx: number; cy: number }[] {
+    return this._trendGeometry().dots;
+  }
+
+  get globalTrendIsStable(): boolean {
+    return Math.abs(this.globalTrend ?? 0) <= 1;
+  }
+
   analyticsOpen = signal(true);
   toggleAnalytics() { this.analyticsOpen.update(v => !v); }
   readonly categoryLabels = RADAR_CATEGORIES.map(c => c.label);

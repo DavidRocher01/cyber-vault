@@ -13,6 +13,19 @@ import { computeScore, getGrade, getScoreColor, getCategoryScores, RADAR_CATEGOR
 import { Finding, getFindings } from '../../../shared/scan-findings';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
+const PRO_MODULE_DESCRIPTIONS: Record<string, string> = {
+  tech:               'Technologies et versions exposées dans vos en-têtes HTTP',
+  tls:                'Audit complet : protocoles TLS faibles, suites de chiffrement, HSTS',
+  takeover:           'Sous-domaines susceptibles d\'être repris par un attaquant',
+  threat_intel:       'Croisement avec les bases CVE, Shodan et threat feeds actifs',
+  http_methods:       'Méthodes PUT / DELETE / TRACE actives sur votre serveur',
+  open_redirect:      'Paramètres de redirection exploitables dans des campagnes de phishing',
+  clickjacking:       'Absence de X-Frame-Options / CSP frame-ancestors',
+  directory_listing:  'Arborescence serveur listable publiquement',
+  robots:             'Chemins d\'administration révélés dans robots.txt',
+  jwt:                'Tokens JWT mal signés exposés sur vos pages publiques',
+};
+
 @Component({
     standalone: true,
     selector: 'app-scan-detail',
@@ -152,6 +165,28 @@ export class ScanDetailComponent implements OnInit {
   get scoreColor(): string { return this.score !== null ? getScoreColor(this.score) : '#6b7280'; }
   get radarScores(): number[] { return getCategoryScores(this.scan()?.results_json ?? null); }
   get radarLabels(): string[] { return RADAR_CATEGORIES.map(c => c.label); }
+
+  get scannedDomain(): string | null {
+    const r = this.scan()?.results_json;
+    if (!r) return null;
+    try { return (JSON.parse(r)?._meta?.url as string) ?? null; }
+    catch { return null; }
+  }
+
+  get scanTier(): number {
+    const r = this.scan()?.results_json;
+    if (!r) return 2;
+    try { return (JSON.parse(r)?._meta?.tier as number) ?? 2; }
+    catch { return 2; }
+  }
+
+  get lockedFindings(): Finding[] {
+    return this.findings.filter(f => f.skipped && f.minTier > this.scanTier);
+  }
+
+  getProDescription(key: string): string {
+    return PRO_MODULE_DESCRIPTIONS[key] ?? '';
+  }
 
   get criticalCount(): number {
     return this.findings.filter(f => f.status === 'CRITICAL').length;
