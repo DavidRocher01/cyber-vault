@@ -45,6 +45,7 @@ export class PhishingCampaignsComponent implements OnInit {
       draft: 'Brouillon',
       pending_verification: 'Vérification domaine',
       ready: 'Prête',
+      sending: 'Envoi en cours',
       active: 'En cours',
       completed: 'Terminée',
       cancelled: 'Annulée',
@@ -54,7 +55,8 @@ export class PhishingCampaignsComponent implements OnInit {
 
   statusColor(status: string): string {
     switch (status) {
-      case 'active':     return 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30';
+      case 'active':
+      case 'sending':    return 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30';
       case 'completed':  return 'text-green-400 bg-green-500/10 border-green-500/30';
       case 'draft':      return 'text-gray-400 bg-gray-500/10 border-gray-500/30';
       case 'ready':      return 'text-blue-400 bg-blue-500/10 border-blue-500/30';

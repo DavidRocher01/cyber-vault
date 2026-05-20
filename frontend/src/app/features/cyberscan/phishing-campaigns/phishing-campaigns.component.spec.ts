@@ -13,7 +13,7 @@ function make(): PhishingCampaignsComponent {
 function campaign(overrides: Partial<PhishingCampaign> = {}): PhishingCampaign {
   return {
     id: 1, name: 'Test', status: 'draft', plan_tier: 'standard',
-    domain: null, domain_verified: false, scenario_keys: [],
+    domain: null, domain_verified: false, lookalike_domain: null, scenario_keys: [],
     targets_count: 0, emails_sent: 0, opened_count: 0,
     clicked_count: 0, submitted_count: 0, click_rate: 0,
     cgu_accepted: false, scheduled_at: null, started_at: null,
@@ -25,13 +25,16 @@ function campaign(overrides: Partial<PhishingCampaign> = {}): PhishingCampaign {
 describe('PhishingCampaignsComponent — statusLabel()', () => {
   it('retourne Brouillon pour draft', () => expect(make().statusLabel('draft')).toBe('Brouillon'));
   it('retourne En cours pour active', () => expect(make().statusLabel('active')).toBe('En cours'));
+  it('retourne Envoi en cours pour sending', () => expect(make().statusLabel('sending')).toBe('Envoi en cours'));
   it('retourne Terminée pour completed', () => expect(make().statusLabel('completed')).toBe('Terminée'));
   it('retourne Prête pour ready', () => expect(make().statusLabel('ready')).toBe('Prête'));
+  it('retourne Annulée pour cancelled', () => expect(make().statusLabel('cancelled')).toBe('Annulée'));
   it('retourne la valeur brute pour un statut inconnu', () => expect(make().statusLabel('unknown')).toBe('unknown'));
 });
 
 describe('PhishingCampaignsComponent — statusColor()', () => {
   it('contient cyan pour active', () => expect(make().statusColor('active')).toContain('cyan'));
+  it('contient cyan pour sending', () => expect(make().statusColor('sending')).toContain('cyan'));
   it('contient green pour completed', () => expect(make().statusColor('completed')).toContain('green'));
   it('contient gray pour draft', () => expect(make().statusColor('draft')).toContain('gray'));
   it('contient red pour cancelled', () => expect(make().statusColor('cancelled')).toContain('red'));

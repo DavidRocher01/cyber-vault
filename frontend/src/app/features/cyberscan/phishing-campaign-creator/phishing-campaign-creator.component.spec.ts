@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { signal } from '@angular/core';
 import { PhishingCampaignCreatorComponent, PLAN_OPTIONS, STEPS, STEP_LABELS } from './phishing-campaign-creator.component';
+import { LOOKALIKE_TECHNIQUE_LABELS } from '../services/phishing.service';
 
 function make(): PhishingCampaignCreatorComponent {
   const comp = Object.create(PhishingCampaignCreatorComponent.prototype) as PhishingCampaignCreatorComponent;
@@ -10,6 +11,9 @@ function make(): PhishingCampaignCreatorComponent {
   (comp as any).campaign = signal(null);
   (comp as any).domainVerifyResult = signal(null);
   (comp as any).domainVerified = signal(false);
+  (comp as any).lookalikeSuggestions = signal([]);
+  (comp as any).loadingLookalikes = signal(false);
+  (comp as any).selectedLookalikeDomain = signal(null);
   (comp as any).uploadedFile = signal(null);
   (comp as any).uploading = signal(false);
   (comp as any).submitting = signal(false);
@@ -109,6 +113,44 @@ describe('PhishingCampaignCreatorComponent — next() / prev()', () => {
     const c = make();
     c.prev();
     expect(c.currentStep()).toBe('plan');
+  });
+});
+
+describe('PhishingCampaignCreatorComponent — selectLookalike()', () => {
+  it('sélectionne un domaine look-alike', () => {
+    const c = make();
+    c.selectLookalike('login-acme.com');
+    expect(c.selectedLookalikeDomain()).toBe('login-acme.com');
+  });
+
+  it('désélectionne si on clique à nouveau sur le même', () => {
+    const c = make();
+    c.selectLookalike('login-acme.com');
+    c.selectLookalike('login-acme.com');
+    expect(c.selectedLookalikeDomain()).toBeNull();
+  });
+
+  it('remplace la sélection précédente', () => {
+    const c = make();
+    c.selectLookalike('login-acme.com');
+    c.selectLookalike('acme-rh.com');
+    expect(c.selectedLookalikeDomain()).toBe('acme-rh.com');
+  });
+});
+
+describe('LOOKALIKE_TECHNIQUE_LABELS', () => {
+  it('contient un label pour sim_subdomain', () => {
+    expect(LOOKALIKE_TECHNIQUE_LABELS['sim_subdomain']).toBeTruthy();
+  });
+  it('contient un label pour chaque technique', () => {
+    const techniques = [
+      'sim_subdomain', 'combosquatting_prepend', 'combosquatting_append',
+      'tld_swap', 'typo_missing_char', 'typo_double_char',
+      'typo_char_swap', 'typo_homoglyph', 'subdomain_trick',
+    ] as const;
+    for (const t of techniques) {
+      expect(LOOKALIKE_TECHNIQUE_LABELS[t]).toBeTruthy();
+    }
   });
 });
 

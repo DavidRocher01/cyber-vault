@@ -301,7 +301,9 @@ def generate_lookalikes(target_domain: str, max_results: int = 30) -> list[dict]
     if not name or len(name) < 2:
         return []
 
-    candidates: list[LookalikeDomain] = [_sim_subdomain(name, tld)]
+    sim = _sim_subdomain(name, tld)
+
+    candidates: list[LookalikeDomain] = []
     candidates += _subdomain_trick(name, tld)
     candidates += _combosquatting(name, tld)
     candidates += _tld_swap(name, tld)
@@ -313,4 +315,6 @@ def generate_lookalikes(target_domain: str, max_results: int = 30) -> list[dict]
     candidates = _dedup(candidates)
     candidates.sort(key=lambda c: (-c.realism_score, c.domain))
 
-    return [c.to_dict() for c in candidates[:max_results]]
+    # sim_subdomain is always included first (free, no purchase needed)
+    # and does not consume a slot from the paid-domain results
+    return [sim.to_dict()] + [c.to_dict() for c in candidates[:max_results - 1]]
