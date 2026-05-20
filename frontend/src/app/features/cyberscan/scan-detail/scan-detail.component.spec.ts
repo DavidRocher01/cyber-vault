@@ -127,6 +127,103 @@ describe('ScanDetailComponent — lockedFindings', () => {
   });
 });
 
+function makeWithStatus(overallStatus: string): ScanDetailComponent {
+  const comp = Object.create(ScanDetailComponent.prototype) as ScanDetailComponent;
+  (comp as any).scan = signal<any>({ results_json: null, status: 'done', overall_status: overallStatus });
+  return comp;
+}
+
+describe('ScanDetailComponent — CTA getters (ctaWrapperClass / ctaTitle / ctaButtonClass)', () => {
+  it('ctaWrapperClass contient border-red pour CRITICAL', () => {
+    expect(makeWithStatus('CRITICAL').ctaWrapperClass).toContain('border-red');
+  });
+  it('ctaWrapperClass contient border-yellow pour WARNING', () => {
+    expect(makeWithStatus('WARNING').ctaWrapperClass).toContain('border-yellow');
+  });
+  it('ctaWrapperClass contient border-cyan par défaut', () => {
+    expect(makeWithStatus('OK').ctaWrapperClass).toContain('border-cyan');
+  });
+
+  it('ctaTitle mentionne vulnérabilités critiques pour CRITICAL', () => {
+    expect(makeWithStatus('CRITICAL').ctaTitle).toContain('critiques');
+  });
+  it('ctaTitle mentionne regard humain pour WARNING', () => {
+    expect(makeWithStatus('WARNING').ctaTitle).toContain('humain');
+  });
+  it('ctaTitle mentionne expert par défaut', () => {
+    expect(makeWithStatus('OK').ctaTitle).toContain('expert');
+  });
+
+  it('ctaButtonClass contient bg-red pour CRITICAL', () => {
+    expect(makeWithStatus('CRITICAL').ctaButtonClass).toContain('bg-red');
+  });
+  it('ctaButtonClass contient bg-yellow pour WARNING', () => {
+    expect(makeWithStatus('WARNING').ctaButtonClass).toContain('bg-yellow');
+  });
+  it('ctaButtonClass contient bg-cyan par défaut', () => {
+    expect(makeWithStatus('OK').ctaButtonClass).toContain('bg-cyan');
+  });
+});
+
+describe('ScanDetailComponent — criticalCount / warningCount', () => {
+  const MIXED_SCAN = JSON.stringify({
+    _meta: { tier: 4 },
+    ssl:     { status: 'CRITICAL' },
+    headers: { status: 'WARNING' },
+    email:   { status: 'WARNING' },
+    cookies: { status: 'OK' },
+    cors:    { status: 'OK' },
+    ip:      { status: 'OK' },
+    dns:     { status: 'OK' },
+    cms:     { status: 'OK' },
+    waf:     { status: 'OK' },
+    tech:    { status: 'OK' },
+    tls:     { status: 'OK' },
+    takeover:        { status: 'OK' },
+    threat_intel:    { status: 'OK' },
+    http_methods:    { status: 'OK' },
+    open_redirect:   { status: 'OK' },
+    clickjacking:    { status: 'OK' },
+    directory_listing: { status: 'OK' },
+    robots: { status: 'OK' },
+    jwt:    { status: 'OK' },
+  });
+
+  it('criticalCount compte les findings CRITICAL', () => {
+    expect(makeWithScan(MIXED_SCAN).criticalCount).toBe(1);
+  });
+  it('warningCount compte les findings WARNING', () => {
+    expect(makeWithScan(MIXED_SCAN).warningCount).toBe(2);
+  });
+  it('criticalCount vaut 0 si scan null', () => {
+    expect(makeWithScan(null).criticalCount).toBe(0);
+  });
+  it('warningCount vaut 0 si scan null', () => {
+    expect(makeWithScan(null).warningCount).toBe(0);
+  });
+});
+
+describe('ScanDetailComponent — duration', () => {
+  function makeWithDates(startedAt: string | null, finishedAt: string | null): ScanDetailComponent {
+    const comp = Object.create(ScanDetailComponent.prototype) as ScanDetailComponent;
+    (comp as any).scan = signal<any>({ results_json: null, status: 'done', started_at: startedAt, finished_at: finishedAt });
+    return comp;
+  }
+
+  it('retourne "—" si dates absentes', () => {
+    expect(makeWithDates(null, null).duration).toBe('—');
+  });
+  it('retourne "—" si seulement started_at', () => {
+    expect(makeWithDates('2024-01-01T10:00:00Z', null).duration).toBe('—');
+  });
+  it('affiche les secondes pour une durée < 1 min', () => {
+    expect(makeWithDates('2024-01-01T10:00:00Z', '2024-01-01T10:00:45Z').duration).toBe('45s');
+  });
+  it('affiche minutes et secondes pour une durée >= 1 min', () => {
+    expect(makeWithDates('2024-01-01T10:00:00Z', '2024-01-01T10:02:15Z').duration).toBe('2m 15s');
+  });
+});
+
 describe('ScanDetailComponent — toggleFlip()', () => {
   it('ajoute la clé au premier clic', () => {
     const c = make();
