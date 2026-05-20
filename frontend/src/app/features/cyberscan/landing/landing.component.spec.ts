@@ -462,10 +462,6 @@ describe('LandingComponent — navbar (liens pages publiques)', () => {
     expect(html).toContain('/cyberscan/blog');
   });
 
-  it('contient un lien vers /cyberscan/audit-cybersecurite-pme dans la navbar', () => {
-    expect(html).toContain('/cyberscan/audit-cybersecurite-pme');
-  });
-
   it('[SUPPRIMÉ] scan-gratuit retiré de la navbar', () => {
     const navBlock = html.match(/<nav[\s\S]*?<\/nav>/)?.[0] ?? '';
     expect(navBlock).not.toContain('/cyberscan/scan-gratuit');
@@ -487,9 +483,8 @@ describe('LandingComponent — navbar (liens pages publiques)', () => {
     expect(html).toContain('/vault');
   });
 
-  it('Blog et Audit PME sont présents dans le nav', () => {
+  it('Blog est présent dans le nav', () => {
     const navBlock = html.match(/<nav[\s\S]*?<\/nav>/)?.[0] ?? '';
     expect(navBlock).toContain('/cyberscan/blog');
-    expect(navBlock).toContain('/cyberscan/audit-cybersecurite-pme');
   });
 });

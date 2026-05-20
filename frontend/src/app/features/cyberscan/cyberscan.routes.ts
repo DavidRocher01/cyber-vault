@@ -158,11 +158,6 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'r00t@cyberscan — terminal',
   },
   {
-    path: 'audit-cybersecurite-pme',
-    redirectTo: '/cyberscan',
-    pathMatch: 'full',
-  },
-  {
     path: 'scan-gratuit',
     loadComponent: () => import('./scan-gratuit/scan-gratuit.component').then(m => m.ScanGratuitComponent),
     title: 'Scan de sécurité gratuit — Audit en 90 secondes | CyberScan',
