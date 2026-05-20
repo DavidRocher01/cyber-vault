@@ -111,6 +111,18 @@ export class BookingComponent implements OnInit {
       return;
     }
 
+    // Pre-fill from scan-detail CTA (?domain=...&need_type=...)
+    const domain   = this.route.snapshot.queryParamMap.get('domain');
+    const needType = this.route.snapshot.queryParamMap.get('need_type');
+    if (domain) {
+      this.form.patchValue({
+        message: `Suite au scan automatisé de ${domain}, je souhaite bénéficier d'un Audit Flash humain.`,
+      });
+    }
+    if (needType) {
+      this.form.patchValue({ need_type: needType });
+    }
+
     this.loadMonth();
   }
 
