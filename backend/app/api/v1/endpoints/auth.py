@@ -77,7 +77,10 @@ async def login(request: Request, payload: UserLogin, db: AsyncSession = Depends
     user.failed_login_attempts = 0
     user.locked_until = None
 
-    # 2FA check
+    # 2FA check — auto-repair inconsistent state (enabled=True but no secret)
+    if user.totp_enabled and not user.totp_secret:
+        user.totp_enabled = False
+
     if user.totp_enabled and user.totp_secret:
         if not payload.totp_code:
             await db.commit()

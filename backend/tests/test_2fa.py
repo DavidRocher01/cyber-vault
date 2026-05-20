@@ -20,8 +20,11 @@ Scénarios couverts :
 import pyotp
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import update
 
 from app.main import app
+import app.core.database as _db_module
+from app.models.user import User
 
 BASE = "/api/v1"
 PWD = "StrongPass123!"
@@ -264,6 +267,59 @@ async def test_disable_2fa_not_enabled_returns_400():
         )
 
     assert r.status_code == 400
+
+
+# ── Edge case : totp_enabled=True but totp_secret=None ───────────────────────
+
+@pytest.mark.asyncio
+async def test_login_totp_enabled_without_secret_logs_in_and_repairs():
+    """Inconsistent state (enabled=True, secret=None) must not block login.
+    The backend auto-repairs by resetting totp_enabled to False."""
+    email = "brokensecret@2fa.com"
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        headers = await _register_login(c, email)
+
+        # Force inconsistent state directly in DB (use runtime-patched session)
+        async with _db_module.AsyncSessionLocal() as db:
+            await db.execute(
+                update(User)
+                .where(User.email == email)
+                .values(totp_enabled=True, totp_secret=None)
+            )
+            await db.commit()
+
+        # Login must succeed without asking for a TOTP code
+        r = await c.post(f"{BASE}/auth/login", json={"email": email, "password": PWD})
+
+    assert r.status_code == 200
+    data = r.json()
+    assert "access_token" in data
+    assert "requires_2fa" not in data
+
+
+@pytest.mark.asyncio
+async def test_login_totp_enabled_without_secret_resets_flag():
+    """After login with inconsistent state, totp_enabled must be False in DB."""
+    email = "repaircheck@2fa.com"
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        headers = await _register_login(c, email)
+
+        async with _db_module.AsyncSessionLocal() as db:
+            await db.execute(
+                update(User)
+                .where(User.email == email)
+                .values(totp_enabled=True, totp_secret=None)
+            )
+            await db.commit()
+
+        await c.post(f"{BASE}/auth/login", json={"email": email, "password": PWD})
+
+        # Re-login and check /users/me
+        r2 = await c.post(f"{BASE}/auth/login", json={"email": email, "password": PWD})
+        token = r2.json()["access_token"]
+        me = await c.get(f"{BASE}/users/me", headers={"Authorization": f"Bearer {token}"})
+
+    assert me.json()["totp_enabled"] is False
 
 
 # ── /users/me reflects totp_enabled ──────────────────────────────────────────
