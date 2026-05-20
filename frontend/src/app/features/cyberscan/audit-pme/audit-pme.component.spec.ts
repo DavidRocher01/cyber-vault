@@ -6,9 +6,9 @@ describe('AUDIT_OFFERS', () => {
     expect(AUDIT_OFFERS.length).toBe(3);
   });
 
-  it('la première offre est Flash à 245€', () => {
+  it('la première offre est Flash à 290€', () => {
     expect(AUDIT_OFFERS[0].name).toBe('Audit Flash');
-    expect(AUDIT_OFFERS[0].price).toBe('245');
+    expect(AUDIT_OFFERS[0].price).toBe('290');
   });
 
   it('la deuxième offre est App-Check à 725€, marquée popular', () => {

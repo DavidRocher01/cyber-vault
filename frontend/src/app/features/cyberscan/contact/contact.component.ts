@@ -7,7 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 export const NEED_OPTIONS = [
-  { value: 'audit-flash', label: 'Audit Flash — 245 € HT (site vitrine, blog)' },
+  { value: 'audit-flash', label: 'Audit Flash — 290 € HT (site vitrine, blog)' },
   { value: 'audit-app', label: 'Audit App-Check — 725 € HT (SaaS, e-commerce)' },
   { value: 'pentest', label: 'Pentest léger — 1 900 € HT (données sensibles)' },
   { value: 'abonnement', label: 'Abonnement surveillance continue (~99–499 €/mois)' },

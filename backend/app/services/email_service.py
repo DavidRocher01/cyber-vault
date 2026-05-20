@@ -302,7 +302,7 @@ def send_booking_admin_notification(
     message: str | None,
 ) -> None:
     need_labels = {
-        "audit-flash": "Audit Flash (245 €)",
+        "audit-flash": "Audit Flash (290 €)",
         "audit-app": "Audit App-Check (725 €)",
         "pentest": "Pentest léger (1 900 €)",
         "abonnement": "Abonnement surveillance",
@@ -338,7 +338,7 @@ def send_contact_email(
     contact_email: str,
 ) -> None:
     need_labels = {
-        "audit-flash": "Audit Flash (245 € HT)",
+        "audit-flash": "Audit Flash (290 € HT)",
         "audit-app": "Audit App-Check (725 € HT)",
         "pentest": "Pentest léger (1 900 € HT)",
         "abonnement": "Abonnement surveillance continue",
