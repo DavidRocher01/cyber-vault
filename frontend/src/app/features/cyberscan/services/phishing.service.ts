@@ -6,10 +6,11 @@ import { environment } from '../../../../environments/environment';
 export interface PhishingCampaign {
   id: number;
   name: string;
-  status: 'draft' | 'pending_verification' | 'ready' | 'active' | 'completed' | 'cancelled';
+  status: 'draft' | 'pending_verification' | 'ready' | 'active' | 'sending' | 'completed' | 'cancelled';
   plan_tier: string;
   domain: string | null;
   domain_verified: boolean;
+  lookalike_domain: string | null;
   scenario_keys: string[];
   targets_count: number;
   emails_sent: number;
@@ -23,6 +24,44 @@ export interface PhishingCampaign {
   finished_at: string | null;
   created_at: string;
   targets?: PhishingTarget[];
+}
+
+export type LookalikeTechnique =
+  | 'sim_subdomain'
+  | 'combosquatting_prepend'
+  | 'combosquatting_append'
+  | 'tld_swap'
+  | 'typo_missing_char'
+  | 'typo_double_char'
+  | 'typo_char_swap'
+  | 'typo_homoglyph'
+  | 'subdomain_trick';
+
+export const LOOKALIKE_TECHNIQUE_LABELS: Record<LookalikeTechnique, string> = {
+  sim_subdomain: 'Sous-domaine simulation (gratuit)',
+  combosquatting_prepend: 'Préfixe (combosquatting)',
+  combosquatting_append: 'Suffixe (combosquatting)',
+  tld_swap: "Changement d'extension",
+  typo_missing_char: 'Caractère manquant',
+  typo_double_char: 'Doublon de caractère',
+  typo_char_swap: 'Inversion de lettres',
+  typo_homoglyph: 'Homoglyphe',
+  subdomain_trick: 'Sous-domaine trompeur',
+};
+
+export interface LookalikeDomain {
+  domain: string;
+  technique: LookalikeTechnique;
+  realism_score: number;
+  requires_purchase: boolean;
+  purchase_url: string;
+  setup_instructions: string;
+  note: string;
+}
+
+export interface LookalikeDomainsResult {
+  domain: string;
+  suggestions: LookalikeDomain[];
 }
 
 export interface PhishingTarget {
@@ -64,11 +103,18 @@ export class PhishingService {
   updateCampaign(id: number, patch: Partial<{
     name: string;
     domain: string;
+    lookalike_domain: string;
     scenario_keys: string[];
     cgu_accepted: boolean;
     scheduled_at: string;
   }>): Observable<PhishingCampaign> {
     return this.http.patch<PhishingCampaign>(`${this.base}/campaigns/${id}`, patch);
+  }
+
+  getLookalikeDomains(domain: string): Observable<LookalikeDomainsResult> {
+    return this.http.get<LookalikeDomainsResult>(`${this.base}/lookalike-domains`, {
+      params: { domain },
+    });
   }
 
   uploadTargets(id: number, file: File): Observable<{ targets_added: number }> {

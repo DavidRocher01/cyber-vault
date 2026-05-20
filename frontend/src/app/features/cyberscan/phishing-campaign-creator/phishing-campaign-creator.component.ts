@@ -8,7 +8,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Title } from '@angular/platform-browser';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
-import { PhishingService, PhishingCampaign, DomainVerifyResult } from '../services/phishing.service';
+import { PhishingService, PhishingCampaign, DomainVerifyResult, LookalikeDomain, LOOKALIKE_TECHNIQUE_LABELS } from '../services/phishing.service';
 import { PHISHING_SCENARIOS } from '../phishing/phishing.component';
 
 export type WizardStep = 'plan' | 'info' | 'domain' | 'targets' | 'scenarios' | 'review';
@@ -59,6 +59,10 @@ export class PhishingCampaignCreatorComponent implements OnInit {
   campaign = signal<PhishingCampaign | null>(null);
   domainVerifyResult = signal<DomainVerifyResult | null>(null);
   domainVerified = signal(false);
+  lookalikeSuggestions = signal<LookalikeDomain[]>([]);
+  loadingLookalikes = signal(false);
+  selectedLookalikeDomain = signal<string | null>(null);
+  readonly lookalikeTechLabels = LOOKALIKE_TECHNIQUE_LABELS;
   uploadedFile = signal<File | null>(null);
   uploading = signal(false);
   submitting = signal(false);
@@ -133,7 +137,7 @@ export class PhishingCampaignCreatorComponent implements OnInit {
         this.domainVerified.set(r.verified);
         this.verifying.set(false);
         if (r.verified) {
-          this.saveDomainAndNext();
+          this.loadLookalikes(r.domain);
         }
       },
       error: () => {
@@ -153,7 +157,7 @@ export class PhishingCampaignCreatorComponent implements OnInit {
         if (r.verified) {
           this.domainVerified.set(true);
           this.snack.open('Domaine vérifié !', 'Fermer', { duration: 3000 });
-          this.saveDomainAndNext();
+          this.loadLookalikes(domain);
         } else {
           this.snack.open('Enregistrement DNS non trouvé — réessayez dans quelques minutes', 'OK', { duration: 5000 });
         }
@@ -165,11 +169,30 @@ export class PhishingCampaignCreatorComponent implements OnInit {
     });
   }
 
+  loadLookalikes(domain: string): void {
+    this.loadingLookalikes.set(true);
+    this.service.getLookalikeDomains(domain).subscribe({
+      next: r => {
+        this.lookalikeSuggestions.set(r.suggestions.slice(0, 12));
+        this.loadingLookalikes.set(false);
+      },
+      error: () => {
+        this.loadingLookalikes.set(false);
+      },
+    });
+  }
+
+  selectLookalike(domain: string): void {
+    this.selectedLookalikeDomain.update(current => current === domain ? null : domain);
+  }
+
   saveDomainAndNext(): void {
     const c = this.campaign();
     if (!c) return;
+    const lookalike = this.selectedLookalikeDomain();
     this.service.updateCampaign(c.id, {
       domain: this.domainForm.getRawValue().domain,
+      ...(lookalike ? { lookalike_domain: lookalike } : {}),
     }).subscribe({
       next: updated => {
         this.campaign.set(updated);

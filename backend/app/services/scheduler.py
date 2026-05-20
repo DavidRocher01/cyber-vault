@@ -397,13 +397,13 @@ def start_scheduler() -> None:
         id="monthly_digest",
         replace_existing=True,
     )
-    # Phishing campaign results polling — every 15 minutes for active campaigns
+    # Phishing batch sender — every 15 minutes to drip-send pending emails
     from apscheduler.triggers.interval import IntervalTrigger as _IT
-    from app.services.phishing_service import sync_active_campaigns
+    from app.services.phishing_service import send_pending_batch
     scheduler.add_job(
-        sync_active_campaigns,
+        send_pending_batch,
         trigger=_IT(minutes=15),
-        id="phishing_sync",
+        id="phishing_batch",
         replace_existing=True,
     )
     scheduler.start()

@@ -1,17 +1,24 @@
 """
 Phishing simulation endpoints.
 
-Routes:
+Authenticated routes:
   GET    /phishing/campaigns                 — list user campaigns
   POST   /phishing/campaigns                 — create campaign (draft)
   GET    /phishing/campaigns/{id}            — get campaign + targets
-  PATCH  /phishing/campaigns/{id}            — update (name, domain, scenarios, cgu, schedule)
+  PATCH  /phishing/campaigns/{id}            — update (name, domain, lookalike_domain, scenarios, cgu, schedule)
   POST   /phishing/campaigns/{id}/targets    — upload CSV targets
   GET    /phishing/campaigns/{id}/targets    — list targets
   POST   /phishing/campaigns/{id}/launch     — validate & launch
   GET    /phishing/campaigns/{id}/pdf        — download PDF report
   POST   /phishing/domain-verify             — request domain TXT verification
   POST   /phishing/domain-verify/check       — check DNS TXT record
+  GET    /phishing/lookalike-domains         — suggest look-alike domains for a target domain
+
+Public tracking routes (no auth — called by email clients / browsers):
+  GET    /phishing/t/{tracking_id}/px        — 1×1 pixel GIF (open tracking)
+  GET    /phishing/t/{tracking_id}/c         — click redirect → landing page
+  GET    /phishing/t/{tracking_id}/l         — serve fake landing page HTML
+  POST   /phishing/t/{tracking_id}/s         — record credential submit → awareness page
 """
 
 import csv
@@ -19,8 +26,8 @@ import io
 import json
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile, status
-from fastapi.responses import Response
+from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +37,7 @@ from app.core.deps import get_current_user
 from app.models.phishing import PhishingCampaign, PhishingDomainVerification, PhishingTarget
 from app.models.user import User
 from app.services import phishing_service
+from app.services.domain_lookalike import generate_lookalikes
 from app.services.phishing_report_pdf import generate_phishing_report
 
 router = APIRouter(prefix="/phishing", tags=["phishing"])
@@ -57,6 +65,7 @@ class CampaignCreate(BaseModel):
 class CampaignUpdate(BaseModel):
     name: str | None = Field(None, min_length=2, max_length=100)
     domain: str | None = Field(None, max_length=255)
+    lookalike_domain: str | None = Field(None, max_length=255)
     scenario_keys: list[str] | None = None
     cgu_accepted: bool | None = None
     scheduled_at: datetime | None = None
@@ -82,6 +91,7 @@ def _serialize_campaign(c: PhishingCampaign) -> dict:
         "plan_tier": c.plan_tier,
         "domain": c.domain,
         "domain_verified": c.domain_verified,
+        "lookalike_domain": c.lookalike_domain,
         "scenario_keys": json.loads(c.scenario_keys) if c.scenario_keys else [],
         "targets_count": c.targets_count,
         "emails_sent": c.emails_sent,
@@ -182,6 +192,7 @@ async def update_campaign(
         name=payload.name,
         domain=payload.domain,
         domain_verified=domain_verified,
+        lookalike_domain=payload.lookalike_domain,
         scenario_keys=payload.scenario_keys,
         cgu_accepted=payload.cgu_accepted,
         scheduled_at=payload.scheduled_at,
@@ -282,10 +293,10 @@ async def launch_campaign(
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Erreur de communication avec GoPhish : {exc}",
+            detail=f"Erreur lors du lancement de la campagne : {exc}",
         )
 
-    return {"status": "active", "campaign_id": campaign_id}
+    return {"status": "sending", "campaign_id": campaign_id}
 
 
 @router.get("/campaigns/{campaign_id}/pdf")
@@ -373,3 +384,59 @@ async def check_domain_verification(
         "verified": verified,
         "verified_at": record.verified_at.isoformat() if record.verified_at else None,
     }
+
+
+# ---------------------------------------------------------------------------
+# Look-alike domain suggestions (authenticated)
+# ---------------------------------------------------------------------------
+
+@router.get("/lookalike-domains")
+async def get_lookalike_domains(
+    domain: str = Query(..., min_length=3, max_length=255, description="Target domain, e.g. monentreprise.com"),
+    _current_user: User = Depends(get_current_user),
+):
+    """Return a list of look-alike domain suggestions for the given target domain."""
+    suggestions = generate_lookalikes(domain.lower().strip(), max_results=30)
+    return {"domain": domain, "suggestions": suggestions}
+
+
+# ---------------------------------------------------------------------------
+# Public tracking routes — no authentication (called by email clients / browsers)
+# ---------------------------------------------------------------------------
+
+@router.get("/t/{tracking_id}/px", include_in_schema=False)
+async def tracking_pixel(tracking_id: str, db: AsyncSession = Depends(get_db)):
+    """Serve 1×1 transparent GIF and record email open."""
+    await phishing_service.record_open(tracking_id, db)
+    gif_bytes = phishing_service.get_pixel_gif()
+    return Response(
+        content=gif_bytes,
+        media_type="image/gif",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+            "Pragma": "no-cache",
+        },
+    )
+
+
+@router.get("/t/{tracking_id}/c", include_in_schema=False)
+async def tracking_click(tracking_id: str, db: AsyncSession = Depends(get_db)):
+    """Record link click and redirect to the landing page."""
+    await phishing_service.record_click(tracking_id, db)
+    return RedirectResponse(
+        url=f"/phishing/t/{tracking_id}/l",
+        status_code=302,
+    )
+
+
+@router.get("/t/{tracking_id}/l", response_class=HTMLResponse, include_in_schema=False)
+async def tracking_landing(tracking_id: str):
+    """Serve the fake credential-harvesting landing page."""
+    return HTMLResponse(content=phishing_service.get_landing_html(tracking_id))
+
+
+@router.post("/t/{tracking_id}/s", response_class=HTMLResponse, include_in_schema=False)
+async def tracking_submit(tracking_id: str, db: AsyncSession = Depends(get_db)):
+    """Record credential submission and return the awareness / education page."""
+    await phishing_service.record_submit(tracking_id, db)
+    return HTMLResponse(content=phishing_service.get_awareness_html())

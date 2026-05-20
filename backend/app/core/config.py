@@ -51,11 +51,15 @@ class Settings(BaseSettings):
     # HaveIBeenPwned API (breach checker)
     HIBP_API_KEY: str = ""
 
-    # GoPhish integration (phishing simulation)
-    GOPHISH_API_URL: str = ""          # e.g. https://gophish.cyberscanapp.com:3333
-    GOPHISH_API_KEY: str = ""
-    GOPHISH_SMTP_PROFILE: str = "CyberScan SMTP"
-    GOPHISH_PHISHING_URL: str = ""     # base URL of the look-alike domain, e.g. https://cyberscan-sim.com
+    # Phishing simulation engine (homemade, no GoPhish)
+    # Base URL used for tracking pixel / click / landing routes (served by this API)
+    # Set to https://sim.cyberscanapp.com in prod; https://api.cyberscanapp.com also works
+    PHISHING_BASE_URL: str = "https://sim.cyberscanapp.com"
+    # Sender identity in phishing emails (display name only — actual domain must be Resend-verified)
+    PHISHING_FROM_EMAIL: str = ""      # e.g. no-reply@cyberscanapp.com (Resend verified domain)
+    PHISHING_FROM_NAME: str = "CyberScan Exercise"
+    # Batch size: emails sent per scheduler tick (every 15 min) to avoid spam detection
+    PHISHING_BATCH_SIZE: int = 20
 
     # Add-on extra sites pack (5 slots per pack, monthly)
     ADDON_EXTRA_SITES_STRIPE_PRICE_ID: str = ""

@@ -18,9 +18,13 @@ class PhishingCampaign(Base):
     # express | standard | premium | quarterly | monthly
     plan_tier: Mapped[str] = mapped_column(String(50), nullable=False, default="standard")
 
-    # Domain ownership verification
+    # Domain ownership verification (the company's real domain)
     domain: Mapped[str | None] = mapped_column(String(255), nullable=True)
     domain_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+
+    # Look-alike domain used in phishing email links (separate from target domain)
+    # e.g. "monentreprise-rh.com" or None → falls back to PHISHING_BASE_URL
+    lookalike_domain: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Scenarios: JSON array of scenario IDs, e.g. '["ceo-fraud","o365-credentials"]'
     scenario_keys: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -68,6 +72,9 @@ class PhishingTarget(Base):
     first_name: Mapped[str] = mapped_column(String(100), nullable=False, default="")
     last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     department: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+    # UUID used in tracking URLs — assigned when email is sent
+    tracking_id: Mapped[str | None] = mapped_column(String(36), nullable=True, unique=True, index=True)
 
     # pending | email_sent | opened | clicked | submitted | reported
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
