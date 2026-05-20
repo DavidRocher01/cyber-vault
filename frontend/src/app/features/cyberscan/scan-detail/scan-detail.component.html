@@ -335,38 +335,16 @@
 
       <!-- CTA Audit Flash humain -->
       @if (scan()!.status === 'done' && scannedDomain) {
-        <div class="rounded-xl border p-6 mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-5"
-             [class.border-red-500/40]="scan()!.overall_status === 'CRITICAL'"
-             [class.bg-red-950/30]="scan()!.overall_status === 'CRITICAL'"
-             [class.border-yellow-500/30]="scan()!.overall_status === 'WARNING'"
-             [class.bg-yellow-950/20]="scan()!.overall_status === 'WARNING'"
-             [class.border-cyan-500/20]="scan()!.overall_status !== 'CRITICAL' && scan()!.overall_status !== 'WARNING'"
-             [class.bg-gray-800/60]="scan()!.overall_status !== 'CRITICAL' && scan()!.overall_status !== 'WARNING'">
+        <div [class]="ctaWrapperClass">
 
           <!-- Icône -->
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-               [class.bg-red-500/20]="scan()!.overall_status === 'CRITICAL'"
-               [class.bg-yellow-500/15]="scan()!.overall_status === 'WARNING'"
-               [class.bg-cyan-500/15]="scan()!.overall_status !== 'CRITICAL' && scan()!.overall_status !== 'WARNING'">
-            <mat-icon class="!text-[1.5rem] !w-[1.5rem] !h-[1.5rem]"
-                      [class.text-red-400]="scan()!.overall_status === 'CRITICAL'"
-                      [class.text-yellow-400]="scan()!.overall_status === 'WARNING'"
-                      [class.text-cyan-400]="scan()!.overall_status !== 'CRITICAL' && scan()!.overall_status !== 'WARNING'">
-              person_search
-            </mat-icon>
+          <div [class]="ctaIconWrapperClass">
+            <mat-icon [class]="ctaIconClass">person_search</mat-icon>
           </div>
 
           <!-- Texte -->
           <div class="flex-1">
-            <p class="font-bold text-white mb-1">
-              @if (scan()!.overall_status === 'CRITICAL') {
-                Des vulnérabilités critiques ont été détectées — un expert peut vous aider
-              } @else if (scan()!.overall_status === 'WARNING') {
-                Des points d'attention méritent un regard humain
-              } @else {
-                Faites valider ces résultats par un expert
-              }
-            </p>
+            <p class="font-bold text-white mb-1">{{ ctaTitle }}</p>
             <p class="text-sm text-gray-400">
               Un <strong class="text-white">Audit Flash</strong> de 2h par un consultant certifié — rapport PDF personnalisé, recommandations priorisées pour <strong class="text-white">{{ scannedDomain }}</strong>.
             </p>
@@ -376,13 +354,7 @@
           <a [routerLink]="['/cyberscan/booking']"
              [queryParams]="{domain: scannedDomain, need_type: 'audit-flash'}"
              mat-flat-button
-             class="flex-shrink-0"
-             [class.!bg-red-500]="scan()!.overall_status === 'CRITICAL'"
-             [class.!text-white]="scan()!.overall_status === 'CRITICAL'"
-             [class.!bg-yellow-500]="scan()!.overall_status === 'WARNING'"
-             [class.!text-gray-900]="scan()!.overall_status === 'WARNING'"
-             [class.!bg-cyan-500]="scan()!.overall_status !== 'CRITICAL' && scan()!.overall_status !== 'WARNING'"
-             [class.!text-gray-900]="scan()!.overall_status !== 'CRITICAL' && scan()!.overall_status !== 'WARNING'">
+             [class]="ctaButtonClass">
             <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">calendar_month</mat-icon>
             Réserver un Audit Flash
           </a>

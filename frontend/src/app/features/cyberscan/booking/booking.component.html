@@ -205,7 +205,7 @@
                       [class.text-white]="f['need_type'].value">
                 <option value="" disabled>Sélectionnez...</option>
                 @for (opt of needOptions; track opt.value) {
-                  <option [value]="opt.value" class="bg-gray-900 text-white">{{ opt.label }}</option>
+                  <option [ngValue]="opt.value" class="bg-gray-900 text-white">{{ opt.label }}</option>
                 }
               </select>
               @if (f['need_type'].invalid && f['need_type'].touched) {
