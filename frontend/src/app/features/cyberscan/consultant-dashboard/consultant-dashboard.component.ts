@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,7 +15,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Title } from '@angular/platform-browser';
 
-import { RssiService, RssiClient } from '../services/rssi.service';
+import {
+  RssiService, RssiClient,
+  DashboardOverview, ClientSummary, DashboardAlert, CalendarEvent, DashboardSuggestion,
+} from '../services/rssi.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
@@ -34,12 +38,22 @@ export class ConsultantDashboardComponent implements OnInit {
   private snack = inject(MatSnackBar);
   private title = inject(Title);
 
+  // Client list (Sprint 1)
   clients = signal<RssiClient[]>([]);
   loading = signal(true);
   showAddForm = signal(false);
   saving = signal(false);
   editingId = signal<number | null>(null);
   deletingId = signal<number | null>(null);
+
+  // Dashboard data (Sprint 2)
+  overview = signal<DashboardOverview | null>(null);
+  summaries = signal<ClientSummary[]>([]);
+  alerts = signal<DashboardAlert[]>([]);
+  events = signal<CalendarEvent[]>([]);
+  suggestions = signal<DashboardSuggestion[]>([]);
+
+  activeTab = signal<'dashboard' | 'clients'>('dashboard');
 
   readonly formulas = [
     { value: 'essentiel', label: 'Essentiel' },
@@ -68,8 +82,28 @@ export class ConsultantDashboardComponent implements OnInit {
 
   ngOnInit() {
     this.title.setTitle('RSSI Externalisé — CyberScan');
-    this.rssi.getClients().subscribe({
-      next: c => { this.clients.set(c); this.loading.set(false); },
+    this._loadAll();
+  }
+
+  private _loadAll() {
+    this.loading.set(true);
+    forkJoin({
+      clients: this.rssi.getClients(),
+      overview: this.rssi.getDashboardOverview(),
+      summaries: this.rssi.getClientsSummary(),
+      alerts: this.rssi.getDashboardAlerts(),
+      events: this.rssi.getUpcomingEvents(14),
+      suggestions: this.rssi.getSuggestions(),
+    }).subscribe({
+      next: data => {
+        this.clients.set(data.clients);
+        this.overview.set(data.overview);
+        this.summaries.set(data.summaries);
+        this.alerts.set(data.alerts);
+        this.events.set(data.events);
+        this.suggestions.set(data.suggestions);
+        this.loading.set(false);
+      },
       error: () => this.loading.set(false),
     });
   }
@@ -87,11 +121,11 @@ export class ConsultantDashboardComponent implements OnInit {
       contract_renewal_at: v.contract_renewal_at || undefined,
     }).subscribe({
       next: c => {
-        this.clients.update(list => [c, ...list]);
         this.addForm.reset();
         this.showAddForm.set(false);
         this.saving.set(false);
         this.snack.open(`Client "${c.name}" ajouté`, 'OK', { duration: 3000 });
+        this._loadAll();
       },
       error: err => {
         this.saving.set(false);
@@ -130,10 +164,10 @@ export class ConsultantDashboardComponent implements OnInit {
       contract_renewal_at: v.contract_renewal_at || undefined,
       status: (v.status as any) || undefined,
     }).subscribe({
-      next: updated => {
-        this.clients.update(list => list.map(c => c.id === clientId ? { ...c, ...updated } : c));
+      next: () => {
         this.editingId.set(null);
         this.snack.open('Client mis à jour', 'OK', { duration: 3000 });
+        this._loadAll();
       },
       error: err => this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 }),
     });
@@ -143,9 +177,9 @@ export class ConsultantDashboardComponent implements OnInit {
     this.deletingId.set(client.id);
     this.rssi.deleteClient(client.id).subscribe({
       next: () => {
-        this.clients.update(list => list.filter(c => c.id !== client.id));
         this.deletingId.set(null);
         this.snack.open(`Client "${client.name}" supprimé`, 'OK', { duration: 3000 });
+        this._loadAll();
       },
       error: err => {
         this.deletingId.set(null);
@@ -153,6 +187,8 @@ export class ConsultantDashboardComponent implements OnInit {
       },
     });
   }
+
+  // ── Formatting helpers ────────────────────────────────────────────────────────
 
   formulaLabel(formula: string | null): string {
     switch (formula) {
@@ -210,6 +246,46 @@ export class ConsultantDashboardComponent implements OnInit {
 
   statusLabel(status: string | null): string {
     return status ?? 'Aucun scan';
+  }
+
+  alertSeverityClass(severity: string): string {
+    switch (severity) {
+      case 'critical': return 'border-red-600/50 bg-red-500/10';
+      case 'high': return 'border-orange-600/50 bg-orange-500/10';
+      default: return 'border-yellow-600/50 bg-yellow-500/10';
+    }
+  }
+
+  alertIconColor(severity: string): string {
+    switch (severity) {
+      case 'critical': return 'text-red-400';
+      case 'high': return 'text-orange-400';
+      default: return 'text-yellow-400';
+    }
+  }
+
+  suggestionIcon(type: string): string {
+    switch (type) {
+      case 'upsell_opportunity': return 'trending_up';
+      case 'engagement_alert': return 'notification_important';
+      case 'renewal_upcoming': return 'event_available';
+      case 'high_overdue': return 'assignment_late';
+      default: return 'lightbulb';
+    }
+  }
+
+  visitTypeLabel(type: string): string {
+    switch (type) {
+      case 'monthly': return 'Mensuelle';
+      case 'quarterly': return 'Trimestrielle';
+      case 'annual': return 'Annuelle';
+      case 'urgent': return 'Urgente';
+      default: return type;
+    }
+  }
+
+  locationLabel(loc: string): string {
+    return loc === 'onsite' ? 'Sur site' : 'À distance';
   }
 
   formatDate(d: string | null): string {

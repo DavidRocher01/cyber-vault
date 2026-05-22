@@ -101,6 +101,56 @@ export interface RssiActionUpdate extends Partial<RssiActionCreate> {
   completed_at?: string;
 }
 
+// ── Dashboard types (Sprint 2) ────────────────────────────────────────────────
+
+export interface DashboardOverview {
+  total_clients: number;
+  total_mrr: number;
+  open_actions: number;
+  overdue_actions: number;
+  renewals_upcoming: number;
+  upcoming_visits: number;
+}
+
+export interface ClientSummary {
+  id: number;
+  name: string;
+  formula: 'essentiel' | 'premium' | 'excellence' | null;
+  monthly_amount: number | null;
+  status: 'active' | 'inactive' | 'churned';
+  contract_renewal_at: string | null;
+  open_actions: number;
+  overdue_actions: number;
+  next_visit: string | null;
+}
+
+export interface DashboardAlert {
+  type: 'overdue_action' | 'renewal_upcoming' | 'no_recent_visit';
+  severity: 'critical' | 'high' | 'medium';
+  client_id: number;
+  client_name: string;
+  title: string;
+  detail: string;
+}
+
+export interface CalendarEvent {
+  visit_id: number;
+  client_id: number;
+  client_name: string;
+  scheduled_date: string;
+  visit_type: 'monthly' | 'quarterly' | 'annual' | 'urgent';
+  location: 'onsite' | 'remote';
+}
+
+export interface DashboardSuggestion {
+  type: 'upsell_opportunity' | 'engagement_alert' | 'renewal_upcoming' | 'high_overdue';
+  client_id: number;
+  client_name: string;
+  title: string;
+  reason: string;
+  cta: string;
+}
+
 const API = '/api/v1/rssi';
 
 @Injectable({ providedIn: 'root' })
@@ -160,5 +210,29 @@ export class RssiService {
 
   deleteAction(clientId: number, actionId: number): Observable<void> {
     return this.http.delete<void>(`${API}/clients/${clientId}/actions/${actionId}`);
+  }
+
+  // ── Dashboard (Sprint 2) ────────────────────────────────────────────────────
+
+  getDashboardOverview(): Observable<DashboardOverview> {
+    return this.http.get<DashboardOverview>(`${API}/dashboard/overview`);
+  }
+
+  getClientsSummary(): Observable<ClientSummary[]> {
+    return this.http.get<ClientSummary[]>(`${API}/dashboard/clients-summary`);
+  }
+
+  getDashboardAlerts(): Observable<DashboardAlert[]> {
+    return this.http.get<DashboardAlert[]>(`${API}/dashboard/alerts`);
+  }
+
+  getUpcomingEvents(daysAhead = 14): Observable<CalendarEvent[]> {
+    return this.http.get<CalendarEvent[]>(`${API}/dashboard/upcoming-events`, {
+      params: { days_ahead: daysAhead },
+    });
+  }
+
+  getSuggestions(): Observable<DashboardSuggestion[]> {
+    return this.http.get<DashboardSuggestion[]>(`${API}/dashboard/suggestions`);
   }
 }
