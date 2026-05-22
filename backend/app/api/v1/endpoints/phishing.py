@@ -23,7 +23,6 @@ Public tracking routes (no auth — called by email clients / browsers):
 
 import csv
 import io
-import json
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile, status
@@ -34,6 +33,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.utils import safe_json_load
 from app.models.phishing import PhishingCampaign, PhishingDomainVerification, PhishingTarget
 from app.models.user import User
 from app.services import phishing_service
@@ -92,7 +92,7 @@ def _serialize_campaign(c: PhishingCampaign) -> dict:
         "domain": c.domain,
         "domain_verified": c.domain_verified,
         "lookalike_domain": c.lookalike_domain,
-        "scenario_keys": json.loads(c.scenario_keys) if c.scenario_keys else [],
+        "scenario_keys": safe_json_load(c.scenario_keys, []),
         "targets_count": c.targets_count,
         "emails_sent": c.emails_sent,
         "opened_count": c.opened_count,

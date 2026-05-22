@@ -1,6 +1,5 @@
 import csv
 import io
-import json
 import os
 from datetime import datetime, timezone
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query
@@ -10,6 +9,7 @@ from sqlalchemy import select, func
 
 from app.core.database import get_db, AsyncSessionLocal
 from app.core.deps import get_current_user
+from app.core.utils import safe_json_load
 from app.core.pagination import paginate
 from app.models.user import User
 from app.models.site import Site
@@ -83,10 +83,10 @@ async def trigger_scan(
 
     scan = Scan(site_id=site_id, status="pending")
     db.add(scan)
-    await db.commit()
+    await db.flush()
     await db.refresh(scan)
-
     background_tasks.add_task(_run_scan_background, scan.id)
+    await db.commit()
     return {"scan_id": scan.id, "message": "Scan lancé en arrière-plan"}
 
 
@@ -296,7 +296,7 @@ async def download_remediation_script(
     if scan.status != "done" or not scan.results_json:
         raise HTTPException(status_code=404, detail="Scripts non disponibles")
 
-    results = json.loads(scan.results_json)
+    results = safe_json_load(scan.results_json, {})
     script_path = results.get("_meta", {}).get("remediation_scripts", {}).get(script_key)
 
     # If file exists on disk, serve it directly

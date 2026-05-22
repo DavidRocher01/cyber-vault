@@ -1,10 +1,10 @@
-import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.utils import safe_json_load
 from app.models.user import User
 from app.models.site import Site
 from app.models.scan import Scan
@@ -105,11 +105,8 @@ async def get_site_subdomains(
     if not scan or not scan.results_json:
         return {"site_url": site.url, "subdomains": [], "zone_transfer": None, "scan_date": None}
 
-    try:
-        results = json.loads(scan.results_json)
-        dns = results.get("dns") or {}
-    except Exception:
-        dns = {}
+    results = safe_json_load(scan.results_json, {})
+    dns = results.get("dns") or {}
 
     return {
         "site_url": site.url,
