@@ -1,4 +1,5 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal, computed } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -37,6 +38,7 @@ export class ProfileComponent implements OnInit {
   private snack = inject(MatSnackBar);
   private title = inject(Title);
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
 
   profile = signal<UserProfile | null>(null);
   badges = signal<Badge[]>([]);
@@ -100,7 +102,7 @@ export class ProfileComponent implements OnInit {
 
   ngOnInit() {
     this.title.setTitle('Mon profil — CyberScan');
-    this.userService.getProfile().subscribe({
+    this.userService.getProfile().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: p => {
         this.profile.set(p);
         this.emailForm.patchValue({ email: p.email });
@@ -108,13 +110,13 @@ export class ProfileComponent implements OnInit {
       },
       error: () => this.loading.set(false),
     });
-    this.userService.getNotificationPreferences().subscribe({
+    this.userService.getNotificationPreferences().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: prefs => this.notifPrefs.set(prefs),
     });
-    this.userService.getBadges().subscribe({
+    this.userService.getBadges().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: b => this.badges.set(b),
     });
-    this.brandService.get().subscribe({
+    this.brandService.get().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: brand => {
         if (brand) {
           this.brandForm.patchValue({ company_name: brand.company_name, accent_color: brand.accent_color });
