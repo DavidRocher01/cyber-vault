@@ -37,6 +37,7 @@ from app.models.phishing import PhishingCampaign, PhishingDomainVerification, Ph
 _SCENARIO_TEMPLATES: dict[str, dict[str, Any]] = {
     "ceo-fraud": {
         "from_name": "Direction Générale",
+        "internal": True,
         "subject": "Action requise — virement urgent",
         "html": lambda first, url, pixel: f"""<p>Bonjour {first},</p>
 <p>Je vous contacte depuis mon téléphone personnel. J'ai besoin que vous confirmiez
@@ -49,6 +50,7 @@ Confirmer ma disponibilité</a></p>
     },
     "o365-credentials": {
         "from_name": "Microsoft 365",
+        "internal": False,
         "subject": "⚠️ Votre session Microsoft 365 a expiré",
         "html": lambda first, url, pixel: f"""<div style="font-family:Arial,sans-serif;max-width:600px">
 <div style="background:#0078d4;padding:20px;text-align:center">
@@ -67,6 +69,7 @@ Se reconnecter à Microsoft 365</a></p>
     },
     "fake-invoice": {
         "from_name": "Service Comptabilité",
+        "internal": True,
         "subject": "Facture impayée #INV-2024-0847 — relance",
         "html": lambda first, url, pixel: f"""<p>Bonjour {first},</p>
 <p>Nous vous contactons concernant la facture <strong>#INV-2024-0847</strong>
@@ -79,6 +82,7 @@ Accéder au portail de paiement</a></p>
     },
     "bank-phishing": {
         "from_name": "Sécurité Bancaire",
+        "internal": False,
         "subject": "⚠️ Alerte de sécurité — activité suspecte détectée",
         "html": lambda first, url, pixel: f"""<p>Bonjour {first},</p>
 <p>Une activité inhabituelle a été détectée sur votre compte professionnel.
@@ -91,6 +95,7 @@ Sécuriser mon compte maintenant</a></p>
     },
     "parcel-tracking": {
         "from_name": "Chronopost Livraison",
+        "internal": False,
         "subject": "Votre colis n'a pas pu être livré — action requise",
         "html": lambda first, url, pixel: f"""<p>Bonjour,</p>
 <p>Votre colis (réf. : <strong>FR7823649201</strong>) n'a pas pu être livré
@@ -102,7 +107,8 @@ Reprogrammer la livraison</a></p>
     },
     "it-password": {
         "from_name": "Équipe DSI",
-        "subject": "[IT] Mise à jour obligatoire de votre mot de passe",
+        "internal": True,
+        "subject": "[DSI{company_suffix}] Mise à jour obligatoire de votre mot de passe",
         "html": lambda first, url, pixel: f"""<p>Bonjour {first},</p>
 <p>Dans le cadre de notre politique de sécurité, tous les mots de passe doivent être
 renouvelés avant le 30 du mois. Merci d'agir avant expiration de votre accès.</p>
@@ -114,6 +120,7 @@ Mettre à jour mon mot de passe</a></p>
     },
     "prize": {
         "from_name": "Service Ressources Humaines",
+        "internal": True,
         "subject": "🎁 Félicitations — vous avez gagné !",
         "html": lambda first, url, pixel: f"""<p>Bonjour {first},</p>
 <p>Votre participation au tirage au sort de fin d'année vous a permis de remporter
@@ -126,6 +133,7 @@ Réclamer mon lot</a></p>
     },
     "invoice-pdf": {
         "from_name": "Service Administratif",
+        "internal": True,
         "subject": "Facture PDF en pièce jointe — signature requise",
         "html": lambda first, url, pixel: f"""<p>Bonjour {first},</p>
 <p>Veuillez trouver ci-joint la facture pour validation. Merci de la signer
@@ -137,7 +145,8 @@ Signer la facture en ligne</a></p>
     },
     "vpn-update": {
         "from_name": "Équipe Sécurité IT",
-        "subject": "[URGENT] Mise à jour critique du client VPN — action immédiate requise",
+        "internal": True,
+        "subject": "[URGENT{company_suffix}] Mise à jour critique du client VPN — action immédiate requise",
         "html": lambda first, url, pixel: f"""<p>Bonjour {first},</p>
 <p>Une vulnérabilité critique (<strong>CVE-2024-8871</strong>) a été découverte
 dans votre version du client VPN. Vous devez installer la mise à jour avant
@@ -150,7 +159,8 @@ Télécharger la mise à jour VPN</a></p>
     },
     "hr-document": {
         "from_name": "Ressources Humaines",
-        "subject": "[CONFIDENTIEL] Document RH — grille des salaires 2024",
+        "internal": True,
+        "subject": "[CONFIDENTIEL{company_suffix}] Document RH — grille des salaires 2024",
         "html": lambda first, url, pixel: f"""<p>Bonjour {first},</p>
 <p>Suite à la réunion de direction, la nouvelle grille des salaires 2024 est disponible.
 Ce document est <strong>strictement confidentiel</strong>. Accédez-y via le portail RH sécurisé.</p>
@@ -405,6 +415,14 @@ def _tracking_base(campaign: PhishingCampaign) -> str:
     return settings.PHISHING_BASE_URL.rstrip("/")
 
 
+def _extract_company_name(domain: str | None) -> str:
+    """Extract a display-ready company name from a domain. "acme-corp.com" → "Acme Corp"."""
+    if not domain:
+        return ""
+    name = domain.split(".")[0]
+    return " ".join(w.capitalize() for w in name.replace("-", " ").replace("_", " ").split())
+
+
 def _build_email(
     campaign: PhishingCampaign,
     target: PhishingTarget,
@@ -417,11 +435,24 @@ def _build_email(
     click_url = f"{base}/phishing/t/{tracking_id}/c"
 
     tpl = _SCENARIO_TEMPLATES.get(scenario_key, _SCENARIO_TEMPLATES[_DEFAULT_SCENARIO_KEY])
-    first = target.first_name or "Madame/Monsieur"
+
+    # Levier 3: full name greeting ("David Rocher" instead of just "David")
+    first_name = target.first_name or ""
+    last_name = target.last_name or ""
+    greeting = f"{first_name} {last_name}".strip() or "Madame/Monsieur"
+
+    # Levier 2: contextualize from_name with company for internal scenarios
+    company = _extract_company_name(campaign.domain)
     from_name = tpl["from_name"]
-    subject: str = tpl["subject"]
-    html: str = tpl["html"](first, click_url, pixel_url)
-    text: str = tpl["text"](first, click_url)
+    if tpl.get("internal") and company:
+        from_name = f"{from_name} — {company}"
+
+    # Inject {company_suffix} placeholder in subject (" — Acme" or "" when no domain)
+    company_suffix = f" — {company}" if company else ""
+    subject: str = tpl["subject"].replace("{company_suffix}", company_suffix)
+
+    html: str = tpl["html"](greeting, click_url, pixel_url)
+    text: str = tpl["text"](greeting, click_url)
 
     from_email = settings.PHISHING_FROM_EMAIL or settings.RESEND_FROM
     from_addr = f"{from_name} <{from_email}>"

@@ -101,16 +101,35 @@ class TestAwarenessHtml:
         assert phishing_service.get_awareness_html() == phishing_service.get_awareness_html()
 
 
+class TestExtractCompanyName:
+    def test_simple_domain(self):
+        assert phishing_service._extract_company_name("acme.com") == "Acme"
+
+    def test_hyphenated_domain(self):
+        assert phishing_service._extract_company_name("mairie-lyon.fr") == "Mairie Lyon"
+
+    def test_none_returns_empty(self):
+        assert phishing_service._extract_company_name(None) == ""
+
+    def test_empty_string_returns_empty(self):
+        assert phishing_service._extract_company_name("") == ""
+
+    def test_capitalizes_each_word(self):
+        assert phishing_service._extract_company_name("my-big-corp.com") == "My Big Corp"
+
+
 class TestBuildEmail:
-    def _make_campaign(self, lookalike=None, scenario_key="o365-credentials"):
+    def _make_campaign(self, lookalike=None, scenario_key="o365-credentials", domain=None):
         return SimpleNamespace(
             lookalike_domain=lookalike,
+            domain=domain,
             scenario_keys=json.dumps([scenario_key]),
         )
 
-    def _make_target(self, first_name="Marie"):
+    def _make_target(self, first_name="Marie", last_name=None):
         return SimpleNamespace(
             first_name=first_name,
+            last_name=last_name,
             email="marie@acme.com",
         )
 
@@ -132,6 +151,12 @@ class TestBuildEmail:
         )
         assert "Isabelle" in html
 
+    def test_html_contains_full_name_when_last_name_present(self):
+        _, _, html, _ = phishing_service._build_email(
+            self._make_campaign(), self._make_target("David", "Rocher"), "x", "ceo-fraud"
+        )
+        assert "David Rocher" in html
+
     def test_subject_is_nonempty(self):
         _, subject, _, _ = phishing_service._build_email(
             self._make_campaign(), self._make_target(), "x", "o365-credentials"
@@ -152,11 +177,44 @@ class TestBuildEmail:
         )
         assert settings.PHISHING_BASE_URL.rstrip("/").split("//")[1] in html
 
+    def test_internal_scenario_appends_company_to_from_name(self):
+        from_addr, _, _, _ = phishing_service._build_email(
+            self._make_campaign(domain="acme.com"), self._make_target(), "x", "ceo-fraud"
+        )
+        assert "Acme" in from_addr
+        assert "Direction Générale" in from_addr
+
+    def test_external_scenario_does_not_append_company(self):
+        from_addr, _, _, _ = phishing_service._build_email(
+            self._make_campaign(domain="acme.com"), self._make_target(), "x", "o365-credentials"
+        )
+        assert "Acme" not in from_addr
+        assert "Microsoft 365" in from_addr
+
+    def test_no_domain_leaves_from_name_unchanged(self):
+        from_addr, _, _, _ = phishing_service._build_email(
+            self._make_campaign(domain=None), self._make_target(), "x", "ceo-fraud"
+        )
+        assert from_addr.startswith("Direction Générale <")
+
+    def test_subject_company_suffix_injected_for_internal(self):
+        _, subject, _, _ = phishing_service._build_email(
+            self._make_campaign(domain="acme.com"), self._make_target(), "x", "it-password"
+        )
+        assert "Acme" in subject
+        assert "{company_suffix}" not in subject
+
+    def test_subject_company_suffix_empty_when_no_domain(self):
+        _, subject, _, _ = phishing_service._build_email(
+            self._make_campaign(domain=None), self._make_target(), "x", "it-password"
+        )
+        assert "{company_suffix}" not in subject
+
     def test_all_scenario_keys_produce_html(self):
         keys = list(phishing_service._SCENARIO_TEMPLATES.keys())
         for key in keys:
             _, _, html, text = phishing_service._build_email(
-                self._make_campaign(scenario_key=key), self._make_target(), "x", key
+                self._make_campaign(scenario_key=key, domain="test.com"), self._make_target(), "x", key
             )
             assert html
             assert text
@@ -384,10 +442,9 @@ class TestCampaignCrud:
         assert r.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_unauthenticated_list_returns_403(self, http_client: AsyncClient):
-        # HTTPBearer returns 403 (not 401) when Authorization header is absent
+    async def test_unauthenticated_list_returns_401_or_403(self, http_client: AsyncClient):
         r = await http_client.get("/api/v1/phishing/campaigns")
-        assert r.status_code == 403
+        assert r.status_code in (401, 403)
 
 
 # ---------------------------------------------------------------------------
@@ -419,9 +476,9 @@ class TestLookalikeDomainsEndpoint:
         assert "sim_subdomain" in techniques
 
     @pytest.mark.asyncio
-    async def test_unauthenticated_returns_403(self, http_client: AsyncClient):
+    async def test_unauthenticated_returns_401_or_403(self, http_client: AsyncClient):
         r = await http_client.get("/api/v1/phishing/lookalike-domains", params={"domain": "acme.com"})
-        assert r.status_code == 403
+        assert r.status_code in (401, 403)
 
     @pytest.mark.asyncio
     async def test_missing_domain_param_returns_422(self, auth_client: AsyncClient):

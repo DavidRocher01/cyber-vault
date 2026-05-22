@@ -264,11 +264,8 @@ export class PhishingCampaignCreatorComponent implements OnInit {
     const c = this.campaign();
     if (!c) return;
     this.launching.set(true);
-    // Save CGU accepted
     this.service.updateCampaign(c.id, { cgu_accepted: true }).subscribe({
       next: updated => {
-        // Update status to ready
-        this.service.updateCampaign(updated.id, {}).subscribe();
         this.service.launchCampaign(updated.id).subscribe({
           next: () => {
             this.launching.set(false);
