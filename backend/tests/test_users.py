@@ -73,7 +73,7 @@ async def test_update_email_unauthenticated_returns_403():
             "email": "x@test.com",
             "current_password": "any",
         })
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 # ── Update password ────────────────────────────────────────────────────────────

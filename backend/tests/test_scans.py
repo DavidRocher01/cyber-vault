@@ -21,7 +21,7 @@ async def _headers(client: AsyncClient, email: str) -> dict:
 
 
 async def _site(client: AsyncClient, headers: dict, url: str = "https://example.com") -> int:
-    with patch("app.api.v1.endpoints.sites.get_active_plan", new=AsyncMock(return_value=MagicMock(max_sites=5))):
+    with patch("app.api.v1.endpoints.sites.get_effective_max_sites", new=AsyncMock(return_value=5)):
         r = await client.post(f"{BASE}/sites", json={"url": url, "name": "Test"}, headers=headers)
     return r.json()["id"]
 
