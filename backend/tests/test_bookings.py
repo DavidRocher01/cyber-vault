@@ -173,3 +173,195 @@ async def test_public_slots_returns_200_not_500():
     slots = r.json()
     assert len(slots) == 1
     assert slots[0]["is_booked"] is False
+
+
+# ── Create booking ─────────────────────────────────────────────────────────────
+
+_BOOKING_PAYLOAD = {
+    "slot_id": None,  # filled per-test
+    "name": "Jean Dupont",
+    "email": "jean@test.com",
+    "phone": "0600000000",
+    "need_type": "audit-flash",
+    "message": "Test booking",
+}
+
+
+@pytest.mark.asyncio
+async def test_create_booking_slot_not_found_returns_404():
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            with patch("app.api.v1.endpoints.bookings.send_booking_confirmation"), \
+                 patch("app.api.v1.endpoints.bookings.send_booking_admin_notification"):
+                r = await c.post(
+                    f"{BASE}/bookings",
+                    json={**_BOOKING_PAYLOAD, "slot_id": 99999},
+                )
+    assert r.status_code == 404
+    assert "introuvable" in r.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_create_booking_past_slot_returns_410():
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            created = await c.post(
+                f"{BASE}/bookings/admin/slots",
+                json={"slots": [{"date": "2020-01-01", "time": "10:00", "duration_minutes": 30, "label": "Past"}]},
+                headers={"x-admin-key": "test-secret-key"},
+            )
+            slot_id = created.json()[0]["id"]
+            with patch("app.api.v1.endpoints.bookings.send_booking_confirmation"), \
+                 patch("app.api.v1.endpoints.bookings.send_booking_admin_notification"):
+                r = await c.post(f"{BASE}/bookings", json={**_BOOKING_PAYLOAD, "slot_id": slot_id})
+    assert r.status_code == 410
+    assert "passé" in r.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_create_booking_success_returns_201():
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            created = await c.post(
+                f"{BASE}/bookings/admin/slots",
+                json={"slots": [{"date": "2030-06-15", "time": "14:00", "duration_minutes": 60, "label": "Appel"}]},
+                headers={"x-admin-key": "test-secret-key"},
+            )
+            slot_id = created.json()[0]["id"]
+            with patch("app.api.v1.endpoints.bookings.send_booking_confirmation"), \
+                 patch("app.api.v1.endpoints.bookings.send_booking_admin_notification"):
+                r = await c.post(f"{BASE}/bookings", json={**_BOOKING_PAYLOAD, "slot_id": slot_id})
+    assert r.status_code == 201
+    assert "booking_id" in r.json()
+    assert "Réservation confirmée" in r.json()["message"]
+
+
+@pytest.mark.asyncio
+async def test_create_booking_already_booked_returns_409():
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            created = await c.post(
+                f"{BASE}/bookings/admin/slots",
+                json={"slots": [{"date": "2030-07-20", "time": "09:00", "duration_minutes": 30, "label": "Slot"}]},
+                headers={"x-admin-key": "test-secret-key"},
+            )
+            slot_id = created.json()[0]["id"]
+            with patch("app.api.v1.endpoints.bookings.send_booking_confirmation"), \
+                 patch("app.api.v1.endpoints.bookings.send_booking_admin_notification"):
+                # First booking — should succeed
+                await c.post(f"{BASE}/bookings", json={**_BOOKING_PAYLOAD, "slot_id": slot_id})
+                # Second booking on same slot — should conflict
+                r = await c.post(f"{BASE}/bookings", json={**_BOOKING_PAYLOAD, "slot_id": slot_id})
+    assert r.status_code == 409
+    assert "déjà réservé" in r.json()["detail"]
+
+
+# ── Cancel booking (public) ────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_cancel_booking_invalid_token_returns_404():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/bookings/cancel?token=fake-invalid-token-xyz")
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_cancel_booking_valid_token_cancels():
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            created = await c.post(
+                f"{BASE}/bookings/admin/slots",
+                json={"slots": [{"date": "2030-08-10", "time": "11:00", "duration_minutes": 30, "label": "Cancel"}]},
+                headers={"x-admin-key": "test-secret-key"},
+            )
+            slot_id = created.json()[0]["id"]
+            with patch("app.api.v1.endpoints.bookings.send_booking_confirmation"), \
+                 patch("app.api.v1.endpoints.bookings.send_booking_admin_notification"):
+                booking_r = await c.post(f"{BASE}/bookings", json={**_BOOKING_PAYLOAD, "slot_id": slot_id})
+            booking_id = booking_r.json()["booking_id"]
+
+            # Fetch cancel token from DB
+            from sqlalchemy import select
+            from app.models.booking import Booking
+            import app.core.database as _db
+            async with _db.AsyncSessionLocal() as db:
+                result = await db.execute(select(Booking).where(Booking.id == booking_id))
+                booking = result.scalar_one()
+                token = booking.cancel_token
+
+            r = await c.get(f"{BASE}/bookings/cancel?token={token}")
+    assert r.status_code == 200
+    assert "annulée" in r.json()["message"]
+
+
+@pytest.mark.asyncio
+async def test_cancel_booking_already_cancelled_returns_message():
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            created = await c.post(
+                f"{BASE}/bookings/admin/slots",
+                json={"slots": [{"date": "2030-09-05", "time": "15:00", "duration_minutes": 30, "label": "X"}]},
+                headers={"x-admin-key": "test-secret-key"},
+            )
+            slot_id = created.json()[0]["id"]
+            with patch("app.api.v1.endpoints.bookings.send_booking_confirmation"), \
+                 patch("app.api.v1.endpoints.bookings.send_booking_admin_notification"):
+                booking_r = await c.post(f"{BASE}/bookings", json={**_BOOKING_PAYLOAD, "slot_id": slot_id})
+            booking_id = booking_r.json()["booking_id"]
+
+            from sqlalchemy import select
+            from app.models.booking import Booking
+            import app.core.database as _db
+            async with _db.AsyncSessionLocal() as db:
+                result = await db.execute(select(Booking).where(Booking.id == booking_id))
+                token = result.scalar_one().cancel_token
+
+            await c.get(f"{BASE}/bookings/cancel?token={token}")
+            r = await c.get(f"{BASE}/bookings/cancel?token={token}")
+    assert r.status_code == 200
+    assert "déjà annulée" in r.json()["message"]
+
+
+# ── Admin list bookings + cancel ───────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_admin_list_bookings_returns_list():
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.get(f"{BASE}/bookings/admin/bookings", headers={"x-admin-key": "test-secret-key"})
+    assert r.status_code == 200
+    assert isinstance(r.json(), list)
+
+
+@pytest.mark.asyncio
+async def test_admin_cancel_booking_unknown_returns_404():
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.patch(
+                f"{BASE}/bookings/admin/bookings/99999/cancel",
+                headers={"x-admin-key": "test-secret-key"},
+            )
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_admin_cancel_booking_returns_200():
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            created = await c.post(
+                f"{BASE}/bookings/admin/slots",
+                json={"slots": [{"date": "2030-10-01", "time": "10:00", "duration_minutes": 30, "label": "Admin cancel"}]},
+                headers={"x-admin-key": "test-secret-key"},
+            )
+            slot_id = created.json()[0]["id"]
+            with patch("app.api.v1.endpoints.bookings.send_booking_confirmation"), \
+                 patch("app.api.v1.endpoints.bookings.send_booking_admin_notification"):
+                booking_r = await c.post(f"{BASE}/bookings", json={**_BOOKING_PAYLOAD, "slot_id": slot_id})
+            booking_id = booking_r.json()["booking_id"]
+
+            r = await c.patch(
+                f"{BASE}/bookings/admin/bookings/{booking_id}/cancel",
+                headers={"x-admin-key": "test-secret-key"},
+            )
+    assert r.status_code == 200
+    assert "annulée" in r.json()["message"]

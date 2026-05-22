@@ -378,3 +378,168 @@ async def test_admin_update_schedule_duplicate_positions_returns_422():
                 headers={"x-admin-key": "test-secret-key"},
             )
     assert r.status_code == 422
+
+
+# ── Send from schedule ─────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_admin_send_from_schedule_no_items_returns_400():
+    """Empty schedule → 400."""
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.post(
+                f"{BASE}/newsletter/admin/send-from-schedule",
+                json={"edition": 42},
+                headers={"x-admin-key": "test-secret-key"},
+            )
+    assert r.status_code == 400
+    assert "planning" in r.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_admin_send_from_schedule_with_items_returns_sent():
+    """Populate schedule first, then send — returns count (0 if no active subscribers)."""
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            await c.put(
+                f"{BASE}/newsletter/admin/schedule",
+                json=_SCHEDULE_PAYLOAD,
+                headers={"x-admin-key": "test-secret-key"},
+            )
+            with patch("app.api.v1.endpoints.newsletter.send_newsletter_articles"):
+                r = await c.post(
+                    f"{BASE}/newsletter/admin/send-from-schedule",
+                    json={"edition": 7},
+                    headers={"x-admin-key": "test-secret-key"},
+                )
+    assert r.status_code == 200
+    assert "sent" in r.json()
+    assert r.json()["sent"] >= 0
+
+
+@pytest.mark.asyncio
+async def test_admin_send_from_schedule_no_key_returns_403():
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.post(f"{BASE}/newsletter/admin/send-from-schedule", json={"edition": 1})
+    assert r.status_code == 403
+
+
+# ── OG image ───────────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_admin_og_image_no_key_returns_403():
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.get(f"{BASE}/newsletter/admin/og-image?url=https://example.com")
+    assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_admin_og_image_returns_null_on_exception():
+    """SSRF block or network error → {"image_url": null}, not 500."""
+    with _admin_settings():
+        with patch("app.api.v1.endpoints.newsletter.assert_no_ssrf", side_effect=Exception("blocked")):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+                r = await c.get(
+                    f"{BASE}/newsletter/admin/og-image?url=https://example.com",
+                    headers={"x-admin-key": "test-secret-key"},
+                )
+    assert r.status_code == 200
+    assert r.json() == {"image_url": None}
+
+
+@pytest.mark.asyncio
+async def test_admin_og_image_returns_image_url_from_og_tag():
+    """When page contains og:image, return the URL."""
+    from unittest.mock import AsyncMock
+    html = '<meta property="og:image" content="https://example.com/thumb.jpg" />'
+
+    mock_resp = MagicMock()
+    mock_resp.is_redirect = False
+    mock_resp.text = html
+    mock_resp.url = "https://example.com"
+
+    mock_http = MagicMock()
+    mock_http.get = AsyncMock(return_value=mock_resp)
+
+    mock_ctx = MagicMock()
+    mock_ctx.__aenter__ = AsyncMock(return_value=mock_http)
+    mock_ctx.__aexit__ = AsyncMock(return_value=False)
+
+    with _admin_settings():
+        with patch("app.api.v1.endpoints.newsletter.assert_no_ssrf"):
+            with patch("app.api.v1.endpoints.newsletter.httpx.AsyncClient", return_value=mock_ctx):
+                async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+                    r = await c.get(
+                        f"{BASE}/newsletter/admin/og-image?url=https://example.com",
+                        headers={"x-admin-key": "test-secret-key"},
+                    )
+    assert r.status_code == 200
+    assert r.json()["image_url"] == "https://example.com/thumb.jpg"
+
+
+# ── Newsletter content ─────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_admin_get_newsletter_content_returns_default():
+    """No setting in DB → returns built-in default content."""
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.get(
+                f"{BASE}/newsletter/admin/content",
+                headers={"x-admin-key": "test-secret-key"},
+            )
+    assert r.status_code == 200
+    data = r.json()
+    assert "flash_title" in data
+    assert "reflex_title" in data
+    assert "legal_title" in data
+
+
+@pytest.mark.asyncio
+async def test_admin_update_newsletter_content_saves_and_returns():
+    payload = {
+        "flash_title": "Test Flash",
+        "flash_body": "Corps du flash test.",
+        "reflex_title": "Test Reflex",
+        "reflex_body": "Corps du reflex test.",
+        "legal_title": "Test Legal",
+        "legal_body": "Corps legal test.",
+    }
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.put(
+                f"{BASE}/newsletter/admin/content",
+                json=payload,
+                headers={"x-admin-key": "test-secret-key"},
+            )
+    assert r.status_code == 200
+    assert r.json()["flash_title"] == "Test Flash"
+    assert r.json()["reflex_body"] == "Corps du reflex test."
+
+
+@pytest.mark.asyncio
+async def test_admin_get_newsletter_content_reads_from_db():
+    """When AppSetting row exists in DB, GET parses and returns it (unit-level mock)."""
+    import json as _json
+    from unittest.mock import AsyncMock
+    from app.models.app_setting import AppSetting
+    from app.api.v1.endpoints.newsletter import get_newsletter_content
+
+    content_data = {
+        "flash_title": "Mocked Flash",
+        "flash_body": "Mocked body.",
+        "reflex_title": "Mocked Reflex",
+        "reflex_body": "Mocked reflex body.",
+        "legal_title": "Mocked Legal",
+        "legal_body": "Mocked legal body.",
+    }
+    setting = AppSetting(key="newsletter_content", value_int=0, value_text=_json.dumps(content_data))
+
+    mock_db = MagicMock()
+    mock_db.get = AsyncMock(return_value=setting)
+
+    result = await get_newsletter_content(db=mock_db)
+    assert result.flash_title == "Mocked Flash"
+    assert result.reflex_title == "Mocked Reflex"

@@ -180,7 +180,7 @@ async def test_csv_export_requires_auth():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get(f"{BASE}/scans/site/1/export")
     # FastAPI HTTPBearer raises 403 when no Authorization header is provided
-    assert r.status_code == 403
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio

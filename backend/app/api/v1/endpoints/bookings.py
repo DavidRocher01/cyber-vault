@@ -68,7 +68,7 @@ async def create_booking(
         .where(BookingSlot.id == payload.slot_id)
         .options(selectinload(BookingSlot.bookings))
     )
-    slot = result.scalars().unique().scalar_one_or_none()
+    slot = result.scalars().unique().one_or_none()
     if not slot:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Créneau introuvable")
 

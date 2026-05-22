@@ -38,7 +38,7 @@ async def test_get_assessment_empty_returns_default():
 async def test_get_assessment_requires_auth():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get(f"{BASE}/nis2/me")
-    assert r.status_code == 403
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -147,7 +147,7 @@ async def test_save_assessment_invalid_status_returns_422():
 async def test_save_assessment_requires_auth():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.put(f"{BASE}/nis2/me", json={"items": {"rssi": "compliant"}})
-    assert r.status_code == 403
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -193,4 +193,4 @@ async def test_export_pdf_non_empty():
 async def test_export_pdf_requires_auth():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get(f"{BASE}/nis2/me/pdf")
-    assert r.status_code == 403
+    assert r.status_code == 401

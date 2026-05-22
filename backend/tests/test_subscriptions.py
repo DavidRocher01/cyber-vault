@@ -7,6 +7,7 @@ Covers: get my subscription (none/active), checkout dev mode,
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
+from unittest.mock import patch
 
 from app.main import app
 from app.models.plan import Plan
@@ -52,10 +53,10 @@ async def test_get_subscription_returns_none_when_no_subscription():
 
 
 @pytest.mark.asyncio
-async def test_get_subscription_unauthenticated_returns_403():
+async def test_get_subscription_unauthenticated_returns_401():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get(f"{BASE}/subscriptions/me")
-    assert r.status_code == 403
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -92,10 +93,10 @@ async def test_checkout_unknown_plan_returns_404():
 
 
 @pytest.mark.asyncio
-async def test_checkout_unauthenticated_returns_403():
+async def test_checkout_unauthenticated_returns_401():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.post(f"{BASE}/subscriptions/checkout/1")
-    assert r.status_code == 403
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -151,7 +152,125 @@ async def test_portal_dev_mode_returns_dashboard_url():
 
 
 @pytest.mark.asyncio
-async def test_portal_unauthenticated_returns_403():
+async def test_portal_unauthenticated_returns_401():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get(f"{BASE}/subscriptions/portal")
+    assert r.status_code == 401
+
+
+# ── Free plan path (non-dev mode) ─────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_checkout_free_plan_activates_directly():
+    """price_eur=0 plan in non-dev mode → activates subscription without Stripe."""
+    from app.core.database import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
+        plan = Plan(
+            name="free_plan_test",
+            display_name="Gratuit",
+            price_eur=0,
+            max_sites=1,
+            scan_interval_days=365,
+            tier_level=1,
+            stripe_price_id="",
+            is_active=True,
+        )
+        db.add(plan)
+        await db.commit()
+        await db.refresh(plan)
+        plan_id = plan.id
+
+    with patch("app.api.v1.endpoints.subscriptions.DEV_MODE", False):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await _headers(c, "free_plan@test.com")
+            r = await c.post(f"{BASE}/subscriptions/checkout/{plan_id}", headers=h)
+    assert r.status_code == 200
+    assert "dashboard" in r.json()["checkout_url"]
+
+
+@pytest.mark.asyncio
+async def test_checkout_free_plan_updates_existing_subscription():
+    """Free plan checkout when subscription already exists → update it."""
+    from app.core.database import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
+        plan = Plan(
+            name="free_upd_test",
+            display_name="Gratuit Upd",
+            price_eur=0,
+            max_sites=1,
+            scan_interval_days=365,
+            tier_level=1,
+            stripe_price_id="",
+            is_active=True,
+        )
+        db.add(plan)
+        await db.commit()
+        await db.refresh(plan)
+        plan_id = plan.id
+
+    with patch("app.api.v1.endpoints.subscriptions.DEV_MODE", False):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await _headers(c, "free_plan2@test.com")
+            # First activation
+            await c.post(f"{BASE}/subscriptions/checkout/{plan_id}", headers=h)
+            # Second activation — should update existing
+            r = await c.post(f"{BASE}/subscriptions/checkout/{plan_id}", headers=h)
+    assert r.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_checkout_paid_plan_no_stripe_price_returns_400():
+    """Paid plan with empty stripe_price_id in non-dev mode → 400."""
+    from app.core.database import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
+        plan = Plan(
+            name="paid_nostripeid",
+            display_name="Paid No Stripe",
+            price_eur=999,
+            max_sites=5,
+            scan_interval_days=7,
+            tier_level=3,
+            stripe_price_id="",
+            is_active=True,
+        )
+        db.add(plan)
+        await db.commit()
+        await db.refresh(plan)
+        plan_id = plan.id
+
+    with patch("app.api.v1.endpoints.subscriptions.DEV_MODE", False):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await _headers(c, "no_stripe@test.com")
+            r = await c.post(f"{BASE}/subscriptions/checkout/{plan_id}", headers=h)
+    assert r.status_code == 400
+    assert "Stripe" in r.json()["detail"]
+
+
+# ── Extra-sites add-on ─────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_get_extra_sites_no_subscription_returns_zero():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        h = await _headers(c, "extra1@test.com")
+        r = await c.get(f"{BASE}/subscriptions/addons/extra-sites", headers=h)
+    assert r.status_code == 200
+    assert r.json()["extra_sites"] == 0
+
+
+@pytest.mark.asyncio
+async def test_purchase_extra_sites_no_subscription_returns_403():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        h = await _headers(c, "extra2@test.com")
+        r = await c.post(f"{BASE}/subscriptions/addons/extra-sites/checkout", headers=h)
     assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_purchase_extra_sites_dev_mode_adds_sites():
+    plan_id = await _seed_plan("extra_sites_plan")
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        h = await _headers(c, "extra3@test.com")
+        await c.post(f"{BASE}/subscriptions/checkout/{plan_id}", headers=h)
+        r = await c.post(f"{BASE}/subscriptions/addons/extra-sites/checkout", headers=h)
+    assert r.status_code == 200
+    assert "addon=extra_sites" in r.json()["checkout_url"]
