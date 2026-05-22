@@ -24,6 +24,8 @@ from app.models.invoice import Invoice  # noqa: F401
 from app.models.quote import Quote  # noqa: F401
 from app.models.finding_status import FindingStatus  # noqa: F401
 from app.models.rssi_client import RssiClient  # noqa: F401
+from app.models.rssi_visit import RssiVisit  # noqa: F401
+from app.models.rssi_action import RssiAction  # noqa: F401
 from app.models.training_progress import TrainingProgress  # noqa: F401
 from app.models.darkweb_scan import DarkwebScan  # noqa: F401
 from app.models.brand_profile import BrandProfile  # noqa: F401

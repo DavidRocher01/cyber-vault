@@ -10,6 +10,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Title } from '@angular/platform-browser';
 
@@ -23,7 +24,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
     CommonModule, ReactiveFormsModule, RouterLink,
     MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule,
     MatSnackBarModule, MatDialogModule, MatFormFieldModule, MatInputModule,
-    MatTooltipModule, NavButtonsComponent,
+    MatSelectModule, MatTooltipModule, NavButtonsComponent,
   ],
   templateUrl: './consultant-dashboard.component.html',
 })
@@ -40,16 +41,29 @@ export class ConsultantDashboardComponent implements OnInit {
   editingId = signal<number | null>(null);
   deletingId = signal<number | null>(null);
 
+  readonly formulas = [
+    { value: 'essentiel', label: 'Essentiel' },
+    { value: 'premium', label: 'Premium' },
+    { value: 'excellence', label: 'Excellence' },
+  ];
+
   addForm = this.fb.nonNullable.group({
     name: ['', Validators.required],
     email: [''],
     description: [''],
+    formula: [''],
+    monthly_amount: [null as number | null],
+    contract_renewal_at: [''],
   });
 
   editForm = this.fb.nonNullable.group({
     name: ['', Validators.required],
     email: [''],
     description: [''],
+    formula: [''],
+    monthly_amount: [null as number | null],
+    contract_renewal_at: [''],
+    status: [''],
   });
 
   ngOnInit() {
@@ -63,8 +77,15 @@ export class ConsultantDashboardComponent implements OnInit {
   addClient() {
     if (this.addForm.invalid) return;
     this.saving.set(true);
-    const { name, email, description } = this.addForm.getRawValue();
-    this.rssi.createClient({ name, email: email || undefined, description: description || undefined }).subscribe({
+    const v = this.addForm.getRawValue();
+    this.rssi.createClient({
+      name: v.name,
+      email: v.email || undefined,
+      description: v.description || undefined,
+      formula: (v.formula as any) || undefined,
+      monthly_amount: v.monthly_amount ?? undefined,
+      contract_renewal_at: v.contract_renewal_at || undefined,
+    }).subscribe({
       next: c => {
         this.clients.update(list => [c, ...list]);
         this.addForm.reset();
@@ -81,7 +102,15 @@ export class ConsultantDashboardComponent implements OnInit {
 
   startEdit(client: RssiClient) {
     this.editingId.set(client.id);
-    this.editForm.patchValue({ name: client.name, email: client.email ?? '', description: client.description ?? '' });
+    this.editForm.patchValue({
+      name: client.name,
+      email: client.email ?? '',
+      description: client.description ?? '',
+      formula: client.formula ?? '',
+      monthly_amount: client.monthly_amount,
+      contract_renewal_at: client.contract_renewal_at ?? '',
+      status: client.status,
+    });
   }
 
   cancelEdit() {
@@ -91,8 +120,16 @@ export class ConsultantDashboardComponent implements OnInit {
 
   saveEdit(clientId: number) {
     if (this.editForm.invalid) return;
-    const { name, email, description } = this.editForm.getRawValue();
-    this.rssi.updateClient(clientId, { name, email: email || undefined, description: description || undefined }).subscribe({
+    const v = this.editForm.getRawValue();
+    this.rssi.updateClient(clientId, {
+      name: v.name,
+      email: v.email || undefined,
+      description: v.description || undefined,
+      formula: (v.formula as any) || undefined,
+      monthly_amount: v.monthly_amount ?? undefined,
+      contract_renewal_at: v.contract_renewal_at || undefined,
+      status: (v.status as any) || undefined,
+    }).subscribe({
       next: updated => {
         this.clients.update(list => list.map(c => c.id === clientId ? { ...c, ...updated } : c));
         this.editingId.set(null);
@@ -115,6 +152,33 @@ export class ConsultantDashboardComponent implements OnInit {
         this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
       },
     });
+  }
+
+  formulaLabel(formula: string | null): string {
+    switch (formula) {
+      case 'essentiel': return 'Essentiel';
+      case 'premium': return 'Premium';
+      case 'excellence': return 'Excellence';
+      default: return '—';
+    }
+  }
+
+  formulaClass(formula: string | null): string {
+    switch (formula) {
+      case 'essentiel': return 'text-blue-300 bg-blue-500/10 border-blue-600/30';
+      case 'premium': return 'text-purple-300 bg-purple-500/10 border-purple-600/30';
+      case 'excellence': return 'text-amber-300 bg-amber-500/10 border-amber-600/30';
+      default: return 'text-gray-400 bg-gray-700/20 border-gray-600/30';
+    }
+  }
+
+  clientStatusClass(status: string): string {
+    switch (status) {
+      case 'active': return 'text-green-300';
+      case 'inactive': return 'text-yellow-300';
+      case 'churned': return 'text-red-300';
+      default: return 'text-gray-400';
+    }
   }
 
   statusColor(status: string | null): string {
@@ -151,6 +215,17 @@ export class ConsultantDashboardComponent implements OnInit {
   formatDate(d: string | null): string {
     if (!d) return '—';
     return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  formatAmount(amount: number | null): string {
+    if (amount == null) return '—';
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount);
+  }
+
+  get totalMrr(): number {
+    return this.clients()
+      .filter(c => c.status === 'active' && c.monthly_amount != null)
+      .reduce((sum, c) => sum + (c.monthly_amount ?? 0), 0);
   }
 
   get criticalCount(): number { return this.clients().filter(c => c.worst_status === 'CRITICAL').length; }

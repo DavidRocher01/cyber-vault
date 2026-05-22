@@ -25,10 +25,14 @@
 
       <!-- Stats bar -->
       @if (clients().length > 0) {
-        <div class="grid grid-cols-3 gap-4 mb-8">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
             <div class="text-2xl font-bold text-white">{{ clients().length }}</div>
-            <div class="text-xs text-gray-400 mt-0.5">Clients</div>
+            <div class="text-xs text-gray-400 mt-0.5">Clients actifs</div>
+          </div>
+          <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
+            <div class="text-2xl font-bold text-cyan-300">{{ formatAmount(totalMrr) }}</div>
+            <div class="text-xs text-gray-400 mt-0.5">MRR total</div>
           </div>
           <div class="bg-red-500/10 border border-red-600/30 rounded-xl p-4 text-center">
             <div class="text-2xl font-bold text-red-400">{{ criticalCount }}</div>
@@ -66,6 +70,23 @@
             <mat-form-field appearance="outline" class="w-full">
               <mat-label>Notes (optionnel)</mat-label>
               <input matInput formControlName="description" placeholder="PME, secteur santé..." />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Formule</mat-label>
+              <mat-select formControlName="formula">
+                <mat-option value="">— Sans formule —</mat-option>
+                @for (f of formulas; track f.value) {
+                  <mat-option [value]="f.value">{{ f.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Montant mensuel (€)</mat-label>
+              <input matInput type="number" formControlName="monthly_amount" placeholder="3200" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Renouvellement contrat</mat-label>
+              <input matInput type="date" formControlName="contract_renewal_at" />
             </mat-form-field>
             <div class="md:col-span-3 flex justify-end gap-3">
               <button type="button" mat-stroked-button (click)="showAddForm.set(false)">Annuler</button>
@@ -111,6 +132,27 @@
                   <mat-label>Notes</mat-label>
                   <input matInput formControlName="description" />
                 </mat-form-field>
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Formule</mat-label>
+                  <mat-select formControlName="formula">
+                    <mat-option value="">— Sans formule —</mat-option>
+                    @for (f of formulas; track f.value) {
+                      <mat-option [value]="f.value">{{ f.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Montant mensuel (€)</mat-label>
+                  <input matInput type="number" formControlName="monthly_amount" />
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Statut</mat-label>
+                  <mat-select formControlName="status">
+                    <mat-option value="active">Actif</mat-option>
+                    <mat-option value="inactive">Inactif</mat-option>
+                    <mat-option value="churned">Churné</mat-option>
+                  </mat-select>
+                </mat-form-field>
                 <div class="flex gap-2 justify-end">
                   <button type="button" mat-stroked-button (click)="cancelEdit()">Annuler</button>
                   <button type="submit" mat-flat-button color="primary" [disabled]="editForm.invalid">Sauvegarder</button>
@@ -125,12 +167,19 @@
               <!-- Client header -->
               <div class="flex items-start justify-between gap-2">
                 <div class="flex-1 min-w-0">
-                  <div class="font-semibold text-white truncate">{{ client.name }}</div>
+                  <div class="flex items-center gap-2">
+                    <div class="font-semibold text-white truncate">{{ client.name }}</div>
+                    @if (client.status !== 'active') {
+                      <span class="text-xs px-1.5 py-0.5 rounded" [ngClass]="clientStatusClass(client.status)">
+                        {{ client.status === 'churned' ? 'Churné' : 'Inactif' }}
+                      </span>
+                    }
+                  </div>
                   @if (client.email) {
                     <div class="text-xs text-gray-400 truncate">{{ client.email }}</div>
                   }
                 </div>
-                <!-- Status badge -->
+                <!-- Security status badge -->
                 <div class="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border"
                      [ngClass]="statusBgClass(client.worst_status)">
                   <mat-icon class="text-sm leading-none" [ngClass]="statusColor(client.worst_status)"
@@ -138,6 +187,20 @@
                   <span [ngClass]="statusColor(client.worst_status)">{{ statusLabel(client.worst_status) }}</span>
                 </div>
               </div>
+
+              <!-- Formula + amount -->
+              @if (client.formula || client.monthly_amount) {
+                <div class="flex items-center gap-2">
+                  @if (client.formula) {
+                    <span class="text-xs px-2 py-0.5 rounded-full border font-semibold" [ngClass]="formulaClass(client.formula)">
+                      {{ formulaLabel(client.formula) }}
+                    </span>
+                  }
+                  @if (client.monthly_amount) {
+                    <span class="text-xs text-gray-300 font-mono">{{ formatAmount(client.monthly_amount) }}/mois</span>
+                  }
+                </div>
+              }
 
               @if (client.description) {
                 <p class="text-xs text-gray-400 line-clamp-2">{{ client.description }}</p>
@@ -153,6 +216,12 @@
                   <mat-icon style="font-size:14px;height:14px;width:14px">schedule</mat-icon>
                   <span>{{ formatDate(client.last_scan_at) }}</span>
                 </div>
+                @if (client.contract_renewal_at) {
+                  <div class="flex items-center gap-1 ml-auto">
+                    <mat-icon style="font-size:14px;height:14px;width:14px">event</mat-icon>
+                    <span>Renouv. {{ formatDate(client.contract_renewal_at) }}</span>
+                  </div>
+                }
               </div>
 
               <!-- Actions -->

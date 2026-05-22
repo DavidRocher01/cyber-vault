@@ -28,5 +28,7 @@ class User(Base):
     notif_code_scan_done: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, server_default="true")
     notif_ssl_expiry: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, server_default="true")
 
+    is_rssi_consultant: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
+
     notifications: Mapped[list["Notification"]] = relationship(back_populates="user", cascade="all, delete-orphan")  # type: ignore[name-defined]
     code_scans: Mapped[list["CodeScan"]] = relationship(back_populates="user", cascade="all, delete-orphan")  # type: ignore[name-defined]
