@@ -166,7 +166,7 @@ async def test_scan_trigger_returns_scan_id_in_body():
     with patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "scan_regr@test.com")
-            with patch("app.api.v1.endpoints.sites.get_active_plan", new=AsyncMock(return_value=MagicMock(max_sites=5))):
+            with patch("app.api.v1.endpoints.sites.get_effective_max_sites", new=AsyncMock(return_value=5)):
                 site_r = await c.post(f"{BASE}/sites", json={"url": "https://example.com", "name": "Test"}, headers=h)
             site_id = site_r.json()["id"]
             with patch("app.api.v1.endpoints.scans.get_active_plan", new=AsyncMock(return_value=MagicMock(max_sites=5, scan_interval_days=30, price_eur=900))):
