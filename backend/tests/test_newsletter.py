@@ -5,6 +5,7 @@ Covers: double opt-in flow, confirm, unsubscribe redirects,
 """
 
 import pytest
+from contextlib import contextmanager
 from httpx import ASGITransport, AsyncClient
 from unittest.mock import patch, MagicMock, DEFAULT
 
@@ -36,12 +37,15 @@ def _no_email():
     )
 
 
+@contextmanager
 def _admin_settings():
     """Patch settings so ADMIN_API_KEY is set."""
     mock = MagicMock()
     mock.ADMIN_API_KEY = "test-secret-key"
     mock.FRONTEND_URL = "http://localhost:4200"
-    return patch("app.api.v1.endpoints.newsletter.settings", mock)
+    with patch("app.api.v1.endpoints.newsletter.settings", mock), \
+         patch("app.core.deps.settings", mock):
+        yield
 
 
 # ── Subscribe ──────────────────────────────────────────────────────────────────

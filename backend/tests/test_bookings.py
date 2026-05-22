@@ -5,6 +5,7 @@ The selectinload fix prevents MissingGreenlet (500) when _slot_to_out accesses
 slot.bookings in async context.
 """
 import pytest
+from contextlib import contextmanager
 from unittest.mock import patch, MagicMock
 from httpx import ASGITransport, AsyncClient
 
@@ -13,12 +14,15 @@ from app.main import app
 BASE = "/api/v1"
 
 
+@contextmanager
 def _admin_settings():
     mock = MagicMock()
     mock.ADMIN_API_KEY = "test-secret-key"
     mock.CONTACT_EMAIL = "admin@test.com"
     mock.FRONTEND_URL = "http://localhost:4200"
-    return patch("app.api.v1.endpoints.bookings.settings", mock)
+    with patch("app.api.v1.endpoints.bookings.settings", mock), \
+         patch("app.core.deps.settings", mock):
+        yield
 
 
 # ── Auth guard ─────────────────────────────────────────────────────────────────

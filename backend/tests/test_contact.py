@@ -3,6 +3,7 @@ Integration tests — /api/v1/contact
 Covers: submit (200), validation errors (422), admin list/update endpoints.
 """
 import pytest
+from contextlib import contextmanager
 from unittest.mock import patch, MagicMock
 from httpx import ASGITransport, AsyncClient
 
@@ -98,11 +99,14 @@ def test_contact_invalid_need_type_schema():
 
 # ── Admin helpers ──────────────────────────────────────────────────────────────
 
+@contextmanager
 def _admin_settings():
     mock = MagicMock()
     mock.ADMIN_API_KEY = "test-secret-key"
     mock.CONTACT_EMAIL = "admin@test.com"
-    return patch("app.api.v1.endpoints.contact.settings", mock)
+    with patch("app.api.v1.endpoints.contact.settings", mock), \
+         patch("app.core.deps.settings", mock):
+        yield
 
 
 async def _submit_contact(client, name="Jean Dupont"):

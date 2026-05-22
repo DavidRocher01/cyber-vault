@@ -9,6 +9,7 @@ from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import require_admin
 from app.core.security import create_refresh_token, hash_token, make_unsubscribe_token
