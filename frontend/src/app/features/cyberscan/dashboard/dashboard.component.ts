@@ -1,4 +1,5 @@
-import { Component, inject, OnInit, OnDestroy, signal, HostListener, ElementRef } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, OnDestroy, signal, HostListener, ElementRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
@@ -11,7 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { Title, Meta } from '@angular/platform-browser';
-import { Subscription as RxSubscription, interval } from 'rxjs';
+import { EMPTY, Subscription as RxSubscription, interval, switchMap, tap } from 'rxjs';
 import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 
 import { CyberscanService, Site, Scan, Subscription as UserSubscription, Plan, AppNotification } from '../services/cyberscan.service';
@@ -58,8 +59,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private titleService = inject(Title);
   private meta = inject(Meta);
   private el = inject(ElementRef);
+  private destroyRef = inject(DestroyRef);
   private pollingMap: Record<number, RxSubscription> = {};
-  private notifPollSub: RxSubscription | null = null;
 
   readonly theme = inject(ThemeService).theme;
   readonly i18n = inject(I18nService);
@@ -96,7 +97,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.titleService.setTitle('Dashboard — CyberScan');
     this.meta.updateTag({ name: 'description', content: 'Gérez vos sites et consultez vos rapports de sécurité CyberScan.' });
 
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
       if (params['subscribed'] === 'true') {
         this.snack.open('Abonnement activé ! Bienvenue sur CyberScan.', 'Super', { duration: 6000 });
       }
@@ -109,7 +110,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     Object.values(this.pollingMap).forEach(sub => sub.unsubscribe());
-    this.notifPollSub?.unsubscribe();
   }
 
   logout() {
@@ -125,28 +125,27 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   loadDashboard() {
     this.loading.set(true);
-    this.cyberscan.getMySubscription().subscribe({
-      next: sub => {
-        this.subscription.set(sub);
+    this.cyberscan.getMySubscription().pipe(
+      takeUntilDestroyed(this.destroyRef),
+      tap(sub => this.subscription.set(sub)),
+      switchMap(sub => {
         if (!sub) {
           this.loading.set(false);
           this.router.navigate(['/cyberscan/onboarding']);
-          return;
+          return EMPTY;
         }
-        this.cyberscan.getMySites().subscribe({
-          next: sites => {
-            this.sites.set(sites);
-            this.loading.set(false);
-            sites.forEach(s => this.loadScans(s.id, 1));
-          },
-          error: () => this.loading.set(false),
-        });
+        return this.cyberscan.getMySites();
+      }),
+    ).subscribe({
+      next: sites => {
+        this.sites.set(sites);
+        this.loading.set(false);
+        sites.forEach(s => this.loadScans(s.id, 1));
       },
       error: () => this.loading.set(false),
     });
     this.loadNotifications();
-    // Poll notifications every 30s
-    this.notifPollSub = interval(30000).subscribe(() => this.loadNotifications());
+    interval(30000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.loadNotifications());
   }
 
   loadNotifications() {

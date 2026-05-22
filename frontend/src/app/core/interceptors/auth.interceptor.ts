@@ -1,7 +1,7 @@
 import { HttpInterceptorFn, HttpErrorResponse, HttpRequest, HttpHandlerFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, switchMap, throwError } from 'rxjs';
+import { catchError, retry, switchMap, throwError, timer } from 'rxjs';
 import { HotToastService } from '@ngneat/hot-toast';
 
 import { AuthService } from '../services/auth.service';
@@ -20,6 +20,15 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authReq = token ? addToken(req, token) : req;
 
   return next(authReq).pipe(
+    retry({
+      count: 1,
+      delay: (err) => {
+        if (err instanceof HttpErrorResponse && err.status >= 500 && req.method === 'GET') {
+          return timer(1000);
+        }
+        return throwError(() => err);
+      },
+    }),
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401 && authService.getRefreshToken()) {
         return authService.refresh().pipe(
