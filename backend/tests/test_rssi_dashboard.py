@@ -281,3 +281,144 @@ async def test_suggestions_isolation_between_users(http_client: AsyncClient):
     r_b = await http_client.get(f"{BASE}/rssi/dashboard/suggestions", headers=h_b)
     assert r_b.status_code == 200
     assert r_b.json() == []
+
+
+# ── Coverage gaps: branches not yet covered ───────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_upcoming_events_empty_when_no_clients(http_client: AsyncClient):
+    """get_upcoming_events early-exit branch: user with no active clients."""
+    h = await _auth(http_client, "dash_ev3@test.com")
+    r = await http_client.get(f"{BASE}/rssi/dashboard/upcoming-events", headers=h)
+    assert r.status_code == 200
+    assert r.json() == []
+
+
+@pytest.mark.asyncio
+async def test_alerts_no_recent_visit_for_premium_client(http_client: AsyncClient):
+    """Premium client with no completed visit → no_recent_visit alert."""
+    h = await _auth(http_client, "dash_al4@test.com")
+    await _create_client(http_client, h, "Premium No Visit", formula="premium")
+
+    r = await http_client.get(f"{BASE}/rssi/dashboard/alerts", headers=h)
+    no_visit_alerts = [a for a in r.json() if a["type"] == "no_recent_visit"]
+    assert len(no_visit_alerts) == 1
+    assert no_visit_alerts[0]["client_name"] == "Premium No Visit"
+
+
+@pytest.mark.asyncio
+async def test_alerts_no_recent_visit_premium_old_visit(http_client: AsyncClient):
+    """Premium client whose last completed visit was >35 days ago → alert."""
+    h = await _auth(http_client, "dash_al5@test.com")
+    c = await _create_client(http_client, h, "Old Visit Corp", formula="excellence")
+
+    # Create a visit in the past (>35 days) and mark it completed
+    old_date = (date.today() - timedelta(days=40)).isoformat()
+    v = await _create_visit(http_client, h, c["id"], old_date)
+    await http_client.put(
+        f"{BASE}/rssi/clients/{c['id']}/visits/{v['id']}",
+        json={"status": "completed", "actual_date": old_date},
+        headers=h,
+    )
+
+    r = await http_client.get(f"{BASE}/rssi/dashboard/alerts", headers=h)
+    no_visit_alerts = [a for a in r.json() if a["type"] == "no_recent_visit"]
+    assert len(no_visit_alerts) == 1
+
+
+@pytest.mark.asyncio
+async def test_alerts_no_recent_visit_essentiel_client_ignored(http_client: AsyncClient):
+    """Essentiel clients are NOT checked for visit frequency."""
+    h = await _auth(http_client, "dash_al6@test.com")
+    await _create_client(http_client, h, "Essentiel Corp", formula="essentiel")
+
+    r = await http_client.get(f"{BASE}/rssi/dashboard/alerts", headers=h)
+    no_visit_alerts = [a for a in r.json() if a["type"] == "no_recent_visit"]
+    assert len(no_visit_alerts) == 0
+
+
+@pytest.mark.asyncio
+async def test_suggestions_upsell_opportunity(http_client: AsyncClient):
+    """Essentiel client with 180+ days contract and zero overdue → upsell suggestion."""
+    h = await _auth(http_client, "dash_sg4@test.com")
+    old_start = (date.today() - timedelta(days=200)).isoformat()
+    await _create_client(http_client, h, "Stable Essentiel", formula="essentiel",
+                         contract_start_date=old_start)
+
+    r = await http_client.get(f"{BASE}/rssi/dashboard/suggestions", headers=h)
+    upsell = [s for s in r.json() if s["type"] == "upsell_opportunity"]
+    assert len(upsell) == 1
+    assert upsell[0]["client_name"] == "Stable Essentiel"
+
+
+@pytest.mark.asyncio
+async def test_suggestions_no_upsell_when_overdue(http_client: AsyncClient):
+    """Upsell rule must NOT fire when the client has overdue actions."""
+    h = await _auth(http_client, "dash_sg5@test.com")
+    old_start = (date.today() - timedelta(days=200)).isoformat()
+    c = await _create_client(http_client, h, "Busy Essentiel", formula="essentiel",
+                             contract_start_date=old_start)
+    overdue = (date.today() - timedelta(days=5)).isoformat()
+    await _create_action(http_client, h, c["id"], due_date=overdue)
+
+    r = await http_client.get(f"{BASE}/rssi/dashboard/suggestions", headers=h)
+    upsell = [s for s in r.json() if s["type"] == "upsell_opportunity"]
+    assert len(upsell) == 0
+
+
+@pytest.mark.asyncio
+async def test_suggestions_engagement_alert_for_premium_no_visit(http_client: AsyncClient):
+    """Premium client with no visits at all → engagement_alert suggestion."""
+    h = await _auth(http_client, "dash_sg6@test.com")
+    await _create_client(http_client, h, "Ghosted Premium", formula="premium")
+
+    r = await http_client.get(f"{BASE}/rssi/dashboard/suggestions", headers=h)
+    engagement = [s for s in r.json() if s["type"] == "engagement_alert"]
+    assert len(engagement) == 1
+    assert engagement[0]["client_name"] == "Ghosted Premium"
+    assert engagement[0]["cta"] == "Planifier une visite"
+
+
+@pytest.mark.asyncio
+async def test_suggestions_renewal_30_to_60_days(http_client: AsyncClient):
+    """Client with renewal in 30-60 days → renewal_upcoming suggestion."""
+    h = await _auth(http_client, "dash_sg7@test.com")
+    renewal = (date.today() + timedelta(days=45)).isoformat()
+    await _create_client(http_client, h, "Renew Me", contract_renewal_at=renewal)
+
+    r = await http_client.get(f"{BASE}/rssi/dashboard/suggestions", headers=h)
+    renew = [s for s in r.json() if s["type"] == "renewal_upcoming"]
+    assert len(renew) == 1
+    assert renew[0]["client_name"] == "Renew Me"
+
+
+@pytest.mark.asyncio
+async def test_suggestions_no_renewal_outside_window(http_client: AsyncClient):
+    """Renewal outside 30-60 day window → no renewal_upcoming suggestion."""
+    h = await _auth(http_client, "dash_sg8@test.com")
+    far = (date.today() + timedelta(days=90)).isoformat()
+    await _create_client(http_client, h, "Far Future", contract_renewal_at=far)
+
+    r = await http_client.get(f"{BASE}/rssi/dashboard/suggestions", headers=h)
+    renew = [s for s in r.json() if s["type"] == "renewal_upcoming"]
+    assert len(renew) == 0
+
+
+@pytest.mark.asyncio
+async def test_suggestions_no_engagement_alert_when_recent_visit(http_client: AsyncClient):
+    """Premium client with a recent completed visit (< 35 days) → no engagement_alert."""
+    h = await _auth(http_client, "dash_sg9@test.com")
+    c = await _create_client(http_client, h, "Active Premium", formula="premium")
+
+    recent = (date.today() - timedelta(days=10)).isoformat()
+    v = await _create_visit(http_client, h, c["id"], recent)
+    # Mark the visit as completed with an actual_date
+    await http_client.put(
+        f"{BASE}/rssi/clients/{c['id']}/visits/{v['id']}",
+        json={"status": "completed", "actual_date": recent},
+        headers=h,
+    )
+
+    r = await http_client.get(f"{BASE}/rssi/dashboard/suggestions", headers=h)
+    engagement = [s for s in r.json() if s["type"] == "engagement_alert"]
+    assert len(engagement) == 0
