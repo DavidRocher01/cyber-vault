@@ -411,6 +411,28 @@
   • Tests : intégration (rescan, CSV, monitor), unit (_compute_severity, export_dossier_csv),
     frontend service + composant (severity, timeline, getBreachTimelineMax)
 
+  AMÉLIORATIONS — Module Dark Web Dossier (intégrité + UX + qualité)
+  • P0 — Correction faux négatifs silencieux :
+    - Nouveau champ check_status (verified_clean | exposed | api_error | rate_limited | pending)
+      sur darkweb_dossier_targets
+    - Les emails non vérifiés (rate limit / erreur API) reçoivent status="error" au lieu de
+      status="clean" — plus de résultats mensongers
+    - Le score de risque est désormais calculé sur les emails vérifiés uniquement
+  • P1 — Suivi de progression en temps réel :
+    - Nouveau champ checked_count + unverified_count sur darkweb_dossiers
+    - Commit après chaque email → polling frontend affiche "X / Y emails vérifiés"
+    - Barre de progression animée dans le banner "Analyse en cours"
+    - Banner d'avertissement orange affiché si unverified_count > 0 après analyse
+    - Section "Emails non vérifiés" avec badge rate_limited / api_error par adresse
+    - Migration Alembic : a3b4c5d6e7f8_darkweb_check_status_progress.py
+  • P2 — Enrichissement et qualité :
+    - _BATCH_DELAY : 1.2 → 2.5 s (meilleure tolérance LeakCheck free tier)
+    - Recommandations PDF dynamiques via _build_recommendations() basées sur :
+      les data_classes trouvées (MFA si password, alerte financière si credit/bank,
+      RGPD si données sensibles, avertissement si analyse incomplète)
+    - CSV export inclut désormais la colonne "Vérification API" (check_status)
+    - Rescan reset check_status, checked_count et unverified_count
+
 
 ================================================================================
   FIN DU JOURNAL — Mis à jour le 2026-05-23
