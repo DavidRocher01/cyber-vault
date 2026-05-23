@@ -390,4 +390,20 @@ export class RssiService {
   exportActionsCsv(clientId: number): Observable<Blob> {
     return this.http.get(`${API}/clients/${clientId}/actions/export`, { responseType: 'blob' });
   }
+
+  // ── File upload / download (P8) ─────────────────────────────────────────────
+
+  uploadDeliverableFile(clientId: number, file: File): Observable<{ key: string; filename: string }> {
+    const form = new FormData();
+    form.append('file', file);
+    return this.http.post<{ key: string; filename: string }>(
+      `${API}/clients/${clientId}/deliverables/upload`, form
+    );
+  }
+
+  getDeliverableDownloadUrl(clientId: number, deliverableId: number): Observable<{ url: string }> {
+    return this.http.get<{ url: string }>(
+      `${API}/clients/${clientId}/deliverables/${deliverableId}/download`
+    );
+  }
 }

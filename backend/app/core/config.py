@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     RESEND_API_KEY: str = ""
     RESEND_FROM: str = "CyberScan <no-reply@cyberscanapp.com>"
 
+    # S3 file storage (livrables RSSI)
+    S3_BUCKET_NAME: str = ""
+    AWS_REGION: str = "eu-west-3"
+    # AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY lues automatiquement par boto3
+    # (variables d'env standard ou IAM role ECS en prod)
+
     # Admin
     ADMIN_API_KEY: str = ""
 

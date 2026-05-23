@@ -575,10 +575,23 @@
                 <input matInput type="date" formControlName="delivered_at"
                        title="Date à laquelle le livrable a été envoyé" />
               </mat-form-field>
-              <mat-form-field appearance="outline" class="w-full md:col-span-2">
-                <mat-label>URL du fichier</mat-label>
-                <input matInput formControlName="file_url" placeholder="https://notion.so/…" />
-              </mat-form-field>
+              <!-- File picker -->
+              <div class="md:col-span-2 flex items-center gap-3">
+                <label class="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border border-dashed border-gray-600
+                              hover:border-cyan-500 transition-colors text-sm text-gray-400 hover:text-cyan-400 whitespace-nowrap">
+                  <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">upload_file</mat-icon>
+                  {{ pendingAddFile() ? pendingAddFile()!.name : 'Joindre un fichier (PDF, Word, Excel…)' }}
+                  <input type="file" class="hidden"
+                         accept=".pdf,.doc,.docx,.xls,.xlsx,.odt,.ods,.png,.jpg,.jpeg"
+                         (change)="onAddFileChange($event)" />
+                </label>
+                @if (pendingAddFile()) {
+                  <button type="button" class="text-xs text-red-400 hover:text-red-300"
+                          (click)="pendingAddFile.set(null); addDeliverableForm.patchValue({file_url: ''})">
+                    <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">close</mat-icon>
+                  </button>
+                }
+              </div>
               <mat-form-field appearance="outline" class="w-full md:col-span-3">
                 <mat-label>Notes</mat-label>
                 <textarea matInput formControlName="notes" rows="2" placeholder="Notes…"></textarea>
@@ -587,7 +600,7 @@
                 <button type="button" mat-stroked-button (click)="showAddDeliverable.set(false)">Annuler</button>
                 <button mat-flat-button color="primary" type="submit"
                         [disabled]="addDeliverableForm.invalid || saving()">
-                  Ajouter
+                  @if (saving() && pendingAddFile()) { Envoi en cours… } @else { Ajouter }
                 </button>
               </div>
             </form>
@@ -618,10 +631,23 @@
                       <input matInput type="date" formControlName="delivered_at"
                              title="Date à laquelle le livrable a été envoyé" />
                     </mat-form-field>
-                    <mat-form-field appearance="outline" class="w-full md:col-span-2">
-                      <mat-label>URL du fichier</mat-label>
-                      <input matInput formControlName="file_url" placeholder="https://…" />
-                    </mat-form-field>
+                    <!-- File picker (edit) -->
+                    <div class="md:col-span-2 flex items-center gap-3">
+                      <label class="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border border-dashed border-gray-600
+                                    hover:border-cyan-500 transition-colors text-sm text-gray-400 hover:text-cyan-400 whitespace-nowrap">
+                        <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">upload_file</mat-icon>
+                        {{ pendingEditFile() ? pendingEditFile()!.name : (editDeliverableForm.controls.file_url.value ? 'Remplacer le fichier' : 'Joindre un fichier') }}
+                        <input type="file" class="hidden"
+                               accept=".pdf,.doc,.docx,.xls,.xlsx,.odt,.ods,.png,.jpg,.jpeg"
+                               (change)="onEditFileChange($event)" />
+                      </label>
+                      @if (pendingEditFile()) {
+                        <button type="button" class="text-xs text-red-400 hover:text-red-300"
+                                (click)="pendingEditFile.set(null)">
+                          <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">close</mat-icon>
+                        </button>
+                      }
+                    </div>
                     <mat-form-field appearance="outline" class="w-full md:col-span-3">
                       <mat-label>Notes</mat-label>
                       <textarea matInput formControlName="notes" rows="2" placeholder="Notes…"></textarea>
@@ -652,11 +678,11 @@
                           {{ formatDate(d.delivered_at) }}
                         </span>
                         @if (d.file_url) {
-                          <a [href]="d.file_url" target="_blank" rel="noopener"
-                             class="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-0.5">
+                          <button type="button" (click)="openDeliverableFile(d)"
+                                  class="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-0.5">
                             <mat-icon style="font-size:12px;height:12px;width:12px" class="align-middle">open_in_new</mat-icon>
                             Ouvrir le fichier
-                          </a>
+                          </button>
                         }
                         @if (d.notes) {
                           <span class="text-gray-500 italic">{{ d.notes }}</span>

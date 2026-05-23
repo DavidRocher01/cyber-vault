@@ -4,8 +4,8 @@ Sprint 1: client CRUD (enhanced), visits CRUD, actions CRUD.
 """
 from datetime import date, datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi.responses import RedirectResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -1198,3 +1198,59 @@ async def export_actions_csv(
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f"attachment; filename=actions_client_{client_id}.csv"},
     )
+
+
+# ── File upload / download (P8) ────────────────────────────────────────────────
+
+@router.post("/clients/{client_id}/deliverables/upload")
+async def upload_deliverable_file(
+    client_id: int,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upload a file for a client deliverable and return its storage key."""
+    from app.services.storage import upload_file, validate_upload, MAX_UPLOAD_BYTES
+
+    await _get_client_or_404(client_id, current_user.id, db)
+
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    try:
+        validate_upload(
+            filename=file.filename or "upload",
+            content_type=file.content_type or "",
+            size=len(content),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+    key = upload_file(content, file.filename or "upload", current_user.id, client_id)
+    return {"key": key, "filename": file.filename}
+
+
+@router.get("/clients/{client_id}/deliverables/{deliverable_id}/download")
+async def download_deliverable_file(
+    client_id: int,
+    deliverable_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return a short-lived download URL for a deliverable file."""
+    from app.services.storage import get_download_url
+
+    await _get_client_or_404(client_id, current_user.id, db)
+
+    result = await db.execute(
+        select(RssiDeliverable).where(
+            RssiDeliverable.id == deliverable_id,
+            RssiDeliverable.client_id == client_id,
+        )
+    )
+    deliverable = result.scalar_one_or_none()
+    if not deliverable:
+        raise HTTPException(status_code=404, detail="Livrable non trouvé")
+    if not deliverable.file_url:
+        raise HTTPException(status_code=404, detail="Aucun fichier attaché à ce livrable")
+
+    url = get_download_url(deliverable.file_url)
+    return {"url": url}

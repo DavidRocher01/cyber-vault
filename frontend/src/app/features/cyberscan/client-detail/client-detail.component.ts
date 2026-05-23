@@ -2,7 +2,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of, switchMap } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -182,6 +182,10 @@ export class ClientDetailComponent implements OnInit {
     file_url: [''],
     notes: [''],
   });
+
+  pendingAddFile = signal<File | null>(null);
+  pendingEditFile = signal<File | null>(null);
+  uploadingFile = signal(false);
 
   ngOnInit() {
     this.clientId = Number(this.route.snapshot.paramMap.get('id'));
@@ -466,20 +470,41 @@ export class ClientDetailComponent implements OnInit {
 
   // ── Deliverables ──────────────────────────────────────────────────────────
 
+  onAddFileChange(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    this.pendingAddFile.set(file);
+    if (file) this.addDeliverableForm.patchValue({ file_url: file.name });
+  }
+
+  onEditFileChange(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    this.pendingEditFile.set(file);
+    if (file) this.editDeliverableForm.patchValue({ file_url: file.name });
+  }
+
   addDeliverable() {
     if (this.addDeliverableForm.invalid) return;
     this.saving.set(true);
     const v = this.addDeliverableForm.getRawValue();
-    this.rssi.createDeliverable(this.clientId, {
-      title: v.title,
-      doc_type: v.doc_type as any,
-      delivered_at: v.delivered_at,
-      file_url: v.file_url || undefined,
-      notes: v.notes || undefined,
-    }).subscribe({
+    const file = this.pendingAddFile();
+
+    const upload$ = file
+      ? this.rssi.uploadDeliverableFile(this.clientId, file)
+      : of(null);
+
+    upload$.pipe(
+      switchMap(uploaded => this.rssi.createDeliverable(this.clientId, {
+        title: v.title,
+        doc_type: v.doc_type as any,
+        delivered_at: v.delivered_at,
+        file_url: uploaded?.key ?? (v.file_url || undefined),
+        notes: v.notes || undefined,
+      }))
+    ).subscribe({
       next: d => {
         this.deliverables.update(list => [d, ...list]);
         this.addDeliverableForm.reset({ doc_type: 'compte_rendu' });
+        this.pendingAddFile.set(null);
         this.showAddDeliverable.set(false);
         this.saving.set(false);
         this.snack.open('Livrable ajouté', 'OK', { duration: 3000 });
@@ -487,13 +512,14 @@ export class ClientDetailComponent implements OnInit {
       },
       error: err => {
         this.saving.set(false);
-        this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
+        this.snack.open(err.error?.detail || 'Erreur lors de l\'upload', 'Fermer', { duration: 4000 });
       },
     });
   }
 
   startEditDeliverable(d: RssiDeliverable) {
     this.editingDeliverableId.set(d.id);
+    this.pendingEditFile.set(null);
     this.editDeliverableForm.patchValue({
       title: d.title,
       doc_type: d.doc_type,
@@ -506,19 +532,36 @@ export class ClientDetailComponent implements OnInit {
   saveDeliverable(deliverableId: number) {
     if (this.editDeliverableForm.invalid) return;
     const v = this.editDeliverableForm.getRawValue();
-    this.rssi.updateDeliverable(this.clientId, deliverableId, {
-      title: v.title,
-      doc_type: v.doc_type as any,
-      delivered_at: v.delivered_at,
-      file_url: v.file_url || undefined,
-      notes: v.notes || undefined,
-    }).subscribe({
+    const file = this.pendingEditFile();
+
+    const upload$ = file
+      ? this.rssi.uploadDeliverableFile(this.clientId, file)
+      : of(null);
+
+    upload$.pipe(
+      switchMap(uploaded => this.rssi.updateDeliverable(this.clientId, deliverableId, {
+        title: v.title,
+        doc_type: v.doc_type as any,
+        delivered_at: v.delivered_at,
+        file_url: uploaded?.key ?? (v.file_url || undefined),
+        notes: v.notes || undefined,
+      }))
+    ).subscribe({
       next: updated => {
         this.deliverables.update(list => list.map(x => x.id === deliverableId ? updated : x));
         this.editingDeliverableId.set(null);
+        this.pendingEditFile.set(null);
         this.snack.open('Livrable mis à jour', 'OK', { duration: 3000 });
       },
       error: err => this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 }),
+    });
+  }
+
+  openDeliverableFile(deliverable: RssiDeliverable) {
+    if (!deliverable.file_url) return;
+    this.rssi.getDeliverableDownloadUrl(this.clientId, deliverable.id).subscribe({
+      next: ({ url }) => window.open(url, '_blank', 'noopener'),
+      error: () => this.snack.open('Impossible d\'ouvrir le fichier', 'Fermer', { duration: 4000 }),
     });
   }
 
