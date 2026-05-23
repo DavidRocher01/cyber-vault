@@ -3,11 +3,7 @@
 <div class="min-h-screen bg-gray-950 text-gray-100 p-4 md:p-8">
   <div class="max-w-5xl mx-auto">
 
-    @if (loading()) {
-      <div class="flex justify-center py-24">
-        <mat-spinner [diameter]="40" />
-      </div>
-    } @else if (client(); as c) {
+    @if (client(); as c) {
 
       <!-- Breadcrumb -->
       <div class="flex items-center gap-2 text-sm text-gray-400 mb-6">
@@ -818,6 +814,10 @@
         </div>
       }
 
+    } @else if (loading()) {
+      <div class="flex justify-center py-24">
+        <mat-spinner [diameter]="40" />
+      </div>
     }
   </div>
 </div>

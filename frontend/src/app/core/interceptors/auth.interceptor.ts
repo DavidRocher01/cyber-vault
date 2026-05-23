@@ -30,7 +30,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       },
     }),
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401 && authService.getRefreshToken()) {
+      // Don't redirect on 401 from auth endpoints (login/register return 401 for bad credentials)
+      const isAuthEndpoint = req.url.includes('/auth/login') || req.url.includes('/auth/register');
+      if (error.status === 401 && !isAuthEndpoint && authService.getRefreshToken()) {
         return authService.refresh().pipe(
           switchMap(res => next(addToken(req, res.access_token))),
           catchError(() => {
@@ -41,7 +43,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
           })
         );
       }
-      if (error.status === 401) {
+      if (error.status === 401 && !isAuthEndpoint) {
         authService.logout();
         cryptoService.clearKey();
         router.navigate(['/cyberscan']);

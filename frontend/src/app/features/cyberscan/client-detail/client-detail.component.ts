@@ -2,7 +2,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { forkJoin, of, switchMap } from 'rxjs';
+import { forkJoin, Observable, of, switchMap } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -488,12 +488,12 @@ export class ClientDetailComponent implements OnInit {
     const v = this.addDeliverableForm.getRawValue();
     const file = this.pendingAddFile();
 
-    const upload$ = file
+    const upload$: Observable<{ key: string; filename: string } | null> = file
       ? this.rssi.uploadDeliverableFile(this.clientId, file)
       : of(null);
 
     upload$.pipe(
-      switchMap(uploaded => this.rssi.createDeliverable(this.clientId, {
+      switchMap((uploaded: { key: string; filename: string } | null) => this.rssi.createDeliverable(this.clientId, {
         title: v.title,
         doc_type: v.doc_type as any,
         delivered_at: v.delivered_at,
@@ -501,7 +501,7 @@ export class ClientDetailComponent implements OnInit {
         notes: v.notes || undefined,
       }))
     ).subscribe({
-      next: d => {
+      next: (d: RssiDeliverable) => {
         this.deliverables.update(list => [d, ...list]);
         this.addDeliverableForm.reset({ doc_type: 'compte_rendu' });
         this.pendingAddFile.set(null);
@@ -510,7 +510,7 @@ export class ClientDetailComponent implements OnInit {
         this.snack.open('Livrable ajouté', 'OK', { duration: 3000 });
         this.rssi.logActivity(this.clientId, { action_type: 'send_deliverable', resource_id: d.id }).subscribe();
       },
-      error: err => {
+      error: (err: { error?: { detail?: string } }) => {
         this.saving.set(false);
         this.snack.open(err.error?.detail || 'Erreur lors de l\'upload', 'Fermer', { duration: 4000 });
       },
@@ -534,12 +534,12 @@ export class ClientDetailComponent implements OnInit {
     const v = this.editDeliverableForm.getRawValue();
     const file = this.pendingEditFile();
 
-    const upload$ = file
+    const upload$: Observable<{ key: string; filename: string } | null> = file
       ? this.rssi.uploadDeliverableFile(this.clientId, file)
       : of(null);
 
     upload$.pipe(
-      switchMap(uploaded => this.rssi.updateDeliverable(this.clientId, deliverableId, {
+      switchMap((uploaded: { key: string; filename: string } | null) => this.rssi.updateDeliverable(this.clientId, deliverableId, {
         title: v.title,
         doc_type: v.doc_type as any,
         delivered_at: v.delivered_at,
@@ -547,13 +547,13 @@ export class ClientDetailComponent implements OnInit {
         notes: v.notes || undefined,
       }))
     ).subscribe({
-      next: updated => {
+      next: (updated: RssiDeliverable) => {
         this.deliverables.update(list => list.map(x => x.id === deliverableId ? updated : x));
         this.editingDeliverableId.set(null);
         this.pendingEditFile.set(null);
         this.snack.open('Livrable mis à jour', 'OK', { duration: 3000 });
       },
-      error: err => this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 }),
+      error: (err: { error?: { detail?: string } }) => this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 }),
     });
   }
 
