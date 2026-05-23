@@ -674,7 +674,7 @@ def generate_dossier_pdf(
             dc_str = ", ".join(unique_dc) if unique_dc else "—"
             row_color = RED if t.total_breaches >= 3 else YELLOW
             table_data.append([
-                Paragraph(f'<font color="#{row_color.hexval()[1:]}">{t.email}</font>', styles["mono"]),
+                Paragraph(f'<font color="#{row_color.hexval()[2:]}">{t.email}</font>', styles["mono"]),
                 Paragraph(f'<b>{t.total_breaches}</b>', styles["label"]),
                 Paragraph(sources_str or "—", styles["small"]),
                 Paragraph(dc_str, styles["small"]),

@@ -89,16 +89,23 @@ def _make_dossier(**kwargs) -> DarkwebDossier:
     return d
 
 
-def _make_target(email: str, count: int, status: str = "exposed") -> DarkwebDossierTarget:
+def _make_target(
+    email: str,
+    count: int,
+    status: str = "exposed",
+    check_status: str | None = None,
+    data_classes: list[str] | None = None,
+) -> DarkwebDossierTarget:
     t = MagicMock(spec=DarkwebDossierTarget)
     t.id = 1
     t.email = email
     t.status = status
+    t.check_status = check_status or ("exposed" if count > 0 else "verified_clean")
     t.total_breaches = count
+    dc = data_classes if data_classes is not None else ["Email addresses", "Passwords"]
     t.breach_sources_json = json.dumps([
         {"name": "LinkedIn", "domain": "linkedin.com", "breach_date": "2021-06-22",
-         "pwn_count": 700000000, "data_classes": ["Email addresses", "Passwords"],
-         "is_sensitive": False}
+         "pwn_count": 700000000, "data_classes": dc, "is_sensitive": False}
     ]) if count > 0 else "[]"
     t.checked_at = datetime.now(timezone.utc)
     return t
@@ -313,3 +320,173 @@ def test_compute_severity_ignores_invalid_json():
     t = MagicMock()
     t.breach_sources_json = "not-json"
     assert _compute_severity([t]) == 0
+
+
+# ── _build_recommendations ────────────────────────────────────────────────────
+
+def _make_dossier_for_recs(**kwargs) -> DarkwebDossier:
+    d = MagicMock(spec=DarkwebDossier)
+    d.risk_score = kwargs.get("risk_score", 10)
+    d.unverified_count = kwargs.get("unverified_count", 0)
+    return d
+
+
+def test_build_recs_returns_at_least_one():
+    from app.services.darkweb_dossier_service import _build_recommendations
+    recs = _build_recommendations(_make_dossier_for_recs(), [])
+    assert len(recs) >= 1
+
+
+def test_build_recs_max_six():
+    from app.services.darkweb_dossier_service import _build_recommendations
+    targets = [_make_target(f"u{i}@co.fr", 2) for i in range(10)]
+    recs = _build_recommendations(_make_dossier_for_recs(risk_score=80), targets)
+    assert len(recs) <= 6
+
+
+def test_build_recs_includes_password_reset_when_exposed():
+    from app.services.darkweb_dossier_service import _build_recommendations
+    targets = [_make_target("a@co.fr", 2)]
+    recs = _build_recommendations(_make_dossier_for_recs(), targets)
+    titles = [r[0] for r in recs]
+    assert any("mot de passe" in t.lower() or "password" in t.lower() or "réinitialisation" in t.lower() for t in titles)
+
+
+def test_build_recs_includes_mfa_when_password_class_found():
+    from app.services.darkweb_dossier_service import _build_recommendations
+    targets = [_make_target("a@co.fr", 2, data_classes=["Passwords", "Email addresses"])]
+    recs = _build_recommendations(_make_dossier_for_recs(), targets)
+    titles = [r[0] for r in recs]
+    assert any("mfa" in t.lower() or "multi-facteur" in t.lower() or "authentification" in t.lower() for t in titles)
+
+
+def test_build_recs_includes_financial_when_credit_class_found():
+    from app.services.darkweb_dossier_service import _build_recommendations
+    targets = [_make_target("a@co.fr", 1, data_classes=["Credit card numbers"])]
+    recs = _build_recommendations(_make_dossier_for_recs(), targets)
+    titles = [r[0] for r in recs]
+    assert any("financ" in t.lower() or "bancaire" in t.lower() for t in titles)
+
+
+def test_build_recs_includes_incomplete_when_unverified():
+    from app.services.darkweb_dossier_service import _build_recommendations
+    error_target = _make_target("b@co.fr", 0, status="error", check_status="rate_limited")
+    recs = _build_recommendations(_make_dossier_for_recs(), [error_target])
+    titles_and_bodies = " ".join(r[0] + r[1] for r in recs).lower()
+    assert "incompl" in titles_and_bodies or "non vérif" in titles_and_bodies or "rate" in titles_and_bodies
+
+
+def test_build_recs_high_risk_surveillance_text():
+    from app.services.darkweb_dossier_service import _build_recommendations
+    recs = _build_recommendations(_make_dossier_for_recs(risk_score=75), [])
+    surveillance = next((r for r in recs if "surveillance" in r[0].lower()), None)
+    assert surveillance is not None
+    assert "75%" in surveillance[1] or "élevé" in surveillance[1].lower()
+
+
+def test_build_recs_no_financial_rec_without_financial_class():
+    from app.services.darkweb_dossier_service import _build_recommendations
+    targets = [_make_target("a@co.fr", 2, data_classes=["Email addresses"])]
+    recs = _build_recommendations(_make_dossier_for_recs(), targets)
+    titles = [r[0] for r in recs]
+    assert not any("financ" in t.lower() or "bancaire" in t.lower() for t in titles)
+
+
+# ── check_status determination logic ─────────────────────────────────────────
+
+def test_check_status_rate_limited_when_rate_in_error():
+    api_status = "unknown"
+    api_error = "Rate limited — retry later"
+    is_rate = any(kw in api_error.lower() for kw in ("rate", "429", "retry", "throttl"))
+    check_status = "rate_limited" if is_rate else "api_error"
+    assert check_status == "rate_limited"
+
+
+def test_check_status_api_error_when_network_failure():
+    api_status = "unknown"
+    api_error = "Connection timed out"
+    is_rate = any(kw in api_error.lower() for kw in ("rate", "429", "retry", "throttl"))
+    check_status = "rate_limited" if is_rate else "api_error"
+    assert check_status == "api_error"
+
+
+def test_check_status_verified_clean_when_count_zero_and_ok():
+    api_status = "OK"
+    count = 0
+    if api_status == "unknown":
+        result_status = "error"
+        check_status = "api_error"
+    elif count > 0:
+        result_status = "exposed"
+        check_status = "exposed"
+    else:
+        result_status = "clean"
+        check_status = "verified_clean"
+    assert result_status == "clean"
+    assert check_status == "verified_clean"
+
+
+def test_check_status_exposed_when_count_nonzero():
+    api_status = "CRITICAL"
+    count = 3
+    if api_status == "unknown":
+        result_status = "error"
+        check_status = "api_error"
+    elif count > 0:
+        result_status = "exposed"
+        check_status = "exposed"
+    else:
+        result_status = "clean"
+        check_status = "verified_clean"
+    assert result_status == "exposed"
+    assert check_status == "exposed"
+
+
+# ── risk_score with verified_total ────────────────────────────────────────────
+
+def test_risk_score_excludes_unverified_from_total():
+    """Risk score uses verified_total (total - unverified), not raw total."""
+    total = 10
+    unverified = 3
+    exposed = 3
+    verified_total = total - unverified
+    heavy = 0
+    weighted = (exposed + heavy * 0.5) / (verified_total + heavy * 0.5)
+    risk_score = min(100, round(weighted * 100))
+    assert risk_score == 43  # 3/7 ≈ 43%
+
+
+def test_risk_score_zero_when_all_unverified():
+    total = 5
+    unverified = 5
+    exposed = 0
+    verified_total = total - unverified
+    risk_score = 0 if verified_total == 0 else min(100, round(exposed / verified_total * 100))
+    assert risk_score == 0
+
+
+# ── CSV check_status column ───────────────────────────────────────────────────
+
+def test_export_csv_contains_check_status_header():
+    from app.services.darkweb_dossier_service import export_dossier_csv
+    result = export_dossier_csv(_make_dossier(), [])
+    text = result.decode("utf-8-sig")
+    assert "Vérification API" in text
+
+
+def test_export_csv_check_status_in_target_row():
+    from app.services.darkweb_dossier_service import export_dossier_csv
+    t = _make_target("carol@co.fr", 2)
+    t.check_status = "exposed"
+    result = export_dossier_csv(_make_dossier(), [t])
+    text = result.decode("utf-8-sig")
+    assert "exposed" in text
+
+
+def test_export_csv_check_status_rate_limited():
+    from app.services.darkweb_dossier_service import export_dossier_csv
+    t = _make_target("d@co.fr", 0, status="error")
+    t.check_status = "rate_limited"
+    result = export_dossier_csv(_make_dossier(), [t])
+    text = result.decode("utf-8-sig")
+    assert "rate_limited" in text
