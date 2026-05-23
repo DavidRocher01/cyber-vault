@@ -1,7 +1,7 @@
 """Integration tests — /api/v1/darkweb-dossier (B2B dossier endpoints)."""
 import io
 import json
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
@@ -306,4 +306,174 @@ async def test_get_pdf_other_user_returns_404(http_client: AsyncClient):
     dossier_id = create_r.json()["id"]
 
     r = await http_client.get(f"{ENDPOINT}/{dossier_id}/pdf", headers=h2)
+    assert r.status_code == 404
+
+
+# ── Rescan endpoint ───────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_rescan_resets_and_relaunches(http_client: AsyncClient):
+    headers = await register_and_login(http_client, "rescan1@test.com")
+    with patch("app.services.darkweb_dossier_service.check_email_breaches", return_value=_MOCK_BREACH):
+        create_r = await http_client.post(
+            ENDPOINT,
+            data={"company_name": "Rescan Corp", "domain": "rescan.fr"},
+            files=_upload(["r@rescan.fr"]),
+            headers=headers,
+        )
+    dossier_id = create_r.json()["id"]
+
+    with patch("app.services.darkweb_dossier_service.check_email_breaches", return_value=_MOCK_BREACH):
+        r = await http_client.post(f"{ENDPOINT}/{dossier_id}/rescan", headers=headers)
+
+    assert r.status_code == 200
+    data = r.json()
+    assert data["id"] == dossier_id
+    assert data["status"] in ("pending", "processing", "completed")
+
+
+@pytest.mark.asyncio
+async def test_rescan_while_pending_returns_400(http_client: AsyncClient):
+    """Cannot rescan a dossier that is already pending/processing."""
+    import asyncio
+    headers = await register_and_login(http_client, "rescan2@test.com")
+
+    # Create without running the background task so status stays pending
+    with patch("app.api.v1.endpoints.darkweb_dossier.process_dossier", new=AsyncMock()):
+        create_r = await http_client.post(
+            ENDPOINT,
+            data={"company_name": "Busy Corp", "domain": "busy.fr"},
+            files=_upload(["b@busy.fr"]),
+            headers=headers,
+        )
+    assert create_r.status_code == 201
+    dossier_id = create_r.json()["id"]
+
+    r = await http_client.post(f"{ENDPOINT}/{dossier_id}/rescan", headers=headers)
+    assert r.status_code == 400
+    assert "cours" in r.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_rescan_other_user_returns_404(http_client: AsyncClient):
+    h1 = await register_and_login(http_client, "rescan3@test.com")
+    h2 = await register_and_login(http_client, "rescan4@test.com")
+
+    with patch("app.services.darkweb_dossier_service.check_email_breaches", return_value=_MOCK_CLEAN):
+        create_r = await http_client.post(
+            ENDPOINT,
+            data={"company_name": "Other Corp", "domain": "other2.fr"},
+            files=_upload(["o@other2.fr"]),
+            headers=h1,
+        )
+    dossier_id = create_r.json()["id"]
+
+    r = await http_client.post(f"{ENDPOINT}/{dossier_id}/rescan", headers=h2)
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_rescan_not_found_returns_404(http_client: AsyncClient):
+    headers = await register_and_login(http_client, "rescan5@test.com")
+    r = await http_client.post(f"{ENDPOINT}/99999/rescan", headers=headers)
+    assert r.status_code == 404
+
+
+# ── CSV export ────────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_csv_export_returns_csv_bytes(http_client: AsyncClient):
+    headers = await register_and_login(http_client, "csv1@test.com")
+    with patch("app.services.darkweb_dossier_service.check_email_breaches", return_value=_MOCK_BREACH):
+        create_r = await http_client.post(
+            ENDPOINT,
+            data={"company_name": "CSV Corp", "domain": "csv.fr"},
+            files=_upload(["c@csv.fr"]),
+            headers=headers,
+        )
+    dossier_id = create_r.json()["id"]
+
+    r = await http_client.get(f"{ENDPOINT}/{dossier_id}/csv", headers=headers)
+    assert r.status_code == 200
+    assert "text/csv" in r.headers["content-type"]
+    assert len(r.content) > 0
+    text = r.content.decode("utf-8-sig")
+    assert "Email" in text
+
+
+@pytest.mark.asyncio
+async def test_csv_export_other_user_returns_404(http_client: AsyncClient):
+    h1 = await register_and_login(http_client, "csv2@test.com")
+    h2 = await register_and_login(http_client, "csv3@test.com")
+
+    with patch("app.services.darkweb_dossier_service.check_email_breaches", return_value=_MOCK_CLEAN):
+        create_r = await http_client.post(
+            ENDPOINT,
+            data={"company_name": "CSV Private", "domain": "csvpriv.fr"},
+            files=_upload(["p@csvpriv.fr"]),
+            headers=h1,
+        )
+    dossier_id = create_r.json()["id"]
+
+    r = await http_client.get(f"{ENDPOINT}/{dossier_id}/csv", headers=h2)
+    assert r.status_code == 404
+
+
+# ── Toggle monitoring ─────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_toggle_monitor_activates(http_client: AsyncClient):
+    headers = await register_and_login(http_client, "monitor1@test.com")
+    with patch("app.services.darkweb_dossier_service.check_email_breaches", return_value=_MOCK_CLEAN):
+        create_r = await http_client.post(
+            ENDPOINT,
+            data={"company_name": "Monitor Corp", "domain": "mon.fr"},
+            files=_upload(["m@mon.fr"]),
+            headers=headers,
+        )
+    dossier_id = create_r.json()["id"]
+
+    r = await http_client.patch(f"{ENDPOINT}/{dossier_id}/monitor", headers=headers)
+    assert r.status_code == 200
+    data = r.json()
+    assert "monitor_active" in data
+    assert isinstance(data["monitor_active"], bool)
+
+
+@pytest.mark.asyncio
+async def test_toggle_monitor_toggles_off_when_on(http_client: AsyncClient):
+    headers = await register_and_login(http_client, "monitor2@test.com")
+    with patch("app.services.darkweb_dossier_service.check_email_breaches", return_value=_MOCK_CLEAN):
+        create_r = await http_client.post(
+            ENDPOINT,
+            data={"company_name": "Toggle Corp", "domain": "tog.fr"},
+            files=_upload(["t@tog.fr"]),
+            headers=headers,
+        )
+    dossier_id = create_r.json()["id"]
+
+    r1 = await http_client.patch(f"{ENDPOINT}/{dossier_id}/monitor", headers=headers)
+    assert r1.json()["monitor_active"] is True
+    assert r1.json()["next_monitor_at"] is not None
+
+    r2 = await http_client.patch(f"{ENDPOINT}/{dossier_id}/monitor", headers=headers)
+    assert r2.json()["monitor_active"] is False
+    assert r2.json()["next_monitor_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_toggle_monitor_other_user_returns_404(http_client: AsyncClient):
+    h1 = await register_and_login(http_client, "monitor3@test.com")
+    h2 = await register_and_login(http_client, "monitor4@test.com")
+
+    with patch("app.services.darkweb_dossier_service.check_email_breaches", return_value=_MOCK_CLEAN):
+        create_r = await http_client.post(
+            ENDPOINT,
+            data={"company_name": "Mon Private", "domain": "monpriv.fr"},
+            files=_upload(["mp@monpriv.fr"]),
+            headers=h1,
+        )
+    dossier_id = create_r.json()["id"]
+
+    r = await http_client.patch(f"{ENDPOINT}/{dossier_id}/monitor", headers=h2)
     assert r.status_code == 404

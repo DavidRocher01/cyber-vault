@@ -11,6 +11,7 @@ function make(): DarkwebDossierDetailComponent {
   (comp as any).service = {
     parseBreachSources: DarkwebDossierService.prototype.parseBreachSources,
     parseTopSources: DarkwebDossierService.prototype.parseTopSources,
+    buildBreachTimeline: DarkwebDossierService.prototype.buildBreachTimeline,
     getPdfUrl: vi.fn().mockReturnValue('/api/v1/darkweb-dossier/1/pdf'),
   };
   return comp;
@@ -20,7 +21,8 @@ function dossier(overrides: Partial<DossierDetail> = {}): DossierDetail {
   return {
     id: 1, company_name: 'Acme SAS', domain: 'acme.fr',
     status: 'completed', total_emails: 10, exposed_emails: 3,
-    total_breach_instances: 7, risk_score: 30,
+    total_breach_instances: 7, risk_score: 30, severity_score: 45,
+    monitor_active: false, last_monitored_at: null, next_monitor_at: null,
     top_sources_json: JSON.stringify([{ name: 'LinkedIn', count: 3 }]),
     error_message: null, created_at: '2024-01-01T00:00:00Z',
     started_at: null, finished_at: null, targets: [],
@@ -164,5 +166,110 @@ describe('DarkwebDossierDetailComponent — getTopSources()', () => {
 
   it('retourne [] si dossier est null', () => {
     expect(make().getTopSources()).toEqual([]);
+  });
+});
+
+// ── severityColor ─────────────────────────────────────────────────────────────
+
+describe('DarkwebDossierDetailComponent — severityColor()', () => {
+  it('gray pour null', () => expect(make().severityColor(null)).toContain('gray'));
+  it('red pour score >= 60', () => expect(make().severityColor(60)).toContain('red'));
+  it('red pour score = 100', () => expect(make().severityColor(100)).toContain('red'));
+  it('orange pour score entre 30 et 59', () => expect(make().severityColor(30)).toContain('orange'));
+  it('orange pour score = 59', () => expect(make().severityColor(59)).toContain('orange'));
+  it('yellow pour score < 30', () => expect(make().severityColor(29)).toContain('yellow'));
+  it('yellow pour score = 0', () => expect(make().severityColor(0)).toContain('yellow'));
+});
+
+// ── severityLabel ─────────────────────────────────────────────────────────────
+
+describe('DarkwebDossierDetailComponent — severityLabel()', () => {
+  it('retourne "Non calculé" pour null', () => expect(make().severityLabel(null)).toBe('Non calculé'));
+  it('retourne "Données critiques exposées" pour >= 60', () => expect(make().severityLabel(60)).toBe('Données critiques exposées'));
+  it('retourne "Données critiques exposées" pour 100', () => expect(make().severityLabel(100)).toBe('Données critiques exposées'));
+  it('retourne "Données sensibles exposées" pour 30', () => expect(make().severityLabel(30)).toBe('Données sensibles exposées'));
+  it('retourne "Données sensibles exposées" pour 59', () => expect(make().severityLabel(59)).toBe('Données sensibles exposées'));
+  it('retourne "Données peu sensibles" pour 0', () => expect(make().severityLabel(0)).toBe('Données peu sensibles'));
+  it('retourne "Données peu sensibles" pour 29', () => expect(make().severityLabel(29)).toBe('Données peu sensibles'));
+});
+
+// ── riskBorderColor ───────────────────────────────────────────────────────────
+
+describe('DarkwebDossierDetailComponent — riskBorderColor()', () => {
+  it('gris pour null', () => expect(make().riskBorderColor(null)).toContain('gray'));
+  it('rouge pour score >= 50', () => expect(make().riskBorderColor(50)).toContain('red'));
+  it('rouge pour score = 100', () => expect(make().riskBorderColor(100)).toContain('red'));
+  it('jaune pour score entre 20 et 49', () => expect(make().riskBorderColor(20)).toContain('yellow'));
+  it('vert pour score < 20', () => expect(make().riskBorderColor(10)).toContain('green'));
+  it('vert pour score = 0', () => expect(make().riskBorderColor(0)).toContain('green'));
+});
+
+// ── getBreachTimeline ─────────────────────────────────────────────────────────
+
+describe('DarkwebDossierDetailComponent — getBreachTimeline()', () => {
+  it('retourne [] si dossier est null', () => {
+    expect(make().getBreachTimeline()).toEqual([]);
+  });
+
+  it('retourne [] si aucun target', () => {
+    const comp = make();
+    (comp as any).dossier.set(dossier({ targets: [] }));
+    expect(comp.getBreachTimeline()).toEqual([]);
+  });
+
+  it('retourne le timeline pour des targets avec fuites', () => {
+    const comp = make();
+    const sources = JSON.stringify([
+      { name: 'LinkedIn', breach_date: '2021-06-22' },
+      { name: 'Adobe', breach_date: '2019-10-04' },
+    ]);
+    const targets = [
+      target({ breach_sources_json: sources, total_breaches: 2 }),
+    ];
+    (comp as any).dossier.set(dossier({ targets }));
+    const timeline = comp.getBreachTimeline();
+    expect(timeline.length).toBeGreaterThan(0);
+    expect(timeline.some(t => t.year === 2021)).toBe(true);
+    expect(timeline.some(t => t.year === 2019)).toBe(true);
+  });
+
+  it('est trié par année croissante', () => {
+    const comp = make();
+    const sources = JSON.stringify([
+      { name: 'B', breach_date: '2023-01-01' },
+      { name: 'A', breach_date: '2018-05-05' },
+    ]);
+    const targets = [target({ breach_sources_json: sources, total_breaches: 2 })];
+    (comp as any).dossier.set(dossier({ targets }));
+    const timeline = comp.getBreachTimeline();
+    for (let i = 1; i < timeline.length; i++) {
+      expect(timeline[i].year).toBeGreaterThan(timeline[i - 1].year);
+    }
+  });
+});
+
+// ── getBreachTimelineMax ──────────────────────────────────────────────────────
+
+describe('DarkwebDossierDetailComponent — getBreachTimelineMax()', () => {
+  it('retourne 1 pour une liste vide (évite division par zéro)', () => {
+    expect(make().getBreachTimelineMax([])).toBe(1);
+  });
+
+  it('retourne le count max parmi les entrées', () => {
+    const timeline = [
+      { year: 2019, count: 2 },
+      { year: 2021, count: 7 },
+      { year: 2022, count: 4 },
+    ];
+    expect(make().getBreachTimelineMax(timeline)).toBe(7);
+  });
+
+  it('fonctionne avec une seule entrée', () => {
+    expect(make().getBreachTimelineMax([{ year: 2020, count: 3 }])).toBe(3);
+  });
+
+  it('retourne 1 si tous les counts sont 0', () => {
+    const timeline = [{ year: 2021, count: 0 }];
+    expect(make().getBreachTimelineMax(timeline)).toBe(1);
   });
 });

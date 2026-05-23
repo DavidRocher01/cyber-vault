@@ -214,3 +214,102 @@ async def test_sync_catalog_returns_zero_on_empty_fetch():
         count = await sync_breach_catalog(db)
 
     assert count == 0
+
+
+# ── export_dossier_csv ────────────────────────────────────────────────────────
+
+def test_export_csv_returns_bytes():
+    from app.services.darkweb_dossier_service import export_dossier_csv
+    dossier = _make_dossier()
+    result = export_dossier_csv(dossier, [])
+    assert isinstance(result, bytes)
+
+
+def test_export_csv_contains_header_row():
+    from app.services.darkweb_dossier_service import export_dossier_csv
+    dossier = _make_dossier()
+    result = export_dossier_csv(dossier, [])
+    text = result.decode("utf-8-sig")
+    assert "Email" in text
+    assert "Statut" in text
+    assert "Nb fuites" in text
+
+
+def test_export_csv_contains_target_rows():
+    from app.services.darkweb_dossier_service import export_dossier_csv
+    targets = [
+        _make_target("alice@acme.fr", 2),
+        _make_target("bob@acme.fr", 0, "clean"),
+    ]
+    dossier = _make_dossier(total_emails=2, exposed_emails=1)
+    result = export_dossier_csv(dossier, targets)
+    text = result.decode("utf-8-sig")
+    assert "alice@acme.fr" in text
+    assert "bob@acme.fr" in text
+
+
+def test_export_csv_exposed_status_in_row():
+    from app.services.darkweb_dossier_service import export_dossier_csv
+    targets = [_make_target("carol@acme.fr", 1)]
+    result = export_dossier_csv(_make_dossier(), targets)
+    text = result.decode("utf-8-sig")
+    assert "exposed" in text
+    assert "carol@acme.fr" in text
+
+
+def test_export_csv_bom_prefix():
+    from app.services.darkweb_dossier_service import export_dossier_csv
+    result = export_dossier_csv(_make_dossier(), [])
+    assert result.startswith(b"\xef\xbb\xbf"), "CSV doit commencer par un BOM UTF-8"
+
+
+# ── _compute_severity ─────────────────────────────────────────────────────────
+
+def test_compute_severity_zero_with_no_targets():
+    from app.services.darkweb_dossier_service import _compute_severity
+    assert _compute_severity([]) == 0
+
+
+def test_compute_severity_zero_with_clean_targets():
+    from app.services.darkweb_dossier_service import _compute_severity
+    t = _make_target("x@co.fr", 0, "clean")
+    t.breach_sources_json = "[]"
+    assert _compute_severity([t]) == 0
+
+
+def test_compute_severity_high_with_passwords():
+    from app.services.darkweb_dossier_service import _compute_severity
+    t = MagicMock()
+    t.breach_sources_json = json.dumps([
+        {"name": "LinkedIn", "data_classes": ["Passwords", "Email addresses"]},
+        {"name": "Adobe", "data_classes": ["Passwords"]},
+    ])
+    score = _compute_severity([t])
+    assert score > 50, f"Score attendu > 50, obtenu {score}"
+
+
+def test_compute_severity_low_with_email_only():
+    from app.services.darkweb_dossier_service import _compute_severity
+    t = MagicMock()
+    t.breach_sources_json = json.dumps([
+        {"name": "Spam", "data_classes": ["Email addresses"]},
+    ])
+    score = _compute_severity([t])
+    assert score < 50, f"Score attendu < 50, obtenu {score}"
+
+
+def test_compute_severity_max_with_financial():
+    from app.services.darkweb_dossier_service import _compute_severity
+    t = MagicMock()
+    t.breach_sources_json = json.dumps([
+        {"name": "Bank", "data_classes": ["Credit card numbers", "Bank account details"]},
+    ])
+    score = _compute_severity([t])
+    assert score > 0
+
+
+def test_compute_severity_ignores_invalid_json():
+    from app.services.darkweb_dossier_service import _compute_severity
+    t = MagicMock()
+    t.breach_sources_json = "not-json"
+    assert _compute_severity([t]) == 0
