@@ -181,6 +181,18 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Nouvelle campagne phishing — CyberScan',
   },
   {
+    path: 'phishing/campaigns/:id',
+    loadComponent: () => import('./phishing-campaign-detail/phishing-campaign-detail.component').then(m => m.PhishingCampaignDetailComponent),
+    canActivate: [authGuard],
+    title: 'Résultats campagne — CyberScan',
+  },
+  {
+    path: 'phishing/campaigns/:id/edit',
+    loadComponent: () => import('./phishing-campaign-edit/phishing-campaign-edit.component').then(m => m.PhishingCampaignEditComponent),
+    canActivate: [authGuard],
+    title: 'Configurer campagne — CyberScan',
+  },
+  {
     path: 'scan-gratuit',
     loadComponent: () => import('./scan-gratuit/scan-gratuit.component').then(m => m.ScanGratuitComponent),
     title: 'Scan de sécurité gratuit — Audit en 90 secondes | CyberScan',
