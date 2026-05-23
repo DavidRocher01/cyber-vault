@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import io
 import json
-import time
+import asyncio
 from collections import Counter
 from datetime import datetime, timezone
 
@@ -153,8 +153,8 @@ async def process_dossier(dossier_id: int, api_key: str) -> None:
 
             for i, target in enumerate(targets):
                 if i > 0:
-                    time.sleep(_BATCH_DELAY)
-                data = check_email_breaches(target.email, api_key)
+                    await asyncio.sleep(_BATCH_DELAY)
+                data = await asyncio.to_thread(check_email_breaches, target.email, api_key)
                 breaches = enrich_breaches_from_catalog(data.get("breaches", []), catalog)
                 count = data.get("total", 0)
 
