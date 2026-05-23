@@ -1,0 +1,52 @@
+<div class="min-h-screen bg-gray-950 text-white">
+  <app-nav-buttons />
+
+  <div class="max-w-xl mx-auto px-4 py-12">
+    <div class="flex items-center gap-3 mb-8">
+      <button type="button" (click)="back()"
+              class="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div>
+        <h1 class="text-2xl font-bold">Mon profil consultant</h1>
+        <p class="text-sm text-gray-400 mt-0.5">Ces informations apparaissent dans vos rapports PDF clients.</p>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <p class="text-gray-400 text-sm">Chargement...</p>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="save()"
+            class="bg-gray-900 border border-gray-800 rounded-2xl p-6 flex flex-col gap-5">
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Nom affiché</mat-label>
+          <input matInput formControlName="display_name" placeholder="Ex : David Rocher" />
+          <mat-hint>Votre prénom et nom complet</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Société</mat-label>
+          <input matInput formControlName="company_name" placeholder="Ex : CyberScan SAS" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Téléphone</mat-label>
+          <input matInput formControlName="phone" placeholder="Ex : +33 6 12 34 56 78" />
+        </mat-form-field>
+
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving()"
+                class="!rounded-xl !py-2">
+          @if (saving()) {
+            Enregistrement…
+          } @else if (saved()) {
+            <mat-icon class="!text-base !w-4 !h-4 align-middle mr-1">check_circle</mat-icon>
+            Sauvegardé
+          } @else {
+            Enregistrer
+          }
+        </button>
+      </form>
+    }
+  </div>
+</div>

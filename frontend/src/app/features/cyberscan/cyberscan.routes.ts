@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from '../../core/guards/auth.guard';
+import { rssiGuard } from '../../core/guards/rssi.guard';
 
 export const CYBERSCAN_ROUTES: Routes = [
   {
@@ -52,13 +53,19 @@ export const CYBERSCAN_ROUTES: Routes = [
   {
     path: 'consultant',
     loadComponent: () => import('./consultant-dashboard/consultant-dashboard.component').then(m => m.ConsultantDashboardComponent),
-    canActivate: [authGuard],
+    canActivate: [rssiGuard],
     title: 'RSSI Externalisé — CyberScan',
+  },
+  {
+    path: 'consultant/profile',
+    loadComponent: () => import('./consultant-profile/consultant-profile.component').then(m => m.ConsultantProfileComponent),
+    canActivate: [rssiGuard],
+    title: 'Mon profil consultant — CyberScan',
   },
   {
     path: 'consultant/clients/:id',
     loadComponent: () => import('./client-detail/client-detail.component').then(m => m.ClientDetailComponent),
-    canActivate: [authGuard],
+    canActivate: [rssiGuard],
     title: 'Détail client — CyberScan',
   },
   {

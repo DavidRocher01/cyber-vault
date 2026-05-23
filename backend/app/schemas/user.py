@@ -22,6 +22,7 @@ class UserOut(BaseModel):
     email: EmailStr
     is_active: bool
     totp_enabled: bool = False
+    is_rssi_consultant: bool = False
 
     model_config = {"from_attributes": True}
 

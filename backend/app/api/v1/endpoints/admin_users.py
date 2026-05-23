@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,6 +25,7 @@ async def list_users(db: AsyncSession = Depends(get_db)):
             "id": u.id,
             "email": u.email,
             "is_active": u.is_active,
+            "is_rssi_consultant": u.is_rssi_consultant,
             "plan": p.display_name if p else "Gratuit",
             "plan_name": p.name if p else None,
             "subscription_status": s.status if s else None,
@@ -32,3 +33,14 @@ async def list_users(db: AsyncSession = Depends(get_db)):
         }
         for u, s, p in rows
     ]
+
+
+@router.patch("/{user_id}/rssi", dependencies=[Depends(require_admin)])
+async def toggle_rssi_consultant(user_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilisateur introuvable")
+    user.is_rssi_consultant = not user.is_rssi_consultant
+    await db.commit()
+    return {"id": user.id, "is_rssi_consultant": user.is_rssi_consultant}

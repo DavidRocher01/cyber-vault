@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, get_rssi_consultant
+from app.core.deps import get_rssi_consultant
 from app.models.rssi_action import RssiAction
 from app.models.rssi_activity_log import RssiActivityLog
 from app.models.rssi_client import RssiClient
@@ -252,7 +252,7 @@ async def _compute_aggregates(
 
 @router.get("/clients", response_model=list[RssiClientOut])
 async def list_clients(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     clients_result = await db.execute(
@@ -272,7 +272,7 @@ async def list_clients(
 @router.get("/clients/{client_id}", response_model=RssiClientOut)
 async def get_client(
     client_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     client = await _get_client_or_404(client_id, current_user.id, db)
@@ -283,7 +283,7 @@ async def get_client(
 @router.post("/clients", response_model=RssiClientOut, status_code=201)
 async def create_client(
     payload: RssiClientCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     if not payload.name.strip():
@@ -314,7 +314,7 @@ async def create_client(
 async def update_client(
     client_id: int,
     payload: RssiClientUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     client = await _get_client_or_404(client_id, current_user.id, db)
@@ -356,7 +356,7 @@ async def update_client(
 @router.delete("/clients/{client_id}", status_code=204)
 async def delete_client(
     client_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     client = await _get_client_or_404(client_id, current_user.id, db)
@@ -388,7 +388,7 @@ class RssiSiteOut(BaseModel):
 @router.get("/clients/{client_id}/sites", response_model=list[RssiSiteOut])
 async def list_client_sites(
     client_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     """Active sites linked to this RSSI client, with latest scan status."""
@@ -439,7 +439,7 @@ class UnlinkedSiteOut(BaseModel):
 
 @router.get("/sites/unlinked", response_model=list[UnlinkedSiteOut])
 async def list_unlinked_sites(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     """Active sites of this consultant that are not linked to any RSSI client."""
@@ -457,7 +457,7 @@ async def list_unlinked_sites(
 async def link_site_to_client(
     client_id: int,
     site_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     """Link an existing site to an RSSI client."""
@@ -495,7 +495,7 @@ async def link_site_to_client(
 async def unlink_site_from_client(
     client_id: int,
     site_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     """Remove the link between a site and an RSSI client (site is NOT deleted)."""
@@ -521,7 +521,7 @@ async def unlink_site_from_client(
 @router.get("/clients/{client_id}/visits", response_model=list[RssiVisitOut])
 async def list_visits(
     client_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
@@ -537,7 +537,7 @@ async def list_visits(
 async def create_visit(
     client_id: int,
     payload: RssiVisitCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
@@ -565,7 +565,7 @@ async def update_visit(
     client_id: int,
     visit_id: int,
     payload: RssiVisitUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
@@ -606,7 +606,7 @@ async def update_visit(
 async def delete_visit(
     client_id: int,
     visit_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
@@ -626,7 +626,7 @@ async def delete_visit(
 async def list_actions(
     client_id: int,
     status_filter: str | None = None,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
@@ -642,7 +642,7 @@ async def list_actions(
 async def create_action(
     client_id: int,
     payload: RssiActionCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
@@ -673,7 +673,7 @@ async def update_action(
     client_id: int,
     action_id: int,
     payload: RssiActionUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
@@ -718,7 +718,7 @@ async def update_action(
 async def delete_action(
     client_id: int,
     action_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
@@ -739,7 +739,7 @@ from app.services import rssi_aggregation_service as _agg
 
 @router.get("/dashboard/overview")
 async def get_dashboard_overview(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     """Aggregated stats across all active clients."""
@@ -749,7 +749,7 @@ async def get_dashboard_overview(
 
 @router.get("/dashboard/clients-summary")
 async def get_clients_summary(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     """Per-client summary with action counts and next visit."""
@@ -758,7 +758,7 @@ async def get_clients_summary(
 
 @router.get("/dashboard/alerts")
 async def get_pending_alerts(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     """Alerts requiring attention: overdue actions, renewals, no recent visit."""
@@ -768,7 +768,7 @@ async def get_pending_alerts(
 @router.get("/dashboard/upcoming-events")
 async def get_upcoming_events(
     days_ahead: int = 14,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     """Planned visits in the next N days (default 14)."""
@@ -777,7 +777,7 @@ async def get_upcoming_events(
 
 @router.get("/dashboard/suggestions")
 async def get_suggestions(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     """Rule-based suggestions: upsell, engagement alerts, high overdue."""
@@ -815,7 +815,7 @@ _VALID_ACTION_TYPES = {
 async def log_activity(
     client_id: int,
     body: ActivityLogCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     """Record a consultant action on a client account."""
@@ -845,7 +845,7 @@ async def log_activity(
 async def get_activity_log(
     client_id: int,
     limit: int = 50,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     """List the N most recent activity log entries for a client (default 50)."""
@@ -874,7 +874,7 @@ async def get_activity_log(
 @router.get("/clients/{client_id}/report")
 async def get_client_report(
     client_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     """Generate and stream a PDF report for a client."""
@@ -998,7 +998,7 @@ class RssiDeliverableOut(BaseModel):
 @router.get("/clients/{client_id}/deliverables", response_model=list[RssiDeliverableOut])
 async def list_deliverables(
     client_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
@@ -1014,7 +1014,7 @@ async def list_deliverables(
 async def create_deliverable(
     client_id: int,
     payload: RssiDeliverableCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
@@ -1043,7 +1043,7 @@ async def update_deliverable(
     client_id: int,
     deliverable_id: int,
     payload: RssiDeliverableUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
@@ -1081,7 +1081,7 @@ async def update_deliverable(
 async def delete_deliverable(
     client_id: int,
     deliverable_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
@@ -1154,7 +1154,7 @@ async def update_consultant_profile(
 @router.get("/clients/{client_id}/actions/export")
 async def export_actions_csv(
     client_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     """Export all actions for a client as a CSV file."""
@@ -1206,7 +1206,7 @@ async def export_actions_csv(
 async def upload_deliverable_file(
     client_id: int,
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     """Upload a file for a client deliverable and return its storage key."""
@@ -1232,7 +1232,7 @@ async def upload_deliverable_file(
 async def download_deliverable_file(
     client_id: int,
     deliverable_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
     """Return a short-lived download URL for a deliverable file."""
