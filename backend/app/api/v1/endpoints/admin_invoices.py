@@ -5,22 +5,28 @@ GET  /admin/invoices        — list all invoices
 GET  /admin/invoices/{id}   — get invoice detail
 GET  /admin/invoices/{id}/pdf — download PDF
 """
+import secrets
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from fastapi.responses import Response
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
-from app.core.deps import require_admin
 from app.models.invoice import Invoice
 from app.models.user import User
 from app.services.invoice_pdf import generate_invoice_pdf
 from app.services.invoice_service import create_invoice
 
 router = APIRouter(prefix="/admin/invoices", tags=["admin"])
+
+
+def _require_admin(x_admin_key: str = Header(default="")) -> None:
+    if not settings.ADMIN_API_KEY or not secrets.compare_digest(x_admin_key, settings.ADMIN_API_KEY):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès refusé")
 
 
 class InvoiceCreateRequest(BaseModel):
@@ -33,7 +39,7 @@ class InvoiceCreateRequest(BaseModel):
     issue_date: date | None = None
 
 
-@router.post("", dependencies=[Depends(require_admin)], status_code=201)
+@router.post("", dependencies=[Depends(_require_admin)], status_code=201)
 async def admin_create_invoice(
     body: InvoiceCreateRequest,
     db: AsyncSession = Depends(get_db),
@@ -62,7 +68,7 @@ async def admin_create_invoice(
     return _serialize(invoice)
 
 
-@router.get("", dependencies=[Depends(require_admin)])
+@router.get("", dependencies=[Depends(_require_admin)])
 async def admin_list_invoices(
     limit: int = 100,
     offset: int = 0,
@@ -77,7 +83,7 @@ async def admin_list_invoices(
     return [_serialize(inv) for inv in result.scalars().all()]
 
 
-@router.get("/{invoice_id}", dependencies=[Depends(require_admin)])
+@router.get("/{invoice_id}", dependencies=[Depends(_require_admin)])
 async def admin_get_invoice(
     invoice_id: int,
     db: AsyncSession = Depends(get_db),
@@ -86,7 +92,7 @@ async def admin_get_invoice(
     return _serialize(inv)
 
 
-@router.get("/{invoice_id}/pdf", dependencies=[Depends(require_admin)])
+@router.get("/{invoice_id}/pdf", dependencies=[Depends(_require_admin)])
 async def admin_download_pdf(
     invoice_id: int,
     db: AsyncSession = Depends(get_db),

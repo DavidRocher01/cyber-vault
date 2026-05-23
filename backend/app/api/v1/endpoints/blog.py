@@ -1,21 +1,29 @@
 import json
+import secrets
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
-from app.core.deps import require_admin
-from app.core.utils import safe_json_load
 from app.models.blog_post import BlogPost
 from app.schemas.blog import BlogPostDetailOut, BlogPostIn, BlogPostOut
 
 router = APIRouter(prefix="/blog", tags=["blog"])
 
 
+def _require_admin(x_admin_key: str = Header(default="")) -> None:
+    if not settings.ADMIN_API_KEY or not secrets.compare_digest(x_admin_key, settings.ADMIN_API_KEY):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès refusé")
+
+
 def _to_out(p: BlogPost) -> BlogPostOut:
-    tags = safe_json_load(p.tags, [])
+    try:
+        tags = json.loads(p.tags)
+    except Exception:
+        tags = []
     return BlogPostOut(
         id=p.id, slug=p.slug, title=p.title, description=p.description,
         date=p.date, readTime=p.read_time, category=p.category,
@@ -24,7 +32,10 @@ def _to_out(p: BlogPost) -> BlogPostOut:
 
 
 def _to_detail(p: BlogPost) -> BlogPostDetailOut:
-    tags = safe_json_load(p.tags, [])
+    try:
+        tags = json.loads(p.tags)
+    except Exception:
+        tags = []
     return BlogPostDetailOut(
         id=p.id, slug=p.slug, title=p.title, description=p.description,
         date=p.date, readTime=p.read_time, category=p.category,
@@ -53,13 +64,13 @@ async def get_article(slug: str, db: AsyncSession = Depends(get_db)):
     return _to_detail(post)
 
 
-@router.get("/admin/articles", response_model=list[BlogPostOut], dependencies=[Depends(require_admin)])
+@router.get("/admin/articles", response_model=list[BlogPostOut], dependencies=[Depends(_require_admin)])
 async def admin_list_articles(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(BlogPost).order_by(BlogPost.date.desc()))
     return [_to_out(p) for p in result.scalars().all()]
 
 
-@router.get("/admin/articles/{slug}", response_model=BlogPostDetailOut, dependencies=[Depends(require_admin)])
+@router.get("/admin/articles/{slug}", response_model=BlogPostDetailOut, dependencies=[Depends(_require_admin)])
 async def admin_get_article(slug: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(BlogPost).where(BlogPost.slug == slug))
     post = result.scalar_one_or_none()
@@ -72,7 +83,7 @@ async def admin_get_article(slug: str, db: AsyncSession = Depends(get_db)):
     "/admin/articles",
     response_model=BlogPostDetailOut,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_admin)],
+    dependencies=[Depends(_require_admin)],
 )
 async def create_article(payload: BlogPostIn, db: AsyncSession = Depends(get_db)):
     now = datetime.now(timezone.utc)
@@ -97,7 +108,7 @@ async def create_article(payload: BlogPostIn, db: AsyncSession = Depends(get_db)
 @router.put(
     "/admin/articles/{slug}",
     response_model=BlogPostDetailOut,
-    dependencies=[Depends(require_admin)],
+    dependencies=[Depends(_require_admin)],
 )
 async def update_article(slug: str, payload: BlogPostIn, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(BlogPost).where(BlogPost.slug == slug))
@@ -121,7 +132,7 @@ async def update_article(slug: str, payload: BlogPostIn, db: AsyncSession = Depe
 @router.delete(
     "/admin/articles/{slug}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(require_admin)],
+    dependencies=[Depends(_require_admin)],
 )
 async def delete_article(slug: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(BlogPost).where(BlogPost.slug == slug))

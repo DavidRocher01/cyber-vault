@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 
 
 # --- Plans ---
@@ -23,13 +23,8 @@ class SubscriptionOut(BaseModel):
     status: str
     current_period_end: datetime | None
     plan: PlanOut
-    extra_sites: int = 0
 
     model_config = {"from_attributes": True}
-
-    @property
-    def effective_max_sites(self) -> int:
-        return self.plan.max_sites + self.extra_sites
 
 
 class CheckoutSessionOut(BaseModel):
@@ -41,7 +36,6 @@ class CheckoutSessionOut(BaseModel):
 class SiteCreate(BaseModel):
     url: str
     name: str
-    rssi_client_id: int | None = None
 
 
 class SiteOut(BaseModel):
@@ -50,7 +44,6 @@ class SiteOut(BaseModel):
     name: str
     is_active: bool
     created_at: datetime
-    rssi_client_id: int | None = None
 
     model_config = {"from_attributes": True}
 

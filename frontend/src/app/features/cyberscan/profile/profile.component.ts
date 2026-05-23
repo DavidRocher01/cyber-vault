@@ -1,5 +1,4 @@
-import { Component, DestroyRef, inject, OnInit, signal, computed } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -15,9 +14,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Title } from '@angular/platform-browser';
 
-import { UserService, UserProfile, TwoFactorSetup, NotificationPreferences, Badge } from '../services/user.service';
-import { BrandService, BrandProfile } from '../services/brand.service';
-import { RssiService, ConsultantProfile } from '../services/rssi.service';
+import { UserService, UserProfile, TwoFactorSetup, NotificationPreferences } from '../services/user.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { OtpInputComponent } from '../../../shared/otp-input/otp-input.component';
 
@@ -34,16 +31,12 @@ import { OtpInputComponent } from '../../../shared/otp-input/otp-input.component
 })
 export class ProfileComponent implements OnInit {
   private userService = inject(UserService);
-  private brandService = inject(BrandService);
-  private rssiService = inject(RssiService);
   private fb = inject(FormBuilder);
   private snack = inject(MatSnackBar);
   private title = inject(Title);
   private router = inject(Router);
-  private destroyRef = inject(DestroyRef);
 
   profile = signal<UserProfile | null>(null);
-  badges = signal<Badge[]>([]);
   loading = signal(true);
   savingEmail = signal(false);
   savingPassword = signal(false);
@@ -66,10 +59,6 @@ export class ProfileComponent implements OnInit {
   twoFaDisableCode = signal('');
   otpClear = 0;
   otpDisableClear = 0;
-
-  get earnedBadgesCount(): number {
-    return this.badges().filter(b => b.earned).length;
-  }
 
   get initials(): string {
     const email = this.profile()?.email ?? '';
@@ -104,7 +93,7 @@ export class ProfileComponent implements OnInit {
 
   ngOnInit() {
     this.title.setTitle('Mon profil — CyberScan');
-    this.userService.getProfile().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.userService.getProfile().subscribe({
       next: p => {
         this.profile.set(p);
         this.emailForm.patchValue({ email: p.email });
@@ -112,32 +101,8 @@ export class ProfileComponent implements OnInit {
       },
       error: () => this.loading.set(false),
     });
-    this.userService.getNotificationPreferences().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.userService.getNotificationPreferences().subscribe({
       next: prefs => this.notifPrefs.set(prefs),
-    });
-    this.userService.getBadges().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: b => this.badges.set(b),
-    });
-    this.brandService.get().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: brand => {
-        if (brand) {
-          this.brandForm.patchValue({ company_name: brand.company_name, accent_color: brand.accent_color });
-          if (brand.logo_b64) {
-            this._brandLogoB64 = brand.logo_b64;
-            this.brandLogoPreview.set(brand.logo_b64);
-          }
-        }
-      },
-    });
-    this.rssiService.getProfile().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: p => {
-        this.consultantProfile.set(p);
-        this.consultantForm.patchValue({
-          display_name: p.display_name ?? '',
-          company_name: p.company_name ?? '',
-          phone: p.phone ?? '',
-        });
-      },
     });
   }
 
@@ -233,82 +198,6 @@ export class ProfileComponent implements OnInit {
         this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
       },
     });
-  }
-
-  // ── Brand ─────────────────────────────────────────────────────────────────
-  brandLogoPreview = signal<string | null>(null);
-  savingBrand = signal(false);
-
-  brandForm = this.fb.nonNullable.group({
-    company_name: ['', Validators.required],
-    accent_color: ['#06b6d4'],
-  });
-
-  private _brandLogoB64: string | null = null;
-
-  onLogoChange(event: Event) {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file) return;
-    if (file.size > 200 * 1024) {
-      this.snack.open('Le logo ne doit pas dépasser 200 Ko', 'Fermer', { duration: 4000 });
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      this._brandLogoB64 = result;
-      this.brandLogoPreview.set(result);
-    };
-    reader.readAsDataURL(file);
-  }
-
-  removeLogo() {
-    this._brandLogoB64 = null;
-    this.brandLogoPreview.set(null);
-  }
-
-  saveBrand() {
-    if (this.brandForm.invalid) return;
-    this.savingBrand.set(true);
-    const { company_name, accent_color } = this.brandForm.getRawValue();
-    this.brandService.upsert({ company_name, accent_color, logo_b64: this._brandLogoB64 }).subscribe({
-      next: () => {
-        this.savingBrand.set(false);
-        this.snack.open('Personnalisation enregistrée', 'OK', { duration: 3000 });
-      },
-      error: () => {
-        this.savingBrand.set(false);
-        this.snack.open('Erreur lors de la sauvegarde', 'Fermer', { duration: 4000 });
-      },
-    });
-  }
-
-  // ── RSSI consultant profile ───────────────────────────────────────────────
-  consultantProfile = signal<ConsultantProfile | null>(null);
-  savingConsultant = signal(false);
-
-  consultantForm = this.fb.nonNullable.group({
-    display_name: [''],
-    company_name: [''],
-    phone: [''],
-  });
-
-  saveConsultantProfile() {
-    this.savingConsultant.set(true);
-    const { display_name, company_name, phone } = this.consultantForm.getRawValue();
-    this.rssiService.updateProfile({ display_name: display_name || null, company_name: company_name || null, phone: phone || null })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: p => {
-          this.consultantProfile.set(p);
-          this.savingConsultant.set(false);
-          this.snack.open('Profil consultant enregistré', 'OK', { duration: 3000 });
-        },
-        error: () => {
-          this.savingConsultant.set(false);
-          this.snack.open('Erreur lors de la sauvegarde', 'Fermer', { duration: 4000 });
-        },
-      });
   }
 
   // ── RGPD ──────────────────────────────────────────────────────────────────

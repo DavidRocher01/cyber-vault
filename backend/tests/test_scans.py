@@ -21,7 +21,7 @@ async def _headers(client: AsyncClient, email: str) -> dict:
 
 
 async def _site(client: AsyncClient, headers: dict, url: str = "https://example.com") -> int:
-    with patch("app.api.v1.endpoints.sites.get_effective_max_sites", new=AsyncMock(return_value=5)):
+    with patch("app.api.v1.endpoints.sites.get_active_plan", new=AsyncMock(return_value=MagicMock(max_sites=5))):
         r = await client.post(f"{BASE}/sites", json={"url": url, "name": "Test"}, headers=headers)
     return r.json()["id"]
 
@@ -180,7 +180,7 @@ async def test_csv_export_requires_auth():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get(f"{BASE}/scans/site/1/export")
     # FastAPI HTTPBearer raises 403 when no Authorization header is provided
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 @pytest.mark.asyncio

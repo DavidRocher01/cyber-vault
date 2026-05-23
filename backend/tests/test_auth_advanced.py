@@ -90,7 +90,7 @@ async def test_protected_route_requires_token():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get(f"{BASE}/users/me")
     # FastAPI HTTPBearer returns 403 when no Authorization header is present
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 @pytest.mark.asyncio

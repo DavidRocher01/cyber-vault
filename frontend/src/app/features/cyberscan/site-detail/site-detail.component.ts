@@ -1,6 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,8 +9,7 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { Subscription as RxSubscription } from 'rxjs';
 import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 
-import { CyberscanService, Site, Scan, PaginatedScans, FindingStatus } from '../services/cyberscan.service';
-import { CollabService, Collaborator } from '../services/collab.service';
+import { CyberscanService, Site, Scan, PaginatedScans } from '../services/cyberscan.service';
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
 import { computeScore, getGrade, getScoreColor } from '../../../shared/score-utils';
 import { Finding, getFindings } from '../../../shared/scan-findings';
@@ -22,7 +20,7 @@ import { ScoreTrendComponent, ScoreTrendPoint } from '../../../shared/score-tren
     standalone: true,
     selector: 'app-site-detail',
     imports: [
-        CommonModule, FormsModule, RouterLink,
+        CommonModule, RouterLink,
         MatButtonModule, MatIconModule, MatProgressSpinnerModule,
         MatSnackBarModule, MatPaginatorModule, ScoreGaugeComponent, NavButtonsComponent, ScoreTrendComponent,
     ],
@@ -32,7 +30,6 @@ import { ScoreTrendComponent, ScoreTrendPoint } from '../../../shared/score-tren
 export class SiteDetailComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private cyberscan = inject(CyberscanService);
-  private collabService = inject(CollabService);
   private snack = inject(MatSnackBar);
   private pollingSubscription?: RxSubscription;
 
@@ -45,63 +42,6 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
   currentPage = signal(1);
   activeTab = signal<'failles' | 'historique' | 'rapports'>('failles');
   flippedFindings = new Set<string>();
-  findingStatuses = signal<Record<string, string>>({});
-
-  // ── Collaborateurs ───────────────────────────────────────────────────────
-  collaborators = signal<Collaborator[]>([]);
-  showInviteForm = signal(false);
-  inviteEmail = '';
-  inviteRole = 'viewer';
-  sendingInvite = signal(false);
-
-  loadCollaborators(siteId: number) {
-    this.collabService.list(siteId).subscribe({
-      next: list => this.collaborators.set(list),
-    });
-  }
-
-  sendInvite() {
-    if (!this.inviteEmail) return;
-    this.sendingInvite.set(true);
-    this.collabService.invite(this.siteId(), this.inviteEmail, this.inviteRole).subscribe({
-      next: collab => {
-        this.collaborators.update(list => [...list, collab]);
-        this.inviteEmail = '';
-        this.inviteRole = 'viewer';
-        this.showInviteForm.set(false);
-        this.sendingInvite.set(false);
-        this.snack.open('Invitation envoyée', 'OK', { duration: 3000 });
-      },
-      error: err => {
-        this.sendingInvite.set(false);
-        this.snack.open(err.error?.detail || 'Erreur lors de l\'invitation', 'Fermer', { duration: 4000 });
-      },
-    });
-  }
-
-  removeCollaborator(collabId: number) {
-    this.collabService.remove(this.siteId(), collabId).subscribe({
-      next: () => this.collaborators.update(list => list.filter(c => c.id !== collabId)),
-      error: () => this.snack.open('Erreur lors de la suppression', 'Fermer', { duration: 4000 }),
-    });
-  }
-
-  roleLabel(role: string): string {
-    const labels: Record<string, string> = {
-      viewer:  'Lecteur',
-      auditor: 'Auditeur',
-      manager: 'Manager',
-    };
-    return labels[role] ?? role;
-  }
-  // ─────────────────────────────────────────────────────────────────────────
-
-  readonly statusOptions: { value: string; label: string }[] = [
-    { value: 'todo',          label: 'À corriger' },
-    { value: 'in_progress',   label: 'En cours' },
-    { value: 'resolved',      label: 'Corrigé' },
-    { value: 'accepted_risk', label: 'Risque accepté' },
-  ];
 
   toggleFinding(key: string) {
     if (this.flippedFindings.has(key)) this.flippedFindings.delete(key);
@@ -126,28 +66,8 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
         this.site.set(found);
         this.loading.set(false);
         this.loadScans(1);
-        this.loadFindingStatuses(id);
-        this.loadCollaborators(id);
       },
       error: () => this.loading.set(false),
-    });
-  }
-
-  loadFindingStatuses(id: number) {
-    this.cyberscan.getFindingStatuses(id).subscribe({
-      next: list => {
-        const map: Record<string, string> = {};
-        list.forEach(fs => { map[fs.module_key] = fs.status; });
-        this.findingStatuses.set(map);
-      },
-    });
-  }
-
-  setFindingStatus(key: string, status: string) {
-    const prev = this.findingStatuses();
-    this.findingStatuses.set({ ...prev, [key]: status });
-    this.cyberscan.updateFindingStatus(this.siteId(), key, status).subscribe({
-      error: () => this.findingStatuses.set(prev),
     });
   }
 
@@ -260,14 +180,6 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
       .filter(s => s.status === 'done' && s.results_json && s.finished_at)
       .map(s => ({ date: s.finished_at!, score: computeScore(s.results_json) ?? 0 }))
       .filter(p => p.score > 0);
-  }
-
-  get scoreProgression(): { first: number; last: number; delta: number; count: number } | null {
-    const trend = this.scoreTrend;
-    if (trend.length < 2) return null;
-    const last  = trend[0].score;                  // newest (array is newest-first)
-    const first = trend[trend.length - 1].score;   // oldest
-    return { first, last, delta: last - first, count: trend.length };
   }
 
   getScanScore(scan: Scan): number | null {

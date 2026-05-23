@@ -42,7 +42,6 @@ export class Nis2Component implements OnInit {
   loading = signal(true);
   saving = signal(false);
   exporting = signal(false);
-  exportingAuditor = signal(false);
 
   categories = signal<Nis2Category[]>([]);
   items = signal<Record<string, Nis2Status>>({});
@@ -155,35 +154,6 @@ export class Nis2Component implements OnInit {
       error: () => {
         this.exporting.set(false);
         this.snack.open('Erreur lors de l\'export PDF', 'Fermer', { duration: 4000 });
-      },
-    });
-  }
-
-  exportAuditorPdf() {
-    this.exportingAuditor.set(true);
-    this.cyberscan.saveNis2Assessment(this._fullItems).subscribe({
-      next: data => {
-        this.score.set(data.score);
-        this.updatedAt.set(data.updated_at);
-        this.cyberscan.downloadNis2AuditorPdfBlob().subscribe({
-          next: blob => {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'cyberscan_nis2_pret_a_deposer.pdf';
-            a.click();
-            URL.revokeObjectURL(url);
-            this.exportingAuditor.set(false);
-          },
-          error: () => {
-            this.exportingAuditor.set(false);
-            this.snack.open('Erreur lors de l\'export du document officiel', 'Fermer', { duration: 4000 });
-          },
-        });
-      },
-      error: () => {
-        this.exportingAuditor.set(false);
-        this.snack.open('Erreur lors de la sauvegarde avant export', 'Fermer', { duration: 4000 });
       },
     });
   }

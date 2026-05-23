@@ -1,20 +1,22 @@
 import csv
 import io
+import json
 import os
 from datetime import datetime, timezone
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.core.database import get_db, AsyncSessionLocal
 from app.core.deps import get_current_user
-from app.core.utils import safe_json_load
+from app.core.datetime_utils import ensure_utc
 from app.core.pagination import paginate
 from app.models.user import User
 from app.models.site import Site
 from app.models.scan import Scan
-from app.models.finding_status import FindingStatus
+from app.models.subscription import Subscription
+from app.models.plan import Plan
 from app.schemas.cyberscan import ScanOut, ScanTriggerOut, PaginatedScans
 from app.core.ssrf import assert_no_ssrf
 from app.services.scan_service import run_scan
@@ -83,10 +85,10 @@ async def trigger_scan(
 
     scan = Scan(site_id=site_id, status="pending")
     db.add(scan)
-    await db.flush()
-    await db.refresh(scan)
-    background_tasks.add_task(_run_scan_background, scan.id)
     await db.commit()
+    await db.refresh(scan)
+
+    background_tasks.add_task(_run_scan_background, scan.id)
     return {"scan_id": scan.id, "message": "Scan lancé en arrière-plan"}
 
 
@@ -195,65 +197,6 @@ async def download_pdf(
     )
 
 
-@router.get("/{scan_id}/pdf/branded")
-async def download_branded_pdf(
-    scan_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Generate a white-label management summary PDF using the user's brand profile."""
-    from app.models.brand_profile import BrandProfile
-    from app.services.branded_scan_pdf import generate_branded_pdf, _extract_findings, _compute_score
-
-    scan_result = await db.execute(
-        select(Scan)
-        .join(Site, Site.id == Scan.site_id)
-        .where(Scan.id == scan_id, Site.user_id == current_user.id)
-    )
-    scan = scan_result.scalar_one_or_none()
-    if not scan:
-        raise HTTPException(status_code=404, detail="Scan non trouvé")
-    if scan.status != "done":
-        raise HTTPException(status_code=404, detail="Scan non terminé")
-
-    site_result = await db.execute(select(Site).where(Site.id == scan.site_id))
-    site = site_result.scalar_one_or_none()
-    domain = site.url if site else "inconnu"
-
-    brand_result = await db.execute(
-        select(BrandProfile).where(BrandProfile.user_id == current_user.id)
-    )
-    brand = brand_result.scalar_one_or_none()
-
-    company_name = brand.company_name if brand else "CyberScan"
-    accent_color = brand.accent_color if brand else "#06b6d4"
-    logo_b64 = brand.logo_b64 if brand else None
-
-    findings = _extract_findings(scan.results_json)
-    score = _compute_score(findings, scan.overall_status)
-    scan_date = (scan.finished_at or scan.created_at).strftime("%d/%m/%Y") if (scan.finished_at or scan.created_at) else ""
-
-    pdf_bytes = generate_branded_pdf(
-        company_name=company_name,
-        accent_color=accent_color,
-        logo_b64=logo_b64,
-        domain=domain,
-        overall_status=scan.overall_status or "OK",
-        score_pct=score,
-        scan_date=scan_date,
-        findings=findings,
-    )
-
-    safe_company = "".join(c if c.isalnum() else "_" for c in company_name)[:30]
-    return StreamingResponse(
-        io.BytesIO(pdf_bytes),
-        media_type="application/pdf",
-        headers={
-            "Content-Disposition": f'attachment; filename="cyberscan_{safe_company}_{scan_id}.pdf"'
-        },
-    )
-
-
 _REMEDIATION_META: dict[str, tuple[str, str]] = {
     "ufw":                   ("ufw_setup.sh",                    "text/x-sh"),
     "ssh":                   ("ssh_hardening.sh",                "text/x-sh"),
@@ -296,7 +239,7 @@ async def download_remediation_script(
     if scan.status != "done" or not scan.results_json:
         raise HTTPException(status_code=404, detail="Scripts non disponibles")
 
-    results = safe_json_load(scan.results_json, {})
+    results = json.loads(scan.results_json)
     script_path = results.get("_meta", {}).get("remediation_scripts", {}).get(script_key)
 
     # If file exists on disk, serve it directly
@@ -348,70 +291,3 @@ async def download_remediation_script(
         raise
     except Exception:
         raise HTTPException(status_code=404, detail="Script non trouvé")
-
-
-# ── Finding status (suivi de correction) ─────────────────────────────────────
-
-VALID_STATUSES = {"todo", "in_progress", "resolved", "accepted_risk"}
-
-
-async def _get_owned_site(site_id: int, user: User, db: AsyncSession) -> Site:
-    result = await db.execute(select(Site).where(Site.id == site_id, Site.user_id == user.id))
-    site = result.scalar_one_or_none()
-    if not site:
-        raise HTTPException(status_code=404, detail="Site non trouvé")
-    return site
-
-
-@router.get("/site/{site_id}/finding-status")
-async def list_finding_statuses(
-    site_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    await _get_owned_site(site_id, current_user, db)
-    rows = await db.execute(select(FindingStatus).where(FindingStatus.site_id == site_id))
-    return [
-        {"module_key": r.module_key, "status": r.status, "note": r.note, "updated_at": r.updated_at.isoformat()}
-        for r in rows.scalars().all()
-    ]
-
-
-@router.put("/site/{site_id}/finding-status/{module_key}")
-async def upsert_finding_status(
-    site_id: int,
-    module_key: str,
-    status: str = Body(..., embed=True),
-    note: str | None = Body(None, embed=True),
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    if status not in VALID_STATUSES:
-        raise HTTPException(status_code=422, detail=f"Statut invalide. Valeurs acceptées : {VALID_STATUSES}")
-
-    await _get_owned_site(site_id, current_user, db)
-
-    result = await db.execute(
-        select(FindingStatus).where(
-            FindingStatus.site_id == site_id,
-            FindingStatus.module_key == module_key,
-        )
-    )
-    row = result.scalar_one_or_none()
-
-    if row:
-        row.status = status
-        row.note = note
-        row.updated_at = datetime.now(timezone.utc)
-    else:
-        row = FindingStatus(
-            site_id=site_id,
-            module_key=module_key,
-            status=status,
-            note=note,
-            updated_at=datetime.now(timezone.utc),
-        )
-        db.add(row)
-
-    await db.commit()
-    return {"module_key": row.module_key, "status": row.status, "note": row.note, "updated_at": row.updated_at.isoformat()}

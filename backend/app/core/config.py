@@ -42,12 +42,6 @@ class Settings(BaseSettings):
     RESEND_API_KEY: str = ""
     RESEND_FROM: str = "CyberScan <no-reply@cyberscanapp.com>"
 
-    # S3 file storage (livrables RSSI)
-    S3_BUCKET_NAME: str = ""
-    AWS_REGION: str = "eu-west-3"
-    # AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY lues automatiquement par boto3
-    # (variables d'env standard ou IAM role ECS en prod)
-
     # Admin
     ADMIN_API_KEY: str = ""
 
@@ -56,21 +50,6 @@ class Settings(BaseSettings):
 
     # HaveIBeenPwned API (breach checker)
     HIBP_API_KEY: str = ""
-
-    # Phishing simulation engine (homemade, no GoPhish)
-    # Base URL used for tracking pixel / click / landing routes (served by this API)
-    # Set to https://sim.cyberscanapp.com in prod; https://api.cyberscanapp.com also works
-    PHISHING_BASE_URL: str = "https://sim.cyberscanapp.com"
-    # Sender identity in phishing emails (display name only — actual domain must be Resend-verified)
-    PHISHING_FROM_EMAIL: str = ""      # e.g. no-reply@cyberscanapp.com (Resend verified domain)
-    PHISHING_FROM_NAME: str = "CyberScan Exercise"
-    # Batch size: emails sent per scheduler tick (every 15 min) to avoid spam detection
-    PHISHING_BATCH_SIZE: int = 20
-
-    # Add-on extra sites pack (5 slots per pack, monthly)
-    ADDON_EXTRA_SITES_STRIPE_PRICE_ID: str = ""
-    ADDON_EXTRA_SITES_COUNT: int = 5
-    ADDON_EXTRA_SITES_PRICE_EUR: int = 500  # 5.00€/month
 
     # Number of trusted reverse proxies in front of the app.
     # 0 = no proxy (local dev), 1 = ALB only, 2 = CloudFront + ALB.

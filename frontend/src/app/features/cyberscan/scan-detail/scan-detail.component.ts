@@ -13,19 +13,6 @@ import { computeScore, getGrade, getScoreColor, getCategoryScores, RADAR_CATEGOR
 import { Finding, getFindings } from '../../../shared/scan-findings';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
-const PRO_MODULE_DESCRIPTIONS: Record<string, string> = {
-  tech:               'Technologies et versions exposées dans vos en-têtes HTTP',
-  tls:                'Audit complet : protocoles TLS faibles, suites de chiffrement, HSTS',
-  takeover:           'Sous-domaines susceptibles d\'être repris par un attaquant',
-  threat_intel:       'Croisement avec les bases CVE, Shodan et threat feeds actifs',
-  http_methods:       'Méthodes PUT / DELETE / TRACE actives sur votre serveur',
-  open_redirect:      'Paramètres de redirection exploitables dans des campagnes de phishing',
-  clickjacking:       'Absence de X-Frame-Options / CSP frame-ancestors',
-  directory_listing:  'Arborescence serveur listable publiquement',
-  robots:             'Chemins d\'administration révélés dans robots.txt',
-  jwt:                'Tokens JWT mal signés exposés sur vos pages publiques',
-};
-
 @Component({
     standalone: true,
     selector: 'app-scan-detail',
@@ -40,7 +27,6 @@ export class ScanDetailComponent implements OnInit {
   scan = signal<Scan | null>(null);
   loading = signal(true);
   error = signal<string | null>(null);
-  downloadingBranded = signal(false);
   flippedCards = new Set<string>();
 
   toggleFlip(key: string) {
@@ -89,24 +75,6 @@ export class ScanDetailComponent implements OnInit {
         URL.revokeObjectURL(url);
       },
       error: () => console.error('Erreur téléchargement PDF'),
-    });
-  }
-
-  downloadBrandedPdf() {
-    const s = this.scan();
-    if (!s) return;
-    this.downloadingBranded.set(true);
-    this.cyberscan.downloadBrandedPdfBlob(s.id).subscribe({
-      next: blob => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `cyberscan_marque_blanche_${s.id}.pdf`;
-        a.click();
-        URL.revokeObjectURL(url);
-        this.downloadingBranded.set(false);
-      },
-      error: () => this.downloadingBranded.set(false),
     });
   }
 
@@ -165,74 +133,6 @@ export class ScanDetailComponent implements OnInit {
   get scoreColor(): string { return this.score !== null ? getScoreColor(this.score) : '#6b7280'; }
   get radarScores(): number[] { return getCategoryScores(this.scan()?.results_json ?? null); }
   get radarLabels(): string[] { return RADAR_CATEGORIES.map(c => c.label); }
-
-  get scannedDomain(): string | null {
-    const r = this.scan()?.results_json;
-    if (!r) return null;
-    try { return (JSON.parse(r)?._meta?.url as string) ?? null; }
-    catch { return null; }
-  }
-
-  get scanTier(): number {
-    const r = this.scan()?.results_json;
-    if (!r) return 2;
-    try { return (JSON.parse(r)?._meta?.tier as number) ?? 2; }
-    catch { return 2; }
-  }
-
-  get lockedFindings(): Finding[] {
-    return this.findings.filter(f => f.skipped && f.minTier > this.scanTier);
-  }
-
-  getProDescription(key: string): string {
-    return PRO_MODULE_DESCRIPTIONS[key] ?? '';
-  }
-
-  // ── CTA Audit Flash — classes dynamiques ──────────────────────────────────
-  private get _ctaStatus(): string { return this.scan()?.overall_status ?? ''; }
-
-  get ctaWrapperClass(): string {
-    const base = 'rounded-xl border p-6 mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-5';
-    switch (this._ctaStatus) {
-      case 'CRITICAL': return `${base} border-red-500/40 bg-red-950/30`;
-      case 'WARNING':  return `${base} border-yellow-500/30 bg-yellow-950/20`;
-      default:         return `${base} border-cyan-500/20 bg-gray-800/60`;
-    }
-  }
-
-  get ctaIconWrapperClass(): string {
-    const base = 'w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0';
-    switch (this._ctaStatus) {
-      case 'CRITICAL': return `${base} bg-red-500/20`;
-      case 'WARNING':  return `${base} bg-yellow-500/15`;
-      default:         return `${base} bg-cyan-500/15`;
-    }
-  }
-
-  get ctaIconClass(): string {
-    const base = '!text-[1.5rem] !w-[1.5rem] !h-[1.5rem]';
-    switch (this._ctaStatus) {
-      case 'CRITICAL': return `${base} text-red-400`;
-      case 'WARNING':  return `${base} text-yellow-400`;
-      default:         return `${base} text-cyan-400`;
-    }
-  }
-
-  get ctaButtonClass(): string {
-    switch (this._ctaStatus) {
-      case 'CRITICAL': return '!bg-red-500 !text-white flex-shrink-0';
-      case 'WARNING':  return '!bg-yellow-500 !text-gray-900 flex-shrink-0';
-      default:         return '!bg-cyan-500 !text-gray-900 flex-shrink-0';
-    }
-  }
-
-  get ctaTitle(): string {
-    switch (this._ctaStatus) {
-      case 'CRITICAL': return 'Des vulnérabilités critiques ont été détectées — un expert peut vous aider';
-      case 'WARNING':  return 'Des points d\'attention méritent un regard humain';
-      default:         return 'Faites valider ces résultats par un expert';
-    }
-  }
 
   get criticalCount(): number {
     return this.findings.filter(f => f.status === 'CRITICAL').length;

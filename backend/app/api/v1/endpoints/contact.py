@@ -1,20 +1,32 @@
+import secrets
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.constants import NEED_LABELS
 from app.core.database import get_db
-from app.core.deps import require_admin
 from app.core.limiter import limiter
 from app.models.contact_message import ContactMessage
 from app.schemas.contact import ContactIn
 from app.services.email_service import send_contact_email
 
 router = APIRouter(prefix="/contact", tags=["contact"])
+
+NEED_LABELS = {
+    "audit-flash": "Audit Flash",
+    "audit-app": "Audit App-Check",
+    "pentest": "Pentest léger",
+    "abonnement": "Abonnement surveillance",
+    "autre": "Autre / Devis",
+}
+
+
+def _require_admin(x_admin_key: str = Header(default="")) -> None:
+    if not settings.ADMIN_API_KEY or not secrets.compare_digest(x_admin_key, settings.ADMIN_API_KEY):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès refusé")
 
 
 class ContactMessageOut(BaseModel):
@@ -64,7 +76,7 @@ async def submit_contact(
 
 
 @router.get("/admin/messages", response_model=list[ContactMessageOut],
-            dependencies=[Depends(require_admin)])
+            dependencies=[Depends(_require_admin)])
 async def admin_list_messages(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(ContactMessage).order_by(ContactMessage.created_at.desc())
@@ -77,7 +89,7 @@ async def admin_list_messages(db: AsyncSession = Depends(get_db)):
     ) for m in msgs]
 
 
-@router.patch("/admin/messages/{msg_id}/status", dependencies=[Depends(require_admin)])
+@router.patch("/admin/messages/{msg_id}/status", dependencies=[Depends(_require_admin)])
 async def admin_update_status(
     msg_id: int,
     body: dict,

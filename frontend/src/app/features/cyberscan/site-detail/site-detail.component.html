@@ -108,32 +108,9 @@
       <!-- ── Score trend chart ── -->
       @if (scoreTrend.length >= 2) {
         <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6 mb-6">
-          <div class="flex items-center justify-between gap-4 mb-4 flex-wrap">
-            <div class="flex items-center gap-2">
-              <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">trending_up</mat-icon>
-              <h2 class="text-base font-semibold">Évolution du score de sécurité</h2>
-            </div>
-            @if (scoreProgression; as prog) {
-              <div class="flex items-center gap-2 text-sm">
-                <span class="text-gray-400">{{ prog.first }}/100</span>
-                <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] text-gray-500">arrow_forward</mat-icon>
-                <span class="font-bold text-white">{{ prog.last }}/100</span>
-                @if (prog.delta > 0) {
-                  <span class="flex items-center gap-0.5 text-green-400 font-bold px-2 py-0.5 rounded-lg bg-green-400/10">
-                    <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">arrow_upward</mat-icon>
-                    +{{ prog.delta }} pts
-                  </span>
-                } @else if (prog.delta < 0) {
-                  <span class="flex items-center gap-0.5 text-red-400 font-bold px-2 py-0.5 rounded-lg bg-red-400/10">
-                    <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">arrow_downward</mat-icon>
-                    {{ prog.delta }} pts
-                  </span>
-                } @else {
-                  <span class="text-gray-500 text-xs">Stable</span>
-                }
-                <span class="text-gray-600 text-xs">sur {{ prog.count }} scans</span>
-              </div>
-            }
+          <div class="flex items-center gap-2 mb-4">
+            <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">trending_up</mat-icon>
+            <h2 class="text-base font-semibold">Évolution du score de sécurité</h2>
           </div>
           <div class="h-32">
             <app-score-trend [data]="scoreTrend"></app-score-trend>
@@ -204,56 +181,38 @@
                 </div>
                 <div class="flex flex-col gap-2">
                   @for (f of criticalFindings; track f.key) {
-                    <div class="flex flex-col">
-                      <div class="flip-container flip-container--row cursor-pointer" (click)="toggleFinding(f.key)">
-                        <div class="flip-inner" [class.flipped]="flippedFindings.has(f.key)">
-                          <div class="flip-front bg-red-400/5 border border-red-700/50 rounded-xl px-5 py-4 flex items-start gap-4">
-                            <div class="w-9 h-9 rounded-lg bg-red-900/40 border border-red-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                              <mat-icon class="text-red-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ f.icon }}</mat-icon>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                              <div class="flex items-center gap-2 mb-1.5 flex-wrap">
-                                <span class="font-semibold text-white">{{ f.label }}</span>
-                                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-red-600 text-red-400">CRITIQUE</span>
-                                @if (f.explanation) {
-                                  <mat-icon class="!text-[0.8rem] !w-[0.8rem] !h-[0.8rem] text-gray-500">info</mat-icon>
-                                }
-                              </div>
-                              @if (f.summary.length > 0) {
-                                <div class="flex flex-wrap gap-x-4 gap-y-1">
-                                  @for (s of f.summary; track s.label) {
-                                    <span class="text-xs text-gray-400">
-                                      <span class="opacity-60">{{ s.label }} :</span>
-                                      <span class="text-gray-200 ml-1">{{ s.value }}</span>
-                                    </span>
-                                  }
-                                </div>
+                    <div class="flip-container flip-container--row cursor-pointer" (click)="toggleFinding(f.key)">
+                      <div class="flip-inner" [class.flipped]="flippedFindings.has(f.key)">
+                        <div class="flip-front bg-red-400/5 border border-red-700/50 rounded-xl px-5 py-4 flex items-start gap-4">
+                          <div class="w-9 h-9 rounded-lg bg-red-900/40 border border-red-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <mat-icon class="text-red-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ f.icon }}</mat-icon>
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                              <span class="font-semibold text-white">{{ f.label }}</span>
+                              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-red-600 text-red-400">CRITIQUE</span>
+                              @if (f.explanation) {
+                                <mat-icon class="!text-[0.8rem] !w-[0.8rem] !h-[0.8rem] text-gray-500">info</mat-icon>
                               }
                             </div>
-                          </div>
-                          <div class="flip-back bg-red-400/5 border border-red-700/50 rounded-xl px-5 py-4 flex items-start gap-4">
-                            <div class="w-9 h-9 rounded-lg bg-red-900/40 border border-red-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                              <mat-icon class="text-red-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">menu_book</mat-icon>
-                            </div>
-                            <p class="text-xs text-gray-300 leading-relaxed flex-1">{{ f.explanation }}</p>
+                            @if (f.summary.length > 0) {
+                              <div class="flex flex-wrap gap-x-4 gap-y-1">
+                                @for (s of f.summary; track s.label) {
+                                  <span class="text-xs text-gray-400">
+                                    <span class="opacity-60">{{ s.label }} :</span>
+                                    <span class="text-gray-200 ml-1">{{ s.value }}</span>
+                                  </span>
+                                }
+                              </div>
+                            }
                           </div>
                         </div>
-                      </div>
-                      <!-- Status tracker -->
-                      <div class="flex items-center gap-1.5 px-1 pt-1.5 pb-0.5" (click)="$event.stopPropagation()">
-                        @for (opt of statusOptions; track opt.value) {
-                          <button type="button"
-                            class="text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-all"
-                            [class]="findingStatuses()[f.key] === opt.value
-                              ? (opt.value === 'resolved' ? 'bg-green-500/20 border-green-600 text-green-400' :
-                                 opt.value === 'in_progress' ? 'bg-blue-500/20 border-blue-600 text-blue-400' :
-                                 opt.value === 'accepted_risk' ? 'bg-yellow-500/20 border-yellow-600 text-yellow-400' :
-                                 'bg-red-500/20 border-red-600 text-red-400')
-                              : 'bg-gray-700/30 border-gray-700 text-gray-500 hover:border-gray-500 hover:text-gray-300'"
-                            (click)="setFindingStatus(f.key, opt.value)">
-                            {{ opt.label }}
-                          </button>
-                        }
+                        <div class="flip-back bg-red-400/5 border border-red-700/50 rounded-xl px-5 py-4 flex items-start gap-4">
+                          <div class="w-9 h-9 rounded-lg bg-red-900/40 border border-red-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <mat-icon class="text-red-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">menu_book</mat-icon>
+                          </div>
+                          <p class="text-xs text-gray-300 leading-relaxed flex-1">{{ f.explanation }}</p>
+                        </div>
                       </div>
                     </div>
                   }
@@ -272,56 +231,38 @@
                 </div>
                 <div class="flex flex-col gap-2">
                   @for (f of warningFindings; track f.key) {
-                    <div class="flex flex-col">
-                      <div class="flip-container flip-container--row cursor-pointer" (click)="toggleFinding(f.key)">
-                        <div class="flip-inner" [class.flipped]="flippedFindings.has(f.key)">
-                          <div class="flip-front bg-yellow-400/5 border border-yellow-700/50 rounded-xl px-5 py-4 flex items-start gap-4">
-                            <div class="w-9 h-9 rounded-lg bg-yellow-900/30 border border-yellow-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                              <mat-icon class="text-yellow-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ f.icon }}</mat-icon>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                              <div class="flex items-center gap-2 mb-1.5 flex-wrap">
-                                <span class="font-semibold text-white">{{ f.label }}</span>
-                                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-yellow-600 text-yellow-400">WARNING</span>
-                                @if (f.explanation) {
-                                  <mat-icon class="!text-[0.8rem] !w-[0.8rem] !h-[0.8rem] text-gray-500">info</mat-icon>
-                                }
-                              </div>
-                              @if (f.summary.length > 0) {
-                                <div class="flex flex-wrap gap-x-4 gap-y-1">
-                                  @for (s of f.summary; track s.label) {
-                                    <span class="text-xs text-gray-400">
-                                      <span class="opacity-60">{{ s.label }} :</span>
-                                      <span class="text-gray-200 ml-1">{{ s.value }}</span>
-                                    </span>
-                                  }
-                                </div>
+                    <div class="flip-container flip-container--row cursor-pointer" (click)="toggleFinding(f.key)">
+                      <div class="flip-inner" [class.flipped]="flippedFindings.has(f.key)">
+                        <div class="flip-front bg-yellow-400/5 border border-yellow-700/50 rounded-xl px-5 py-4 flex items-start gap-4">
+                          <div class="w-9 h-9 rounded-lg bg-yellow-900/30 border border-yellow-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <mat-icon class="text-yellow-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ f.icon }}</mat-icon>
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                              <span class="font-semibold text-white">{{ f.label }}</span>
+                              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-yellow-600 text-yellow-400">WARNING</span>
+                              @if (f.explanation) {
+                                <mat-icon class="!text-[0.8rem] !w-[0.8rem] !h-[0.8rem] text-gray-500">info</mat-icon>
                               }
                             </div>
-                          </div>
-                          <div class="flip-back bg-yellow-400/5 border border-yellow-700/50 rounded-xl px-5 py-4 flex items-start gap-4">
-                            <div class="w-9 h-9 rounded-lg bg-yellow-900/30 border border-yellow-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                              <mat-icon class="text-yellow-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">menu_book</mat-icon>
-                            </div>
-                            <p class="text-xs text-gray-300 leading-relaxed flex-1">{{ f.explanation }}</p>
+                            @if (f.summary.length > 0) {
+                              <div class="flex flex-wrap gap-x-4 gap-y-1">
+                                @for (s of f.summary; track s.label) {
+                                  <span class="text-xs text-gray-400">
+                                    <span class="opacity-60">{{ s.label }} :</span>
+                                    <span class="text-gray-200 ml-1">{{ s.value }}</span>
+                                  </span>
+                                }
+                              </div>
+                            }
                           </div>
                         </div>
-                      </div>
-                      <!-- Status tracker -->
-                      <div class="flex items-center gap-1.5 px-1 pt-1.5 pb-0.5" (click)="$event.stopPropagation()">
-                        @for (opt of statusOptions; track opt.value) {
-                          <button type="button"
-                            class="text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-all"
-                            [class]="findingStatuses()[f.key] === opt.value
-                              ? (opt.value === 'resolved' ? 'bg-green-500/20 border-green-600 text-green-400' :
-                                 opt.value === 'in_progress' ? 'bg-blue-500/20 border-blue-600 text-blue-400' :
-                                 opt.value === 'accepted_risk' ? 'bg-yellow-500/20 border-yellow-600 text-yellow-400' :
-                                 'bg-red-500/20 border-red-600 text-red-400')
-                              : 'bg-gray-700/30 border-gray-700 text-gray-500 hover:border-gray-500 hover:text-gray-300'"
-                            (click)="setFindingStatus(f.key, opt.value)">
-                            {{ opt.label }}
-                          </button>
-                        }
+                        <div class="flip-back bg-yellow-400/5 border border-yellow-700/50 rounded-xl px-5 py-4 flex items-start gap-4">
+                          <div class="w-9 h-9 rounded-lg bg-yellow-900/30 border border-yellow-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <mat-icon class="text-yellow-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">menu_book</mat-icon>
+                          </div>
+                          <p class="text-xs text-gray-300 leading-relaxed flex-1">{{ f.explanation }}</p>
+                        </div>
                       </div>
                     </div>
                   }
@@ -518,81 +459,6 @@
           </div>
         }
       }
-
-      <!-- ── Collaborateurs ── -->
-      <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6 mt-6">
-        <div class="flex items-center justify-between mb-5">
-          <div class="flex items-center gap-2">
-            <mat-icon class="text-purple-400">group</mat-icon>
-            <h2 class="font-semibold">Audit collaboratif</h2>
-            <span class="text-xs px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400 border border-purple-700/40">
-              {{ collaborators().length }} invité(s)
-            </span>
-          </div>
-          <button type="button" mat-stroked-button (click)="showInviteForm.set(!showInviteForm())"
-                  class="!border-purple-700 !text-purple-300 text-sm">
-            <mat-icon>person_add</mat-icon>
-            Inviter
-          </button>
-        </div>
-
-        @if (showInviteForm()) {
-          <form (ngSubmit)="sendInvite()" class="bg-gray-900 rounded-xl p-4 mb-4 flex flex-col gap-3">
-            <div class="flex gap-3 flex-wrap">
-              <input type="email" [(ngModel)]="inviteEmail" name="inviteEmail"
-                     placeholder="email@example.com" required
-                     class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white placeholder-gray-600 outline-none focus:ring-2 focus:ring-purple-500" />
-              <select [(ngModel)]="inviteRole" name="inviteRole"
-                      title="Rôle du collaborateur"
-                      class="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-purple-500">
-                <option value="viewer">Lecteur</option>
-                <option value="auditor">Auditeur</option>
-                <option value="manager">Manager</option>
-              </select>
-            </div>
-            <div class="flex gap-2">
-              <button type="submit" mat-flat-button [disabled]="sendingInvite()"
-                      class="!bg-purple-700 !text-white text-sm">
-                @if (sendingInvite()) { <mat-spinner diameter="16"></mat-spinner> }
-                @else { <mat-icon>send</mat-icon> }
-                Envoyer l'invitation
-              </button>
-              <button type="button" mat-stroked-button (click)="showInviteForm.set(false)"
-                      class="!border-gray-700 !text-gray-400 text-sm">Annuler</button>
-            </div>
-          </form>
-        }
-
-        @if (collaborators().length === 0) {
-          <p class="text-sm text-gray-500 text-center py-4">Aucun collaborateur invité sur ce site.</p>
-        } @else {
-          <div class="flex flex-col gap-2">
-            @for (c of collaborators(); track c.id) {
-              <div class="flex items-center justify-between bg-gray-900 rounded-xl px-4 py-3">
-                <div class="flex items-center gap-3">
-                  <mat-icon class="text-gray-500 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">account_circle</mat-icon>
-                  <div>
-                    <p class="text-sm font-medium">{{ c.email }}</p>
-                    <p class="text-xs text-gray-500">{{ roleLabel(c.role) }}</p>
-                  </div>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="text-xs px-2 py-0.5 rounded-full border"
-                        [ngClass]="c.status === 'accepted'
-                          ? 'bg-green-900/30 text-green-400 border-green-700/40'
-                          : 'bg-yellow-900/30 text-yellow-400 border-yellow-700/40'">
-                    {{ c.status === 'accepted' ? 'Accepté' : 'En attente' }}
-                  </span>
-                  <button type="button" mat-icon-button (click)="removeCollaborator(c.id)"
-                          class="!text-red-500 hover:!text-red-400 !w-8 !h-8">
-                    <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">person_remove</mat-icon>
-                  </button>
-                </div>
-              </div>
-            }
-          </div>
-        }
-      </div>
 
     }
   </div>

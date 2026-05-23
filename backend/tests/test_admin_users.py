@@ -14,7 +14,7 @@ BASE = "/api/v1"
 def _admin_settings():
     mock = MagicMock()
     mock.ADMIN_API_KEY = "test-secret-key"
-    return patch("app.core.deps.settings", mock)
+    return patch("app.api.v1.endpoints.admin_users.settings", mock)
 
 
 # ── Auth guard ─────────────────────────────────────────────────────────────────

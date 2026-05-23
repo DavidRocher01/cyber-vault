@@ -1,9 +1,10 @@
 import json
 import re
+import secrets
 from datetime import datetime, timezone
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from app.core.limiter import limiter
 from loguru import logger
@@ -12,7 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.deps import require_admin
 from app.core.security import create_refresh_token, hash_token, make_unsubscribe_token
 from app.core.ssrf import assert_no_ssrf
 from app.models.app_setting import AppSetting
@@ -63,6 +63,13 @@ from app.services.newsletter_email import (
 )
 
 router = APIRouter(prefix="/newsletter", tags=["newsletter"])
+
+
+# ── Guard admin ────────────────────────────────────────────────────────────────
+
+def _require_admin(x_admin_key: str = Header(default="")) -> None:
+    if not settings.ADMIN_API_KEY or not secrets.compare_digest(x_admin_key, settings.ADMIN_API_KEY):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès refusé")
 
 
 # ── Public endpoints ───────────────────────────────────────────────────────────
@@ -173,7 +180,7 @@ async def unsubscribe(
 
 # ── Admin endpoints ────────────────────────────────────────────────────────────
 
-@router.get("/admin/stats", response_model=NewsletterStatsOut, dependencies=[Depends(require_admin)])
+@router.get("/admin/stats", response_model=NewsletterStatsOut, dependencies=[Depends(_require_admin)])
 async def admin_stats(db: AsyncSession = Depends(get_db)):
     total_r = await db.execute(select(func.count()).select_from(NewsletterSubscriber))
     active_r = await db.execute(
@@ -192,7 +199,7 @@ async def admin_stats(db: AsyncSession = Depends(get_db)):
     )
 
 
-@router.get("/admin/subscribers", response_model=list[SubscriberOut], dependencies=[Depends(require_admin)])
+@router.get("/admin/subscribers", response_model=list[SubscriberOut], dependencies=[Depends(_require_admin)])
 async def admin_subscribers(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(NewsletterSubscriber).order_by(NewsletterSubscriber.subscribed_at.desc())
@@ -200,7 +207,7 @@ async def admin_subscribers(db: AsyncSession = Depends(get_db)):
     return result.scalars().all()
 
 
-@router.post("/admin/send-issue", response_model=SendIssueOut, dependencies=[Depends(require_admin)])
+@router.post("/admin/send-issue", response_model=SendIssueOut, dependencies=[Depends(_require_admin)])
 async def admin_send_issue(
     payload: SendIssueIn,
     background_tasks: BackgroundTasks,
@@ -230,7 +237,7 @@ async def admin_send_issue(
     return SendIssueOut(sent=count, message=f"Édition #{payload.edition} envoyée à {count} abonné(s).")
 
 
-@router.post("/admin/send-from-schedule", response_model=SendIssueOut, dependencies=[Depends(require_admin)])
+@router.post("/admin/send-from-schedule", response_model=SendIssueOut, dependencies=[Depends(_require_admin)])
 async def admin_send_from_schedule(
     payload: SendFromScheduleIn,
     background_tasks: BackgroundTasks,
@@ -264,7 +271,7 @@ async def admin_send_from_schedule(
 
 # ── OG image scraper ──────────────────────────────────────────────────────────
 
-@router.get("/admin/og-image", dependencies=[Depends(require_admin)])
+@router.get("/admin/og-image", dependencies=[Depends(_require_admin)])
 async def fetch_og_image(url: str):
     """Fetch the og:image meta tag from a given URL."""
     try:
@@ -307,7 +314,7 @@ async def get_schedule(db: AsyncSession = Depends(get_db)):
     return result.scalars().all()
 
 
-@router.put("/admin/schedule", response_model=list[ScheduleItemOut], dependencies=[Depends(require_admin)])
+@router.put("/admin/schedule", response_model=list[ScheduleItemOut], dependencies=[Depends(_require_admin)])
 async def update_schedule(
     items: list[ScheduleItemIn],
     db: AsyncSession = Depends(get_db),
@@ -350,7 +357,7 @@ async def update_schedule(
 
 # ── Newsletter content (editorial draft) ──────────────────────────────────────
 
-@router.get("/admin/content", response_model=NewsletterContentOut, dependencies=[Depends(require_admin)])
+@router.get("/admin/content", response_model=NewsletterContentOut, dependencies=[Depends(_require_admin)])
 async def get_newsletter_content(db: AsyncSession = Depends(get_db)):
     """Return the current newsletter editorial draft (flash/reflex/legal)."""
     setting = await db.get(AppSetting, NEWSLETTER_CONTENT_KEY)
@@ -363,7 +370,7 @@ async def get_newsletter_content(db: AsyncSession = Depends(get_db)):
         return _DEFAULT_CONTENT
 
 
-@router.put("/admin/content", response_model=NewsletterContentOut, dependencies=[Depends(require_admin)])
+@router.put("/admin/content", response_model=NewsletterContentOut, dependencies=[Depends(_require_admin)])
 async def update_newsletter_content(
     payload: NewsletterContentIn,
     db: AsyncSession = Depends(get_db),

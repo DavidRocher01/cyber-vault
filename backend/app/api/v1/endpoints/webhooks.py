@@ -47,25 +47,6 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
 
 async def _handle_checkout_completed(session: dict, db: AsyncSession) -> None:
     """Create or update Subscription after successful checkout."""
-    metadata = session.get("metadata") or {}
-
-    # ── Add-on: extra site slots ──────────────────────────────────────────────
-    if metadata.get("addon_type") == "extra_sites":
-        user_id = metadata.get("user_id")
-        if user_id:
-            from app.core.config import settings
-            result = await db.execute(
-                select(Subscription).where(
-                    Subscription.user_id == int(user_id),
-                    Subscription.status == "active",
-                )
-            )
-            sub = result.scalar_one_or_none()
-            if sub:
-                sub.extra_sites += settings.ADDON_EXTRA_SITES_COUNT
-                await db.commit()
-        return
-
     customer_id      = session.get("customer")
     subscription_id  = session.get("subscription")
     customer_email   = session.get("customer_details", {}).get("email")

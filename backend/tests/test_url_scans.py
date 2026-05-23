@@ -38,7 +38,7 @@ async def test_trigger_url_scan_returns_202():
 async def test_trigger_url_scan_requires_auth():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.post(f"{BASE}/url-scans", json={"url": "https://example.com"})
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 @pytest.mark.asyncio
@@ -102,7 +102,7 @@ async def test_list_url_scans_pagination():
 async def test_list_url_scans_requires_auth():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get(f"{BASE}/url-scans")
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 # ── GET /url-scans/{id} ──────────────────────────────────────────────────────
@@ -145,7 +145,7 @@ async def test_get_url_scan_other_user_returns_404():
 async def test_get_url_scan_requires_auth():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get(f"{BASE}/url-scans/1")
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 # ── DELETE /url-scans/{id} ───────────────────────────────────────────────────
@@ -198,4 +198,4 @@ async def test_delete_url_scan_unknown_returns_404():
 async def test_delete_url_scan_requires_auth():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.delete(f"{BASE}/url-scans/1")
-    assert r.status_code == 401
+    assert r.status_code == 403

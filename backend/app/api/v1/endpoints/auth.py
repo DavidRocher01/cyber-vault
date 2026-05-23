@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
@@ -20,7 +21,7 @@ from app.core.security import (
 from app.models.password_reset_token import PasswordResetToken
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
-from app.schemas.user import ForgotPasswordIn, RefreshIn, ResetPasswordIn, TokenOut, UserCreate, UserLogin, UserOut
+from app.schemas.user import ForgotPasswordIn, RefreshIn, ResetPasswordIn, TokenOut, UserCreate, UserLogin, UserOut, LoginOut
 from app.services.email_service import send_password_reset
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -77,10 +78,7 @@ async def login(request: Request, payload: UserLogin, db: AsyncSession = Depends
     user.failed_login_attempts = 0
     user.locked_until = None
 
-    # 2FA check — auto-repair inconsistent state (enabled=True but no secret)
-    if user.totp_enabled and not user.totp_secret:
-        user.totp_enabled = False
-
+    # 2FA check
     if user.totp_enabled and user.totp_secret:
         if not payload.totp_code:
             await db.commit()

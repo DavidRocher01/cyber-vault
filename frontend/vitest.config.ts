@@ -23,9 +23,9 @@ export default defineConfig({
         'src/app/core/guards/crypto.guard.ts',
       ],
       thresholds: {
-        lines: 32,
-        functions: 35,
-        branches: 32,
+        lines: 35,
+        functions: 38,
+        branches: 35,
       },
     },
   },

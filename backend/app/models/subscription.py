@@ -21,7 +21,6 @@ class Subscription(Base):
 
     # active | canceled | past_due | trialing
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="active", index=True)
-    extra_sites: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 
     current_period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     current_period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -98,18 +98,10 @@ app.add_middleware(
 
 app.include_router(api_router)
 
-# Local file upload serving (dev only — in prod files go to S3)
-if not settings.S3_BUCKET_NAME:
-    from pathlib import Path
-    from fastapi.staticfiles import StaticFiles
-    _upload_dir = Path("uploads")
-    _upload_dir.mkdir(exist_ok=True)
-    app.mount("/uploads", StaticFiles(directory=str(_upload_dir)), name="uploads")
-
 
 @app.get("/sitemap.xml", include_in_schema=False)
 async def sitemap(db: AsyncSession = Depends(get_db)):
-    from sqlalchemy import select
+    from sqlalchemy import select, text as sa_text
     from app.models.blog_post import BlogPost  # noqa: F401
 
     base = "https://cyberscanapp.com"

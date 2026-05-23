@@ -60,7 +60,7 @@ async def test_list_notifications_empty():
 async def test_list_notifications_unauthenticated_returns_403():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get(f"{BASE}/notifications")
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 @pytest.mark.asyncio
@@ -163,7 +163,7 @@ async def test_mark_all_read_clears_unread_count():
 async def test_mark_all_read_unauthenticated_returns_403():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.post(f"{BASE}/notifications/read-all")
-    assert r.status_code == 401
+    assert r.status_code == 403
 
 
 # ── DELETE /notifications/{id} ────────────────────────────────────────────────

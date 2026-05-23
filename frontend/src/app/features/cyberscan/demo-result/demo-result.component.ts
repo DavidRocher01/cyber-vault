@@ -1,7 +1,6 @@
 import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
-import { CommonModule, DOCUMENT } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
-import { Title, Meta } from '@angular/platform-browser';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -31,14 +30,10 @@ export class DemoResultComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private cyberscan = inject(CyberscanService);
-  private titleService = inject(Title);
-  private metaService = inject(Meta);
-  private document = inject(DOCUMENT);
 
   scan = signal<PublicScanResult | null>(null);
   loading = signal(true);
   error = signal<string | null>(null);
-  linkCopied = signal(false);
 
   private pollSub: Subscription | null = null;
 
@@ -53,7 +48,6 @@ export class DemoResultComponent implements OnInit, OnDestroy {
       next: s => {
         this.scan.set(s);
         this.loading.set(false);
-        this._updateMeta(s);
       },
       error: () => {
         this.error.set('Scan introuvable ou expiré.');
@@ -61,46 +55,14 @@ export class DemoResultComponent implements OnInit, OnDestroy {
       },
     });
 
+    // First immediate fetch
     this.cyberscan.getPublicScan(token).subscribe({
-      next: s => { this.scan.set(s); this.loading.set(false); this._updateMeta(s); },
+      next: s => { this.scan.set(s); this.loading.set(false); },
       error: () => { this.error.set('Scan introuvable.'); this.loading.set(false); },
     });
   }
 
   ngOnDestroy() { this.pollSub?.unsubscribe(); }
-
-  private _updateMeta(s: PublicScanResult) {
-    if (s.status !== 'done') return;
-    const url = this.targetUrl;
-    const sc = this.score;
-    const title = sc !== null
-      ? `Rapport de sécurité ${url} — Score ${sc}/100 | CyberScan`
-      : `Rapport de sécurité ${url} | CyberScan`;
-    this.titleService.setTitle(title);
-    this.metaService.updateTag({ property: 'og:title', content: title });
-    this.metaService.updateTag({
-      property: 'og:description',
-      content: `Analyse de sécurité complète de ${url} : SSL, headers, DNS, CORS, réputation IP. Score ${sc}/100.`,
-    });
-    this.metaService.updateTag({ property: 'og:url', content: this.shareUrl });
-  }
-
-  copyLink() {
-    this.document.defaultView?.navigator.clipboard.writeText(this.shareUrl).then(() => {
-      this.linkCopied.set(true);
-      setTimeout(() => this.linkCopied.set(false), 2500);
-    });
-  }
-
-  get targetUrl(): string {
-    const json = this.scan()?.results_json;
-    if (!json) return '';
-    try { return JSON.parse(json)?._meta?.url ?? ''; } catch { return ''; }
-  }
-
-  get shareUrl(): string {
-    return this.document.defaultView?.location.href ?? '';
-  }
 
   get score(): number | null { return computeScore(this.scan()?.results_json ?? null); }
   getGrade(s: number) { return getGrade(s); }
@@ -117,15 +79,15 @@ export class DemoResultComponent implements OnInit, OnDestroy {
     try {
       const r = JSON.parse(json);
       return [
-        { key: 'ssl',     label: 'Certificat SSL',       icon: 'lock',       status: r.ssl?.status,    detail: r.ssl?.grade ? `Grade ${r.ssl.grade}` : undefined },
-        { key: 'headers', label: 'Headers HTTP',          icon: 'http',       status: r.headers?.status, detail: r.headers?.missing_count ? `${r.headers.missing_count} manquants` : undefined },
-        { key: 'cookies', label: 'Cookies',               icon: 'cookie',     status: r.cookies?.status },
-        { key: 'cors',    label: 'CORS',                  icon: 'swap_horiz', status: r.cors?.status },
-        { key: 'email',   label: 'SPF / DKIM / DMARC',   icon: 'email',      status: r.email?.status },
-        { key: 'cms',     label: 'CMS détecté',           icon: 'web',        status: r.cms?.status,    detail: r.cms?.cms_detected || undefined },
-        { key: 'waf',     label: 'Pare-feu (WAF)',        icon: 'security',   status: r.waf?.status,    detail: r.waf?.waf_detected || undefined },
-        { key: 'ip',      label: 'Réputation IP',         icon: 'gps_fixed',  status: r.ip?.status },
-        { key: 'dns',     label: 'DNS / Sous-domaines',   icon: 'dns',        status: r.dns?.status,    detail: r.dns?.total_found ? `${r.dns.total_found} trouvés` : undefined },
+        { key: 'ssl',     label: 'Certificat SSL',    icon: 'lock',          status: r.ssl?.status,     detail: r.ssl?.grade ? `Grade ${r.ssl.grade}` : undefined },
+        { key: 'headers', label: 'Headers HTTP',      icon: 'http',          status: r.headers?.status,  detail: r.headers?.missing_count ? `${r.headers.missing_count} manquants` : undefined },
+        { key: 'cookies', label: 'Cookies',           icon: 'cookie',        status: r.cookies?.status },
+        { key: 'cors',    label: 'CORS',              icon: 'swap_horiz',    status: r.cors?.status },
+        { key: 'email',   label: 'SPF / DKIM / DMARC',icon: 'email',        status: r.email?.status },
+        { key: 'cms',     label: 'CMS détecté',       icon: 'web',           status: r.cms?.status,      detail: r.cms?.cms_detected || undefined },
+        { key: 'waf',     label: 'Pare-feu (WAF)',    icon: 'security',      status: r.waf?.status,      detail: r.waf?.waf_detected || undefined },
+        { key: 'ip',      label: 'Réputation IP',     icon: 'gps_fixed',     status: r.ip?.status },
+        { key: 'dns',     label: 'DNS / Sous-domaines',icon: 'dns',          status: r.dns?.status,      detail: r.dns?.total_found ? `${r.dns.total_found} trouvés` : undefined },
       ];
     } catch { return []; }
   }
