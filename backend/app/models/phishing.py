@@ -29,13 +29,7 @@ class PhishingCampaign(Base):
     # Scenarios: JSON array of scenario IDs, e.g. '["ceo-fraud","o365-credentials"]'
     scenario_keys: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    # GoPhish object IDs (populated once campaign is launched)
-    gophish_campaign_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    gophish_group_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    gophish_template_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    gophish_page_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
-
-    # Stats (synced from GoPhish during polling)
+    # Stats
     targets_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     emails_sent: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     opened_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

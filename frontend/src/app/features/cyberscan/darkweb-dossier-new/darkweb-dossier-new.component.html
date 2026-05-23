@@ -38,7 +38,7 @@
             <mat-label>Domaine email</mat-label>
             <input matInput formControlName="domain" placeholder="acme.fr" />
             <mat-icon matPrefix class="text-gray-500 mr-2">language</mat-icon>
-            <mat-hint>Le domaine principal utilisé par vos collaborateurs (sans @)</mat-hint>
+            <mat-hint>Le domaine principal utilisé par vos collaborateurs (sans &#64;)</mat-hint>
             @if (form.get('domain')?.hasError('pattern') && form.get('domain')?.touched) {
               <mat-error>Format de domaine invalide (ex: entreprise.fr)</mat-error>
             }

@@ -50,6 +50,7 @@ async def submit_contact(
         created_at=datetime.now(timezone.utc),
     )
     db.add(msg)
+    await db.commit()
     background_tasks.add_task(
         send_contact_email,
         name=payload.name,
@@ -92,5 +93,5 @@ async def admin_update_status(
     if not msg:
         raise HTTPException(status_code=404, detail="Message introuvable")
     msg.status = new_status
-    await db.flush()
+    await db.commit()
     return {"message": "Statut mis à jour."}

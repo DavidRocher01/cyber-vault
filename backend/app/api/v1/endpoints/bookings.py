@@ -96,7 +96,7 @@ async def create_booking(
         created_at=datetime.now(timezone.utc),
     )
     db.add(booking)
-    await db.flush()
+    await db.commit()
 
     date_label = _format_date_fr(slot.date)
     cancel_url = f"{settings.FRONTEND_URL}/cyberscan/reserver/annuler?token={cancel_token}"
@@ -142,7 +142,7 @@ async def cancel_booking(token: str, db: AsyncSession = Depends(get_db)):
     if booking.status == "cancelled":
         return {"message": "Cette réservation est déjà annulée."}
     booking.status = "cancelled"
-    await db.flush()
+    await db.commit()
     return {"message": "Votre réservation a été annulée."}
 
 
@@ -162,7 +162,7 @@ async def add_slots(payload: SlotBatchIn, db: AsyncSession = Depends(get_db)):
         )
         db.add(slot)
         created.append(slot)
-    await db.flush()
+    await db.commit()
     return [SlotOut(id=s.id, date=s.date, time=s.time, duration_minutes=s.duration_minutes,
                     label=s.label, is_booked=False) for s in created]
 
@@ -175,6 +175,7 @@ async def delete_slot(slot_id: int, db: AsyncSession = Depends(get_db)):
     if not slot:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Créneau introuvable")
     await db.delete(slot)
+    await db.commit()
 
 
 @router.get("/admin/slots", response_model=list[SlotOut], dependencies=[Depends(require_admin)])
@@ -211,5 +212,5 @@ async def admin_cancel_booking(booking_id: int, db: AsyncSession = Depends(get_d
     if not booking:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Réservation introuvable")
     booking.status = "cancelled"
-    await db.flush()
+    await db.commit()
     return {"message": "Réservation annulée."}

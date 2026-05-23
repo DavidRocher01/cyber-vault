@@ -12,6 +12,7 @@ from sqlalchemy import select
 
 from app.core.database import get_db
 from app.models.plan import Plan
+from app.models.processed_stripe_event import ProcessedStripeEvent
 from app.models.subscription import Subscription
 from app.services.invoice_service import create_invoice
 from app.services.stripe_service import construct_webhook_event
@@ -31,6 +32,13 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+    event_id = event["id"]
+    existing = await db.execute(
+        select(ProcessedStripeEvent).where(ProcessedStripeEvent.stripe_event_id == event_id)
+    )
+    if existing.scalar_one_or_none():
+        return {"status": "ok"}
+
     data = event["data"]["object"]
 
     if event["type"] == "checkout.session.completed":
@@ -42,6 +50,8 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     elif event["type"] == "invoice.payment_succeeded":
         await _handle_invoice_payment_succeeded(data, db)
 
+    db.add(ProcessedStripeEvent(stripe_event_id=event_id))
+    await db.commit()
     return {"status": "ok"}
 
 
@@ -63,7 +73,6 @@ async def _handle_checkout_completed(session: dict, db: AsyncSession) -> None:
             sub = result.scalar_one_or_none()
             if sub:
                 sub.extra_sites += settings.ADDON_EXTRA_SITES_COUNT
-                await db.commit()
         return
 
     customer_id      = session.get("customer")
@@ -118,8 +127,6 @@ async def _handle_checkout_completed(session: dict, db: AsyncSession) -> None:
         )
         db.add(sub)
 
-    await db.commit()
-
 
 async def _handle_subscription_updated(stripe_sub: dict, db: AsyncSession) -> None:
     """Sync subscription status changes (canceled, past_due…)."""
@@ -137,7 +144,6 @@ async def _handle_subscription_updated(stripe_sub: dict, db: AsyncSession) -> No
     sub.status = stripe_sub.get("status", sub.status)
     if stripe_sub.get("current_period_end"):
         sub.current_period_end = datetime.fromtimestamp(stripe_sub["current_period_end"], tz=timezone.utc)
-    await db.commit()
 
 
 async def _handle_invoice_payment_succeeded(stripe_inv: dict, db: AsyncSession) -> None:
@@ -185,4 +191,3 @@ async def _handle_invoice_payment_succeeded(stripe_inv: dict, db: AsyncSession) 
         stripe_invoice_id=stripe_invoice_id,
         issue_date=invoice_date,
     )
-    await db.commit()

@@ -415,8 +415,8 @@ Récapitulatif de votre demande :
   Site : {site_url or '—'}
 
 ---
-David Rocher — CyberScan
-rocherdavid@ymail.com
+CyberScan
+contact@cyberscanapp.com
 """
     html_confirm = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0f172a;font-family:Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;">
@@ -434,8 +434,8 @@ Votre demande concernant <strong style="color:#22d3ee;">{need_label}</strong> a 
 Je vous répondrai sous <strong style="color:#f8fafc;">4 heures</strong> (jours ouvrés, 9h–18h).
 </p>
 <p style="color:#475569;font-size:13px;line-height:1.7;margin:0;">
-David Rocher — CyberScan<br>
-Trévoux (01) · <a href="mailto:rocherdavid@ymail.com" style="color:#22d3ee;">rocherdavid@ymail.com</a>
+CyberScan<br>
+<a href="mailto:contact@cyberscanapp.com" style="color:#22d3ee;">contact@cyberscanapp.com</a>
 </p>
 </td></tr>
 </table></td></tr></table></body></html>"""

@@ -524,7 +524,7 @@ async def send_pending_batch() -> None:
                     campaign.emails_sent += 1
                     sent_count += 1
                 except Exception as exc:
-                    logger.warning(f"Failed to send phishing email to {target.email}: {exc}")
+                    logger.warning(f"Failed to send phishing email (target_id={target.id}): {exc}")
 
             campaign.updated_at = datetime.now(timezone.utc)
             logger.info(f"Phishing batch: sent {sent_count} emails for campaign {campaign.id}")

@@ -88,14 +88,14 @@ async def subscribe(
             raw_token = create_refresh_token()
             existing.confirmation_token = hash_token(raw_token)
             existing.subscribed_at = datetime.now(timezone.utc)
-            await db.flush()
+            await db.commit()
             confirm_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/confirm?token={raw_token}"
             background_tasks.add_task(send_confirmation_email, existing.email, confirm_url)
             return NewsletterSubscribeOut(message="Un email de confirmation vous a été renvoyé.")
         # Was confirmed but unsubscribed — re-activate directly
         existing.is_active = True
         existing.subscribed_at = datetime.now(timezone.utc)
-        await db.flush()
+        await db.commit()
         unsubscribe_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?token={make_unsubscribe_token(existing.email)}"
         background_tasks.add_task(send_newsletter_welcome, existing.email, unsubscribe_url)
         return NewsletterSubscribeOut(message="Réabonnement confirmé !")
@@ -109,7 +109,7 @@ async def subscribe(
         unsubscribe_token=make_unsubscribe_token(payload.email),
     )
     db.add(subscriber)
-    await db.flush()
+    await db.commit()
 
     confirm_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/confirm?token={raw_confirmation}"
     background_tasks.add_task(send_confirmation_email, payload.email, confirm_url)
@@ -135,7 +135,7 @@ async def confirm(
     subscriber.is_active = True
     subscriber.confirmed_at = datetime.now(timezone.utc)
     subscriber.confirmation_token = None
-    await db.flush()
+    await db.commit()
 
     unsubscribe_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?token={make_unsubscribe_token(subscriber.email)}"
     background_tasks.add_task(send_newsletter_welcome, subscriber.email, unsubscribe_url)
@@ -162,7 +162,7 @@ async def unsubscribe(
             status_code=302,
         )
     subscriber.is_active = False
-    await db.flush()
+    await db.commit()
     background_tasks.add_task(send_unsubscribe_confirmation, subscriber.email)
     logger.info(f"Newsletter unsubscribe: subscriber_id={subscriber.id}")
     return RedirectResponse(
@@ -342,7 +342,7 @@ async def update_schedule(
         )
         db.add(row)
         created.append(row)
-    await db.flush()
+    await db.commit()
 
     logger.info(f"Newsletter schedule updated — {len(created)} items")
     return created
@@ -375,6 +375,6 @@ async def update_newsletter_content(
         db.add(setting)
     else:
         setting.value_text = payload.model_dump_json()
-    await db.flush()
+    await db.commit()
     logger.info("Newsletter content updated")
     return payload

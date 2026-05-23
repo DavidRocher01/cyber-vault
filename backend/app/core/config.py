@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     ADMIN_API_KEY: str = ""
 
     # Contact form recipient
-    CONTACT_EMAIL: str = "rocherdavid@ymail.com"
+    CONTACT_EMAIL: str = "contact@cyberscanapp.com"
 
     # HaveIBeenPwned API (breach checker)
     HIBP_API_KEY: str = ""
