@@ -31,3 +31,5 @@ from app.models.darkweb_scan import DarkwebScan  # noqa: F401
 from app.models.brand_profile import BrandProfile  # noqa: F401
 from app.models.collab import SiteCollaborator  # noqa: F401
 from app.models.phishing import PhishingCampaign, PhishingTarget, PhishingDomainVerification  # noqa: F401
+from app.models.breach_catalog import BreachCatalogEntry  # noqa: F401
+from app.models.darkweb_dossier import DarkwebDossier, DarkwebDossierTarget  # noqa: F401

@@ -80,6 +80,24 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Surveillance Dark Web — CyberScan',
   },
   {
+    path: 'darkweb-dossier',
+    loadComponent: () => import('./darkweb-dossier/darkweb-dossier.component').then(m => m.DarkwebDossierComponent),
+    canActivate: [authGuard],
+    title: 'Dark Web Dossier B2B — CyberScan',
+  },
+  {
+    path: 'darkweb-dossier/new',
+    loadComponent: () => import('./darkweb-dossier-new/darkweb-dossier-new.component').then(m => m.DarkwebDossierNewComponent),
+    canActivate: [authGuard],
+    title: 'Nouveau dossier dark web — CyberScan',
+  },
+  {
+    path: 'darkweb-dossier/:id',
+    loadComponent: () => import('./darkweb-dossier-detail/darkweb-dossier-detail.component').then(m => m.DarkwebDossierDetailComponent),
+    canActivate: [authGuard],
+    title: 'Résultats dossier dark web — CyberScan',
+  },
+  {
     path: 'onboarding',
     loadComponent: () => import('./onboarding/onboarding.component').then(m => m.OnboardingComponent),
     canActivate: [authGuard],

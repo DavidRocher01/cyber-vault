@@ -1,0 +1,125 @@
+<app-nav-buttons />
+
+<div class="min-h-screen bg-gray-950 text-white p-4 md:p-8">
+  <div class="max-w-5xl mx-auto">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div>
+        <div class="flex items-center gap-3 mb-1">
+          <span class="text-3xl font-bold bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent">
+            Dark Web Dossier
+          </span>
+          <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-500/20 text-red-300 border border-red-600/40">
+            B2B
+          </span>
+        </div>
+        <p class="text-gray-400 text-sm">
+          Analysez l'exposition dark web de votre entreprise — vérifiez quels emails de vos collaborateurs ont été compromis dans des fuites.
+        </p>
+      </div>
+      <a routerLink="/cyberscan/darkweb-dossier/new" mat-flat-button color="warn"
+         class="!rounded-xl flex-shrink-0">
+        <mat-icon>add</mat-icon>
+        Nouveau dossier
+      </a>
+    </div>
+
+    @if (loading()) {
+      <div class="flex justify-center py-24"><mat-spinner [diameter]="40" /></div>
+
+    } @else if (dossiers().length === 0) {
+      <!-- Empty state -->
+      <div class="rounded-xl border border-gray-800 bg-gray-900/50 p-16 text-center">
+        <mat-icon class="!text-[4rem] !w-[4rem] !h-[4rem] text-gray-700 mb-4">travel_explore</mat-icon>
+        <h2 class="text-xl font-semibold text-gray-300 mb-2">Aucun dossier créé</h2>
+        <p class="text-gray-500 text-sm mb-6 max-w-md mx-auto">
+          Créez votre premier dossier en uploadant la liste des emails de vos collaborateurs.
+          L'analyse est entièrement automatique.
+        </p>
+        <a routerLink="/cyberscan/darkweb-dossier/new" mat-flat-button color="warn" class="!rounded-xl">
+          <mat-icon>add</mat-icon>
+          Créer un dossier
+        </a>
+      </div>
+
+      <!-- How it works -->
+      <div class="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4">
+        @for (step of [{icon:'upload_file', title:'1. Uploadez votre liste', desc:'Importez un CSV avec les adresses email de vos collaborateurs.'},
+                       {icon:'manage_search', title:'2. Analyse automatique', desc:'Nous vérifions chaque email contre les bases de fuites connues.'},
+                       {icon:'picture_as_pdf', title:'3. Rapport PDF', desc:'Téléchargez un dossier complet avec recommandations et score de risque.'}]; track step.title) {
+          <div class="rounded-xl border border-gray-800 bg-gray-900 p-5 text-center">
+            <mat-icon class="!text-[2rem] !w-[2rem] !h-[2rem] text-red-400 mb-3">{{ step.icon }}</mat-icon>
+            <h3 class="font-semibold text-sm text-white mb-1">{{ step.title }}</h3>
+            <p class="text-xs text-gray-500">{{ step.desc }}</p>
+          </div>
+        }
+      </div>
+
+    } @else {
+      <!-- Dossier list -->
+      <div class="flex flex-col gap-4">
+        @for (d of dossiers(); track d.id) {
+          <div class="rounded-xl border border-gray-800 bg-gray-900 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+
+            <div class="flex items-start gap-4 min-w-0">
+              <!-- Risk score badge -->
+              <div class="rounded-lg border px-3 py-2 text-center flex-shrink-0 min-w-[64px]"
+                   [class]="riskBg(d.risk_score)">
+                <div class="text-xl font-bold" [class]="riskColor(d.risk_score)">
+                  {{ d.risk_score !== null ? d.risk_score + '%' : '—' }}
+                </div>
+                <div class="text-[0.6rem] text-gray-500 uppercase tracking-wider">Risque</div>
+              </div>
+
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-semibold text-white truncate">{{ d.company_name }}</span>
+                  <span class="font-mono text-xs text-gray-500">{{ d.domain }}</span>
+                  <span class="text-[0.65rem] font-semibold px-1.5 py-0.5 rounded-full border"
+                        [class]="statusColor(d.status)">
+                    {{ statusLabel(d.status) }}
+                  </span>
+                </div>
+                <div class="text-xs text-gray-500 mt-1">
+                  {{ d.total_emails }} emails analysés ·
+                  <span [class]="d.exposed_emails > 0 ? 'text-red-400' : 'text-green-400'">
+                    {{ d.exposed_emails }} exposés
+                  </span>
+                  · Créé le {{ formatDate(d.created_at) }}
+                </div>
+                @if (d.status === 'processing') {
+                  <div class="flex items-center gap-1.5 mt-1.5">
+                    <mat-spinner [diameter]="12" class="[&_circle]:stroke-cyan-400" />
+                    <span class="text-xs text-cyan-400">Analyse en cours…</span>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 flex-shrink-0">
+              @if (d.status === 'completed') {
+                <a [routerLink]="['/cyberscan/darkweb-dossier', d.id]" mat-stroked-button
+                   class="!rounded-lg !border-gray-600 !text-gray-300 !text-xs">
+                  <mat-icon class="!text-base !w-4 !h-4">visibility</mat-icon>
+                  Voir
+                </a>
+              }
+              <button mat-icon-button class="!text-gray-600 hover:!text-red-400"
+                      [disabled]="deletingId() === d.id"
+                      (click)="delete(d.id)">
+                @if (deletingId() === d.id) {
+                  <mat-spinner [diameter]="18" />
+                } @else {
+                  <mat-icon>delete_outline</mat-icon>
+                }
+              </button>
+            </div>
+
+          </div>
+        }
+      </div>
+    }
+
+  </div>
+</div>
