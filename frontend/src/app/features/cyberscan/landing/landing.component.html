@@ -66,6 +66,11 @@
                   <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] text-rose-400">manage_search</mat-icon>
                   Dark Web Dossier
                 </a>
+                <a routerLink="/cyberscan/consultant" (click)="userMenuOpen = false"
+                   class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors">
+                  <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] text-cyan-400">shield_person</mat-icon>
+                  RSSI Externalisé
+                </a>
               </div>
 
               <div class="py-1 border-t border-gray-700/60">
@@ -892,6 +897,7 @@
           <a routerLink="/cyberscan/bonnes-pratiques" class="hover:text-cyan-400 transition-colors">Bonnes pratiques</a>
           <a routerLink="/cyberscan/simulation-phishing" class="hover:text-cyan-400 transition-colors">Simulation phishing</a>
           <a routerLink="/cyberscan/darkweb-dossier" class="hover:text-rose-400 transition-colors">Dark Web Dossier</a>
+          <a routerLink="/cyberscan/consultant" class="hover:text-cyan-400 transition-colors">RSSI Externalisé</a>
           <a href="#audits" class="hover:text-cyan-400 transition-colors">Offres d'audit</a>
           <a href="#pricing" class="hover:text-cyan-400 transition-colors">Abonnements</a>
         </div>
