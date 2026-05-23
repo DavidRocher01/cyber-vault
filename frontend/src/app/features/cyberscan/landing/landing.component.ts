@@ -66,6 +66,8 @@ export class LandingComponent implements OnInit {
     this.openFaqIndex.update(i => (i === index ? null : index));
   }
 
+  isRssiConsultant = signal(false);
+
   // ── Auth modal ────────────────────────────────────────────────────────────
   authPanel = signal<'closed' | 'login' | 'register'>('closed');
   auth2faStep = signal(false);
@@ -460,6 +462,12 @@ export class LandingComponent implements OnInit {
       next: items => { this.newsletterSchedule = items; },
       error: () => { /* keep hardcoded fallback */ },
     });
+    if (this.auth.isAuthenticated()) {
+      this.http.get<{ is_rssi_consultant: boolean }>('/api/v1/users/me').subscribe({
+        next: u => this.isRssiConsultant.set(u.is_rssi_consultant),
+        error: () => {},
+      });
+    }
     this.animateCounters();
   }
 

@@ -66,11 +66,13 @@
                   <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] text-rose-400">manage_search</mat-icon>
                   Dark Web Dossier
                 </a>
-                <a routerLink="/cyberscan/consultant" (click)="userMenuOpen = false"
-                   class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors">
-                  <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] text-cyan-400">shield_person</mat-icon>
-                  RSSI Externalisé
-                </a>
+                @if (isRssiConsultant()) {
+                  <a routerLink="/cyberscan/consultant" (click)="userMenuOpen = false"
+                     class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors">
+                    <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] text-cyan-400">shield_person</mat-icon>
+                    RSSI Externalisé
+                  </a>
+                }
               </div>
 
               <div class="py-1 border-t border-gray-700/60">
