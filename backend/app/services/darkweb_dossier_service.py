@@ -51,7 +51,7 @@ from app.services.pdf_brand import (
     section_rule,
 )
 
-_BATCH_DELAY = 1.2  # seconds between LeakCheck calls to respect rate limit
+_BATCH_DELAY = 2.5  # seconds between API calls — LeakCheck public allows ~1 req/2–3s
 _MONITOR_INTERVAL_DAYS = 30  # re-scan interval for monitored dossiers
 
 # Severity weights by data class keyword (higher = more dangerous)
@@ -181,6 +181,8 @@ async def process_dossier(dossier_id: int, api_key: str) -> None:
 
         dossier.status = "processing"
         dossier.started_at = datetime.now(timezone.utc)
+        dossier.checked_count = 0
+        dossier.unverified_count = 0
         await db.commit()
 
         catalog = await _build_catalog_index(db)
@@ -193,6 +195,7 @@ async def process_dossier(dossier_id: int, api_key: str) -> None:
 
             exposed = 0
             total_instances = 0
+            unverified = 0
 
             for i, target in enumerate(targets):
                 if i > 0:
@@ -200,21 +203,41 @@ async def process_dossier(dossier_id: int, api_key: str) -> None:
                 data = await asyncio.to_thread(check_email_breaches, target.email, api_key)
                 breaches = enrich_breaches_from_catalog(data.get("breaches", []), catalog)
                 count = data.get("total", 0)
+                api_status = data.get("status", "unknown")
+                api_error = data.get("error") or ""
 
                 target.total_breaches = count
-                target.status = "clean" if count == 0 else "exposed"
                 target.breach_sources_json = json.dumps(breaches)
                 target.checked_at = datetime.now(timezone.utc)
 
-                if count > 0:
+                if api_status == "unknown":
+                    # API failed — do NOT silently mark as clean
+                    is_rate_limited = any(
+                        kw in api_error.lower()
+                        for kw in ("rate", "429", "retry", "throttl")
+                    )
+                    target.check_status = "rate_limited" if is_rate_limited else "api_error"
+                    target.status = "error"
+                    unverified += 1
+                elif count > 0:
+                    target.check_status = "exposed"
+                    target.status = "exposed"
                     exposed += 1
                     total_instances += count
+                else:
+                    target.check_status = "verified_clean"
+                    target.status = "clean"
 
-            # Compute risk score: weighted exposure rate
-            total = len(targets)
-            if total > 0:
+                # Commit progress after each email for live polling
+                dossier.checked_count = i + 1
+                dossier.unverified_count = unverified
+                await db.commit()
+
+            # Compute risk score using only verified results
+            verified_total = len(targets) - unverified
+            if verified_total > 0:
                 heavy = sum(1 for t in targets if t.total_breaches >= 3)
-                weighted = (exposed + heavy * 0.5) / (total + heavy * 0.5)
+                weighted = (exposed + heavy * 0.5) / (verified_total + heavy * 0.5)
                 risk_score = min(100, round(weighted * 100))
             else:
                 risk_score = 0
@@ -235,6 +258,7 @@ async def process_dossier(dossier_id: int, api_key: str) -> None:
 
             dossier.exposed_emails = exposed
             dossier.total_breach_instances = total_instances
+            dossier.unverified_count = unverified
             dossier.risk_score = risk_score
             dossier.severity_score = severity_score
             dossier.top_sources_json = json.dumps(top_sources)
@@ -259,7 +283,7 @@ def export_dossier_csv(dossier: DarkwebDossier, targets: list[DarkwebDossierTarg
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
-        "Email", "Statut", "Nb fuites", "Sources principales",
+        "Email", "Statut", "Vérification API", "Nb fuites", "Sources principales",
         "Types de données exposées", "Date vérification",
     ])
     for t in targets:
@@ -273,7 +297,7 @@ def export_dossier_csv(dossier: DarkwebDossier, targets: list[DarkwebDossierTarg
             if dc not in ("Email addresses",)
         )
         checked = t.checked_at.strftime("%Y-%m-%d") if t.checked_at else ""
-        writer.writerow([t.email, t.status, t.total_breaches, sources, data_classes, checked])
+        writer.writerow([t.email, t.status, t.check_status, t.total_breaches, sources, data_classes, checked])
     return ("﻿" + output.getvalue()).encode("utf-8")
 
 
@@ -499,6 +523,94 @@ def _draw_dossier_cover(canvas, doc, *, company_name: str, domain: str,
     canvas.restoreState()
 
 
+def _build_recommendations(
+    dossier: DarkwebDossier,
+    targets: list[DarkwebDossierTarget],
+) -> list[tuple[str, str]]:
+    """Build context-aware recommendations based on actual findings."""
+    exposed_targets = [t for t in targets if t.status == "exposed"]
+    unverified_targets = [t for t in targets if t.status == "error"]
+
+    all_classes: list[str] = []
+    for t in exposed_targets:
+        try:
+            breaches = json.loads(t.breach_sources_json or "[]")
+        except Exception:
+            continue
+        for b in breaches:
+            all_classes.extend(c.lower() for c in b.get("data_classes", []))
+
+    has_password = any("password" in c or "mot de passe" in c for c in all_classes)
+    has_financial = any(
+        k in c for c in all_classes
+        for k in ("credit", "financial", "bank", "carte", "payment")
+    )
+    has_sensitive = any(
+        k in c for c in all_classes
+        for k in ("social security", "health", "medical", "ssn", "passport")
+    )
+
+    recs: list[tuple[str, str]] = []
+
+    if exposed_targets:
+        recs.append((
+            "Réinitialisation des mots de passe exposés",
+            f"Forcer un changement de mot de passe pour les {len(exposed_targets)} compte(s) "
+            "identifié(s) comme exposé(s). Prioriser ceux avec 3 fuites ou plus et vérifier "
+            "toute réutilisation sur d'autres services.",
+        ))
+
+    if has_password or (exposed_targets and not all_classes):
+        recs.append((
+            "Activation de l'authentification multi-facteur (MFA)",
+            "Déployer le MFA sur tous les accès critiques (messagerie, VPN, outils métiers). "
+            "Un mot de passe volé seul ne suffit plus à compromettre un compte protégé par MFA.",
+        ))
+
+    if has_financial:
+        recs.append((
+            "Alerte financière — vérification des accès bancaires",
+            "Des données financières (cartes, coordonnées bancaires) ont été détectées dans les fuites. "
+            "Vérifier les accès aux outils bancaires et comptables, et signaler aux établissements concernés.",
+        ))
+
+    if has_sensitive:
+        recs.append((
+            "Données personnelles sensibles — notification RGPD",
+            "Des données personnelles hautement sensibles ont été trouvées dans les fuites. "
+            "Informer les personnes concernées et envisager une notification à la CNIL si requis.",
+        ))
+
+    if unverified_targets:
+        recs.append((
+            f"Vérification incomplète — {len(unverified_targets)} adresse(s) non analysée(s)",
+            "Certaines adresses n'ont pas pu être vérifiées en raison de limitations des APIs (rate limit). "
+            "Relancer un rescan pour obtenir des résultats complets avant de conclure sur l'exposition réelle.",
+        ))
+
+    risk_score = dossier.risk_score or 0
+    if risk_score >= 50:
+        surveillance_body = (
+            f"Score de risque élevé ({risk_score}%) — une surveillance rapprochée est essentielle. "
+            "Activer le monitoring mensuel automatique et planifier un rescan dans 30 jours."
+        )
+    else:
+        surveillance_body = (
+            "Programmer une nouvelle analyse dans 30 jours pour détecter d'éventuelles nouvelles fuites. "
+            "Activer le monitoring mensuel depuis le tableau de bord pour être alerté immédiatement."
+        )
+    recs.append(("Surveillance continue", surveillance_body))
+
+    if len(recs) < 4:
+        recs.append((
+            "Formation et sensibilisation des équipes",
+            "Intégrer les résultats de cette analyse dans le programme de sensibilisation à la cybersécurité. "
+            "Les collaborateurs exposés devraient suivre une formation sur la gestion des mots de passe.",
+        ))
+
+    return recs[:6]
+
+
 def generate_dossier_pdf(
     dossier: DarkwebDossier,
     targets: list[DarkwebDossierTarget],
@@ -617,25 +729,7 @@ def generate_dossier_pdf(
     story.append(Paragraph("Recommandations", styles["section"]))
     story.append(section_rule(doc.width, "darkweb"))
 
-    recs = [
-        ("Réinitialisation des mots de passe exposés",
-         "Forcer un changement de mot de passe pour tous les comptes identifiés comme exposés. "
-         "Prioriser les comptes avec 3 fuites ou plus."),
-        ("Activation de l'authentification multi-facteur (MFA)",
-         "Déployer le MFA sur tous les accès critiques (messagerie, VPN, outils métiers). "
-         "Un mot de passe volé seul ne suffit plus à compromettre le compte."),
-        ("Vérification des réutilisations de mots de passe",
-         "Sensibiliser les collaborateurs concernés à ne pas réutiliser leurs mots de passe "
-         "personnels sur les outils professionnels."),
-        ("Surveillance continue",
-         "Programmer une nouvelle analyse dans 30 jours pour détecter d'éventuelles nouvelles "
-         "fuites. Mettre en place une alerte sur les adresses email critiques."),
-        ("Formation et sensibilisation",
-         "Intégrer les résultats de cette analyse dans le programme de sensibilisation à la "
-         "cybersécurité de l'entreprise."),
-    ]
-
-    for title, body in recs:
+    for title, body in _build_recommendations(dossier, targets):
         story.append(Paragraph(f"• {title}", styles["subsection"]))
         story.append(Paragraph(body, styles["body"]))
         story.append(Spacer(1, 2 * mm))

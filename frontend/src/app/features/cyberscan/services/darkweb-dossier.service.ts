@@ -6,6 +6,7 @@ export interface DossierTarget {
   id: number;
   email: string;
   status: 'pending' | 'clean' | 'exposed' | 'error';
+  check_status: 'pending' | 'verified_clean' | 'exposed' | 'api_error' | 'rate_limited';
   total_breaches: number;
   breach_sources_json: string | null;
   checked_at: string | null;
@@ -19,6 +20,8 @@ export interface DossierDetail {
   total_emails: number;
   exposed_emails: number;
   total_breach_instances: number;
+  checked_count: number;
+  unverified_count: number;
   risk_score: number | null;
   severity_score: number | null;
   top_sources_json: string | null;
@@ -39,6 +42,8 @@ export interface DossierListItem {
   status: 'pending' | 'processing' | 'completed' | 'failed';
   total_emails: number;
   exposed_emails: number;
+  checked_count: number;
+  unverified_count: number;
   risk_score: number | null;
   severity_score: number | null;
   monitor_active: boolean;

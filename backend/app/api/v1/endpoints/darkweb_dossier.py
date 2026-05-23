@@ -43,6 +43,7 @@ class TargetOut(BaseModel):
     id: int
     email: str
     status: str
+    check_status: str = "pending"
     total_breaches: int
     breach_sources_json: str | None
     checked_at: datetime | None
@@ -56,6 +57,8 @@ class DossierOut(BaseModel):
     total_emails: int
     exposed_emails: int
     total_breach_instances: int
+    checked_count: int = 0
+    unverified_count: int = 0
     risk_score: int | None
     severity_score: int | None
     top_sources_json: str | None
@@ -76,6 +79,8 @@ class DossierListItem(BaseModel):
     status: str
     total_emails: int
     exposed_emails: int
+    checked_count: int = 0
+    unverified_count: int = 0
     risk_score: int | None
     severity_score: int | None
     monitor_active: bool
@@ -117,6 +122,8 @@ def _to_dossier_out(d: DarkwebDossier) -> DossierOut:
         total_emails=d.total_emails,
         exposed_emails=d.exposed_emails,
         total_breach_instances=d.total_breach_instances,
+        checked_count=d.checked_count or 0,
+        unverified_count=d.unverified_count or 0,
         risk_score=d.risk_score,
         severity_score=d.severity_score,
         top_sources_json=d.top_sources_json,
@@ -132,6 +139,7 @@ def _to_dossier_out(d: DarkwebDossier) -> DossierOut:
                 id=t.id,
                 email=t.email,
                 status=t.status,
+                check_status=t.check_status or "pending",
                 total_breaches=t.total_breaches,
                 breach_sources_json=t.breach_sources_json,
                 checked_at=t.checked_at,
@@ -213,6 +221,8 @@ async def list_dossiers(
             status=d.status,
             total_emails=d.total_emails,
             exposed_emails=d.exposed_emails,
+            checked_count=d.checked_count or 0,
+            unverified_count=d.unverified_count or 0,
             risk_score=d.risk_score,
             severity_score=d.severity_score,
             monitor_active=d.monitor_active,
@@ -320,7 +330,10 @@ async def rescan_dossier(
     await db.execute(
         DarkwebDossierTarget.__table__.update()
         .where(DarkwebDossierTarget.dossier_id == dossier_id)
-        .values(status="pending", total_breaches=0, breach_sources_json=None, checked_at=None)
+        .values(
+            status="pending", check_status="pending",
+            total_breaches=0, breach_sources_json=None, checked_at=None,
+        )
     )
     dossier.status = "pending"
     dossier.started_at = None
@@ -331,6 +344,8 @@ async def rescan_dossier(
     dossier.exposed_emails = 0
     dossier.total_breach_instances = 0
     dossier.top_sources_json = None
+    dossier.checked_count = 0
+    dossier.unverified_count = 0
     await db.commit()
     await db.refresh(dossier)
 

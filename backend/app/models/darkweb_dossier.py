@@ -23,6 +23,8 @@ class DarkwebDossier(Base):
     top_sources_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     severity_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    checked_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    unverified_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     monitor_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     last_monitored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     next_monitor_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -48,6 +50,8 @@ class DarkwebDossierTarget(Base):
     email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     # clean | exposed | error | pending
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    # verified_clean | exposed | api_error | rate_limited | pending
+    check_status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     total_breaches: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     breach_sources_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

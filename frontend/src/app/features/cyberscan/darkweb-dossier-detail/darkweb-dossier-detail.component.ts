@@ -177,6 +177,36 @@ export class DarkwebDossierDetailComponent implements OnInit, OnDestroy {
     return (this.dossier()?.targets ?? []).filter(t => t.status === 'clean');
   }
 
+  unverifiedTargets(): DossierTarget[] {
+    return (this.dossier()?.targets ?? []).filter(t => t.status === 'error');
+  }
+
+  progressPercent(): number {
+    const d = this.dossier();
+    if (!d || d.total_emails === 0) return 0;
+    return Math.round((d.checked_count / d.total_emails) * 100);
+  }
+
+  checkStatusLabel(cs: string): string {
+    switch (cs) {
+      case 'verified_clean': return 'Vérifié sain';
+      case 'exposed': return 'Exposé';
+      case 'rate_limited': return 'Rate limit';
+      case 'api_error': return 'Erreur API';
+      default: return 'En attente';
+    }
+  }
+
+  checkStatusClass(cs: string): string {
+    switch (cs) {
+      case 'verified_clean': return 'text-green-400 bg-green-500/10 border-green-500/30';
+      case 'exposed': return 'text-red-400 bg-red-500/10 border-red-500/30';
+      case 'rate_limited': return 'text-orange-400 bg-orange-500/10 border-orange-500/30';
+      case 'api_error': return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
+      default: return 'text-gray-400 bg-gray-500/10 border-gray-500/30';
+    }
+  }
+
   riskColor(score: number | null): string {
     if (score === null) return 'text-gray-400';
     if (score >= 50) return 'text-red-400';

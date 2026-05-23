@@ -311,6 +311,107 @@
   • Outillage UX/UI : GSAP, AOS, animate.css, axe-core, Storybook, Compodoc
 
 
+────────────────────────────────────────────────────────────────────────────────
+  2026-05-20
+────────────────────────────────────────────────────────────────────────────────
+
+  REFACTORING
+  • Suppression complète du module audit-pme (remplacé par les offres RSSI)
+  • Fix landing : 5 tests périmés corrigés + lien Audit PME dans la navbar
+
+  FEATURES — Scan & Dashboard
+  • CTA "Audit Flash humain" dans les rapports de scan (avec pré-remplissage need_type)
+  • Fix prix Audit Flash : 245 € → 290 € HT
+  • Freemium teasing, comparateur Pro et courbe d'évolution du score de sécurité
+  • Tuiles Quick Tools sur le dashboard
+
+  TESTS
+  • Specs scan-detail : getters CTA, criticalCount, warningCount, duration
+
+  MODULE — Simulation Phishing (Phase 1 + 2)
+  • Phase 1 : page vitrine /cyberscan/simulation-phishing
+  • Phase 2 : remplacement GoPhish par moteur natif FastAPI
+    - Générateur look-alike de domaines (typosquatting, homoglyphes, sous-domaines)
+    - Wizard de création de campagne, liste, lancement, suivi de statut
+    - Fix bug sim_subdomain coupé + gestion statut "sending"
+  • Infrastructure tests in-memory SQLite : 52 tests phishing & auth
+  • Tests unitaires : look-alike generator, statuts campagne
+
+
+────────────────────────────────────────────────────────────────────────────────
+  2026-05-22
+────────────────────────────────────────────────────────────────────────────────
+
+  MODULE — RSSI Externalisé (Sprint 1 + 2)
+  • Sprint 1 — Fondations multi-tenant :
+    - CRUD clients (formula essentiel/premium/excellence, CRM : Notion/Pipedrive/Pennylane)
+    - CRUD visites (mensuelle, trimestrielle, annuelle, urgente — onsite/remote)
+    - CRUD actions (priorité, statut, responsable, deadline, catégorie)
+  • Sprint 2 — Dashboard agrégé multi-clients :
+    - KPIs : MRR total, clients actifs, actions en retard, visites à venir
+    - Alertes (actions en retard, renouvellements, absence de visite récente)
+    - Événements calendrier (visites planifiées N jours à venir)
+    - Suggestions rule-based (upsell, engagement, renouvellement, retard élevé)
+  • Tests dashboard : 100 % de couverture sur toutes les branches alertes/suggestions
+
+  FEATURES — Phishing
+  • Personnalisation de l'expéditeur dans les campagnes
+  • Fix flow de lancement (statut "sending" → "completed")
+  • Config production : Resend + domaine vérifié
+
+  REFACTORING / QUALITÉ
+  • Backend : centralisation require_admin, safe_json_load, NEED_LABELS
+  • Fix transaction scan (éviter double commit)
+  • Frontend : fix memory leaks RxJS + retry 5xx dans l'interceptor HTTP
+  • Boost couverture tests global : 40 % → 90 %
+  • Fix mocks : get_active_plan → get_effective_max_sites, 401 → 403
+  • Fix : pin python-multipart 0.0.27 (CVE GHSA-pp6c-gr5w-3c5g)
+
+
+────────────────────────────────────────────────────────────────────────────────
+  2026-05-23
+────────────────────────────────────────────────────────────────────────────────
+
+  MODULE — Simulation Phishing (finalisation)
+  • Pages détail campagne et édition de campagne
+  • Tests unitaires : service, campaign-detail, campaign-edit
+  • Suite Playwright E2E complète (phishing)
+
+  TESTS — E2E
+  • Suite Playwright globale : 48 tests, 0 failed
+
+  MODULE — RSSI Externalisé (Sprint 5 + P8 + Sécurité)
+  • Sprint 5 :
+    - CRUD livrables (compte-rendu, rapport, recommandation, contrat, autre)
+    - Liaison/déliaison de sites à un client RSSI
+    - Rapport PDF (ReportLab) par client
+    - Page profil consultant (display_name, company_name, phone)
+    - Export CSV des actions (UTF-8 BOM)
+  • P8 : upload fichier pour les livrables (S3 + fallback local dev)
+  • Sécurisation complète du module (2026-05-23 soir) :
+    - is_rssi_consultant ajouté dans UserOut (exposé via /users/me)
+    - Tous les endpoints /rssi/* utilisent get_rssi_consultant (→ 403 si non consultant)
+    - PATCH /admin/users/{id}/rssi : toggle du rôle consultant depuis l'admin
+    - rssiGuard Angular : vérifie is_rssi_consultant avant accès aux routes
+    - Admin panel : colonne RSSI + bouton toggle
+  • Tests frontend : rssi.service.spec.ts, consultant-dashboard.spec.ts, client-detail.spec.ts
+  • Liens navigation : menu utilisateur + footer sur la landing
+
+  MODULE — Dark Web Dossier B2B (complet)
+  • Upload CSV d'emails → analyse HIBP + LeakCheck en background
+  • Risk scoring (0–100) + severity scoring pondéré par type de données exposées
+    (passwords=4, financial=5, phone/address=2, email/name=1)
+  • Rescan on-demand, export CSV (UTF-8 BOM), toggle monitoring mensuel
+  • Alerte email automatique si nouvelles fuites détectées (APScheduler cron 03h00)
+  • Timeline chart des fuites par année (bar chart normalisé)
+  • Rapport PDF (ReportLab)
+  • Fix : time.sleep → asyncio.sleep + asyncio.to_thread (respect rate limits LeakCheck)
+  • Fix : session DB isolée dans process_dossier, garde admin, limite par utilisateur
+  • Cartes "Surveillance Dark Web" et "Dark Web Dossier" dans les Quick Tools du dashboard
+  • Tests : intégration (rescan, CSV, monitor), unit (_compute_severity, export_dossier_csv),
+    frontend service + composant (severity, timeline, getBreachTimelineMax)
+
+
 ================================================================================
-  FIN DU JOURNAL — Généré le 2026-04-21
+  FIN DU JOURNAL — Mis à jour le 2026-05-23
 ================================================================================
