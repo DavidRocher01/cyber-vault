@@ -245,3 +245,42 @@ async def export_assessment_pdf(
         media_type="application/pdf",
         headers={"Content-Disposition": 'attachment; filename="cyberscan_nis2_conformite.pdf"'},
     )
+
+
+@router.get("/me/pdf/auditor")
+async def export_auditor_pdf(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate a formal NIS2 'prêt-à-déposer' document for certified auditor review."""
+    result = await db.execute(
+        select(Nis2Assessment).where(Nis2Assessment.user_id == current_user.id)
+    )
+    assessment = result.scalar_one_or_none()
+    items = json.loads(assessment.items_json) if assessment else {}
+    score = compute_assessment_score(items, ALL_ITEM_IDS)
+    updated_at = assessment.updated_at if assessment else None
+
+    # Try to get company name from brand profile
+    from app.models.brand_profile import BrandProfile
+    brand_result = await db.execute(
+        select(BrandProfile).where(BrandProfile.user_id == current_user.id)
+    )
+    brand = brand_result.scalar_one_or_none()
+    company_name = brand.company_name if brand else ""
+
+    from app.services.nis2_auditor_pdf import generate_nis2_auditor_pdf
+    pdf_bytes = generate_nis2_auditor_pdf(
+        categories=NIS2_CATEGORIES,
+        items=items,
+        score=score,
+        user_email=current_user.email,
+        updated_at=updated_at,
+        company_name=company_name,
+    )
+
+    return StreamingResponse(
+        iter([pdf_bytes]),
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="cyberscan_nis2_pret_a_deposer.pdf"'},
+    )

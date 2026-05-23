@@ -84,10 +84,15 @@ jobs:
                        .name != "SMTP_PASSWORD" and
                        .name != "ADMIN_API_KEY" and
                        .name != "RESEND_API_KEY" and
+                       .name != "PHISHING_FROM_EMAIL" and
                        .name != "SENTRY_DSN" and
-                       .name != "STRIPE_PUBLISHABLE_KEY"
+                       .name != "STRIPE_PUBLISHABLE_KEY" and
+                       .name != "PHISHING_BASE_URL"
                      ))
-                 + [{"name": "STRIPE_PUBLISHABLE_KEY", "value": $PK_LIVE}]
+                 + [
+                     {"name": "STRIPE_PUBLISHABLE_KEY", "value": $PK_LIVE},
+                     {"name": "PHISHING_BASE_URL",      "value": "https://cyberscanapp.com/api/v1"}
+                   ]
                  )
                | .containerDefinitions[0].secrets = [
                    {"name": "SECRET_KEY",            "valueFrom": ($SM_ARN + ":SECRET_KEY::")},
@@ -97,6 +102,7 @@ jobs:
                    {"name": "SMTP_PASSWORD",         "valueFrom": ($SM_ARN + ":SMTP_PASSWORD::")},
                    {"name": "ADMIN_API_KEY",         "valueFrom": ($SM_ARN + ":ADMIN_API_KEY::")},
                    {"name": "RESEND_API_KEY",        "valueFrom": ($SM_ARN + ":RESEND_API_KEY::")},
+                   {"name": "PHISHING_FROM_EMAIL",   "valueFrom": ($SM_ARN + ":PHISHING_FROM_EMAIL::")},
                    {"name": "SENTRY_DSN",            "valueFrom": ($SM_ARN + ":SENTRY_DSN::")}
                  ]')
 

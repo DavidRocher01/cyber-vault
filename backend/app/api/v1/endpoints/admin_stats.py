@@ -1,12 +1,11 @@
-import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.core.database import get_db
+from app.core.deps import require_admin
 from app.models.booking import Booking
 from app.models.booking_slot import BookingSlot
 from app.models.contact_message import ContactMessage
@@ -19,16 +18,11 @@ from app.models.user import User
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
-def _require_admin(x_admin_key: str = Header(default="")) -> None:
-    if not settings.ADMIN_API_KEY or not secrets.compare_digest(x_admin_key, settings.ADMIN_API_KEY):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès refusé")
-
-
 def _week_label(dt: datetime) -> str:
     return dt.strftime("S%W")
 
 
-@router.get("/stats", dependencies=[Depends(_require_admin)])
+@router.get("/stats", dependencies=[Depends(require_admin)])
 async def get_stats(db: AsyncSession = Depends(get_db)):
     now = datetime.now(timezone.utc)
 

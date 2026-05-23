@@ -67,8 +67,8 @@ async def test_login_wrong_password_returns_401():
 
 
 @pytest.mark.asyncio
-async def test_protected_endpoint_without_token_returns_403():
-    """Régression : tous les endpoints protégés renvoient 403 sans token (non authentifié)."""
+async def test_protected_endpoint_without_token_returns_401():
+    """Régression : tous les endpoints protégés renvoient 401 sans token (non authentifié)."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         endpoints = [
             ("GET",  f"{BASE}/users/me"),
@@ -79,7 +79,7 @@ async def test_protected_endpoint_without_token_returns_403():
         ]
         for method, url in endpoints:
             r = await c.request(method, url)
-            assert r.status_code == 403, f"{method} {url} devrait retourner 403, got {r.status_code}"
+            assert r.status_code == 401, f"{method} {url} devrait retourner 401, got {r.status_code}"
 
 
 @pytest.mark.asyncio
@@ -166,7 +166,7 @@ async def test_scan_trigger_returns_scan_id_in_body():
     with patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "scan_regr@test.com")
-            with patch("app.api.v1.endpoints.sites.get_active_plan", new=AsyncMock(return_value=MagicMock(max_sites=5))):
+            with patch("app.api.v1.endpoints.sites.get_effective_max_sites", new=AsyncMock(return_value=5)):
                 site_r = await c.post(f"{BASE}/sites", json={"url": "https://example.com", "name": "Test"}, headers=h)
             site_id = site_r.json()["id"]
             with patch("app.api.v1.endpoints.scans.get_active_plan", new=AsyncMock(return_value=MagicMock(max_sites=5, scan_interval_days=30, price_eur=900))):

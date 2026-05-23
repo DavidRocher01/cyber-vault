@@ -16,6 +16,8 @@ class Site(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
+    rssi_client_id: Mapped[int | None] = mapped_column(ForeignKey("rssi_clients.id"), nullable=True, index=True)
+
     # SSL expiry alert tracking — threshold in days (30/14/7), reset when cert renewed
     ssl_alert_threshold: Mapped[int | None] = mapped_column(Integer, nullable=True)
     ssl_alert_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

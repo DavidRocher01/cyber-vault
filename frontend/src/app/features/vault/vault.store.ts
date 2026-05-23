@@ -1,12 +1,12 @@
 import { Injectable } from '@angular/core';
 import { ComponentStore } from '@ngrx/component-store';
 import { tapResponse } from '@ngrx/operators';
-import { switchMap, tap } from 'rxjs';
+import { from, switchMap, concatMap, map, tap } from 'rxjs';
 
 import { VaultItem, VaultItemCreate, VaultService } from '../../core/services/vault.service';
+import { CryptoService } from '../../core/services/crypto.service';
 
 interface VaultItemUpdate extends Partial<VaultItemCreate> { id: number; }
-import { CryptoService } from '../../core/services/crypto.service';
 
 interface VaultState {
   items: VaultItem[];
@@ -40,11 +40,12 @@ export class VaultStore extends ComponentStore<VaultState> {
 
   readonly createItem = this.effect<VaultItemCreate>(payload$ =>
     payload$.pipe(
-      switchMap(async payload => {
-        const encrypted = await this.cryptoService.encrypt(payload.password_encrypted);
-        return { ...payload, password_encrypted: encrypted };
-      }),
-      switchMap(payload =>
+      concatMap(payload =>
+        from(this.cryptoService.encrypt(payload.password_encrypted)).pipe(
+          map(encrypted => ({ ...payload, password_encrypted: encrypted }))
+        )
+      ),
+      concatMap(payload =>
         this.vaultService.create(payload).pipe(
           tapResponse(
             item => this.patchState(s => ({ items: [...s.items, item] })),
@@ -57,13 +58,13 @@ export class VaultStore extends ComponentStore<VaultState> {
 
   readonly updateItem = this.effect<VaultItemUpdate>(payload$ =>
     payload$.pipe(
-      switchMap(async ({ id, password_encrypted, ...rest }) => {
-        const encrypted = password_encrypted
-          ? await this.cryptoService.encrypt(password_encrypted)
-          : undefined;
-        return { id, ...rest, ...(encrypted ? { password_encrypted: encrypted } : {}) };
+      concatMap(({ id, password_encrypted, ...rest }) => {
+        const encrypt$ = password_encrypted
+          ? from(this.cryptoService.encrypt(password_encrypted)).pipe(map(e => ({ password_encrypted: e })))
+          : from(Promise.resolve({}));
+        return encrypt$.pipe(map(extra => ({ id, ...rest, ...extra })));
       }),
-      switchMap(({ id, ...payload }) =>
+      concatMap(({ id, ...payload }) =>
         this.vaultService.update(id, payload).pipe(
           tapResponse(
             updated => this.patchState(s => ({ items: s.items.map(i => i.id === id ? updated : i) })),

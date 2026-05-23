@@ -1,2 +1,5 @@
 .coverage
 *.pdf
+coverage.json
+htmlcov/
+test-results/

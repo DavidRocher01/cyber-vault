@@ -2,7 +2,7 @@
 Unit tests for app.api.v1.endpoints.sites — direct function calls.
 """
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -111,118 +111,65 @@ async def test_add_site_no_subscription_raises_403():
 
 @pytest.mark.asyncio
 async def test_add_site_limit_reached_raises_403():
-    plan = MagicMock()
-    plan.max_sites = 2
-    call_count = {"n": 0}
     db = AsyncMock()
-
-    async def execute(*args, **kwargs):
-        r = MagicMock()
-        n = call_count["n"]
-        call_count["n"] += 1
-        if n == 0:
-            r.scalar_one_or_none.return_value = plan
-        else:
-            r.scalar.return_value = 2  # already at limit
-        return r
-
-    db.execute = execute
+    r = MagicMock()
+    r.scalar.return_value = 2  # already at limit
+    db.execute = AsyncMock(return_value=r)
     user = _mock_user()
 
-    with pytest.raises(HTTPException) as exc:
-        await add_site(payload=_payload(), current_user=user, db=db)
+    with patch("app.api.v1.endpoints.sites.get_effective_max_sites", AsyncMock(return_value=2)):
+        with pytest.raises(HTTPException) as exc:
+            await add_site(payload=_payload(), current_user=user, db=db)
     assert exc.value.status_code == 403
     assert "Limite" in exc.value.detail
 
 
 @pytest.mark.asyncio
 async def test_add_site_invalid_protocol_raises_422():
-    plan = MagicMock()
-    plan.max_sites = 5
-    call_count = {"n": 0}
     db = AsyncMock()
-
-    async def execute(*args, **kwargs):
-        r = MagicMock()
-        n = call_count["n"]
-        call_count["n"] += 1
-        if n == 0:
-            r.scalar_one_or_none.return_value = plan
-        else:
-            r.scalar.return_value = 0
-        return r
-
-    db.execute = execute
+    r = MagicMock()
+    r.scalar.return_value = 0
+    db.execute = AsyncMock(return_value=r)
     user = _mock_user()
 
-    with pytest.raises(HTTPException) as exc:
-        await add_site(payload=_payload(url="ftp://example.com"), current_user=user, db=db)
+    with patch("app.api.v1.endpoints.sites.get_effective_max_sites", AsyncMock(return_value=5)):
+        with pytest.raises(HTTPException) as exc:
+            await add_site(payload=_payload(url="ftp://example.com"), current_user=user, db=db)
     assert exc.value.status_code == 422
 
 
 @pytest.mark.asyncio
 async def test_add_site_auto_adds_https():
     """URLs without scheme get https:// prepended."""
-    plan = MagicMock()
-    plan.max_sites = 5
-    site = _mock_site(url="https://example.com")
-    call_count = {"n": 0}
+    added_sites = []
     db = AsyncMock()
-
-    async def execute(*args, **kwargs):
-        r = MagicMock()
-        n = call_count["n"]
-        call_count["n"] += 1
-        if n == 0:
-            r.scalar_one_or_none.return_value = plan
-        else:
-            r.scalar.return_value = 0
-        return r
-
-    db.execute = execute
-    db.add = MagicMock()
+    r = MagicMock()
+    r.scalar.return_value = 0
+    db.execute = AsyncMock(return_value=r)
+    db.add = lambda obj: added_sites.append(obj)
     db.commit = AsyncMock()
     db.refresh = AsyncMock()
     user = _mock_user()
 
-    # Should not raise — url without scheme
-    added_sites = []
-
-    def fake_add(obj):
-        added_sites.append(obj)
-
-    db.add = fake_add
-
-    await add_site(payload=_payload(url="example.com"), current_user=user, db=db)
+    with patch("app.api.v1.endpoints.sites.get_effective_max_sites", AsyncMock(return_value=5)):
+        await add_site(payload=_payload(url="example.com"), current_user=user, db=db)
     assert len(added_sites) == 1
     assert added_sites[0].url.startswith("https://")
 
 
 @pytest.mark.asyncio
 async def test_add_site_success():
-    plan = MagicMock()
-    plan.max_sites = 5
-    site = _mock_site()
-    call_count = {"n": 0}
     db = AsyncMock()
-
-    async def execute(*args, **kwargs):
-        r = MagicMock()
-        n = call_count["n"]
-        call_count["n"] += 1
-        if n == 0:
-            r.scalar_one_or_none.return_value = plan
-        else:
-            r.scalar.return_value = 1
-        return r
-
-    db.execute = execute
+    r = MagicMock()
+    r.scalar.return_value = 1
+    db.execute = AsyncMock(return_value=r)
     db.add = MagicMock()
     db.commit = AsyncMock()
     db.refresh = AsyncMock()
     user = _mock_user()
 
-    result = await add_site(payload=_payload(), current_user=user, db=db)
+    with patch("app.api.v1.endpoints.sites.get_effective_max_sites", AsyncMock(return_value=5)):
+        await add_site(payload=_payload(), current_user=user, db=db)
     db.commit.assert_called_once()
 
 

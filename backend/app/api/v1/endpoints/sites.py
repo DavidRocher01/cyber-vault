@@ -1,15 +1,16 @@
-import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.utils import safe_json_load
 from app.models.user import User
 from app.models.site import Site
 from app.models.scan import Scan
+from app.models.rssi_client import RssiClient
 from app.schemas.cyberscan import SiteCreate, SiteOut
-from app.services.subscription_service import get_active_plan
+from app.services.subscription_service import get_effective_max_sites
 
 router = APIRouter(prefix="/sites", tags=["sites"])
 
@@ -31,8 +32,7 @@ async def add_site(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    plan = await get_active_plan(db, current_user.id)
-    max_sites = plan.max_sites if plan else 0
+    max_sites = await get_effective_max_sites(db, current_user.id)
     if max_sites == 0:
         raise HTTPException(status_code=403, detail="Abonnement requis pour ajouter un site")
 
@@ -50,7 +50,15 @@ async def add_site(
     if not url.startswith(("http://", "https://")):
         url = f"https://{url}"
 
-    site = Site(user_id=current_user.id, url=url, name=payload.name)
+    rssi_client_id = payload.rssi_client_id
+    if rssi_client_id is not None:
+        client_result = await db.execute(
+            select(RssiClient).where(RssiClient.id == rssi_client_id, RssiClient.consultant_user_id == current_user.id)
+        )
+        if not client_result.scalar_one_or_none():
+            raise HTTPException(status_code=404, detail="Client RSSI non trouvé")
+
+    site = Site(user_id=current_user.id, url=url, name=payload.name, rssi_client_id=rssi_client_id)
     db.add(site)
     await db.commit()
     await db.refresh(site)
@@ -97,11 +105,8 @@ async def get_site_subdomains(
     if not scan or not scan.results_json:
         return {"site_url": site.url, "subdomains": [], "zone_transfer": None, "scan_date": None}
 
-    try:
-        results = json.loads(scan.results_json)
-        dns = results.get("dns") or {}
-    except Exception:
-        dns = {}
+    results = safe_json_load(scan.results_json, {})
+    dns = results.get("dns") or {}
 
     return {
         "site_url": site.url,

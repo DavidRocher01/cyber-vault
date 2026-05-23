@@ -210,9 +210,9 @@ describe('LandingComponent — auditOffers (4 offres)', () => {
     expect(src).toContain("'290 €'");
   });
 
-  it('contient l\'offre "Audit Standard" à 390 €', () => {
-    expect(src).toContain("'Audit Standard'");
-    expect(src).toContain("'390 €'");
+  it('contient l\'offre "App-Check" à 725 €', () => {
+    expect(src).toContain("'App-Check'");
+    expect(src).toContain("'725 €'");
   });
 
   it("contient l'offre \"Conformité NIS2 / RGPD\" à 890 €", () => {
@@ -220,12 +220,12 @@ describe('LandingComponent — auditOffers (4 offres)', () => {
     expect(src).toContain("'890 €'");
   });
 
-  it('contient l\'offre "Audit Complet" sur devis', () => {
-    expect(src).toContain("'Audit Complet'");
-    expect(src).toContain("'Sur devis'");
+  it('contient l\'offre "Pentest léger" à 1 900 €', () => {
+    expect(src).toContain("'Pentest léger'");
+    expect(src).toContain("'1 900 €'");
   });
 
-  it('une seule offre est featured (Audit Standard)', () => {
+  it('une seule offre est featured (App-Check)', () => {
     const block = src.match(/auditOffers\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const featured = (block.match(/featured:\s*true/g) ?? []).length;
     expect(featured).toBe(1);
@@ -436,9 +436,9 @@ describe('LandingComponent — non-régression comportement', () => {
     }
   });
 
-  it('[RÉGRESSION] le prix de l\'Audit Standard est 390 € (sans HT dans le code)', () => {
-    expect(src).toContain("'390 €'");
-    expect(src).not.toContain("'390 € HT'");
+  it('[RÉGRESSION] le prix de l\'App-Check est 725 € (sans HT dans le code)', () => {
+    expect(src).toContain("'725 €'");
+    expect(src).not.toContain("'725 € HT'");
   });
 
   it('[RÉGRESSION] l\'architecture affiche 21 modules', () => {
@@ -462,10 +462,6 @@ describe('LandingComponent — navbar (liens pages publiques)', () => {
     expect(html).toContain('/cyberscan/blog');
   });
 
-  it('contient un lien vers /cyberscan/audit-cybersecurite-pme dans la navbar', () => {
-    expect(html).toContain('/cyberscan/audit-cybersecurite-pme');
-  });
-
   it('[SUPPRIMÉ] scan-gratuit retiré de la navbar', () => {
     const navBlock = html.match(/<nav[\s\S]*?<\/nav>/)?.[0] ?? '';
     expect(navBlock).not.toContain('/cyberscan/scan-gratuit');
@@ -487,9 +483,8 @@ describe('LandingComponent — navbar (liens pages publiques)', () => {
     expect(html).toContain('/vault');
   });
 
-  it('Blog et Audit PME sont présents dans le nav', () => {
+  it('Blog est présent dans le nav', () => {
     const navBlock = html.match(/<nav[\s\S]*?<\/nav>/)?.[0] ?? '';
     expect(navBlock).toContain('/cyberscan/blog');
-    expect(navBlock).toContain('/cyberscan/audit-cybersecurite-pme');
   });
 });

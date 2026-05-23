@@ -48,6 +48,16 @@
           }
           Exporter PDF
         </button>
+        <button type="button" (click)="exportAuditorPdf()" [disabled]="exportingAuditor() || loading()"
+                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                matTooltip="Document officiel NIS2 prêt-à-déposer pour auditeur certifié">
+          @if (exportingAuditor()) {
+            <mat-spinner diameter="14"></mat-spinner>
+          } @else {
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">verified</mat-icon>
+          }
+          Document officiel
+        </button>
         <button type="button" (click)="save()" [disabled]="saving() || loading()"
                 class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-cyan-600 hover:bg-cyan-500 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed">
           @if (saving()) {
@@ -208,6 +218,14 @@
               <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">picture_as_pdf</mat-icon>
             }
             Exporter PDF
+          </button>
+          <button type="button" (click)="exportAuditorPdf()" [disabled]="exportingAuditor()"
+                  class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-purple-500/30 text-purple-400 hover:bg-purple-500/10 transition-all disabled:opacity-50"
+                  matTooltip="Document officiel NIS2 prêt-à-déposer pour auditeur certifié">
+            @if (exportingAuditor()) { <mat-spinner diameter="14"></mat-spinner> } @else {
+              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">verified</mat-icon>
+            }
+            Document officiel
           </button>
           <button type="button" (click)="save()" [disabled]="saving()"
                   class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-cyan-600 hover:bg-cyan-500 text-white transition-all disabled:opacity-50">

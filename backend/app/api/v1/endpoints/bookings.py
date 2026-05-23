@@ -1,13 +1,15 @@
 import secrets
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
+from app.core.constants import NEED_LABELS
 from app.core.database import get_db
+from app.core.deps import require_admin
 from app.core.limiter import limiter
 from app.models.booking import Booking
 from app.models.booking_slot import BookingSlot
@@ -15,19 +17,6 @@ from app.schemas.booking import BookingConfirmOut, BookingIn, BookingOut, SlotBa
 from app.services.email_service import send_booking_admin_notification, send_booking_confirmation
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
-
-NEED_LABELS = {
-    "audit-flash": "Audit Flash",
-    "audit-app": "Audit App-Check",
-    "pentest": "Pentest léger",
-    "abonnement": "Abonnement surveillance",
-    "autre": "Autre / Devis",
-}
-
-
-def _require_admin(x_admin_key: str = Header(default="")) -> None:
-    if not settings.ADMIN_API_KEY or not secrets.compare_digest(x_admin_key, settings.ADMIN_API_KEY):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès refusé")
 
 
 def _slot_to_out(slot: BookingSlot) -> SlotOut:
@@ -75,9 +64,11 @@ async def create_booking(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(BookingSlot).where(BookingSlot.id == payload.slot_id)
+        select(BookingSlot)
+        .where(BookingSlot.id == payload.slot_id)
+        .options(selectinload(BookingSlot.bookings))
     )
-    slot = result.scalars().unique().scalar_one_or_none()
+    slot = result.scalars().unique().one_or_none()
     if not slot:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Créneau introuvable")
 
@@ -158,7 +149,7 @@ async def cancel_booking(token: str, db: AsyncSession = Depends(get_db)):
 # ── Admin endpoints ────────────────────────────────────────────────────────────
 
 @router.post("/admin/slots", response_model=list[SlotOut], status_code=status.HTTP_201_CREATED,
-             dependencies=[Depends(_require_admin)])
+             dependencies=[Depends(require_admin)])
 async def add_slots(payload: SlotBatchIn, db: AsyncSession = Depends(get_db)):
     now = datetime.now(timezone.utc)
     created = []
@@ -177,7 +168,7 @@ async def add_slots(payload: SlotBatchIn, db: AsyncSession = Depends(get_db)):
 
 
 @router.delete("/admin/slots/{slot_id}", status_code=status.HTTP_204_NO_CONTENT,
-               dependencies=[Depends(_require_admin)])
+               dependencies=[Depends(require_admin)])
 async def delete_slot(slot_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(BookingSlot).where(BookingSlot.id == slot_id))
     slot = result.scalars().unique().one_or_none()
@@ -186,7 +177,7 @@ async def delete_slot(slot_id: int, db: AsyncSession = Depends(get_db)):
     await db.delete(slot)
 
 
-@router.get("/admin/slots", response_model=list[SlotOut], dependencies=[Depends(_require_admin)])
+@router.get("/admin/slots", response_model=list[SlotOut], dependencies=[Depends(require_admin)])
 async def admin_list_slots(month: str | None = None, db: AsyncSession = Depends(get_db)):
     q = (select(BookingSlot)
          .order_by(BookingSlot.date, BookingSlot.time)
@@ -197,7 +188,7 @@ async def admin_list_slots(month: str | None = None, db: AsyncSession = Depends(
     return [_slot_to_out(s) for s in result.scalars().unique().all()]
 
 
-@router.get("/admin/bookings", response_model=list[BookingOut], dependencies=[Depends(_require_admin)])
+@router.get("/admin/bookings", response_model=list[BookingOut], dependencies=[Depends(require_admin)])
 async def admin_list_bookings(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(Booking).order_by(Booking.created_at.desc())
@@ -213,7 +204,7 @@ async def admin_list_bookings(db: AsyncSession = Depends(get_db)):
     ]
 
 
-@router.patch("/admin/bookings/{booking_id}/cancel", dependencies=[Depends(_require_admin)])
+@router.patch("/admin/bookings/{booking_id}/cancel", dependencies=[Depends(require_admin)])
 async def admin_cancel_booking(booking_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Booking).where(Booking.id == booking_id))
     booking = result.scalar_one_or_none()

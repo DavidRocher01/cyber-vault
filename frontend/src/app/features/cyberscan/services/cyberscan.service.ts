@@ -20,6 +20,7 @@ export interface Subscription {
   current_period_start: string;
   current_period_end: string;
   plan: Plan;
+  extra_sites: number;
 }
 
 export interface CheckoutSession {
@@ -107,6 +108,13 @@ export interface PaginatedCodeScans {
   page: number;
   per_page: number;
   pages: number;
+}
+
+export interface FindingStatus {
+  module_key: string;
+  status: 'todo' | 'in_progress' | 'resolved' | 'accepted_risk';
+  note: string | null;
+  updated_at: string;
 }
 
 export interface AppNotification {
@@ -208,6 +216,10 @@ export class CyberscanService {
     return this.http.get<{ checkout_url: string }>(`${API}/subscriptions/portal`);
   }
 
+  purchaseExtraSites(): Observable<{ checkout_url: string }> {
+    return this.http.post<{ checkout_url: string }>(`${API}/subscriptions/addons/extra-sites/checkout`, {});
+  }
+
   getMySites(): Observable<Site[]> {
     return this.http.get<Site[]>(`${API}/sites`);
   }
@@ -238,6 +250,10 @@ export class CyberscanService {
 
   downloadPdfBlob(scanId: number): Observable<Blob> {
     return this.http.get(`${API}/scans/${scanId}/pdf`, { responseType: 'blob' });
+  }
+
+  downloadBrandedPdfBlob(scanId: number): Observable<Blob> {
+    return this.http.get(`${API}/scans/${scanId}/pdf/branded`, { responseType: 'blob' });
   }
 
   downloadRemediationBlob(scanId: number, scriptKey: string): Observable<Blob> {
@@ -308,6 +324,10 @@ export class CyberscanService {
     return this.http.get(`${API}/nis2/me/pdf`, { responseType: 'blob' });
   }
 
+  downloadNis2AuditorPdfBlob(): Observable<Blob> {
+    return this.http.get(`${API}/nis2/me/pdf/auditor`, { responseType: 'blob' });
+  }
+
   // ── ISO 27001 ──────────────────────────────────────────────────────────
 
   getIso27001Assessment(): Observable<any> {
@@ -368,5 +388,16 @@ export class CyberscanService {
 
   downloadInvoicePdfBlob(id: number): Observable<Blob> {
     return this.http.get(`${API}/invoices/${id}/pdf`, { responseType: 'blob' });
+  }
+
+  getFindingStatuses(siteId: number): Observable<FindingStatus[]> {
+    return this.http.get<FindingStatus[]>(`${API}/scans/site/${siteId}/finding-status`);
+  }
+
+  updateFindingStatus(siteId: number, moduleKey: string, status: string, note?: string): Observable<FindingStatus> {
+    return this.http.put<FindingStatus>(
+      `${API}/scans/site/${siteId}/finding-status/${moduleKey}`,
+      { status, note: note ?? null },
+    );
   }
 }
