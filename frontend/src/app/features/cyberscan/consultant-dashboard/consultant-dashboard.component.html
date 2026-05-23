@@ -1,5 +1,21 @@
 <app-nav-buttons />
 
+<!-- Impersonation banner — visible when ?client=X is active -->
+@if (focusedClientId()) {
+  <div class="sticky top-0 z-50 flex items-center justify-between gap-3 px-4 py-2 bg-amber-500/90 text-gray-950 text-sm font-semibold shadow-lg">
+    <div class="flex items-center gap-2">
+      <mat-icon style="font-size:18px;height:18px;width:18px">visibility</mat-icon>
+      <span>Mode client actif :
+        <span class="font-bold">{{ focusedClientName() ?? 'Client #' + focusedClientId() }}</span>
+      </span>
+    </div>
+    <button type="button" mat-icon-button (click)="clearFocus()"
+            class="!text-gray-950 !w-7 !h-7" title="Quitter le mode client">
+      <mat-icon style="font-size:18px;height:18px;width:18px">close</mat-icon>
+    </button>
+  </div>
+}
+
 <div class="min-h-screen bg-gray-950 text-gray-100 p-4 md:p-8">
 
   <!-- Header -->
@@ -195,7 +211,7 @@
                 <tbody>
                   @for (s of summaries(); track s.id) {
                     <tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors cursor-pointer"
-                        (click)="activeTab.set('clients')">
+                        (click)="onClientRowClick(s)">
                       <td class="px-4 py-2.5">
                         <div class="flex items-center gap-2">
                           <span class="font-medium text-white">{{ s.name }}</span>

@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -37,6 +37,8 @@ export class ConsultantDashboardComponent implements OnInit {
   private fb = inject(FormBuilder);
   private snack = inject(MatSnackBar);
   private title = inject(Title);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   // Client list (Sprint 1)
   clients = signal<RssiClient[]>([]);
@@ -52,6 +54,10 @@ export class ConsultantDashboardComponent implements OnInit {
   alerts = signal<DashboardAlert[]>([]);
   events = signal<CalendarEvent[]>([]);
   suggestions = signal<DashboardSuggestion[]>([]);
+
+  // Impersonation (Sprint 3): active client from ?client=X query param
+  focusedClientId = signal<number | null>(null);
+  focusedClientName = signal<string | null>(null);
 
   activeTab = signal<'dashboard' | 'clients'>('dashboard');
 
@@ -83,6 +89,15 @@ export class ConsultantDashboardComponent implements OnInit {
   ngOnInit() {
     this.title.setTitle('RSSI Externalisé — CyberScan');
     this._loadAll();
+
+    const clientParam = this.route.snapshot.queryParamMap.get('client');
+    if (clientParam) {
+      const id = parseInt(clientParam, 10);
+      if (!isNaN(id)) {
+        this.focusedClientId.set(id);
+        this.rssi.logActivity(id, { action_type: 'view_client' }).subscribe();
+      }
+    }
   }
 
   private _loadAll() {
@@ -103,6 +118,12 @@ export class ConsultantDashboardComponent implements OnInit {
         this.events.set(data.events);
         this.suggestions.set(data.suggestions);
         this.loading.set(false);
+
+        const focusId = this.focusedClientId();
+        if (focusId) {
+          const found = data.clients.find(c => c.id === focusId);
+          this.focusedClientName.set(found?.name ?? null);
+        }
       },
       error: () => this.loading.set(false),
     });
@@ -186,6 +207,17 @@ export class ConsultantDashboardComponent implements OnInit {
         this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
       },
     });
+  }
+
+  // ── Activity log ──────────────────────────────────────────────────────────────
+
+  onClientRowClick(summary: ClientSummary) {
+    this.router.navigate(['/cyberscan/consultant/clients', summary.id]);
+  }
+
+  clearFocus() {
+    this.focusedClientId.set(null);
+    this.focusedClientName.set(null);
   }
 
   // ── Formatting helpers ────────────────────────────────────────────────────────

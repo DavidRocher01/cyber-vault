@@ -17,6 +17,7 @@ import { Title } from '@angular/platform-browser';
 
 import { UserService, UserProfile, TwoFactorSetup, NotificationPreferences, Badge } from '../services/user.service';
 import { BrandService, BrandProfile } from '../services/brand.service';
+import { RssiService, ConsultantProfile } from '../services/rssi.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { OtpInputComponent } from '../../../shared/otp-input/otp-input.component';
 
@@ -34,6 +35,7 @@ import { OtpInputComponent } from '../../../shared/otp-input/otp-input.component
 export class ProfileComponent implements OnInit {
   private userService = inject(UserService);
   private brandService = inject(BrandService);
+  private rssiService = inject(RssiService);
   private fb = inject(FormBuilder);
   private snack = inject(MatSnackBar);
   private title = inject(Title);
@@ -125,6 +127,16 @@ export class ProfileComponent implements OnInit {
             this.brandLogoPreview.set(brand.logo_b64);
           }
         }
+      },
+    });
+    this.rssiService.getProfile().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: p => {
+        this.consultantProfile.set(p);
+        this.consultantForm.patchValue({
+          display_name: p.display_name ?? '',
+          company_name: p.company_name ?? '',
+          phone: p.phone ?? '',
+        });
       },
     });
   }
@@ -269,6 +281,34 @@ export class ProfileComponent implements OnInit {
         this.snack.open('Erreur lors de la sauvegarde', 'Fermer', { duration: 4000 });
       },
     });
+  }
+
+  // ── RSSI consultant profile ───────────────────────────────────────────────
+  consultantProfile = signal<ConsultantProfile | null>(null);
+  savingConsultant = signal(false);
+
+  consultantForm = this.fb.nonNullable.group({
+    display_name: [''],
+    company_name: [''],
+    phone: [''],
+  });
+
+  saveConsultantProfile() {
+    this.savingConsultant.set(true);
+    const { display_name, company_name, phone } = this.consultantForm.getRawValue();
+    this.rssiService.updateProfile({ display_name: display_name || null, company_name: company_name || null, phone: phone || null })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: p => {
+          this.consultantProfile.set(p);
+          this.savingConsultant.set(false);
+          this.snack.open('Profil consultant enregistré', 'OK', { duration: 3000 });
+        },
+        error: () => {
+          this.savingConsultant.set(false);
+          this.snack.open('Erreur lors de la sauvegarde', 'Fermer', { duration: 4000 });
+        },
+      });
   }
 
   // ── RGPD ──────────────────────────────────────────────────────────────────

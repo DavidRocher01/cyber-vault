@@ -30,5 +30,9 @@ class User(Base):
 
     is_rssi_consultant: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
 
+    display_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    company_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
+
     notifications: Mapped[list["Notification"]] = relationship(back_populates="user", cascade="all, delete-orphan")  # type: ignore[name-defined]
     code_scans: Mapped[list["CodeScan"]] = relationship(back_populates="user", cascade="all, delete-orphan")  # type: ignore[name-defined]

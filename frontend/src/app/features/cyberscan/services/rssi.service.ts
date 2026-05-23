@@ -151,6 +151,87 @@ export interface DashboardSuggestion {
   cta: string;
 }
 
+export type ActivityActionType =
+  | 'view_client' | 'view_sites' | 'view_scans' | 'view_findings'
+  | 'generate_report' | 'send_deliverable'
+  | 'create_action' | 'update_action'
+  | 'create_visit' | 'update_visit';
+
+export interface RssiSite {
+  id: number;
+  url: string;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+  latest_scan_status: 'OK' | 'WARNING' | 'CRITICAL' | null;
+  last_scan_at: string | null;
+}
+
+export interface UnlinkedSite {
+  id: number;
+  url: string;
+  name: string;
+}
+
+export type DeliverableDocType = 'compte_rendu' | 'rapport' | 'recommandation' | 'contrat' | 'autre';
+
+export interface RssiDeliverable {
+  id: number;
+  client_id: number;
+  title: string;
+  doc_type: DeliverableDocType;
+  file_url: string | null;
+  notes: string | null;
+  delivered_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RssiDeliverableCreate {
+  title: string;
+  doc_type?: DeliverableDocType;
+  file_url?: string;
+  notes?: string;
+  delivered_at: string;
+}
+
+export interface RssiDeliverableUpdate {
+  title?: string;
+  doc_type?: DeliverableDocType;
+  file_url?: string;
+  notes?: string;
+  delivered_at?: string;
+}
+
+export interface ConsultantProfile {
+  email: string;
+  display_name: string | null;
+  company_name: string | null;
+  phone: string | null;
+}
+
+export interface ConsultantProfileUpdate {
+  display_name?: string | null;
+  company_name?: string | null;
+  phone?: string | null;
+}
+
+export interface ActivityLogCreate {
+  action_type: ActivityActionType;
+  resource_type?: string;
+  resource_id?: number;
+}
+
+export interface ActivityLogEntry {
+  id: number;
+  consultant_id: number;
+  client_id: number;
+  action_type: ActivityActionType;
+  resource_type: string | null;
+  resource_id: number | null;
+  performed_at: string;
+}
+
 const API = '/api/v1/rssi';
 
 @Injectable({ providedIn: 'root' })
@@ -161,6 +242,10 @@ export class RssiService {
 
   getClients(): Observable<RssiClient[]> {
     return this.http.get<RssiClient[]>(`${API}/clients`);
+  }
+
+  getClient(id: number): Observable<RssiClient> {
+    return this.http.get<RssiClient>(`${API}/clients/${id}`);
   }
 
   createClient(data: RssiClientCreate): Observable<RssiClient> {
@@ -196,7 +281,7 @@ export class RssiService {
   // ── Actions ──────────────────────────────────────────────────────────────────
 
   getActions(clientId: number, statusFilter?: string): Observable<RssiAction[]> {
-    const params = statusFilter ? { status_filter: statusFilter } : {};
+    const params: Record<string, string> = statusFilter ? { status_filter: statusFilter } : {};
     return this.http.get<RssiAction[]>(`${API}/clients/${clientId}/actions`, { params });
   }
 
@@ -234,5 +319,75 @@ export class RssiService {
 
   getSuggestions(): Observable<DashboardSuggestion[]> {
     return this.http.get<DashboardSuggestion[]>(`${API}/dashboard/suggestions`);
+  }
+
+  // ── PDF report (Sprint 5) ───────────────────────────────────────────────────
+
+  downloadReport(clientId: number): Observable<Blob> {
+    return this.http.get(`${API}/clients/${clientId}/report`, { responseType: 'blob' });
+  }
+
+  // ── Activity log (Sprint 3) ─────────────────────────────────────────────────
+
+  logActivity(clientId: number, data: ActivityLogCreate): Observable<ActivityLogEntry> {
+    return this.http.post<ActivityLogEntry>(`${API}/clients/${clientId}/activity`, data);
+  }
+
+  getActivityLog(clientId: number, limit = 50): Observable<ActivityLogEntry[]> {
+    return this.http.get<ActivityLogEntry[]>(`${API}/clients/${clientId}/activity`, {
+      params: { limit },
+    });
+  }
+
+  // ── Sites (Sprint 5C + P1) ─────────────────────────────────────────────────
+
+  getClientSites(clientId: number): Observable<RssiSite[]> {
+    return this.http.get<RssiSite[]>(`${API}/clients/${clientId}/sites`);
+  }
+
+  getUnlinkedSites(): Observable<UnlinkedSite[]> {
+    return this.http.get<UnlinkedSite[]>(`${API}/sites/unlinked`);
+  }
+
+  linkSite(clientId: number, siteId: number): Observable<RssiSite> {
+    return this.http.put<RssiSite>(`${API}/clients/${clientId}/sites/${siteId}`, {});
+  }
+
+  unlinkSite(clientId: number, siteId: number): Observable<void> {
+    return this.http.delete<void>(`${API}/clients/${clientId}/sites/${siteId}`);
+  }
+
+  // ── Deliverables (Sprint 5A) ────────────────────────────────────────────────
+
+  getDeliverables(clientId: number): Observable<RssiDeliverable[]> {
+    return this.http.get<RssiDeliverable[]>(`${API}/clients/${clientId}/deliverables`);
+  }
+
+  createDeliverable(clientId: number, data: RssiDeliverableCreate): Observable<RssiDeliverable> {
+    return this.http.post<RssiDeliverable>(`${API}/clients/${clientId}/deliverables`, data);
+  }
+
+  updateDeliverable(clientId: number, deliverableId: number, data: RssiDeliverableUpdate): Observable<RssiDeliverable> {
+    return this.http.put<RssiDeliverable>(`${API}/clients/${clientId}/deliverables/${deliverableId}`, data);
+  }
+
+  deleteDeliverable(clientId: number, deliverableId: number): Observable<void> {
+    return this.http.delete<void>(`${API}/clients/${clientId}/deliverables/${deliverableId}`);
+  }
+
+  // ── Consultant profile (P6) ─────────────────────────────────────────────────
+
+  getProfile(): Observable<ConsultantProfile> {
+    return this.http.get<ConsultantProfile>(`${API}/profile`);
+  }
+
+  updateProfile(data: ConsultantProfileUpdate): Observable<ConsultantProfile> {
+    return this.http.patch<ConsultantProfile>(`${API}/profile`, data);
+  }
+
+  // ── CSV export (P7) ─────────────────────────────────────────────────────────
+
+  exportActionsCsv(clientId: number): Observable<Blob> {
+    return this.http.get(`${API}/clients/${clientId}/actions/export`, { responseType: 'blob' });
   }
 }
