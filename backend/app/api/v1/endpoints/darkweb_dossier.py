@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_admin
 from app.models.darkweb_dossier import DarkwebDossier, DarkwebDossierTarget
 from app.models.user import User
 from app.services.darkweb_dossier_service import (
@@ -33,6 +33,7 @@ from app.services.darkweb_dossier_service import (
 router = APIRouter(prefix="/darkweb-dossier", tags=["darkweb-dossier"])
 
 _MAX_EMAILS = 500
+_MAX_DOSSIERS_PER_USER = 20
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -141,6 +142,16 @@ async def create_dossier(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new dossier and start background processing."""
+    # Enforce per-user dossier limit
+    count_result = await db.execute(
+        select(DarkwebDossier).where(DarkwebDossier.user_id == current_user.id)
+    )
+    if len(count_result.scalars().all()) >= _MAX_DOSSIERS_PER_USER:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Limite atteinte — maximum {_MAX_DOSSIERS_PER_USER} dossiers par compte",
+        )
+
     raw = await emails_csv.read()
     emails = _parse_emails_csv(raw)
     if not emails:
@@ -167,7 +178,7 @@ async def create_dossier(
     await db.commit()
     await db.refresh(dossier)
 
-    background_tasks.add_task(process_dossier, dossier.id, settings.HIBP_API_KEY, db)
+    background_tasks.add_task(process_dossier, dossier.id, settings.HIBP_API_KEY)
 
     return _to_dossier_out(dossier)
 
@@ -263,11 +274,10 @@ async def download_dossier_pdf(
     )
 
 
-@router.post("/catalog/sync")
+@router.post("/catalog/sync", dependencies=[Depends(require_admin)])
 async def sync_catalog(
-    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Sync HIBP public breach catalog — no API key required."""
+    """Sync HIBP public breach catalog — admin only, no API key required."""
     count = await sync_breach_catalog(db)
     return {"synced": count, "message": f"{count} entrées synchronisées depuis HIBP"}

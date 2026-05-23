@@ -26,6 +26,7 @@ from reportlab.platypus import (
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.database import AsyncSessionLocal
 from app.models.breach_catalog import BreachCatalogEntry
 from app.models.darkweb_dossier import DarkwebDossier, DarkwebDossierTarget
 from app.services.darkweb_service import (
@@ -125,82 +126,80 @@ async def _build_catalog_index(db: AsyncSession) -> dict[str, dict]:
 
 # ── Background processing ─────────────────────────────────────────────────────
 
-async def process_dossier(dossier_id: int, api_key: str, db: AsyncSession) -> None:
-    """Process all targets for a dossier — runs in background after creation."""
-    result = await db.execute(
-        select(DarkwebDossier).where(DarkwebDossier.id == dossier_id)
-    )
-    dossier = result.scalar_one_or_none()
-    if not dossier:
-        return
-
-    dossier.status = "processing"
-    dossier.started_at = datetime.now(timezone.utc)
-    await db.commit()
-
-    catalog = await _build_catalog_index(db)
-
-    try:
+async def process_dossier(dossier_id: int, api_key: str) -> None:
+    """Process all targets for a dossier — runs in background with its own DB session."""
+    async with AsyncSessionLocal() as db:
         result = await db.execute(
-            select(DarkwebDossierTarget).where(DarkwebDossierTarget.dossier_id == dossier_id)
+            select(DarkwebDossier).where(DarkwebDossier.id == dossier_id)
         )
-        targets = result.scalars().all()
+        dossier = result.scalar_one_or_none()
+        if not dossier:
+            return
 
-        exposed = 0
-        total_instances = 0
-
-        for i, target in enumerate(targets):
-            if i > 0:
-                time.sleep(_BATCH_DELAY)
-            data = check_email_breaches(target.email, api_key)
-            breaches = enrich_breaches_from_catalog(data.get("breaches", []), catalog)
-            count = data.get("total", 0)
-
-            target.total_breaches = count
-            target.status = "clean" if count == 0 else "exposed"
-            target.breach_sources_json = json.dumps(breaches)
-            target.checked_at = datetime.now(timezone.utc)
-
-            if count > 0:
-                exposed += 1
-                total_instances += count
-
-        # Compute risk score: weighted exposure rate
-        total = len(targets)
-        if total > 0:
-            exposure_rate = exposed / total
-            # Weight: each email with 3+ breaches counts 1.5x
-            heavy = sum(1 for t in targets if t.total_breaches >= 3)
-            weighted = (exposed + heavy * 0.5) / (total + heavy * 0.5)
-            risk_score = min(100, round(weighted * 100))
-        else:
-            exposure_rate = 0
-            risk_score = 0
-
-        # Top breach sources
-        all_sources: list[str] = []
-        for target in targets:
-            try:
-                src = json.loads(target.breach_sources_json or "[]")
-                all_sources.extend(b.get("name", "") for b in src if b.get("name"))
-            except Exception:
-                pass
-        top_sources = [{"name": n, "count": c}
-                       for n, c in Counter(all_sources).most_common(10)]
-
-        dossier.exposed_emails = exposed
-        dossier.total_breach_instances = total_instances
-        dossier.risk_score = risk_score
-        dossier.top_sources_json = json.dumps(top_sources)
-        dossier.status = "completed"
-        dossier.finished_at = datetime.now(timezone.utc)
+        dossier.status = "processing"
+        dossier.started_at = datetime.now(timezone.utc)
         await db.commit()
 
-    except Exception as exc:
-        dossier.status = "failed"
-        dossier.error_message = str(exc)
-        dossier.finished_at = datetime.now(timezone.utc)
-        await db.commit()
+        catalog = await _build_catalog_index(db)
+
+        try:
+            result = await db.execute(
+                select(DarkwebDossierTarget).where(DarkwebDossierTarget.dossier_id == dossier_id)
+            )
+            targets = result.scalars().all()
+
+            exposed = 0
+            total_instances = 0
+
+            for i, target in enumerate(targets):
+                if i > 0:
+                    time.sleep(_BATCH_DELAY)
+                data = check_email_breaches(target.email, api_key)
+                breaches = enrich_breaches_from_catalog(data.get("breaches", []), catalog)
+                count = data.get("total", 0)
+
+                target.total_breaches = count
+                target.status = "clean" if count == 0 else "exposed"
+                target.breach_sources_json = json.dumps(breaches)
+                target.checked_at = datetime.now(timezone.utc)
+
+                if count > 0:
+                    exposed += 1
+                    total_instances += count
+
+            # Compute risk score: weighted exposure rate
+            total = len(targets)
+            if total > 0:
+                heavy = sum(1 for t in targets if t.total_breaches >= 3)
+                weighted = (exposed + heavy * 0.5) / (total + heavy * 0.5)
+                risk_score = min(100, round(weighted * 100))
+            else:
+                risk_score = 0
+
+            # Top breach sources
+            all_sources: list[str] = []
+            for target in targets:
+                try:
+                    src = json.loads(target.breach_sources_json or "[]")
+                    all_sources.extend(b.get("name", "") for b in src if b.get("name"))
+                except Exception:
+                    pass
+            top_sources = [{"name": n, "count": c}
+                           for n, c in Counter(all_sources).most_common(10)]
+
+            dossier.exposed_emails = exposed
+            dossier.total_breach_instances = total_instances
+            dossier.risk_score = risk_score
+            dossier.top_sources_json = json.dumps(top_sources)
+            dossier.status = "completed"
+            dossier.finished_at = datetime.now(timezone.utc)
+            await db.commit()
+
+        except Exception as exc:
+            dossier.status = "failed"
+            dossier.error_message = str(exc)
+            dossier.finished_at = datetime.now(timezone.utc)
+            await db.commit()
 
 
 # ── PDF generation ────────────────────────────────────────────────────────────
