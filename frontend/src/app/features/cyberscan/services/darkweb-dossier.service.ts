@@ -20,8 +20,12 @@ export interface DossierDetail {
   exposed_emails: number;
   total_breach_instances: number;
   risk_score: number | null;
+  severity_score: number | null;
   top_sources_json: string | null;
   error_message: string | null;
+  monitor_active: boolean;
+  last_monitored_at: string | null;
+  next_monitor_at: string | null;
   created_at: string;
   started_at: string | null;
   finished_at: string | null;
@@ -36,6 +40,8 @@ export interface DossierListItem {
   total_emails: number;
   exposed_emails: number;
   risk_score: number | null;
+  severity_score: number | null;
+  monitor_active: boolean;
   created_at: string;
   finished_at: string | null;
 }
@@ -76,6 +82,18 @@ export class DarkwebDossierService {
     return this.http.delete<void>(`${API}/${id}`);
   }
 
+  rescan(id: number): Observable<DossierDetail> {
+    return this.http.post<DossierDetail>(`${API}/${id}/rescan`, {});
+  }
+
+  toggleMonitor(id: number): Observable<{ monitor_active: boolean; next_monitor_at: string | null }> {
+    return this.http.patch<{ monitor_active: boolean; next_monitor_at: string | null }>(`${API}/${id}/monitor`, {});
+  }
+
+  getCsvUrl(id: number): string {
+    return `${API}/${id}/csv`;
+  }
+
   getPdfUrl(id: number): string {
     return `${API}/${id}/pdf`;
   }
@@ -92,5 +110,22 @@ export class DarkwebDossierService {
   parseTopSources(json: string | null): { name: string; count: number }[] {
     if (!json) return [];
     try { return JSON.parse(json); } catch { return []; }
+  }
+
+  /** Group breaches by year from breach_date field. Returns [{year, count}] sorted asc. */
+  buildBreachTimeline(targets: DossierTarget[]): { year: number; count: number }[] {
+    const counts: Record<number, number> = {};
+    for (const t of targets) {
+      const breaches = this.parseBreachSources(t.breach_sources_json);
+      for (const b of breaches) {
+        const year = b.breach_date ? parseInt(b.breach_date.substring(0, 4), 10) : 0;
+        if (year >= 2000 && year <= new Date().getFullYear()) {
+          counts[year] = (counts[year] ?? 0) + 1;
+        }
+      }
+    }
+    return Object.entries(counts)
+      .map(([year, count]) => ({ year: Number(year), count }))
+      .sort((a, b) => a.year - b.year);
   }
 }

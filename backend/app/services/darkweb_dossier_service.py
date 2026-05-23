@@ -9,11 +9,12 @@ Flow:
 """
 from __future__ import annotations
 
+import csv
 import io
 import json
 import asyncio
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from reportlab.lib.units import mm
 from reportlab.platypus import (
@@ -51,6 +52,48 @@ from app.services.pdf_brand import (
 )
 
 _BATCH_DELAY = 1.2  # seconds between LeakCheck calls to respect rate limit
+_MONITOR_INTERVAL_DAYS = 30  # re-scan interval for monitored dossiers
+
+# Severity weights by data class keyword (higher = more dangerous)
+_SEVERITY_WEIGHTS: dict[str, int] = {
+    "password": 4,
+    "mot de passe": 4,
+    "credit card": 5,
+    "carte": 5,
+    "financial": 5,
+    "bank": 5,
+    "social security": 5,
+    "phone": 2,
+    "address": 2,
+    "username": 2,
+    "name": 1,
+    "email": 1,
+}
+
+
+# ── Severity scoring ─────────────────────────────────────────────────────────
+
+def _compute_severity(targets: list) -> int:
+    """Return a 0-100 severity score weighted by breach data_classes."""
+    total_weight = 0
+    max_possible = 0
+    for t in targets:
+        try:
+            breaches = json.loads(t.breach_sources_json or "[]")
+        except Exception:
+            continue
+        for b in breaches:
+            classes = [c.lower() for c in b.get("data_classes", [])]
+            weight = 1
+            for dc in classes:
+                for keyword, w in _SEVERITY_WEIGHTS.items():
+                    if keyword in dc:
+                        weight = max(weight, w)
+            total_weight += weight
+            max_possible += max(_SEVERITY_WEIGHTS.values())
+    if max_possible == 0:
+        return 0
+    return min(100, round(total_weight / max_possible * 100))
 
 
 # ── Breach catalog sync ───────────────────────────────────────────────────────
@@ -187,12 +230,19 @@ async def process_dossier(dossier_id: int, api_key: str) -> None:
             top_sources = [{"name": n, "count": c}
                            for n, c in Counter(all_sources).most_common(10)]
 
+            severity_score = _compute_severity(targets)
+            now = datetime.now(timezone.utc)
+
             dossier.exposed_emails = exposed
             dossier.total_breach_instances = total_instances
             dossier.risk_score = risk_score
+            dossier.severity_score = severity_score
             dossier.top_sources_json = json.dumps(top_sources)
             dossier.status = "completed"
-            dossier.finished_at = datetime.now(timezone.utc)
+            dossier.finished_at = now
+            dossier.last_monitored_at = now
+            if dossier.monitor_active:
+                dossier.next_monitor_at = now + timedelta(days=_MONITOR_INTERVAL_DAYS)
             await db.commit()
 
         except Exception as exc:
@@ -200,6 +250,79 @@ async def process_dossier(dossier_id: int, api_key: str) -> None:
             dossier.error_message = str(exc)
             dossier.finished_at = datetime.now(timezone.utc)
             await db.commit()
+
+
+# ── CSV export ───────────────────────────────────────────────────────────────
+
+def export_dossier_csv(dossier: DarkwebDossier, targets: list[DarkwebDossierTarget]) -> bytes:
+    """Build a UTF-8 BOM CSV with one row per target email."""
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Email", "Statut", "Nb fuites", "Sources principales",
+        "Types de données exposées", "Date vérification",
+    ])
+    for t in targets:
+        try:
+            breaches = json.loads(t.breach_sources_json or "[]")
+        except Exception:
+            breaches = []
+        sources = ", ".join(b.get("name", "") for b in breaches[:5])
+        data_classes = ", ".join(
+            dc for b in breaches for dc in b.get("data_classes", [])
+            if dc not in ("Email addresses",)
+        )
+        checked = t.checked_at.strftime("%Y-%m-%d") if t.checked_at else ""
+        writer.writerow([t.email, t.status, t.total_breaches, sources, data_classes, checked])
+    return ("﻿" + output.getvalue()).encode("utf-8")
+
+
+# ── Monitoring email alert ────────────────────────────────────────────────────
+
+def send_darkweb_alert_email(
+    to_email: str,
+    company_name: str,
+    domain: str,
+    exposed_count: int,
+    new_exposed: list[str],
+    dashboard_url: str,
+) -> None:
+    """Send an alert email when monitoring detects new exposed accounts."""
+    from app.services.email_service import _send  # local import to avoid circular
+
+    new_list_html = "".join(f"<li style='color:#fca5a5'>{e}</li>" for e in new_exposed[:10])
+    more = f"<p style='color:#94a3b8;font-size:13px'>+ {len(new_exposed)-10} autres</p>" if len(new_exposed) > 10 else ""
+
+    subject = f"[CyberScan] ⚠️ Dark Web — Nouvelles fuites détectées pour {domain}"
+    html = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0f172a;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 20px;">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#1e293b;border-radius:12px;border:1px solid #334155;">
+<tr><td style="background:linear-gradient(135deg,#ef444422,#ef444411);padding:32px 40px;border-bottom:2px solid #ef4444;text-align:center;">
+<p style="margin:0 0 6px;color:#ef4444;font-size:12px;font-weight:800;letter-spacing:2px;">ALERTE DARK WEB</p>
+<h1 style="margin:0;color:#f8fafc;font-size:22px;">Nouvelles fuites détectées</h1>
+</td></tr>
+<tr><td style="padding:32px 40px;">
+<p style="color:#94a3b8;font-size:15px;line-height:1.7;margin:0 0 20px;">
+Le monitoring Dark Web de <strong style="color:#f8fafc;">{company_name}</strong> ({domain}) a détecté
+<strong style="color:#ef4444;font-size:18px;"> {exposed_count} compte(s) exposé(s)</strong> lors du rescan mensuel.
+</p>
+<p style="color:#94a3b8;font-size:13px;margin:0 0 8px;font-weight:700;letter-spacing:1px;">NOUVEAUX COMPTES DÉTECTÉS :</p>
+<ul style="margin:0 0 24px;padding-left:20px;">{new_list_html}</ul>
+{more}
+<a href="{dashboard_url}" style="display:inline-block;background:#ef4444;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">
+  Voir le rapport complet
+</a>
+</td></tr>
+<tr><td style="padding:20px 40px;border-top:1px solid #1e293b;text-align:center;">
+<p style="margin:0;color:#475569;font-size:12px;">CyberScan — Surveillance Dark Web B2B</p>
+</td></tr>
+</table></td></tr></table>
+</body></html>"""
+    plain = f"[ALERTE DARK WEB] {company_name} ({domain}) — {exposed_count} compte(s) exposé(s) détecté(s).\n\nConsultez le rapport : {dashboard_url}"
+    try:
+        _send(to_email, subject, html, plain)
+    except Exception:
+        pass
 
 
 # ── PDF generation ────────────────────────────────────────────────────────────

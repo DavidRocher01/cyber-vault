@@ -365,6 +365,86 @@ async def _send_monthly_digest_job() -> None:
             pass
 
 
+async def _run_darkweb_monitoring() -> None:
+    """Monthly job: re-scan active monitored dossiers and send alerts on new exposures."""
+    from app.models.darkweb_dossier import DarkwebDossier, DarkwebDossierTarget
+    from app.models.user import User
+    from app.services.darkweb_dossier_service import process_dossier, send_darkweb_alert_email
+    from app.core.config import settings
+
+    async with AsyncSessionLocal() as db:
+        now = datetime.now(timezone.utc)
+        result = await db.execute(
+            select(DarkwebDossier).where(
+                DarkwebDossier.monitor_active == True,  # noqa: E712
+                DarkwebDossier.status == "completed",
+                DarkwebDossier.next_monitor_at <= now,
+            )
+        )
+        dossiers = result.scalars().all()
+
+    for d in dossiers:
+        # Snapshot exposed emails before re-scan
+        async with AsyncSessionLocal() as db:
+            prev_result = await db.execute(
+                select(DarkwebDossierTarget).where(
+                    DarkwebDossierTarget.dossier_id == d.id,
+                    DarkwebDossierTarget.status == "exposed",
+                )
+            )
+            prev_exposed = {t.email for t in prev_result.scalars().all()}
+
+        # Reset and re-process
+        async with AsyncSessionLocal() as db:
+            dossier = (await db.execute(
+                select(DarkwebDossier).where(DarkwebDossier.id == d.id)
+            )).scalar_one_or_none()
+            if not dossier:
+                continue
+            await db.execute(
+                DarkwebDossierTarget.__table__.update()
+                .where(DarkwebDossierTarget.dossier_id == d.id)
+                .values(status="pending", total_breaches=0, breach_sources_json=None, checked_at=None)
+            )
+            dossier.status = "pending"
+            dossier.started_at = None
+            dossier.finished_at = None
+            dossier.risk_score = None
+            dossier.severity_score = None
+            dossier.exposed_emails = 0
+            dossier.total_breach_instances = 0
+            dossier.top_sources_json = None
+            await db.commit()
+
+        await process_dossier(d.id, settings.HIBP_API_KEY)
+
+        # Check for new exposures and alert
+        async with AsyncSessionLocal() as db:
+            new_result = await db.execute(
+                select(DarkwebDossierTarget).where(
+                    DarkwebDossierTarget.dossier_id == d.id,
+                    DarkwebDossierTarget.status == "exposed",
+                )
+            )
+            new_exposed = [t.email for t in new_result.scalars().all() if t.email not in prev_exposed]
+
+            user_result = await db.execute(
+                select(User).where(User.id == d.user_id)
+            )
+            user = user_result.scalar_one_or_none()
+
+        if new_exposed and user:
+            dashboard_url = f"{settings.FRONTEND_URL}/cyberscan/darkweb-dossier/{d.id}"
+            send_darkweb_alert_email(
+                to_email=user.email,
+                company_name=d.company_name,
+                domain=d.domain,
+                exposed_count=len(new_exposed),
+                new_exposed=new_exposed,
+                dashboard_url=dashboard_url,
+            )
+
+
 def start_scheduler() -> None:
     """Start the APScheduler with a nightly job at 02:00 UTC and bi-weekly newsletter."""
     scheduler.add_job(
@@ -404,6 +484,13 @@ def start_scheduler() -> None:
         send_pending_batch,
         trigger=_IT(minutes=15),
         id="phishing_batch",
+        replace_existing=True,
+    )
+    # Dark web monitoring — daily at 03:00 UTC, processes dossiers whose next_monitor_at is due
+    scheduler.add_job(
+        _run_darkweb_monitoring,
+        trigger=CronTrigger(hour=3, minute=0),
+        id="darkweb_monitoring",
         replace_existing=True,
     )
     scheduler.start()

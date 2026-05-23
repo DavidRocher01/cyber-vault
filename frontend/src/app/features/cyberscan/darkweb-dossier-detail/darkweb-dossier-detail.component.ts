@@ -5,6 +5,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Title } from '@angular/platform-browser';
 
 import {
@@ -21,7 +22,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
   imports: [
     RouterLink,
     MatButtonModule, MatExpansionModule, MatIconModule,
-    MatProgressSpinnerModule, MatSnackBarModule,
+    MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule,
     NavButtonsComponent,
   ],
   templateUrl: './darkweb-dossier-detail.component.html',
@@ -36,6 +37,9 @@ export class DarkwebDossierDetailComponent implements OnInit, OnDestroy {
   dossier = signal<DossierDetail | null>(null);
   loading = signal(true);
   downloadingPdf = signal(false);
+  downloadingCsv = signal(false);
+  rescanning = signal(false);
+  togglingMonitor = signal(false);
   private pollInterval: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit() {
@@ -74,29 +78,77 @@ export class DarkwebDossierDetailComponent implements OnInit, OnDestroy {
           if (d.status === 'completed' || d.status === 'failed') {
             clearInterval(this.pollInterval!);
             this.pollInterval = null;
+            this.rescanning.set(false);
           }
         },
       });
     }, 5000);
   }
 
+  rescan() {
+    const d = this.dossier();
+    if (!d || this.rescanning()) return;
+    this.rescanning.set(true);
+    this.service.rescan(d.id).subscribe({
+      next: updated => {
+        this.dossier.set(updated);
+        this.snack.open('Rescan lancé — analyse en cours…', 'OK', { duration: 4000 });
+        this.startPolling(d.id);
+      },
+      error: (err) => {
+        this.rescanning.set(false);
+        this.snack.open(err?.error?.detail || 'Erreur lors du rescan', 'Fermer', { duration: 4000 });
+      },
+    });
+  }
+
+  toggleMonitor() {
+    const d = this.dossier();
+    if (!d || this.togglingMonitor()) return;
+    this.togglingMonitor.set(true);
+    this.service.toggleMonitor(d.id).subscribe({
+      next: res => {
+        this.dossier.set({ ...d, monitor_active: res.monitor_active, next_monitor_at: res.next_monitor_at });
+        this.togglingMonitor.set(false);
+        const msg = res.monitor_active
+          ? 'Monitoring mensuel activé — vous serez alerté en cas de nouvelle fuite'
+          : 'Monitoring désactivé';
+        this.snack.open(msg, 'OK', { duration: 4000 });
+      },
+      error: () => {
+        this.togglingMonitor.set(false);
+        this.snack.open('Erreur lors du changement de monitoring', 'Fermer', { duration: 3000 });
+      },
+    });
+  }
+
   downloadPdf() {
     const d = this.dossier();
     if (!d) return;
     this.downloadingPdf.set(true);
-    const url = this.service.getPdfUrl(d.id);
-    fetch(url, { credentials: 'include' })
+    this._downloadFile(this.service.getPdfUrl(d.id), `dossier-darkweb-${d.domain}.pdf`)
+      .finally(() => this.downloadingPdf.set(false));
+  }
+
+  downloadCsv() {
+    const d = this.dossier();
+    if (!d) return;
+    this.downloadingCsv.set(true);
+    this._downloadFile(this.service.getCsvUrl(d.id), `dossier-darkweb-${d.domain}.csv`)
+      .finally(() => this.downloadingCsv.set(false));
+  }
+
+  private _downloadFile(url: string, filename: string): Promise<void> {
+    return fetch(url, { credentials: 'include' })
       .then(r => r.blob())
       .then(blob => {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `dossier-darkweb-${d.domain}.pdf`;
+        a.download = filename;
         a.click();
         URL.revokeObjectURL(a.href);
-        this.downloadingPdf.set(false);
       })
       .catch(() => {
-        this.downloadingPdf.set(false);
         this.snack.open('Erreur lors du téléchargement', 'Fermer', { duration: 3000 });
       });
   }
@@ -107,6 +159,14 @@ export class DarkwebDossierDetailComponent implements OnInit, OnDestroy {
 
   getTopSources(): { name: string; count: number }[] {
     return this.service.parseTopSources(this.dossier()?.top_sources_json ?? null);
+  }
+
+  getBreachTimeline(): { year: number; count: number }[] {
+    return this.service.buildBreachTimeline(this.dossier()?.targets ?? []);
+  }
+
+  getBreachTimelineMax(timeline: { year: number; count: number }[]): number {
+    return timeline.reduce((m, t) => Math.max(m, t.count), 1);
   }
 
   exposedTargets(): DossierTarget[] {
@@ -136,6 +196,20 @@ export class DarkwebDossierDetailComponent implements OnInit, OnDestroy {
     if (score >= 50) return 'Risque élevé';
     if (score >= 20) return 'Risque modéré';
     return 'Risque faible';
+  }
+
+  severityColor(score: number | null): string {
+    if (score === null) return 'text-gray-400';
+    if (score >= 60) return 'text-red-400';
+    if (score >= 30) return 'text-orange-400';
+    return 'text-yellow-400';
+  }
+
+  severityLabel(score: number | null): string {
+    if (score === null) return 'Non calculé';
+    if (score >= 60) return 'Données critiques exposées';
+    if (score >= 30) return 'Données sensibles exposées';
+    return 'Données peu sensibles';
   }
 
   breachCountColor(count: number): string {

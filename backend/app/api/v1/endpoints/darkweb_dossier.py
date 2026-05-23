@@ -25,6 +25,7 @@ from app.core.deps import get_current_user, require_admin
 from app.models.darkweb_dossier import DarkwebDossier, DarkwebDossierTarget
 from app.models.user import User
 from app.services.darkweb_dossier_service import (
+    export_dossier_csv,
     generate_dossier_pdf,
     process_dossier,
     sync_breach_catalog,
@@ -56,8 +57,12 @@ class DossierOut(BaseModel):
     exposed_emails: int
     total_breach_instances: int
     risk_score: int | None
+    severity_score: int | None
     top_sources_json: str | None
     error_message: str | None
+    monitor_active: bool
+    last_monitored_at: datetime | None
+    next_monitor_at: datetime | None
     created_at: datetime
     started_at: datetime | None
     finished_at: datetime | None
@@ -72,6 +77,8 @@ class DossierListItem(BaseModel):
     total_emails: int
     exposed_emails: int
     risk_score: int | None
+    severity_score: int | None
+    monitor_active: bool
     created_at: datetime
     finished_at: datetime | None
 
@@ -111,8 +118,12 @@ def _to_dossier_out(d: DarkwebDossier) -> DossierOut:
         exposed_emails=d.exposed_emails,
         total_breach_instances=d.total_breach_instances,
         risk_score=d.risk_score,
+        severity_score=d.severity_score,
         top_sources_json=d.top_sources_json,
         error_message=d.error_message,
+        monitor_active=d.monitor_active,
+        last_monitored_at=d.last_monitored_at,
+        next_monitor_at=d.next_monitor_at,
         created_at=d.created_at,
         started_at=d.started_at,
         finished_at=d.finished_at,
@@ -203,6 +214,8 @@ async def list_dossiers(
             total_emails=d.total_emails,
             exposed_emails=d.exposed_emails,
             risk_score=d.risk_score,
+            severity_score=d.severity_score,
+            monitor_active=d.monitor_active,
             created_at=d.created_at,
             finished_at=d.finished_at,
         )
@@ -281,3 +294,100 @@ async def sync_catalog(
     """Sync HIBP public breach catalog — admin only, no API key required."""
     count = await sync_breach_catalog(db)
     return {"synced": count, "message": f"{count} entrées synchronisées depuis HIBP"}
+
+
+@router.post("/{dossier_id}/rescan", response_model=DossierOut)
+async def rescan_dossier(
+    dossier_id: int,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Reset a dossier and relaunch background processing."""
+    result = await db.execute(
+        select(DarkwebDossier).where(
+            DarkwebDossier.id == dossier_id,
+            DarkwebDossier.user_id == current_user.id,
+        )
+    )
+    dossier = result.scalar_one_or_none()
+    if not dossier:
+        raise HTTPException(status_code=404, detail="Dossier introuvable")
+    if dossier.status in ("pending", "processing"):
+        raise HTTPException(status_code=400, detail="Analyse déjà en cours")
+
+    # Reset targets
+    await db.execute(
+        DarkwebDossierTarget.__table__.update()
+        .where(DarkwebDossierTarget.dossier_id == dossier_id)
+        .values(status="pending", total_breaches=0, breach_sources_json=None, checked_at=None)
+    )
+    dossier.status = "pending"
+    dossier.started_at = None
+    dossier.finished_at = None
+    dossier.risk_score = None
+    dossier.severity_score = None
+    dossier.error_message = None
+    dossier.exposed_emails = 0
+    dossier.total_breach_instances = 0
+    dossier.top_sources_json = None
+    await db.commit()
+    await db.refresh(dossier)
+
+    background_tasks.add_task(process_dossier, dossier.id, settings.HIBP_API_KEY)
+    return _to_dossier_out(dossier)
+
+
+@router.get("/{dossier_id}/csv")
+async def export_csv(
+    dossier_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Export dossier targets as CSV."""
+    result = await db.execute(
+        select(DarkwebDossier).where(
+            DarkwebDossier.id == dossier_id,
+            DarkwebDossier.user_id == current_user.id,
+        )
+    )
+    dossier = result.scalar_one_or_none()
+    if not dossier:
+        raise HTTPException(status_code=404, detail="Dossier introuvable")
+    if dossier.status != "completed":
+        raise HTTPException(status_code=400, detail="Le dossier n'est pas encore terminé")
+
+    csv_bytes = export_dossier_csv(dossier, dossier.targets or [])
+    filename = f"dossier-darkweb-{dossier.domain}-{datetime.now().strftime('%Y%m%d')}.csv"
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.patch("/{dossier_id}/monitor")
+async def toggle_monitor(
+    dossier_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Enable or disable monthly monitoring for a dossier."""
+    from datetime import timedelta
+    result = await db.execute(
+        select(DarkwebDossier).where(
+            DarkwebDossier.id == dossier_id,
+            DarkwebDossier.user_id == current_user.id,
+        )
+    )
+    dossier = result.scalar_one_or_none()
+    if not dossier:
+        raise HTTPException(status_code=404, detail="Dossier introuvable")
+
+    dossier.monitor_active = not dossier.monitor_active
+    if dossier.monitor_active:
+        dossier.next_monitor_at = datetime.now(timezone.utc) + timedelta(days=30)
+    else:
+        dossier.next_monitor_at = None
+    await db.commit()
+    return {"monitor_active": dossier.monitor_active, "next_monitor_at": dossier.next_monitor_at}
