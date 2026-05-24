@@ -34,3 +34,4 @@ from app.models.phishing import PhishingCampaign, PhishingTarget, PhishingDomain
 from app.models.breach_catalog import BreachCatalogEntry  # noqa: F401
 from app.models.darkweb_dossier import DarkwebDossier, DarkwebDossierTarget  # noqa: F401
 from app.models.processed_stripe_event import ProcessedStripeEvent  # noqa: F401
+from app.models.api_waitlist import ApiWaitlist  # noqa: F401

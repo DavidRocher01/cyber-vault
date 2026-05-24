@@ -223,6 +223,11 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Scan de sécurité gratuit — Audit en 90 secondes | CyberScan',
   },
   {
+    path: 'api',
+    loadComponent: () => import('./api-landing/api-landing.component').then(m => m.ApiLandingComponent),
+    title: 'API CyberScan — Automatisez vos audits de sécurité',
+  },
+  {
     path: 'contact',
     loadComponent: () => import('./contact/contact.component').then(m => m.ContactComponent),
     title: 'Contact — Réserver un audit cybersécurité | CyberScan',
