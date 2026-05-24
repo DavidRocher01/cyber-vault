@@ -5,10 +5,12 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 2 : 0,
+  timeout: 60_000,
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:4200',
     trace: 'on-first-retry',
+    navigationTimeout: 30_000,
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },

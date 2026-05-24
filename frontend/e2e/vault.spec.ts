@@ -5,15 +5,20 @@ const PASSWORD = 'StrongPass123!';
 const MASTER = 'MasterPass456!';
 
 test.describe('Parcours Vault', () => {
-  test.beforeEach(async ({ page }) => {
-    // Inscription (ignorée si email déjà existant)
+  test.describe.configure({ mode: 'serial' });
+
+  test.beforeAll(async ({ browser }) => {
+    const page = await browser.newPage();
     await page.goto('/auth/register');
     await page.locator('[formcontrolname="email"]').fill(EMAIL);
     await page.locator('[formcontrolname="password"]').fill(PASSWORD);
     await page.locator('[formcontrolname="confirmPassword"]').fill(PASSWORD);
     await page.getByRole('button', { name: /créer mon compte/i }).click();
+    await page.waitForURL(/\/cyberscan/);
+    await page.close();
+  });
 
-    // Connexion
+  test.beforeEach(async ({ page }) => {
     await page.goto('/auth/login');
     await page.locator('[formcontrolname="email"]').fill(EMAIL);
     await page.locator('[formcontrolname="password"]').fill(PASSWORD);
@@ -22,7 +27,7 @@ test.describe('Parcours Vault', () => {
 
     // Accès vault → cryptoGuard redirige vers master-password
     await page.goto('/vault');
-    await page.waitForURL('**/auth/master-password');
+    await page.waitForURL(/\/auth\/master-password/);
     await page.locator('[formcontrolname="masterPassword"]').fill(MASTER);
     await page.getByRole('button', { name: /déverrouiller/i }).click();
     await page.waitForURL('**/vault');

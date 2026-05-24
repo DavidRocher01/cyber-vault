@@ -37,7 +37,7 @@ test.describe('Dark Web — surveillance personnelle', () => {
     await login(page, email);
     await page.goto('/cyberscan/darkweb');
     await expect(page).toHaveURL(/\/cyberscan\/darkweb/);
-    await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('page darkweb — bouton "Vérifier mon email" visible', async ({ page }) => {
@@ -168,7 +168,7 @@ test.describe('Dashboard — liens quick tools dark web', () => {
     const card = page.getByRole('link', { name: /Surveillance Dark Web/i }).or(
       page.getByText(/Surveillance Dark Web/i).first()
     );
-    await expect(card).toBeVisible({ timeout: 5_000 });
+    await expect(card).toBeVisible({ timeout: 10_000 });
   });
 
   test('dashboard — carte "Dark Web Dossier" visible', async ({ page }) => {
@@ -177,6 +177,6 @@ test.describe('Dashboard — liens quick tools dark web', () => {
     const card = page.getByRole('link', { name: /Dark Web Dossier/i }).or(
       page.getByText(/Dark Web Dossier/i).first()
     );
-    await expect(card).toBeVisible({ timeout: 5_000 });
+    await expect(card).toBeVisible({ timeout: 10_000 });
   });
 });

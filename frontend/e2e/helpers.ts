@@ -12,12 +12,6 @@ export async function createAndLogin(page: Page): Promise<string> {
   await page.getByRole('button', { name: /créer mon compte/i }).click();
   await page.waitForURL(/\/cyberscan/);
 
-  await page.goto('/auth/login');
-  await page.locator('[formcontrolname="email"]').fill(email);
-  await page.locator('[formcontrolname="password"]').fill(PASSWORD);
-  await page.getByRole('button', { name: /se connecter/i }).click();
-  await page.waitForURL(/\/cyberscan/);
-
   return email;
 }
 
