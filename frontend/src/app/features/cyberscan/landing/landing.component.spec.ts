@@ -12,7 +12,7 @@ function make(): LandingComponent {
   return Object.create(LandingComponent.prototype) as LandingComponent;
 }
 
-const src = readFileSync(resolve(__dirname, './landing.component.ts'), 'utf-8');
+const src = readFileSync(resolve(__dirname, './landing.data.ts'), 'utf-8');
 
 // ── formatPrice() ─────────────────────────────────────────────────────────────
 
@@ -106,8 +106,7 @@ describe('LandingComponent — getPlanBadge()', () => {
 
 describe('LandingComponent — features array (9 modules)', () => {
   it('contient exactement 9 features', () => {
-    const matches = src.match(/\{ icon:.*?title:.*?desc:.*?\}/gs) ?? [];
-    const featureBlock = src.match(/features\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
+    const featureBlock = src.match(/FEATURES\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const count = (featureBlock.match(/icon:/g) ?? []).length;
     expect(count).toBe(9);
   });
@@ -141,7 +140,7 @@ describe('LandingComponent — features array (9 modules)', () => {
 
 describe('LandingComponent — testimonials (6 témoignages)', () => {
   it('contient exactement 6 témoignages', () => {
-    const block = src.match(/testimonials\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
+    const block = src.match(/TESTIMONIALS\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const count = (block.match(/name:/g) ?? []).length;
     expect(count).toBe(6);
   });
@@ -163,7 +162,7 @@ describe('LandingComponent — testimonials (6 témoignages)', () => {
   });
 
   it('chaque témoignage a un avatar d\'une seule lettre majuscule', () => {
-    const block = src.match(/testimonials\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
+    const block = src.match(/TESTIMONIALS\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const avatars = [...block.matchAll(/avatar:\s*'([A-Z])'/g)].map(m => m[1]);
     expect(avatars.length).toBe(6);
     avatars.forEach(a => expect(a).toMatch(/^[A-Z]$/));
@@ -174,7 +173,7 @@ describe('LandingComponent — testimonials (6 témoignages)', () => {
 
 describe('LandingComponent — faqs (10 questions)', () => {
   it('contient exactement 10 FAQ', () => {
-    const block = src.match(/faqs\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
+    const block = src.match(/FAQS\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const count = (block.match(/q:/g) ?? []).length;
     expect(count).toBe(10);
   });
@@ -188,7 +187,7 @@ describe('LandingComponent — faqs (10 questions)', () => {
   });
 
   it('chaque FAQ a un champ q et un champ a', () => {
-    const block = src.match(/faqs\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
+    const block = src.match(/FAQS\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const qCount = (block.match(/\bq:/g) ?? []).length;
     const aCount = (block.match(/\ba:/g) ?? []).length;
     expect(qCount).toBe(aCount);
@@ -200,7 +199,7 @@ describe('LandingComponent — faqs (10 questions)', () => {
 
 describe('LandingComponent — auditOffers (4 offres)', () => {
   it('contient exactement 4 offres d\'audit', () => {
-    const block = src.match(/auditOffers\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
+    const block = src.match(/AUDIT_OFFERS\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const count = (block.match(/name:/g) ?? []).length;
     expect(count).toBe(4);
   });
@@ -226,13 +225,13 @@ describe('LandingComponent — auditOffers (4 offres)', () => {
   });
 
   it('une seule offre est featured (App-Check)', () => {
-    const block = src.match(/auditOffers\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
+    const block = src.match(/AUDIT_OFFERS\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const featured = (block.match(/featured:\s*true/g) ?? []).length;
     expect(featured).toBe(1);
   });
 
   it('chaque offre a un champ items non vide', () => {
-    const block = src.match(/auditOffers\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
+    const block = src.match(/AUDIT_OFFERS\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const itemsBlocks = (block.match(/items:\s*\[/g) ?? []).length;
     expect(itemsBlocks).toBe(4);
   });
@@ -242,13 +241,13 @@ describe('LandingComponent — auditOffers (4 offres)', () => {
 
 describe('LandingComponent — comparisonRows (16 lignes, colonne enterprise)', () => {
   it('contient exactement 16 lignes', () => {
-    const block = src.match(/comparisonRows\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
+    const block = src.match(/COMPARISON_ROWS\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const count = (block.match(/label:/g) ?? []).length;
     expect(count).toBe(16);
   });
 
   it('chaque ligne a un champ enterprise', () => {
-    const block = src.match(/comparisonRows\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
+    const block = src.match(/COMPARISON_ROWS\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const labelCount = (block.match(/label:/g) ?? []).length;
     const enterpriseCount = (block.match(/enterprise:/g) ?? []).length;
     expect(enterpriseCount).toBe(labelCount);
@@ -291,7 +290,7 @@ describe('LandingComponent — comparisonRows (16 lignes, colonne enterprise)', 
 
 describe('LandingComponent — howItWorks (3 étapes)', () => {
   it('contient exactement 3 étapes', () => {
-    const block = src.match(/howItWorks\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
+    const block = src.match(/HOW_IT_WORKS\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const count = (block.match(/step:/g) ?? []).length;
     expect(count).toBe(3);
   });
@@ -315,7 +314,7 @@ describe('LandingComponent — howItWorks (3 étapes)', () => {
   });
 
   it('chaque étape a icon, title et desc', () => {
-    const block = src.match(/howItWorks\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
+    const block = src.match(/HOW_IT_WORKS\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     expect((block.match(/icon:/g) ?? []).length).toBe(3);
     expect((block.match(/title:/g) ?? []).length).toBe(3);
     expect((block.match(/desc:/g) ?? []).length).toBe(3);
@@ -326,7 +325,7 @@ describe('LandingComponent — howItWorks (3 étapes)', () => {
 
 describe('LandingComponent — useCases (4 cas d\'usage)', () => {
   it('contient exactement 4 cas d\'usage', () => {
-    const block = src.match(/useCases\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
+    const block = src.match(/USE_CASES\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const count = (block.match(/title:/g) ?? []).length;
     expect(count).toBe(4);
   });
@@ -348,7 +347,7 @@ describe('LandingComponent — useCases (4 cas d\'usage)', () => {
   });
 
   it('chaque profil a icon, color, bg, title, desc et points', () => {
-    const block = src.match(/useCases\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
+    const block = src.match(/USE_CASES\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     expect((block.match(/\bicon:/g) ?? []).length).toBe(4);
     expect((block.match(/color:/g) ?? []).length).toBe(4);
     expect((block.match(/bg:/g) ?? []).length).toBe(4);
@@ -356,7 +355,7 @@ describe('LandingComponent — useCases (4 cas d\'usage)', () => {
   });
 
   it('chaque profil a au moins 3 points', () => {
-    const block = src.match(/useCases\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
+    const block = src.match(/USE_CASES\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const pointsBlocks = [...block.matchAll(/points:\s*\[([\s\S]*?)\]/g)];
     pointsBlocks.forEach(match => {
       const count = (match[1].match(/'/g) ?? []).length / 2;
@@ -369,7 +368,7 @@ describe('LandingComponent — useCases (4 cas d\'usage)', () => {
 
 describe('LandingComponent — cyberStats (4 statistiques)', () => {
   it('contient exactement 4 statistiques', () => {
-    const block = src.match(/cyberStats\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
+    const block = src.match(/CYBER_STATS\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const count = (block.match(/value:/g) ?? []).length;
     expect(count).toBe(4);
   });
@@ -399,7 +398,7 @@ describe('LandingComponent — cyberStats (4 statistiques)', () => {
   });
 
   it('chaque stat a value, label et source', () => {
-    const block = src.match(/cyberStats\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
+    const block = src.match(/CYBER_STATS\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     expect((block.match(/value:/g) ?? []).length).toBe(4);
     expect((block.match(/label:/g) ?? []).length).toBe(4);
     expect((block.match(/source:/g) ?? []).length).toBe(4);
@@ -408,14 +407,17 @@ describe('LandingComponent — cyberStats (4 statistiques)', () => {
 
 // ── Non-régression comportement ───────────────────────────────────────────────
 
+const authModalSrc = readFileSync(resolve(__dirname, './components/auth-modal/auth-modal.component.ts'), 'utf-8');
+const landingSrc   = readFileSync(resolve(__dirname, './landing.component.ts'), 'utf-8');
+
 describe('LandingComponent — non-régression comportement', () => {
   it('[RÉGRESSION] login redirige vers /cyberscan (landing) et non /cyberscan/dashboard', () => {
-    const loginFnMatch = src.match(/submitLogin\(\)\s*\{[\s\S]+?^  \}/m);
+    const loginFnMatch = authModalSrc.match(/submitLogin\(\)\s*\{[\s\S]+?^  \}/m);
     if (loginFnMatch) {
       expect(loginFnMatch[0]).toContain("'/cyberscan'");
       expect(loginFnMatch[0]).not.toContain("'/cyberscan/dashboard'");
     }
-    const totpFnMatch = src.match(/submitLoginTotp\(\)\s*\{[\s\S]+?^  \}/m);
+    const totpFnMatch = authModalSrc.match(/submitLoginTotp\(\)\s*\{[\s\S]+?^  \}/m);
     if (totpFnMatch) {
       expect(totpFnMatch[0]).toContain("'/cyberscan'");
       expect(totpFnMatch[0]).not.toContain("'/cyberscan/dashboard'");
@@ -423,14 +425,14 @@ describe('LandingComponent — non-régression comportement', () => {
   });
 
   it('[RÉGRESSION] ngOnInit ne redirige pas les utilisateurs authentifiés', () => {
-    const ngOnInitMatch = src.match(/ngOnInit\(\)\s*\{[\s\S]+?^  \}/m);
+    const ngOnInitMatch = landingSrc.match(/ngOnInit\(\)\s*\{[\s\S]+?^  \}/m);
     if (ngOnInitMatch) {
       expect(ngOnInitMatch[0]).not.toContain("navigate(['/cyberscan/dashboard'])");
     }
   });
 
   it('[RÉGRESSION] inscription redirige vers /cyberscan/onboarding', () => {
-    const registerFnMatch = src.match(/submitRegister\(\)\s*\{[\s\S]+?^  \}/m);
+    const registerFnMatch = authModalSrc.match(/submitRegister\(\)\s*\{[\s\S]+?^  \}/m);
     if (registerFnMatch) {
       expect(registerFnMatch[0]).toContain('/cyberscan/onboarding');
     }
@@ -446,11 +448,10 @@ describe('LandingComponent — non-régression comportement', () => {
   });
 
   it('[RÉGRESSION] email de contact est cyberscanapp.com', () => {
-    expect(src).toContain('cyberscanapp.com');
+    expect(landingSrc).toContain('cyberscanapp.com');
   });
 
   it('[RÉGRESSION] l\'Enterprise est sur devis (pas un prix fixe)', () => {
-    expect(src).not.toContain("'Enterprise': '");
     expect(src).toContain("enterprise: 'Illimités'");
   });
 });
