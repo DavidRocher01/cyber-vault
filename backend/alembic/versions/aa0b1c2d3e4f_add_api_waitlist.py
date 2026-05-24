@@ -18,14 +18,12 @@ def upgrade() -> None:
     op.create_table(
         'api_waitlist',
         sa.Column('id', sa.Integer(), primary_key=True),
-        sa.Column('email', sa.String(255), nullable=False, unique=True, index=True),
+        sa.Column('email', sa.String(255), nullable=False, unique=True),
         sa.Column('role', sa.String(50), nullable=False),
         sa.Column('company', sa.String(150), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     )
-    op.create_index('ix_api_waitlist_email', 'api_waitlist', ['email'], unique=True)
 
 
 def downgrade() -> None:
-    op.drop_index('ix_api_waitlist_email', table_name='api_waitlist')
     op.drop_table('api_waitlist')
