@@ -13,6 +13,7 @@ import { OtpInputComponent } from '../../../../../shared/otp-input/otp-input.com
   selector: 'app-auth-modal',
   imports: [ReactiveFormsModule, RouterLink, MatIconModule, MatProgressSpinnerModule, OtpInputComponent],
   templateUrl: './auth-modal.component.html',
+  styleUrl: './auth-modal.component.css',
 })
 export class AuthModalComponent {
   private auth = inject(AuthService);
