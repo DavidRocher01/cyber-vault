@@ -9,7 +9,8 @@ export async function createAndLogin(page: Page): Promise<string> {
   await page.goto('/auth/register');
   await page.locator('[formcontrolname="email"]').fill(email);
   await page.locator('[formcontrolname="password"]').fill(PASSWORD);
-  await page.getByRole('button', { name: /s'inscrire/i }).click();
+  await page.locator('[formcontrolname="confirmPassword"]').fill(PASSWORD);
+  await page.getByRole('button', { name: /créer mon compte/i }).click();
 
   await page.goto('/auth/login');
   await page.locator('[formcontrolname="email"]').fill(email);
@@ -19,7 +20,7 @@ export async function createAndLogin(page: Page): Promise<string> {
   await page.waitForURL('**/auth/master-password');
   await page.locator('[formcontrolname="masterPassword"]').fill(MASTER);
   await page.getByRole('button', { name: /déverrouiller/i }).click();
-  await page.waitForURL('**/cyberscan/**');
+  await page.waitForURL('**/vault');
 
   return email;
 }
@@ -33,5 +34,5 @@ export async function login(page: Page, email: string): Promise<void> {
   await page.waitForURL('**/auth/master-password');
   await page.locator('[formcontrolname="masterPassword"]').fill(MASTER);
   await page.getByRole('button', { name: /déverrouiller/i }).click();
-  await page.waitForURL('**/cyberscan/**');
+  await page.waitForURL('**/vault');
 }

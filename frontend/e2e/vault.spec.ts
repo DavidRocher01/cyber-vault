@@ -10,7 +10,8 @@ test.describe('Parcours Vault', () => {
     await page.goto('/auth/register');
     await page.locator('[formcontrolname="email"]').fill(EMAIL);
     await page.locator('[formcontrolname="password"]').fill(PASSWORD);
-    await page.getByRole('button', { name: /s'inscrire/i }).click();
+    await page.locator('[formcontrolname="confirmPassword"]').fill(PASSWORD);
+    await page.getByRole('button', { name: /créer mon compte/i }).click();
 
     // Connexion
     await page.goto('/auth/login');
