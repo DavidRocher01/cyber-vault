@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, HTTPException, Request, Response, status
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,10 +20,30 @@ from app.core.security import (
 from app.models.password_reset_token import PasswordResetToken
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
-from app.schemas.user import ForgotPasswordIn, RefreshIn, ResetPasswordIn, TokenOut, UserCreate, UserLogin, UserOut
+from app.schemas.user import AccessTokenOut, ForgotPasswordIn, ResetPasswordIn, UserCreate, UserLogin, UserOut
 from app.services.email_service import send_password_reset
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+_COOKIE_NAME = "refresh_token"
+_COOKIE_PATH = "/api/v1/auth"
+_COOKIE_MAX_AGE = REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600
+
+
+def _set_refresh_cookie(response: Response, raw_refresh: str) -> None:
+    response.set_cookie(
+        key=_COOKIE_NAME,
+        value=raw_refresh,
+        httponly=True,
+        secure=settings.APP_ENV == "production",
+        samesite="lax",
+        max_age=_COOKIE_MAX_AGE,
+        path=_COOKIE_PATH,
+    )
+
+
+def _clear_refresh_cookie(response: Response) -> None:
+    response.delete_cookie(key=_COOKIE_NAME, path=_COOKIE_PATH)
 
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
@@ -34,15 +54,14 @@ async def register(request: Request, payload: UserCreate, db: AsyncSession = Dep
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
     user = User(email=payload.email, hashed_password=hash_password(payload.password))
     db.add(user)
-    await db.flush()
-    await db.refresh(user)
+    await db.commit()
     logger.info("New user registered (id={})", user.id)
     return user
 
 
 @router.post("/login")
 @limiter.limit("10/minute")
-async def login(request: Request, payload: UserLogin, db: AsyncSession = Depends(get_db)):
+async def login(request: Request, response: Response, payload: UserLogin, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == payload.email))
     user = result.scalar_one_or_none()
 
@@ -94,41 +113,54 @@ async def login(request: Request, payload: UserLogin, db: AsyncSession = Depends
     raw_refresh = create_refresh_token()
     expires = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     db.add(RefreshToken(user_id=user.id, token=hash_token(raw_refresh), expires_at=expires))
-    await db.flush()
+    await db.commit()
+    _set_refresh_cookie(response, raw_refresh)
     logger.info("User logged in (id={})", user.id)
-    return TokenOut(access_token=access_token, refresh_token=raw_refresh)
+    return AccessTokenOut(access_token=access_token)
 
 
-@router.post("/refresh", response_model=TokenOut)
-async def refresh(payload: RefreshIn, db: AsyncSession = Depends(get_db)):
+@router.post("/refresh", response_model=AccessTokenOut)
+async def refresh(
+    response: Response,
+    refresh_token: str | None = Cookie(default=None, alias=_COOKIE_NAME),
+    db: AsyncSession = Depends(get_db),
+):
+    invalid_exc = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+    if not refresh_token:
+        raise invalid_exc
     result = await db.execute(
-        select(RefreshToken).where(RefreshToken.token == hash_token(payload.refresh_token))
+        select(RefreshToken).where(RefreshToken.token == hash_token(refresh_token))
     )
     stored = result.scalar_one_or_none()
     expires_at = ensure_utc(stored.expires_at if stored else None)
     if not stored or stored.revoked or (expires_at is not None and expires_at < datetime.now(timezone.utc)):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
-        )
+        raise invalid_exc
 
     stored.revoked = True
     new_access = create_access_token(subject=str(stored.user_id))
     new_raw_refresh = create_refresh_token()
     new_expires = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     db.add(RefreshToken(user_id=stored.user_id, token=hash_token(new_raw_refresh), expires_at=new_expires))
-    await db.flush()
-    return TokenOut(access_token=new_access, refresh_token=new_raw_refresh)
+    await db.commit()
+    _set_refresh_cookie(response, new_raw_refresh)
+    return AccessTokenOut(access_token=new_access)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(payload: RefreshIn, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(RefreshToken).where(RefreshToken.token == hash_token(payload.refresh_token))
-    )
-    stored = result.scalar_one_or_none()
-    if stored and not stored.revoked:
-        stored.revoked = True
-        await db.commit()
+async def logout(
+    response: Response,
+    refresh_token: str | None = Cookie(default=None, alias=_COOKIE_NAME),
+    db: AsyncSession = Depends(get_db),
+):
+    if refresh_token:
+        result = await db.execute(
+            select(RefreshToken).where(RefreshToken.token == hash_token(refresh_token))
+        )
+        stored = result.scalar_one_or_none()
+        if stored and not stored.revoked:
+            stored.revoked = True
+            await db.commit()
+    _clear_refresh_cookie(response)
 
 
 RESET_TOKEN_EXPIRE_MINUTES = 30
@@ -149,7 +181,7 @@ async def forgot_password(
     raw_token = create_refresh_token()
     expires = datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
     db.add(PasswordResetToken(user_id=user.id, token=hash_token(raw_token), expires_at=expires))
-    await db.flush()
+    await db.commit()
 
     reset_url = f"{settings.FRONTEND_URL}/auth/reset-password?token={raw_token}"
     background_tasks.add_task(send_password_reset, user.email, reset_url)
@@ -179,5 +211,5 @@ async def reset_password(payload: ResetPasswordIn, db: AsyncSession = Depends(ge
 
     user.hashed_password = hash_password(payload.password)
     stored.used = True
-    await db.flush()
+    await db.commit()
     logger.info(f"Password reset completed for user_id={user.id}")

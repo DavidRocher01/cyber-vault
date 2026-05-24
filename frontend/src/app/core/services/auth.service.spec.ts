@@ -22,25 +22,22 @@ describe('AuthService', () => {
     expect(service.isAuthenticated()).toBe(false);
   });
 
-  it('login() stocke access_token, refresh_token et email', () => {
+  it('login() stocke access_token et email (refresh_token dans cookie httpOnly)', () => {
     httpMock.post.mockReturnValue(
-      of({ access_token: 'acc123', refresh_token: 'ref456', token_type: 'bearer' })
+      of({ access_token: 'acc123', token_type: 'bearer' })
     );
     service.login('user@test.com', 'pass').subscribe();
     expect(service.getToken()).toBe('acc123');
-    expect(service.getRefreshToken()).toBe('ref456');
     expect(service.getCurrentEmail()).toBe('user@test.com');
     expect(service.isAuthenticated()).toBe(true);
   });
 
   it('logout() vide le localStorage', () => {
     localStorage.setItem('cv_token', 'x');
-    localStorage.setItem('cv_refresh', 'y');
     localStorage.setItem('cv_email', 'a@b.com');
     httpMock.post.mockReturnValue(of({}));
     service.logout();
     expect(service.getToken()).toBeNull();
-    expect(service.getRefreshToken()).toBeNull();
     expect(service.getCurrentEmail()).toBeNull();
   });
 
@@ -50,18 +47,19 @@ describe('AuthService', () => {
     expect(routerMock.navigate).toHaveBeenCalledWith(['/cyberscan']);
   });
 
-  it('logout() redirige vers /cyberscan même sans refresh token', () => {
+  it('logout() redirige vers /cyberscan même sans token en mémoire', () => {
+    httpMock.post.mockReturnValue(of({}));
     service.logout();
     expect(routerMock.navigate).toHaveBeenCalledWith(['/cyberscan']);
   });
 
-  it('logout() appelle POST /auth/logout si un refresh token existe', () => {
-    localStorage.setItem('cv_refresh', 'ref999');
+  it('logout() appelle POST /auth/logout avec withCredentials', () => {
     httpMock.post.mockReturnValue(of({}));
     service.logout();
     expect(httpMock.post).toHaveBeenCalledWith(
       expect.stringContaining('/auth/logout'),
-      expect.objectContaining({ refresh_token: 'ref999' })
+      {},
+      { withCredentials: true }
     );
   });
 });

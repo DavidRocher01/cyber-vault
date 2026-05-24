@@ -32,7 +32,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: HttpErrorResponse) => {
       // Don't redirect on 401 from auth endpoints (login/register return 401 for bad credentials)
       const isAuthEndpoint = req.url.includes('/auth/login') || req.url.includes('/auth/register');
-      if (error.status === 401 && !isAuthEndpoint && authService.getRefreshToken()) {
+      if (error.status === 401 && !isAuthEndpoint && authService.isAuthenticated()) {
         return authService.refresh().pipe(
           switchMap(res => next(addToken(req, res.access_token))),
           catchError(() => {

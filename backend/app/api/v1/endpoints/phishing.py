@@ -147,6 +147,7 @@ async def create_campaign(
     campaign = await phishing_service.create_campaign(
         current_user.id, payload.name, payload.plan_tier, db
     )
+    await db.commit()
     return _serialize_campaign(campaign)
 
 
@@ -198,6 +199,7 @@ async def update_campaign(
         scheduled_at=payload.scheduled_at,
         db=db,
     )
+    await db.commit()
     return _serialize_campaign(updated)
 
 
@@ -250,6 +252,7 @@ async def upload_targets(
             detail="Aucune adresse email valide trouvée dans le fichier.",
         )
 
+    await db.commit()
     return {"targets_added": count}
 
 
@@ -310,6 +313,7 @@ async def launch_campaign(
             detail=f"Erreur lors du lancement de la campagne : {exc}",
         )
 
+    await db.commit()
     return {"status": "sending", "campaign_id": campaign_id}
 
 
@@ -354,6 +358,7 @@ async def request_domain_verification(
     record = await phishing_service.request_domain_verification(
         current_user.id, payload.domain.lower().strip(), db
     )
+    await db.commit()
     return {
         "domain": record.domain,
         "verified": record.verified,
@@ -393,6 +398,8 @@ async def check_domain_verification(
         )
 
     verified = await phishing_service.check_domain_verification(record, db)
+    if verified:
+        await db.commit()
     return {
         "domain": domain,
         "verified": verified,

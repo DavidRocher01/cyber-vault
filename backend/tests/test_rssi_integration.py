@@ -19,6 +19,18 @@ async def _register_and_login(http_client: AsyncClient, email: str) -> dict:
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
+async def _register_and_login_consultant(http_client: AsyncClient, email: str) -> dict:
+    import app.core.database as _db_mod
+    from app.models.user import User
+    headers = await _register_and_login(http_client, email)
+    async with _db_mod.AsyncSessionLocal() as db:
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one()
+        user.is_rssi_consultant = True
+        await db.commit()
+    return headers
+
+
 async def _create_client(http_client: AsyncClient, headers: dict, name: str = "Acme", **kwargs) -> dict:
     payload = {"name": name, **kwargs}
     r = await http_client.post(f"{BASE}/rssi/clients", json=payload, headers=headers)
@@ -38,7 +50,7 @@ async def test_list_clients_no_auth_returns_401(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_client_basic(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi1@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi1@test.com")
     client = await _create_client(http_client, headers)
     assert client["name"] == "Acme"
     assert client["status"] == "active"
@@ -48,7 +60,7 @@ async def test_create_client_basic(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_client_full_schema(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi2@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi2@test.com")
     client = await _create_client(
         http_client, headers,
         name="Corp SA",
@@ -63,7 +75,7 @@ async def test_create_client_full_schema(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_client_invalid_formula_returns_422(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi3@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi3@test.com")
     r = await http_client.post(
         f"{BASE}/rssi/clients",
         json={"name": "Corp", "formula": "ultra"},
@@ -74,8 +86,8 @@ async def test_create_client_invalid_formula_returns_422(http_client: AsyncClien
 
 @pytest.mark.asyncio
 async def test_list_clients_returns_own_clients_only(http_client: AsyncClient):
-    h1 = await _register_and_login(http_client, "rssi4@test.com")
-    h2 = await _register_and_login(http_client, "rssi5@test.com")
+    h1 = await _register_and_login_consultant(http_client, "rssi4@test.com")
+    h2 = await _register_and_login_consultant(http_client, "rssi5@test.com")
 
     await _create_client(http_client, h1, "Client user1")
     await _create_client(http_client, h1, "Client user1 bis")
@@ -91,7 +103,7 @@ async def test_list_clients_returns_own_clients_only(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_update_client_status(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi6@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi6@test.com")
     client = await _create_client(http_client, headers)
     cid = client["id"]
 
@@ -106,7 +118,7 @@ async def test_update_client_status(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_update_client_invalid_status_returns_422(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi7@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi7@test.com")
     client = await _create_client(http_client, headers)
     r = await http_client.put(
         f"{BASE}/rssi/clients/{client['id']}",
@@ -118,7 +130,7 @@ async def test_update_client_invalid_status_returns_422(http_client: AsyncClient
 
 @pytest.mark.asyncio
 async def test_delete_client(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi8@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi8@test.com")
     client = await _create_client(http_client, headers)
     cid = client["id"]
 
@@ -131,8 +143,8 @@ async def test_delete_client(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_cannot_access_other_user_client(http_client: AsyncClient):
-    h1 = await _register_and_login(http_client, "rssi9@test.com")
-    h2 = await _register_and_login(http_client, "rssi10@test.com")
+    h1 = await _register_and_login_consultant(http_client, "rssi9@test.com")
+    h2 = await _register_and_login_consultant(http_client, "rssi10@test.com")
     client = await _create_client(http_client, h1)
 
     r = await http_client.put(
@@ -147,7 +159,7 @@ async def test_cannot_access_other_user_client(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_visit(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi11@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi11@test.com")
     client = await _create_client(http_client, headers)
     cid = client["id"]
 
@@ -166,7 +178,7 @@ async def test_create_visit(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_list_visits(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi12@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi12@test.com")
     client = await _create_client(http_client, headers)
     cid = client["id"]
 
@@ -184,7 +196,7 @@ async def test_list_visits(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_update_visit_to_completed(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi13@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi13@test.com")
     client = await _create_client(http_client, headers)
     cid = client["id"]
 
@@ -207,7 +219,7 @@ async def test_update_visit_to_completed(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_visit_invalid_type_returns_422(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi14@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi14@test.com")
     client = await _create_client(http_client, headers)
     r = await http_client.post(
         f"{BASE}/rssi/clients/{client['id']}/visits",
@@ -219,7 +231,7 @@ async def test_create_visit_invalid_type_returns_422(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_delete_visit(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi15@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi15@test.com")
     client = await _create_client(http_client, headers)
     cid = client["id"]
 
@@ -241,7 +253,7 @@ async def test_delete_visit(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_action(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi16@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi16@test.com")
     client = await _create_client(http_client, headers)
     cid = client["id"]
 
@@ -266,7 +278,7 @@ async def test_create_action(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_list_actions(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi17@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi17@test.com")
     client = await _create_client(http_client, headers)
     cid = client["id"]
 
@@ -284,7 +296,7 @@ async def test_list_actions(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_filter_actions_by_status(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi18@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi18@test.com")
     client = await _create_client(http_client, headers)
     cid = client["id"]
 
@@ -321,7 +333,7 @@ async def test_filter_actions_by_status(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_update_action_to_done_sets_completed_at(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi19@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi19@test.com")
     client = await _create_client(http_client, headers)
     cid = client["id"]
 
@@ -344,7 +356,7 @@ async def test_update_action_to_done_sets_completed_at(http_client: AsyncClient)
 
 @pytest.mark.asyncio
 async def test_create_action_invalid_priority_returns_422(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi20@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi20@test.com")
     client = await _create_client(http_client, headers)
     r = await http_client.post(
         f"{BASE}/rssi/clients/{client['id']}/actions",
@@ -356,7 +368,7 @@ async def test_create_action_invalid_priority_returns_422(http_client: AsyncClie
 
 @pytest.mark.asyncio
 async def test_delete_action(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi21@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi21@test.com")
     client = await _create_client(http_client, headers)
     cid = client["id"]
 
@@ -376,7 +388,7 @@ async def test_delete_action(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_action_not_accessible_from_other_client(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi22@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi22@test.com")
     c1 = await _create_client(http_client, headers, "Client 1")
     c2 = await _create_client(http_client, headers, "Client 2")
 
@@ -437,7 +449,7 @@ async def test_list_clients_aggregates_site_and_scan_status(
     from app.models.scan import Scan
     from app.models.user import User
 
-    headers = await _register_and_login(http_client, "rssi_sites@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi_sites@test.com")
     client = await _create_client(http_client, headers, "SiteCo")
 
     # Resolve the user and client objects directly from the test DB
@@ -467,7 +479,7 @@ async def test_list_clients_aggregates_site_and_scan_status(
 
 @pytest.mark.asyncio
 async def test_get_client_returns_own_client(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi_getone@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi_getone@test.com")
     client = await _create_client(http_client, headers, "GetMe", formula="premium", monthly_amount=1500.0)
     r = await http_client.get(f"{BASE}/rssi/clients/{client['id']}", headers=headers)
     assert r.status_code == 200
@@ -479,15 +491,15 @@ async def test_get_client_returns_own_client(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_get_client_404_for_unknown(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi_getone_404@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi_getone_404@test.com")
     r = await http_client.get(f"{BASE}/rssi/clients/99999", headers=headers)
     assert r.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_get_client_404_for_other_user_client(http_client: AsyncClient):
-    h1 = await _register_and_login(http_client, "rssi_getone_owner@test.com")
-    h2 = await _register_and_login(http_client, "rssi_getone_spy@test.com")
+    h1 = await _register_and_login_consultant(http_client, "rssi_getone_owner@test.com")
+    h2 = await _register_and_login_consultant(http_client, "rssi_getone_spy@test.com")
     client = await _create_client(http_client, h1, "PrivateCo")
     r = await http_client.get(f"{BASE}/rssi/clients/{client['id']}", headers=h2)
     assert r.status_code == 404
@@ -503,7 +515,7 @@ async def test_get_client_requires_auth(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_update_client_invalid_formula_returns_422(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi_upd_formula@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi_upd_formula@test.com")
     client = await _create_client(http_client, headers)
     r = await http_client.put(
         f"{BASE}/rssi/clients/{client['id']}",
@@ -516,7 +528,7 @@ async def test_update_client_invalid_formula_returns_422(http_client: AsyncClien
 @pytest.mark.asyncio
 async def test_update_client_all_optional_fields(http_client: AsyncClient):
     """Covers update branches for email, formula, monthly_amount, dates, integrations."""
-    headers = await _register_and_login(http_client, "rssi_upd_all@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi_upd_all@test.com")
     client = await _create_client(http_client, headers, "UpdateMe")
     cid = client["id"]
 
@@ -549,7 +561,7 @@ async def test_update_client_all_optional_fields(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_visit_invalid_location_returns_422(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi_visit_loc@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi_visit_loc@test.com")
     client = await _create_client(http_client, headers)
     r = await http_client.post(
         f"{BASE}/rssi/clients/{client['id']}/visits",
@@ -561,7 +573,7 @@ async def test_create_visit_invalid_location_returns_422(http_client: AsyncClien
 
 @pytest.mark.asyncio
 async def test_update_visit_not_found_returns_404(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi_visit_404upd@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi_visit_404upd@test.com")
     client = await _create_client(http_client, headers)
     r = await http_client.put(
         f"{BASE}/rssi/clients/{client['id']}/visits/99999",
@@ -573,7 +585,7 @@ async def test_update_visit_not_found_returns_404(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_update_visit_invalid_status_returns_422(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi_visit_badstatus@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi_visit_badstatus@test.com")
     client = await _create_client(http_client, headers)
     r_v = await http_client.post(
         f"{BASE}/rssi/clients/{client['id']}/visits",
@@ -591,7 +603,7 @@ async def test_update_visit_invalid_status_returns_422(http_client: AsyncClient)
 
 @pytest.mark.asyncio
 async def test_update_visit_invalid_type_returns_422(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi_visit_badtype@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi_visit_badtype@test.com")
     client = await _create_client(http_client, headers)
     r_v = await http_client.post(
         f"{BASE}/rssi/clients/{client['id']}/visits",
@@ -610,7 +622,7 @@ async def test_update_visit_invalid_type_returns_422(http_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_update_visit_partial_fields(http_client: AsyncClient):
     """Covers scheduled_date, visit_type, location, notes update branches."""
-    headers = await _register_and_login(http_client, "rssi_visit_partial@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi_visit_partial@test.com")
     client = await _create_client(http_client, headers)
     cid = client["id"]
     r_v = await http_client.post(
@@ -640,7 +652,7 @@ async def test_update_visit_partial_fields(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_delete_visit_not_found_returns_404(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi_visit_404del@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi_visit_404del@test.com")
     client = await _create_client(http_client, headers)
     r = await http_client.delete(
         f"{BASE}/rssi/clients/{client['id']}/visits/99999",
@@ -653,7 +665,7 @@ async def test_delete_visit_not_found_returns_404(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_action_empty_title_returns_422(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi_action_empty@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi_action_empty@test.com")
     client = await _create_client(http_client, headers)
     r = await http_client.post(
         f"{BASE}/rssi/clients/{client['id']}/actions",
@@ -665,7 +677,7 @@ async def test_create_action_empty_title_returns_422(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_update_action_not_found_returns_404(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi_action_404upd@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi_action_404upd@test.com")
     client = await _create_client(http_client, headers)
     r = await http_client.put(
         f"{BASE}/rssi/clients/{client['id']}/actions/99999",
@@ -677,7 +689,7 @@ async def test_update_action_not_found_returns_404(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_update_action_invalid_priority_returns_422(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi_action_badprio@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi_action_badprio@test.com")
     client = await _create_client(http_client, headers)
     r_a = await http_client.post(
         f"{BASE}/rssi/clients/{client['id']}/actions",
@@ -695,7 +707,7 @@ async def test_update_action_invalid_priority_returns_422(http_client: AsyncClie
 
 @pytest.mark.asyncio
 async def test_update_action_invalid_status_returns_422(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi_action_badstatus@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi_action_badstatus@test.com")
     client = await _create_client(http_client, headers)
     r_a = await http_client.post(
         f"{BASE}/rssi/clients/{client['id']}/actions",
@@ -714,7 +726,7 @@ async def test_update_action_invalid_status_returns_422(http_client: AsyncClient
 @pytest.mark.asyncio
 async def test_update_action_all_optional_fields(http_client: AsyncClient):
     """Covers title, description, category, priority, assigned_to, due_date, completed_at update branches."""
-    headers = await _register_and_login(http_client, "rssi_action_allfields@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi_action_allfields@test.com")
     client = await _create_client(http_client, headers)
     cid = client["id"]
     r_a = await http_client.post(
@@ -751,7 +763,7 @@ async def test_update_action_all_optional_fields(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_delete_action_not_found_returns_404(http_client: AsyncClient):
-    headers = await _register_and_login(http_client, "rssi_action_404del@test.com")
+    headers = await _register_and_login_consultant(http_client, "rssi_action_404del@test.com")
     client = await _create_client(http_client, headers)
     r = await http_client.delete(
         f"{BASE}/rssi/clients/{client['id']}/actions/99999",

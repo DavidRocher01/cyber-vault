@@ -16,6 +16,21 @@ async def _auth(http_client: AsyncClient, email: str) -> dict:
     r = await http_client.post(f"{BASE}/auth/login", json={"email": email, "password": "StrongPass123!"})
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
+async def _auth_consultant(http_client, email: str) -> dict:
+    """Register, login, and promote user to RSSI consultant for tests."""
+    import app.core.database as _db_mod
+    from sqlalchemy import select
+    from app.models.user import User
+    headers = await _auth(http_client, email)
+    async with _db_mod.AsyncSessionLocal() as db:
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one()
+        user.is_rssi_consultant = True
+        await db.commit()
+    return headers
+
+
+
 
 async def _create_client(http_client: AsyncClient, headers: dict, name: str = "Acme", **kwargs) -> dict:
     r = await http_client.post(f"{BASE}/rssi/clients", json={"name": name, **kwargs}, headers=headers)
@@ -67,7 +82,7 @@ async def test_dashboard_events_requires_auth(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_overview_empty_returns_zeros(http_client: AsyncClient):
-    h = await _auth(http_client, "dash_ov1@test.com")
+    h = await _auth_consultant(http_client, "dash_ov1@test.com")
     r = await http_client.get(f"{BASE}/rssi/dashboard/overview", headers=h)
     assert r.status_code == 200
     body = r.json()
@@ -81,7 +96,7 @@ async def test_overview_empty_returns_zeros(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_overview_counts_active_clients_and_mrr(http_client: AsyncClient):
-    h = await _auth(http_client, "dash_ov2@test.com")
+    h = await _auth_consultant(http_client, "dash_ov2@test.com")
     await _create_client(http_client, h, "Client A", monthly_amount=2000, formula="premium")
     await _create_client(http_client, h, "Client B", monthly_amount=1500, formula="essentiel")
     c_churned = await _create_client(http_client, h, "Client C", monthly_amount=3000)
@@ -96,7 +111,7 @@ async def test_overview_counts_active_clients_and_mrr(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_overview_counts_open_and_overdue_actions(http_client: AsyncClient):
-    h = await _auth(http_client, "dash_ov3@test.com")
+    h = await _auth_consultant(http_client, "dash_ov3@test.com")
     c = await _create_client(http_client, h, "Corp")
 
     yesterday = (date.today() - timedelta(days=1)).isoformat()
@@ -114,7 +129,7 @@ async def test_overview_counts_open_and_overdue_actions(http_client: AsyncClient
 
 @pytest.mark.asyncio
 async def test_overview_renewal_upcoming(http_client: AsyncClient):
-    h = await _auth(http_client, "dash_ov4@test.com")
+    h = await _auth_consultant(http_client, "dash_ov4@test.com")
     soon = (date.today() + timedelta(days=30)).isoformat()
     far = (date.today() + timedelta(days=120)).isoformat()
 
@@ -129,7 +144,7 @@ async def test_overview_renewal_upcoming(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_clients_summary_returns_all_clients(http_client: AsyncClient):
-    h = await _auth(http_client, "dash_cs1@test.com")
+    h = await _auth_consultant(http_client, "dash_cs1@test.com")
     await _create_client(http_client, h, "Alpha")
     await _create_client(http_client, h, "Beta")
 
@@ -142,7 +157,7 @@ async def test_clients_summary_returns_all_clients(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_clients_summary_includes_action_counts(http_client: AsyncClient):
-    h = await _auth(http_client, "dash_cs2@test.com")
+    h = await _auth_consultant(http_client, "dash_cs2@test.com")
     c = await _create_client(http_client, h, "ActionCorp")
     overdue_date = (date.today() - timedelta(days=5)).isoformat()
     await _create_action(http_client, h, c["id"], due_date=overdue_date)
@@ -156,7 +171,7 @@ async def test_clients_summary_includes_action_counts(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_clients_summary_includes_next_visit(http_client: AsyncClient):
-    h = await _auth(http_client, "dash_cs3@test.com")
+    h = await _auth_consultant(http_client, "dash_cs3@test.com")
     c = await _create_client(http_client, h, "VisitCorp")
     future = (date.today() + timedelta(days=10)).isoformat()
     await _create_visit(http_client, h, c["id"], future)
@@ -170,7 +185,7 @@ async def test_clients_summary_includes_next_visit(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_alerts_empty_when_no_issues(http_client: AsyncClient):
-    h = await _auth(http_client, "dash_al1@test.com")
+    h = await _auth_consultant(http_client, "dash_al1@test.com")
     c = await _create_client(http_client, h, "Healthy Corp")
     # Action with future due date — no overdue
     await _create_action(http_client, h, c["id"], due_date=(date.today() + timedelta(days=30)).isoformat())
@@ -183,7 +198,7 @@ async def test_alerts_empty_when_no_issues(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_alerts_detects_overdue_actions(http_client: AsyncClient):
-    h = await _auth(http_client, "dash_al2@test.com")
+    h = await _auth_consultant(http_client, "dash_al2@test.com")
     c = await _create_client(http_client, h, "Overdue Corp")
     overdue = (date.today() - timedelta(days=10)).isoformat()
     await _create_action(http_client, h, c["id"], title="Fix SSL", due_date=overdue)
@@ -196,7 +211,7 @@ async def test_alerts_detects_overdue_actions(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_alerts_detects_renewal_upcoming(http_client: AsyncClient):
-    h = await _auth(http_client, "dash_al3@test.com")
+    h = await _auth_consultant(http_client, "dash_al3@test.com")
     soon = (date.today() + timedelta(days=20)).isoformat()
     await _create_client(http_client, h, "Renew Corp", contract_renewal_at=soon)
 
@@ -209,7 +224,7 @@ async def test_alerts_detects_renewal_upcoming(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_upcoming_events_returns_planned_visits(http_client: AsyncClient):
-    h = await _auth(http_client, "dash_ev1@test.com")
+    h = await _auth_consultant(http_client, "dash_ev1@test.com")
     c = await _create_client(http_client, h, "Event Corp")
     future = (date.today() + timedelta(days=7)).isoformat()
     await _create_visit(http_client, h, c["id"], future)
@@ -224,7 +239,7 @@ async def test_upcoming_events_returns_planned_visits(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_upcoming_events_excludes_past_and_distant(http_client: AsyncClient):
-    h = await _auth(http_client, "dash_ev2@test.com")
+    h = await _auth_consultant(http_client, "dash_ev2@test.com")
     c = await _create_client(http_client, h, "Corp2")
 
     past = (date.today() - timedelta(days=1)).isoformat()
@@ -247,7 +262,7 @@ async def test_upcoming_events_excludes_past_and_distant(http_client: AsyncClien
 
 @pytest.mark.asyncio
 async def test_suggestions_empty_for_new_user(http_client: AsyncClient):
-    h = await _auth(http_client, "dash_sg1@test.com")
+    h = await _auth_consultant(http_client, "dash_sg1@test.com")
     r = await http_client.get(f"{BASE}/rssi/dashboard/suggestions", headers=h)
     assert r.status_code == 200
     assert r.json() == []
@@ -255,7 +270,7 @@ async def test_suggestions_empty_for_new_user(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_suggestions_high_overdue_rule(http_client: AsyncClient):
-    h = await _auth(http_client, "dash_sg2@test.com")
+    h = await _auth_consultant(http_client, "dash_sg2@test.com")
     c = await _create_client(http_client, h, "Overdue Heavy")
     overdue = (date.today() - timedelta(days=5)).isoformat()
     for _ in range(3):
@@ -270,8 +285,8 @@ async def test_suggestions_high_overdue_rule(http_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_suggestions_isolation_between_users(http_client: AsyncClient):
     """User B should not see suggestions for user A's clients."""
-    h_a = await _auth(http_client, "dash_sg3a@test.com")
-    h_b = await _auth(http_client, "dash_sg3b@test.com")
+    h_a = await _auth_consultant(http_client, "dash_sg3a@test.com")
+    h_b = await _auth_consultant(http_client, "dash_sg3b@test.com")
 
     c_a = await _create_client(http_client, h_a, "A Corp", formula="premium")
     overdue = (date.today() - timedelta(days=5)).isoformat()
@@ -288,7 +303,7 @@ async def test_suggestions_isolation_between_users(http_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_upcoming_events_empty_when_no_clients(http_client: AsyncClient):
     """get_upcoming_events early-exit branch: user with no active clients."""
-    h = await _auth(http_client, "dash_ev3@test.com")
+    h = await _auth_consultant(http_client, "dash_ev3@test.com")
     r = await http_client.get(f"{BASE}/rssi/dashboard/upcoming-events", headers=h)
     assert r.status_code == 200
     assert r.json() == []
@@ -297,7 +312,7 @@ async def test_upcoming_events_empty_when_no_clients(http_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_alerts_no_recent_visit_for_premium_client(http_client: AsyncClient):
     """Premium client with no completed visit → no_recent_visit alert."""
-    h = await _auth(http_client, "dash_al4@test.com")
+    h = await _auth_consultant(http_client, "dash_al4@test.com")
     await _create_client(http_client, h, "Premium No Visit", formula="premium")
 
     r = await http_client.get(f"{BASE}/rssi/dashboard/alerts", headers=h)
@@ -309,7 +324,7 @@ async def test_alerts_no_recent_visit_for_premium_client(http_client: AsyncClien
 @pytest.mark.asyncio
 async def test_alerts_no_recent_visit_premium_old_visit(http_client: AsyncClient):
     """Premium client whose last completed visit was >35 days ago → alert."""
-    h = await _auth(http_client, "dash_al5@test.com")
+    h = await _auth_consultant(http_client, "dash_al5@test.com")
     c = await _create_client(http_client, h, "Old Visit Corp", formula="excellence")
 
     # Create a visit in the past (>35 days) and mark it completed
@@ -329,7 +344,7 @@ async def test_alerts_no_recent_visit_premium_old_visit(http_client: AsyncClient
 @pytest.mark.asyncio
 async def test_alerts_no_recent_visit_essentiel_client_ignored(http_client: AsyncClient):
     """Essentiel clients are NOT checked for visit frequency."""
-    h = await _auth(http_client, "dash_al6@test.com")
+    h = await _auth_consultant(http_client, "dash_al6@test.com")
     await _create_client(http_client, h, "Essentiel Corp", formula="essentiel")
 
     r = await http_client.get(f"{BASE}/rssi/dashboard/alerts", headers=h)
@@ -340,7 +355,7 @@ async def test_alerts_no_recent_visit_essentiel_client_ignored(http_client: Asyn
 @pytest.mark.asyncio
 async def test_suggestions_upsell_opportunity(http_client: AsyncClient):
     """Essentiel client with 180+ days contract and zero overdue → upsell suggestion."""
-    h = await _auth(http_client, "dash_sg4@test.com")
+    h = await _auth_consultant(http_client, "dash_sg4@test.com")
     old_start = (date.today() - timedelta(days=200)).isoformat()
     await _create_client(http_client, h, "Stable Essentiel", formula="essentiel",
                          contract_start_date=old_start)
@@ -354,7 +369,7 @@ async def test_suggestions_upsell_opportunity(http_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_suggestions_no_upsell_when_overdue(http_client: AsyncClient):
     """Upsell rule must NOT fire when the client has overdue actions."""
-    h = await _auth(http_client, "dash_sg5@test.com")
+    h = await _auth_consultant(http_client, "dash_sg5@test.com")
     old_start = (date.today() - timedelta(days=200)).isoformat()
     c = await _create_client(http_client, h, "Busy Essentiel", formula="essentiel",
                              contract_start_date=old_start)
@@ -369,7 +384,7 @@ async def test_suggestions_no_upsell_when_overdue(http_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_suggestions_engagement_alert_for_premium_no_visit(http_client: AsyncClient):
     """Premium client with no visits at all → engagement_alert suggestion."""
-    h = await _auth(http_client, "dash_sg6@test.com")
+    h = await _auth_consultant(http_client, "dash_sg6@test.com")
     await _create_client(http_client, h, "Ghosted Premium", formula="premium")
 
     r = await http_client.get(f"{BASE}/rssi/dashboard/suggestions", headers=h)
@@ -382,7 +397,7 @@ async def test_suggestions_engagement_alert_for_premium_no_visit(http_client: As
 @pytest.mark.asyncio
 async def test_suggestions_renewal_30_to_60_days(http_client: AsyncClient):
     """Client with renewal in 30-60 days → renewal_upcoming suggestion."""
-    h = await _auth(http_client, "dash_sg7@test.com")
+    h = await _auth_consultant(http_client, "dash_sg7@test.com")
     renewal = (date.today() + timedelta(days=45)).isoformat()
     await _create_client(http_client, h, "Renew Me", contract_renewal_at=renewal)
 
@@ -395,7 +410,7 @@ async def test_suggestions_renewal_30_to_60_days(http_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_suggestions_no_renewal_outside_window(http_client: AsyncClient):
     """Renewal outside 30-60 day window → no renewal_upcoming suggestion."""
-    h = await _auth(http_client, "dash_sg8@test.com")
+    h = await _auth_consultant(http_client, "dash_sg8@test.com")
     far = (date.today() + timedelta(days=90)).isoformat()
     await _create_client(http_client, h, "Far Future", contract_renewal_at=far)
 
@@ -407,7 +422,7 @@ async def test_suggestions_no_renewal_outside_window(http_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_suggestions_no_engagement_alert_when_recent_visit(http_client: AsyncClient):
     """Premium client with a recent completed visit (< 35 days) → no engagement_alert."""
-    h = await _auth(http_client, "dash_sg9@test.com")
+    h = await _auth_consultant(http_client, "dash_sg9@test.com")
     c = await _create_client(http_client, h, "Active Premium", formula="premium")
 
     recent = (date.today() - timedelta(days=10)).isoformat()

@@ -23,6 +23,21 @@ async def _auth(http_client: AsyncClient, email: str) -> dict:
     r = await http_client.post(f"{BASE}/auth/login", json={"email": email, "password": "StrongPass123!"})
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
+async def _auth_consultant(http_client, email: str) -> dict:
+    """Register, login, and promote user to RSSI consultant for tests."""
+    import app.core.database as _db_mod
+    from sqlalchemy import select
+    from app.models.user import User
+    headers = await _auth(http_client, email)
+    async with _db_mod.AsyncSessionLocal() as db:
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one()
+        user.is_rssi_consultant = True
+        await db.commit()
+    return headers
+
+
+
 
 async def _create_client(http_client: AsyncClient, headers: dict, name: str = "Acme") -> dict:
     r = await http_client.post(f"{BASE}/rssi/clients", json={"name": name}, headers=headers)
@@ -70,7 +85,7 @@ async def test_unlink_site_requires_auth(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_unlinked_sites_empty(http_client: AsyncClient):
-    h = await _auth(http_client, "unlinked_empty@test.com")
+    h = await _auth_consultant(http_client, "unlinked_empty@test.com")
     r = await http_client.get(f"{BASE}/rssi/sites/unlinked", headers=h)
     assert r.status_code == 200
     assert r.json() == []
@@ -81,7 +96,7 @@ async def test_unlinked_sites_returns_free_sites(
     http_client: AsyncClient, db_session: AsyncSession
 ):
     email = "unlinked_free@test.com"
-    h = await _auth(http_client, email)
+    h = await _auth_consultant(http_client, email)
     user_id = await _get_user_id(db_session, email)
 
     await _insert_site(db_session, user_id, url="https://free.example.com", name="Free")
@@ -96,7 +111,7 @@ async def test_unlinked_sites_excludes_already_linked(
     http_client: AsyncClient, db_session: AsyncSession
 ):
     email = "unlinked_excl@test.com"
-    h = await _auth(http_client, email)
+    h = await _auth_consultant(http_client, email)
     c = await _create_client(http_client, h, "ExclCo")
     user_id = await _get_user_id(db_session, email)
 
@@ -116,8 +131,8 @@ async def test_unlinked_sites_cross_user_isolation(
 ):
     email1 = "unlinked_u1@test.com"
     email2 = "unlinked_u2@test.com"
-    h1 = await _auth(http_client, email1)
-    h2 = await _auth(http_client, email2)
+    h1 = await _auth_consultant(http_client, email1)
+    h2 = await _auth_consultant(http_client, email2)
     uid1 = await _get_user_id(db_session, email1)
 
     await _insert_site(db_session, uid1, url="https://user1site.example.com", name="U1Site")
@@ -135,7 +150,7 @@ async def test_link_site_success(
     http_client: AsyncClient, db_session: AsyncSession
 ):
     email = "link_ok@test.com"
-    h = await _auth(http_client, email)
+    h = await _auth_consultant(http_client, email)
     c = await _create_client(http_client, h, "LinkCo")
     user_id = await _get_user_id(db_session, email)
     site = await _insert_site(db_session, user_id, url="https://tolink.example.com")
@@ -157,7 +172,7 @@ async def test_link_site_appears_in_client_sites(
     http_client: AsyncClient, db_session: AsyncSession
 ):
     email = "link_appear@test.com"
-    h = await _auth(http_client, email)
+    h = await _auth_consultant(http_client, email)
     c = await _create_client(http_client, h, "AppearCo")
     user_id = await _get_user_id(db_session, email)
     site = await _insert_site(db_session, user_id, url="https://appear.example.com")
@@ -173,7 +188,7 @@ async def test_link_site_unknown_client_returns_404(
     http_client: AsyncClient, db_session: AsyncSession
 ):
     email = "link_404c@test.com"
-    h = await _auth(http_client, email)
+    h = await _auth_consultant(http_client, email)
     user_id = await _get_user_id(db_session, email)
     site = await _insert_site(db_session, user_id)
 
@@ -183,7 +198,7 @@ async def test_link_site_unknown_client_returns_404(
 
 @pytest.mark.asyncio
 async def test_link_site_unknown_site_returns_404(http_client: AsyncClient):
-    h = await _auth(http_client, "link_404s@test.com")
+    h = await _auth_consultant(http_client, "link_404s@test.com")
     c = await _create_client(http_client, h)
     r = await http_client.put(f"{BASE}/rssi/clients/{c['id']}/sites/99999", headers=h)
     assert r.status_code == 404
@@ -194,7 +209,7 @@ async def test_link_site_already_linked_to_other_client_returns_409(
     http_client: AsyncClient, db_session: AsyncSession
 ):
     email = "link_409@test.com"
-    h = await _auth(http_client, email)
+    h = await _auth_consultant(http_client, email)
     c1 = await _create_client(http_client, h, "Client1")
     c2 = await _create_client(http_client, h, "Client2")
     user_id = await _get_user_id(db_session, email)
@@ -210,8 +225,8 @@ async def test_link_site_cross_user_isolation(
 ):
     email1 = "link_iso1@test.com"
     email2 = "link_iso2@test.com"
-    h1 = await _auth(http_client, email1)
-    h2 = await _auth(http_client, email2)
+    h1 = await _auth_consultant(http_client, email1)
+    h2 = await _auth_consultant(http_client, email2)
     c2 = await _create_client(http_client, h2, "Spy client")
     uid1 = await _get_user_id(db_session, email1)
     site = await _insert_site(db_session, uid1, url="https://u1.example.com")
@@ -228,7 +243,7 @@ async def test_unlink_site_success(
     http_client: AsyncClient, db_session: AsyncSession
 ):
     email = "unlink_ok@test.com"
-    h = await _auth(http_client, email)
+    h = await _auth_consultant(http_client, email)
     c = await _create_client(http_client, h, "UnlinkCo")
     user_id = await _get_user_id(db_session, email)
     site = await _insert_site(db_session, user_id, rssi_client_id=c["id"])
@@ -248,7 +263,7 @@ async def test_unlink_site_success(
 
 @pytest.mark.asyncio
 async def test_unlink_site_unknown_returns_404(http_client: AsyncClient):
-    h = await _auth(http_client, "unlink_404@test.com")
+    h = await _auth_consultant(http_client, "unlink_404@test.com")
     c = await _create_client(http_client, h)
     r = await http_client.delete(f"{BASE}/rssi/clients/{c['id']}/sites/99999", headers=h)
     assert r.status_code == 404
@@ -260,7 +275,7 @@ async def test_unlink_site_not_linked_to_client_returns_404(
 ):
     """Trying to unlink a site that belongs to the user but is NOT linked to this client."""
     email = "unlink_wrong@test.com"
-    h = await _auth(http_client, email)
+    h = await _auth_consultant(http_client, email)
     c = await _create_client(http_client, h, "WrongCo")
     user_id = await _get_user_id(db_session, email)
     site = await _insert_site(db_session, user_id)  # rssi_client_id = None

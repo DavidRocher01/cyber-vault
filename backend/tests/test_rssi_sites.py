@@ -24,6 +24,21 @@ async def _auth(http_client: AsyncClient, email: str) -> dict:
     r = await http_client.post(f"{BASE}/auth/login", json={"email": email, "password": "StrongPass123!"})
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
+async def _auth_consultant(http_client, email: str) -> dict:
+    """Register, login, and promote user to RSSI consultant for tests."""
+    import app.core.database as _db_mod
+    from sqlalchemy import select
+    from app.models.user import User
+    headers = await _auth(http_client, email)
+    async with _db_mod.AsyncSessionLocal() as db:
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one()
+        user.is_rssi_consultant = True
+        await db.commit()
+    return headers
+
+
+
 
 async def _create_client(http_client: AsyncClient, headers: dict, name: str = "Acme") -> dict:
     r = await http_client.post(f"{BASE}/rssi/clients", json={"name": name}, headers=headers)
@@ -71,15 +86,15 @@ async def test_list_sites_requires_auth(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_list_sites_unknown_client(http_client: AsyncClient):
-    h = await _auth(http_client, "sites_404@test.com")
+    h = await _auth_consultant(http_client, "sites_404@test.com")
     r = await http_client.get(f"{BASE}/rssi/clients/99999/sites", headers=h)
     assert r.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_list_sites_cross_user_isolation(http_client: AsyncClient):
-    h1 = await _auth(http_client, "sites_owner@test.com")
-    h2 = await _auth(http_client, "sites_spy@test.com")
+    h1 = await _auth_consultant(http_client, "sites_owner@test.com")
+    h2 = await _auth_consultant(http_client, "sites_spy@test.com")
     c = await _create_client(http_client, h1, "OwnerCo")
     r = await http_client.get(f"{BASE}/rssi/clients/{c['id']}/sites", headers=h2)
     assert r.status_code == 404
@@ -89,7 +104,7 @@ async def test_list_sites_cross_user_isolation(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_list_sites_empty(http_client: AsyncClient):
-    h = await _auth(http_client, "sites_empty@test.com")
+    h = await _auth_consultant(http_client, "sites_empty@test.com")
     c = await _create_client(http_client, h)
     r = await http_client.get(f"{BASE}/rssi/clients/{c['id']}/sites", headers=h)
     assert r.status_code == 200
@@ -101,7 +116,7 @@ async def test_list_sites_returns_site_without_scan(
     http_client: AsyncClient, db_session: AsyncSession
 ):
     email = "sites_no_scan@test.com"
-    h = await _auth(http_client, email)
+    h = await _auth_consultant(http_client, email)
     c = await _create_client(http_client, h, "NoScanCo")
     user_id = await _get_user_id(db_session, email)
 
@@ -123,7 +138,7 @@ async def test_list_sites_returns_scan_status(
     http_client: AsyncClient, db_session: AsyncSession
 ):
     email = "sites_with_scan@test.com"
-    h = await _auth(http_client, email)
+    h = await _auth_consultant(http_client, email)
     c = await _create_client(http_client, h, "ScanCo")
     user_id = await _get_user_id(db_session, email)
 
@@ -142,7 +157,7 @@ async def test_list_sites_latest_scan_only(
 ):
     """Only the most recent done scan's status is returned."""
     email = "sites_latest@test.com"
-    h = await _auth(http_client, email)
+    h = await _auth_consultant(http_client, email)
     c = await _create_client(http_client, h, "LatestCo")
     user_id = await _get_user_id(db_session, email)
 
@@ -162,7 +177,7 @@ async def test_list_sites_excludes_inactive(
     http_client: AsyncClient, db_session: AsyncSession
 ):
     email = "sites_inactive@test.com"
-    h = await _auth(http_client, email)
+    h = await _auth_consultant(http_client, email)
     c = await _create_client(http_client, h, "InactiveCo")
     user_id = await _get_user_id(db_session, email)
 
@@ -181,7 +196,7 @@ async def test_list_sites_multiple(
     http_client: AsyncClient, db_session: AsyncSession
 ):
     email = "sites_multi@test.com"
-    h = await _auth(http_client, email)
+    h = await _auth_consultant(http_client, email)
     c = await _create_client(http_client, h, "MultiCo")
     user_id = await _get_user_id(db_session, email)
 
@@ -201,7 +216,7 @@ async def test_get_client_sites_count_populated(
     http_client: AsyncClient, db_session: AsyncSession
 ):
     email = "gc_sites_count@test.com"
-    h = await _auth(http_client, email)
+    h = await _auth_consultant(http_client, email)
     c = await _create_client(http_client, h, "AggCo")
     user_id = await _get_user_id(db_session, email)
 
@@ -219,7 +234,7 @@ async def test_get_client_worst_status_populated(
     http_client: AsyncClient, db_session: AsyncSession
 ):
     email = "gc_worst@test.com"
-    h = await _auth(http_client, email)
+    h = await _auth_consultant(http_client, email)
     c = await _create_client(http_client, h, "WorstCo")
     user_id = await _get_user_id(db_session, email)
 
@@ -237,7 +252,7 @@ async def test_get_client_worst_status_populated(
 async def test_get_client_no_sites_returns_null_aggregates(
     http_client: AsyncClient
 ):
-    h = await _auth(http_client, "gc_no_sites@test.com")
+    h = await _auth_consultant(http_client, "gc_no_sites@test.com")
     c = await _create_client(http_client, h, "EmptyAggCo")
     r = await http_client.get(f"{BASE}/rssi/clients/{c['id']}", headers=h)
     assert r.status_code == 200

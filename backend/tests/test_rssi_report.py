@@ -14,6 +14,21 @@ async def _auth(http_client: AsyncClient, email: str) -> dict:
     r = await http_client.post(f"{BASE}/auth/login", json={"email": email, "password": "StrongPass123!"})
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
+async def _auth_consultant(http_client, email: str) -> dict:
+    """Register, login, and promote user to RSSI consultant for tests."""
+    import app.core.database as _db_mod
+    from sqlalchemy import select
+    from app.models.user import User
+    headers = await _auth(http_client, email)
+    async with _db_mod.AsyncSessionLocal() as db:
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one()
+        user.is_rssi_consultant = True
+        await db.commit()
+    return headers
+
+
+
 
 async def _create_client(http_client: AsyncClient, headers: dict, name: str = "Acme", **kwargs) -> dict:
     r = await http_client.post(f"{BASE}/rssi/clients", json={"name": name, **kwargs}, headers=headers)
@@ -47,15 +62,15 @@ async def test_report_requires_auth(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_report_404_unknown_client(http_client: AsyncClient):
-    h = await _auth(http_client, "report_404@test.com")
+    h = await _auth_consultant(http_client, "report_404@test.com")
     r = await http_client.get(f"{BASE}/rssi/clients/99999/report", headers=h)
     assert r.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_report_404_other_user_client(http_client: AsyncClient):
-    h1 = await _auth(http_client, "report_owner@test.com")
-    h2 = await _auth(http_client, "report_spy@test.com")
+    h1 = await _auth_consultant(http_client, "report_owner@test.com")
+    h2 = await _auth_consultant(http_client, "report_spy@test.com")
     c = await _create_client(http_client, h1, "OwnerCo")
     r = await http_client.get(f"{BASE}/rssi/clients/{c['id']}/report", headers=h2)
     assert r.status_code == 404
@@ -65,7 +80,7 @@ async def test_report_404_other_user_client(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_report_returns_pdf_content_type(http_client: AsyncClient):
-    h = await _auth(http_client, "report_ct@test.com")
+    h = await _auth_consultant(http_client, "report_ct@test.com")
     c = await _create_client(http_client, h, "PDFCo")
     r = await http_client.get(f"{BASE}/rssi/clients/{c['id']}/report", headers=h)
     assert r.status_code == 200
@@ -74,7 +89,7 @@ async def test_report_returns_pdf_content_type(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_report_content_disposition_filename(http_client: AsyncClient):
-    h = await _auth(http_client, "report_fname@test.com")
+    h = await _auth_consultant(http_client, "report_fname@test.com")
     c = await _create_client(http_client, h, "Acme Corp")
     r = await http_client.get(f"{BASE}/rssi/clients/{c['id']}/report", headers=h)
     assert r.status_code == 200
@@ -85,7 +100,7 @@ async def test_report_content_disposition_filename(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_report_body_is_non_empty_pdf(http_client: AsyncClient):
-    h = await _auth(http_client, "report_body@test.com")
+    h = await _auth_consultant(http_client, "report_body@test.com")
     c = await _create_client(http_client, h, "BodyCo")
     r = await http_client.get(f"{BASE}/rssi/clients/{c['id']}/report", headers=h)
     assert r.status_code == 200
@@ -96,7 +111,7 @@ async def test_report_body_is_non_empty_pdf(http_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_report_with_full_client_data(http_client: AsyncClient):
     """Report generated for a client with formula, renewal, integrations."""
-    h = await _auth(http_client, "report_full@test.com")
+    h = await _auth_consultant(http_client, "report_full@test.com")
     c = await _create_client(
         http_client, h, "FullCo",
         formula="premium",
@@ -115,7 +130,7 @@ async def test_report_with_full_client_data(http_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_report_with_actions_and_visits(http_client: AsyncClient):
     """Report includes overdue action and completed visit — exercises full table rendering."""
-    h = await _auth(http_client, "report_content@test.com")
+    h = await _auth_consultant(http_client, "report_content@test.com")
     c = await _create_client(http_client, h, "ContentCo")
     cid = c["id"]
 
@@ -141,7 +156,7 @@ async def test_report_with_actions_and_visits(http_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_report_empty_client_no_actions_no_visits(http_client: AsyncClient):
     """Report still generates without actions or visits."""
-    h = await _auth(http_client, "report_empty@test.com")
+    h = await _auth_consultant(http_client, "report_empty@test.com")
     c = await _create_client(http_client, h, "EmptyCo")
     r = await http_client.get(f"{BASE}/rssi/clients/{c['id']}/report", headers=h)
     assert r.status_code == 200

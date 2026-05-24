@@ -15,6 +15,21 @@ async def _auth(http_client: AsyncClient, email: str) -> dict:
     r = await http_client.post(f"{BASE}/auth/login", json={"email": email, "password": "StrongPass123!"})
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
+async def _auth_consultant(http_client, email: str) -> dict:
+    """Register, login, and promote user to RSSI consultant for tests."""
+    import app.core.database as _db_mod
+    from sqlalchemy import select
+    from app.models.user import User
+    headers = await _auth(http_client, email)
+    async with _db_mod.AsyncSessionLocal() as db:
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one()
+        user.is_rssi_consultant = True
+        await db.commit()
+    return headers
+
+
+
 
 async def _create_client(http_client: AsyncClient, headers: dict, name: str = "Acme") -> dict:
     r = await http_client.post(f"{BASE}/rssi/clients", json={"name": name}, headers=headers)
@@ -47,14 +62,14 @@ async def test_get_activity_requires_auth(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_log_activity_unknown_client(http_client: AsyncClient):
-    h = await _auth(http_client, "actlog_unknown@test.com")
+    h = await _auth_consultant(http_client, "actlog_unknown@test.com")
     r = await http_client.post(f"{BASE}/rssi/clients/99999/activity", json={"action_type": "view_client"}, headers=h)
     assert r.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_get_activity_unknown_client(http_client: AsyncClient):
-    h = await _auth(http_client, "actlog_getunknown@test.com")
+    h = await _auth_consultant(http_client, "actlog_getunknown@test.com")
     r = await http_client.get(f"{BASE}/rssi/clients/99999/activity", headers=h)
     assert r.status_code == 404
 
@@ -63,7 +78,7 @@ async def test_get_activity_unknown_client(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_log_activity_basic(http_client: AsyncClient):
-    h = await _auth(http_client, "actlog_basic@test.com")
+    h = await _auth_consultant(http_client, "actlog_basic@test.com")
     c = await _create_client(http_client, h, "BasicCo")
 
     r = await http_client.post(
@@ -83,7 +98,7 @@ async def test_log_activity_basic(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_log_activity_with_resource(http_client: AsyncClient):
-    h = await _auth(http_client, "actlog_resource@test.com")
+    h = await _auth_consultant(http_client, "actlog_resource@test.com")
     c = await _create_client(http_client, h, "ResoCo")
 
     r = await http_client.post(
@@ -99,7 +114,7 @@ async def test_log_activity_with_resource(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_log_activity_all_valid_types(http_client: AsyncClient):
-    h = await _auth(http_client, "actlog_alltypes@test.com")
+    h = await _auth_consultant(http_client, "actlog_alltypes@test.com")
     c = await _create_client(http_client, h, "AllTypesCo")
 
     valid_types = [
@@ -120,7 +135,7 @@ async def test_log_activity_all_valid_types(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_log_activity_invalid_action_type(http_client: AsyncClient):
-    h = await _auth(http_client, "actlog_invalid@test.com")
+    h = await _auth_consultant(http_client, "actlog_invalid@test.com")
     c = await _create_client(http_client, h, "InvalidCo")
 
     r = await http_client.post(
@@ -135,7 +150,7 @@ async def test_log_activity_invalid_action_type(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_get_activity_empty(http_client: AsyncClient):
-    h = await _auth(http_client, "actlog_emptylist@test.com")
+    h = await _auth_consultant(http_client, "actlog_emptylist@test.com")
     c = await _create_client(http_client, h, "EmptyCo")
 
     r = await http_client.get(f"{BASE}/rssi/clients/{c['id']}/activity", headers=h)
@@ -145,7 +160,7 @@ async def test_get_activity_empty(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_get_activity_returns_entries(http_client: AsyncClient):
-    h = await _auth(http_client, "actlog_list@test.com")
+    h = await _auth_consultant(http_client, "actlog_list@test.com")
     c = await _create_client(http_client, h, "ListCo")
 
     await _log(http_client, h, c["id"], "view_client")
@@ -162,7 +177,7 @@ async def test_get_activity_returns_entries(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_get_activity_limit(http_client: AsyncClient):
-    h = await _auth(http_client, "actlog_limit@test.com")
+    h = await _auth_consultant(http_client, "actlog_limit@test.com")
     c = await _create_client(http_client, h, "LimitCo")
 
     for _ in range(5):
@@ -175,7 +190,7 @@ async def test_get_activity_limit(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_get_activity_limit_invalid(http_client: AsyncClient):
-    h = await _auth(http_client, "actlog_badlimit@test.com")
+    h = await _auth_consultant(http_client, "actlog_badlimit@test.com")
     c = await _create_client(http_client, h, "BadLimitCo")
 
     r = await http_client.get(f"{BASE}/rssi/clients/{c['id']}/activity?limit=0", headers=h)
@@ -189,8 +204,8 @@ async def test_get_activity_limit_invalid(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_cannot_log_activity_on_other_user_client(http_client: AsyncClient):
-    h1 = await _auth(http_client, "actlog_owner@test.com")
-    h2 = await _auth(http_client, "actlog_attacker@test.com")
+    h1 = await _auth_consultant(http_client, "actlog_owner@test.com")
+    h2 = await _auth_consultant(http_client, "actlog_attacker@test.com")
     c = await _create_client(http_client, h1, "OwnerCo")
 
     r = await http_client.post(
@@ -203,8 +218,8 @@ async def test_cannot_log_activity_on_other_user_client(http_client: AsyncClient
 
 @pytest.mark.asyncio
 async def test_cannot_read_activity_of_other_user_client(http_client: AsyncClient):
-    h1 = await _auth(http_client, "actlog_owner2@test.com")
-    h2 = await _auth(http_client, "actlog_spy@test.com")
+    h1 = await _auth_consultant(http_client, "actlog_owner2@test.com")
+    h2 = await _auth_consultant(http_client, "actlog_spy@test.com")
     c = await _create_client(http_client, h1, "OwnerCo2")
     await _log(http_client, h1, c["id"], "view_client")
 
@@ -215,8 +230,8 @@ async def test_cannot_read_activity_of_other_user_client(http_client: AsyncClien
 @pytest.mark.asyncio
 async def test_activity_logs_are_isolated_per_consultant(http_client: AsyncClient):
     """Two consultants with clients of same name — each sees only their own logs."""
-    h1 = await _auth(http_client, "actlog_iso1@test.com")
-    h2 = await _auth(http_client, "actlog_iso2@test.com")
+    h1 = await _auth_consultant(http_client, "actlog_iso1@test.com")
+    h2 = await _auth_consultant(http_client, "actlog_iso2@test.com")
     c1 = await _create_client(http_client, h1, "SharedName")
     c2 = await _create_client(http_client, h2, "SharedName")
 

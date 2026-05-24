@@ -33,7 +33,8 @@ async def test_login_success(http_client: AsyncClient):
     })
     assert r.status_code == 200
     assert "access_token" in r.json()
-    assert "refresh_token" in r.json()
+    assert "refresh_token" not in r.json()
+    assert "refresh_token" in r.cookies
 
 
 @pytest.mark.asyncio

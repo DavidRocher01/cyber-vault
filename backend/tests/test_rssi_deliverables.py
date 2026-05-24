@@ -13,6 +13,21 @@ async def _auth(http_client: AsyncClient, email: str) -> dict:
     r = await http_client.post(f"{BASE}/auth/login", json={"email": email, "password": "StrongPass123!"})
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
+async def _auth_consultant(http_client, email: str) -> dict:
+    """Register, login, and promote user to RSSI consultant for tests."""
+    import app.core.database as _db_mod
+    from sqlalchemy import select
+    from app.models.user import User
+    headers = await _auth(http_client, email)
+    async with _db_mod.AsyncSessionLocal() as db:
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one()
+        user.is_rssi_consultant = True
+        await db.commit()
+    return headers
+
+
+
 
 async def _create_client(http_client: AsyncClient, headers: dict, name: str = "Acme") -> dict:
     r = await http_client.post(f"{BASE}/rssi/clients", json={"name": name}, headers=headers)
@@ -57,14 +72,14 @@ async def test_create_deliverable_requires_auth(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_list_deliverables_unknown_client(http_client: AsyncClient):
-    h = await _auth(http_client, "deliv_list_404@test.com")
+    h = await _auth_consultant(http_client, "deliv_list_404@test.com")
     r = await http_client.get(f"{BASE}/rssi/clients/99999/deliverables", headers=h)
     assert r.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_create_deliverable_unknown_client(http_client: AsyncClient):
-    h = await _auth(http_client, "deliv_create_404@test.com")
+    h = await _auth_consultant(http_client, "deliv_create_404@test.com")
     r = await http_client.post(
         f"{BASE}/rssi/clients/99999/deliverables",
         json={"title": "T", "delivered_at": "2026-01-01"},
@@ -77,7 +92,7 @@ async def test_create_deliverable_unknown_client(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_deliverable_minimal(http_client: AsyncClient):
-    h = await _auth(http_client, "deliv_minimal@test.com")
+    h = await _auth_consultant(http_client, "deliv_minimal@test.com")
     c = await _create_client(http_client, h)
     r = await http_client.post(
         f"{BASE}/rssi/clients/{c['id']}/deliverables",
@@ -96,7 +111,7 @@ async def test_create_deliverable_minimal(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_deliverable_full_fields(http_client: AsyncClient):
-    h = await _auth(http_client, "deliv_full@test.com")
+    h = await _auth_consultant(http_client, "deliv_full@test.com")
     c = await _create_client(http_client, h)
     r = await http_client.post(
         f"{BASE}/rssi/clients/{c['id']}/deliverables",
@@ -118,7 +133,7 @@ async def test_create_deliverable_full_fields(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_list_deliverables_empty(http_client: AsyncClient):
-    h = await _auth(http_client, "deliv_empty@test.com")
+    h = await _auth_consultant(http_client, "deliv_empty@test.com")
     c = await _create_client(http_client, h)
     r = await http_client.get(f"{BASE}/rssi/clients/{c['id']}/deliverables", headers=h)
     assert r.status_code == 200
@@ -127,7 +142,7 @@ async def test_list_deliverables_empty(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_list_deliverables_returns_multiple(http_client: AsyncClient):
-    h = await _auth(http_client, "deliv_multi@test.com")
+    h = await _auth_consultant(http_client, "deliv_multi@test.com")
     c = await _create_client(http_client, h)
     cid = c["id"]
     await _create_deliverable(http_client, h, cid, title="A", delivered_at="2026-01-01")
@@ -141,7 +156,7 @@ async def test_list_deliverables_returns_multiple(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_list_deliverables_ordered_by_date_desc(http_client: AsyncClient):
-    h = await _auth(http_client, "deliv_order@test.com")
+    h = await _auth_consultant(http_client, "deliv_order@test.com")
     c = await _create_client(http_client, h)
     cid = c["id"]
     await _create_deliverable(http_client, h, cid, title="Early", delivered_at="2026-01-01")
@@ -153,7 +168,7 @@ async def test_list_deliverables_ordered_by_date_desc(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_update_deliverable(http_client: AsyncClient):
-    h = await _auth(http_client, "deliv_update@test.com")
+    h = await _auth_consultant(http_client, "deliv_update@test.com")
     c = await _create_client(http_client, h)
     d = await _create_deliverable(http_client, h, c["id"])
     r = await http_client.put(
@@ -170,7 +185,7 @@ async def test_update_deliverable(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_delete_deliverable(http_client: AsyncClient):
-    h = await _auth(http_client, "deliv_delete@test.com")
+    h = await _auth_consultant(http_client, "deliv_delete@test.com")
     c = await _create_client(http_client, h)
     d = await _create_deliverable(http_client, h, c["id"])
     r = await http_client.delete(
@@ -186,7 +201,7 @@ async def test_delete_deliverable(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_deliverable_empty_title_returns_422(http_client: AsyncClient):
-    h = await _auth(http_client, "deliv_val_title@test.com")
+    h = await _auth_consultant(http_client, "deliv_val_title@test.com")
     c = await _create_client(http_client, h)
     r = await http_client.post(
         f"{BASE}/rssi/clients/{c['id']}/deliverables",
@@ -198,7 +213,7 @@ async def test_create_deliverable_empty_title_returns_422(http_client: AsyncClie
 
 @pytest.mark.asyncio
 async def test_create_deliverable_invalid_doc_type_returns_422(http_client: AsyncClient):
-    h = await _auth(http_client, "deliv_val_type@test.com")
+    h = await _auth_consultant(http_client, "deliv_val_type@test.com")
     c = await _create_client(http_client, h)
     r = await http_client.post(
         f"{BASE}/rssi/clients/{c['id']}/deliverables",
@@ -210,7 +225,7 @@ async def test_create_deliverable_invalid_doc_type_returns_422(http_client: Asyn
 
 @pytest.mark.asyncio
 async def test_update_deliverable_invalid_doc_type_returns_422(http_client: AsyncClient):
-    h = await _auth(http_client, "deliv_upd_val@test.com")
+    h = await _auth_consultant(http_client, "deliv_upd_val@test.com")
     c = await _create_client(http_client, h)
     d = await _create_deliverable(http_client, h, c["id"])
     r = await http_client.put(
@@ -223,7 +238,7 @@ async def test_update_deliverable_invalid_doc_type_returns_422(http_client: Asyn
 
 @pytest.mark.asyncio
 async def test_update_deliverable_not_found_returns_404(http_client: AsyncClient):
-    h = await _auth(http_client, "deliv_upd_404@test.com")
+    h = await _auth_consultant(http_client, "deliv_upd_404@test.com")
     c = await _create_client(http_client, h)
     r = await http_client.put(
         f"{BASE}/rssi/clients/{c['id']}/deliverables/99999",
@@ -235,7 +250,7 @@ async def test_update_deliverable_not_found_returns_404(http_client: AsyncClient
 
 @pytest.mark.asyncio
 async def test_delete_deliverable_not_found_returns_404(http_client: AsyncClient):
-    h = await _auth(http_client, "deliv_del_404@test.com")
+    h = await _auth_consultant(http_client, "deliv_del_404@test.com")
     c = await _create_client(http_client, h)
     r = await http_client.delete(
         f"{BASE}/rssi/clients/{c['id']}/deliverables/99999", headers=h
@@ -247,8 +262,8 @@ async def test_delete_deliverable_not_found_returns_404(http_client: AsyncClient
 
 @pytest.mark.asyncio
 async def test_list_deliverables_cross_user_isolation(http_client: AsyncClient):
-    h1 = await _auth(http_client, "deliv_iso_owner@test.com")
-    h2 = await _auth(http_client, "deliv_iso_spy@test.com")
+    h1 = await _auth_consultant(http_client, "deliv_iso_owner@test.com")
+    h2 = await _auth_consultant(http_client, "deliv_iso_spy@test.com")
     c = await _create_client(http_client, h1, "IsolCo")
     await _create_deliverable(http_client, h1, c["id"])
     r = await http_client.get(f"{BASE}/rssi/clients/{c['id']}/deliverables", headers=h2)
@@ -257,8 +272,8 @@ async def test_list_deliverables_cross_user_isolation(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_delete_deliverable_cross_user_isolation(http_client: AsyncClient):
-    h1 = await _auth(http_client, "deliv_del_owner@test.com")
-    h2 = await _auth(http_client, "deliv_del_spy@test.com")
+    h1 = await _auth_consultant(http_client, "deliv_del_owner@test.com")
+    h2 = await _auth_consultant(http_client, "deliv_del_spy@test.com")
     c = await _create_client(http_client, h1, "DelOwnerCo")
     d = await _create_deliverable(http_client, h1, c["id"])
     r = await http_client.delete(
@@ -270,7 +285,7 @@ async def test_delete_deliverable_cross_user_isolation(http_client: AsyncClient)
 @pytest.mark.asyncio
 async def test_all_valid_doc_types(http_client: AsyncClient):
     """Each doc_type value is accepted."""
-    h = await _auth(http_client, "deliv_doctypes@test.com")
+    h = await _auth_consultant(http_client, "deliv_doctypes@test.com")
     c = await _create_client(http_client, h, "TypesCo")
     for doc_type in ("compte_rendu", "rapport", "recommandation", "contrat", "autre"):
         r = await http_client.post(
