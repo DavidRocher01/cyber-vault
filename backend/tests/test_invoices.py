@@ -33,8 +33,12 @@ async def _register_login(client: AsyncClient, email: str) -> dict:
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
+_wh_counter = 0
+
 def _make_webhook_event(event_type: str, data: dict) -> dict:
-    return {"type": event_type, "data": {"object": data}}
+    global _wh_counter
+    _wh_counter += 1
+    return {"id": f"evt_inv_{_wh_counter}", "type": event_type, "data": {"object": data}}
 
 
 async def _create_invoice_via_admin(client: AsyncClient, **overrides) -> dict:

@@ -27,7 +27,7 @@ from reportlab.platypus import (
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import AsyncSessionLocal
+import app.core.database as _db_module
 from app.models.breach_catalog import BreachCatalogEntry
 from app.models.darkweb_dossier import DarkwebDossier, DarkwebDossierTarget
 from app.services.darkweb_service import (
@@ -171,7 +171,7 @@ async def _build_catalog_index(db: AsyncSession) -> dict[str, dict]:
 
 async def process_dossier(dossier_id: int, api_key: str) -> None:
     """Process all targets for a dossier — runs in background with its own DB session."""
-    async with AsyncSessionLocal() as db:
+    async with _db_module.AsyncSessionLocal() as db:
         result = await db.execute(
             select(DarkwebDossier).where(DarkwebDossier.id == dossier_id)
         )
