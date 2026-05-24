@@ -161,14 +161,11 @@ async def test_create_client_with_formula():
     assert result.monthly_amount == 3200.0
 
 
-@pytest.mark.asyncio
-async def test_create_client_invalid_formula_raises():
-    from fastapi import HTTPException
-    db = AsyncMock()
-    payload = RssiClientCreate(name="Corp", formula="invalid")
-    with pytest.raises(HTTPException) as exc:
-        await create_client(payload, _user(), db)
-    assert exc.value.status_code == 422
+def test_create_client_invalid_formula_raises():
+    from pydantic import ValidationError
+    with pytest.raises(ValidationError) as exc:
+        RssiClientCreate(name="Corp", formula="invalid")
+    assert "formula" in str(exc.value)
 
 
 @pytest.mark.asyncio
@@ -222,22 +219,11 @@ async def test_update_client_updates_fields():
     assert client.description == "new desc"
 
 
-@pytest.mark.asyncio
-async def test_update_client_invalid_status_raises():
-    from fastapi import HTTPException
-    client = _client()
-    db = AsyncMock()
-
-    async def execute(q):
-        r = MagicMock()
-        r.scalar_one_or_none.return_value = client
-        return r
-
-    db.execute = execute
-
-    with pytest.raises(HTTPException) as exc:
-        await update_client(10, RssiClientUpdate(status="invalid"), _user(), db)
-    assert exc.value.status_code == 422
+def test_update_client_invalid_status_raises():
+    from pydantic import ValidationError
+    with pytest.raises(ValidationError) as exc:
+        RssiClientUpdate(status="invalid")
+    assert "status" in str(exc.value)
 
 
 # ── delete_client ─────────────────────────────────────────────────────────────

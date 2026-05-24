@@ -1,4 +1,5 @@
 from datetime import date, datetime, timezone
+from typing import Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
@@ -14,12 +15,12 @@ from ._shared import _get_client_or_404
 
 router = APIRouter()
 
-_VALID_DOC_TYPES = {"compte_rendu", "rapport", "recommandation", "contrat", "autre"}
+DocType = Literal["compte_rendu", "rapport", "recommandation", "contrat", "autre"]
 
 
 class RssiDeliverableCreate(BaseModel):
     title: str
-    doc_type: str = "autre"
+    doc_type: DocType = "autre"
     file_url: str | None = None
     notes: str | None = None
     delivered_at: date
@@ -27,7 +28,7 @@ class RssiDeliverableCreate(BaseModel):
 
 class RssiDeliverableUpdate(BaseModel):
     title: str | None = None
-    doc_type: str | None = None
+    doc_type: DocType | None = None
     file_url: str | None = None
     notes: str | None = None
     delivered_at: date | None = None
@@ -73,8 +74,6 @@ async def create_deliverable(
 
     if not payload.title.strip():
         raise HTTPException(status_code=422, detail="Le titre du livrable est requis")
-    if payload.doc_type not in _VALID_DOC_TYPES:
-        raise HTTPException(status_code=422, detail=f"Type de document invalide. Valeurs: {_VALID_DOC_TYPES}")
 
     deliverable = RssiDeliverable(
         client_id=client_id,
@@ -108,9 +107,6 @@ async def update_deliverable(
     deliverable = result.scalar_one_or_none()
     if not deliverable:
         raise HTTPException(status_code=404, detail="Livrable non trouvé")
-
-    if payload.doc_type is not None and payload.doc_type not in _VALID_DOC_TYPES:
-        raise HTTPException(status_code=422, detail=f"Type de document invalide. Valeurs: {_VALID_DOC_TYPES}")
 
     if payload.title is not None:
         deliverable.title = payload.title.strip()

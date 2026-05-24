@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -13,15 +14,15 @@ from ._shared import _get_client_or_404
 
 router = APIRouter()
 
-_VALID_ACTION_TYPES = {
+ActivityActionType = Literal[
     "view_client", "view_sites", "view_scans", "view_findings",
     "generate_report", "send_deliverable", "create_action", "update_action",
     "create_visit", "update_visit",
-}
+]
 
 
 class ActivityLogCreate(BaseModel):
-    action_type: str
+    action_type: ActivityActionType
     resource_type: str | None = None
     resource_id: int | None = None
 
@@ -47,12 +48,6 @@ async def log_activity(
 ):
     """Record a consultant action on a client account."""
     await _get_client_or_404(client_id, current_user.id, db)
-
-    if body.action_type not in _VALID_ACTION_TYPES:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"action_type invalide. Valeurs acceptées: {sorted(_VALID_ACTION_TYPES)}",
-        )
 
     entry = RssiActivityLog(
         consultant_id=current_user.id,

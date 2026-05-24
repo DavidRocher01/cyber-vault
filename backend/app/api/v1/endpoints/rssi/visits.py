@@ -1,4 +1,5 @@
 from datetime import date, datetime, timezone
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -13,23 +14,23 @@ from ._shared import _get_client_or_404
 
 router = APIRouter()
 
-_VALID_VISIT_TYPES = {"monthly", "quarterly", "annual", "urgent"}
-_VALID_VISIT_LOCATIONS = {"onsite", "remote"}
-_VALID_VISIT_STATUSES = {"planned", "completed", "cancelled", "postponed"}
+VisitType     = Literal["monthly", "quarterly", "annual", "urgent"]
+VisitLocation = Literal["onsite", "remote"]
+VisitStatus   = Literal["planned", "completed", "cancelled", "postponed"]
 
 
 class RssiVisitCreate(BaseModel):
     scheduled_date: date
-    visit_type: str = "monthly"
-    location: str = "onsite"
+    visit_type: VisitType = "monthly"
+    location: VisitLocation = "onsite"
     notes: str | None = None
 
 
 class RssiVisitUpdate(BaseModel):
     scheduled_date: date | None = None
-    visit_type: str | None = None
-    location: str | None = None
-    status: str | None = None
+    visit_type: VisitType | None = None
+    location: VisitLocation | None = None
+    status: VisitStatus | None = None
     notes: str | None = None
     actual_date: date | None = None
     duration_hours: float | None = None
@@ -75,11 +76,6 @@ async def create_visit(
 ):
     await _get_client_or_404(client_id, current_user.id, db)
 
-    if payload.visit_type not in _VALID_VISIT_TYPES:
-        raise HTTPException(status_code=422, detail=f"Type de visite invalide. Valeurs: {_VALID_VISIT_TYPES}")
-    if payload.location not in _VALID_VISIT_LOCATIONS:
-        raise HTTPException(status_code=422, detail=f"Lieu invalide. Valeurs: {_VALID_VISIT_LOCATIONS}")
-
     visit = RssiVisit(
         client_id=client_id,
         scheduled_date=payload.scheduled_date,
@@ -108,11 +104,6 @@ async def update_visit(
     visit = result.scalar_one_or_none()
     if not visit:
         raise HTTPException(status_code=404, detail="Visite non trouvée")
-
-    if payload.status is not None and payload.status not in _VALID_VISIT_STATUSES:
-        raise HTTPException(status_code=422, detail=f"Statut invalide. Valeurs: {_VALID_VISIT_STATUSES}")
-    if payload.visit_type is not None and payload.visit_type not in _VALID_VISIT_TYPES:
-        raise HTTPException(status_code=422, detail=f"Type de visite invalide. Valeurs: {_VALID_VISIT_TYPES}")
 
     if payload.scheduled_date is not None:
         visit.scheduled_date = payload.scheduled_date

@@ -1,4 +1,5 @@
 from datetime import date, datetime, timezone
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -17,8 +18,8 @@ router = APIRouter()
 
 STATUS_ORDER = {"CRITICAL": 0, "WARNING": 1, "OK": 2}
 
-_VALID_FORMULAS = {"essentiel", "premium", "excellence"}
-_VALID_STATUSES = {"active", "inactive", "churned"}
+ClientFormula = Literal["essentiel", "premium", "excellence"]
+ClientStatus  = Literal["active", "inactive", "churned"]
 
 
 # ── Schemas ────────────────────────────────────────────────────────────────────
@@ -27,7 +28,7 @@ class RssiClientCreate(BaseModel):
     name: str
     email: str | None = None
     description: str | None = None
-    formula: str | None = None
+    formula: ClientFormula | None = None
     monthly_amount: float | None = None
     contract_start_date: date | None = None
     contract_renewal_at: date | None = None
@@ -40,11 +41,11 @@ class RssiClientUpdate(BaseModel):
     name: str | None = None
     email: str | None = None
     description: str | None = None
-    formula: str | None = None
+    formula: ClientFormula | None = None
     monthly_amount: float | None = None
     contract_start_date: date | None = None
     contract_renewal_at: date | None = None
-    status: str | None = None
+    status: ClientStatus | None = None
     notion_workspace_url: str | None = None
     pipedrive_deal_id: str | None = None
     pennylane_customer_id: str | None = None
@@ -202,8 +203,6 @@ async def create_client(
 ):
     if not payload.name.strip():
         raise HTTPException(status_code=422, detail="Le nom du client est requis")
-    if payload.formula and payload.formula not in _VALID_FORMULAS:
-        raise HTTPException(status_code=422, detail=f"Formule invalide. Valeurs: {_VALID_FORMULAS}")
 
     client = RssiClient(
         consultant_user_id=current_user.id,
@@ -232,11 +231,6 @@ async def update_client(
     db: AsyncSession = Depends(get_db),
 ):
     client = await _get_client_or_404(client_id, current_user.id, db)
-
-    if payload.formula is not None and payload.formula not in _VALID_FORMULAS:
-        raise HTTPException(status_code=422, detail=f"Formule invalide. Valeurs: {_VALID_FORMULAS}")
-    if payload.status is not None and payload.status not in _VALID_STATUSES:
-        raise HTTPException(status_code=422, detail=f"Statut invalide. Valeurs: {_VALID_STATUSES}")
 
     if payload.name is not None:
         client.name = payload.name.strip()

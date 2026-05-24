@@ -1,6 +1,7 @@
 import csv
 import io
 from datetime import date, datetime, timezone
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -16,15 +17,16 @@ from ._shared import _get_client_or_404
 
 router = APIRouter()
 
-_VALID_PRIORITIES = {"critical", "high", "medium", "low"}
-_VALID_ACTION_STATUSES = {"open", "in_progress", "done", "cancelled", "postponed"}
+ActionPriority = Literal["critical", "high", "medium", "low"]
+ActionStatus   = Literal["open", "in_progress", "done", "cancelled", "postponed"]
+ActionCategory = Literal["governance", "technical", "training", "compliance"]
 
 
 class RssiActionCreate(BaseModel):
     title: str
     description: str | None = None
-    category: str | None = None
-    priority: str = "medium"
+    category: ActionCategory | None = None
+    priority: ActionPriority = "medium"
     assigned_to: str | None = None
     due_date: date | None = None
     source_visit_id: int | None = None
@@ -33,9 +35,9 @@ class RssiActionCreate(BaseModel):
 class RssiActionUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
-    category: str | None = None
-    priority: str | None = None
-    status: str | None = None
+    category: ActionCategory | None = None
+    priority: ActionPriority | None = None
+    status: ActionStatus | None = None
     assigned_to: str | None = None
     due_date: date | None = None
     completed_at: datetime | None = None
@@ -84,8 +86,6 @@ async def create_action(
 ):
     await _get_client_or_404(client_id, current_user.id, db)
 
-    if payload.priority not in _VALID_PRIORITIES:
-        raise HTTPException(status_code=422, detail=f"Priorité invalide. Valeurs: {_VALID_PRIORITIES}")
     if not payload.title.strip():
         raise HTTPException(status_code=422, detail="Le titre de l'action est requis")
 
@@ -120,11 +120,6 @@ async def update_action(
     action = result.scalar_one_or_none()
     if not action:
         raise HTTPException(status_code=404, detail="Action non trouvée")
-
-    if payload.priority is not None and payload.priority not in _VALID_PRIORITIES:
-        raise HTTPException(status_code=422, detail=f"Priorité invalide. Valeurs: {_VALID_PRIORITIES}")
-    if payload.status is not None and payload.status not in _VALID_ACTION_STATUSES:
-        raise HTTPException(status_code=422, detail=f"Statut invalide. Valeurs: {_VALID_ACTION_STATUSES}")
 
     if payload.title is not None:
         action.title = payload.title.strip()
