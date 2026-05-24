@@ -81,7 +81,7 @@ export class DemoResultComponent implements OnInit, OnDestroy {
     this.cyberscan.getPlans().subscribe({
       next: plans => {
         if (!plans.length) { this.checkoutLoading = false; return; }
-        const starter = plans.reduce((a, b) => a.price_cents < b.price_cents ? a : b);
+        const starter = plans.reduce((a, b) => a.price_eur < b.price_eur ? a : b);
         this.cyberscan.createCheckout(starter.id).subscribe({
           next: res => { window.location.href = res.checkout_url; },
           error: () => { this.checkoutLoading = false; },
