@@ -1,7 +1,6 @@
 import { Page } from '@playwright/test';
 
 const PASSWORD = 'StrongPass123!';
-const MASTER = 'MasterPass456!';
 
 export async function createAndLogin(page: Page): Promise<string> {
   const email = `e2e_${Date.now()}_${Math.random().toString(36).slice(2, 7)}@test.com`;
@@ -11,16 +10,13 @@ export async function createAndLogin(page: Page): Promise<string> {
   await page.locator('[formcontrolname="password"]').fill(PASSWORD);
   await page.locator('[formcontrolname="confirmPassword"]').fill(PASSWORD);
   await page.getByRole('button', { name: /créer mon compte/i }).click();
+  await page.waitForURL('**/cyberscan/**');
 
   await page.goto('/auth/login');
   await page.locator('[formcontrolname="email"]').fill(email);
   await page.locator('[formcontrolname="password"]').fill(PASSWORD);
   await page.getByRole('button', { name: /se connecter/i }).click();
-
-  await page.waitForURL('**/auth/master-password');
-  await page.locator('[formcontrolname="masterPassword"]').fill(MASTER);
-  await page.getByRole('button', { name: /déverrouiller/i }).click();
-  await page.waitForURL('**/vault');
+  await page.waitForURL('**/cyberscan/**');
 
   return email;
 }
@@ -30,9 +26,5 @@ export async function login(page: Page, email: string): Promise<void> {
   await page.locator('[formcontrolname="email"]').fill(email);
   await page.locator('[formcontrolname="password"]').fill(PASSWORD);
   await page.getByRole('button', { name: /se connecter/i }).click();
-
-  await page.waitForURL('**/auth/master-password');
-  await page.locator('[formcontrolname="masterPassword"]').fill(MASTER);
-  await page.getByRole('button', { name: /déverrouiller/i }).click();
-  await page.waitForURL('**/vault');
+  await page.waitForURL('**/cyberscan/**');
 }

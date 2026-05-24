@@ -6,7 +6,7 @@ const MASTER = 'MasterPass456!';
 
 test.describe('Parcours Vault', () => {
   test.beforeEach(async ({ page }) => {
-    // Inscription
+    // Inscription (ignorée si email déjà existant)
     await page.goto('/auth/register');
     await page.locator('[formcontrolname="email"]').fill(EMAIL);
     await page.locator('[formcontrolname="password"]').fill(PASSWORD);
@@ -18,8 +18,10 @@ test.describe('Parcours Vault', () => {
     await page.locator('[formcontrolname="email"]').fill(EMAIL);
     await page.locator('[formcontrolname="password"]').fill(PASSWORD);
     await page.getByRole('button', { name: /se connecter/i }).click();
+    await page.waitForURL('**/cyberscan/**');
 
-    // Mot de passe maître
+    // Accès vault → cryptoGuard redirige vers master-password
+    await page.goto('/vault');
     await page.waitForURL('**/auth/master-password');
     await page.locator('[formcontrolname="masterPassword"]').fill(MASTER);
     await page.getByRole('button', { name: /déverrouiller/i }).click();
