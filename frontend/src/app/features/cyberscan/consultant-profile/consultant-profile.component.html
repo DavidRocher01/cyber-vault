@@ -28,7 +28,7 @@
           <div class="w-14 h-14 rounded-xl bg-cyan-500/15 border border-cyan-700/30 flex items-center justify-center flex-shrink-0">
             @if (form.value.display_name) {
               <span class="text-cyan-300 text-lg font-bold uppercase">
-                {{ form.value.display_name!.split(' ').slice(0,2).map(w => w[0]).join('') }}
+                {{ displayInitials }}
               </span>
             } @else {
               <mat-icon class="text-cyan-600 !text-2xl">person</mat-icon>
