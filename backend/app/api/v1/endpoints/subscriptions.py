@@ -14,6 +14,9 @@ from app.schemas.cyberscan import CheckoutSessionOut, SubscriptionOut
 from app.services import stripe_service
 from app.core.config import settings
 
+ADDON_EXTRA_SITES_COUNT = settings.ADDON_EXTRA_SITES_COUNT
+ADDON_EXTRA_SITES_PRICE_EUR = settings.ADDON_EXTRA_SITES_PRICE_EUR
+
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
 
 FRONTEND_URL = settings.FRONTEND_URL
@@ -141,3 +144,52 @@ async def billing_portal(
         return_url=f"{FRONTEND_URL}/cyberscan/dashboard",
     )
     return {"checkout_url": portal_url}
+
+
+@router.get("/addons/extra-sites")
+async def get_extra_sites_info(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return current extra-sites count and add-on pricing."""
+    result = await db.execute(
+        select(Subscription).where(Subscription.user_id == current_user.id, Subscription.status == "active")
+    )
+    sub = result.scalar_one_or_none()
+    return {
+        "extra_sites": sub.extra_sites if sub else 0,
+        "pack_size": ADDON_EXTRA_SITES_COUNT,
+        "pack_price_eur": ADDON_EXTRA_SITES_PRICE_EUR,
+    }
+
+
+@router.post("/addons/extra-sites/checkout", response_model=CheckoutSessionOut)
+async def purchase_extra_sites(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Purchase an extra-sites pack (+5 site slots)."""
+    result = await db.execute(
+        select(Subscription).where(Subscription.user_id == current_user.id, Subscription.status == "active")
+    )
+    sub = result.scalar_one_or_none()
+    if not sub:
+        raise HTTPException(status_code=403, detail="Abonnement actif requis")
+
+    if DEV_MODE:
+        sub.extra_sites += ADDON_EXTRA_SITES_COUNT
+        await db.commit()
+        return {"checkout_url": f"{FRONTEND_URL}/cyberscan/dashboard?addon=extra_sites"}
+
+    price_id = settings.ADDON_EXTRA_SITES_STRIPE_PRICE_ID
+    if not price_id:
+        raise HTTPException(status_code=400, detail="Add-on non configuré")
+
+    checkout_url = stripe_service.create_checkout_session(
+        customer_id=sub.stripe_customer_id,
+        price_id=price_id,
+        success_url=f"{FRONTEND_URL}/cyberscan/dashboard?addon=extra_sites",
+        cancel_url=f"{FRONTEND_URL}/cyberscan/dashboard",
+        metadata={"addon_type": "extra_sites", "user_id": str(current_user.id)},
+    )
+    return {"checkout_url": checkout_url}

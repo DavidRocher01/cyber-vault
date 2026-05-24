@@ -20,9 +20,10 @@ def create_checkout_session(
     price_id: str,
     success_url: str,
     cancel_url: str,
+    metadata: dict | None = None,
 ) -> str:
     """Create a Stripe Checkout Session and return the URL."""
-    session = stripe.checkout.Session.create(
+    kwargs: dict = dict(
         customer=customer_id,
         payment_method_types=["card"],
         line_items=[{"price": price_id, "quantity": 1}],
@@ -33,6 +34,9 @@ def create_checkout_session(
         billing_address_collection="auto",
         customer_update={"address": "auto"},
     )
+    if metadata:
+        kwargs["metadata"] = metadata
+    session = stripe.checkout.Session.create(**kwargs)
     return session.url
 
 

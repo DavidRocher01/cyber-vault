@@ -18,7 +18,7 @@ from app.models.site import Site
 from app.models.subscription import Subscription
 from app.models.plan import Plan
 from app.services.scan_service import run_scan
-from app.services.email_service import send_scan_report, send_ssl_expiry_alert
+from app.services.email_service import send_scan_report, send_ssl_expiry_alert, send_monthly_digest
 from app.services.newsletter_email import send_newsletter_issue
 from app.models.newsletter_subscriber import NewsletterSubscriber
 

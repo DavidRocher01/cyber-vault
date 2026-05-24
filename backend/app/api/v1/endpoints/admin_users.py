@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.core.database import get_db
+from app.core.deps import require_admin
 from app.models.plan import Plan
 from app.models.subscription import Subscription
 from app.models.user import User
@@ -11,12 +11,7 @@ from app.models.user import User
 router = APIRouter(prefix="/admin/users", tags=["admin"])
 
 
-def _require_admin(x_admin_key: str = Header(default="")) -> None:
-    if not settings.ADMIN_API_KEY or not secrets.compare_digest(x_admin_key, settings.ADMIN_API_KEY):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès refusé")
-
-
-@router.get("", dependencies=[Depends(_require_admin)])
+@router.get("", dependencies=[Depends(require_admin)])
 async def list_users(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(User, Subscription, Plan)
