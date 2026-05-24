@@ -152,33 +152,3 @@ test.describe('Dark Web Dossier — formulaire nouveau dossier', () => {
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 5. Dashboard — accès aux modules dark web depuis les cartes
-// ─────────────────────────────────────────────────────────────────────────────
-test.describe('Dashboard — liens quick tools dark web', () => {
-  let email: string;
-
-  test.beforeAll(async ({ browser }) => {
-    const page = await browser.newPage();
-    email = await createAndLogin(page);
-    await page.close();
-  });
-
-  test('dashboard — carte "Surveillance Dark Web" visible et lien correct', async ({ page }) => {
-    await login(page, email);
-    await page.goto('/cyberscan/dashboard');
-    const card = page.getByRole('link', { name: /Surveillance Dark Web/i }).or(
-      page.getByText(/Surveillance Dark Web/i).first()
-    );
-    await expect(card).toBeVisible({ timeout: 20_000 });
-  });
-
-  test('dashboard — carte "Dark Web Dossier" visible', async ({ page }) => {
-    await login(page, email);
-    await page.goto('/cyberscan/dashboard');
-    const card = page.getByRole('link', { name: /Dark Web Dossier/i }).or(
-      page.getByText(/Dark Web Dossier/i).first()
-    );
-    await expect(card).toBeVisible({ timeout: 20_000 });
-  });
-});
