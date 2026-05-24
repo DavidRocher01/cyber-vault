@@ -10,7 +10,7 @@ from app.core.database import get_db
 from app.core.security import decode_access_token
 from app.models.user import User
 
-bearer = HTTPBearer()
+bearer = HTTPBearer(auto_error=False)
 
 
 def require_admin(x_admin_key: str = Header(default="")) -> None:
@@ -20,9 +20,11 @@ def require_admin(x_admin_key: str = Header(default="")) -> None:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
     db: AsyncSession = Depends(get_db),
 ) -> User:
+    if credentials is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Non authentifié")
     token = credentials.credentials
     user_id = decode_access_token(token)
     if not user_id:
