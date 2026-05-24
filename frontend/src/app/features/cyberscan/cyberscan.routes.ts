@@ -159,6 +159,10 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Résultat demo — CyberScan',
   },
   {
+    path: 'r/:token',
+    redirectTo: ({ params }) => `/cyberscan/demo-result/${params['token']}`,
+  },
+  {
     path: 'subdomains/:id',
     loadComponent: () => import('./subdomains/subdomains.component').then(m => m.SubdomainsComponent),
     canActivate: [authGuard],
@@ -185,9 +189,21 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'r00t@cyberscan — terminal',
   },
   {
-    path: 'audit-cybersecurite-pme',
-    redirectTo: '/cyberscan',
-    pathMatch: 'full',
+    path: 'simulation-phishing',
+    loadComponent: () => import('./phishing/phishing.component').then(m => m.PhishingComponent),
+    title: 'Simulation de Phishing PME — Test et Sensibilisation | CyberScan',
+  },
+  {
+    path: 'phishing/campaigns',
+    loadComponent: () => import('./phishing-campaigns/phishing-campaigns.component').then(m => m.PhishingCampaignsComponent),
+    canActivate: [authGuard],
+    title: 'Mes campagnes phishing — CyberScan',
+  },
+  {
+    path: 'phishing/new',
+    loadComponent: () => import('./phishing-campaign-creator/phishing-campaign-creator.component').then(m => m.PhishingCampaignCreatorComponent),
+    canActivate: [authGuard],
+    title: 'Nouvelle campagne phishing — CyberScan',
   },
   {
     path: 'phishing/campaigns/:id',
@@ -210,6 +226,21 @@ export const CYBERSCAN_ROUTES: Routes = [
     path: 'contact',
     loadComponent: () => import('./contact/contact.component').then(m => m.ContactComponent),
     title: 'Contact — Réserver un audit cybersécurité | CyberScan',
+  },
+  {
+    path: 'collab/accept/:token',
+    loadComponent: () => import('./collab-accept/collab-accept.component').then(m => m.CollabAcceptComponent),
+    title: 'Accepter l\'invitation — CyberScan',
+  },
+  {
+    path: 'cout-cyberattaque',
+    loadComponent: () => import('./cost-calculator/cost-calculator.component').then(m => m.CostCalculatorComponent),
+    title: 'Calculateur coût cyberattaque PME — CyberScan',
+  },
+  {
+    path: 'quiz-maturite',
+    loadComponent: () => import('./quiz/quiz.component').then(m => m.QuizComponent),
+    title: 'Quiz maturité cybersécurité NIS2 / ISO 27001 — CyberScan',
   },
   {
     path: 'blog',

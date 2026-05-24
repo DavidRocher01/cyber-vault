@@ -1,4 +1,5 @@
-import { Component, inject, OnInit, OnDestroy, signal, HostListener, ElementRef } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, OnDestroy, signal, HostListener, ElementRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
@@ -11,7 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { Title, Meta } from '@angular/platform-browser';
-import { Subscription as RxSubscription, interval } from 'rxjs';
+import { EMPTY, Subscription as RxSubscription, interval, switchMap, tap } from 'rxjs';
 import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 
 import { CyberscanService, Site, Scan, Subscription as UserSubscription, Plan, AppNotification } from '../services/cyberscan.service';
@@ -58,8 +59,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private titleService = inject(Title);
   private meta = inject(Meta);
   private el = inject(ElementRef);
+  private destroyRef = inject(DestroyRef);
   private pollingMap: Record<number, RxSubscription> = {};
-  private notifPollSub: RxSubscription | null = null;
 
   readonly theme = inject(ThemeService).theme;
   readonly i18n = inject(I18nService);
@@ -96,9 +97,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.titleService.setTitle('Dashboard — CyberScan');
     this.meta.updateTag({ name: 'description', content: 'Gérez vos sites et consultez vos rapports de sécurité CyberScan.' });
 
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
       if (params['subscribed'] === 'true') {
         this.snack.open('Abonnement activé ! Bienvenue sur CyberScan.', 'Super', { duration: 6000 });
+      }
+      if (params['upgrade'] === 'true') {
+        this.openPlansModal();
       }
     });
     this.loadDashboard();
@@ -106,7 +110,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     Object.values(this.pollingMap).forEach(sub => sub.unsubscribe());
-    this.notifPollSub?.unsubscribe();
   }
 
   logout() {
@@ -122,28 +125,27 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   loadDashboard() {
     this.loading.set(true);
-    this.cyberscan.getMySubscription().subscribe({
-      next: sub => {
-        this.subscription.set(sub);
+    this.cyberscan.getMySubscription().pipe(
+      takeUntilDestroyed(this.destroyRef),
+      tap(sub => this.subscription.set(sub)),
+      switchMap(sub => {
         if (!sub) {
           this.loading.set(false);
           this.router.navigate(['/cyberscan/onboarding']);
-          return;
+          return EMPTY;
         }
-        this.cyberscan.getMySites().subscribe({
-          next: sites => {
-            this.sites.set(sites);
-            this.loading.set(false);
-            sites.forEach(s => this.loadScans(s.id, 1));
-          },
-          error: () => this.loading.set(false),
-        });
+        return this.cyberscan.getMySites();
+      }),
+    ).subscribe({
+      next: sites => {
+        this.sites.set(sites);
+        this.loading.set(false);
+        sites.forEach(s => this.loadScans(s.id, 1));
       },
       error: () => this.loading.set(false),
     });
     this.loadNotifications();
-    // Poll notifications every 30s
-    this.notifPollSub = interval(30000).subscribe(() => this.loadNotifications());
+    interval(30000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.loadNotifications());
   }
 
   loadNotifications() {
@@ -427,7 +429,36 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   get maxSites(): number { return this.subscription()?.plan?.max_sites ?? 0; }
-  get canAddSite(): boolean { return this.sites().length < this.maxSites; }
+  get effectiveMaxSites(): number {
+    const sub = this.subscription();
+    return (sub?.plan?.max_sites ?? 0) + (sub?.extra_sites ?? 0);
+  }
+  get canAddSite(): boolean { return this.sites().length < this.effectiveMaxSites; }
+
+  buyingExtraSites = signal(false);
+
+  purchaseExtraSites() {
+    this.buyingExtraSites.set(true);
+    this.cyberscan.purchaseExtraSites().subscribe({
+      next: res => {
+        this.buyingExtraSites.set(false);
+        try {
+          const parsed = new URL(res.checkout_url);
+          if (parsed.hostname === 'checkout.stripe.com') {
+            window.location.href = res.checkout_url;
+          } else {
+            this.router.navigateByUrl(parsed.pathname + parsed.search);
+          }
+        } catch {
+          if (res.checkout_url.startsWith('/')) this.router.navigateByUrl(res.checkout_url);
+        }
+      },
+      error: () => {
+        this.buyingExtraSites.set(false);
+        this.snack.open('Erreur lors de l\'achat', 'Fermer', { duration: 4000 });
+      },
+    });
+  }
 
   // --- Score & trend ---
   getScanScore(scan: Scan): number | null { return computeScore(scan.results_json ?? null); }
@@ -453,6 +484,63 @@ export class DashboardComponent implements OnInit, OnDestroy {
   getScoreColor(score: number): string { return getScoreColor(score); }
 
   // ── Analytics ─────────────────────────────────────────────────────────────
+
+  /** Average delta of last-vs-prev score across all sites with at least 2 scans */
+  get globalTrend(): number | null {
+    const deltas = this.sites()
+      .map(s => this.getTrend(s.id))
+      .filter((t): t is number => t !== null);
+    if (deltas.length === 0) return null;
+    return Math.round(deltas.reduce((a, b) => a + b, 0) / deltas.length);
+  }
+
+  get globalTrendAnnotation(): string | null {
+    const score = this.averageScore;
+    if (score === null) return null;
+    const trend = this.globalTrend;
+    if (trend === null) return `Score global : ${score}/100`;
+    if (Math.abs(trend) < 2) return `Score stable à ${score}/100 depuis le dernier scan`;
+    if (trend > 0) return `+${trend} pts depuis le dernier scan — score global : ${score}/100`;
+    return `${trend} pts depuis le dernier scan — score global : ${score}/100`;
+  }
+
+  /** All score/date points from all sites merged and sorted by date (for global chart) */
+  get globalScoreTimeline(): { date: string; score: number }[] {
+    const all: { date: string; score: number }[] = [];
+    for (const site of this.sites()) {
+      for (const pt of this.scoreHistory(site.id, 8)) {
+        all.push(pt);
+      }
+    }
+    return all.sort((a, b) => a.date.localeCompare(b.date)).slice(-16);
+  }
+
+  private _trendGeometry(w = 360, h = 56): { points: string; dots: { cx: number; cy: number }[] } {
+    const history = this.globalScoreTimeline;
+    if (history.length < 2) return { points: '', dots: [] };
+    const min = Math.min(...history.map(p => p.score));
+    const max = Math.max(...history.map(p => p.score));
+    const range = max - min || 1;
+    const xs = history.map((_, i) => (i / (history.length - 1)) * w);
+    const ys = history.map(p => h - ((p.score - min) / range) * (h - 8) - 4);
+    return {
+      points: xs.map((x, i) => `${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' '),
+      dots: xs.map((cx, i) => ({ cx, cy: ys[i] })),
+    };
+  }
+
+  globalTrendChartPoints(w = 360, h = 56): string {
+    return this._trendGeometry(w, h).points;
+  }
+
+  get globalTrendDots(): { cx: number; cy: number }[] {
+    return this._trendGeometry().dots;
+  }
+
+  get globalTrendIsStable(): boolean {
+    return Math.abs(this.globalTrend ?? 0) <= 1;
+  }
+
   analyticsOpen = signal(true);
   toggleAnalytics() { this.analyticsOpen.update(v => !v); }
   readonly categoryLabels = RADAR_CATEGORIES.map(c => c.label);
