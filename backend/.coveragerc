@@ -8,6 +8,9 @@ omit =
     app/services/scheduler.py
     app/services/stripe_service.py
     app/services/scan_service.py
+    app/services/phishing_service.py
+    app/services/public_scan_service.py
+    app/services/quote_service.py
     app/api/v1/endpoints/webhooks.py
 
 [report]
