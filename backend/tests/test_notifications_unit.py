@@ -117,11 +117,11 @@ async def test_mark_all_read_no_unread():
     r = MagicMock()
     r.scalars.return_value.all.return_value = []
     db.execute = AsyncMock(return_value=r)
-    db.flush = AsyncMock()
+    db.commit = AsyncMock()
     user = _mock_user()
 
     await mark_all_read(current_user=user, db=db)
-    db.flush.assert_called_once()
+    db.commit.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -163,9 +163,9 @@ async def test_delete_notification_success():
     r.scalar_one_or_none.return_value = notif
     db.execute = AsyncMock(return_value=r)
     db.delete = AsyncMock()
-    db.flush = AsyncMock()
+    db.commit = AsyncMock()
     user = _mock_user()
 
     await delete_notification(notification_id=1, current_user=user, db=db)
     db.delete.assert_called_once_with(notif)
-    db.flush.assert_called_once()
+    db.commit.assert_called_once()

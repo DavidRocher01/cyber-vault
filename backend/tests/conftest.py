@@ -1,8 +1,8 @@
+import asyncio
 import os
-import tempfile
 
-# Override DATABASE_URL before any app module is imported,
-# so database.py creates a SQLite engine instead of PostgreSQL.
+# Keep SQLite URL so app.core.database creates a valid engine at import time.
+# All test operations go through the testcontainers PostgreSQL engine created below.
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-pytest-only")
 
@@ -10,50 +10,79 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from testcontainers.postgres import PostgresContainer
 
-import app.models  # noqa: F401 — ensure all models registered with Base.metadata
+import app.models  # noqa: F401 — register all models with Base.metadata
 from app.core.database import Base, get_db
 from app.main import app
 
 BASE = "/api/v1"
 
 
-@pytest_asyncio.fixture
-async def test_engine():
-    """Per-test SQLite file engine with all tables created."""
-    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
-    tmp.close()
-    engine = create_async_engine(f"sqlite+aiosqlite:///{tmp.name}")
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield engine
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-    await engine.dispose()
-    try:
-        os.unlink(tmp.name)
-    except OSError:
-        pass
+# ── Session-scoped PostgreSQL container + DDL ──────────────────────────────────
 
+@pytest.fixture(scope="session")
+def pg_container():
+    with PostgresContainer("postgres:16-alpine") as pg:
+        yield pg
+
+
+@pytest.fixture(scope="session")
+def pg_url(pg_container):
+    return pg_container.get_connection_url().replace(
+        "postgresql+psycopg2://", "postgresql+asyncpg://", 1
+    )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _pg_schema(pg_url):
+    """Create all tables once (sync wrapper around asyncio.run so it's loop-neutral)."""
+    async def _run():
+        engine = create_async_engine(pg_url, echo=False)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        await engine.dispose()
+
+    asyncio.run(_run())
+    yield
+    # Teardown: drop all tables
+    async def _cleanup():
+        engine = create_async_engine(pg_url, echo=False)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+        await engine.dispose()
+
+    asyncio.run(_cleanup())
+
+
+# ── Per-test isolation ─────────────────────────────────────────────────────────
 
 @pytest.fixture(autouse=True)
-async def setup_db(test_engine):
-    """Wire the FastAPI app and AsyncSessionLocal to the per-test SQLite DB."""
-    AsyncTestSession = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
+async def setup_db(pg_url):
+    """Per-test: create a fresh async engine (bound to this test's event loop),
+    wipe all rows, and wire FastAPI + background-task sessions."""
+    engine = create_async_engine(pg_url, echo=False)
+
+    # Truncate all tables in reverse FK order
+    async with engine.begin() as conn:
+        for table in reversed(Base.metadata.sorted_tables):
+            await conn.execute(table.delete())
+
+    AsyncTestSession = async_sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False
+    )
 
     async def override_get_db():
         async with AsyncTestSession() as session:
             try:
                 yield session
-                await session.commit()
             except Exception:
                 await session.rollback()
                 raise
 
     app.dependency_overrides[get_db] = override_get_db
 
-    # Also patch the module-level AsyncSessionLocal so background tasks
-    # and endpoints that open their own session use the test DB.
+    # Patch module-level AsyncSessionLocal so background tasks use the test DB
     import app.core.database as _db_module
     original_session_local = _db_module.AsyncSessionLocal
     _db_module.AsyncSessionLocal = AsyncTestSession
@@ -62,18 +91,22 @@ async def setup_db(test_engine):
 
     _db_module.AsyncSessionLocal = original_session_local
     app.dependency_overrides.clear()
+    await engine.dispose()
 
-    # Reset rate limiter storage so each test starts with a clean slate
     from app.core.limiter import limiter
     limiter._storage.reset()
 
 
+# ── Shared fixtures ────────────────────────────────────────────────────────────
+
 @pytest_asyncio.fixture
-async def db_session(test_engine):
-    """Direct AsyncSession on the test DB — for seeding data and verifying state."""
-    Session = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
+async def db_session(pg_url):
+    """Direct AsyncSession — for seeding data and verifying DB state."""
+    engine = create_async_engine(pg_url, echo=False)
+    Session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with Session() as session:
         yield session
+    await engine.dispose()
 
 
 @pytest.fixture
@@ -104,17 +137,16 @@ async def auth_client(http_client: AsyncClient):
     return http_client
 
 
-async def register_and_login(client: AsyncClient, email: str, password: str = "StrongPass123!") -> dict:
+async def register_and_login(
+    client: AsyncClient, email: str, password: str = "StrongPass123!"
+) -> dict:
     """Register a user and return auth headers."""
     await client.post(f"{BASE}/auth/register", json={"email": email, "password": password})
     r = await client.post(f"{BASE}/auth/login", json={"email": email, "password": password})
-    token = r.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
+    return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
-async def create_plan_and_subscription(client: AsyncClient, headers: dict, tier: int = 2) -> None:
-    """Seed a plan + active subscription for the authenticated user (direct DB workaround via seed endpoint)."""
-    # Plans are seeded via seed_plans.py; in tests we insert directly via the DB override
-    # Instead we use the plans endpoint (GET /plans) — plans must be pre-seeded.
-    # For tests that need subscription quota we patch _get_max_sites in the service.
+async def create_plan_and_subscription(
+    client: AsyncClient, headers: dict, tier: int = 2
+) -> None:
     pass

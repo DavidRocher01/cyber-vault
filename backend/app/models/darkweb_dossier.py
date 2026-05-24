@@ -35,7 +35,8 @@ class DarkwebDossier(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     targets: Mapped[list["DarkwebDossierTarget"]] = relationship(
-        "DarkwebDossierTarget", back_populates="dossier", lazy="selectin"
+        "DarkwebDossierTarget", back_populates="dossier", lazy="selectin",
+        cascade="all, delete-orphan", passive_deletes=True,
     )
 
 

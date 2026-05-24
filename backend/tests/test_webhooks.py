@@ -18,8 +18,12 @@ WEBHOOK_URL = f"{BASE}/webhooks/stripe"
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
+_event_counter = 0
+
 def _make_event(event_type: str, data: dict) -> dict:
-    return {"type": event_type, "data": {"object": data}}
+    global _event_counter
+    _event_counter += 1
+    return {"id": f"evt_test_{_event_counter}", "type": event_type, "data": {"object": data}}
 
 
 def _stripe_sub_mock(price_id: str = "price_test_123",

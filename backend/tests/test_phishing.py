@@ -17,6 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.models.phishing import PhishingCampaign, PhishingTarget
+from app.models.user import User
+from app.core.security import hash_password
 from app.services import phishing_service
 
 
@@ -26,8 +28,12 @@ from app.services import phishing_service
 
 async def _seed(db: AsyncSession, *, tracking_id: str = "tid-001", status: str = "email_sent"):
     """Insert a minimal campaign + target into the test DB and return (campaign, target)."""
+    user = User(email=f"phish_{tracking_id}@test.com", hashed_password=hash_password("pass"))
+    db.add(user)
+    await db.flush()
+
     campaign = PhishingCampaign(
-        user_id=1,
+        user_id=user.id,
         name="Test Campagne",
         plan_tier="standard",
         status="active",

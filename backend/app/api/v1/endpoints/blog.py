@@ -129,3 +129,4 @@ async def delete_article(slug: str, db: AsyncSession = Depends(get_db)):
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Article introuvable")
     await db.delete(post)
+    await db.commit()
