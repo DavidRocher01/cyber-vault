@@ -22,14 +22,30 @@
             "outputPath": "dist/cyber-vault-frontend",
             "index": "src/index.html",
             "browser": "src/main.ts",
-            "polyfills": ["zone.js"],
+            "polyfills": [
+              "zone.js"
+            ],
             "tsConfig": "tsconfig.app.json",
             "assets": [
-              { "glob": "**/*", "input": "src/assets", "output": "assets" },
-              { "glob": "robots.txt", "input": "src", "output": "/" },
-              { "glob": "sitemap.xml", "input": "src", "output": "/" }
+              {
+                "glob": "**/*",
+                "input": "src/assets",
+                "output": "assets"
+              },
+              {
+                "glob": "robots.txt",
+                "input": "src",
+                "output": "/"
+              },
+              {
+                "glob": "sitemap.xml",
+                "input": "src",
+                "output": "/"
+              }
             ],
-            "styles": ["src/styles.scss", "node_modules/animate.css/animate.min.css", "node_modules/material-icons/iconfont/material-icons.css"],
+            "styles": [
+              "src/styles.scss"
+            ],
             "scripts": []
           },
           "configurations": {
@@ -88,7 +104,10 @@
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
+            "lintFilePatterns": [
+              "src/**/*.ts",
+              "src/**/*.html"
+            ]
           }
         }
       }

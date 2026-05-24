@@ -50,6 +50,8 @@ DOC_COLOR: dict[str, str] = {
     "url":      "#f97316",
     "scan":     "#3b82f6",
     "test":     "#10b981",
+    "darkweb":  "#ef4444",
+    "phishing": "#f59e0b",
 }
 
 # Cover accent triples: (main, mid, dark-bg) hex strings
@@ -58,6 +60,8 @@ _COVER_ACCENT: dict[str, tuple[str, str, str]] = {
     "iso27001": ("#8b5cf6", "#5b21b6", "#13102a"),
     "url":      ("#f97316", "#c2410c", "#1a0700"),
     "scan":     ("#3b82f6", "#1d4ed8", "#0c1a2e"),
+    "darkweb":  ("#ef4444", "#b91c1c", "#1a0505"),
+    "phishing": ("#f59e0b", "#b45309", "#1a1000"),
 }
 
 # Lighter header-title colour per doc type (right-zone text in band)
@@ -66,6 +70,8 @@ _BAND_TITLE_COLOR: dict[str, str] = {
     "iso27001": "#c4b5fd",
     "url":      "#fed7aa",
     "scan":     "#bae6fd",
+    "darkweb":  "#fca5a5",
+    "phishing": "#fde68a",
 }
 
 # Short label shown in the band right zone for compliance covers

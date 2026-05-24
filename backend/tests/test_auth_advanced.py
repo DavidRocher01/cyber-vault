@@ -56,10 +56,9 @@ async def test_login_unknown_email_returns_401():
 async def test_refresh_token_returns_new_access_token():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         await c.post(f"{BASE}/auth/register", json={"email": "rt@test.com", "password": "StrongPass123!"})
-        login = await c.post(f"{BASE}/auth/login", json={"email": "rt@test.com", "password": "StrongPass123!"})
-        refresh_token = login.json()["refresh_token"]
-
-        r = await c.post(f"{BASE}/auth/refresh", json={"refresh_token": refresh_token})
+        await c.post(f"{BASE}/auth/login", json={"email": "rt@test.com", "password": "StrongPass123!"})
+        # refresh_token is now in the cookie jar (httpOnly) — sent automatically
+        r = await c.post(f"{BASE}/auth/refresh")
     assert r.status_code == 200
     assert "access_token" in r.json()
 
@@ -67,7 +66,8 @@ async def test_refresh_token_returns_new_access_token():
 @pytest.mark.asyncio
 async def test_refresh_invalid_token_returns_401():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        r = await c.post(f"{BASE}/auth/refresh", json={"refresh_token": "invalid-token"})
+        # No login → no cookie → 401
+        r = await c.post(f"{BASE}/auth/refresh")
     assert r.status_code == 401
 
 
@@ -76,12 +76,13 @@ async def test_logout_invalidates_refresh_token():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         await c.post(f"{BASE}/auth/register", json={"email": "lo@test.com", "password": "StrongPass123!"})
         login = await c.post(f"{BASE}/auth/login", json={"email": "lo@test.com", "password": "StrongPass123!"})
-        refresh_token = login.json()["refresh_token"]
         headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
-        await c.post(f"{BASE}/auth/logout", headers=headers, json={"refresh_token": refresh_token})
+        # Logout sends the cookie automatically; server revokes token + clears cookie
+        await c.post(f"{BASE}/auth/logout", headers=headers)
 
-        r = await c.post(f"{BASE}/auth/refresh", json={"refresh_token": refresh_token})
+        # Cookie is deleted — refresh must return 401
+        r = await c.post(f"{BASE}/auth/refresh")
     assert r.status_code == 401
 
 

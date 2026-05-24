@@ -1,0 +1,364 @@
+<app-nav-buttons />
+
+<div class="min-h-screen bg-gray-950 text-white p-4 md:p-8">
+  <div class="max-w-5xl mx-auto">
+
+    @if (loading()) {
+      <div class="flex justify-center py-24"><mat-spinner [diameter]="40" /></div>
+
+    } @else if (dossier()) {
+      @let d = dossier()!;
+
+      <!-- Header -->
+      <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
+        <div>
+          <a routerLink="/cyberscan/darkweb-dossier"
+             class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-300 mb-3 transition-colors">
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_back</mat-icon>
+            Mes dossiers
+          </a>
+          <div class="flex items-center gap-3 flex-wrap mb-1">
+            <h1 class="text-2xl font-bold">{{ d.company_name }}</h1>
+            <span class="font-mono text-sm text-gray-500">{{ d.domain }}</span>
+            @if (d.monitor_active) {
+              <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                <mat-icon class="!text-[0.75rem] !w-3 !h-3">radar</mat-icon>
+                Monitoring actif
+              </span>
+            }
+          </div>
+          <p class="text-sm text-gray-500">
+            Créé le {{ formatDate(d.created_at) }}
+            @if (d.finished_at) { · Terminé le {{ formatDate(d.finished_at) }} }
+            @if (d.monitor_active && d.next_monitor_at) {
+              · Prochain rescan {{ formatDate(d.next_monitor_at) }}
+            }
+          </p>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-wrap gap-2 flex-shrink-0">
+          @if (d.status === 'completed' || d.status === 'failed') {
+            <button type="button" mat-stroked-button class="!rounded-xl !border-gray-700 !text-gray-300"
+                    [disabled]="rescanning()" (click)="rescan()"
+                    matTooltip="Relancer l'analyse complète">
+              @if (rescanning()) {
+                <mat-spinner [diameter]="16" class="mr-1 inline-block [&_circle]:stroke-gray-400" />
+              } @else {
+                <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] mr-1">refresh</mat-icon>
+              }
+              Rescanner
+            </button>
+          }
+          @if (d.status === 'completed') {
+            <button type="button" mat-stroked-button class="!rounded-xl !border-gray-700 !text-gray-300"
+                    [disabled]="togglingMonitor()" (click)="toggleMonitor()"
+                    [matTooltip]="d.monitor_active ? 'Désactiver le monitoring mensuel' : 'Activer le monitoring mensuel automatique'">
+              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] mr-1"
+                        [class]="d.monitor_active ? 'text-cyan-400' : 'text-gray-400'">radar</mat-icon>
+              {{ d.monitor_active ? 'Monitoring ON' : 'Monitoring OFF' }}
+            </button>
+            <button type="button" mat-stroked-button class="!rounded-xl !border-gray-700 !text-gray-300"
+                    [disabled]="downloadingCsv()" (click)="downloadCsv()">
+              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] mr-1">table_chart</mat-icon>
+              {{ downloadingCsv() ? 'Export…' : 'CSV' }}
+            </button>
+            <button type="button" mat-flat-button color="warn" class="!rounded-xl"
+                    [disabled]="downloadingPdf()" (click)="downloadPdf()">
+              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] mr-1">picture_as_pdf</mat-icon>
+              {{ downloadingPdf() ? 'Génération…' : 'Rapport PDF' }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Processing banner -->
+      @if (d.status === 'pending' || d.status === 'processing') {
+        <div class="rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-4 mb-6">
+          <div class="flex items-start gap-3">
+            <mat-spinner [diameter]="20" class="[&_circle]:stroke-cyan-400 flex-shrink-0 mt-0.5" />
+            <div class="flex-1 min-w-0">
+              <p class="text-cyan-400 font-medium text-sm">Analyse en cours — mise à jour automatique</p>
+              <p class="text-gray-500 text-xs mt-0.5">
+                {{ d.checked_count }} / {{ d.total_emails }} emails vérifiés · Rafraîchissement automatique toutes les 5 s
+              </p>
+              @if (d.total_emails > 0) {
+                <div class="mt-2 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                  <div class="h-full bg-cyan-500 rounded-full transition-all duration-500"
+                       [style.width.%]="progressPercent()"></div>
+                </div>
+              }
+            </div>
+            <span class="text-xs font-semibold text-cyan-400 flex-shrink-0">{{ progressPercent() }}%</span>
+          </div>
+        </div>
+      }
+
+      @if (d.status === 'failed') {
+        <div class="rounded-xl border border-red-700/40 bg-red-900/10 p-4 mb-6">
+          <div class="flex items-center gap-2 text-red-400">
+            <mat-icon>error_outline</mat-icon>
+            <span class="font-medium text-sm">Analyse échouée</span>
+          </div>
+          @if (d.error_message) {
+            <p class="text-xs text-gray-400 mt-1 ml-8">{{ d.error_message }}</p>
+          }
+        </div>
+      }
+
+      <!-- Unverified warning banner -->
+      @if (d.status === 'completed' && d.unverified_count > 0) {
+        <div class="rounded-xl border border-orange-700/40 bg-orange-900/10 p-4 mb-6">
+          <div class="flex items-start gap-2">
+            <mat-icon class="!text-orange-400 flex-shrink-0 mt-0.5">warning</mat-icon>
+            <div>
+              <p class="text-orange-400 font-semibold text-sm">
+                {{ d.unverified_count }} adresse(s) non vérifiée(s) — résultats incomplets
+              </p>
+              <p class="text-gray-400 text-xs mt-1">
+                Ces adresses ont rencontré une erreur API (rate limit ou indisponibilité) et
+                n'ont pas pu être analysées. Lancez un rescan pour obtenir des résultats complets.
+              </p>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- KPI cards -->
+      @if (d.status === 'completed') {
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+
+          <div class="rounded-xl border border-gray-800 bg-gray-900 p-5 text-center">
+            <div class="text-3xl font-bold text-white mb-1">{{ d.total_emails }}</div>
+            <div class="text-xs text-gray-500 uppercase tracking-wider">Emails analysés</div>
+          </div>
+
+          <div class="rounded-xl border p-5 text-center"
+               [class]="d.exposed_emails > 0 ? 'border-red-800/40 bg-red-900/10' : 'border-gray-800 bg-gray-900'">
+            <div class="text-3xl font-bold mb-1"
+                 [class]="d.exposed_emails > 0 ? 'text-red-400' : 'text-green-400'">
+              {{ d.exposed_emails }}
+            </div>
+            <div class="text-xs text-gray-500 uppercase tracking-wider">Exposés</div>
+          </div>
+
+          <div class="rounded-xl border border-gray-800 bg-gray-900 p-5 text-center">
+            <div class="text-3xl font-bold text-orange-400 mb-1">{{ d.total_breach_instances }}</div>
+            <div class="text-xs text-gray-500 uppercase tracking-wider">Fuites cumulées</div>
+          </div>
+
+          <div class="rounded-xl border p-5 text-center"
+               [class]="riskBorderColor(d.risk_score) + ' bg-gray-900'">
+            <div class="text-3xl font-bold mb-1" [class]="riskColor(d.risk_score)">
+              {{ d.risk_score !== null ? d.risk_score + '%' : '—' }}
+            </div>
+            <div class="text-xs text-gray-500 uppercase tracking-wider">{{ riskLabel(d.risk_score) }}</div>
+          </div>
+
+        </div>
+
+        <!-- Severity + Top sources + Risk -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+
+          <!-- Severity score -->
+          <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
+            <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+              Sévérité des données
+            </h2>
+            <div class="flex items-end gap-3 mb-3">
+              <div class="text-4xl font-bold" [class]="severityColor(d.severity_score)">
+                {{ d.severity_score !== null ? d.severity_score : '—' }}
+              </div>
+              <div class="text-sm text-gray-400 mb-1">/100</div>
+            </div>
+            <div class="text-xs font-medium mb-2" [class]="severityColor(d.severity_score)">
+              {{ severityLabel(d.severity_score) }}
+            </div>
+            <div class="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+              <div class="h-full rounded-full transition-all duration-700"
+                   [class]="(d.severity_score ?? 0) >= 60 ? 'bg-red-500' : (d.severity_score ?? 0) >= 30 ? 'bg-orange-500' : 'bg-yellow-500'"
+                   [style.width.%]="d.severity_score ?? 0"></div>
+            </div>
+            <p class="text-[0.65rem] text-gray-600 mt-2">Pondéré par type de données (mots de passe, données financières…)</p>
+          </div>
+
+          <!-- Top sources -->
+          @if (getTopSources().length > 0) {
+            <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
+              <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+                Sources les + fréquentes
+              </h2>
+              <div class="flex flex-col gap-2">
+                @for (src of getTopSources().slice(0, 5); track src.name) {
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-sm text-gray-300 truncate">{{ src.name }}</span>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                      <div class="h-1.5 rounded-full bg-red-500/30 w-14 overflow-hidden">
+                        <div class="h-full bg-red-500 rounded-full"
+                             [style.width.%]="(src.count / getTopSources()[0].count) * 100"></div>
+                      </div>
+                      <span class="text-xs text-red-400 font-semibold w-4 text-right">{{ src.count }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Risk level card -->
+          <div class="rounded-xl border bg-gray-900 p-5" [class]="riskBorderColor(d.risk_score)">
+            <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+              Risque global
+            </h2>
+            <div class="flex items-center gap-3 mb-3">
+              <div class="text-4xl font-bold" [class]="riskColor(d.risk_score)">
+                {{ d.risk_score !== null ? d.risk_score + '%' : '—' }}
+              </div>
+              <div class="text-sm font-semibold" [class]="riskColor(d.risk_score)">
+                {{ riskLabel(d.risk_score) }}
+              </div>
+            </div>
+            <div class="text-xs text-gray-500 mb-2">
+              {{ d.exposed_emails }} / {{ d.total_emails }} emails exposés
+            </div>
+            <div class="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+              <div class="h-full rounded-full transition-all duration-700"
+                   [class]="(d.risk_score ?? 0) >= 50 ? 'bg-red-500' : (d.risk_score ?? 0) >= 20 ? 'bg-yellow-500' : 'bg-green-500'"
+                   [style.width.%]="d.risk_score ?? 0"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Timeline des fuites -->
+        @if (getBreachTimeline().length > 0) {
+          <div class="rounded-xl border border-gray-800 bg-gray-900 p-5 mb-8">
+            <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+              Historique des fuites par année
+            </h2>
+            @let timeline = getBreachTimeline();
+            @let maxCount = getBreachTimelineMax(timeline);
+            <div class="flex items-end gap-2 h-24">
+              @for (item of timeline; track item.year) {
+                <div class="flex flex-col items-center gap-1 flex-1 min-w-0">
+                  <span class="text-[0.6rem] text-red-400 font-semibold">{{ item.count }}</span>
+                  <div class="w-full rounded-t bg-red-500/70 hover:bg-red-500 transition-colors"
+                       [style.height.%]="(item.count / maxCount) * 100"
+                       [style.min-height.px]="4"
+                       [matTooltip]="item.year + ' — ' + item.count + ' fuite(s)'"></div>
+                  <span class="text-[0.6rem] text-gray-600 truncate w-full text-center">{{ item.year }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Exposed emails table -->
+        @if (exposedTargets().length > 0) {
+          <div class="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden mb-6">
+            <div class="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
+              <h2 class="font-semibold text-white">Emails exposés</h2>
+              <span class="text-sm text-red-400">{{ exposedTargets().length }} email(s)</span>
+            </div>
+            <mat-accordion>
+              @for (target of exposedTargets(); track target.id) {
+                <mat-expansion-panel class="!bg-transparent !shadow-none border-b border-gray-800/50">
+                  <mat-expansion-panel-header class="hover:!bg-gray-800/30">
+                    <mat-panel-title class="flex items-center gap-3">
+                      <mat-icon class="!text-[1rem] !w-4 !h-4"
+                                [class]="breachCountColor(target.total_breaches)">
+                        {{ target.total_breaches >= 3 ? 'gpp_bad' : 'warning' }}
+                      </mat-icon>
+                      <span class="font-mono text-sm text-white">{{ target.email }}</span>
+                    </mat-panel-title>
+                    <mat-panel-description class="flex items-center gap-2">
+                      <span [class]="breachCountColor(target.total_breaches)" class="font-semibold text-xs">
+                        {{ target.total_breaches }} fuite(s)
+                      </span>
+                    </mat-panel-description>
+                  </mat-expansion-panel-header>
+
+                  <div class="flex flex-col gap-2 pt-2 pb-2">
+                    @for (breach of getBreaches(target); track breach.name) {
+                      <div class="flex items-start justify-between gap-3 rounded-lg bg-gray-800/50 px-3 py-2">
+                        <div class="min-w-0">
+                          <div class="text-sm font-semibold text-white">{{ breach.name }}</div>
+                          @if (breach.domain) {
+                            <div class="text-xs text-gray-500 font-mono">{{ breach.domain }}</div>
+                          }
+                          @if (breach.data_classes && breach.data_classes.length > 0) {
+                            <div class="text-xs text-gray-400 mt-0.5">
+                              {{ breach.data_classes.join(', ') }}
+                            </div>
+                          }
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                          @if (breach.breach_date) {
+                            <div class="text-xs text-gray-500">{{ breach.breach_date }}</div>
+                          }
+                          @if (breach.pwn_count && breach.pwn_count > 0) {
+                            <div class="text-xs text-orange-400">{{ formatPwnCount(breach.pwn_count) }} comptes</div>
+                          }
+                          @if (breach.is_sensitive) {
+                            <div class="text-[0.65rem] text-red-400 font-semibold">⚠ Sensible</div>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </mat-expansion-panel>
+              }
+            </mat-accordion>
+          </div>
+        }
+
+        <!-- Clean emails summary -->
+        @if (cleanTargets().length > 0) {
+          <div class="rounded-xl border border-green-800/30 bg-green-900/5 p-4 mb-4">
+            <div class="flex items-center gap-2 text-green-400 font-semibold text-sm mb-1">
+              <mat-icon class="!text-base">verified</mat-icon>
+              {{ cleanTargets().length }} email(s) vérifié(s) sain(s)
+            </div>
+            <p class="text-xs text-gray-500">
+              Ces adresses ont été vérifiées et ne figurent dans aucune fuite connue.
+            </p>
+          </div>
+        }
+
+        <!-- Unverified emails section -->
+        @if (unverifiedTargets().length > 0) {
+          <div class="rounded-xl border border-orange-800/30 bg-orange-900/5 overflow-hidden">
+            <div class="px-5 py-4 border-b border-orange-900/30 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <mat-icon class="!text-orange-400 !text-base">help_outline</mat-icon>
+                <h2 class="font-semibold text-orange-300 text-sm">Emails non vérifiés</h2>
+              </div>
+              <span class="text-xs text-orange-400">{{ unverifiedTargets().length }} adresse(s)</span>
+            </div>
+            <div class="divide-y divide-orange-900/20">
+              @for (target of unverifiedTargets(); track target.id) {
+                <div class="flex items-center justify-between gap-3 px-5 py-3">
+                  <span class="font-mono text-sm text-gray-300">{{ target.email }}</span>
+                  <span class="inline-flex items-center gap-1 text-[0.65rem] font-semibold px-2 py-0.5 rounded-full border"
+                        [class]="checkStatusClass(target.check_status)">
+                    <mat-icon class="!text-[0.7rem] !w-3 !h-3">
+                      {{ target.check_status === 'rate_limited' ? 'timer_off' : 'error_outline' }}
+                    </mat-icon>
+                    {{ checkStatusLabel(target.check_status) }}
+                  </span>
+                </div>
+              }
+            </div>
+            <div class="px-5 py-3 border-t border-orange-900/30">
+              <p class="text-xs text-gray-500">
+                Ces adresses n'ont pas pu être analysées (limite de requêtes API ou erreur réseau).
+                Relancez un rescan pour les vérifier.
+              </p>
+            </div>
+          </div>
+        }
+      }
+
+    }
+  </div>
+</div>

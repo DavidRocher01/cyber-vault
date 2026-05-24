@@ -267,6 +267,184 @@ async def _send_biweekly_newsletter() -> None:
     logger.info(f"Newsletter édition #{edition} envoyée à {len(subscribers)} abonné(s)")
 
 
+_MONTHS_FR = [
+    "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+    "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
+]
+
+
+async def _send_monthly_digest_job() -> None:
+    """1st of each month: send a security digest to every paying user."""
+    import json as _json
+    from calendar import monthrange
+    from app.models.user import User
+    from app.core.config import settings
+
+    now = datetime.now(timezone.utc)
+    last_month = now.month - 1 if now.month > 1 else 12
+    last_year = now.year if now.month > 1 else now.year - 1
+    _, days_in_month = monthrange(last_year, last_month)
+    start = datetime(last_year, last_month, 1, 0, 0, 0, tzinfo=timezone.utc)
+    end = datetime(last_year, last_month, days_in_month, 23, 59, 59, tzinfo=timezone.utc)
+    month_label = f"{_MONTHS_FR[last_month - 1]} {last_year}"
+
+    async with AsyncSessionLocal() as db:
+        # Load all (user, site) pairs for active subscriptions
+        result = await db.execute(
+            select(User, Site)
+            .join(Subscription, Subscription.user_id == User.id)
+            .join(Site, Site.user_id == User.id)
+            .where(Subscription.status == "active", Site.is_active == True)
+        )
+        pairs = result.all()
+        if not pairs:
+            return
+
+        # Group sites by user
+        user_map: dict[int, User] = {}
+        sites_by_user: dict[int, list[Site]] = {}
+        for user, site in pairs:
+            user_map[user.id] = user
+            sites_by_user.setdefault(user.id, []).append(site)
+
+        all_site_ids = [s.id for sites in sites_by_user.values() for s in sites]
+
+        # Load scans for last month in a single query
+        scans_result = await db.execute(
+            select(Scan).where(
+                Scan.site_id.in_(all_site_ids),
+                Scan.created_at >= start,
+                Scan.created_at <= end,
+                Scan.status == "done",
+            ).order_by(Scan.site_id, Scan.created_at.desc())
+        )
+        scans_by_site: dict[int, list[Scan]] = {}
+        for scan in scans_result.scalars().all():
+            scans_by_site.setdefault(scan.site_id, []).append(scan)
+
+    dashboard_url = f"{settings.FRONTEND_URL}/cyberscan/dashboard"
+
+    for user_id, sites in sites_by_user.items():
+        user = user_map[user_id]
+        sites_summary = []
+        for site in sites:
+            scans = scans_by_site.get(site.id, [])
+            latest = scans[0] if scans else None
+            overall_status = latest.overall_status if latest else None
+            critical_count = 0
+            warning_count = 0
+            if latest and latest.results_json:
+                try:
+                    results = _json.loads(latest.results_json)
+                    for module in results.values():
+                        if isinstance(module, dict):
+                            s = module.get("status")
+                            if s == "CRITICAL":
+                                critical_count += 1
+                            elif s == "WARNING":
+                                warning_count += 1
+                except Exception:
+                    pass
+            sites_summary.append({
+                "url": site.url,
+                "overall_status": overall_status,
+                "scans_count": len(scans),
+                "critical_count": critical_count,
+                "warning_count": warning_count,
+            })
+
+        try:
+            await asyncio.to_thread(
+                send_monthly_digest,
+                to_email=user.email,
+                month_label=month_label,
+                sites=sites_summary,
+                dashboard_url=dashboard_url,
+            )
+        except Exception:
+            pass
+
+
+async def _run_darkweb_monitoring() -> None:
+    """Monthly job: re-scan active monitored dossiers and send alerts on new exposures."""
+    from app.models.darkweb_dossier import DarkwebDossier, DarkwebDossierTarget
+    from app.models.user import User
+    from app.services.darkweb_dossier_service import process_dossier, send_darkweb_alert_email
+    from app.core.config import settings
+
+    async with AsyncSessionLocal() as db:
+        now = datetime.now(timezone.utc)
+        result = await db.execute(
+            select(DarkwebDossier).where(
+                DarkwebDossier.monitor_active == True,  # noqa: E712
+                DarkwebDossier.status == "completed",
+                DarkwebDossier.next_monitor_at <= now,
+            )
+        )
+        dossiers = result.scalars().all()
+
+    for d in dossiers:
+        # Snapshot exposed emails before re-scan
+        async with AsyncSessionLocal() as db:
+            prev_result = await db.execute(
+                select(DarkwebDossierTarget).where(
+                    DarkwebDossierTarget.dossier_id == d.id,
+                    DarkwebDossierTarget.status == "exposed",
+                )
+            )
+            prev_exposed = {t.email for t in prev_result.scalars().all()}
+
+        # Reset and re-process
+        async with AsyncSessionLocal() as db:
+            dossier = (await db.execute(
+                select(DarkwebDossier).where(DarkwebDossier.id == d.id)
+            )).scalar_one_or_none()
+            if not dossier:
+                continue
+            await db.execute(
+                DarkwebDossierTarget.__table__.update()
+                .where(DarkwebDossierTarget.dossier_id == d.id)
+                .values(status="pending", total_breaches=0, breach_sources_json=None, checked_at=None)
+            )
+            dossier.status = "pending"
+            dossier.started_at = None
+            dossier.finished_at = None
+            dossier.risk_score = None
+            dossier.severity_score = None
+            dossier.exposed_emails = 0
+            dossier.total_breach_instances = 0
+            dossier.top_sources_json = None
+            await db.commit()
+
+        await process_dossier(d.id, settings.HIBP_API_KEY)
+
+        # Check for new exposures and alert
+        async with AsyncSessionLocal() as db:
+            new_result = await db.execute(
+                select(DarkwebDossierTarget).where(
+                    DarkwebDossierTarget.dossier_id == d.id,
+                    DarkwebDossierTarget.status == "exposed",
+                )
+            )
+            new_exposed = [t.email for t in new_result.scalars().all() if t.email not in prev_exposed]
+
+            user_result = await db.execute(
+                select(User).where(User.id == d.user_id)
+            )
+            user = user_result.scalar_one_or_none()
+
+        if new_exposed and user:
+            dashboard_url = f"{settings.FRONTEND_URL}/cyberscan/darkweb-dossier/{d.id}"
+            send_darkweb_alert_email(
+                to_email=user.email,
+                company_name=d.company_name,
+                domain=d.domain,
+                exposed_count=len(new_exposed),
+                new_exposed=new_exposed,
+                dashboard_url=dashboard_url,
+            )
+
+
 def start_scheduler() -> None:
     """Start the APScheduler with a nightly job at 02:00 UTC and bi-weekly newsletter."""
     scheduler.add_job(
@@ -291,6 +469,28 @@ def start_scheduler() -> None:
             start_date=datetime.now(timezone.utc) + timedelta(weeks=2),
         ),
         id="biweekly_newsletter",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        _send_monthly_digest_job,
+        trigger=CronTrigger(day=1, hour=8, minute=0),
+        id="monthly_digest",
+        replace_existing=True,
+    )
+    # Phishing batch sender — every 15 minutes to drip-send pending emails
+    from apscheduler.triggers.interval import IntervalTrigger as _IT
+    from app.services.phishing_service import send_pending_batch
+    scheduler.add_job(
+        send_pending_batch,
+        trigger=_IT(minutes=15),
+        id="phishing_batch",
+        replace_existing=True,
+    )
+    # Dark web monitoring — daily at 03:00 UTC, processes dossiers whose next_monitor_at is due
+    scheduler.add_job(
+        _run_darkweb_monitoring,
+        trigger=CronTrigger(hour=3, minute=0),
+        id="darkweb_monitoring",
         replace_existing=True,
     )
     scheduler.start()

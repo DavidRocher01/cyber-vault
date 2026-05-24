@@ -22,6 +22,7 @@ class UserOut(BaseModel):
     email: EmailStr
     is_active: bool
     totp_enabled: bool = False
+    is_rssi_consultant: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -42,6 +43,11 @@ class NotificationPreferencesIn(BaseModel):
     notif_url_scan_done: bool
     notif_code_scan_done: bool
     notif_ssl_expiry: bool
+
+
+class AccessTokenOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
 
 
 class TokenOut(BaseModel):

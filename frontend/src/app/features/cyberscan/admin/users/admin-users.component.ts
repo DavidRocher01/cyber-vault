@@ -7,6 +7,7 @@ interface AdminUser {
   id: number;
   email: string;
   is_active: boolean;
+  is_rssi_consultant: boolean;
   plan: string;
   plan_name: string | null;
   subscription_status: string | null;
@@ -60,5 +61,17 @@ export class AdminUsersComponent implements OnInit {
   formatDate(iso: string | null): string {
     if (!iso) return '—';
     return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  toggleRssi(user: AdminUser) {
+    this.http.patch<{ id: number; is_rssi_consultant: boolean }>(
+      `/api/v1/admin/users/${user.id}/rssi`,
+      {},
+      { headers: this.auth.headers() },
+    ).subscribe({
+      next: res => {
+        this.users.update(list => list.map(u => u.id === res.id ? { ...u, is_rssi_consultant: res.is_rssi_consultant } : u));
+      },
+    });
   }
 }

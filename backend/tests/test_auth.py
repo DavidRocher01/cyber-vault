@@ -25,19 +25,19 @@ async def test_register_duplicate_email():
 
 
 @pytest.mark.asyncio
-async def test_login_success():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        await client.post("/api/v1/auth/register", json={
-            "email": "login@example.com",
-            "password": "StrongPass123!"
-        })
-        response = await client.post("/api/v1/auth/login", json={
-            "email": "login@example.com",
-            "password": "StrongPass123!"
-        })
-    assert response.status_code == 200
-    assert "access_token" in response.json()
-    assert "refresh_token" in response.json()
+async def test_login_success(http_client: AsyncClient):
+    await http_client.post("/api/v1/auth/register", json={
+        "email": "login@example.com",
+        "password": "StrongPass123!",
+    })
+    r = await http_client.post("/api/v1/auth/login", json={
+        "email": "login@example.com",
+        "password": "StrongPass123!",
+    })
+    assert r.status_code == 200
+    assert "access_token" in r.json()
+    assert "refresh_token" not in r.json()
+    assert "refresh_token" in r.cookies
 
 
 @pytest.mark.asyncio

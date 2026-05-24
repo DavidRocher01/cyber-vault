@@ -101,7 +101,7 @@ async def create_article(payload: BlogPostIn, db: AsyncSession = Depends(get_db)
         updated_at=now,
     )
     db.add(post)
-    await db.flush()
+    await db.commit()
     return _to_detail(post)
 
 
@@ -125,7 +125,7 @@ async def update_article(slug: str, payload: BlogPostIn, db: AsyncSession = Depe
     post.html_content = payload.htmlContent
     post.is_published = payload.isPublished
     post.updated_at = datetime.now(timezone.utc)
-    await db.flush()
+    await db.commit()
     return _to_detail(post)
 
 

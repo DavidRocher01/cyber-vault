@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from '../../core/guards/auth.guard';
+import { rssiGuard } from '../../core/guards/rssi.guard';
 
 export const CYBERSCAN_ROUTES: Routes = [
   {
@@ -48,6 +49,60 @@ export const CYBERSCAN_ROUTES: Routes = [
     loadComponent: () => import('./invoices/invoices.component').then(m => m.InvoicesComponent),
     canActivate: [authGuard],
     title: 'Mes factures — CyberScan',
+  },
+  {
+    path: 'consultant',
+    loadComponent: () => import('./consultant-dashboard/consultant-dashboard.component').then(m => m.ConsultantDashboardComponent),
+    canActivate: [rssiGuard],
+    title: 'RSSI Externalisé — CyberScan',
+  },
+  {
+    path: 'consultant/profile',
+    loadComponent: () => import('./consultant-profile/consultant-profile.component').then(m => m.ConsultantProfileComponent),
+    canActivate: [rssiGuard],
+    title: 'Mon profil consultant — CyberScan',
+  },
+  {
+    path: 'consultant/clients/:id',
+    loadComponent: () => import('./client-detail/client-detail.component').then(m => m.ClientDetailComponent),
+    canActivate: [rssiGuard],
+    title: 'Détail client — CyberScan',
+  },
+  {
+    path: 'sensibilisation',
+    loadComponent: () => import('./sensibilisation/sensibilisation.component').then(m => m.SensibilisationComponent),
+    canActivate: [authGuard],
+    title: 'Sensibilisation — CyberScan',
+  },
+  {
+    path: 'pca',
+    loadComponent: () => import('./pca/pca.component').then(m => m.PcaComponent),
+    canActivate: [authGuard],
+    title: 'PCA Light — CyberScan',
+  },
+  {
+    path: 'darkweb',
+    loadComponent: () => import('./darkweb/darkweb.component').then(m => m.DarkwebComponent),
+    canActivate: [authGuard],
+    title: 'Surveillance Dark Web — CyberScan',
+  },
+  {
+    path: 'darkweb-dossier',
+    loadComponent: () => import('./darkweb-dossier/darkweb-dossier.component').then(m => m.DarkwebDossierComponent),
+    canActivate: [authGuard],
+    title: 'Dark Web Dossier B2B — CyberScan',
+  },
+  {
+    path: 'darkweb-dossier/new',
+    loadComponent: () => import('./darkweb-dossier-new/darkweb-dossier-new.component').then(m => m.DarkwebDossierNewComponent),
+    canActivate: [authGuard],
+    title: 'Nouveau dossier dark web — CyberScan',
+  },
+  {
+    path: 'darkweb-dossier/:id',
+    loadComponent: () => import('./darkweb-dossier-detail/darkweb-dossier-detail.component').then(m => m.DarkwebDossierDetailComponent),
+    canActivate: [authGuard],
+    title: 'Résultats dossier dark web — CyberScan',
   },
   {
     path: 'onboarding',
@@ -133,6 +188,18 @@ export const CYBERSCAN_ROUTES: Routes = [
     path: 'audit-cybersecurite-pme',
     redirectTo: '/cyberscan',
     pathMatch: 'full',
+  },
+  {
+    path: 'phishing/campaigns/:id',
+    loadComponent: () => import('./phishing-campaign-detail/phishing-campaign-detail.component').then(m => m.PhishingCampaignDetailComponent),
+    canActivate: [authGuard],
+    title: 'Résultats campagne — CyberScan',
+  },
+  {
+    path: 'phishing/campaigns/:id/edit',
+    loadComponent: () => import('./phishing-campaign-edit/phishing-campaign-edit.component').then(m => m.PhishingCampaignEditComponent),
+    canActivate: [authGuard],
+    title: 'Configurer campagne — CyberScan',
   },
   {
     path: 'scan-gratuit',

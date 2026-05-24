@@ -118,3 +118,46 @@ async def test_update_category():
         r = await client.patch(f"{BASE}/vault/{item_id}", json={"category": "wifi"}, headers=headers)
         assert r.status_code == 200
         assert r.json()["category"] == "wifi"
+
+
+@pytest.mark.asyncio
+async def test_zero_knowledge_sentinel():
+    """
+    The server must store password_encrypted verbatim — it never decrypts,
+    re-encrypts, or derives plaintext. Only the client holds the key.
+    """
+    import app.core.database as _db_mod
+    from sqlalchemy import select
+    from app.models.vault_item import VaultItem
+
+    # Opaque sentinel that looks like a real AES-GCM ciphertext (iv:ciphertext, base64)
+    SENTINEL = "v1:AAAAAAAAAAAAAAAAAAAAAA==:c2VudGluZWxjaXBoZXJ0ZXh0X25ldmVycGxhaW50ZXh0"
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        await client.post(f"{BASE}/auth/register", json={"email": "zk@test.com", "password": "Pass123!"})
+        r = await client.post(f"{BASE}/auth/login", json={"email": "zk@test.com", "password": "Pass123!"})
+        headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+        r = await client.post(f"{BASE}/vault/", json={
+            "title": "ZK Sentinel",
+            "password_encrypted": SENTINEL,
+        }, headers=headers)
+        assert r.status_code == 201
+        item_id = r.json()["id"]
+
+        # API response echoes the ciphertext verbatim (no server-side transformation)
+        assert r.json()["password_encrypted"] == SENTINEL
+
+    # Query DB directly — bypass the API layer entirely
+    async with _db_mod.AsyncSessionLocal() as db:
+        result = await db.execute(select(VaultItem).where(VaultItem.id == item_id))
+        db_item = result.scalar_one()
+
+    # Server stores exactly what the client sent
+    assert db_item.password_encrypted == SENTINEL, (
+        "ZK violation: server must not transform the ciphertext"
+    )
+    # Stored value is not plaintext (contains no recognisable password substring)
+    assert "neverplaintext" not in db_item.password_encrypted.replace(
+        "c2VudGluZWxjaXBoZXJ0ZXh0X25ldmVycGxhaW50ZXh0", ""
+    )

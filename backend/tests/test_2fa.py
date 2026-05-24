@@ -152,7 +152,7 @@ async def test_login_with_2fa_valid_code_returns_tokens():
     assert r.status_code == 200
     data = r.json()
     assert "access_token" in data
-    assert "refresh_token" in data
+    assert "refresh_token" not in data
 
 
 @pytest.mark.asyncio

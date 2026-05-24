@@ -279,6 +279,93 @@
             <mat-icon class="text-gray-600 group-hover:text-teal-400 transition-colors !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">arrow_forward</mat-icon>
           </a>
         }
+
+        <a routerLink="/cyberscan/phishing/campaigns"
+           class="group flex items-center gap-4 rounded-xl border border-gray-700/60 bg-gray-800/40 hover:bg-gray-800/80 hover:border-orange-700/50 px-5 py-4 transition-all">
+          <div class="w-10 h-10 rounded-xl bg-orange-900/30 border border-orange-800/50 flex items-center justify-center flex-shrink-0 group-hover:bg-orange-900/50 transition-colors">
+            <mat-icon class="text-orange-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">phishing</mat-icon>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-sm text-white group-hover:text-orange-300 transition-colors">Simulation phishing</p>
+            <p class="text-xs text-gray-500 mt-0.5">Campagnes · Rapport · Sensibilisation</p>
+          </div>
+          <mat-icon class="text-gray-600 group-hover:text-orange-400 transition-colors !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">arrow_forward</mat-icon>
+        </a>
+
+        <a routerLink="/cyberscan/darkweb"
+           class="group flex items-center gap-4 rounded-xl border border-gray-700/60 bg-gray-800/40 hover:bg-gray-800/80 hover:border-red-700/50 px-5 py-4 transition-all">
+          <div class="w-10 h-10 rounded-xl bg-red-900/30 border border-red-800/50 flex items-center justify-center flex-shrink-0 group-hover:bg-red-900/50 transition-colors">
+            <mat-icon class="text-red-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">travel_explore</mat-icon>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-sm text-white group-hover:text-red-300 transition-colors">Surveillance Dark Web</p>
+            <p class="text-xs text-gray-500 mt-0.5">Fuites email · Vérification personnelle</p>
+          </div>
+          <mat-icon class="text-gray-600 group-hover:text-red-400 transition-colors !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">arrow_forward</mat-icon>
+        </a>
+
+        <a routerLink="/cyberscan/darkweb-dossier"
+           class="group flex items-center gap-4 rounded-xl border border-gray-700/60 bg-gray-800/40 hover:bg-gray-800/80 hover:border-rose-700/50 px-5 py-4 transition-all">
+          <div class="w-10 h-10 rounded-xl bg-rose-900/30 border border-rose-800/50 flex items-center justify-center flex-shrink-0 group-hover:bg-rose-900/50 transition-colors">
+            <mat-icon class="text-rose-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">manage_search</mat-icon>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-sm text-white group-hover:text-rose-300 transition-colors">Dark Web Dossier</p>
+            <p class="text-xs text-gray-500 mt-0.5">Exposition domaine B2B · Score risque · PDF</p>
+          </div>
+          <mat-icon class="text-gray-600 group-hover:text-rose-400 transition-colors !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">arrow_forward</mat-icon>
+        </a>
+
+        <!-- #1 — Modules grisés Pro (affichés uniquement sur plan gratuit / sans abonnement) -->
+        @if (!subscription() || (subscription()?.plan?.tier_level ?? 0) <= 1) {
+          <button type="button" (click)="openPlansModal()"
+             class="group flex items-center gap-4 rounded-xl border border-gray-700/30 bg-gray-800/20 px-5 py-4 cursor-pointer opacity-70 hover:opacity-90 transition-all relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-r from-purple-900/10 to-transparent pointer-events-none"></div>
+            <div class="w-10 h-10 rounded-xl bg-purple-900/20 border border-purple-800/30 flex items-center justify-center flex-shrink-0">
+              <mat-icon class="text-purple-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">terminal</mat-icon>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5">
+                <p class="font-semibold text-sm text-gray-400">Scripts de remédiation</p>
+                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-700/30">PRO</span>
+              </div>
+              <p class="text-xs text-gray-600 mt-0.5">Corrections automatiques UFW · SSH · Nginx</p>
+            </div>
+            <mat-icon class="text-purple-600 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">lock</mat-icon>
+          </button>
+
+          <button type="button" (click)="openPlansModal()"
+             class="group flex items-center gap-4 rounded-xl border border-gray-700/30 bg-gray-800/20 px-5 py-4 cursor-pointer opacity-70 hover:opacity-90 transition-all relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-r from-purple-900/10 to-transparent pointer-events-none"></div>
+            <div class="w-10 h-10 rounded-xl bg-purple-900/20 border border-purple-800/30 flex items-center justify-center flex-shrink-0">
+              <mat-icon class="text-purple-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">schedule</mat-icon>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5">
+                <p class="font-semibold text-sm text-gray-400">Scan automatique</p>
+                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-700/30">PRO</span>
+              </div>
+              <p class="text-xs text-gray-600 mt-0.5">Re-scan hebdo · Alertes email si nouvelle faille</p>
+            </div>
+            <mat-icon class="text-purple-600 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">lock</mat-icon>
+          </button>
+
+          <button type="button" (click)="openPlansModal()"
+             class="group flex items-center gap-4 rounded-xl border border-gray-700/30 bg-gray-800/20 px-5 py-4 cursor-pointer opacity-70 hover:opacity-90 transition-all relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-r from-purple-900/10 to-transparent pointer-events-none"></div>
+            <div class="w-10 h-10 rounded-xl bg-purple-900/20 border border-purple-800/30 flex items-center justify-center flex-shrink-0">
+              <mat-icon class="text-purple-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">verified_user</mat-icon>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5">
+                <p class="font-semibold text-sm text-gray-400">Threat Intel & TLS avancé</p>
+                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-700/30">PRO</span>
+              </div>
+              <p class="text-xs text-gray-600 mt-0.5">Réputation IP étendue · Analyse TLS profonde</p>
+            </div>
+            <mat-icon class="text-purple-600 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">lock</mat-icon>
+          </button>
+        }
       </div>
 
       <!-- ── Analytics globale ────────────────────────────────────────────── -->

@@ -36,6 +36,7 @@
             <th class="text-left px-4 py-3">Plan</th>
             <th class="text-left px-4 py-3">Abonné depuis</th>
             <th class="text-left px-4 py-3">Statut</th>
+            <th class="text-left px-4 py-3">RSSI</th>
           </tr>
         </thead>
         <tbody>
@@ -54,6 +55,15 @@
                       [class.bg-red-900]="!u.is_active" [class.text-red-400]="!u.is_active">
                   {{ u.is_active ? 'Actif' : 'Inactif' }}
                 </span>
+              </td>
+              <td class="px-4 py-3">
+                <button type="button" (click)="toggleRssi(u)"
+                        class="text-xs px-2 py-0.5 rounded-full transition-colors"
+                        [class.bg-cyan-900]="u.is_rssi_consultant" [class.text-cyan-400]="u.is_rssi_consultant"
+                        [class.bg-gray-700]="!u.is_rssi_consultant" [class.text-gray-400]="!u.is_rssi_consultant"
+                        [title]="u.is_rssi_consultant ? 'Retirer le rôle consultant' : 'Activer le rôle consultant'">
+                  {{ u.is_rssi_consultant ? 'Consultant' : '—' }}
+                </button>
               </td>
             </tr>
           }

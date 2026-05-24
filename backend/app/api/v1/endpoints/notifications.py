@@ -47,7 +47,7 @@ async def mark_read(
 ):
     notif = await get_user_resource(db, Notification, notification_id, current_user.id, "Notification introuvable")
     notif.read = True
-    await db.flush()
+    await db.commit()
     return notif
 
 
@@ -64,7 +64,7 @@ async def mark_all_read(
     )
     for notif in result.scalars().all():
         notif.read = True
-    await db.flush()
+    await db.commit()
 
 
 @router.delete("/{notification_id}", status_code=204)
@@ -75,4 +75,4 @@ async def delete_notification(
 ):
     notif = await get_user_resource(db, Notification, notification_id, current_user.id, "Notification introuvable")
     await db.delete(notif)
-    await db.flush()
+    await db.commit()
