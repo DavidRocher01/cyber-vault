@@ -212,11 +212,15 @@
           </div>
           <div class="px-5 py-3.5 bg-gray-900/40 flex items-center justify-between">
             <p class="text-gray-500 text-xs">À partir de <strong class="text-gray-300">9,90 € / mois</strong> · Sans engagement</p>
-            <a routerLink="/cyberscan" [queryParams]="{action:'register'}"
-               class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold transition-all">
-              <mat-icon class="!text-base !h-4 !w-4">lock_open</mat-icon>
+            <button type="button" (click)="openCheckout()" [disabled]="checkoutLoading"
+               class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-semibold transition-all">
+              @if (checkoutLoading) {
+                <mat-spinner diameter="14" />
+              } @else {
+                <mat-icon class="!text-base !h-4 !w-4">lock_open</mat-icon>
+              }
               Débloquer
-            </a>
+            </button>
           </div>
         </div>
 

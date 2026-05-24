@@ -11,6 +11,7 @@ import { Subscription, interval } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 
 import { CyberscanService, PublicScanResult } from '../services/cyberscan.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { computeScore, getGrade, getScoreColor } from '../../../shared/score-utils';
@@ -36,6 +37,7 @@ interface Module {
 })
 export class ScanGratuitComponent implements OnInit, OnDestroy {
   private cyberscan = inject(CyberscanService);
+  private auth = inject(AuthService);
   private http = inject(HttpClient);
   private router = inject(Router);
   private fb = inject(FormBuilder);
@@ -52,6 +54,7 @@ export class ScanGratuitComponent implements OnInit, OnDestroy {
   scan = signal<PublicScanResult | null>(null);
   emailSent = signal(false);
   error = signal<string | null>(null);
+  checkoutLoading = false;
 
   private pollSub: Subscription | null = null;
 
@@ -106,6 +109,25 @@ export class ScanGratuitComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: s => this.scan.set(s),
       error: () => this.error.set('Impossible de récupérer les résultats.'),
+    });
+  }
+
+  openCheckout() {
+    if (!this.auth.isAuthenticated()) {
+      this.router.navigate(['/cyberscan'], { queryParams: { action: 'register' } });
+      return;
+    }
+    this.checkoutLoading = true;
+    this.cyberscan.getPlans().subscribe({
+      next: plans => {
+        if (!plans.length) { this.checkoutLoading = false; return; }
+        const starter = plans.reduce((a, b) => a.price_cents < b.price_cents ? a : b);
+        this.cyberscan.createCheckout(starter.id).subscribe({
+          next: res => { window.location.href = res.checkout_url; },
+          error: () => { this.checkoutLoading = false; },
+        });
+      },
+      error: () => { this.checkoutLoading = false; },
     });
   }
 
