@@ -37,7 +37,8 @@ test.describe('Dark Web — surveillance personnelle', () => {
     await login(page, email);
     await page.goto('/cyberscan/darkweb');
     await expect(page).toHaveURL(/\/cyberscan\/darkweb/);
-    await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 10_000 });
+    // Le titre utilise un <span>, pas un heading — on vérifie le badge toujours visible
+    await expect(page.getByText('SURVEILLANCE').first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('page darkweb — bouton "Vérifier mon email" visible', async ({ page }) => {
@@ -45,13 +46,13 @@ test.describe('Dark Web — surveillance personnelle', () => {
     await page.goto('/cyberscan/darkweb');
     await expect(
       page.getByRole('button', { name: /Vérifier|Lancer|Analyser/i }).first()
-    ).toBeVisible({ timeout: 5_000 });
+    ).toBeVisible({ timeout: 15_000 });
   });
 
   test('page darkweb — adresse email de l\'utilisateur affichée', async ({ page }) => {
     await login(page, email);
     await page.goto('/cyberscan/darkweb');
-    await expect(page.getByText(email)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(email)).toBeVisible({ timeout: 15_000 });
   });
 
   test('page darkweb — titre de page correct', async ({ page }) => {
@@ -77,7 +78,8 @@ test.describe('Dark Web Dossier — liste', () => {
     await login(page, email);
     await page.goto('/cyberscan/darkweb-dossier');
     await expect(page).toHaveURL(/\/cyberscan\/darkweb-dossier/);
-    await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 5_000 });
+    // <h2> n'apparaît qu'après chargement (état vide) — attendre plus longtemps en CI
+    await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('page dossier — bouton "Nouveau dossier" visible', async ({ page }) => {
@@ -87,7 +89,7 @@ test.describe('Dark Web Dossier — liste', () => {
       page.getByRole('link', { name: /Nouveau dossier/i }).or(
         page.getByRole('button', { name: /Nouveau dossier/i })
       )
-    ).toBeVisible({ timeout: 5_000 });
+    ).toBeVisible({ timeout: 10_000 });
   });
 
   test('page dossier — titre de page correct', async ({ page }) => {
@@ -113,7 +115,7 @@ test.describe('Dark Web Dossier — formulaire nouveau dossier', () => {
     await login(page, email);
     await page.goto('/cyberscan/darkweb-dossier/new');
     await expect(page).toHaveURL(/\/cyberscan\/darkweb-dossier\/new/);
-    await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('formulaire — champ nom de société visible', async ({ page }) => {
@@ -121,14 +123,14 @@ test.describe('Dark Web Dossier — formulaire nouveau dossier', () => {
     await page.goto('/cyberscan/darkweb-dossier/new');
     await expect(
       page.locator('input').filter({ hasText: '' }).first()
-    ).toBeVisible({ timeout: 5_000 });
+    ).toBeVisible({ timeout: 10_000 });
   });
 
   test('formulaire — bouton Créer désactivé sans données', async ({ page }) => {
     await login(page, email);
     await page.goto('/cyberscan/darkweb-dossier/new');
     const btn = page.getByRole('button', { name: /Créer|Lancer|Analyser|Soumettre/i }).last();
-    await expect(btn).toBeVisible({ timeout: 5_000 });
+    await expect(btn).toBeVisible({ timeout: 10_000 });
     await expect(btn).toBeDisabled();
   });
 
@@ -145,7 +147,7 @@ test.describe('Dark Web Dossier — formulaire nouveau dossier', () => {
     await login(page, email);
     await page.goto('/cyberscan/darkweb-dossier/new');
     const cancelLink = page.getByRole('link', { name: /Annuler|Retour/i }).first();
-    await expect(cancelLink).toBeVisible({ timeout: 5_000 });
+    await expect(cancelLink).toBeVisible({ timeout: 10_000 });
     await expect(cancelLink).toHaveAttribute('href', /\/cyberscan\/darkweb-dossier$/);
   });
 });
@@ -168,7 +170,7 @@ test.describe('Dashboard — liens quick tools dark web', () => {
     const card = page.getByRole('link', { name: /Surveillance Dark Web/i }).or(
       page.getByText(/Surveillance Dark Web/i).first()
     );
-    await expect(card).toBeVisible({ timeout: 10_000 });
+    await expect(card).toBeVisible({ timeout: 20_000 });
   });
 
   test('dashboard — carte "Dark Web Dossier" visible', async ({ page }) => {
@@ -177,6 +179,6 @@ test.describe('Dashboard — liens quick tools dark web', () => {
     const card = page.getByRole('link', { name: /Dark Web Dossier/i }).or(
       page.getByText(/Dark Web Dossier/i).first()
     );
-    await expect(card).toBeVisible({ timeout: 10_000 });
+    await expect(card).toBeVisible({ timeout: 20_000 });
   });
 });

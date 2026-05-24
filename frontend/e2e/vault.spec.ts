@@ -40,7 +40,7 @@ test.describe('Parcours Vault', () => {
   test('ajoute une nouvelle entrée et la voit dans la liste', async ({ page }) => {
     await page.getByRole('button', { name: /nouvelle entrée/i }).click();
     await page.locator('[formcontrolname="title"]').fill('GitHub');
-    await page.locator('[formcontrolname="password"]').fill('secret123');
+    await page.locator('[formcontrolname="password_encrypted"]').fill('secret123');
     await page.getByRole('button', { name: /enregistrer/i }).click();
     await expect(page.getByText('GitHub')).toBeVisible();
   });
