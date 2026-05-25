@@ -23,6 +23,7 @@ Public tracking routes (no auth — called by email clients / browsers):
 
 import csv
 import io
+import json
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile, status
@@ -459,9 +460,23 @@ async def tracking_click(tracking_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/t/{tracking_id}/l", response_class=HTMLResponse, include_in_schema=False)
-async def tracking_landing(tracking_id: str):
-    """Serve the fake credential-harvesting landing page."""
-    return HTMLResponse(content=phishing_service.get_landing_html(tracking_id))
+async def tracking_landing(tracking_id: str, db: AsyncSession = Depends(get_db)):
+    """Serve the scenario-specific credential-harvesting landing page."""
+    result = await db.execute(
+        select(PhishingTarget).where(PhishingTarget.tracking_id == tracking_id)
+    )
+    target = result.scalar_one_or_none()
+    scenario_key = phishing_service._DEFAULT_SCENARIO_KEY
+    if target:
+        campaign_result = await db.execute(
+            select(PhishingCampaign).where(PhishingCampaign.id == target.campaign_id)
+        )
+        campaign = campaign_result.scalar_one_or_none()
+        if campaign:
+            keys = json.loads(campaign.scenario_keys or "[]")
+            if keys:
+                scenario_key = keys[0]
+    return HTMLResponse(content=phishing_service.get_landing_html(tracking_id, scenario_key))
 
 
 @router.post("/t/{tracking_id}/s", response_class=HTMLResponse, include_in_schema=False)
