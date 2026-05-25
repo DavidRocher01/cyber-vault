@@ -751,40 +751,125 @@ _LANDING_TEMPLATES: dict[str, str] = {
     "ceo":       _LANDING_CEO,
 }
 
-_AWARENESS_HTML = """<!DOCTYPE html>
-<html lang="fr">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Exercice de cybersécurité — CyberScan</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#0f172a;color:#fff;font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
-.card{background:#1e293b;border:1px solid #334155;padding:40px;border-radius:12px;max-width:600px;width:100%;text-align:center}
-.icon{font-size:56px;margin-bottom:16px}
-h1{font-size:24px;color:#f59e0b;margin-bottom:12px}
-p{color:#94a3b8;line-height:1.6;margin-bottom:16px}
-.tips{background:#0f172a;border-radius:8px;padding:24px;text-align:left;margin-top:24px}
-.tips h3{color:#38bdf8;margin-bottom:12px;font-size:15px}
-ol{color:#94a3b8;padding-left:20px;line-height:2}
-.badge{display:inline-block;background:#0e7490;color:#fff;padding:4px 12px;border-radius:999px;font-size:12px;margin-top:24px}
-</style></head>
-<body>
-<div class="card">
-  <div class="icon">⚠️</div>
-  <h1>Exercice de cybersécurité</h1>
-  <p>Vous venez de cliquer sur un <strong style="color:#fbbf24">lien de phishing simulé</strong>
-  dans le cadre d'un exercice de sensibilisation organisé par votre entreprise.</p>
-  <p>Aucune donnée réelle n'a été capturée. Votre vigilance contribue à la sécurité collective.</p>
-  <div class="tips">
-    <h3>3 réflexes anti-phishing à retenir</h3>
-    <ol>
-      <li>Vérifiez toujours l'adresse de l'expéditeur (pas seulement le nom affiché)</li>
-      <li>Survolez les liens pour voir l'URL réelle avant de cliquer</li>
-      <li>En cas de doute, appelez directement la personne concernée</li>
-    </ol>
-  </div>
-  <span class="badge">CyberScan — Simulation de phishing</span>
-</div>
-</body></html>"""
+_SCENARIO_AWARENESS: dict[str, dict] = {
+    "ceo-fraud": {
+        "label": "une fraude au Président",
+        "icon": "🏦",
+        "red_flags": [
+            "La demande était urgente et confidentielle — deux leviers classiques de manipulation",
+            "Le message vous demandait d'agir sans passer par les procédures habituelles",
+            "Aucun virement ne devrait être effectué sans double validation orale en interne",
+        ],
+    },
+    "o365-credentials": {
+        "label": "un faux email Microsoft 365",
+        "icon": "🔒",
+        "red_flags": [
+            "L'URL du lien n'était pas login.microsoftonline.com",
+            "Microsoft n'envoie jamais d'alertes vous demandant de cliquer sur un lien par email",
+            "La localisation distante et l'urgence étaient créées artificiellement",
+        ],
+    },
+    "fake-invoice": {
+        "label": "une fausse relance comptable",
+        "icon": "📄",
+        "red_flags": [
+            "Le lien pointait vers un portail de paiement externe non vérifié",
+            "Toute demande de paiement doit être confirmée par téléphone auprès du fournisseur",
+            "L'urgence (48h, pénalités) est une technique de pression courante",
+        ],
+    },
+    "bank-phishing": {
+        "label": "une fausse alerte bancaire",
+        "icon": "🏛️",
+        "red_flags": [
+            "Votre banque ne vous demandera jamais vos identifiants via un lien email",
+            "L'URL de la page de connexion n'était pas celle de votre banque officielle",
+            "Le compte à rebours (2 heures) est un mécanisme de pression pour vous faire agir vite",
+        ],
+    },
+    "parcel-tracking": {
+        "label": "un faux avis de livraison",
+        "icon": "📦",
+        "red_flags": [
+            "Les transporteurs ne demandent jamais de coordonnées bancaires via un lien email",
+            "L'URL du formulaire n'était pas le site officiel du transporteur",
+            "En cas de doute, suivez votre colis directement sur le site officiel du transporteur",
+        ],
+    },
+    "it-password": {
+        "label": "un faux email DSI",
+        "icon": "💻",
+        "red_flags": [
+            "La DSI communique les renouvellements de mot de passe via le portail officiel, pas par email",
+            "L'URL du portail de connexion était différente du portail DSI habituel",
+            "En cas de doute, appelez directement le helpdesk IT pour confirmer",
+        ],
+    },
+    "prize": {
+        "label": "une fausse notification RH",
+        "icon": "🎁",
+        "red_flags": [
+            "Le CE n'organise pas de tirages au sort distribués par email avec un mot de passe à entrer",
+            "Demander votre mot de passe professionnel pour réclamer un lot est une arnaque classique",
+            "La curiosité et l'appât du gain sont délibérément exploités pour vous faire baisser la garde",
+        ],
+    },
+    "invoice-pdf": {
+        "label": "une fausse demande de signature électronique",
+        "icon": "✍️",
+        "red_flags": [
+            "DocuSign ne vous envoie pas de lien vous demandant votre mot de passe Microsoft",
+            "Vérifiez toujours l'adresse réelle de l'expéditeur (pas seulement le nom affiché)",
+            "Ouvrez les documents à signer directement depuis le portail officiel docusign.com",
+        ],
+    },
+    "vpn-update": {
+        "label": "une fausse alerte de sécurité VPN",
+        "icon": "🔒",
+        "red_flags": [
+            "Les mises à jour VPN ne s'installent jamais depuis un lien dans un email",
+            "Téléchargez les mises à jour uniquement depuis le portail officiel de la DSI",
+            "CVE + CVSS élevé + urgence = technique de manipulation très utilisée en phishing",
+        ],
+    },
+    "hr-document": {
+        "label": "un faux document RH confidentiel",
+        "icon": "📊",
+        "red_flags": [
+            "La DRH ne diffuse pas la grille des salaires via un lien email avec authentification",
+            "L'accès à un document 'confidentiel' via un lien email est un piège classique",
+            "La curiosité (salaires des collègues) est délibérément exploitée pour vous faire cliquer",
+        ],
+    },
+    "teams-message": {
+        "label": "une fausse notification Microsoft Teams",
+        "icon": "💬",
+        "red_flags": [
+            "Microsoft Teams n'envoie pas de liens de connexion par email pour accéder à un message",
+            "L'URL de la page de connexion n'était pas login.microsoftonline.com",
+            "Les pièces jointes Teams s'ouvrent directement dans l'application, pas via un navigateur",
+        ],
+    },
+    "sharepoint-share": {
+        "label": "un faux partage SharePoint",
+        "icon": "📁",
+        "red_flags": [
+            "L'URL de connexion n'était pas login.microsoftonline.com",
+            "SharePoint ne vous demande pas de vous reconnecter via un email pour accéder à un partage",
+            "Un nom d'expéditeur peut être usurpé facilement — vérifiez toujours l'adresse réelle",
+        ],
+    },
+    "it-ticket": {
+        "label": "un faux ticket helpdesk DSI",
+        "icon": "🎧",
+        "red_flags": [
+            "Le helpdesk DSI n'assigne pas de tickets urgents avec un lien SSO dans un email",
+            "Vérifiez dans le portail helpdesk officiel si le ticket existe réellement",
+            "La haute priorité et le délai 'avant fin de journée' créent une pression artificielle",
+        ],
+    },
+}
 
 _PIXEL_GIF = (
     b"GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00"
@@ -1154,26 +1239,30 @@ async def record_click(tracking_id: str, db: AsyncSession) -> None:
         await db.commit()
 
 
-async def record_submit(tracking_id: str, db: AsyncSession) -> None:
+async def record_submit(tracking_id: str, db: AsyncSession) -> str:
+    """Records submission and returns the scenario_key for the awareness page."""
     result = await db.execute(
         select(PhishingTarget).where(PhishingTarget.tracking_id == tracking_id)
     )
     target = result.scalar_one_or_none()
-    if target and target.status != "submitted":
-        target.status = "submitted"
+    scenario_key = _DEFAULT_SCENARIO_KEY
+    if target:
         campaign_result = await db.execute(
             select(PhishingCampaign).where(PhishingCampaign.id == target.campaign_id)
         )
         campaign = campaign_result.scalar_one_or_none()
         if campaign:
-            campaign.submitted_count += 1
-            campaign.updated_at = datetime.now(timezone.utc)
+            keys = json.loads(campaign.scenario_keys or "[]")
+            if keys:
+                scenario_key = keys[0]
+            if target.status != "submitted":
+                target.status = "submitted"
+                campaign.submitted_count += 1
+                campaign.updated_at = datetime.now(timezone.utc)
+        elif target.status != "submitted":
+            target.status = "submitted"
         await db.commit()
-
-
-# ---------------------------------------------------------------------------
-# Tracking page content
-# ---------------------------------------------------------------------------
+    return scenario_key
 
 def get_pixel_gif() -> bytes:
     return _PIXEL_GIF
@@ -1187,5 +1276,58 @@ def get_landing_html(tracking_id: str, scenario_key: str = _DEFAULT_SCENARIO_KEY
     return html.replace("ACTION_URL", action)
 
 
-def get_awareness_html() -> str:
-    return _AWARENESS_HTML
+def get_awareness_html(scenario_key: str = _DEFAULT_SCENARIO_KEY) -> str:
+    _fallback = {
+        "label": "un email de phishing",
+        "icon": "\u26a0\ufe0f",
+        "red_flags": [
+            "Vérifiez toujours l'adresse réelle de l'expéditeur (pas seulement le nom affiché)",
+            "Survolez les liens pour voir l'URL réelle avant de cliquer",
+            "En cas de doute, appelez directement la personne ou le service concerné",
+        ],
+    }
+    info = _SCENARIO_AWARENESS.get(scenario_key, _fallback)
+    label = info["label"]
+    icon = info["icon"]
+    flags_html = "\n".join(
+        f'      <li>{f}</li>'
+        for f in info["red_flags"]
+    )
+    return f"""<!DOCTYPE html>
+<html lang=\"fr\">
+<head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">
+<title>Exercice de cybersécurité — CyberScan</title>
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{background:#0f172a;color:#fff;font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}}
+.card{{background:#1e293b;border:1px solid #334155;padding:40px;border-radius:12px;max-width:640px;width:100%;text-align:center}}
+.icon{{font-size:56px;margin-bottom:16px}}
+h1{{font-size:22px;color:#f59e0b;margin-bottom:10px}}
+.scenario{{display:inline-block;background:#1e3a5f;border:1px solid #2563eb;color:#93c5fd;font-size:13px;padding:5px 14px;border-radius:999px;margin-bottom:18px}}
+p{{color:#94a3b8;line-height:1.6;margin-bottom:10px;font-size:15px}}
+.tips{{background:#0f172a;border-radius:8px;padding:24px;text-align:left;margin-top:20px}}
+.tips h3{{color:#38bdf8;margin-bottom:14px;font-size:13px;letter-spacing:.8px;text-transform:uppercase}}
+ul{{padding-left:0;list-style:none}}
+ul li{{padding:9px 0 9px 22px;border-bottom:1px solid #1e293b;position:relative;color:#94a3b8;line-height:1.5;font-size:14px}}
+ul li:last-child{{border-bottom:none}}
+ul li::before{{content:\"\u2192\";position:absolute;left:0;color:#f59e0b}}
+.badge{{display:inline-block;background:#0e7490;color:#fff;padding:4px 12px;border-radius:999px;font-size:12px;margin-top:24px}}
+</style></head>
+<body>
+<div class=\"card\">
+  <div class=\"icon\">{icon}</div>
+  <h1>Exercice de cybersécurité</h1>
+  <div class=\"scenario\">Scénario : {label}</div>
+  <p>Vous venez de tomber dans le piège d'<strong style=\"color:#fbbf24\">{label}</strong> simulé
+  dans le cadre d'un exercice de sensibilisation organisé par votre entreprise.</p>
+  <p>Aucune donnée réelle n'a été capturée ni stockée. Cet exercice vise à renforcer votre vigilance.</p>
+  <div class=\"tips\">
+    <h3>&#128269; Signaux d'alerte que vous auriez pu détecter</h3>
+    <ul>
+{flags_html}
+    </ul>
+  </div>
+  <span class=\"badge\">CyberScan — Simulation de phishing</span>
+</div>
+</body></html>"""
+

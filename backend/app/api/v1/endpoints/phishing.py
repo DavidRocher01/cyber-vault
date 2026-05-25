@@ -477,5 +477,5 @@ async def tracking_landing(tracking_id: str, db: AsyncSession = Depends(get_db))
 @router.post("/t/{tracking_id}/s", response_class=HTMLResponse, include_in_schema=False)
 async def tracking_submit(tracking_id: str, db: AsyncSession = Depends(get_db)):
     """Record credential submission and return the awareness / education page."""
-    await phishing_service.record_submit(tracking_id, db)
-    return HTMLResponse(content=phishing_service.get_awareness_html())
+    scenario_key = await phishing_service.record_submit(tracking_id, db)
+    return HTMLResponse(content=phishing_service.get_awareness_html(scenario_key))
