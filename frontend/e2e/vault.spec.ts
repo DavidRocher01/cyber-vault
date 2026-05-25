@@ -57,7 +57,7 @@ test.describe('Parcours Vault', () => {
     await expect(page.getByText('ASupprimer')).toBeVisible();
 
     // Supprimer
-    await page.getByTitle('Supprimer').first().click();
+    await page.getByLabel('Supprimer').first().click();
     await expect(page.getByText('ASupprimer')).not.toBeVisible();
   });
 
