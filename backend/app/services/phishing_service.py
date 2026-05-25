@@ -1092,7 +1092,12 @@ def _build_email(
     from_addr = f"{from_name} <{from_email}>"
     reply_to: str | None = None
     if campaign.lookalike_domain and tpl.get("internal"):
-        raw = campaign.lookalike_domain.lstrip("https://").lstrip("http://").rstrip("/")
+        raw = campaign.lookalike_domain
+        if raw.startswith("https://"):
+            raw = raw[8:]
+        elif raw.startswith("http://"):
+            raw = raw[7:]
+        raw = raw.rstrip("/")
         reply_to = f"{from_name} <noreply@{raw}>"
     return from_addr, subject, html, text, reply_to
 
