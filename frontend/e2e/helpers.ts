@@ -5,6 +5,7 @@ const PASSWORD = 'StrongPass123!';
 export async function createAndLogin(page: Page): Promise<string> {
   const email = `e2e_${Date.now()}_${Math.random().toString(36).slice(2, 7)}@test.com`;
 
+  await page.addInitScript(() => localStorage.setItem('cyberscan_cookie_consent', 'accepted'));
   await page.goto('/auth/register');
   await page.locator('[formcontrolname="email"]').fill(email);
   await page.locator('[formcontrolname="password"]').fill(PASSWORD);
@@ -16,6 +17,7 @@ export async function createAndLogin(page: Page): Promise<string> {
 }
 
 export async function login(page: Page, email: string): Promise<void> {
+  await page.addInitScript(() => localStorage.setItem('cyberscan_cookie_consent', 'accepted'));
   await page.goto('/auth/login');
   await page.locator('[formcontrolname="email"]').fill(email);
   await page.locator('[formcontrolname="password"]').fill(PASSWORD);

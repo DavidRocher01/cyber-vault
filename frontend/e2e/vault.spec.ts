@@ -9,6 +9,7 @@ test.describe('Parcours Vault', () => {
 
   test.beforeAll(async ({ browser }) => {
     const page = await browser.newPage();
+    await page.addInitScript(() => localStorage.setItem('cyberscan_cookie_consent', 'accepted'));
     await page.goto('/auth/register');
     await page.locator('[formcontrolname="email"]').fill(EMAIL);
     await page.locator('[formcontrolname="password"]').fill(PASSWORD);
@@ -20,6 +21,7 @@ test.describe('Parcours Vault', () => {
   });
 
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('cyberscan_cookie_consent', 'accepted'));
     await page.goto('/auth/login');
     await page.locator('[formcontrolname="email"]').fill(EMAIL);
     await page.locator('[formcontrolname="password"]').fill(PASSWORD);
