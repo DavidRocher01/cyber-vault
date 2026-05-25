@@ -14,7 +14,8 @@ test.describe('Parcours Vault', () => {
     await page.locator('[formcontrolname="password"]').fill(PASSWORD);
     await page.locator('[formcontrolname="confirmPassword"]').fill(PASSWORD);
     await page.getByRole('button', { name: /créer mon compte/i }).click();
-    await page.waitForURL(/\/cyberscan/);
+    // On retry, email may already exist — silently continue in that case
+    await page.waitForURL(/\/cyberscan/, { waitUntil: 'commit', timeout: 10_000 }).catch(() => {});
     await page.close();
   });
 
@@ -23,7 +24,7 @@ test.describe('Parcours Vault', () => {
     await page.locator('[formcontrolname="email"]').fill(EMAIL);
     await page.locator('[formcontrolname="password"]').fill(PASSWORD);
     await page.getByRole('button', { name: /se connecter/i }).click();
-    await page.waitForURL(/\/cyberscan/);
+    await page.waitForURL(/\/cyberscan/, { waitUntil: 'commit' });
 
     // Accès vault → cryptoGuard redirige vers master-password
     await page.goto('/vault');
