@@ -291,11 +291,6 @@ async def launch_campaign(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Une campagne active ou terminée ne peut pas être relancée.",
         )
-    if not campaign.domain_verified:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Le domaine doit être vérifié avant de lancer la campagne.",
-        )
     if campaign.targets_count == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
