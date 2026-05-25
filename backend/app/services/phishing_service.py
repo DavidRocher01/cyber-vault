@@ -54,6 +54,20 @@ def _email_wrap(preheader: str, brand_bg: str, brand_html: str, body_html: str, 
     )
 
 
+def _attachment_badge(filename: str, filetype: str = "PDF") -> str:
+    icons = {"PDF": "📄", "XLSX": "📊", "DOCX": "📝", "EXE": "📦"}
+    icon = icons.get(filetype, "📎")
+    # Returns inline HTML — safe to embed in an f-string via {_attachment_badge(...)}
+    return (
+        f'<table width="100%" cellpadding="12" cellspacing="0" '
+        f'style="border:1px solid #e0e0e0;border-radius:4px;background:#fafafa;margin:0 0 20px">'
+        f'<tr><td style="width:32px;vertical-align:middle;padding-right:12px;font-size:22px">{icon}</td>'
+        f'<td style="vertical-align:middle">'
+        f'<span style="font-size:13px;font-weight:600;color:#333">{filename}</span>'
+        f' <span style="font-size:12px;color:#888">· {filetype}</span></td>'
+        f'</tr></table>'
+    )
+
 def _dynamic_ctx(target: Any, scenario_key: str) -> dict[str, Any]:
     rng = random.Random(f"{getattr(target, 'id', 0) or 0}-{scenario_key}")
     now = datetime.now(timezone.utc)
@@ -61,32 +75,65 @@ def _dynamic_ctx(target: Any, scenario_key: str) -> dict[str, Any]:
     months = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"]
     day = rng.randint(5, 25)
     month = months[(now.month) % 12]
+    dept = (getattr(target, "department", None) or "").strip()
+    ab_variant = (getattr(target, "id", 0) or 0) % 2
+    teams_sender = rng.choice(["Alexandre Martin", "Sophie Durand", "Pierre Moreau", "Claire Bernard", "Thomas Laurent"])
+    teams_channel = rng.choice(["Général", "Projet Q3", "Infrastructure IT", dept or "Équipe", "Direction"])
+    teams_preview = rng.choice([
+        "Peux-tu regarder ce document rapidement ?",
+        "J'ai besoin de ton avis sur ce point urgent.",
+        "Merci de valider avant la réunion.",
+        "Important — action requise de ta part.",
+    ])
+    sp_sender = rng.choice(["Service IT", "Direction Générale", "RH", "Comptabilité"])
+    sp_file, sp_size = rng.choice([
+        ("Budget_2025_prévisionnel.xlsx", "Excel · 2,1 Mo"),
+        ("Procédure_accès_distant.pdf", "PDF · 856 Ko"),
+        ("Rapport_audit_interne.docx", "Word · 1,4 Mo"),
+        ("Plan_continuité_activité.pptx", "PowerPoint · 3,8 Mo"),
+        ("Organigramme_2025.pdf", "PDF · 412 Ko"),
+    ])
+    ticket_num = f"TK-{rng.randint(10000, 99999)}"
+    ticket_subject = rng.choice([
+        "Renouvellement certificat SSL",
+        "Migration Active Directory",
+        "Mise à jour politique de sécurité",
+        "Audit accès privilégiés",
+        "Configuration MFA obligatoire",
+    ])
     return {
         "invoice_ref":    f"INV-{y}-{rng.randint(1000, 9999)}",
-        "invoice_amount": f"{rng.randint(500, 9_999):,}".replace(",", " ") + " €",
-        "ceo_amount":     rng.choice(["15 000 €","22 000 €","35 000 €","48 500 €"]),
+        "invoice_amount": f"{rng.randint(500, 9_999):,}".replace(",", " ") + " €",
+        "ceo_amount":     rng.choice(["15 000 €","22 000 €","35 000 €","48 500 €"]),
         "ceo_deadline":   rng.choice(["avant 14h00","avant 16h00","avant 17h30","avant 18h00"]),
         "bank_last4":     str(rng.randint(1000, 9999)),
         "bank_name":      rng.choice(["Société Générale","BNP Paribas","La Banque Postale","Crédit Mutuel","CIC"]),
-        "bank_amount":    f"{rng.randint(450, 3_500):,}".replace(",", " ") + " €",
+        "bank_amount":    f"{rng.randint(450, 3_500):,}".replace(",", " ") + " €",
         "parcel_ref":     f"FR{rng.randint(1_000_000_000, 9_999_999_999)}",
-        "parcel_fee":     f"{rng.choice([1.80, 2.50, 2.90, 3.20]):.2f} €",
+        "parcel_fee":     f"{rng.choice([1.80, 2.50, 2.90, 3.20]):.2f} €",
         "parcel_carrier": rng.choice(["Chronopost","Colissimo","DPD France"]),
         "cve_id":         f"CVE-{y}-{rng.randint(10_000, 99_999)}",
         "cvss":           f"{rng.uniform(9.0, 9.9):.1f}",
         "prize_amount":   rng.choice([100, 150, 200, 250]),
         "doc_ref":        f"DOC-{y}-{rng.randint(100, 999)}",
         "doc_deadline":   rng.choice([f"ce vendredi {day} {month}", "lundi prochain", f"le {day} {month}"]),
-        "salary_pct":     rng.choice(["2.8 %","3.1 %","3.4 %","4.0 %"]),
+        "salary_pct":     rng.choice(["2.8 %","3.1 %","3.4 %","4.0 %"]),
         "pw_days":        rng.choice(["2 jours","3 jours","5 jours","ce soir à minuit"]),
         "o365_device":    rng.choice(["iPhone 15","Windows 11 PC","MacBook Pro","Samsung Galaxy S24","iPad Pro"]),
         "o365_location":  rng.choice(["Amsterdam, Pays-Bas","Francfort, Allemagne","Londres, Royaume-Uni","Dublin, Irlande","Zurich, Suisse"]),
+        "dept":           dept,
+        "ab_variant":     ab_variant,
+        "teams_sender":   teams_sender,
+        "teams_initial":  teams_sender[0].upper(),
+        "teams_channel":  teams_channel,
+        "teams_preview":  teams_preview,
+        "sp_sender":      sp_sender,
+        "sp_initial":     sp_sender[0].upper(),
+        "sp_file":        sp_file,
+        "sp_size":        sp_size,
+        "ticket_num":     ticket_num,
+        "ticket_subject": ticket_subject,
     }
-
-
-# ---------------------------------------------------------------------------
-# Email template functions  (greeting, click_url, pixel_url, ctx) → html
-# ---------------------------------------------------------------------------
 
 def _tpl_ceo_fraud(greeting: str, url: str, pixel: str, ctx: dict) -> str:
     amount, deadline = ctx["ceo_amount"], ctx["ceo_deadline"]
@@ -95,7 +142,7 @@ def _tpl_ceo_fraud(greeting: str, url: str, pixel: str, ctx: dict) -> str:
         f'<p style="color:#1a1a1a;font-size:15px;line-height:1.6;margin:0 0 14px">Je vous écris depuis mon téléphone personnel — je suis en réunion externe jusqu\'en fin de matinée. J\'ai besoin de votre aide pour une opération confidentielle.</p>'
         f'<p style="color:#1a1a1a;font-size:15px;line-height:1.6;margin:0 0 14px">Un virement de <strong>{amount}</strong> doit être exécuté <strong>{deadline}</strong> aujourd\'hui. L\'opération est urgente et ne doit pas être évoquée en interne pour l\'instant.</p>'
         f'<p style="color:#1a1a1a;font-size:15px;line-height:1.6;margin:0 0 24px">Confirmez-moi votre disponibilité et je vous transmets les coordonnées bancaires.</p>'
-        f'<p><a href="{url}" style="display:inline-block;background:#1a73e8;color:#fff;padding:12px 26px;border-radius:4px;text-decoration:none;font-size:15px;font-weight:600">Confirmer ma disponibilité</a></p>'
+        f'{_attachment_badge("Mandat_virement.pdf")}<p><a href="{url}" style="display:inline-block;background:#1a73e8;color:#fff;padding:12px 26px;border-radius:4px;text-decoration:none;font-size:15px;font-weight:600">Confirmer ma disponibilité</a></p>'
         f'<p style="color:#555;font-size:14px;margin:24px 0 0;line-height:1.5">Merci pour votre réactivité,<br><strong>Direction Générale</strong><br><span style="color:#aaa;font-size:12px">Envoyé depuis iPhone</span></p>'
         f'<img src="{pixel}" width="1" height="1" style="display:none">'
     )
@@ -154,7 +201,7 @@ def _tpl_fake_invoice(greeting: str, url: str, pixel: str, ctx: dict) -> str:
         f'<td style="padding:14px;font-size:14px;font-weight:700">{amount}</td>'
         f'<td style="padding:14px"><span style="background:#fdecea;color:#e53935;font-size:12px;font-weight:700;padding:3px 8px;border-radius:2px">IMPAYÉE</span></td></tr>'
         f'</table>'
-        f'<p style="margin:0 0 20px"><a href="{url}" style="display:inline-block;background:#e53935;color:#fff;padding:13px 28px;border-radius:4px;text-decoration:none;font-size:15px;font-weight:600">Accéder au portail de paiement</a></p>'
+        f'{_attachment_badge(f"Facture_{ref}.pdf")}<p style="margin:0 0 20px"><a href="{url}" style="display:inline-block;background:#e53935;color:#fff;padding:13px 28px;border-radius:4px;text-decoration:none;font-size:15px;font-weight:600">Accéder au portail de paiement</a></p>'
         f'<p style="color:#777;font-size:13px;margin:0">En cas de litige, contactez-nous par retour de mail en indiquant votre référence.</p>'
         f'<img src="{pixel}" width="1" height="1" style="display:none">'
     )
@@ -275,7 +322,7 @@ def _tpl_invoice_pdf(greeting: str, url: str, pixel: str, ctx: dict) -> str:
         f'<p style="margin:0;font-size:13px;color:#e65100;font-weight:600">À signer avant {deadline}</p>'
         f'</td></tr></table>'
         f'<p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 20px">Ce document requiert votre signature. Merci de le signer via notre plateforme sécurisée avant la date limite.</p>'
-        f'<p style="margin:0 0 20px"><a href="{url}" style="display:inline-block;background:#f5a81c;color:#fff;padding:13px 28px;border-radius:4px;text-decoration:none;font-size:15px;font-weight:700">&#9998; Signer le document</a></p>'
+        f'{_attachment_badge(f"{ref}_document.pdf")}<p style="margin:0 0 20px"><a href="{url}" style="display:inline-block;background:#f5a81c;color:#fff;padding:13px 28px;border-radius:4px;text-decoration:none;font-size:15px;font-weight:700">&#9998; Signer le document</a></p>'
         f'<p style="color:#888;font-size:12px;margin:0">Service Administratif · Document confidentiel · Ne pas transférer</p>'
         f'<img src="{pixel}" width="1" height="1" style="display:none">'
     )
@@ -299,7 +346,7 @@ def _tpl_vpn_update(greeting: str, url: str, pixel: str, ctx: dict) -> str:
         f'</td></tr></table>'
         f'<p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 16px">Une faille critique a été découverte dans votre version du client VPN. Des attaquants exploitent activement cette vulnérabilité pour accéder aux réseaux d\'entreprise.</p>'
         f'<p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 20px"><strong>Vous devez installer la mise à jour avant ce soir</strong> pour conserver votre accès aux ressources internes.</p>'
-        f'<p style="margin:0 0 20px"><a href="{url}" style="display:inline-block;background:#b71c1c;color:#fff;padding:13px 28px;border-radius:4px;text-decoration:none;font-size:15px;font-weight:700">&#128274; Télécharger la mise à jour</a></p>'
+        f'{_attachment_badge(f"VPN_patch_{cve}.exe", "EXE")}<p style="margin:0 0 20px"><a href="{url}" style="display:inline-block;background:#b71c1c;color:#fff;padding:13px 28px;border-radius:4px;text-decoration:none;font-size:15px;font-weight:700">&#128274; Télécharger la mise à jour</a></p>'
         f'<p style="color:#555;font-size:14px;margin:0;line-height:1.5">L\'équipe Sécurité IT<br><span style="font-size:12px;color:#888">CSIRT — Centre de Réponse aux Incidents</span></p>'
         f'<img src="{pixel}" width="1" height="1" style="display:none">'
     )
@@ -322,7 +369,7 @@ def _tpl_hr_document(greeting: str, url: str, pixel: str, ctx: dict) -> str:
         f'<p style="margin:0;font-size:13px;color:#e65100;font-weight:600">Augmentation moyenne&nbsp;: <strong>{pct}</strong></p>'
         f'</td></tr></table>'
         f'<p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 20px">Ce document est <strong>strictement confidentiel</strong>. Accédez-y via le portail RH sécurisé — il expire dans 72&nbsp;h.</p>'
-        f'<p style="margin:0 0 20px"><a href="{url}" style="display:inline-block;background:#37474f;color:#fff;padding:13px 28px;border-radius:4px;text-decoration:none;font-size:15px;font-weight:600">&#128194; Accéder au document</a></p>'
+        f'{_attachment_badge("Grille_rémunération_2025.xlsx", "XLSX")}<p style="margin:0 0 20px"><a href="{url}" style="display:inline-block;background:#37474f;color:#fff;padding:13px 28px;border-radius:4px;text-decoration:none;font-size:15px;font-weight:600">&#128194; Accéder au document</a></p>'
         f'<p style="color:#555;font-size:14px;margin:0;line-height:1.5">Direction des Ressources Humaines</p>'
         f'<img src="{pixel}" width="1" height="1" style="display:none">'
     )
@@ -334,6 +381,117 @@ def _tpl_hr_document(greeting: str, url: str, pixel: str, ctx: dict) -> str:
     )
 
 
+
+def _tpl_teams(greeting: str, url: str, pixel: str, ctx: dict) -> str:
+    sender = ctx["teams_sender"]
+    initial = ctx["teams_initial"]
+    channel = ctx["teams_channel"]
+    preview = ctx["teams_preview"]
+    dept = ctx.get("dept", "")
+    dept_tag = f' &bull; {dept}' if dept else ""
+    body = (
+        f'<p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 16px">Bonjour {greeting},</p>'
+        f'<p style="color:#555;font-size:14px;margin:0 0 16px">Vous avez reçu un'
+        f' <strong style="color:#6264a7">message non lu</strong> dans Microsoft Teams{dept_tag}.</p>'
+        f'<table width="100%" cellpadding="0" cellspacing="0"'
+        f' style="background:#f9f9f9;border:1px solid #e0e0e0;border-radius:6px;margin:0 0 20px">'
+        f'<tr><td style="padding:14px">'
+        f'<table width="100%" cellpadding="0" cellspacing="0"><tr>'
+        f'<td style="width:40px;vertical-align:top;padding-right:12px">'
+        f'<div style="width:36px;height:36px;background:#6264a7;border-radius:50%;text-align:center;line-height:36px;color:#fff;font-size:14px;font-weight:700">{initial}</div>'
+        f'</td><td style="vertical-align:top">'
+        f'<p style="margin:0 0 2px;font-size:13px;font-weight:700;color:#333">{sender}</p>'
+        f'<p style="margin:0 0 4px;font-size:12px;color:#888">Canal : <strong>#{channel}</strong></p>'
+        f'<p style="margin:0;font-size:13px;color:#555;font-style:italic">&laquo; {preview} &raquo;</p>'
+        f'</td></tr></table></td></tr>'
+        f'<tr><td style="padding:0 14px 14px">'
+        f'<span style="background:#fef3c7;color:#d97706;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px">&#128206; 1 pièce jointe</span>'
+        f'</td></tr></table>'
+        f'<p style="margin:0 0 20px"><a href="{url}"'
+        f' style="display:inline-block;background:#6264a7;color:#fff;padding:12px 26px;border-radius:4px;text-decoration:none;font-size:15px;font-weight:600">Voir dans Teams</a></p>'
+        f'<p style="color:#888;font-size:12px;margin:0">Vous recevez cet e-mail car les notifications Teams sont activées.</p>'
+        f'<img src="{pixel}" width="1" height="1" style="display:none">'
+    )
+    return _email_wrap(
+        preheader=f"{sender} vous a envoyé un message dans #{channel}",
+        brand_bg="#6264a7",
+        brand_html='<span style="color:#fff;font-size:17px;font-weight:700">&#128172; Microsoft Teams</span>',
+        body_html=body,
+        footer_html='<p style="color:#aaa;font-size:11px;margin:0">© Microsoft Corporation · <a href="#" style="color:#aaa">Se désabonner des notifications</a></p>',
+    )
+
+
+def _tpl_sharepoint(greeting: str, url: str, pixel: str, ctx: dict) -> str:
+    sender = ctx["sp_sender"]
+    sp_file = ctx["sp_file"]
+    sp_size = ctx["sp_size"]
+    dept = ctx.get("dept", "")
+    dept_tag = f" ({dept})" if dept else ""
+    body = (
+        f'<p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 16px">Bonjour {greeting},</p>'
+        f'<p style="color:#555;font-size:14px;margin:0 0 16px"><strong>{sender}</strong> a partagé un document'
+        f' avec vous via Microsoft SharePoint{dept_tag}.</p>'
+        f'<table width="100%" cellpadding="16" cellspacing="0"'
+        f' style="background:#f0f4ff;border-radius:6px;border:1px solid #c7d2fe;margin:0 0 20px">'
+        f'<tr><td style="width:48px;vertical-align:middle;padding-right:16px">'
+        f'<div style="width:42px;height:42px;background:#0078d4;border-radius:8px;text-align:center;line-height:42px;color:#fff;font-size:22px">&#128196;</div>'
+        f'</td><td style="vertical-align:middle">'
+        f'<p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#333">{sp_file}</p>'
+        f'<p style="margin:0;font-size:12px;color:#888">{sp_size} · Partagé par <strong>{sender}</strong></p>'
+        f'</td></tr></table>'
+        f'<p style="color:#333;font-size:14px;line-height:1.5;margin:0 0 20px">Cliquez ci-dessous pour ouvrir'
+        f' le document. Vous devrez vous connecter avec votre compte Microsoft.</p>'
+        f'<p style="margin:0 0 20px"><a href="{url}"'
+        f' style="display:inline-block;background:#0078d4;color:#fff;padding:12px 26px;border-radius:2px;text-decoration:none;font-size:15px;font-weight:600">Ouvrir dans SharePoint</a></p>'
+        f'<p style="color:#888;font-size:12px;margin:0">Ce document a été partagé via Microsoft SharePoint Online.</p>'
+        f'<img src="{pixel}" width="1" height="1" style="display:none">'
+    )
+    return _email_wrap(
+        preheader=f"{sender} a partagé « {sp_file} » avec vous",
+        brand_bg="#0078d4",
+        brand_html='<span style="color:#fff;font-size:17px;font-weight:700">&#128193; Microsoft SharePoint</span>',
+        body_html=body,
+        footer_html='<p style="color:#aaa;font-size:11px;margin:0">© Microsoft Corporation · <a href="#" style="color:#aaa">Confidentialité</a></p>',
+    )
+
+
+def _tpl_it_ticket(greeting: str, url: str, pixel: str, ctx: dict) -> str:
+    ticket_num = ctx["ticket_num"]
+    ticket_subject = ctx["ticket_subject"]
+    dept = ctx.get("dept", "")
+    dept_row = (
+        f'<tr><td style="padding:10px 16px;font-size:13px;color:#888;border-bottom:1px solid #f0f0f0">Service</td>'
+        f'<td style="padding:10px 16px;font-size:13px;color:#333;border-bottom:1px solid #f0f0f0">{dept}</td></tr>'
+    ) if dept else ""
+    body = (
+        f'<p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 16px">Bonjour {greeting},</p>'
+        f'<p style="color:#555;font-size:14px;margin:0 0 16px">Un ticket d’assistance vous a été assigné et nécessite votre action immédiate.</p>'
+        f'<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e0e0e0;border-radius:4px;margin:0 0 20px;overflow:hidden">'
+        f'<tr style="background:#f5f5f5"><td colspan="2" style="padding:10px 16px;border-bottom:1px solid #e0e0e0">'
+        f'<span style="font-size:12px;font-weight:700;color:#555;letter-spacing:.5px">TICKET D’ASSISTANCE IT</span></td></tr>'
+        f'<tr><td style="padding:10px 16px;font-size:13px;color:#888;width:35%;border-bottom:1px solid #f0f0f0">Numéro</td>'
+        f'<td style="padding:10px 16px;font-size:13px;color:#333;font-weight:700;border-bottom:1px solid #f0f0f0">{ticket_num}</td></tr>'
+        f'<tr style="background:#fafafa"><td style="padding:10px 16px;font-size:13px;color:#888;border-bottom:1px solid #f0f0f0">Sujet</td>'
+        f'<td style="padding:10px 16px;font-size:13px;color:#333;border-bottom:1px solid #f0f0f0">{ticket_subject}</td></tr>'
+        + dept_row +
+        f'<tr><td style="padding:10px 16px;font-size:13px;color:#888;border-bottom:1px solid #f0f0f0">Priorité</td>'
+        f'<td style="padding:10px 16px;border-bottom:1px solid #f0f0f0">'
+        f'<span style="background:#fdecea;color:#c62828;font-size:12px;font-weight:700;padding:2px 8px;border-radius:2px">HAUTE</span></td></tr>'
+        f'<tr style="background:#fafafa"><td style="padding:10px 16px;font-size:13px;color:#888">Délai</td>'
+        f'<td style="padding:10px 16px;font-size:13px;color:#e65100;font-weight:600">Avant fin de journée</td></tr>'
+        f'</table>'
+        f'<p style="margin:0 0 20px"><a href="{url}"'
+        f' style="display:inline-block;background:#1565c0;color:#fff;padding:12px 26px;border-radius:4px;text-decoration:none;font-size:15px;font-weight:600">&#128187; Traiter le ticket</a></p>'
+        f'<p style="color:#555;font-size:13px;margin:0">Portail IT — Helpdesk DSI · Ne répondez pas à cet e-mail.</p>'
+        f'<img src="{pixel}" width="1" height="1" style="display:none">'
+    )
+    return _email_wrap(
+        preheader=f"[{ticket_num}] {ticket_subject} — action requise avant fin de journée",
+        brand_bg="#1565c0",
+        brand_html='<span style="color:#fff;font-size:17px;font-weight:700">&#128187; Helpdesk DSI — Ticket</span>',
+        body_html=body,
+    )
+
 # ---------------------------------------------------------------------------
 # Scenario metadata + template dispatch
 # ---------------------------------------------------------------------------
@@ -342,14 +500,22 @@ _SCENARIO_TEMPLATES: dict[str, dict[str, Any]] = {
     "ceo-fraud": {
         "from_name": "Direction Générale",
         "internal": True,
-        "subject": lambda ctx: f"Action requise — virement urgent {ctx['ceo_amount']}",
+    "subject": lambda ctx: (
+        f"Action requise — virement urgent {ctx['ceo_amount']}"
+        if ctx["ab_variant"] == 0
+        else f"Confidentiel — transfert {ctx['ceo_amount']} {ctx['ceo_deadline']}"
+    ),
         "html": _tpl_ceo_fraud,
         "text": lambda g, url, ctx: f"Bonjour {g}, virement urgent {ctx['ceo_amount']} requis {ctx['ceo_deadline']}. Confirmez : {url}",
     },
     "o365-credentials": {
         "from_name": "Microsoft 365",
         "internal": False,
-        "subject": lambda ctx: f"⚠️ Connexion suspecte depuis {ctx['o365_location']} — sécurisez votre compte",
+    "subject": lambda ctx: (
+        f"⚠️ Connexion suspecte depuis {ctx['o365_location']} — sécurisez votre compte"
+        if ctx["ab_variant"] == 0
+        else f"Alerte sécurité : accès non autorisé depuis {ctx['o365_device']}"
+    ),
         "html": _tpl_o365,
         "text": lambda g, url, ctx: f"Connexion suspecte depuis {ctx['o365_location']}. Sécurisez votre compte Microsoft 365 : {url}",
     },
@@ -405,9 +571,46 @@ _SCENARIO_TEMPLATES: dict[str, dict[str, Any]] = {
     "hr-document": {
         "from_name": "Ressources Humaines",
         "internal": True,
-        "subject": lambda ctx: f"[CONFIDENTIEL{{company_suffix}}] Grille des salaires — revalorisation {ctx['salary_pct']}",
+    "subject": lambda ctx: (
+        f"[CONFIDENTIEL{{company_suffix}}] Grille des salaires — revalorisation {ctx['salary_pct']}"
+        if ctx["ab_variant"] == 0
+        else f"[RH{{company_suffix}}] Votre augmentation {ctx['salary_pct']} — document disponible"
+    ),
         "html": _tpl_hr_document,
         "text": lambda g, url, ctx: f"Bonjour {g}, nouvelle grille des salaires ({ctx['salary_pct']}) disponible : {url}",
+    },
+    "teams-message": {
+        "from_name": "Microsoft Teams",
+        "internal": False,
+        "subject": lambda ctx: (
+            f"[Teams] {ctx['teams_sender']} vous a envoyé un message dans #{ctx['teams_channel']}"
+            if ctx["ab_variant"] == 0
+            else f"💬 Nouveau message Teams de {ctx['teams_sender']} — 1 pièce jointe"
+        ),
+        "html": _tpl_teams,
+        "text": lambda g, url, ctx: f"Bonjour {g}, {ctx['teams_sender']} vous a envoyé un message dans #{ctx['teams_channel']}. Voir : {url}",
+    },
+    "sharepoint-share": {
+        "from_name": "Microsoft SharePoint",
+        "internal": False,
+        "subject": lambda ctx: (
+            f"{ctx['sp_sender']} a partagé « {ctx['sp_file']} » avec vous"
+            if ctx["ab_variant"] == 0
+            else f"[SharePoint] Document partagé : {ctx['sp_file']} ({ctx['sp_size']})"
+        ),
+        "html": _tpl_sharepoint,
+        "text": lambda g, url, ctx: f"Bonjour {g}, {ctx['sp_sender']} a partagé {ctx['sp_file']} avec vous. Ouvrir : {url}",
+    },
+    "it-ticket": {
+        "from_name": "Équipe DSI",
+        "internal": True,
+        "subject": lambda ctx: (
+            f"[{ctx['ticket_num']}] {ctx['ticket_subject']} — action requise"
+            if ctx["ab_variant"] == 0
+            else f"Ticket HAUTE priorité : {ctx['ticket_subject']} ({ctx['ticket_num']})"
+        ),
+        "html": _tpl_it_ticket,
+        "text": lambda g, url, ctx: f"Bonjour {g}, ticket {ctx['ticket_num']} : {ctx['ticket_subject']}. Traiter : {url}",
     },
 }
 
@@ -775,8 +978,8 @@ def _build_email(
     target: PhishingTarget,
     tracking_id: str,
     scenario_key: str,
-) -> tuple[str, str, str, str]:
-    """Return (from_addr, subject, html, text)."""
+) -> tuple[str, str, str, str, str | None]:
+    """Return (from_addr, subject, html, text, reply_to)."""
     base = _tracking_base(campaign)
     pixel_url = f"{base}/phishing/t/{tracking_id}/px"
     click_url = f"{base}/phishing/t/{tracking_id}/c"
@@ -802,7 +1005,11 @@ def _build_email(
 
     from_email = settings.PHISHING_FROM_EMAIL or settings.RESEND_FROM
     from_addr = f"{from_name} <{from_email}>"
-    return from_addr, subject, html, text
+    reply_to: str | None = None
+    if campaign.lookalike_domain and tpl.get("internal"):
+        raw = campaign.lookalike_domain.lstrip("https://").lstrip("http://").rstrip("/")
+        reply_to = f"{from_name} <noreply@{raw}>"
+    return from_addr, subject, html, text, reply_to
 
 
 def _send_phishing_email(
@@ -811,15 +1018,19 @@ def _send_phishing_email(
     subject: str,
     html: str,
     text: str,
+    reply_to: str | None = None,
 ) -> None:
     resend.api_key = settings.RESEND_API_KEY
-    resend.Emails.send({
+    payload: dict = {
         "from": from_addr,
         "to": [to_email],
         "subject": subject,
         "html": html,
         "text": text,
-    })
+    }
+    if reply_to:
+        payload["reply_to"] = reply_to
+    resend.Emails.send(payload)
 
 
 async def send_pending_batch() -> None:
@@ -860,11 +1071,11 @@ async def send_pending_batch() -> None:
             sent_count = 0
             for target in pending:
                 tracking_id = str(uuid.uuid4())
-                from_addr, subject, html, text = _build_email(
+                from_addr, subject, html, text, reply_to = _build_email(
                     campaign, target, tracking_id, scenario_key
                 )
                 try:
-                    _send_phishing_email(target.email, from_addr, subject, html, text)
+                    _send_phishing_email(target.email, from_addr, subject, html, text, reply_to)
                     target.tracking_id = tracking_id
                     target.status = "email_sent"
                     campaign.emails_sent += 1
