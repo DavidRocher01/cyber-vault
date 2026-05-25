@@ -8,17 +8,16 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Title } from '@angular/platform-browser';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
-import { PhishingService, PhishingCampaign, DomainVerifyResult, LookalikeDomain, LOOKALIKE_TECHNIQUE_LABELS } from '../services/phishing.service';
+import { PhishingService, PhishingCampaign, LOOKALIKE_TECHNIQUE_LABELS } from '../services/phishing.service';
 import { PHISHING_SCENARIOS } from '../phishing/phishing.component';
 
-export type WizardStep = 'plan' | 'info' | 'domain' | 'targets' | 'scenarios' | 'review';
+export type WizardStep = 'plan' | 'info' | 'targets' | 'scenarios' | 'review';
 
-export const STEPS: WizardStep[] = ['plan', 'info', 'domain', 'targets', 'scenarios', 'review'];
+export const STEPS: WizardStep[] = ['plan', 'info', 'targets', 'scenarios', 'review'];
 
 export const STEP_LABELS: Record<WizardStep, string> = {
   plan: 'Offre',
   info: 'Infos',
-  domain: 'Domaine',
   targets: 'Cibles',
   scenarios: 'Scénarios',
   review: 'Validation',
@@ -57,24 +56,15 @@ export class PhishingCampaignCreatorComponent implements OnInit {
   selectedPlan = signal<string>('standard');
   selectedScenarios = signal<Set<string>>(new Set());
   campaign = signal<PhishingCampaign | null>(null);
-  domainVerifyResult = signal<DomainVerifyResult | null>(null);
-  domainVerified = signal(false);
-  lookalikeSuggestions = signal<LookalikeDomain[]>([]);
-  loadingLookalikes = signal(false);
-  selectedLookalikeDomain = signal<string | null>(null);
   readonly lookalikeTechLabels = LOOKALIKE_TECHNIQUE_LABELS;
   uploadedFile = signal<File | null>(null);
   uploading = signal(false);
   submitting = signal(false);
-  verifying = signal(false);
   launching = signal(false);
 
   infoForm = this.fb.nonNullable.group({
-    name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-  });
-
-  domainForm = this.fb.nonNullable.group({
-    domain: ['', [Validators.required, Validators.pattern(/^[a-z0-9.-]+\.[a-z]{2,}$/i)]],
+    name:   ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
+    domain: ['', [Validators.pattern(/^[a-z0-9.-]+\.[a-z]{2,}$/i)]],
   });
 
   reviewForm = this.fb.nonNullable.group({
@@ -110,93 +100,27 @@ export class PhishingCampaignCreatorComponent implements OnInit {
 
   // ── Step: info ──────────────────────────────────────────────────────────────
 
-  async createAndNext(): Promise<void> {
+  createAndNext(): void {
     if (this.infoForm.invalid || this.submitting()) return;
     this.submitting.set(true);
-    this.service.createCampaign(this.infoForm.getRawValue().name, this.selectedPlan()).subscribe({
+    const { name, domain } = this.infoForm.getRawValue();
+    this.service.createCampaign(name, this.selectedPlan()).subscribe({
       next: c => {
-        this.campaign.set(c);
-        this.submitting.set(false);
-        this.next();
+        const patch = domain?.trim() ? { domain: domain.trim() } : {};
+        if (Object.keys(patch).length) {
+          this.service.updateCampaign(c.id, patch).subscribe({
+            next: updated => { this.campaign.set(updated); this.submitting.set(false); this.next(); },
+            error: () => { this.campaign.set(c); this.submitting.set(false); this.next(); },
+          });
+        } else {
+          this.campaign.set(c);
+          this.submitting.set(false);
+          this.next();
+        }
       },
       error: () => {
         this.submitting.set(false);
         this.snack.open('Erreur lors de la création', 'Fermer', { duration: 3000 });
-      },
-    });
-  }
-
-  // ── Step: domain ────────────────────────────────────────────────────────────
-
-  requestVerify(): void {
-    if (this.domainForm.invalid || this.verifying()) return;
-    this.verifying.set(true);
-    this.service.requestDomainVerify(this.domainForm.getRawValue().domain).subscribe({
-      next: r => {
-        this.domainVerifyResult.set(r);
-        this.domainVerified.set(r.verified);
-        this.verifying.set(false);
-        if (r.verified) {
-          this.loadLookalikes(r.domain);
-        }
-      },
-      error: () => {
-        this.verifying.set(false);
-        this.snack.open('Erreur lors de la demande de vérification', 'Fermer', { duration: 3000 });
-      },
-    });
-  }
-
-  checkDns(): void {
-    const domain = this.domainVerifyResult()?.domain;
-    if (!domain) return;
-    this.verifying.set(true);
-    this.service.checkDomainVerify(domain).subscribe({
-      next: r => {
-        this.verifying.set(false);
-        if (r.verified) {
-          this.domainVerified.set(true);
-          this.snack.open('Domaine vérifié !', 'Fermer', { duration: 3000 });
-          this.loadLookalikes(domain);
-        } else {
-          this.snack.open('Enregistrement DNS non trouvé — réessayez dans quelques minutes', 'OK', { duration: 5000 });
-        }
-      },
-      error: () => {
-        this.verifying.set(false);
-        this.snack.open('Erreur lors de la vérification DNS', 'Fermer', { duration: 3000 });
-      },
-    });
-  }
-
-  loadLookalikes(domain: string): void {
-    this.loadingLookalikes.set(true);
-    this.service.getLookalikeDomains(domain).subscribe({
-      next: r => {
-        this.lookalikeSuggestions.set(r.suggestions.slice(0, 12));
-        this.loadingLookalikes.set(false);
-      },
-      error: () => {
-        this.loadingLookalikes.set(false);
-      },
-    });
-  }
-
-  selectLookalike(domain: string): void {
-    this.selectedLookalikeDomain.update(current => current === domain ? null : domain);
-  }
-
-  saveDomainAndNext(): void {
-    const c = this.campaign();
-    if (!c) return;
-    const lookalike = this.selectedLookalikeDomain();
-    this.service.updateCampaign(c.id, {
-      domain: this.domainForm.getRawValue().domain,
-      ...(lookalike ? { lookalike_domain: lookalike } : {}),
-    }).subscribe({
-      next: updated => {
-        this.campaign.set(updated);
-        this.next();
       },
     });
   }

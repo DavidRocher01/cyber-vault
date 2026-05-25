@@ -9,7 +9,7 @@
         <mat-icon class="text-cyan-400">phishing</mat-icon>
         <h1 class="text-2xl font-bold">Nouvelle campagne</h1>
       </div>
-      <p class="text-gray-400 text-sm">Configurez votre simulation de phishing en 6 étapes.</p>
+      <p class="text-gray-400 text-sm">Configurez votre simulation de phishing en 5 étapes.</p>
     </div>
 
     <!-- Stepper -->
@@ -86,7 +86,7 @@
     ══════════════════════════════════════════════ -->
     @if (currentStep() === 'info') {
       <form [formGroup]="infoForm" (ngSubmit)="createAndNext()" class="flex flex-col gap-6">
-        <h2 class="text-xl font-semibold">Nommez votre campagne</h2>
+        <h2 class="text-xl font-semibold">Informations de la campagne</h2>
 
         <div>
           <label class="text-sm text-gray-400 mb-2 block">Nom de la campagne *</label>
@@ -97,6 +97,21 @@
           @if (infoForm.controls.name.invalid && infoForm.controls.name.touched) {
             <p class="text-red-400 text-xs mt-1">Nom requis (2 caractères min.)</p>
           }
+        </div>
+
+        <div>
+          <label class="text-sm text-gray-400 mb-2 block">
+            Domaine de votre entreprise
+            <span class="text-gray-600 ml-1">(optionnel — personnalise les emails)</span>
+          </label>
+          <input formControlName="domain"
+                 type="text"
+                 placeholder="monentreprise.com"
+                 class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500 transition-colors" />
+          @if (infoForm.controls.domain.invalid && infoForm.controls.domain.touched) {
+            <p class="text-red-400 text-xs mt-1">Format invalide (ex : monentreprise.com)</p>
+          }
+          <p class="text-xs text-gray-600 mt-1">Utilisé pour personnaliser l'expéditeur : "Direction Générale — Monentreprise"</p>
         </div>
 
         <div class="flex justify-between">
@@ -115,157 +130,7 @@
     }
 
     <!-- ══════════════════════════════════════════════
-         STEP 3 — Domain
-    ══════════════════════════════════════════════ -->
-    @if (currentStep() === 'domain') {
-      <div class="flex flex-col gap-6">
-        <h2 class="text-xl font-semibold">Vérification du domaine cible</h2>
-        <p class="text-gray-400 text-sm">
-          Pour prouver que vous êtes autorisé à tester ce domaine, ajoutez un enregistrement DNS TXT.
-          Cette étape est obligatoire pour assurer la légalité de la simulation.
-        </p>
-
-        @if (!domainVerifyResult()) {
-          <!-- Domain input -->
-          <form [formGroup]="domainForm" (ngSubmit)="requestVerify()">
-            <label class="text-sm text-gray-400 mb-2 block">Domaine de votre entreprise *</label>
-            <div class="flex gap-3">
-              <input formControlName="domain"
-                     type="text"
-                     placeholder="monentreprise.com"
-                     class="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500 transition-colors" />
-              <button type="submit" mat-flat-button color="primary" class="!rounded-xl !px-6"
-                      [disabled]="domainForm.invalid || verifying()">
-                @if (verifying()) { <mat-spinner [diameter]="18" /> }
-                @else { Générer le token }
-              </button>
-            </div>
-          </form>
-        } @else {
-          <!-- DNS instructions -->
-          <div class="rounded-xl border border-blue-500/20 bg-blue-950/10 p-5">
-            <div class="flex items-center gap-2 mb-3">
-              <mat-icon class="text-blue-400">dns</mat-icon>
-              <span class="font-semibold text-white">Ajoutez cet enregistrement DNS TXT</span>
-            </div>
-            <div class="grid gap-2 text-sm font-mono bg-gray-950 rounded-lg p-4">
-              <div class="flex gap-3">
-                <span class="text-gray-500 w-16 flex-shrink-0">Nom :</span>
-                <span class="text-cyan-400 break-all">{{ domainVerifyResult()!.dns_record_name }}</span>
-              </div>
-              <div class="flex gap-3">
-                <span class="text-gray-500 w-16 flex-shrink-0">Type :</span>
-                <span class="text-white">TXT</span>
-              </div>
-              <div class="flex gap-3">
-                <span class="text-gray-500 w-16 flex-shrink-0">Valeur :</span>
-                <span class="text-green-400 break-all">{{ domainVerifyResult()!.verification_token }}</span>
-              </div>
-            </div>
-            <p class="text-xs text-gray-500 mt-3">La propagation DNS peut prendre jusqu'à 10 minutes.</p>
-          </div>
-
-          @if (domainVerified()) {
-            <div class="rounded-xl border border-green-500/20 bg-green-950/10 p-4 flex items-center gap-3">
-              <mat-icon class="text-green-400">verified</mat-icon>
-              <span class="text-green-400 font-semibold">Domaine vérifié</span>
-            </div>
-          } @else {
-            <div class="flex items-center gap-3">
-              <button type="button" mat-flat-button color="primary" class="!rounded-xl !px-6"
-                      [disabled]="verifying()" (click)="checkDns()">
-                @if (verifying()) { <mat-spinner [diameter]="18" class="mr-2 inline" /> }
-                Vérifier maintenant
-              </button>
-              <span class="text-xs text-gray-500">Cliquez après avoir ajouté l'enregistrement DNS</span>
-            </div>
-          }
-        }
-
-        <!-- ── Look-alike domain suggestions (shown after domain is verified) ── -->
-        @if (domainVerified()) {
-          <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
-            <div class="flex items-center gap-2 mb-1">
-              <mat-icon class="text-orange-400">domain_verification</mat-icon>
-              <h3 class="font-semibold text-white">Domaine look-alike (optionnel)</h3>
-            </div>
-            <p class="text-xs text-gray-500 mb-4">
-              Utilisez un domaine visuellement proche pour rendre le test plus réaliste.
-              Sélectionnez-en un ci-dessous ou passez cette étape.
-            </p>
-
-            @if (loadingLookalikes()) {
-              <div class="flex items-center gap-2 text-gray-500 text-sm py-4">
-                <mat-spinner [diameter]="16" />
-                Génération des suggestions…
-              </div>
-            } @else if (lookalikeSuggestions().length > 0) {
-              <div class="flex flex-col gap-2 max-h-72 overflow-y-auto pr-1">
-                @for (s of lookalikeSuggestions(); track s.domain) {
-                  <button type="button"
-                          class="text-left rounded-lg border px-4 py-3 flex items-center gap-3 transition-all w-full"
-                          [class]="selectedLookalikeDomain() === s.domain
-                            ? 'border-orange-500/60 bg-orange-950/15'
-                            : 'border-gray-700 bg-gray-800 hover:border-gray-600'"
-                          (click)="selectLookalike(s.domain)">
-                    <div class="flex-1 min-w-0">
-                      <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-mono text-sm text-white truncate">{{ s.domain }}</span>
-                        @if (selectedLookalikeDomain() === s.domain) {
-                          <mat-icon class="text-orange-400 !text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">check_circle</mat-icon>
-                        }
-                      </div>
-                      <span class="text-xs text-gray-500">{{ lookalikeTechLabels[s.technique] }}</span>
-                    </div>
-                    <div class="flex items-center gap-2 flex-shrink-0">
-                      @if (!s.requires_purchase) {
-                        <span class="text-[0.65rem] font-bold px-1.5 py-0.5 rounded border border-green-500/30 text-green-400">GRATUIT</span>
-                      } @else {
-                        <span class="text-[0.65rem] font-bold px-1.5 py-0.5 rounded border border-gray-600 text-gray-400">~10€/an</span>
-                      }
-                      <span class="text-[0.65rem] font-bold text-orange-400 w-8 text-right">{{ s.realism_score }}/10</span>
-                    </div>
-                  </button>
-                }
-              </div>
-
-              @if (selectedLookalikeDomain()) {
-                @for (s of lookalikeSuggestions(); track s.domain) {
-                  @if (s.domain === selectedLookalikeDomain() && s.requires_purchase && s.setup_instructions) {
-                    <div class="mt-3 rounded-lg bg-gray-950 border border-orange-500/20 p-3 text-xs text-gray-400 whitespace-pre-line">
-                      {{ s.setup_instructions }}
-                    </div>
-                    @if (s.purchase_url) {
-                      <a [href]="s.purchase_url" target="_blank" rel="noopener noreferrer"
-                         class="mt-2 inline-flex items-center gap-1 text-xs text-cyan-400 hover:underline">
-                        <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">open_in_new</mat-icon>
-                        Acheter ce domaine (~10€/an)
-                      </a>
-                    }
-                  }
-                }
-              }
-            }
-          </div>
-        }
-
-        <div class="flex justify-between">
-          <button type="button" mat-stroked-button class="!border-gray-700 !text-gray-300 !rounded-xl" (click)="prev()">
-            <mat-icon class="mr-1">arrow_back</mat-icon>
-            Retour
-          </button>
-          @if (domainVerified()) {
-            <button type="button" mat-flat-button color="primary" class="!rounded-xl !px-8" (click)="saveDomainAndNext()">
-              Continuer
-              <mat-icon class="ml-1">arrow_forward</mat-icon>
-            </button>
-          }
-        </div>
-      </div>
-    }
-
-    <!-- ══════════════════════════════════════════════
-         STEP 4 — Targets
+         STEP 3 — Targets
     ══════════════════════════════════════════════ -->
     @if (currentStep() === 'targets') {
       <div class="flex flex-col gap-6">
@@ -319,7 +184,7 @@ marie.dupont&#64;exemple.com,Marie,Dupont,Direction</pre>
     }
 
     <!-- ══════════════════════════════════════════════
-         STEP 5 — Scenarios
+         STEP 4 — Scenarios
     ══════════════════════════════════════════════ -->
     @if (currentStep() === 'scenarios') {
       <div class="flex flex-col gap-6">
@@ -376,7 +241,7 @@ marie.dupont&#64;exemple.com,Marie,Dupont,Direction</pre>
     }
 
     <!-- ══════════════════════════════════════════════
-         STEP 6 — Review & CGU
+         STEP 5 — Review & CGU
     ══════════════════════════════════════════════ -->
     @if (currentStep() === 'review') {
       <form [formGroup]="reviewForm" (ngSubmit)="launch()" class="flex flex-col gap-6">
@@ -404,18 +269,29 @@ marie.dupont&#64;exemple.com,Marie,Dupont,Direction</pre>
         <div class="rounded-xl border border-yellow-500/20 bg-yellow-950/10 p-5 flex flex-col gap-4">
           <div class="flex items-center gap-2 mb-1">
             <mat-icon class="text-yellow-400">gavel</mat-icon>
-            <span class="font-semibold text-white">Consentement et cadre légal</span>
+            <span class="font-semibold text-white">Déclaration sur l'honneur — à lire attentivement</span>
           </div>
-          @for (i of [1,2,3]; track i) {
-            <label class="flex items-start gap-3 cursor-pointer">
-              <input type="checkbox" [formControlName]="'cgu' + i" class="mt-0.5 w-4 h-4 rounded" />
-              <span class="text-sm text-gray-300">
-                @if (i === 1) { Je confirme être habilité(e) à autoriser ce test sur le domaine indiqué et que la Direction de l'entreprise a été informée de cette simulation. }
-                @if (i === 2) { Je reconnais que cette simulation est réalisée dans un cadre d'exercice de cybersécurité. Aucune donnée réelle ne sera collectée par CyberScan. }
-                @if (i === 3) { J'accepte les <a routerLink="/cyberscan/cgu" class="text-cyan-400 underline" target="_blank">Conditions Générales d'Utilisation</a> de CyberScan et la Politique de confidentialité. }
-              </span>
-            </label>
-          }
+
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" formControlName="cgu1" class="mt-0.5 w-4 h-4 rounded flex-shrink-0" />
+            <span class="text-sm text-gray-300">
+              Je certifie disposer de l'<strong class="text-white">autorisation écrite de la Direction</strong> pour effectuer cette simulation sur l'ensemble des personnes ciblées, et que celles-ci appartiennent bien à mon organisation.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" formControlName="cgu2" class="mt-0.5 w-4 h-4 rounded flex-shrink-0" />
+            <span class="text-sm text-gray-300">
+              Je reconnais qu'utiliser cet outil <strong class="text-white">sans autorisation est une infraction pénale</strong> (art. 323-1 à 323-7 du Code pénal — jusqu'à 5 ans d'emprisonnement et 150 000 € d'amende). CyberScan se réserve le droit de signaler tout usage illicite aux autorités compétentes.
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" formControlName="cgu3" class="mt-0.5 w-4 h-4 rounded flex-shrink-0" />
+            <span class="text-sm text-gray-300">
+              J'accepte les <a routerLink="/cyberscan/cgu" class="text-cyan-400 underline" target="_blank">Conditions Générales d'Utilisation</a> de CyberScan. Je confirme que cette simulation est réalisée dans un cadre d'exercice de cybersécurité et qu'aucune donnée réelle ne sera collectée par CyberScan.
+            </span>
+          </label>
         </div>
 
         <div class="flex justify-between">
