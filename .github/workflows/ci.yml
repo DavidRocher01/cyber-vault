@@ -6,6 +6,7 @@ on:
     branches: [main, master, develop]
   pull_request:
     branches: [main, master, develop]
+  workflow_dispatch:
 
 jobs:
   backend:
@@ -227,7 +228,7 @@ jobs:
           cache-dependency-path: backend/requirements.prod.txt
 
       - name: Install dependencies
-        run: pip install -r requirements.prod.txt aiosqlite pytest pytest-asyncio httpx email-validator pytest-cov
+        run: pip install -r requirements.prod.txt aiosqlite pytest pytest-asyncio httpx email-validator pytest-cov "testcontainers[postgres]"
         working-directory: backend
 
       - name: Run tests with coverage

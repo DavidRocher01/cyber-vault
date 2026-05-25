@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, vault, plans, subscriptions, sites, scans, webhooks, users, newsletter, url_scans, notifications, code_scans, nis2, iso27001, public_scans, blog, contact, bookings, admin_stats, admin_users, admin_scans, invoices, admin_invoices, admin_quotes, quotes, rssi, training, pca, darkweb, darkweb_dossier, brand, quiz, cost_calc, collab, phishing
+from app.api.v1.endpoints import auth, vault, plans, subscriptions, sites, scans, webhooks, users, newsletter, url_scans, notifications, code_scans, nis2, iso27001, public_scans, blog, contact, bookings, admin_stats, admin_users, admin_scans, invoices, admin_invoices, admin_quotes, quotes, rssi, training, pca, darkweb, darkweb_dossier, brand, quiz, cost_calc, collab, phishing, api_waitlist
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth.router)
@@ -38,3 +38,4 @@ api_router.include_router(quiz.router)
 api_router.include_router(cost_calc.router)
 api_router.include_router(collab.router)
 api_router.include_router(phishing.router)
+api_router.include_router(api_waitlist.router)

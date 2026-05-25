@@ -9,6 +9,7 @@ import { Subscription, interval } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 
 import { CyberscanService, PublicScanResult } from '../services/cyberscan.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
 import { computeScore, getGrade, getScoreColor } from '../../../shared/score-utils';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
@@ -31,6 +32,7 @@ export class DemoResultComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private cyberscan = inject(CyberscanService);
+  private auth = inject(AuthService);
   private titleService = inject(Title);
   private metaService = inject(Meta);
   private document = inject(DOCUMENT);
@@ -39,6 +41,7 @@ export class DemoResultComponent implements OnInit, OnDestroy {
   loading = signal(true);
   error = signal<string | null>(null);
   linkCopied = signal(false);
+  checkoutLoading = false;
 
   private pollSub: Subscription | null = null;
 
@@ -68,6 +71,25 @@ export class DemoResultComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() { this.pollSub?.unsubscribe(); }
+
+  openCheckout() {
+    if (!this.auth.isAuthenticated()) {
+      this.router.navigate(['/cyberscan'], { queryParams: { action: 'register' } });
+      return;
+    }
+    this.checkoutLoading = true;
+    this.cyberscan.getPlans().subscribe({
+      next: plans => {
+        if (!plans.length) { this.checkoutLoading = false; return; }
+        const starter = plans.reduce((a, b) => a.price_eur < b.price_eur ? a : b);
+        this.cyberscan.createCheckout(starter.id).subscribe({
+          next: res => { window.location.href = res.checkout_url; },
+          error: () => { this.checkoutLoading = false; },
+        });
+      },
+      error: () => { this.checkoutLoading = false; },
+    });
+  }
 
   private _updateMeta(s: PublicScanResult) {
     if (s.status !== 'done') return;

@@ -3,10 +3,13 @@ Tests for the phishing simulation module.
 
 Sections:
   1. Pure unit tests (no DB / HTTP) — pixel GIF, HTML pages, email builder
-  2. Tracking routes (public, no auth)  — open / click / land / submit
-  3. State-machine & counter tests — progression email_sent→opened→clicked→submitted
-  4. Campaign CRUD (authenticated)
-  5. Look-alike domains endpoint
+  2. Awareness page — per-scenario content, gender accord, fallback
+  3. Dynamic context — dept, A/B variant, Teams/SharePoint/ticket fields
+  4. Attachment badge helper
+  5. Tracking routes (public, no auth)  — open / click / land / submit
+  6. State-machine & counter tests — progression email_sent→opened→clicked→submitted
+  7. Campaign CRUD (authenticated)
+  8. Look-alike domains endpoint
 """
 import json
 from types import SimpleNamespace
@@ -26,7 +29,8 @@ from app.services import phishing_service
 # Helpers
 # ---------------------------------------------------------------------------
 
-async def _seed(db: AsyncSession, *, tracking_id: str = "tid-001", status: str = "email_sent"):
+async def _seed(db: AsyncSession, *, tracking_id: str = "tid-001", status: str = "email_sent",
+                scenario_keys: str = '["o365-credentials"]'):
     """Insert a minimal campaign + target into the test DB and return (campaign, target)."""
     user = User(email=f"phish_{tracking_id}@test.com", hashed_password=hash_password("pass"))
     db.add(user)
@@ -40,7 +44,7 @@ async def _seed(db: AsyncSession, *, tracking_id: str = "tid-001", status: str =
         domain="acme.com",
         domain_verified=True,
         cgu_accepted=True,
-        scenario_keys='["o365-credentials"]',
+        scenario_keys=scenario_keys,
         targets_count=1,
         emails_sent=1,
         opened_count=0,
@@ -94,17 +98,14 @@ class TestLandingHtml:
     def test_different_tracking_ids_give_different_actions(self):
         assert phishing_service.get_landing_html("id-1") != phishing_service.get_landing_html("id-2")
 
+    def test_all_scenario_keys_produce_landing_html(self):
+        for key in phishing_service._SCENARIO_TEMPLATES:
+            html = phishing_service.get_landing_html("x", key)
+            assert "<form" in html
 
-class TestAwarenessHtml:
-    def test_returns_string(self):
-        assert isinstance(phishing_service.get_awareness_html(), str)
-
-    def test_mentions_phishing(self):
-        html = phishing_service.get_awareness_html().lower()
-        assert "phishing" in html
-
-    def test_is_same_every_call(self):
-        assert phishing_service.get_awareness_html() == phishing_service.get_awareness_html()
+    def test_unknown_scenario_key_falls_back_to_microsoft(self):
+        html = phishing_service.get_landing_html("x", "nonexistent-key")
+        assert "Microsoft" in html or "<form" in html
 
 
 class TestExtractCompanyName:
@@ -132,45 +133,47 @@ class TestBuildEmail:
             scenario_keys=json.dumps([scenario_key]),
         )
 
-    def _make_target(self, first_name="Marie", last_name=None):
+    def _make_target(self, first_name="Marie", last_name=None, id=1, department="IT"):
         return SimpleNamespace(
+            id=id,
             first_name=first_name,
             last_name=last_name,
             email="marie@acme.com",
+            department=department,
         )
 
-    def test_returns_four_values(self):
+    def test_returns_five_values(self):
         result = phishing_service._build_email(
             self._make_campaign(), self._make_target(), "abc-123", "o365-credentials"
         )
-        assert len(result) == 4
+        assert len(result) == 5
 
     def test_html_contains_tracking_id(self):
-        _, _, html, _ = phishing_service._build_email(
+        _, _, html, _, _ = phishing_service._build_email(
             self._make_campaign(), self._make_target(), "abc-123", "o365-credentials"
         )
         assert "abc-123" in html
 
     def test_html_contains_first_name(self):
-        _, _, html, _ = phishing_service._build_email(
+        _, _, html, _, _ = phishing_service._build_email(
             self._make_campaign(), self._make_target("Isabelle"), "x", "o365-credentials"
         )
         assert "Isabelle" in html
 
     def test_html_contains_full_name_when_last_name_present(self):
-        _, _, html, _ = phishing_service._build_email(
+        _, _, html, _, _ = phishing_service._build_email(
             self._make_campaign(), self._make_target("David", "Rocher"), "x", "ceo-fraud"
         )
         assert "David Rocher" in html
 
     def test_subject_is_nonempty(self):
-        _, subject, _, _ = phishing_service._build_email(
+        _, subject, _, _, _ = phishing_service._build_email(
             self._make_campaign(), self._make_target(), "x", "o365-credentials"
         )
         assert subject
 
     def test_lookalike_domain_used_in_urls(self):
-        _, _, html, _ = phishing_service._build_email(
+        _, _, html, _, _ = phishing_service._build_email(
             self._make_campaign(lookalike="secure-acme.com"),
             self._make_target(), "x", "o365-credentials",
         )
@@ -178,56 +181,267 @@ class TestBuildEmail:
 
     def test_fallback_to_base_url_when_no_lookalike(self):
         from app.core.config import settings
-        _, _, html, _ = phishing_service._build_email(
+        _, _, html, _, _ = phishing_service._build_email(
             self._make_campaign(lookalike=None), self._make_target(), "x", "o365-credentials"
         )
         assert settings.PHISHING_BASE_URL.rstrip("/").split("//")[1] in html
 
+    def test_reply_to_set_for_internal_scenario_with_lookalike(self):
+        # reply_to is only set for internal scenarios (ceo-fraud, it-password, etc.)
+        _, _, _, _, reply_to = phishing_service._build_email(
+            self._make_campaign(lookalike="secure-acme.com", scenario_key="ceo-fraud"),
+            self._make_target(), "x", "ceo-fraud"
+        )
+        assert reply_to is not None
+        assert "secure-acme.com" in reply_to
+
+    def test_reply_to_none_for_external_scenario(self):
+        # External scenarios (o365, bank…) never set reply_to
+        _, _, _, _, reply_to = phishing_service._build_email(
+            self._make_campaign(lookalike="secure-acme.com"), self._make_target(), "x", "o365-credentials"
+        )
+        assert reply_to is None
+
+    def test_reply_to_none_when_no_lookalike(self):
+        _, _, _, _, reply_to = phishing_service._build_email(
+            self._make_campaign(lookalike=None, scenario_key="ceo-fraud"),
+            self._make_target(), "x", "ceo-fraud"
+        )
+        assert reply_to is None
+
     def test_internal_scenario_appends_company_to_from_name(self):
-        from_addr, _, _, _ = phishing_service._build_email(
+        from_addr, _, _, _, _ = phishing_service._build_email(
             self._make_campaign(domain="acme.com"), self._make_target(), "x", "ceo-fraud"
         )
         assert "Acme" in from_addr
         assert "Direction Générale" in from_addr
 
     def test_external_scenario_does_not_append_company(self):
-        from_addr, _, _, _ = phishing_service._build_email(
+        from_addr, _, _, _, _ = phishing_service._build_email(
             self._make_campaign(domain="acme.com"), self._make_target(), "x", "o365-credentials"
         )
         assert "Acme" not in from_addr
         assert "Microsoft 365" in from_addr
 
     def test_no_domain_leaves_from_name_unchanged(self):
-        from_addr, _, _, _ = phishing_service._build_email(
+        from_addr, _, _, _, _ = phishing_service._build_email(
             self._make_campaign(domain=None), self._make_target(), "x", "ceo-fraud"
         )
         assert from_addr.startswith("Direction Générale <")
 
     def test_subject_company_suffix_injected_for_internal(self):
-        _, subject, _, _ = phishing_service._build_email(
+        _, subject, _, _, _ = phishing_service._build_email(
             self._make_campaign(domain="acme.com"), self._make_target(), "x", "it-password"
         )
         assert "Acme" in subject
         assert "{company_suffix}" not in subject
 
     def test_subject_company_suffix_empty_when_no_domain(self):
-        _, subject, _, _ = phishing_service._build_email(
+        _, subject, _, _, _ = phishing_service._build_email(
             self._make_campaign(domain=None), self._make_target(), "x", "it-password"
         )
         assert "{company_suffix}" not in subject
 
+    def test_ab_variant_produces_different_subjects(self):
+        # target.id % 2 = 0 vs 1 should give different subjects for ceo-fraud
+        t0 = self._make_target(id=0)
+        t1 = self._make_target(id=1)
+        _, subj0, _, _, _ = phishing_service._build_email(
+            self._make_campaign(scenario_key="ceo-fraud"), t0, "x", "ceo-fraud"
+        )
+        _, subj1, _, _, _ = phishing_service._build_email(
+            self._make_campaign(scenario_key="ceo-fraud"), t1, "x", "ceo-fraud"
+        )
+        assert subj0 != subj1
+
     def test_all_scenario_keys_produce_html(self):
         keys = list(phishing_service._SCENARIO_TEMPLATES.keys())
         for key in keys:
-            _, _, html, text = phishing_service._build_email(
+            _, _, html, text, _ = phishing_service._build_email(
                 self._make_campaign(scenario_key=key, domain="test.com"), self._make_target(), "x", key
             )
-            assert html
-            assert text
+            assert html, f"No HTML for scenario {key}"
+            assert text, f"No text for scenario {key}"
+
+    def test_new_scenarios_teams_sharepoint_ticket(self):
+        for key in ("teams-message", "sharepoint-share", "it-ticket"):
+            _, _, html, _, _ = phishing_service._build_email(
+                self._make_campaign(scenario_key=key, domain="test.com"),
+                self._make_target(), "x", key,
+            )
+            assert html, f"No HTML for {key}"
 
 
 # ---------------------------------------------------------------------------
-# 2. Tracking routes — public (no auth)
+# 2. Awareness page
+# ---------------------------------------------------------------------------
+
+class TestAwarenessHtml:
+    def test_returns_string(self):
+        assert isinstance(phishing_service.get_awareness_html(), str)
+
+    def test_mentions_phishing(self):
+        html = phishing_service.get_awareness_html().lower()
+        assert "phishing" in html
+
+    def test_same_key_returns_same_output(self):
+        assert phishing_service.get_awareness_html("ceo-fraud") == phishing_service.get_awareness_html("ceo-fraud")
+
+    def test_different_scenarios_give_different_pages(self):
+        assert phishing_service.get_awareness_html("ceo-fraud") != phishing_service.get_awareness_html("o365-credentials")
+
+    def test_unknown_key_returns_fallback(self):
+        html = phishing_service.get_awareness_html("nonexistent-scenario")
+        assert "phishing" in html.lower()
+        assert html  # non-empty
+
+    def test_ceo_scenario_contains_ceo_specific_content(self):
+        html = phishing_service.get_awareness_html("ceo-fraud")
+        assert "virement" in html.lower() or "président" in html.lower() or "fraude" in html.lower()
+
+    def test_o365_scenario_contains_microsoft_content(self):
+        html = phishing_service.get_awareness_html("o365-credentials")
+        assert "microsoft" in html.lower() or "microsoftonline" in html.lower()
+
+    def test_bank_scenario_contains_bank_content(self):
+        html = phishing_service.get_awareness_html("bank-phishing")
+        assert "banque" in html.lower() or "bancaire" in html.lower()
+
+    def test_gender_accord_feminine_simulee(self):
+        # Labels starting with "une " → "simulée"
+        feminine_scenarios = [
+            "ceo-fraud",        # une fraude au Président
+            "fake-invoice",     # une fausse relance comptable
+            "bank-phishing",    # une fausse alerte bancaire
+            "prize",            # une fausse notification RH
+            "invoice-pdf",      # une fausse demande de signature
+            "vpn-update",       # une fausse alerte de sécurité VPN
+            "teams-message",    # une fausse notification Microsoft Teams
+        ]
+        for key in feminine_scenarios:
+            html = phishing_service.get_awareness_html(key)
+            assert "simulée" in html, f"Expected 'simulée' in awareness page for {key}"
+
+    def test_gender_accord_masculine_simule(self):
+        # Labels starting with "un " → "simulé"
+        masculine_scenarios = [
+            "o365-credentials",  # un faux email Microsoft 365
+            "parcel-tracking",   # un faux avis de livraison
+            "it-password",       # un faux email DSI
+            "hr-document",       # un faux document RH confidentiel
+            "sharepoint-share",  # un faux partage SharePoint
+            "it-ticket",         # un faux ticket helpdesk DSI
+        ]
+        for key in masculine_scenarios:
+            html = phishing_service.get_awareness_html(key)
+            assert "simulée" not in html, f"Unexpected 'simulée' in awareness page for {key}"
+            assert "simulé" in html, f"Expected 'simulé' in awareness page for {key}"
+
+    def test_all_13_scenarios_produce_awareness_html(self):
+        for key in phishing_service._SCENARIO_AWARENESS:
+            html = phishing_service.get_awareness_html(key)
+            assert html, f"Empty awareness HTML for {key}"
+            assert "phishing" in html.lower(), f"No 'phishing' mention in {key}"
+
+    def test_awareness_contains_no_raw_placeholder(self):
+        for key in phishing_service._SCENARIO_AWARENESS:
+            html = phishing_service.get_awareness_html(key)
+            assert "__LABEL__" not in html
+            assert "__ACCORD__" not in html
+            assert "__ICON__" not in html
+            assert "__FLAGS__" not in html
+            assert "__TEXT__" not in html
+
+
+# ---------------------------------------------------------------------------
+# 3. Dynamic context
+# ---------------------------------------------------------------------------
+
+class TestDynamicCtx:
+    def _make_target(self, id=1, department="Finance"):
+        return SimpleNamespace(id=id, first_name="Marie", last_name="Martin", department=department)
+
+    def test_ab_variant_zero_for_even_id(self):
+        ctx = phishing_service._dynamic_ctx(self._make_target(id=0), "ceo-fraud")
+        assert ctx["ab_variant"] == 0
+
+    def test_ab_variant_one_for_odd_id(self):
+        ctx = phishing_service._dynamic_ctx(self._make_target(id=1), "ceo-fraud")
+        assert ctx["ab_variant"] == 1
+
+    def test_dept_present_in_context(self):
+        ctx = phishing_service._dynamic_ctx(self._make_target(department="Comptabilité"), "fake-invoice")
+        assert ctx["dept"] == "Comptabilité"
+
+    def test_dept_fallback_when_none(self):
+        target = SimpleNamespace(id=1, first_name="X", last_name="Y", department=None)
+        ctx = phishing_service._dynamic_ctx(target, "ceo-fraud")
+        assert ctx["dept"] == ""
+
+    def test_teams_fields_present(self):
+        ctx = phishing_service._dynamic_ctx(self._make_target(), "teams-message")
+        assert "teams_sender" in ctx
+        assert "teams_channel" in ctx
+        assert "teams_preview" in ctx
+        assert ctx["teams_sender"]
+
+    def test_sharepoint_fields_present(self):
+        ctx = phishing_service._dynamic_ctx(self._make_target(), "sharepoint-share")
+        assert "sp_sender" in ctx
+        assert "sp_file" in ctx
+        assert "sp_size" in ctx
+
+    def test_ticket_fields_present(self):
+        ctx = phishing_service._dynamic_ctx(self._make_target(), "it-ticket")
+        assert "ticket_num" in ctx
+        assert "ticket_subject" in ctx
+        assert ctx["ticket_num"].startswith("TK-")
+
+    def test_deterministic_for_same_target_and_key(self):
+        t = self._make_target(id=42)
+        ctx1 = phishing_service._dynamic_ctx(t, "ceo-fraud")
+        ctx2 = phishing_service._dynamic_ctx(t, "ceo-fraud")
+        assert ctx1["ab_variant"] == ctx2["ab_variant"]
+        assert ctx1["dept"] == ctx2["dept"]
+
+
+# ---------------------------------------------------------------------------
+# 4. Attachment badge helper
+# ---------------------------------------------------------------------------
+
+class TestAttachmentBadge:
+    def test_returns_html_string(self):
+        result = phishing_service._attachment_badge("Facture.pdf", "PDF")
+        assert isinstance(result, str)
+        assert len(result) > 0
+
+    def test_contains_filename(self):
+        result = phishing_service._attachment_badge("Mandat_virement.pdf", "PDF")
+        assert "Mandat_virement.pdf" in result
+
+    def test_contains_filetype(self):
+        result = phishing_service._attachment_badge("Rapport.docx", "DOCX")
+        assert "DOCX" in result
+
+    def test_pdf_badge_present(self):
+        result = phishing_service._attachment_badge("doc.pdf", "PDF")
+        assert "PDF" in result
+
+    def test_exe_badge_present(self):
+        result = phishing_service._attachment_badge("patch.exe", "EXE")
+        assert "EXE" in result
+
+    def test_xlsx_badge_present(self):
+        result = phishing_service._attachment_badge("grille.xlsx", "XLSX")
+        assert "XLSX" in result
+
+    def test_is_html_table_or_div(self):
+        result = phishing_service._attachment_badge("file.pdf", "PDF")
+        assert "<table" in result or "<div" in result
+
+
+# ---------------------------------------------------------------------------
+# 5. Tracking routes — public (no auth)
 # ---------------------------------------------------------------------------
 
 class TestTrackingPixel:
@@ -289,6 +503,15 @@ class TestTrackingLanding:
         r = await http_client.get("/api/v1/phishing/t/my-tid/l")
         assert "/phishing/t/my-tid/s" in r.text
 
+    @pytest.mark.asyncio
+    async def test_landing_uses_campaign_scenario(
+        self, http_client: AsyncClient, db_session: AsyncSession
+    ):
+        await _seed(db_session, tracking_id="land-ceo", scenario_keys='["ceo-fraud"]')
+        r = await http_client.get("/api/v1/phishing/t/land-ceo/l")
+        assert r.status_code == 200
+        assert "<form" in r.text
+
 
 class TestTrackingSubmit:
     @pytest.mark.asyncio
@@ -303,9 +526,31 @@ class TestTrackingSubmit:
         r = await http_client.post("/api/v1/phishing/t/ghost-id/s")
         assert r.status_code == 200
 
+    @pytest.mark.asyncio
+    async def test_awareness_page_is_scenario_specific(
+        self, http_client: AsyncClient, db_session: AsyncSession
+    ):
+        await _seed(db_session, tracking_id="sub-ceo", status="clicked",
+                    scenario_keys='["ceo-fraud"]')
+        r = await http_client.post("/api/v1/phishing/t/sub-ceo/s")
+        assert r.status_code == 200
+        # CEO fraud awareness page should mention virement or fraude
+        body = r.text.lower()
+        assert "virement" in body or "fraude" in body or "président" in body
+
+    @pytest.mark.asyncio
+    async def test_awareness_page_o365_scenario(
+        self, http_client: AsyncClient, db_session: AsyncSession
+    ):
+        await _seed(db_session, tracking_id="sub-o365", status="clicked",
+                    scenario_keys='["o365-credentials"]')
+        r = await http_client.post("/api/v1/phishing/t/sub-o365/s")
+        assert r.status_code == 200
+        assert "microsoft" in r.text.lower() or "microsoftonline" in r.text.lower()
+
 
 # ---------------------------------------------------------------------------
-# 3. Status machine & counter tests
+# 6. Status machine & counter tests
 # ---------------------------------------------------------------------------
 
 class TestStatusProgression:
@@ -385,7 +630,7 @@ class TestStatusProgression:
 
 
 # ---------------------------------------------------------------------------
-# 4. Campaign CRUD (authenticated)
+# 7. Campaign CRUD (authenticated)
 # ---------------------------------------------------------------------------
 
 class TestCampaignCrud:
@@ -454,7 +699,7 @@ class TestCampaignCrud:
 
 
 # ---------------------------------------------------------------------------
-# 5. Look-alike domains endpoint
+# 8. Look-alike domains endpoint
 # ---------------------------------------------------------------------------
 
 class TestLookalikeDomainsEndpoint:

@@ -1,0 +1,139 @@
+# docker-compose.yml — Staging Oracle Cloud (ARM64)
+#
+# Stack staging iso-prod pour CyberVault
+# Hébergé sur Oracle Cloud Free Tier (Ampere A1, ARM64)
+#
+# Usage :
+#   1. Copier .env.example en .env et compléter toutes les valeurs CHANGE_ME
+#   2. Copier caddy/Caddyfile.example en caddy/Caddyfile et adapter
+#   3. docker compose pull && docker compose up -d
+#
+# Images buildées automatiquement par .github/workflows/deploy-staging.yml
+# (context = repo root, car le Dockerfile backend référence backend/ + cyber-scanner/)
+
+services:
+
+  # =========== Base de données ===========
+  postgres:
+    image: postgres:17-alpine
+    container_name: cybervault-staging-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cybervault_staging}
+      POSTGRES_USER: ${POSTGRES_USER:-cybervault}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cybervault} -d ${POSTGRES_DB:-cybervault_staging}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 256M
+    networks:
+      - staging-net
+
+  # =========== Backend FastAPI ===========
+  backend:
+    # Image ARM64 buildée via docker buildx (context = repo root)
+    image: ghcr.io/${GITHUB_OWNER}/cyber-vault-backend:${VERSION:-staging}
+    container_name: cybervault-staging-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: staging
+
+      SECRET_KEY: ${SECRET_KEY}
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cybervault}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cybervault_staging}
+
+      ALLOWED_ORIGINS: '["https://${STAGING_DOMAIN}"]'
+      FRONTEND_URL: https://${STAGING_DOMAIN}
+
+      # Stripe — TEST MODE OBLIGATOIRE
+      STRIPE_SECRET_KEY: ${STRIPE_TEST_SECRET_KEY}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_TEST_PUBLISHABLE_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_TEST_WEBHOOK_SECRET}
+
+      # Email transactionnel (Resend)
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      RESEND_FROM: ${RESEND_FROM:-CyberScan Staging <no-reply@cyberscanapp.com>}
+      CONTACT_EMAIL: ${CONTACT_EMAIL:-contact@cyberscanapp.com}
+
+      # Dark Web — HaveIBeenPwned
+      HIBP_API_KEY: ${HIBP_API_KEY}
+
+      # Phishing
+      PHISHING_BASE_URL: https://${API_STAGING_DOMAIN}
+      PHISHING_FROM_EMAIL: ${PHISHING_FROM_EMAIL}
+      PHISHING_FROM_NAME: ${PHISHING_FROM_NAME:-CyberScan Staging}
+      PHISHING_BATCH_SIZE: 10
+
+      # RSSI — S3 (livrables, optionnel)
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-}
+      AWS_REGION: ${AWS_REGION:-eu-west-3}
+
+      ADMIN_API_KEY: ${ADMIN_API_KEY}
+
+      SENTRY_DSN: ${SENTRY_DSN_STAGING:-}
+
+      # 1 proxy devant l'app (Caddy)
+      TRUSTED_PROXY_COUNT: 1
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          memory: 512M
+    networks:
+      - staging-net
+
+  # =========== Frontend Angular (nginx) ===========
+  frontend:
+    image: ghcr.io/${GITHUB_OWNER}/cyber-vault-frontend:${VERSION:-staging}
+    container_name: cybervault-staging-frontend
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    networks:
+      - staging-net
+
+  # =========== Reverse proxy avec HTTPS auto + Basic Auth ===========
+  caddy:
+    image: caddy:2-alpine
+    container_name: cybervault-staging-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/data:/data
+      - ./caddy/config:/config
+    depends_on:
+      - backend
+      - frontend
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - staging-net
+
+networks:
+  staging-net:
+    driver: bridge

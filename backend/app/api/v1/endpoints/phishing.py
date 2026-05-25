@@ -23,6 +23,7 @@ Public tracking routes (no auth — called by email clients / browsers):
 
 import csv
 import io
+import json
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile, status
@@ -186,7 +187,15 @@ async def update_campaign(
     # Check domain verification if domain changed
     domain_verified: bool | None = None
     if payload.domain and payload.domain != campaign.domain:
-        domain_verified = False  # Reset verification on domain change
+        result = await db.execute(
+            select(PhishingDomainVerification).where(
+                PhishingDomainVerification.user_id == current_user.id,
+                PhishingDomainVerification.domain == payload.domain.lower().strip(),
+                PhishingDomainVerification.verified == True,  # noqa: E712
+            )
+        )
+        already_verified = result.scalar_one_or_none()
+        domain_verified = already_verified is not None
 
     updated = await phishing_service.update_campaign(
         campaign,
@@ -281,11 +290,6 @@ async def launch_campaign(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Une campagne active ou terminée ne peut pas être relancée.",
-        )
-    if not campaign.domain_verified:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Le domaine doit être vérifié avant de lancer la campagne.",
         )
     if campaign.targets_count == 0:
         raise HTTPException(
@@ -451,13 +455,27 @@ async def tracking_click(tracking_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/t/{tracking_id}/l", response_class=HTMLResponse, include_in_schema=False)
-async def tracking_landing(tracking_id: str):
-    """Serve the fake credential-harvesting landing page."""
-    return HTMLResponse(content=phishing_service.get_landing_html(tracking_id))
+async def tracking_landing(tracking_id: str, db: AsyncSession = Depends(get_db)):
+    """Serve the scenario-specific credential-harvesting landing page."""
+    result = await db.execute(
+        select(PhishingTarget).where(PhishingTarget.tracking_id == tracking_id)
+    )
+    target = result.scalar_one_or_none()
+    scenario_key = phishing_service._DEFAULT_SCENARIO_KEY
+    if target:
+        campaign_result = await db.execute(
+            select(PhishingCampaign).where(PhishingCampaign.id == target.campaign_id)
+        )
+        campaign = campaign_result.scalar_one_or_none()
+        if campaign:
+            keys = json.loads(campaign.scenario_keys or "[]")
+            if keys:
+                scenario_key = keys[0]
+    return HTMLResponse(content=phishing_service.get_landing_html(tracking_id, scenario_key))
 
 
 @router.post("/t/{tracking_id}/s", response_class=HTMLResponse, include_in_schema=False)
 async def tracking_submit(tracking_id: str, db: AsyncSession = Depends(get_db)):
     """Record credential submission and return the awareness / education page."""
-    await phishing_service.record_submit(tracking_id, db)
-    return HTMLResponse(content=phishing_service.get_awareness_html())
+    scenario_key = await phishing_service.record_submit(tracking_id, db)
+    return HTMLResponse(content=phishing_service.get_awareness_html(scenario_key))

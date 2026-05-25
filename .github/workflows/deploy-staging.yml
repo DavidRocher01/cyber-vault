@@ -1,0 +1,167 @@
+# checkov:skip=CKV2_GHA_1: Actions pinned to major version tags — SHA pinning handled via Dependabot
+name: Deploy Staging Oracle
+
+# Déclenché automatiquement quand le CI passe sur develop
+# ou manuellement via l'interface GitHub
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [develop]
+    types: [completed]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_BACKEND: ${{ github.repository_owner }}/cyber-vault-backend
+  IMAGE_NAME_FRONTEND: ${{ github.repository_owner }}/cyber-vault-frontend
+
+jobs:
+
+  # ============================================
+  # Build & Push image Backend ARM64
+  # Contexte = repo root (le Dockerfile backend copie cyber-scanner/)
+  # ============================================
+  build-backend:
+    name: Build Backend ARM64
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./backend/Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:staging
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:staging-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================
+  # Build & Push image Frontend ARM64
+  # ============================================
+  build-frontend:
+    name: Build Frontend ARM64
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:staging
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:staging-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================
+  # Déploiement Oracle Cloud staging
+  # ============================================
+  deploy:
+    name: Deploy to Oracle Cloud
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
+    environment:
+      name: staging
+      url: https://staging.cyberscanapp.com
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.ORACLE_STAGING_HOST }}
+          username: ${{ secrets.ORACLE_STAGING_USER }}
+          key: ${{ secrets.ORACLE_STAGING_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            cd /home/cyberscan/cyber-vault-staging
+
+            echo "▶ Pull dernière version du code"
+            git fetch origin
+            git reset --hard origin/develop
+
+            echo "▶ Login Container Registry"
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            echo "▶ Pull nouvelles images Docker"
+            docker compose pull
+
+            echo "▶ Restart des services"
+            docker compose up -d
+
+            echo "▶ Attente démarrage backend (max 60s)"
+            timeout 60 bash -c 'until docker compose exec -T backend curl -fs http://localhost:8000/health > /dev/null; do sleep 2; done'
+
+            echo "▶ Migrations DB"
+            docker compose exec -T backend python -m alembic upgrade head
+
+            echo "▶ Nettoyage images obsolètes"
+            docker system prune -af --filter "until=168h"
+
+            echo "✓ Déploiement terminé"
+
+      - name: Smoke test
+        run: |
+          for i in {1..10}; do
+            if curl -fs -o /dev/null \
+                 -u "${{ secrets.STAGING_BASIC_AUTH }}" \
+                 https://api-staging.cyberscanapp.com/health; then
+              echo "✓ Staging UP"
+              exit 0
+            fi
+            echo "⏳ Tentative $i/10..."
+            sleep 10
+          done
+          echo "✗ Staging KO après 10 tentatives"
+          exit 1
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "Échec du déploiement staging — vérifier les logs Oracle" >&2

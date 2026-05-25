@@ -5,22 +5,33 @@ const PASSWORD = 'StrongPass123!';
 const MASTER = 'MasterPass456!';
 
 test.describe('Parcours Vault', () => {
-  test.beforeEach(async ({ page }) => {
-    // Inscription
+  test.describe.configure({ mode: 'serial' });
+
+  test.beforeAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    await page.addInitScript(() => localStorage.setItem('cyberscan_cookie_consent', 'accepted'));
     await page.goto('/auth/register');
-    await page.getByLabel('Email').fill(EMAIL);
-    await page.getByLabel('Mot de passe').fill(PASSWORD);
-    await page.getByRole('button', { name: /s'inscrire/i }).click();
+    await page.locator('[formcontrolname="email"]').fill(EMAIL);
+    await page.locator('[formcontrolname="password"]').fill(PASSWORD);
+    await page.locator('[formcontrolname="confirmPassword"]').fill(PASSWORD);
+    await page.getByRole('button', { name: /créer mon compte/i }).click();
+    // On retry, email may already exist — silently continue in that case
+    await page.waitForURL(/\/cyberscan/, { waitUntil: 'commit', timeout: 10_000 }).catch(() => {});
+    await page.close();
+  });
 
-    // Connexion
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('cyberscan_cookie_consent', 'accepted'));
     await page.goto('/auth/login');
-    await page.getByLabel('Email').fill(EMAIL);
-    await page.getByLabel('Mot de passe').fill(PASSWORD);
+    await page.locator('[formcontrolname="email"]').fill(EMAIL);
+    await page.locator('[formcontrolname="password"]').fill(PASSWORD);
     await page.getByRole('button', { name: /se connecter/i }).click();
+    await page.waitForURL(/\/cyberscan/, { waitUntil: 'commit' });
 
-    // Mot de passe maître
-    await page.waitForURL('**/auth/master-password');
-    await page.getByLabel('Mot de passe maître').fill(MASTER);
+    // Accès vault → cryptoGuard redirige vers master-password
+    await page.goto('/vault');
+    await page.waitForURL(/\/auth\/master-password/);
+    await page.locator('[formcontrolname="masterPassword"]').fill(MASTER);
     await page.getByRole('button', { name: /déverrouiller/i }).click();
     await page.waitForURL('**/vault');
   });
@@ -31,22 +42,22 @@ test.describe('Parcours Vault', () => {
 
   test('ajoute une nouvelle entrée et la voit dans la liste', async ({ page }) => {
     await page.getByRole('button', { name: /nouvelle entrée/i }).click();
-    await page.getByLabel('Titre').fill('GitHub');
-    await page.getByLabel('Mot de passe').fill('secret123');
-    await page.getByRole('button', { name: /enregistrer/i }).click();
+    await page.locator('[formcontrolname="title"]').fill('GitHub');
+    await page.locator('[formcontrolname="password_encrypted"]').fill('secret123');
+    await page.locator('button[type="submit"]').click();
     await expect(page.getByText('GitHub')).toBeVisible();
   });
 
   test('supprime une entrée de la liste', async ({ page }) => {
     // Ajouter d'abord
     await page.getByRole('button', { name: /nouvelle entrée/i }).click();
-    await page.getByLabel('Titre').fill('ASupprimer');
-    await page.getByLabel('Mot de passe').fill('pass456');
-    await page.getByRole('button', { name: /enregistrer/i }).click();
+    await page.locator('[formcontrolname="title"]').fill('ASupprimer');
+    await page.locator('[formcontrolname="password_encrypted"]').fill('pass456');
+    await page.locator('button[type="submit"]').click();
     await expect(page.getByText('ASupprimer')).toBeVisible();
 
     // Supprimer
-    await page.getByTitle('Supprimer').first().click();
+    await page.locator('.vault-card').filter({ hasText: 'ASupprimer' }).getByLabel('Supprimer').click();
     await expect(page.getByText('ASupprimer')).not.toBeVisible();
   });
 
@@ -54,14 +65,14 @@ test.describe('Parcours Vault', () => {
     // Ajouter deux entrées
     for (const title of ['Google', 'Netflix']) {
       await page.getByRole('button', { name: /nouvelle entrée/i }).click();
-      await page.getByLabel('Titre').fill(title);
-      await page.getByLabel('Mot de passe').fill('pass789');
-      await page.getByRole('button', { name: /enregistrer/i }).click();
+      await page.locator('[formcontrolname="title"]').fill(title);
+      await page.locator('[formcontrolname="password_encrypted"]').fill('pass789');
+      await page.locator('button[type="submit"]').click();
       await expect(page.getByText(title)).toBeVisible();
     }
 
     // Filtrer
-    await page.getByLabel('Rechercher').fill('Google');
+    await page.getByPlaceholder(/Rechercher un identifiant/i).fill('Google');
     await expect(page.getByText('Google')).toBeVisible();
     await expect(page.getByText('Netflix')).not.toBeVisible();
   });

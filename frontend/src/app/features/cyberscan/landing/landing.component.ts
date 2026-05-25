@@ -1,6 +1,6 @@
-import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, AfterViewInit, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { CommonModule, NgClass } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
@@ -49,12 +49,13 @@ import {
     templateUrl: './landing.component.html',
     styleUrl: './landing.component.css'
 })
-export class LandingComponent implements OnInit {
+export class LandingComponent implements OnInit, AfterViewInit {
   @ViewChild(AuthModalComponent) authModal!: AuthModalComponent;
 
   private cyberscan = inject(CyberscanService);
   readonly auth = inject(AuthService);
   readonly easterEgg = inject(EasterEggService);
+  private route = inject(ActivatedRoute);
   private router = inject(Router);
   private http = inject(HttpClient);
   private fb = inject(FormBuilder);
@@ -184,6 +185,13 @@ export class LandingComponent implements OnInit {
     });
   }
 
+  ngAfterViewInit() {
+    const action = this.route.snapshot.queryParamMap.get('action');
+    if (action === 'register' || action === 'login') {
+      setTimeout(() => this.authModal.open(action), 0);
+    }
+  }
+
   openAuth(mode: 'login' | 'register') {
     this.authModal.open(mode);
   }
@@ -205,7 +213,7 @@ export class LandingComponent implements OnInit {
 
   subscribe(plan: Plan) {
     if (!this.auth.isAuthenticated()) {
-      this.router.navigate(['/auth/login']);
+      this.authModal.open('register');
       return;
     }
     this.checkoutLoading = plan.id;

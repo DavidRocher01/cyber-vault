@@ -118,6 +118,30 @@ export const PHISHING_SCENARIOS: PhishingScenario[] = [
     vector: 'Email interne',
     icon: 'folder_shared',
   },
+  {
+    id: 'teams-message',
+    name: 'Notification Teams',
+    description: 'Email de notification Microsoft Teams avec pièce jointe, redirigeant vers une page de connexion Microsoft.',
+    difficulty: 'Moyen',
+    vector: 'Email + Page web',
+    icon: 'chat',
+  },
+  {
+    id: 'sharepoint-share',
+    name: 'Partage SharePoint',
+    description: 'Document partagé via Microsoft SharePoint nécessitant une authentification Microsoft pour y accéder.',
+    difficulty: 'Moyen',
+    vector: 'Email + Page web',
+    icon: 'cloud_upload',
+  },
+  {
+    id: 'it-ticket',
+    name: 'Ticket Helpdesk IT',
+    description: 'Ticket d\'assistance DSI haute priorité redigeant vers le portail SSO interne pour traitement urgent.',
+    difficulty: 'Difficile',
+    vector: 'Email interne',
+    icon: 'support_agent',
+  },
 ];
 
 export const PRICING_TIERS: PricingTier[] = [
