@@ -256,12 +256,15 @@ test.describe('Phishing — édition campagne', () => {
     expect(value.length).toBeGreaterThan(0);
   });
 
-  test('edit — 10 scénarios affichés avec cases à cocher', async ({ page }) => {
+  test('edit — 13 scénarios affichés avec cases à cocher', async ({ page }) => {
     await login(page, detailEmail);
     await page.goto(`/cyberscan/phishing/campaigns/${campaignId}/edit`);
     await expect(page.getByText('Fraude au Président')).toBeVisible({ timeout: 5_000 });
     await expect(page.getByText('Credentials Office 365')).toBeVisible({ timeout: 5_000 });
     await expect(page.getByText('Document RH Confidentiel')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('Notification Teams')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('Partage SharePoint')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('Ticket Helpdesk IT')).toBeVisible({ timeout: 5_000 });
   });
 
   test('edit — bouton Enregistrer visible', async ({ page }) => {
