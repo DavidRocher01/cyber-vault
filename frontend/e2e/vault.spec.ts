@@ -41,7 +41,7 @@ test.describe('Parcours Vault', () => {
     await page.getByRole('button', { name: /nouvelle entrée/i }).click();
     await page.locator('[formcontrolname="title"]').fill('GitHub');
     await page.locator('[formcontrolname="password_encrypted"]').fill('secret123');
-    await page.getByRole('button', { name: /Ajouter|Enregistrer/i }).click();
+    await page.getByRole('button', { name: /Ajouter|Enregistrer/i }).first().click();
     await expect(page.getByText('GitHub')).toBeVisible();
   });
 
@@ -50,7 +50,7 @@ test.describe('Parcours Vault', () => {
     await page.getByRole('button', { name: /nouvelle entrée/i }).click();
     await page.locator('[formcontrolname="title"]').fill('ASupprimer');
     await page.locator('[formcontrolname="password_encrypted"]').fill('pass456');
-    await page.getByRole('button', { name: /Ajouter|Enregistrer/i }).click();
+    await page.getByRole('button', { name: /Ajouter|Enregistrer/i }).first().click();
     await expect(page.getByText('ASupprimer')).toBeVisible();
 
     // Supprimer
@@ -64,7 +64,7 @@ test.describe('Parcours Vault', () => {
       await page.getByRole('button', { name: /nouvelle entrée/i }).click();
       await page.locator('[formcontrolname="title"]').fill(title);
       await page.locator('[formcontrolname="password_encrypted"]').fill('pass789');
-      await page.getByRole('button', { name: /Ajouter|Enregistrer/i }).click();
+      await page.getByRole('button', { name: /Ajouter|Enregistrer/i }).first().click();
       await expect(page.getByText(title)).toBeVisible();
     }
 

@@ -288,6 +288,12 @@ async def check_domain_verification(
 ) -> bool:
     if record.verified:
         return True
+    from app.core.config import settings
+    if settings.APP_ENV == "development":
+        record.verified = True
+        record.verified_at = datetime.now(timezone.utc)
+        await db.flush()
+        return True
     try:
         import dns.resolver
         answers = dns.resolver.resolve(
@@ -549,7 +555,9 @@ async def launch_campaign(campaign: PhishingCampaign, db: AsyncSession) -> None:
         raise ValueError("Aucun scénario sélectionné.")
 
     if not settings.RESEND_API_KEY:
-        raise RuntimeError("Resend n'est pas configuré (RESEND_API_KEY manquant).")
+        if settings.APP_ENV != "development":
+            raise RuntimeError("Resend n'est pas configuré (RESEND_API_KEY manquant).")
+        logger.info("DEV MODE — RESEND_API_KEY absent, campagne passée en 'sending' sans envoi réel.")
 
     campaign.status = "sending"
     campaign.started_at = datetime.now(timezone.utc)

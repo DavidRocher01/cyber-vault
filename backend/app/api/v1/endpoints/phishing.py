@@ -186,7 +186,15 @@ async def update_campaign(
     # Check domain verification if domain changed
     domain_verified: bool | None = None
     if payload.domain and payload.domain != campaign.domain:
-        domain_verified = False  # Reset verification on domain change
+        result = await db.execute(
+            select(PhishingDomainVerification).where(
+                PhishingDomainVerification.user_id == current_user.id,
+                PhishingDomainVerification.domain == payload.domain.lower().strip(),
+                PhishingDomainVerification.verified == True,  # noqa: E712
+            )
+        )
+        already_verified = result.scalar_one_or_none()
+        domain_verified = already_verified is not None
 
     updated = await phishing_service.update_campaign(
         campaign,
