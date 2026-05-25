@@ -13,7 +13,7 @@ async function setupCampaign(browser: import('@playwright/test').Browser) {
   await page.goto('/cyberscan/phishing/new');
   // Step 1 — Plan (Express selected by default)
   await page.getByRole('button', { name: /Continuer/i }).click();
-  await page.getByText(/Nommez votre campagne/i).waitFor({ timeout: 8_000 });
+  await page.getByText(/Informations de la campagne/i).waitFor({ timeout: 8_000 });
 
   // Step 2 — Info: fill name and capture campaign id from POST response
   const responsePromise = page.waitForResponse(
@@ -133,14 +133,14 @@ test.describe('Phishing — wizard création', () => {
     await login(page, wizardEmail);
     await page.goto('/cyberscan/phishing/new');
     await page.getByRole('button', { name: /Continuer/i }).click();
-    await expect(page.getByText(/Nommez votre campagne/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/Informations de la campagne/i)).toBeVisible({ timeout: 5_000 });
   });
 
   test('wizard — Retour depuis step 2 revient au step 1', async ({ page }) => {
     await login(page, wizardEmail);
     await page.goto('/cyberscan/phishing/new');
     await page.getByRole('button', { name: /Continuer/i }).click();
-    await expect(page.getByText(/Nommez votre campagne/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/Informations de la campagne/i)).toBeVisible({ timeout: 5_000 });
     await page.getByRole('button', { name: /Retour/i }).click();
     await expect(page.getByText(/Choisissez votre offre/i)).toBeVisible({ timeout: 3_000 });
   });
@@ -149,37 +149,35 @@ test.describe('Phishing — wizard création', () => {
     await login(page, wizardEmail);
     await page.goto('/cyberscan/phishing/new');
     await page.getByRole('button', { name: /Continuer/i }).click();
-    await expect(page.getByText(/Nommez votre campagne/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/Informations de la campagne/i)).toBeVisible({ timeout: 5_000 });
     // Vider le champ et vérifier que le bouton submit est désactivé
     await page.locator('input[placeholder*="Simulation"]').fill('');
     const submitBtn = page.getByRole('button', { name: /Continuer/i });
     await expect(submitBtn).toBeDisabled();
   });
 
-  test('wizard — step 2 : créer campagne navigue vers step 3 (domaine)', async ({ page }) => {
+  test('wizard — step 2 : créer campagne navigue vers step 3 (cibles)', async ({ page }) => {
     await login(page, wizardEmail);
     await page.goto('/cyberscan/phishing/new');
     await page.getByRole('button', { name: /Continuer/i }).click();
-    await expect(page.getByText(/Nommez votre campagne/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/Informations de la campagne/i)).toBeVisible({ timeout: 5_000 });
 
     await page.locator('input[placeholder*="Simulation"]').fill(`E2E ${Date.now()}`);
     await page.getByRole('button', { name: /Continuer/i }).click();
 
     // Step 3 doit apparaître
-    await expect(page.getByText(/Vérification du domaine/i)).toBeVisible({ timeout: 12_000 });
-    // Champ pour entrer le domaine doit être visible
-    await expect(page.locator('input[placeholder*="monentreprise"]')).toBeVisible();
+    await expect(page.getByText(/Import des cibles/i)).toBeVisible({ timeout: 12_000 });
   });
 
-  test('wizard — step 3 : formulaire vérification DNS visible', async ({ page }) => {
+  test('wizard — step 3 : formulaire import CSV visible', async ({ page }) => {
     await login(page, wizardEmail);
     await page.goto('/cyberscan/phishing/new');
     await page.getByRole('button', { name: /Continuer/i }).click();
-    await expect(page.getByText(/Nommez votre campagne/i)).toBeVisible({ timeout: 5_000 });
-    await page.locator('input[placeholder*="Simulation"]').fill(`E2E DNS ${Date.now()}`);
+    await expect(page.getByText(/Informations de la campagne/i)).toBeVisible({ timeout: 5_000 });
+    await page.locator('input[placeholder*="Simulation"]').fill(`E2E CSV ${Date.now()}`);
     await page.getByRole('button', { name: /Continuer/i }).click();
-    await expect(page.getByText(/Vérification du domaine/i)).toBeVisible({ timeout: 12_000 });
-    await expect(page.getByRole('button', { name: /Générer le token/i })).toBeVisible();
+    await expect(page.getByText(/Import des cibles/i)).toBeVisible({ timeout: 12_000 });
+    await expect(page.locator('input[type="file"]')).toBeAttached();
   });
 });
 
