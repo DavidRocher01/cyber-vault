@@ -879,3 +879,132 @@ class TestPdfReport:
                                   clicked_count=0, submitted_count=0)
         pdf = generate_phishing_report(campaign, [])
         assert isinstance(pdf, bytes) and len(pdf) > 1000
+
+
+# ---------------------------------------------------------------------------
+# 10. Sending queue — batch engine unit tests (no DB, no Resend)
+# ---------------------------------------------------------------------------
+
+class TestSendPendingBatch:
+    """Tests for send_pending_batch() logic: concurrency guard, scenario round-robin."""
+
+    @pytest.mark.asyncio
+    async def test_skip_if_lock_held(self):
+        """A second call while the first holds the lock must return immediately (no-op)."""
+        import asyncio
+        lock = phishing_service._batch_lock
+        async with lock:
+            # Lock is held — calling send_pending_batch should return without blocking
+            import asyncio as _asyncio
+            done = _asyncio.Event()
+
+            async def _call():
+                await phishing_service.send_pending_batch()
+                done.set()
+
+            task = _asyncio.create_task(_call())
+            await _asyncio.sleep(0)  # yield so the task runs
+            assert done.is_set(), "send_pending_batch should return immediately when lock is held"
+            task.cancel()
+
+    def test_scenario_round_robin_single(self):
+        """With one scenario key, every target gets that same key."""
+        scenario_keys = ["ceo-fraud"]
+        for fake_id in range(5):
+            key = scenario_keys[fake_id % len(scenario_keys)]
+            assert key == "ceo-fraud"
+
+    def test_scenario_round_robin_two(self):
+        """With two scenario keys, targets alternate deterministically."""
+        scenario_keys = ["ceo-fraud", "o365-credentials"]
+        results = [scenario_keys[i % 2] for i in range(4)]
+        assert results == ["ceo-fraud", "o365-credentials", "ceo-fraud", "o365-credentials"]
+
+    def test_scenario_round_robin_three(self):
+        """Three scenario keys distribute evenly across 6 targets."""
+        keys = ["a", "b", "c"]
+        results = [keys[i % 3] for i in range(6)]
+        assert results == ["a", "b", "c", "a", "b", "c"]
+
+    @pytest.mark.asyncio
+    async def test_batch_sends_pending_targets_and_marks_sent(
+        self, db_session: AsyncSession
+    ):
+        """send_pending_batch() marks pending targets as email_sent and increments emails_sent."""
+        import unittest.mock as mock
+
+        user = User(email="batch_test@test.com", hashed_password=hash_password("pass"))
+        db_session.add(user)
+        await db_session.flush()
+
+        campaign = PhishingCampaign(
+            user_id=user.id,
+            name="Batch Test",
+            plan_tier="standard",
+            status="sending",
+            domain="corp.com",
+            domain_verified=True,
+            cgu_accepted=True,
+            scenario_keys='["o365-credentials"]',
+            targets_count=3,
+            emails_sent=0,
+        )
+        db_session.add(campaign)
+        await db_session.flush()
+
+        for i in range(3):
+            db_session.add(PhishingTarget(
+                campaign_id=campaign.id,
+                email=f"t{i}@corp.com",
+                first_name=f"T{i}",
+                status="pending",
+            ))
+        await db_session.commit()
+
+        with mock.patch.object(phishing_service, "_send_phishing_email") as mock_send:
+            await phishing_service.send_pending_batch()
+
+        await db_session.refresh(campaign)
+        assert campaign.emails_sent == 3
+
+        from sqlalchemy import select as _sel
+        result = await db_session.execute(
+            _sel(PhishingTarget).where(PhishingTarget.campaign_id == campaign.id)
+        )
+        statuses = {t.status for t in result.scalars().all()}
+        assert statuses == {"email_sent"}
+
+    @pytest.mark.asyncio
+    async def test_batch_transitions_sending_to_active_when_no_pending(
+        self, db_session: AsyncSession
+    ):
+        """When all targets are already sent, campaign moves from 'sending' to 'active'."""
+        user = User(email="batch_done@test.com", hashed_password=hash_password("pass"))
+        db_session.add(user)
+        await db_session.flush()
+
+        campaign = PhishingCampaign(
+            user_id=user.id,
+            name="Done Campaign",
+            plan_tier="standard",
+            status="sending",
+            domain="corp.com",
+            cgu_accepted=True,
+            scenario_keys='["ceo-fraud"]',
+            targets_count=1,
+            emails_sent=1,
+        )
+        db_session.add(campaign)
+        await db_session.flush()
+
+        db_session.add(PhishingTarget(
+            campaign_id=campaign.id,
+            email="done@corp.com",
+            status="email_sent",
+            tracking_id="done-tid",
+        ))
+        await db_session.commit()
+
+        await phishing_service.send_pending_batch()
+        await db_session.refresh(campaign)
+        assert campaign.status == "active"

@@ -23,6 +23,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
+import asyncio
+
 import resend
 from loguru import logger
 from sqlalchemy import select
@@ -30,6 +32,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.phishing import PhishingCampaign, PhishingDomainVerification, PhishingTarget
+
+# Prevents two concurrent batch runs from double-sending (APScheduler + create_task on launch)
+_batch_lock = asyncio.Lock()
 
 # ---------------------------------------------------------------------------
 # Email helpers
@@ -1125,58 +1130,68 @@ def _send_phishing_email(
 
 async def send_pending_batch() -> None:
     """
-    Called by APScheduler every 15 min.
+    Called by APScheduler every 15 min and immediately on campaign launch.
     Sends up to PHISHING_BATCH_SIZE pending emails for active campaigns.
+    Skips silently if another batch run is already in progress.
     """
-    from app.core.database import AsyncSessionLocal
+    if _batch_lock.locked():
+        return
 
-    async with AsyncSessionLocal() as db:
-        # Find active campaigns that still have pending targets
-        campaigns_result = await db.execute(
-            select(PhishingCampaign).where(
-                PhishingCampaign.status.in_(["active", "sending"])
-            )
-        )
-        campaigns = list(campaigns_result.scalars().all())
+    async with _batch_lock:
+        from app.core.database import AsyncSessionLocal
 
-        for campaign in campaigns:
-            scenario_keys: list[str] = json.loads(campaign.scenario_keys or "[]")
-            scenario_key = scenario_keys[0] if scenario_keys else _DEFAULT_SCENARIO_KEY
-
-            pending_result = await db.execute(
-                select(PhishingTarget).where(
-                    PhishingTarget.campaign_id == campaign.id,
-                    PhishingTarget.status == "pending",
-                ).limit(settings.PHISHING_BATCH_SIZE)
-            )
-            pending = list(pending_result.scalars().all())
-
-            if not pending:
-                # All emails sent — move to 'active' results phase
-                if campaign.status == "sending":
-                    campaign.status = "active"
-                    campaign.updated_at = datetime.now(timezone.utc)
-                continue
-
-            sent_count = 0
-            for target in pending:
-                tracking_id = str(uuid.uuid4())
-                from_addr, subject, html, text, reply_to = _build_email(
-                    campaign, target, tracking_id, scenario_key
+        async with AsyncSessionLocal() as db:
+            campaigns_result = await db.execute(
+                select(PhishingCampaign).where(
+                    PhishingCampaign.status.in_(["active", "sending"])
                 )
-                try:
-                    _send_phishing_email(target.email, from_addr, subject, html, text, reply_to)
-                    target.tracking_id = tracking_id
-                    target.status = "email_sent"
-                    campaign.emails_sent += 1
-                    sent_count += 1
-                except Exception as exc:
-                    logger.warning(f"Failed to send phishing email (target_id={target.id}): {exc}")
+            )
+            campaigns = list(campaigns_result.scalars().all())
 
-            campaign.updated_at = datetime.now(timezone.utc)
-            logger.info(f"Phishing batch: sent {sent_count} emails for campaign {campaign.id}")
+            for campaign in campaigns:
+                scenario_keys: list[str] = json.loads(campaign.scenario_keys or "[]")
+                if not scenario_keys:
+                    scenario_keys = [_DEFAULT_SCENARIO_KEY]
 
-        await db.commit()
+                pending_result = await db.execute(
+                    select(PhishingTarget).where(
+                        PhishingTarget.campaign_id == campaign.id,
+                        PhishingTarget.status == "pending",
+                    ).limit(settings.PHISHING_BATCH_SIZE)
+                )
+                pending = list(pending_result.scalars().all())
+
+                if not pending:
+                    # All emails sent — move to 'active' results phase
+                    if campaign.status == "sending":
+                        campaign.status = "active"
+                        campaign.updated_at = datetime.now(timezone.utc)
+                    continue
+
+                sent_count = 0
+                for target in pending:
+                    # Round-robin scenario assignment across targets
+                    scenario_key = scenario_keys[target.id % len(scenario_keys)]
+                    tracking_id = str(uuid.uuid4())
+                    from_addr, subject, html, text, reply_to = _build_email(
+                        campaign, target, tracking_id, scenario_key
+                    )
+                    try:
+                        await asyncio.to_thread(
+                            _send_phishing_email,
+                            target.email, from_addr, subject, html, text, reply_to,
+                        )
+                        target.tracking_id = tracking_id
+                        target.status = "email_sent"
+                        campaign.emails_sent += 1
+                        sent_count += 1
+                    except Exception as exc:
+                        logger.warning(f"Failed to send phishing email (target_id={target.id}): {exc}")
+
+                campaign.updated_at = datetime.now(timezone.utc)
+                logger.info(f"Phishing batch: sent {sent_count} emails for campaign {campaign.id}")
+
+            await db.commit()
 
 
 # ---------------------------------------------------------------------------

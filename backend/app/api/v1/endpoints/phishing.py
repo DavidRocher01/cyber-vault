@@ -21,6 +21,7 @@ Public tracking routes (no auth — called by email clients / browsers):
   POST   /phishing/t/{tracking_id}/s         — record credential submit → awareness page
 """
 
+import asyncio
 import csv
 import io
 import json
@@ -318,6 +319,8 @@ async def launch_campaign(
         )
 
     await db.commit()
+    # Trigger first batch immediately — APScheduler fires every 15 min but users expect prompt starts
+    asyncio.create_task(phishing_service.send_pending_batch())
     return {"status": "sending", "campaign_id": campaign_id}
 
 
