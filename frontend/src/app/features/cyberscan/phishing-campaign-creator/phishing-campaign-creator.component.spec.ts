@@ -9,15 +9,9 @@ function make(): PhishingCampaignCreatorComponent {
   (comp as any).selectedPlan = signal('standard');
   (comp as any).selectedScenarios = signal(new Set<string>());
   (comp as any).campaign = signal(null);
-  (comp as any).domainVerifyResult = signal(null);
-  (comp as any).domainVerified = signal(false);
-  (comp as any).lookalikeSuggestions = signal([]);
-  (comp as any).loadingLookalikes = signal(false);
-  (comp as any).selectedLookalikeDomain = signal(null);
   (comp as any).uploadedFile = signal(null);
   (comp as any).uploading = signal(false);
   (comp as any).submitting = signal(false);
-  (comp as any).verifying = signal(false);
   (comp as any).launching = signal(false);
   return comp;
 }
@@ -26,7 +20,7 @@ function make(): PhishingCampaignCreatorComponent {
 export { PLAN_OPTIONS, STEPS, STEP_LABELS };
 
 describe('STEPS & STEP_LABELS', () => {
-  it('contient 6 étapes', () => expect(STEPS).toHaveLength(6));
+  it('contient 5 étapes', () => expect(STEPS).toHaveLength(5));
   it('commence par plan', () => expect(STEPS[0]).toBe('plan'));
   it('termine par review', () => expect(STEPS[STEPS.length - 1]).toBe('review'));
   it('chaque step a un label', () => {
@@ -45,10 +39,10 @@ describe('PLAN_OPTIONS', () => {
 
 describe('PhishingCampaignCreatorComponent — stepIndex', () => {
   it('vaut 0 pour plan', () => expect(make().stepIndex).toBe(0));
-  it('vaut 5 pour review', () => {
+  it('vaut 4 pour review', () => {
     const c = make();
     (c as any).currentStep.set('review');
-    expect(c.stepIndex).toBe(5);
+    expect(c.stepIndex).toBe(4);
   });
 });
 
@@ -116,27 +110,6 @@ describe('PhishingCampaignCreatorComponent — next() / prev()', () => {
   });
 });
 
-describe('PhishingCampaignCreatorComponent — selectLookalike()', () => {
-  it('sélectionne un domaine look-alike', () => {
-    const c = make();
-    c.selectLookalike('login-acme.com');
-    expect(c.selectedLookalikeDomain()).toBe('login-acme.com');
-  });
-
-  it('désélectionne si on clique à nouveau sur le même', () => {
-    const c = make();
-    c.selectLookalike('login-acme.com');
-    c.selectLookalike('login-acme.com');
-    expect(c.selectedLookalikeDomain()).toBeNull();
-  });
-
-  it('remplace la sélection précédente', () => {
-    const c = make();
-    c.selectLookalike('login-acme.com');
-    c.selectLookalike('acme-rh.com');
-    expect(c.selectedLookalikeDomain()).toBe('acme-rh.com');
-  });
-});
 
 describe('LOOKALIKE_TECHNIQUE_LABELS', () => {
   it('contient un label pour sim_subdomain', () => {

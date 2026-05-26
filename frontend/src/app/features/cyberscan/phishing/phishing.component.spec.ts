@@ -19,7 +19,7 @@ function make(): PhishingComponent {
 // ── Static data ──────────────────────────────────────────────────────────────
 
 describe('PHISHING_SCENARIOS', () => {
-  it('contient 10 scénarios', () => expect(PHISHING_SCENARIOS).toHaveLength(10));
+  it('contient 13 scénarios', () => expect(PHISHING_SCENARIOS).toHaveLength(13));
 
   it('chaque scénario a id, name, description, difficulty, vector, icon', () => {
     for (const s of PHISHING_SCENARIOS) {
