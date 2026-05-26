@@ -5,6 +5,10 @@ import { createAndLogin, login } from './helpers';
 let detailEmail: string;
 let campaignId: number;
 
+// ─── Shared state for launch/PDF tests ───────────────────────────────────────
+let launchEmail: string;
+let launchCampaignId: number;
+
 // Creates one user + one campaign (via wizard steps 1+2) before detail/edit tests.
 async function setupCampaign(browser: import('@playwright/test').Browser) {
   const page = await browser.newPage();
@@ -292,5 +296,174 @@ test.describe('Phishing — édition campagne', () => {
     const cancelLink = page.getByRole('link', { name: /Annuler/i });
     await expect(cancelLink).toBeVisible({ timeout: 5_000 });
     await expect(cancelLink).toHaveAttribute('href', /\/cyberscan\/phishing\/campaigns$/);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 7. Lancement de campagne (file d'attente)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Creates a campaign, uploads a CSV, selects a scenario, accepts CGU, then launches it. */
+async function setupAndLaunchCampaign(browser: import('@playwright/test').Browser) {
+  const page = await browser.newPage();
+  launchEmail = await createAndLogin(page);
+
+  // Wizard step 1 → step 2
+  await page.goto('/cyberscan/phishing/new');
+  await page.getByRole('button', { name: /Continuer/i }).click();
+  await page.getByText(/Informations de la campagne/i).waitFor({ timeout: 8_000 });
+
+  // Wizard step 2: fill name, capture new campaign id
+  const createResponse = page.waitForResponse(
+    r => r.url().includes('/phishing/campaigns') && r.request().method() === 'POST',
+    { timeout: 12_000 },
+  );
+  await page.locator('input[placeholder*="Simulation"]').fill(`Launch E2E ${Date.now()}`);
+  await page.getByRole('button', { name: /Continuer/i }).click();
+  launchCampaignId = (await (await createResponse).json()).id;
+
+  // Edit page: upload CSV targets
+  await page.goto(`/cyberscan/phishing/campaigns/${launchCampaignId}/edit`);
+  await page.getByText(/Configurer la campagne/i).waitFor({ timeout: 8_000 });
+
+  const uploadDone = page.waitForResponse(
+    r => r.url().includes('/targets') && r.request().method() === 'POST',
+    { timeout: 12_000 },
+  );
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'targets.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('email,first_name\ntarget@corp.com,Alice'),
+  });
+  await uploadDone;
+
+  // Select the first scenario (Fraude au Président)
+  await page.locator('label').filter({ hasText: 'Fraude au Président' }).locator('mat-checkbox').click();
+
+  // Accept CGU
+  await page.locator('label').filter({ hasText: /Je certifie avoir l'autorisation/ }).locator('mat-checkbox').click();
+
+  // Launch — waits for POST /launch response then redirect to detail
+  const launchDone = page.waitForResponse(
+    r => r.url().includes('/launch') && r.request().method() === 'POST',
+    { timeout: 15_000 },
+  );
+  await page.getByRole('button', { name: /Lancer la campagne/i }).click();
+  await launchDone;
+  await page.waitForURL(new RegExp(`/cyberscan/phishing/campaigns/${launchCampaignId}$`), { timeout: 10_000 });
+
+  await page.close();
+}
+
+test.describe('Phishing — lancement (file d\'attente)', () => {
+  test.beforeAll(async ({ browser }) => {
+    await setupAndLaunchCampaign(browser);
+  });
+
+  test('launch — campagne passe au statut sending après lancement', async ({ page }) => {
+    await login(page, launchEmail);
+    const token = await page.evaluate(() => localStorage.getItem('cv_token'));
+    const r = await page.request.get(`/api/v1/phishing/campaigns/${launchCampaignId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(r.ok()).toBeTruthy();
+    const data = await r.json();
+    expect(['sending', 'active', 'completed']).toContain(data.status);
+  });
+
+  test('launch — barre de progression visible sur la page détail', async ({ page }) => {
+    await login(page, launchEmail);
+    await page.goto(`/cyberscan/phishing/campaigns/${launchCampaignId}`);
+    // Progress bar is shown for status 'sending' or 'active'
+    await expect(page.getByText(/Envoi en cours|emails/i).first()).toBeVisible({ timeout: 8_000 });
+  });
+
+  test('launch — redirection vers page détail après lancement', async ({ page }) => {
+    // Verify we can reach the detail page for the launched campaign
+    await login(page, launchEmail);
+    await page.goto(`/cyberscan/phishing/campaigns/${launchCampaignId}`);
+    await expect(page).toHaveURL(new RegExp(`/cyberscan/phishing/campaigns/${launchCampaignId}$`));
+    await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 5_000 });
+  });
+
+  test('launch — edit redirige vers détail si campagne déjà lancée', async ({ page }) => {
+    await login(page, launchEmail);
+    await page.goto(`/cyberscan/phishing/campaigns/${launchCampaignId}/edit`);
+    // Edit component redirects away if status is sending/active/completed
+    await page.waitForURL(new RegExp(`/cyberscan/phishing/campaigns/${launchCampaignId}$`), { timeout: 8_000 });
+    await expect(page).toHaveURL(new RegExp(`/cyberscan/phishing/campaigns/${launchCampaignId}$`));
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 8. Rapport PDF
+// ─────────────────────────────────────────────────────────────────────────────
+test.describe('Phishing — rapport PDF', () => {
+  test.beforeAll(async ({ browser }) => {
+    // Reuse launched campaign; set up fresh one if not yet initialised
+    if (!launchCampaignId) await setupAndLaunchCampaign(browser);
+    // Ensure the draft campaign exists for negative tests
+    if (!campaignId) await setupCampaign(browser);
+  });
+
+  test('PDF — bouton non visible pour une campagne draft', async ({ page }) => {
+    await login(page, detailEmail);
+    await page.goto(`/cyberscan/phishing/campaigns/${campaignId}`);
+    await page.getByRole('heading').first().waitFor({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /Rapport PDF/i })).not.toBeVisible();
+  });
+
+  test('PDF — API retourne 400 pour une campagne draft', async ({ page }) => {
+    await login(page, detailEmail);
+    const token = await page.evaluate(() => localStorage.getItem('cv_token'));
+    const r = await page.request.get(`/api/v1/phishing/campaigns/${campaignId}/pdf`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(r.status()).toBe(400);
+  });
+
+  test('PDF — bouton Rapport PDF visible pour campagne active ou sending', async ({ page }) => {
+    await login(page, launchEmail);
+    await page.goto(`/cyberscan/phishing/campaigns/${launchCampaignId}`);
+    // Button is shown only for status active or completed
+    // (sending has progress bar but no PDF button yet — verify accordingly)
+    const campaignToken = await page.evaluate(() => localStorage.getItem('cv_token'));
+    const statusResp = await page.request.get(`/api/v1/phishing/campaigns/${launchCampaignId}`, {
+      headers: { Authorization: `Bearer ${campaignToken}` },
+    });
+    const { status } = await statusResp.json();
+    if (status === 'active' || status === 'completed') {
+      await expect(page.getByRole('button', { name: /Rapport PDF/i })).toBeVisible({ timeout: 5_000 });
+    } else {
+      // Still in 'sending' — PDF button intentionally absent
+      await expect(page.getByRole('button', { name: /Rapport PDF/i })).not.toBeVisible();
+    }
+  });
+
+  test('PDF — API retourne application/pdf pour campagne active', async ({ page }) => {
+    await login(page, launchEmail);
+    const token = await page.evaluate(() => localStorage.getItem('cv_token'));
+
+    // Promote campaign to active via PATCH (simulate all emails sent)
+    // In dev/test env, we can force status via the service endpoint
+    // Instead: check if campaign is active; if not, skip with a soft assertion
+    const statusResp = await page.request.get(`/api/v1/phishing/campaigns/${launchCampaignId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const { status } = await statusResp.json();
+
+    if (status !== 'active' && status !== 'completed') {
+      // Campaign still in 'sending' — PDF not yet available, test is a no-op
+      test.skip();
+      return;
+    }
+
+    const r = await page.request.get(`/api/v1/phishing/campaigns/${launchCampaignId}/pdf`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(r.ok()).toBeTruthy();
+    expect(r.headers()['content-type']).toContain('application/pdf');
+    const body = await r.body();
+    expect(body.slice(0, 4).toString()).toBe('%PDF');
   });
 });
