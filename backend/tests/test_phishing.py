@@ -10,6 +10,7 @@ Sections:
   6. State-machine & counter tests — progression email_sent→opened→clicked→submitted
   7. Campaign CRUD (authenticated)
   8. Look-alike domains endpoint
+  9. PDF report generation
 """
 import json
 from types import SimpleNamespace
@@ -735,3 +736,146 @@ class TestLookalikeDomainsEndpoint:
     async def test_missing_domain_param_returns_422(self, auth_client: AsyncClient):
         r = await auth_client.get("/api/v1/phishing/lookalike-domains")
         assert r.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# 9. PDF report generation (pure unit — no DB)
+# ---------------------------------------------------------------------------
+
+def _make_campaign(**kwargs):
+    defaults = dict(
+        id=1,
+        name="Campagne Test",
+        plan_tier="standard",
+        status="completed",
+        domain="acme.com",
+        targets_count=10,
+        emails_sent=10,
+        opened_count=6,
+        clicked_count=3,
+        submitted_count=1,
+        scenario_keys='["ceo-fraud","o365-credentials"]',
+        started_at=None,
+        finished_at=None,
+        lookalike_domain=None,
+    )
+    defaults.update(kwargs)
+    return SimpleNamespace(**defaults)
+
+
+def _make_target(email, status="email_sent", department=None, first_name="Jean", last_name="Dupont"):
+    return SimpleNamespace(
+        email=email,
+        status=status,
+        department=department,
+        first_name=first_name,
+        last_name=last_name,
+    )
+
+
+class TestPdfReport:
+    from app.services.phishing_report_pdf import (
+        generate_phishing_report,
+        _risk_label,
+        _global_risk,
+        _get_recommendations,
+    )
+
+    def test_returns_bytes(self):
+        from app.services.phishing_report_pdf import generate_phishing_report
+        campaign = _make_campaign()
+        pdf = generate_phishing_report(campaign, [])
+        assert isinstance(pdf, bytes)
+        assert len(pdf) > 1000
+
+    def test_starts_with_pdf_magic(self):
+        from app.services.phishing_report_pdf import generate_phishing_report
+        campaign = _make_campaign()
+        pdf = generate_phishing_report(campaign, [])
+        assert pdf[:4] == b"%PDF"
+
+    def test_risk_label_faible(self):
+        from app.services.phishing_report_pdf import _risk_label
+        assert _risk_label(0.05) == "FAIBLE"
+
+    def test_risk_label_moyen(self):
+        from app.services.phishing_report_pdf import _risk_label
+        assert _risk_label(0.20) == "MOYEN"
+
+    def test_risk_label_eleve(self):
+        from app.services.phishing_report_pdf import _risk_label
+        assert _risk_label(0.35) == "ÉLEVÉ"
+
+    def test_global_risk_faible(self):
+        from app.services.phishing_report_pdf import _global_risk
+        label, _ = _global_risk(0.05, 0.02)
+        assert label == "FAIBLE"
+
+    def test_global_risk_moyen(self):
+        from app.services.phishing_report_pdf import _global_risk
+        label, _ = _global_risk(0.15, 0.05)
+        assert label == "MOYEN"
+
+    def test_global_risk_eleve_via_submit(self):
+        from app.services.phishing_report_pdf import _global_risk
+        label, _ = _global_risk(0.10, 0.25)
+        assert label == "ÉLEVÉ"
+
+    def test_global_risk_eleve_via_click(self):
+        from app.services.phishing_report_pdf import _global_risk
+        label, _ = _global_risk(0.40, 0.05)
+        assert label == "ÉLEVÉ"
+
+    def test_recommendations_always_include_mfa(self):
+        from app.services.phishing_report_pdf import _get_recommendations
+        recs = _get_recommendations(0.10, 0.02)
+        assert any("MFA" in r or "multi-facteurs" in r for r in recs)
+
+    def test_recommendations_urgent_warning_on_high_click(self):
+        from app.services.phishing_report_pdf import _get_recommendations
+        recs = _get_recommendations(0.40, 0.02)
+        assert any("30 %" in r for r in recs)
+
+    def test_recommendations_submit_warning_on_high_submit(self):
+        from app.services.phishing_report_pdf import _get_recommendations
+        recs = _get_recommendations(0.10, 0.15)
+        assert any("identifiants" in r for r in recs)
+
+    def test_recommendations_no_urgent_below_threshold(self):
+        from app.services.phishing_report_pdf import _get_recommendations
+        recs = _get_recommendations(0.05, 0.01)
+        assert not any("30 %" in r for r in recs)
+
+    def test_generates_with_compromised_targets(self):
+        from app.services.phishing_report_pdf import generate_phishing_report
+        campaign = _make_campaign(submitted_count=2)
+        targets = [
+            _make_target("alice@acme.com", status="submitted", department="Finance"),
+            _make_target("bob@acme.com",   status="submitted", department="Direction"),
+            _make_target("carol@acme.com", status="clicked",   department="IT"),
+        ]
+        pdf = generate_phishing_report(campaign, targets)
+        assert isinstance(pdf, bytes) and len(pdf) > 1000
+
+    def test_generates_with_dept_breakdown(self):
+        from app.services.phishing_report_pdf import generate_phishing_report
+        campaign = _make_campaign()
+        targets = [
+            _make_target(f"u{i}@acme.com", status="clicked", department=dept)
+            for i, dept in enumerate(["Finance", "RH", "IT", "Direction"])
+        ]
+        pdf = generate_phishing_report(campaign, targets)
+        assert isinstance(pdf, bytes) and len(pdf) > 1000
+
+    def test_generates_without_scenario_keys(self):
+        from app.services.phishing_report_pdf import generate_phishing_report
+        campaign = _make_campaign(scenario_keys=None)
+        pdf = generate_phishing_report(campaign, [])
+        assert isinstance(pdf, bytes) and len(pdf) > 1000
+
+    def test_generates_with_zero_targets(self):
+        from app.services.phishing_report_pdf import generate_phishing_report
+        campaign = _make_campaign(targets_count=0, emails_sent=0, opened_count=0,
+                                  clicked_count=0, submitted_count=0)
+        pdf = generate_phishing_report(campaign, [])
+        assert isinstance(pdf, bytes) and len(pdf) > 1000
