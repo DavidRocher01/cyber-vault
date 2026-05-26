@@ -7,7 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Title } from '@angular/platform-browser';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { interval } from 'rxjs';
+import { interval, EMPTY } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
@@ -43,14 +43,17 @@ export class PhishingCampaignDetailComponent implements OnInit {
     this.campaignId = Number(this.route.snapshot.paramMap.get('id'));
     this.load();
 
-    // Auto-refresh every 30s while campaign is sending/active
-    interval(30_000).pipe(
+    // Live polling: 5s while sending (progress bar), 5s while active (stats)
+    // Returns EMPTY when campaign is completed/draft to avoid unnecessary API calls
+    interval(5_000).pipe(
       takeUntilDestroyed(this.destroyRef),
-      switchMap(() => this.phishingService.getCampaign(this.campaignId)),
-    ).subscribe(c => {
-      const s = this.campaign()?.status;
-      if (s === 'active' || s === 'sending') this.campaign.set(c);
-    });
+      switchMap(() => {
+        const s = this.campaign()?.status;
+        return (s === 'sending' || s === 'active')
+          ? this.phishingService.getCampaign(this.campaignId)
+          : EMPTY;
+      }),
+    ).subscribe(c => this.campaign.set(c));
   }
 
   load() {
