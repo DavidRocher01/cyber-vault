@@ -11,8 +11,11 @@ Sections:
   7. Campaign CRUD (authenticated)
   8. Look-alike domains endpoint
   9. PDF report generation
+ 10. Sending queue — batch engine unit tests
+ 11. Sécurité — expiration des tracking links + rate-limit headers
 """
 import json
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -1008,3 +1011,156 @@ class TestSendPendingBatch:
         await phishing_service.send_pending_batch()
         await db_session.refresh(campaign)
         assert campaign.status == "active"
+
+
+# ---------------------------------------------------------------------------
+# 11. Sécurité — expiration des tracking links
+# ---------------------------------------------------------------------------
+
+class TestTrackingExpiry:
+    """_is_campaign_expired() logic + tracking endpoints respect expiry."""
+
+    # ── Unit tests for the helper ────────────────────────────────────────────
+
+    def test_active_campaign_not_expired(self):
+        from types import SimpleNamespace
+        from datetime import timedelta
+        c = SimpleNamespace(
+            status="active",
+            started_at=datetime.now(timezone.utc) - timedelta(days=5),
+        )
+        assert phishing_service._is_campaign_expired(c) is False
+
+    def test_completed_campaign_always_expired(self):
+        from types import SimpleNamespace
+        c = SimpleNamespace(status="completed", started_at=None)
+        assert phishing_service._is_campaign_expired(c) is True
+
+    def test_campaign_expired_after_ttl(self):
+        from types import SimpleNamespace
+        from datetime import timedelta
+        from app.core.config import settings
+        c = SimpleNamespace(
+            status="active",
+            started_at=datetime.now(timezone.utc) - timedelta(days=settings.PHISHING_TRACKING_TTL_DAYS + 1),
+        )
+        assert phishing_service._is_campaign_expired(c) is True
+
+    def test_campaign_not_expired_at_ttl_boundary(self):
+        from types import SimpleNamespace
+        from datetime import timedelta
+        from app.core.config import settings
+        c = SimpleNamespace(
+            status="active",
+            started_at=datetime.now(timezone.utc) - timedelta(days=settings.PHISHING_TRACKING_TTL_DAYS - 1),
+        )
+        assert phishing_service._is_campaign_expired(c) is False
+
+    def test_no_started_at_not_expired(self):
+        from types import SimpleNamespace
+        c = SimpleNamespace(status="sending", started_at=None)
+        assert phishing_service._is_campaign_expired(c) is False
+
+    def test_expired_html_is_string(self):
+        html = phishing_service.get_expired_html()
+        assert isinstance(html, str)
+        assert "expiré" in html.lower()
+
+    # ── Integration tests — tracking events not recorded when expired ────────
+
+    @pytest.mark.asyncio
+    async def test_open_not_recorded_for_completed_campaign(
+        self, http_client: AsyncClient, db_session: AsyncSession
+    ):
+        campaign, _ = await _seed(db_session, tracking_id="exp-open-001", status="email_sent")
+        campaign.status = "completed"
+        await db_session.commit()
+
+        await http_client.get("/api/v1/phishing/t/exp-open-001/px")
+        await db_session.refresh(campaign)
+        assert campaign.opened_count == 0
+
+    @pytest.mark.asyncio
+    async def test_click_returns_expired_html_for_completed_campaign(
+        self, http_client: AsyncClient, db_session: AsyncSession
+    ):
+        campaign, _ = await _seed(db_session, tracking_id="exp-click-001", status="email_sent")
+        campaign.status = "completed"
+        await db_session.commit()
+
+        r = await http_client.get("/api/v1/phishing/t/exp-click-001/c", follow_redirects=False)
+        # Expired → returns HTML instead of redirect
+        assert r.status_code == 200
+        assert "expiré" in r.text.lower()
+
+    @pytest.mark.asyncio
+    async def test_click_not_recorded_for_completed_campaign(
+        self, http_client: AsyncClient, db_session: AsyncSession
+    ):
+        campaign, _ = await _seed(db_session, tracking_id="exp-click-002", status="email_sent")
+        campaign.status = "completed"
+        await db_session.commit()
+
+        await http_client.get("/api/v1/phishing/t/exp-click-002/c", follow_redirects=True)
+        await db_session.refresh(campaign)
+        assert campaign.clicked_count == 0
+
+    @pytest.mark.asyncio
+    async def test_landing_returns_expired_html_for_completed_campaign(
+        self, http_client: AsyncClient, db_session: AsyncSession
+    ):
+        campaign, _ = await _seed(db_session, tracking_id="exp-land-001", status="clicked")
+        campaign.status = "completed"
+        await db_session.commit()
+
+        r = await http_client.get("/api/v1/phishing/t/exp-land-001/l")
+        assert r.status_code == 200
+        assert "expiré" in r.text.lower()
+
+    @pytest.mark.asyncio
+    async def test_submit_not_recorded_for_completed_campaign(
+        self, http_client: AsyncClient, db_session: AsyncSession
+    ):
+        campaign, _ = await _seed(db_session, tracking_id="exp-sub-001", status="clicked")
+        campaign.status = "completed"
+        await db_session.commit()
+
+        r = await http_client.post("/api/v1/phishing/t/exp-sub-001/s")
+        assert r.status_code == 200  # Awareness page always shown
+        await db_session.refresh(campaign)
+        assert campaign.submitted_count == 0
+
+    @pytest.mark.asyncio
+    async def test_submit_still_returns_awareness_page_when_expired(
+        self, http_client: AsyncClient, db_session: AsyncSession
+    ):
+        """Even when expired, POSTing /s always returns the educational awareness page."""
+        campaign, _ = await _seed(db_session, tracking_id="exp-sub-002", status="clicked")
+        campaign.status = "completed"
+        await db_session.commit()
+
+        r = await http_client.post("/api/v1/phishing/t/exp-sub-002/s")
+        assert r.status_code == 200
+        # Awareness page content (not the expiry page)
+        assert "exercice" in r.text.lower() or "phishing" in r.text.lower()
+
+    # ── Rate-limiting configured (smoke test) ───────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_pixel_endpoint_responds_normally(
+        self, http_client: AsyncClient, db_session: AsyncSession
+    ):
+        """Smoke test: rate-limited pixel endpoint still works on first call."""
+        await _seed(db_session, tracking_id="rl-px-001", status="email_sent")
+        r = await http_client.get("/api/v1/phishing/t/rl-px-001/px")
+        assert r.status_code == 200
+        assert r.headers["content-type"] == "image/gif"
+
+    @pytest.mark.asyncio
+    async def test_submit_endpoint_responds_normally(
+        self, http_client: AsyncClient, db_session: AsyncSession
+    ):
+        """Smoke test: rate-limited submit endpoint still works on first call."""
+        await _seed(db_session, tracking_id="rl-sub-001", status="clicked")
+        r = await http_client.post("/api/v1/phishing/t/rl-sub-001/s")
+        assert r.status_code == 200

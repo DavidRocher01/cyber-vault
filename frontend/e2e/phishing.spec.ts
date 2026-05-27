@@ -1,6 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { createAndLogin, login } from './helpers';
 
+// Force strictly serial execution across all describe blocks in this file.
+// Playwright otherwise starts the next describe's beforeAll while the current
+// describe's tests are still running (pre-fetched setup), which causes
+// concurrent DB writes and "socket hang up" errors on the shared backend.
+test.describe.configure({ mode: 'serial' });
+
 // ─── Shared state for detail/edit tests ──────────────────────────────────────
 let detailEmail: string;
 let campaignId: number;
@@ -11,26 +17,36 @@ let launchCampaignId: number;
 
 // Creates one user + one campaign (via wizard steps 1+2) before detail/edit tests.
 async function setupCampaign(browser: import('@playwright/test').Browser) {
-  const page = await browser.newPage();
-  detailEmail = await createAndLogin(page);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const page = await browser.newPage();
+    try {
+      detailEmail = await createAndLogin(page);
 
-  await page.goto('/cyberscan/phishing/new');
-  // Step 1 — Plan (Express selected by default)
-  await page.getByRole('button', { name: /Continuer/i }).click();
-  await page.getByText(/Informations de la campagne/i).waitFor({ timeout: 8_000 });
+      await page.goto('/cyberscan/phishing/new');
+      await page.getByRole('button', { name: /Continuer/i }).click();
+      await page.getByText(/Informations de la campagne/i).waitFor({ timeout: 8_000 });
 
-  // Step 2 — Info: fill name and capture campaign id from POST response
-  const responsePromise = page.waitForResponse(
-    r => r.url().includes('/phishing/campaigns') && r.request().method() === 'POST',
-    { timeout: 12_000 }
-  );
-  await page.locator('input[placeholder*="Simulation"]').fill('Campagne E2E Test');
-  await page.getByRole('button', { name: /Continuer/i }).click();
-  const resp = await responsePromise;
-  const data = await resp.json();
-  campaignId = data.id;
+      const responsePromise = page.waitForResponse(
+        r => r.url().includes('/phishing/campaigns') && r.request().method() === 'POST',
+        { timeout: 12_000 }
+      );
+      await page.locator('input[placeholder*="Simulation"]').fill('Campagne E2E Test');
+      await page.getByRole('button', { name: /Continuer/i }).click();
+      const resp = await responsePromise;
+      const data = await resp.json();
+      if (!data.id) throw new Error('No campaign ID in response');
+      campaignId = data.id;
 
-  await page.close();
+      await page.close();
+      return;
+    } catch (e) {
+      await page.close().catch(() => {});
+      detailEmail = '';
+      campaignId = 0;
+      if (attempt === 2) throw e;
+      await new Promise(r => setTimeout(r, 1_000));
+    }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -305,54 +321,60 @@ test.describe('Phishing — édition campagne', () => {
 
 /** Creates a campaign, uploads a CSV, selects a scenario, accepts CGU, then launches it. */
 async function setupAndLaunchCampaign(browser: import('@playwright/test').Browser) {
-  const page = await browser.newPage();
-  launchEmail = await createAndLogin(page);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const page = await browser.newPage();
+    try {
+      launchEmail = await createAndLogin(page);
 
-  // Wizard step 1 → step 2
-  await page.goto('/cyberscan/phishing/new');
-  await page.getByRole('button', { name: /Continuer/i }).click();
-  await page.getByText(/Informations de la campagne/i).waitFor({ timeout: 8_000 });
+      await page.goto('/cyberscan/phishing/new');
+      await page.getByRole('button', { name: /Continuer/i }).click();
+      await page.getByText(/Informations de la campagne/i).waitFor({ timeout: 8_000 });
 
-  // Wizard step 2: fill name, capture new campaign id
-  const createResponse = page.waitForResponse(
-    r => r.url().includes('/phishing/campaigns') && r.request().method() === 'POST',
-    { timeout: 12_000 },
-  );
-  await page.locator('input[placeholder*="Simulation"]').fill(`Launch E2E ${Date.now()}`);
-  await page.getByRole('button', { name: /Continuer/i }).click();
-  launchCampaignId = (await (await createResponse).json()).id;
+      const createResponse = page.waitForResponse(
+        r => r.url().includes('/phishing/campaigns') && r.request().method() === 'POST',
+        { timeout: 12_000 },
+      );
+      await page.locator('input[placeholder*="Simulation"]').fill(`Launch E2E ${Date.now()}`);
+      await page.getByRole('button', { name: /Continuer/i }).click();
+      const createData = await (await createResponse).json();
+      if (!createData.id) throw new Error('No campaign ID in response');
+      launchCampaignId = createData.id;
 
-  // Edit page: upload CSV targets
-  await page.goto(`/cyberscan/phishing/campaigns/${launchCampaignId}/edit`);
-  await page.getByText(/Configurer la campagne/i).waitFor({ timeout: 8_000 });
+      await page.goto(`/cyberscan/phishing/campaigns/${launchCampaignId}/edit`);
+      await page.getByText(/Configurer la campagne/i).waitFor({ timeout: 8_000 });
 
-  const uploadDone = page.waitForResponse(
-    r => r.url().includes('/targets') && r.request().method() === 'POST',
-    { timeout: 12_000 },
-  );
-  await page.locator('input[type="file"]').setInputFiles({
-    name: 'targets.csv',
-    mimeType: 'text/csv',
-    buffer: Buffer.from('email,first_name\ntarget@corp.com,Alice'),
-  });
-  await uploadDone;
+      const uploadDone = page.waitForResponse(
+        r => r.url().includes('/targets') && r.request().method() === 'POST',
+        { timeout: 12_000 },
+      );
+      await page.locator('input[type="file"]').setInputFiles({
+        name: 'targets.csv',
+        mimeType: 'text/csv',
+        buffer: Buffer.from('email,first_name\ntarget@corp.com,Alice'),
+      });
+      await uploadDone;
 
-  // Select the first scenario (Fraude au Président)
-  await page.locator('label').filter({ hasText: 'Fraude au Président' }).locator('mat-checkbox').click();
+      await page.locator('label').filter({ hasText: 'Fraude au Président' }).locator('mat-checkbox').click();
+      await page.locator('label').filter({ hasText: /Je certifie avoir l'autorisation/ }).locator('mat-checkbox').click();
 
-  // Accept CGU
-  await page.locator('label').filter({ hasText: /Je certifie avoir l'autorisation/ }).locator('mat-checkbox').click();
+      const launchDone = page.waitForResponse(
+        r => r.url().includes('/launch') && r.request().method() === 'POST',
+        { timeout: 15_000 },
+      );
+      await page.getByRole('button', { name: /Lancer la campagne/i }).click();
+      await launchDone;
+      await page.waitForURL(new RegExp(`/cyberscan/phishing/campaigns/${launchCampaignId}$`), { timeout: 10_000 });
 
-  // Launch — waits for POST /launch response then redirect to detail
-  const launchDone = page.waitForResponse(
-    r => r.url().includes('/launch') && r.request().method() === 'POST',
-    { timeout: 15_000 },
-  );
-  await page.getByRole('button', { name: /Lancer la campagne/i }).click();
-  await launchDone;
-  await page.waitForURL(new RegExp(`/cyberscan/phishing/campaigns/${launchCampaignId}$`), { timeout: 10_000 });
-
-  await page.close();
+      await page.close();
+      return;
+    } catch (e) {
+      await page.close().catch(() => {});
+      launchEmail = '';
+      launchCampaignId = 0;
+      if (attempt === 2) throw e;
+      await new Promise(r => setTimeout(r, 1_000));
+    }
+  }
 }
 
 test.describe('Phishing — lancement (file d\'attente)', () => {

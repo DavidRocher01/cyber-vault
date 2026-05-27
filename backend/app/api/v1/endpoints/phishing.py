@@ -28,6 +28,7 @@ import json
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile, status
+from starlette.requests import Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -35,6 +36,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.limiter import limiter
 from app.core.utils import safe_json_load
 from app.models.phishing import PhishingCampaign, PhishingDomainVerification, PhishingTarget
 from app.models.user import User
@@ -433,33 +435,31 @@ async def get_lookalike_domains(
 # ---------------------------------------------------------------------------
 
 @router.get("/t/{tracking_id}/px", include_in_schema=False)
-async def tracking_pixel(tracking_id: str, db: AsyncSession = Depends(get_db)):
+@limiter.limit("30/minute")
+async def tracking_pixel(request: Request, tracking_id: str, db: AsyncSession = Depends(get_db)):
     """Serve 1×1 transparent GIF and record email open."""
     await phishing_service.record_open(tracking_id, db)
-    gif_bytes = phishing_service.get_pixel_gif()
     return Response(
-        content=gif_bytes,
+        content=phishing_service.get_pixel_gif(),
         media_type="image/gif",
-        headers={
-            "Cache-Control": "no-store, no-cache, must-revalidate",
-            "Pragma": "no-cache",
-        },
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache"},
     )
 
 
 @router.get("/t/{tracking_id}/c", include_in_schema=False)
-async def tracking_click(tracking_id: str, db: AsyncSession = Depends(get_db)):
-    """Record link click and redirect to the landing page."""
-    await phishing_service.record_click(tracking_id, db)
-    return RedirectResponse(
-        url=f"/phishing/t/{tracking_id}/l",
-        status_code=302,
-    )
+@limiter.limit("10/minute")
+async def tracking_click(request: Request, tracking_id: str, db: AsyncSession = Depends(get_db)):
+    """Record link click and redirect to the landing page (or expiry page if campaign has ended)."""
+    active = await phishing_service.record_click(tracking_id, db)
+    if not active:
+        return HTMLResponse(content=phishing_service.get_expired_html())
+    return RedirectResponse(url=f"/phishing/t/{tracking_id}/l", status_code=302)
 
 
 @router.get("/t/{tracking_id}/l", response_class=HTMLResponse, include_in_schema=False)
-async def tracking_landing(tracking_id: str, db: AsyncSession = Depends(get_db)):
-    """Serve the scenario-specific credential-harvesting landing page."""
+@limiter.limit("15/minute")
+async def tracking_landing(request: Request, tracking_id: str, db: AsyncSession = Depends(get_db)):
+    """Serve the scenario-specific credential-harvesting landing page, or expiry page."""
     result = await db.execute(
         select(PhishingTarget).where(PhishingTarget.tracking_id == tracking_id)
     )
@@ -471,6 +471,8 @@ async def tracking_landing(tracking_id: str, db: AsyncSession = Depends(get_db))
         )
         campaign = campaign_result.scalar_one_or_none()
         if campaign:
+            if phishing_service._is_campaign_expired(campaign):
+                return HTMLResponse(content=phishing_service.get_expired_html())
             keys = json.loads(campaign.scenario_keys or "[]")
             if keys:
                 scenario_key = keys[0]
@@ -478,7 +480,8 @@ async def tracking_landing(tracking_id: str, db: AsyncSession = Depends(get_db))
 
 
 @router.post("/t/{tracking_id}/s", response_class=HTMLResponse, include_in_schema=False)
-async def tracking_submit(tracking_id: str, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def tracking_submit(request: Request, tracking_id: str, db: AsyncSession = Depends(get_db)):
     """Record credential submission and return the awareness / education page."""
     scenario_key = await phishing_service.record_submit(tracking_id, db)
     return HTMLResponse(content=phishing_service.get_awareness_html(scenario_key))
