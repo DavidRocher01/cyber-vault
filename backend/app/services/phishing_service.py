@@ -32,6 +32,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.phishing import PhishingCampaign, PhishingDomainVerification, PhishingTarget
+from app.models.user import User
 
 # Prevents two concurrent batch runs from double-sending (APScheduler + create_task on launch)
 _batch_lock = asyncio.Lock()
@@ -1165,7 +1166,30 @@ async def send_pending_batch() -> None:
                     # All emails sent — move to 'active' results phase
                     if campaign.status == "sending":
                         campaign.status = "active"
+                        campaign.finished_at = datetime.now(timezone.utc)
                         campaign.updated_at = datetime.now(timezone.utc)
+                        await db.flush()
+                        # Notify campaign owner
+                        user_result = await db.execute(
+                            select(User).where(User.id == campaign.user_id)
+                        )
+                        user = user_result.scalar_one_or_none()
+                        if user:
+                            try:
+                                from app.services.email_service import send_campaign_complete
+                                await asyncio.to_thread(
+                                    send_campaign_complete,
+                                    user.email,
+                                    campaign.name,
+                                    campaign.id,
+                                    campaign.targets_count,
+                                    campaign.emails_sent,
+                                    campaign.opened_count,
+                                    campaign.clicked_count,
+                                    campaign.submitted_count,
+                                )
+                            except Exception as exc:
+                                logger.warning(f"Failed to send campaign complete notification (campaign_id={campaign.id}): {exc}")
                     continue
 
                 sent_count = 0
