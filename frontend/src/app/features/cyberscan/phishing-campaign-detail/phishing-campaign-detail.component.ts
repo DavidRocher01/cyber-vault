@@ -117,20 +117,25 @@ export class PhishingCampaignDetailComponent implements OnInit {
 
   targetStatusLabel(status: string): string {
     const m: Record<string, string> = {
-      pending: 'En attente', sent: 'Envoyé', opened: 'Ouvert',
-      clicked: 'Cliqué', submitted: 'Identifiants saisis',
+      pending: 'En attente', email_sent: 'Envoyé', opened: 'Ouvert',
+      clicked: 'Cliqué', submitted: 'Identifiants saisis', reported: 'Signalé',
     };
     return m[status] ?? status;
   }
 
   targetStatusColor(status: string): string {
     switch (status) {
-      case 'submitted': return 'text-red-400 bg-red-500/10 border-red-500/30';
-      case 'clicked':   return 'text-orange-400 bg-orange-500/10 border-orange-500/30';
-      case 'opened':    return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
-      case 'sent':      return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
-      default:          return 'text-gray-500 bg-gray-500/10 border-gray-500/30';
+      case 'submitted':  return 'text-red-400 bg-red-500/10 border-red-500/30';
+      case 'clicked':    return 'text-orange-400 bg-orange-500/10 border-orange-500/30';
+      case 'opened':     return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
+      case 'email_sent': return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
+      case 'reported':   return 'text-green-400 bg-green-500/10 border-green-500/30';
+      default:           return 'text-gray-500 bg-gray-500/10 border-gray-500/30';
     }
+  }
+
+  lastEventAt(t: import('../services/phishing.service').PhishingTarget): string {
+    return this.formatDate(t.submitted_at ?? t.clicked_at ?? t.opened_at ?? t.email_sent_at);
   }
 
   scenarioName(key: string): string {

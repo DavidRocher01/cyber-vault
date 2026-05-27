@@ -70,7 +70,12 @@ export interface PhishingTarget {
   first_name: string;
   last_name: string | null;
   department: string | null;
+  scenario_key: string | null;
   status: string;
+  email_sent_at: string | null;
+  opened_at: string | null;
+  clicked_at: string | null;
+  submitted_at: string | null;
 }
 
 export interface DomainVerifyResult {

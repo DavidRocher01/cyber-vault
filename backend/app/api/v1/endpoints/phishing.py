@@ -112,13 +112,20 @@ def _serialize_campaign(c: PhishingCampaign) -> dict:
 
 
 def _serialize_target(t: PhishingTarget) -> dict:
+    def _iso(dt: object) -> str | None:
+        return dt.isoformat() if dt else None  # type: ignore[union-attr]
     return {
         "id": t.id,
         "email": t.email,
         "first_name": t.first_name,
         "last_name": t.last_name,
         "department": t.department,
+        "scenario_key": t.scenario_key,
         "status": t.status,
+        "email_sent_at": _iso(t.email_sent_at),
+        "opened_at": _iso(t.opened_at),
+        "clicked_at": _iso(t.clicked_at),
+        "submitted_at": _iso(t.submitted_at),
     }
 
 

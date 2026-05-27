@@ -70,8 +70,17 @@ class PhishingTarget(Base):
     # UUID used in tracking URLs — assigned when email is sent
     tracking_id: Mapped[str | None] = mapped_column(String(36), nullable=True, unique=True, index=True)
 
+    # Scenario sent to this target — assigned at send time
+    scenario_key: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
     # pending | email_sent | opened | clicked | submitted | reported
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
+
+    # Per-event timestamps
+    email_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    clicked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)

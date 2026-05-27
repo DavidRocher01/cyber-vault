@@ -1182,7 +1182,9 @@ async def send_pending_batch() -> None:
                             target.email, from_addr, subject, html, text, reply_to,
                         )
                         target.tracking_id = tracking_id
+                        target.scenario_key = scenario_key
                         target.status = "email_sent"
+                        target.email_sent_at = datetime.now(timezone.utc)
                         campaign.emails_sent += 1
                         sent_count += 1
                     except Exception as exc:
@@ -1237,6 +1239,7 @@ async def record_open(tracking_id: str, db: AsyncSession) -> None:
         campaign = campaign_result.scalar_one_or_none()
         if campaign and not _is_campaign_expired(campaign):
             target.status = "opened"
+            target.opened_at = datetime.now(timezone.utc)
             campaign.opened_count += 1
             campaign.updated_at = datetime.now(timezone.utc)
             await db.commit()
@@ -1257,6 +1260,7 @@ async def record_click(tracking_id: str, db: AsyncSession) -> bool:
             if _is_campaign_expired(campaign):
                 return False
             target.status = "clicked"
+            target.clicked_at = datetime.now(timezone.utc)
             campaign.clicked_count += 1
             campaign.updated_at = datetime.now(timezone.utc)
             await db.commit()
@@ -1278,10 +1282,13 @@ async def record_submit(tracking_id: str, db: AsyncSession) -> str:
         campaign = campaign_result.scalar_one_or_none()
         if campaign:
             keys = json.loads(campaign.scenario_keys or "[]")
-            if keys:
+            if target.scenario_key:
+                scenario_key = target.scenario_key
+            elif keys:
                 scenario_key = keys[0]
             if not _is_campaign_expired(campaign) and target.status != "submitted":
                 target.status = "submitted"
+                target.submitted_at = datetime.now(timezone.utc)
                 campaign.submitted_count += 1
                 campaign.updated_at = datetime.now(timezone.utc)
                 await db.commit()
