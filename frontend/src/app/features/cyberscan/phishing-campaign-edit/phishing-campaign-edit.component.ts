@@ -48,6 +48,7 @@ export class PhishingCampaignEditComponent implements OnInit {
   form = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
     cgu_accepted: [false, Validators.requiredTrue],
+    scheduled_at: [''],
   });
 
   ngOnInit() {
@@ -60,13 +61,16 @@ export class PhishingCampaignEditComponent implements OnInit {
     this.phishingService.getCampaign(this.campaignId).subscribe({
       next: c => {
         // Redirect away if campaign is already running or done
-        if (c.status === 'active' || c.status === 'completed' || c.status === 'sending') {
+        if (c.status === 'active' || c.status === 'completed' || c.status === 'sending' || c.status === 'cancelled') {
           this.router.navigate(['/cyberscan/phishing/campaigns', this.campaignId]);
           return;
         }
         this.campaign.set(c);
         this.title.setTitle(`Configurer "${c.name}" | CyberScan`);
-        this.form.patchValue({ name: c.name, cgu_accepted: c.cgu_accepted });
+        const scheduledLocal = c.scheduled_at
+          ? new Date(c.scheduled_at).toISOString().slice(0, 16)
+          : '';
+        this.form.patchValue({ name: c.name, cgu_accepted: c.cgu_accepted, scheduled_at: scheduledLocal });
         this.selectedScenarios.set(new Set(c.scenario_keys));
         this.loading.set(false);
       },
@@ -101,11 +105,30 @@ export class PhishingCampaignEditComponent implements OnInit {
   get canLaunch(): boolean {
     const c = this.campaign();
     return !!c &&
-      (c.status === 'draft' || c.status === 'ready') &&
+      (c.status === 'draft' || c.status === 'ready' || c.status === 'scheduled') &&
       this.selectedScenarios().size > 0 &&
       c.targets_count > 0 &&
       (this.form.get('cgu_accepted')?.value === true) &&
       (this.form.get('name')?.valid === true);
+  }
+
+  get isScheduled(): boolean {
+    const v = this.form.get('scheduled_at')?.value;
+    if (!v) return false;
+    return new Date(v) > new Date();
+  }
+
+  get scheduledAtIso(): string | undefined {
+    const v = this.form.get('scheduled_at')?.value;
+    if (!v) return undefined;
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? undefined : d.toISOString();
+  }
+
+  get minScheduledAt(): string {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() + 5);
+    return d.toISOString().slice(0, 16);
   }
 
   save() {
@@ -115,6 +138,7 @@ export class PhishingCampaignEditComponent implements OnInit {
       name: this.form.value.name!,
       scenario_keys: Array.from(this.selectedScenarios()),
       cgu_accepted: this.form.value.cgu_accepted ?? false,
+      scheduled_at: this.scheduledAtIso,
     }).subscribe({
       next: c => {
         this.campaign.set(c);
@@ -135,12 +159,14 @@ export class PhishingCampaignEditComponent implements OnInit {
       name: this.form.value.name!,
       scenario_keys: Array.from(this.selectedScenarios()),
       cgu_accepted: true,
+      scheduled_at: this.scheduledAtIso,
     }).subscribe({
       next: () => {
         this.phishingService.launchCampaign(this.campaignId).subscribe({
           next: () => {
             this.launching.set(false);
-            this.snack.open('Campagne lancée !', 'Voir', { duration: 5000 });
+            const msg = this.isScheduled ? 'Envoi planifié !' : 'Campagne lancée !';
+            this.snack.open(msg, 'Voir', { duration: 5000 });
             this.router.navigate(['/cyberscan/phishing/campaigns', this.campaignId]);
           },
           error: err => {
@@ -175,15 +201,17 @@ export class PhishingCampaignEditComponent implements OnInit {
 
   statusLabel(status: string): string {
     const m: Record<string, string> = {
-      draft: 'Brouillon', pending_verification: 'Vérification', ready: 'Prête',
+      draft: 'Brouillon', pending_verification: 'Vérification',
+      ready: 'Prête', scheduled: 'Planifiée',
     };
     return m[status] ?? status;
   }
 
   statusColor(status: string): string {
     switch (status) {
-      case 'ready': return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
-      default:      return 'text-gray-400 bg-gray-500/10 border-gray-500/30';
+      case 'ready':     return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
+      case 'scheduled': return 'text-purple-400 bg-purple-500/10 border-purple-500/30';
+      default:          return 'text-gray-400 bg-gray-500/10 border-gray-500/30';
     }
   }
 

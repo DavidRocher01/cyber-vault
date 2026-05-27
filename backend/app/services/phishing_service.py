@@ -1142,6 +1142,21 @@ async def send_pending_batch() -> None:
         from app.core.database import AsyncSessionLocal
 
         async with AsyncSessionLocal() as db:
+            # Activate any scheduled campaigns whose send time has arrived
+            now = datetime.now(timezone.utc)
+            due_result = await db.execute(
+                select(PhishingCampaign).where(
+                    PhishingCampaign.status == "scheduled",
+                    PhishingCampaign.scheduled_at <= now,
+                )
+            )
+            for due in due_result.scalars().all():
+                due.status = "sending"
+                due.started_at = now
+                due.updated_at = now
+                logger.info(f"Phishing batch: activating scheduled campaign {due.id}")
+            await db.commit()
+
             campaigns_result = await db.execute(
                 select(PhishingCampaign).where(
                     PhishingCampaign.status.in_(["active", "sending"])
@@ -1241,9 +1256,15 @@ async def launch_campaign(campaign: PhishingCampaign, db: AsyncSession) -> None:
             raise RuntimeError("Resend n'est pas configuré (RESEND_API_KEY manquant).")
         logger.info("DEV MODE — RESEND_API_KEY absent, campagne passée en 'sending' sans envoi réel.")
 
-    campaign.status = "sending"
-    campaign.started_at = datetime.now(timezone.utc)
-    campaign.updated_at = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc)
+    if campaign.scheduled_at and campaign.scheduled_at > now:
+        campaign.status = "scheduled"
+        campaign.updated_at = now
+        logger.info(f"Campaign {campaign.id} scheduled for {campaign.scheduled_at.isoformat()}")
+    else:
+        campaign.status = "sending"
+        campaign.started_at = now
+        campaign.updated_at = now
     await db.flush()
 
 

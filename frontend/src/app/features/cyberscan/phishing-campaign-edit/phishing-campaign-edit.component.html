@@ -136,6 +136,31 @@
           </label>
         </div>
 
+        <!-- Scheduled send -->
+        <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] text-gray-400">schedule_send</mat-icon>
+            <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Envoi planifié</h2>
+            <span class="text-xs text-gray-600 ml-1">(optionnel)</span>
+          </div>
+          <input formControlName="scheduled_at"
+                 type="datetime-local"
+                 [min]="minScheduledAt"
+                 aria-label="Date et heure d'envoi planifié"
+                 class="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white
+                        focus:outline-none focus:border-purple-500 transition-colors
+                        [color-scheme:dark]" />
+          <p class="text-xs text-gray-600 mt-2">
+            Laissez vide pour un envoi immédiat. L'envoi sera déclenché automatiquement à la date choisie.
+          </p>
+          @if (isScheduled) {
+            <p class="text-xs text-purple-400 mt-1 flex items-center gap-1">
+              <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">info</mat-icon>
+              Cliquez sur "Planifier l'envoi" pour confirmer cette date.
+            </p>
+          }
+        </div>
+
         <!-- Actions -->
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pb-8">
           <a routerLink="/cyberscan/phishing/campaigns"
@@ -155,8 +180,10 @@
                   class="!rounded-xl"
                   [disabled]="!canLaunch || launching()"
                   (click)="launch()">
-            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] mr-1">rocket_launch</mat-icon>
-            {{ launching() ? 'Lancement…' : 'Lancer la campagne' }}
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] mr-1">
+              {{ isScheduled ? 'schedule_send' : 'rocket_launch' }}
+            </mat-icon>
+            {{ launching() ? 'Enregistrement…' : (isScheduled ? 'Planifier l\'envoi' : 'Lancer la campagne') }}
           </button>
         </div>
 

@@ -6,7 +6,7 @@ import { environment } from '../../../../environments/environment';
 export interface PhishingCampaign {
   id: number;
   name: string;
-  status: 'draft' | 'pending_verification' | 'ready' | 'active' | 'sending' | 'completed' | 'cancelled';
+  status: 'draft' | 'pending_verification' | 'ready' | 'scheduled' | 'active' | 'sending' | 'completed' | 'cancelled';
   plan_tier: string;
   domain: string | null;
   domain_verified: boolean;

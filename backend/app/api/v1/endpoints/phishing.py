@@ -188,7 +188,7 @@ async def update_campaign(
 ):
     campaign = await _get_owned(campaign_id, current_user.id, db)
 
-    if campaign.status not in ("draft", "pending_verification", "ready"):
+    if campaign.status not in ("draft", "pending_verification", "ready", "scheduled"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Une campagne active ou terminée ne peut pas être modifiée.",
@@ -296,7 +296,7 @@ async def launch_campaign(
 ):
     campaign = await _get_owned(campaign_id, current_user.id, db)
 
-    if campaign.status not in ("draft", "pending_verification", "ready"):
+    if campaign.status not in ("draft", "pending_verification", "ready", "scheduled"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Une campagne active ou terminée ne peut pas être relancée.",
