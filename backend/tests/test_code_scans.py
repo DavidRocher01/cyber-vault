@@ -7,8 +7,10 @@ Covers: trigger git scan, upload zip, list, get, delete,
 import io
 import zipfile
 import pytest
+from fastapi import BackgroundTasks, HTTPException
 from httpx import ASGITransport, AsyncClient
-from unittest.mock import patch, AsyncMock
+from sqlalchemy.exc import IntegrityError
+from unittest.mock import patch, AsyncMock, MagicMock
 
 from app.main import app
 
@@ -210,6 +212,66 @@ async def test_get_code_scan_other_user_returns_404():
             scan_id = trig.json()["scan_id"]
             r = await c.get(f"{BASE}/code-scans/{scan_id}", headers=h2)
     assert r.status_code == 404
+
+
+# ── Disallowed host ────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_trigger_code_scan_disallowed_host_returns_422():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        h = await _headers(c, "host1@test.com")
+        r = await c.post(f"{BASE}/code-scans", json={"repo_url": "https://bitbucket.net/user/repo"}, headers=h)
+    assert r.status_code == 422
+    assert "non autorisé" in r.json()["detail"].lower()
+
+
+# ── IntegrityError ─────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_trigger_code_scan_integrity_error_returns_429():
+    from app.api.v1.endpoints.code_scans import trigger_code_scan
+    from app.schemas.cyberscan import CodeScanCreate
+
+    db = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    db.execute = AsyncMock(return_value=mock_result)
+    db.add = MagicMock()
+    db.commit = AsyncMock(side_effect=IntegrityError("stmt", {}, Exception("orig")))
+    db.rollback = AsyncMock()
+
+    body = CodeScanCreate(repo_url="https://github.com/user/repo")
+    tasks = BackgroundTasks()
+    user = MagicMock()
+    user.id = 1
+
+    with pytest.raises(HTTPException) as exc:
+        await trigger_code_scan(body, tasks, user, db)
+    assert exc.value.status_code == 429
+
+
+# ── Unit: _embed_token / _repo_name ───────────────────────────────────────────
+
+def test_embed_token_inserts_token_in_netloc():
+    from app.api.v1.endpoints.code_scans import _embed_token
+    result = _embed_token("https://github.com/user/repo", "mytoken")
+    assert result == "https://mytoken@github.com/user/repo"
+
+
+def test_embed_token_no_token_returns_url_unchanged():
+    from app.api.v1.endpoints.code_scans import _embed_token
+    url = "https://github.com/user/repo"
+    assert _embed_token(url, None) == url
+
+
+def test_repo_name_single_segment_returns_segment():
+    from app.api.v1.endpoints.code_scans import _repo_name
+    assert _repo_name("repository") == "repository"
+
+
+def test_repo_name_standard_url():
+    from app.api.v1.endpoints.code_scans import _repo_name
+    assert _repo_name("https://github.com/user/repo") == "user/repo"
 
 
 # ── Delete ────────────────────────────────────────────────────────────────────

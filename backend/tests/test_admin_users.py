@@ -107,3 +107,48 @@ async def test_admin_users_multiple_users_ordered_by_id_desc():
     assert len(users) == 2
     # Ordered by id desc: most recently registered user first
     assert users[0]["id"] > users[1]["id"]
+
+
+# ── PATCH /{user_id}/rssi ──────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_toggle_rssi_consultant_toggles_flag():
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            await c.post(f"{BASE}/auth/register", json={"email": "rssi@test.com", "password": "StrongPass123!"})
+            users_r = await c.get(f"{BASE}/admin/users", headers={"x-admin-key": "test-secret-key"})
+            user_id = users_r.json()[0]["id"]
+
+            r = await c.patch(f"{BASE}/admin/users/{user_id}/rssi", headers={"x-admin-key": "test-secret-key"})
+    assert r.status_code == 200
+    assert r.json()["id"] == user_id
+    assert r.json()["is_rssi_consultant"] is True
+
+
+@pytest.mark.asyncio
+async def test_toggle_rssi_consultant_toggles_back():
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            await c.post(f"{BASE}/auth/register", json={"email": "rssi2@test.com", "password": "StrongPass123!"})
+            users_r = await c.get(f"{BASE}/admin/users", headers={"x-admin-key": "test-secret-key"})
+            user_id = users_r.json()[0]["id"]
+
+            await c.patch(f"{BASE}/admin/users/{user_id}/rssi", headers={"x-admin-key": "test-secret-key"})
+            r = await c.patch(f"{BASE}/admin/users/{user_id}/rssi", headers={"x-admin-key": "test-secret-key"})
+    assert r.status_code == 200
+    assert r.json()["is_rssi_consultant"] is False
+
+
+@pytest.mark.asyncio
+async def test_toggle_rssi_consultant_unknown_user_returns_404():
+    with _admin_settings():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.patch(f"{BASE}/admin/users/99999/rssi", headers={"x-admin-key": "test-secret-key"})
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_toggle_rssi_consultant_no_key_returns_403():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.patch(f"{BASE}/admin/users/1/rssi")
+    assert r.status_code == 403
