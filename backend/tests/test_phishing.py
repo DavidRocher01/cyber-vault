@@ -766,13 +766,17 @@ def _make_campaign(**kwargs):
     return SimpleNamespace(**defaults)
 
 
-def _make_target(email, status="email_sent", department=None, first_name="Jean", last_name="Dupont"):
+def _make_target(email, status="email_sent", department=None, first_name="Jean", last_name="Dupont",
+                 scenario_key=None, clicked_at=None, email_sent_at=None):
     return SimpleNamespace(
         email=email,
         status=status,
         department=department,
         first_name=first_name,
         last_name=last_name,
+        scenario_key=scenario_key,
+        clicked_at=clicked_at,
+        email_sent_at=email_sent_at,
     )
 
 

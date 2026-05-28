@@ -43,13 +43,16 @@ def _campaign(
 
 
 def _target(email="user@example.com", first_name="Alice", department="IT",
-            status="clicked") -> MagicMock:
+            status="clicked", scenario_key=None, clicked_at=None, email_sent_at=None) -> MagicMock:
     t = MagicMock(spec=PhishingTarget)
     t.email = email
     t.first_name = first_name
     t.last_name = "Test"
     t.department = department
     t.status = status
+    t.scenario_key = scenario_key
+    t.clicked_at = clicked_at
+    t.email_sent_at = email_sent_at
     return t
 
 

@@ -124,7 +124,7 @@ describe('PhishingCampaignDetailComponent — statusColor()', () => {
 describe('PhishingCampaignDetailComponent — targetStatusLabel()', () => {
   const cases: [string, string][] = [
     ['pending', 'En attente'],
-    ['sent', 'Envoyé'],
+    ['email_sent', 'Envoyé'],
     ['opened', 'Ouvert'],
     ['clicked', 'Cliqué'],
     ['submitted', 'Identifiants saisis'],
@@ -143,7 +143,7 @@ describe('PhishingCampaignDetailComponent — targetStatusColor()', () => {
   it('red pour submitted', () => expect(make().targetStatusColor('submitted')).toContain('red'));
   it('orange pour clicked', () => expect(make().targetStatusColor('clicked')).toContain('orange'));
   it('yellow pour opened', () => expect(make().targetStatusColor('opened')).toContain('yellow'));
-  it('blue pour sent', () => expect(make().targetStatusColor('sent')).toContain('blue'));
+  it('blue pour email_sent', () => expect(make().targetStatusColor('email_sent')).toContain('blue'));
   it('gray par défaut (pending)', () => expect(make().targetStatusColor('pending')).toContain('gray'));
 });
 
