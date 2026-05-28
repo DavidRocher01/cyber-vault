@@ -193,7 +193,7 @@ async def test_updated_at_changes_on_second_save():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "nis2_date2@test.com")
         r1 = await c.put(f"{BASE}/nis2/me", json={"items": {"rssi": "compliant"}}, headers=h)
-        await asyncio.sleep(0.01)
+        await asyncio.sleep(0.05)
         r2 = await c.put(f"{BASE}/nis2/me", json={"items": {"rssi": "partial"}}, headers=h)
     assert r1.json()["updated_at"] != r2.json()["updated_at"]
 
