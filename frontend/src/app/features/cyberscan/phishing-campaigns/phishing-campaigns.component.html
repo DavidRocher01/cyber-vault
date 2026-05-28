@@ -36,6 +36,80 @@
 
     } @else {
 
+      <!-- Trend chart (2+ campaigns with data) -->
+      @let trend = trendData;
+      @if (trend.length >= 2) {
+        <div class="rounded-xl border border-gray-800 bg-gray-900 p-5 mb-6">
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Évolution inter-campagnes</h2>
+            <div class="flex items-center gap-4 text-[0.65rem] text-gray-500">
+              <span class="flex items-center gap-1.5">
+                <span class="w-3 h-px bg-yellow-400 inline-block rounded-full"></span>Ouvertures
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="w-3 h-px bg-orange-400 inline-block rounded-full"></span>Clics
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="w-3 h-px bg-red-500 inline-block rounded-full"></span>Identifiants
+              </span>
+            </div>
+          </div>
+
+          <!-- SVG chart (no text labels — distortion-safe) -->
+          <svg viewBox="0 0 400 88" class="w-full h-20" preserveAspectRatio="none">
+            <!-- Grid lines -->
+            <line x1="0" y1="4"  x2="400" y2="4"  stroke="#1f2937" stroke-width="0.5" />
+            <line x1="0" y1="44" x2="400" y2="44" stroke="#1f2937" stroke-width="0.5" stroke-dasharray="3,5" />
+            <line x1="0" y1="84" x2="400" y2="84" stroke="#374151" stroke-width="0.5" />
+
+            <polyline [attr.points]="trendPolyline('openRate', trend)"
+                      fill="none" stroke="#fbbf24" stroke-width="2"
+                      stroke-linejoin="round" stroke-linecap="round" />
+            <polyline [attr.points]="trendPolyline('clickRate', trend)"
+                      fill="none" stroke="#fb923c" stroke-width="2"
+                      stroke-linejoin="round" stroke-linecap="round" />
+            <polyline [attr.points]="trendPolyline('submitRate', trend)"
+                      fill="none" stroke="#ef4444" stroke-width="2"
+                      stroke-linejoin="round" stroke-linecap="round" />
+
+            @for (d of trend; track d.label; let i = $index) {
+              <circle [attr.cx]="trendDotX(i, trend.length)" [attr.cy]="trendDotY(d.openRate)"
+                      r="3" fill="#fbbf24">
+                <title>{{ d.label }} · Ouvertures : {{ d.openRate }}%</title>
+              </circle>
+              <circle [attr.cx]="trendDotX(i, trend.length)" [attr.cy]="trendDotY(d.clickRate)"
+                      r="3" fill="#fb923c">
+                <title>{{ d.label }} · Clics : {{ d.clickRate }}%</title>
+              </circle>
+              <circle [attr.cx]="trendDotX(i, trend.length)" [attr.cy]="trendDotY(d.submitRate)"
+                      r="3" fill="#ef4444">
+                <title>{{ d.label }} · Identifiants : {{ d.submitRate }}%</title>
+              </circle>
+            }
+          </svg>
+
+          <!-- X-axis labels (HTML, no SVG text distortion) -->
+          <div class="relative h-4 mt-0.5 overflow-hidden">
+            @for (d of trend; track d.label; let i = $index) {
+              <span class="absolute text-[0.6rem] text-gray-600 -translate-x-1/2 truncate max-w-16 inline-block text-center"
+                    [style.left.%]="trendXPct(i, trend.length)">
+                {{ d.label }}
+              </span>
+            }
+          </div>
+
+          <div class="flex items-center justify-between mt-2 text-[0.65rem] text-gray-600">
+            <span>{{ trend.length }} campagnes · du {{ trend[0].date }} au {{ trend[trend.length - 1].date }}</span>
+            <span>Dernière — clics :
+              <span class="font-semibold"
+                    [class]="trend[trend.length-1].clickRate >= 30 ? 'text-red-400' : trend[trend.length-1].clickRate >= 15 ? 'text-yellow-400' : 'text-green-400'">
+                {{ trend[trend.length - 1].clickRate }}%
+              </span>
+            </span>
+          </div>
+        </div>
+      }
+
       <!-- Campaigns list -->
       <div class="flex flex-col gap-4">
         @for (c of campaigns(); track c.id) {
@@ -80,7 +154,7 @@
 
               <!-- Actions -->
               <div class="flex items-center gap-2 flex-shrink-0">
-                @if (c.status === 'draft' || c.status === 'pending_verification' || c.status === 'ready') {
+                @if (c.status === 'draft' || c.status === 'pending_verification' || c.status === 'ready' || c.status === 'scheduled') {
                   <a [routerLink]="['/cyberscan/phishing/campaigns', c.id, 'edit']"
                      mat-stroked-button
                      class="!text-sm !border-gray-700 !text-gray-300 !rounded-lg">
@@ -88,7 +162,7 @@
                     Configurer
                   </a>
                 }
-                @if (c.status === 'active' || c.status === 'completed') {
+                @if (c.status === 'active' || c.status === 'sending' || c.status === 'completed') {
                   <a [routerLink]="['/cyberscan/phishing/campaigns', c.id]"
                      mat-flat-button color="primary"
                      class="!text-sm !rounded-lg">
@@ -99,8 +173,8 @@
               </div>
             </div>
 
-            <!-- Active campaign progress bar -->
-            @if (c.status === 'active' && c.targets_count > 0) {
+            <!-- Active/sending campaign progress bar -->
+            @if ((c.status === 'active' || c.status === 'sending') && c.targets_count > 0) {
               <div class="px-5 pb-4">
                 <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
                   <span>{{ c.emails_sent }}/{{ c.targets_count }} emails envoyés</span>
