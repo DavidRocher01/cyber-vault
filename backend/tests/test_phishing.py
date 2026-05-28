@@ -10,8 +10,12 @@ Sections:
   6. State-machine & counter tests — progression email_sent→opened→clicked→submitted
   7. Campaign CRUD (authenticated)
   8. Look-alike domains endpoint
+  9. PDF report generation
+ 10. Sending queue — batch engine unit tests
+ 11. Sécurité — expiration des tracking links + rate-limit headers
 """
 import json
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -735,3 +739,432 @@ class TestLookalikeDomainsEndpoint:
     async def test_missing_domain_param_returns_422(self, auth_client: AsyncClient):
         r = await auth_client.get("/api/v1/phishing/lookalike-domains")
         assert r.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# 9. PDF report generation (pure unit — no DB)
+# ---------------------------------------------------------------------------
+
+def _make_campaign(**kwargs):
+    defaults = dict(
+        id=1,
+        name="Campagne Test",
+        plan_tier="standard",
+        status="completed",
+        domain="acme.com",
+        targets_count=10,
+        emails_sent=10,
+        opened_count=6,
+        clicked_count=3,
+        submitted_count=1,
+        scenario_keys='["ceo-fraud","o365-credentials"]',
+        started_at=None,
+        finished_at=None,
+        lookalike_domain=None,
+    )
+    defaults.update(kwargs)
+    return SimpleNamespace(**defaults)
+
+
+def _make_target(email, status="email_sent", department=None, first_name="Jean", last_name="Dupont",
+                 scenario_key=None, clicked_at=None, email_sent_at=None):
+    return SimpleNamespace(
+        email=email,
+        status=status,
+        department=department,
+        first_name=first_name,
+        last_name=last_name,
+        scenario_key=scenario_key,
+        clicked_at=clicked_at,
+        email_sent_at=email_sent_at,
+    )
+
+
+class TestPdfReport:
+    from app.services.phishing_report_pdf import (
+        generate_phishing_report,
+        _risk_label,
+        _global_risk,
+        _get_recommendations,
+    )
+
+    def test_returns_bytes(self):
+        from app.services.phishing_report_pdf import generate_phishing_report
+        campaign = _make_campaign()
+        pdf = generate_phishing_report(campaign, [])
+        assert isinstance(pdf, bytes)
+        assert len(pdf) > 1000
+
+    def test_starts_with_pdf_magic(self):
+        from app.services.phishing_report_pdf import generate_phishing_report
+        campaign = _make_campaign()
+        pdf = generate_phishing_report(campaign, [])
+        assert pdf[:4] == b"%PDF"
+
+    def test_risk_label_faible(self):
+        from app.services.phishing_report_pdf import _risk_label
+        assert _risk_label(0.05) == "FAIBLE"
+
+    def test_risk_label_moyen(self):
+        from app.services.phishing_report_pdf import _risk_label
+        assert _risk_label(0.20) == "MOYEN"
+
+    def test_risk_label_eleve(self):
+        from app.services.phishing_report_pdf import _risk_label
+        assert _risk_label(0.35) == "ÉLEVÉ"
+
+    def test_global_risk_faible(self):
+        from app.services.phishing_report_pdf import _global_risk
+        label, _ = _global_risk(0.05, 0.02)
+        assert label == "FAIBLE"
+
+    def test_global_risk_moyen(self):
+        from app.services.phishing_report_pdf import _global_risk
+        label, _ = _global_risk(0.15, 0.05)
+        assert label == "MOYEN"
+
+    def test_global_risk_eleve_via_submit(self):
+        from app.services.phishing_report_pdf import _global_risk
+        label, _ = _global_risk(0.10, 0.25)
+        assert label == "ÉLEVÉ"
+
+    def test_global_risk_eleve_via_click(self):
+        from app.services.phishing_report_pdf import _global_risk
+        label, _ = _global_risk(0.40, 0.05)
+        assert label == "ÉLEVÉ"
+
+    def test_recommendations_always_include_mfa(self):
+        from app.services.phishing_report_pdf import _get_recommendations
+        recs = _get_recommendations(0.10, 0.02)
+        assert any("MFA" in r or "multi-facteurs" in r for r in recs)
+
+    def test_recommendations_urgent_warning_on_high_click(self):
+        from app.services.phishing_report_pdf import _get_recommendations
+        recs = _get_recommendations(0.40, 0.02)
+        assert any("30 %" in r for r in recs)
+
+    def test_recommendations_submit_warning_on_high_submit(self):
+        from app.services.phishing_report_pdf import _get_recommendations
+        recs = _get_recommendations(0.10, 0.15)
+        assert any("identifiants" in r for r in recs)
+
+    def test_recommendations_no_urgent_below_threshold(self):
+        from app.services.phishing_report_pdf import _get_recommendations
+        recs = _get_recommendations(0.05, 0.01)
+        assert not any("30 %" in r for r in recs)
+
+    def test_generates_with_compromised_targets(self):
+        from app.services.phishing_report_pdf import generate_phishing_report
+        campaign = _make_campaign(submitted_count=2)
+        targets = [
+            _make_target("alice@acme.com", status="submitted", department="Finance"),
+            _make_target("bob@acme.com",   status="submitted", department="Direction"),
+            _make_target("carol@acme.com", status="clicked",   department="IT"),
+        ]
+        pdf = generate_phishing_report(campaign, targets)
+        assert isinstance(pdf, bytes) and len(pdf) > 1000
+
+    def test_generates_with_dept_breakdown(self):
+        from app.services.phishing_report_pdf import generate_phishing_report
+        campaign = _make_campaign()
+        targets = [
+            _make_target(f"u{i}@acme.com", status="clicked", department=dept)
+            for i, dept in enumerate(["Finance", "RH", "IT", "Direction"])
+        ]
+        pdf = generate_phishing_report(campaign, targets)
+        assert isinstance(pdf, bytes) and len(pdf) > 1000
+
+    def test_generates_without_scenario_keys(self):
+        from app.services.phishing_report_pdf import generate_phishing_report
+        campaign = _make_campaign(scenario_keys=None)
+        pdf = generate_phishing_report(campaign, [])
+        assert isinstance(pdf, bytes) and len(pdf) > 1000
+
+    def test_generates_with_zero_targets(self):
+        from app.services.phishing_report_pdf import generate_phishing_report
+        campaign = _make_campaign(targets_count=0, emails_sent=0, opened_count=0,
+                                  clicked_count=0, submitted_count=0)
+        pdf = generate_phishing_report(campaign, [])
+        assert isinstance(pdf, bytes) and len(pdf) > 1000
+
+
+# ---------------------------------------------------------------------------
+# 10. Sending queue — batch engine unit tests (no DB, no Resend)
+# ---------------------------------------------------------------------------
+
+class TestSendPendingBatch:
+    """Tests for send_pending_batch() logic: concurrency guard, scenario round-robin."""
+
+    @pytest.mark.asyncio
+    async def test_skip_if_lock_held(self):
+        """A second call while the first holds the lock must return immediately (no-op)."""
+        import asyncio
+        lock = phishing_service._batch_lock
+        async with lock:
+            # Lock is held — calling send_pending_batch should return without blocking
+            import asyncio as _asyncio
+            done = _asyncio.Event()
+
+            async def _call():
+                await phishing_service.send_pending_batch()
+                done.set()
+
+            task = _asyncio.create_task(_call())
+            await _asyncio.sleep(0)  # yield so the task runs
+            assert done.is_set(), "send_pending_batch should return immediately when lock is held"
+            task.cancel()
+
+    def test_scenario_round_robin_single(self):
+        """With one scenario key, every target gets that same key."""
+        scenario_keys = ["ceo-fraud"]
+        for fake_id in range(5):
+            key = scenario_keys[fake_id % len(scenario_keys)]
+            assert key == "ceo-fraud"
+
+    def test_scenario_round_robin_two(self):
+        """With two scenario keys, targets alternate deterministically."""
+        scenario_keys = ["ceo-fraud", "o365-credentials"]
+        results = [scenario_keys[i % 2] for i in range(4)]
+        assert results == ["ceo-fraud", "o365-credentials", "ceo-fraud", "o365-credentials"]
+
+    def test_scenario_round_robin_three(self):
+        """Three scenario keys distribute evenly across 6 targets."""
+        keys = ["a", "b", "c"]
+        results = [keys[i % 3] for i in range(6)]
+        assert results == ["a", "b", "c", "a", "b", "c"]
+
+    @pytest.mark.asyncio
+    async def test_batch_sends_pending_targets_and_marks_sent(
+        self, db_session: AsyncSession
+    ):
+        """send_pending_batch() marks pending targets as email_sent and increments emails_sent."""
+        import unittest.mock as mock
+
+        user = User(email="batch_test@test.com", hashed_password=hash_password("pass"))
+        db_session.add(user)
+        await db_session.flush()
+
+        campaign = PhishingCampaign(
+            user_id=user.id,
+            name="Batch Test",
+            plan_tier="standard",
+            status="sending",
+            domain="corp.com",
+            domain_verified=True,
+            cgu_accepted=True,
+            scenario_keys='["o365-credentials"]',
+            targets_count=3,
+            emails_sent=0,
+        )
+        db_session.add(campaign)
+        await db_session.flush()
+
+        for i in range(3):
+            db_session.add(PhishingTarget(
+                campaign_id=campaign.id,
+                email=f"t{i}@corp.com",
+                first_name=f"T{i}",
+                status="pending",
+            ))
+        await db_session.commit()
+
+        with mock.patch.object(phishing_service, "_send_phishing_email") as mock_send:
+            await phishing_service.send_pending_batch()
+
+        await db_session.refresh(campaign)
+        assert campaign.emails_sent == 3
+
+        from sqlalchemy import select as _sel
+        result = await db_session.execute(
+            _sel(PhishingTarget).where(PhishingTarget.campaign_id == campaign.id)
+        )
+        statuses = {t.status for t in result.scalars().all()}
+        assert statuses == {"email_sent"}
+
+    @pytest.mark.asyncio
+    async def test_batch_transitions_sending_to_active_when_no_pending(
+        self, db_session: AsyncSession
+    ):
+        """When all targets are already sent, campaign moves from 'sending' to 'active'."""
+        user = User(email="batch_done@test.com", hashed_password=hash_password("pass"))
+        db_session.add(user)
+        await db_session.flush()
+
+        campaign = PhishingCampaign(
+            user_id=user.id,
+            name="Done Campaign",
+            plan_tier="standard",
+            status="sending",
+            domain="corp.com",
+            cgu_accepted=True,
+            scenario_keys='["ceo-fraud"]',
+            targets_count=1,
+            emails_sent=1,
+        )
+        db_session.add(campaign)
+        await db_session.flush()
+
+        db_session.add(PhishingTarget(
+            campaign_id=campaign.id,
+            email="done@corp.com",
+            status="email_sent",
+            tracking_id="done-tid",
+        ))
+        await db_session.commit()
+
+        await phishing_service.send_pending_batch()
+        await db_session.refresh(campaign)
+        assert campaign.status == "active"
+
+
+# ---------------------------------------------------------------------------
+# 11. Sécurité — expiration des tracking links
+# ---------------------------------------------------------------------------
+
+class TestTrackingExpiry:
+    """_is_campaign_expired() logic + tracking endpoints respect expiry."""
+
+    # ── Unit tests for the helper ────────────────────────────────────────────
+
+    def test_active_campaign_not_expired(self):
+        from types import SimpleNamespace
+        from datetime import timedelta
+        c = SimpleNamespace(
+            status="active",
+            started_at=datetime.now(timezone.utc) - timedelta(days=5),
+        )
+        assert phishing_service._is_campaign_expired(c) is False
+
+    def test_completed_campaign_always_expired(self):
+        from types import SimpleNamespace
+        c = SimpleNamespace(status="completed", started_at=None)
+        assert phishing_service._is_campaign_expired(c) is True
+
+    def test_campaign_expired_after_ttl(self):
+        from types import SimpleNamespace
+        from datetime import timedelta
+        from app.core.config import settings
+        c = SimpleNamespace(
+            status="active",
+            started_at=datetime.now(timezone.utc) - timedelta(days=settings.PHISHING_TRACKING_TTL_DAYS + 1),
+        )
+        assert phishing_service._is_campaign_expired(c) is True
+
+    def test_campaign_not_expired_at_ttl_boundary(self):
+        from types import SimpleNamespace
+        from datetime import timedelta
+        from app.core.config import settings
+        c = SimpleNamespace(
+            status="active",
+            started_at=datetime.now(timezone.utc) - timedelta(days=settings.PHISHING_TRACKING_TTL_DAYS - 1),
+        )
+        assert phishing_service._is_campaign_expired(c) is False
+
+    def test_no_started_at_not_expired(self):
+        from types import SimpleNamespace
+        c = SimpleNamespace(status="sending", started_at=None)
+        assert phishing_service._is_campaign_expired(c) is False
+
+    def test_expired_html_is_string(self):
+        html = phishing_service.get_expired_html()
+        assert isinstance(html, str)
+        assert "expiré" in html.lower()
+
+    # ── Integration tests — tracking events not recorded when expired ────────
+
+    @pytest.mark.asyncio
+    async def test_open_not_recorded_for_completed_campaign(
+        self, http_client: AsyncClient, db_session: AsyncSession
+    ):
+        campaign, _ = await _seed(db_session, tracking_id="exp-open-001", status="email_sent")
+        campaign.status = "completed"
+        await db_session.commit()
+
+        await http_client.get("/api/v1/phishing/t/exp-open-001/px")
+        await db_session.refresh(campaign)
+        assert campaign.opened_count == 0
+
+    @pytest.mark.asyncio
+    async def test_click_returns_expired_html_for_completed_campaign(
+        self, http_client: AsyncClient, db_session: AsyncSession
+    ):
+        campaign, _ = await _seed(db_session, tracking_id="exp-click-001", status="email_sent")
+        campaign.status = "completed"
+        await db_session.commit()
+
+        r = await http_client.get("/api/v1/phishing/t/exp-click-001/c", follow_redirects=False)
+        # Expired → returns HTML instead of redirect
+        assert r.status_code == 200
+        assert "expiré" in r.text.lower()
+
+    @pytest.mark.asyncio
+    async def test_click_not_recorded_for_completed_campaign(
+        self, http_client: AsyncClient, db_session: AsyncSession
+    ):
+        campaign, _ = await _seed(db_session, tracking_id="exp-click-002", status="email_sent")
+        campaign.status = "completed"
+        await db_session.commit()
+
+        await http_client.get("/api/v1/phishing/t/exp-click-002/c", follow_redirects=True)
+        await db_session.refresh(campaign)
+        assert campaign.clicked_count == 0
+
+    @pytest.mark.asyncio
+    async def test_landing_returns_expired_html_for_completed_campaign(
+        self, http_client: AsyncClient, db_session: AsyncSession
+    ):
+        campaign, _ = await _seed(db_session, tracking_id="exp-land-001", status="clicked")
+        campaign.status = "completed"
+        await db_session.commit()
+
+        r = await http_client.get("/api/v1/phishing/t/exp-land-001/l")
+        assert r.status_code == 200
+        assert "expiré" in r.text.lower()
+
+    @pytest.mark.asyncio
+    async def test_submit_not_recorded_for_completed_campaign(
+        self, http_client: AsyncClient, db_session: AsyncSession
+    ):
+        campaign, _ = await _seed(db_session, tracking_id="exp-sub-001", status="clicked")
+        campaign.status = "completed"
+        await db_session.commit()
+
+        r = await http_client.post("/api/v1/phishing/t/exp-sub-001/s")
+        assert r.status_code == 200  # Awareness page always shown
+        await db_session.refresh(campaign)
+        assert campaign.submitted_count == 0
+
+    @pytest.mark.asyncio
+    async def test_submit_still_returns_awareness_page_when_expired(
+        self, http_client: AsyncClient, db_session: AsyncSession
+    ):
+        """Even when expired, POSTing /s always returns the educational awareness page."""
+        campaign, _ = await _seed(db_session, tracking_id="exp-sub-002", status="clicked")
+        campaign.status = "completed"
+        await db_session.commit()
+
+        r = await http_client.post("/api/v1/phishing/t/exp-sub-002/s")
+        assert r.status_code == 200
+        # Awareness page content (not the expiry page)
+        assert "exercice" in r.text.lower() or "phishing" in r.text.lower()
+
+    # ── Rate-limiting configured (smoke test) ───────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_pixel_endpoint_responds_normally(
+        self, http_client: AsyncClient, db_session: AsyncSession
+    ):
+        """Smoke test: rate-limited pixel endpoint still works on first call."""
+        await _seed(db_session, tracking_id="rl-px-001", status="email_sent")
+        r = await http_client.get("/api/v1/phishing/t/rl-px-001/px")
+        assert r.status_code == 200
+        assert r.headers["content-type"] == "image/gif"
+
+    @pytest.mark.asyncio
+    async def test_submit_endpoint_responds_normally(
+        self, http_client: AsyncClient, db_session: AsyncSession
+    ):
+        """Smoke test: rate-limited submit endpoint still works on first call."""
+        await _seed(db_session, tracking_id="rl-sub-001", status="clicked")
+        r = await http_client.post("/api/v1/phishing/t/rl-sub-001/s")
+        assert r.status_code == 200

@@ -7,7 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Title } from '@angular/platform-browser';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { interval } from 'rxjs';
+import { interval, EMPTY } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
@@ -43,14 +43,17 @@ export class PhishingCampaignDetailComponent implements OnInit {
     this.campaignId = Number(this.route.snapshot.paramMap.get('id'));
     this.load();
 
-    // Auto-refresh every 30s while campaign is sending/active
-    interval(30_000).pipe(
+    // Live polling: 5s while sending (progress bar), 5s while active (stats)
+    // Returns EMPTY when campaign is completed/draft to avoid unnecessary API calls
+    interval(5_000).pipe(
       takeUntilDestroyed(this.destroyRef),
-      switchMap(() => this.phishingService.getCampaign(this.campaignId)),
-    ).subscribe(c => {
-      const s = this.campaign()?.status;
-      if (s === 'active' || s === 'sending') this.campaign.set(c);
-    });
+      switchMap(() => {
+        const s = this.campaign()?.status;
+        return (s === 'sending' || s === 'active')
+          ? this.phishingService.getCampaign(this.campaignId)
+          : EMPTY;
+      }),
+    ).subscribe(c => this.campaign.set(c));
   }
 
   load() {
@@ -96,7 +99,8 @@ export class PhishingCampaignDetailComponent implements OnInit {
   statusLabel(status: string): string {
     const m: Record<string, string> = {
       draft: 'Brouillon', pending_verification: 'Vérification', ready: 'Prête',
-      sending: 'Envoi en cours', active: 'En cours', completed: 'Terminée', cancelled: 'Annulée',
+      scheduled: 'Planifiée', sending: 'Envoi en cours', active: 'En cours',
+      completed: 'Terminée', cancelled: 'Annulée',
     };
     return m[status] ?? status;
   }
@@ -104,30 +108,36 @@ export class PhishingCampaignDetailComponent implements OnInit {
   statusColor(status: string): string {
     switch (status) {
       case 'active': case 'sending': return 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30';
-      case 'completed': return 'text-green-400 bg-green-500/10 border-green-500/30';
-      case 'draft':     return 'text-gray-400 bg-gray-500/10 border-gray-500/30';
-      case 'ready':     return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
-      case 'cancelled': return 'text-red-400 bg-red-500/10 border-red-500/30';
-      default:          return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
+      case 'completed':  return 'text-green-400 bg-green-500/10 border-green-500/30';
+      case 'draft':      return 'text-gray-400 bg-gray-500/10 border-gray-500/30';
+      case 'ready':      return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
+      case 'scheduled':  return 'text-purple-400 bg-purple-500/10 border-purple-500/30';
+      case 'cancelled':  return 'text-red-400 bg-red-500/10 border-red-500/30';
+      default:           return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
     }
   }
 
   targetStatusLabel(status: string): string {
     const m: Record<string, string> = {
-      pending: 'En attente', sent: 'Envoyé', opened: 'Ouvert',
-      clicked: 'Cliqué', submitted: 'Identifiants saisis',
+      pending: 'En attente', email_sent: 'Envoyé', opened: 'Ouvert',
+      clicked: 'Cliqué', submitted: 'Identifiants saisis', reported: 'Signalé',
     };
     return m[status] ?? status;
   }
 
   targetStatusColor(status: string): string {
     switch (status) {
-      case 'submitted': return 'text-red-400 bg-red-500/10 border-red-500/30';
-      case 'clicked':   return 'text-orange-400 bg-orange-500/10 border-orange-500/30';
-      case 'opened':    return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
-      case 'sent':      return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
-      default:          return 'text-gray-500 bg-gray-500/10 border-gray-500/30';
+      case 'submitted':  return 'text-red-400 bg-red-500/10 border-red-500/30';
+      case 'clicked':    return 'text-orange-400 bg-orange-500/10 border-orange-500/30';
+      case 'opened':     return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
+      case 'email_sent': return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
+      case 'reported':   return 'text-green-400 bg-green-500/10 border-green-500/30';
+      default:           return 'text-gray-500 bg-gray-500/10 border-gray-500/30';
     }
+  }
+
+  lastEventAt(t: import('../services/phishing.service').PhishingTarget): string {
+    return this.formatDate(t.submitted_at ?? t.clicked_at ?? t.opened_at ?? t.email_sent_at);
   }
 
   scenarioName(key: string): string {

@@ -11,8 +11,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import BackgroundTasks, HTTPException, Request
+from httpx import ASGITransport, AsyncClient
 
 from app.api.v1.endpoints.public_scans import get_public_scan, create_public_scan
+from app.main import app
 from app.models.public_scan import PublicScan
 from app.schemas.public_scan import PublicScanCreate
 
@@ -200,3 +202,31 @@ def test_public_scan_out_error_message_preserved():
     scan.results_json = None
     out = PublicScanOut.from_orm_obj(scan)
     assert out.error_message == "timeout after 30s"
+
+
+# ── HTTP integration: POST /public-scans ──────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_http_create_public_scan_returns_202():
+    with patch("app.api.v1.endpoints.public_scans._run_background", new_callable=AsyncMock):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.post("/api/v1/public-scans", json={"url": "https://example.com"})
+    assert r.status_code == 202
+    body = r.json()
+    assert "token" in body
+    assert body["status"] == "pending"
+
+
+@pytest.mark.asyncio
+async def test_http_create_public_scan_normalises_url():
+    with patch("app.api.v1.endpoints.public_scans._run_background", new_callable=AsyncMock):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.post("/api/v1/public-scans", json={"url": "example.com"})
+    assert r.status_code == 202
+
+
+@pytest.mark.asyncio
+async def test_http_create_public_scan_ssrf_blocked():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.post("/api/v1/public-scans", json={"url": "http://localhost/admin"})
+    assert r.status_code == 422

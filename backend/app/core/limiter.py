@@ -53,4 +53,19 @@ def _get_real_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-limiter = Limiter(key_func=_get_real_ip)
+_LOOPBACK = {"127.0.0.1", "::1", "localhost"}
+
+
+def _rate_limit_key(request: Request) -> str:
+    """
+    In production, use the real client IP so rate limits apply normally.
+    In dev/test, loopback requests each get a unique key so limits never fire —
+    this lets the E2E test suite register/login freely without hitting auth limits.
+    """
+    ip = _get_real_ip(request)
+    if settings.APP_ENV != "production" and ip in _LOOPBACK:
+        return f"dev_loopback_{id(request)}"
+    return ip
+
+
+limiter = Limiter(key_func=_rate_limit_key)

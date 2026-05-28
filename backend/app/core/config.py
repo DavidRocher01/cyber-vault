@@ -66,6 +66,8 @@ class Settings(BaseSettings):
     PHISHING_FROM_NAME: str = "CyberScan Exercise"
     # Batch size: emails sent per scheduler tick (every 15 min) to avoid spam detection
     PHISHING_BATCH_SIZE: int = 20
+    # How many days tracking links remain active after campaign launch (then events are silently dropped)
+    PHISHING_TRACKING_TTL_DAYS: int = 30
 
     # Add-on extra sites pack (5 slots per pack, monthly)
     ADDON_EXTRA_SITES_STRIPE_PRICE_ID: str = ""

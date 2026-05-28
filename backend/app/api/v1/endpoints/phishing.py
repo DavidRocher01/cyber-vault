@@ -21,12 +21,14 @@ Public tracking routes (no auth — called by email clients / browsers):
   POST   /phishing/t/{tracking_id}/s         — record credential submit → awareness page
 """
 
+import asyncio
 import csv
 import io
 import json
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile, status
+from starlette.requests import Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -34,6 +36,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.limiter import limiter
 from app.core.utils import safe_json_load
 from app.models.phishing import PhishingCampaign, PhishingDomainVerification, PhishingTarget
 from app.models.user import User
@@ -109,13 +112,20 @@ def _serialize_campaign(c: PhishingCampaign) -> dict:
 
 
 def _serialize_target(t: PhishingTarget) -> dict:
+    def _iso(dt: object) -> str | None:
+        return dt.isoformat() if dt else None  # type: ignore[union-attr]
     return {
         "id": t.id,
         "email": t.email,
         "first_name": t.first_name,
         "last_name": t.last_name,
         "department": t.department,
+        "scenario_key": t.scenario_key,
         "status": t.status,
+        "email_sent_at": _iso(t.email_sent_at),
+        "opened_at": _iso(t.opened_at),
+        "clicked_at": _iso(t.clicked_at),
+        "submitted_at": _iso(t.submitted_at),
     }
 
 
@@ -178,7 +188,7 @@ async def update_campaign(
 ):
     campaign = await _get_owned(campaign_id, current_user.id, db)
 
-    if campaign.status not in ("draft", "pending_verification", "ready"):
+    if campaign.status not in ("draft", "pending_verification", "ready", "scheduled"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Une campagne active ou terminée ne peut pas être modifiée.",
@@ -286,7 +296,7 @@ async def launch_campaign(
 ):
     campaign = await _get_owned(campaign_id, current_user.id, db)
 
-    if campaign.status not in ("draft", "pending_verification", "ready"):
+    if campaign.status not in ("draft", "pending_verification", "ready", "scheduled"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Une campagne active ou terminée ne peut pas être relancée.",
@@ -318,6 +328,8 @@ async def launch_campaign(
         )
 
     await db.commit()
+    # Trigger first batch immediately — APScheduler fires every 15 min but users expect prompt starts
+    asyncio.create_task(phishing_service.send_pending_batch())
     return {"status": "sending", "campaign_id": campaign_id}
 
 
@@ -430,33 +442,31 @@ async def get_lookalike_domains(
 # ---------------------------------------------------------------------------
 
 @router.get("/t/{tracking_id}/px", include_in_schema=False)
-async def tracking_pixel(tracking_id: str, db: AsyncSession = Depends(get_db)):
+@limiter.limit("30/minute")
+async def tracking_pixel(request: Request, tracking_id: str, db: AsyncSession = Depends(get_db)):
     """Serve 1×1 transparent GIF and record email open."""
     await phishing_service.record_open(tracking_id, db)
-    gif_bytes = phishing_service.get_pixel_gif()
     return Response(
-        content=gif_bytes,
+        content=phishing_service.get_pixel_gif(),
         media_type="image/gif",
-        headers={
-            "Cache-Control": "no-store, no-cache, must-revalidate",
-            "Pragma": "no-cache",
-        },
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache"},
     )
 
 
 @router.get("/t/{tracking_id}/c", include_in_schema=False)
-async def tracking_click(tracking_id: str, db: AsyncSession = Depends(get_db)):
-    """Record link click and redirect to the landing page."""
-    await phishing_service.record_click(tracking_id, db)
-    return RedirectResponse(
-        url=f"/phishing/t/{tracking_id}/l",
-        status_code=302,
-    )
+@limiter.limit("10/minute")
+async def tracking_click(request: Request, tracking_id: str, db: AsyncSession = Depends(get_db)):
+    """Record link click and redirect to the landing page (or expiry page if campaign has ended)."""
+    active = await phishing_service.record_click(tracking_id, db)
+    if not active:
+        return HTMLResponse(content=phishing_service.get_expired_html())
+    return RedirectResponse(url=f"/phishing/t/{tracking_id}/l", status_code=302)
 
 
 @router.get("/t/{tracking_id}/l", response_class=HTMLResponse, include_in_schema=False)
-async def tracking_landing(tracking_id: str, db: AsyncSession = Depends(get_db)):
-    """Serve the scenario-specific credential-harvesting landing page."""
+@limiter.limit("15/minute")
+async def tracking_landing(request: Request, tracking_id: str, db: AsyncSession = Depends(get_db)):
+    """Serve the scenario-specific credential-harvesting landing page, or expiry page."""
     result = await db.execute(
         select(PhishingTarget).where(PhishingTarget.tracking_id == tracking_id)
     )
@@ -468,6 +478,8 @@ async def tracking_landing(tracking_id: str, db: AsyncSession = Depends(get_db))
         )
         campaign = campaign_result.scalar_one_or_none()
         if campaign:
+            if phishing_service._is_campaign_expired(campaign):
+                return HTMLResponse(content=phishing_service.get_expired_html())
             keys = json.loads(campaign.scenario_keys or "[]")
             if keys:
                 scenario_key = keys[0]
@@ -475,7 +487,8 @@ async def tracking_landing(tracking_id: str, db: AsyncSession = Depends(get_db))
 
 
 @router.post("/t/{tracking_id}/s", response_class=HTMLResponse, include_in_schema=False)
-async def tracking_submit(tracking_id: str, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def tracking_submit(request: Request, tracking_id: str, db: AsyncSession = Depends(get_db)):
     """Record credential submission and return the awareness / education page."""
     scenario_key = await phishing_service.record_submit(tracking_id, db)
     return HTMLResponse(content=phishing_service.get_awareness_html(scenario_key))

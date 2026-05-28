@@ -9,6 +9,7 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key-for-pytest-only")
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from testcontainers.postgres import PostgresContainer
 
@@ -57,16 +58,20 @@ def _pg_schema(pg_url):
 
 # ── Per-test isolation ─────────────────────────────────────────────────────────
 
+# Pre-build the TRUNCATE statement once — all table names are stable across tests.
+def _truncate_sql() -> str:
+    names = ", ".join(f'"{t.name}"' for t in Base.metadata.sorted_tables)
+    return f"TRUNCATE {names} RESTART IDENTITY CASCADE"
+
+
 @pytest.fixture(autouse=True)
 async def setup_db(pg_url):
-    """Per-test: create a fresh async engine (bound to this test's event loop),
-    wipe all rows, and wire FastAPI + background-task sessions."""
+    """Per-test: wipe all rows (TRUNCATE resets sequences and cascades),
+    then wire FastAPI + background-task sessions to a fresh pool."""
     engine = create_async_engine(pg_url, echo=False)
 
-    # Truncate all tables in reverse FK order
     async with engine.begin() as conn:
-        for table in reversed(Base.metadata.sorted_tables):
-            await conn.execute(table.delete())
+        await conn.execute(text(_truncate_sql()))
 
     AsyncTestSession = async_sessionmaker(
         engine, class_=AsyncSession, expire_on_commit=False
@@ -91,10 +96,11 @@ async def setup_db(pg_url):
 
     _db_module.AsyncSessionLocal = original_session_local
     app.dependency_overrides.clear()
-    await engine.dispose()
-
-    from app.core.limiter import limiter
-    limiter._storage.reset()
+    try:
+        await engine.dispose()
+    finally:
+        from app.core.limiter import limiter
+        limiter._storage.reset()
 
 
 # ── Shared fixtures ────────────────────────────────────────────────────────────

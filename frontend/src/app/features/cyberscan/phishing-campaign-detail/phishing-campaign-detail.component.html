@@ -38,6 +38,23 @@
         }
       </div>
 
+      <!-- Scheduled banner -->
+      @if (c.status === 'scheduled' && c.scheduled_at) {
+        <div class="rounded-xl border border-purple-500/30 bg-purple-500/5 p-4 mb-6 flex items-center gap-3">
+          <mat-icon class="text-purple-400 flex-shrink-0">schedule_send</mat-icon>
+          <div>
+            <p class="text-sm font-medium text-purple-300">Envoi planifié</p>
+            <p class="text-xs text-gray-400 mt-0.5">
+              Les emails seront envoyés le {{ formatDate(c.scheduled_at) }}.
+            </p>
+          </div>
+          <a [routerLink]="['/cyberscan/phishing/campaigns', c.id, 'edit']"
+             class="ml-auto text-xs text-purple-400 hover:text-purple-300 transition-colors flex-shrink-0">
+            Modifier
+          </a>
+        </div>
+      }
+
       <!-- Sending progress bar -->
       @if (c.status === 'active' || c.status === 'sending') {
         <div class="rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-4 mb-6">
@@ -142,25 +159,34 @@
               <thead>
                 <tr class="border-b border-gray-800 text-gray-500 text-xs uppercase tracking-wider">
                   <th class="text-left px-5 py-3 font-medium">Nom</th>
-                  <th class="text-left px-5 py-3 font-medium">Email</th>
-                  <th class="text-left px-5 py-3 font-medium hidden sm:table-cell">Département</th>
+                  <th class="text-left px-5 py-3 font-medium hidden md:table-cell">Email</th>
+                  <th class="text-left px-5 py-3 font-medium hidden lg:table-cell">Département</th>
+                  <th class="text-left px-5 py-3 font-medium hidden sm:table-cell">Scénario</th>
                   <th class="text-left px-5 py-3 font-medium">Statut</th>
+                  <th class="text-left px-5 py-3 font-medium hidden lg:table-cell">Dernier événement</th>
                 </tr>
               </thead>
               <tbody>
                 @for (t of c.targets; track t.id) {
                   <tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                    <td class="px-5 py-3 font-medium text-white">
-                      {{ t.first_name }}{{ t.last_name ? ' ' + t.last_name : '' }}
+                    <td class="px-5 py-3">
+                      <div class="font-medium text-white text-sm">
+                        {{ t.first_name }}{{ t.last_name ? ' ' + t.last_name : '' }}
+                      </div>
+                      <div class="text-xs text-gray-500 font-mono md:hidden">{{ t.email }}</div>
                     </td>
-                    <td class="px-5 py-3 text-gray-400 font-mono text-xs">{{ t.email }}</td>
-                    <td class="px-5 py-3 text-gray-500 hidden sm:table-cell">{{ t.department || '—' }}</td>
+                    <td class="px-5 py-3 text-gray-400 font-mono text-xs hidden md:table-cell">{{ t.email }}</td>
+                    <td class="px-5 py-3 text-gray-500 text-sm hidden lg:table-cell">{{ t.department || '—' }}</td>
+                    <td class="px-5 py-3 text-gray-400 text-xs hidden sm:table-cell">
+                      {{ t.scenario_key ? scenarioName(t.scenario_key) : '—' }}
+                    </td>
                     <td class="px-5 py-3">
                       <span class="text-[0.7rem] font-semibold px-2 py-0.5 rounded-full border"
                             [class]="targetStatusColor(t.status)">
                         {{ targetStatusLabel(t.status) }}
                       </span>
                     </td>
+                    <td class="px-5 py-3 text-xs text-gray-500 hidden lg:table-cell">{{ lastEventAt(t) }}</td>
                   </tr>
                 }
               </tbody>
