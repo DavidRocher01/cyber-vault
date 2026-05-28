@@ -125,6 +125,22 @@ def generate_phishing_report(
         if t.status == "submitted":
             dept_stats[dept]["submitted"] += 1
 
+    # Per-scenario breakdown (uses target.scenario_key set during send)
+    scenario_perf: dict[str, dict[str, int]] = {}
+    for t in targets:
+        key = t.scenario_key or "__unknown__"
+        if key not in scenario_perf:
+            scenario_perf[key] = {"total": 0, "opened": 0, "clicked": 0, "submitted": 0}
+        scenario_perf[key]["total"] += 1
+        if t.status in ("opened", "clicked", "submitted", "reported"):
+            scenario_perf[key]["opened"] += 1
+        if t.status in ("clicked", "submitted"):
+            scenario_perf[key]["clicked"] += 1
+        if t.status == "submitted":
+            scenario_perf[key]["submitted"] += 1
+    # Only keep if we have meaningful per-scenario data (at least one key set)
+    has_scenario_perf = any(k != "__unknown__" for k in scenario_perf)
+
     # Compromised targets (submitted credentials)
     compromised = [t for t in targets if t.status == "submitted"]
 
@@ -134,6 +150,19 @@ def generate_phishing_report(
         scenario_keys = json.loads(campaign.scenario_keys or "[]")
     except Exception:
         pass
+
+    # Median time-to-click (hours)
+    click_delays_h: list[float] = []
+    for t in targets:
+        if t.clicked_at and t.email_sent_at:
+            click_delays_h.append(
+                (t.clicked_at - t.email_sent_at).total_seconds() / 3600
+            )
+    median_click_str: str | None = None
+    if click_delays_h:
+        sorted_d = sorted(click_delays_h)
+        mh = sorted_d[len(sorted_d) // 2]
+        median_click_str = f"{int(mh)}h{int((mh % 1) * 60):02d}min"
 
     story = []
 
@@ -178,6 +207,8 @@ def generate_phishing_report(
         ["Liens cliqués",   str(campaign.clicked_count), f"{click_rate:.0%}",     _risk_label(click_rate)],
         ["Données soumises", str(campaign.submitted_count), f"{submit_rate:.0%}", _risk_label(submit_rate)],
     ]
+    if median_click_str:
+        stats_data.append(["Délai médian avant clic", median_click_str, "—", "—"])
     stats_table = Table(stats_data, colWidths=[65 * mm, 30 * mm, 30 * mm, 40 * mm])
     stats_table.setStyle(TableStyle([
         ("BACKGROUND",   (0, 0), (-1, 0), _DARK),
@@ -205,6 +236,61 @@ def generate_phishing_report(
         body_style,
     ))
     story.append(Spacer(1, 6 * mm))
+
+    # ── Per-scenario performance ─────────────────────────────────────────────
+    if has_scenario_perf and len(scenario_perf) > 1:
+        story.append(Paragraph("Performance par scénario", section_style))
+        sc_perf_rows = [["Scénario", "Cibles", "Ouvert.", "Taux ouv.", "Clics", "Taux clic", "Soum."]]
+        for key, s in sorted(
+            scenario_perf.items(),
+            key=lambda x: x[1]["clicked"] / (x[1]["total"] or 1),
+            reverse=True,
+        ):
+            if key == "__unknown__":
+                continue
+            cr = s["clicked"] / (s["total"] or 1)
+            orr = s["opened"] / (s["total"] or 1)
+            sc_perf_rows.append([
+                _SCENARIO_LABELS.get(key, key),
+                str(s["total"]),
+                str(s["opened"]),
+                f"{orr:.0%}",
+                str(s["clicked"]),
+                f"{cr:.0%}",
+                str(s["submitted"]),
+            ])
+        sc_perf_table = Table(
+            sc_perf_rows,
+            colWidths=[52 * mm, 15 * mm, 17 * mm, 17 * mm, 15 * mm, 17 * mm, 17 * mm],
+        )
+        sc_perf_style = [
+            ("BACKGROUND",   (0, 0), (-1, 0), _DARK),
+            ("TEXTCOLOR",    (0, 0), (-1, 0), colors.white),
+            ("FONTNAME",     (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE",     (0, 0), (-1, -1), 9),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [_LIGHT_BG, colors.white]),
+            ("ALIGN",        (1, 0), (-1, -1), "CENTER"),
+            ("GRID",         (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+            ("TOPPADDING",   (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ]
+        # Highlight high-risk rows in the click rate column
+        for row_i, (key, s) in enumerate(
+            sorted(scenario_perf.items(), key=lambda x: x[1]["clicked"]/(x[1]["total"] or 1), reverse=True),
+            start=1,
+        ):
+            if key == "__unknown__":
+                continue
+            cr = s["clicked"] / (s["total"] or 1)
+            if cr >= 0.30:
+                sc_perf_style.append(("TEXTCOLOR", (5, row_i), (5, row_i), _RED))
+                sc_perf_style.append(("FONTNAME",  (5, row_i), (5, row_i), "Helvetica-Bold"))
+            elif cr >= 0.15:
+                sc_perf_style.append(("TEXTCOLOR", (5, row_i), (5, row_i), _YELLOW))
+                sc_perf_style.append(("FONTNAME",  (5, row_i), (5, row_i), "Helvetica-Bold"))
+        sc_perf_table.setStyle(TableStyle(sc_perf_style))
+        story.append(sc_perf_table)
+        story.append(Spacer(1, 6 * mm))
 
     # ── Scenarios used ───────────────────────────────────────────────────────
     if scenario_keys:
@@ -298,6 +384,64 @@ def generate_phishing_report(
             ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
         ]))
         story.append(comp_table)
+        story.append(Spacer(1, 6 * mm))
+
+    # ── Full targets table ───────────────────────────────────────────────────
+    if targets:
+        story.append(Paragraph(f"Résultats détaillés par cible ({len(targets)})", section_style))
+        _STATUS_LABELS = {
+            "pending":    "En attente",
+            "email_sent": "Envoyé",
+            "opened":     "Ouvert",
+            "clicked":    "Cliqué",
+            "submitted":  "Identifiants saisis",
+            "reported":   "Signalé",
+        }
+        _STATUS_COLORS = {
+            "submitted": _RED,
+            "clicked":   colors.HexColor("#f97316"),
+            "opened":    _YELLOW,
+            "reported":  _GREEN,
+        }
+        tgt_header = [["Email", "Prénom", "Département", "Scénario", "Statut"]]
+        tgt_rows = []
+        for t in sorted(targets, key=lambda x: (
+            {"submitted": 0, "clicked": 1, "opened": 2, "email_sent": 3, "reported": 4, "pending": 5}.get(x.status, 5)
+        )):
+            tgt_rows.append([
+                t.email,
+                t.first_name or "—",
+                t.department or "—",
+                _SCENARIO_LABELS.get(t.scenario_key or "", t.scenario_key or "—"),
+                _STATUS_LABELS.get(t.status, t.status),
+            ])
+        tgt_table = Table(
+            tgt_header + tgt_rows,
+            colWidths=[65 * mm, 25 * mm, 30 * mm, 30 * mm, 20 * mm],
+        )
+        tgt_style = [
+            ("BACKGROUND",   (0, 0), (-1, 0), _DARK),
+            ("TEXTCOLOR",    (0, 0), (-1, 0), colors.white),
+            ("FONTNAME",     (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE",     (0, 0), (-1, -1), 8),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [_LIGHT_BG, colors.white]),
+            ("ALIGN",        (1, 0), (-1, -1), "CENTER"),
+            ("GRID",         (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+            ("TOPPADDING",   (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ]
+        for row_i, t in enumerate(
+            sorted(targets, key=lambda x: (
+                {"submitted": 0, "clicked": 1, "opened": 2, "email_sent": 3, "reported": 4, "pending": 5}.get(x.status, 5)
+            )),
+            start=1,
+        ):
+            c = _STATUS_COLORS.get(t.status)
+            if c:
+                tgt_style.append(("TEXTCOLOR", (4, row_i), (4, row_i), c))
+                tgt_style.append(("FONTNAME",  (4, row_i), (4, row_i), "Helvetica-Bold"))
+        tgt_table.setStyle(TableStyle(tgt_style))
+        story.append(tgt_table)
         story.append(Spacer(1, 6 * mm))
 
     # ── Recommendations ──────────────────────────────────────────────────────
