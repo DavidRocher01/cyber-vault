@@ -130,13 +130,13 @@ describe('LandingComponent — getPlanBadge()', () => {
   });
 });
 
-// ── features (9 modules) ──────────────────────────────────────────────────────
+// ── features (10 modules) ──────────────────────────────────────────────────────
 
-describe('LandingComponent — features array (9 modules)', () => {
-  it('contient exactement 9 features', () => {
+describe('LandingComponent — features array (10 modules)', () => {
+  it('contient exactement 10 features', () => {
     const featureBlock = src.match(/FEATURES\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const count = (featureBlock.match(/icon:/g) ?? []).length;
-    expect(count).toBe(9);
+    expect(count).toBe(10);
   });
 
   it('contient "Analyse SSL/TLS"', () => {
@@ -162,15 +162,19 @@ describe('LandingComponent — features array (9 modules)', () => {
   it('contient "Audit JWT"', () => {
     expect(src).toContain("'Audit JWT'");
   });
+
+  it('contient "Sensibilisation NIS2"', () => {
+    expect(src).toContain("'Sensibilisation NIS2'");
+  });
 });
 
 // ── testimonials (6) ──────────────────────────────────────────────────────────
 
-describe('LandingComponent — testimonials (6 témoignages)', () => {
-  it('contient exactement 6 témoignages', () => {
+describe('LandingComponent — testimonials (7 témoignages)', () => {
+  it('contient exactement 7 témoignages', () => {
     const block = src.match(/TESTIMONIALS\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const count = (block.match(/name:/g) ?? []).length;
-    expect(count).toBe(6);
+    expect(count).toBe(7);
   });
 
   it('contient Sophie M.', () => {
@@ -189,10 +193,14 @@ describe('LandingComponent — testimonials (6 témoignages)', () => {
     expect(src).toContain("'Antoine P.'");
   });
 
+  it('contient Isabelle K. (sensibilisation NIS2)', () => {
+    expect(src).toContain("'Isabelle K.'");
+  });
+
   it("chaque témoignage a un avatar d'une seule lettre majuscule", () => {
     const block = src.match(/TESTIMONIALS\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const avatars = [...block.matchAll(/avatar:\s*'([A-Z])'/g)].map(m => m[1]);
-    expect(avatars.length).toBe(6);
+    expect(avatars.length).toBe(7);
     avatars.forEach(a => expect(a).toMatch(/^[A-Z]$/));
   });
 });

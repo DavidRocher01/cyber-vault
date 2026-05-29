@@ -240,6 +240,22 @@ async def create_learner(
     db.add(learner)
     await db.commit()
     await db.refresh(learner)
+
+    # Auto-send welcome email with magic-link
+    try:
+        magic_result = await issue_magic_link(db, str(payload.email), org_id)
+        if magic_result:
+            _, raw_token = magic_result
+            login_url = f"{settings.FRONTEND_URL}/awareness/login?token={raw_token}"
+            send_awareness_magic_link(
+                to_email=str(learner.email),
+                first_name=learner.first_name,
+                org_name=org.name,
+                login_url=login_url,
+            )
+    except Exception:
+        pass  # Email failure must not block learner creation
+
     return AwarenessLearnerOut.model_validate(learner)
 
 
@@ -745,6 +761,19 @@ async def get_leaderboard_endpoint(
     from app.services.awareness_gamification import get_leaderboard
 
     rows = await get_leaderboard(db, org_id, limit)
+    return [LeaderboardEntry(**r) for r in rows]
+
+
+@router.get("/learner/leaderboard", response_model=list[LeaderboardEntry])
+async def get_learner_leaderboard(
+    limit: int = Query(10, ge=1, le=50),
+    learner: AwarenessLearner = Depends(get_current_learner),
+    db: AsyncSession = Depends(get_db),
+) -> list[LeaderboardEntry]:
+    """Classement de l'organisation du learner authentifié."""
+    from app.services.awareness_gamification import get_leaderboard
+
+    rows = await get_leaderboard(db, learner.organization_id, limit)
     return [LeaderboardEntry(**r) for r in rows]
 
 

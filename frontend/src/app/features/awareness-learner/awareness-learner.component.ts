@@ -13,6 +13,7 @@ import {
   AwarenessEnrollment,
   LearnerLevel,
   Badge,
+  LeaderboardEntry,
 } from '../cyberscan/services/awareness.service';
 
 @Component({
@@ -288,6 +289,51 @@ import {
             <p class="text-gray-600 text-sm mt-1">Contactez votre administrateur.</p>
           </div>
         }
+
+        <!-- Leaderboard -->
+        @if (!loading() && leaderboard().length > 0) {
+          <h2 class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-3 mt-8">
+            Classement de l'organisation
+          </h2>
+          <div class="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden">
+            @for (entry of leaderboard(); track entry.rank) {
+              <div
+                class="flex items-center gap-4 px-5 py-3 border-b border-gray-800 last:border-0"
+                [class]="entry.rank <= 3 ? 'bg-gray-800/30' : ''"
+              >
+                <span
+                  class="w-7 text-center font-bold text-sm shrink-0"
+                  [class]="
+                    entry.rank === 1
+                      ? 'text-yellow-400'
+                      : entry.rank === 2
+                        ? 'text-gray-300'
+                        : entry.rank === 3
+                          ? 'text-orange-400'
+                          : 'text-gray-600'
+                  "
+                >
+                  {{
+                    entry.rank === 1
+                      ? '🥇'
+                      : entry.rank === 2
+                        ? '🥈'
+                        : entry.rank === 3
+                          ? '🥉'
+                          : entry.rank
+                  }}
+                </span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-white text-sm font-medium truncate">{{ entry.display_name }}</p>
+                  <p class="text-gray-500 text-xs">{{ entry.level_label }}</p>
+                </div>
+                <span class="text-yellow-400 text-sm font-semibold shrink-0"
+                  >{{ entry.total_xp }} XP</span
+                >
+              </div>
+            }
+          </div>
+        }
       </div>
     </div>
   `,
@@ -302,6 +348,7 @@ export class AwarenessLearnerComponent implements OnInit {
   enrollments = signal<AwarenessEnrollment[]>([]);
   level = signal<LearnerLevel | null>(null);
   badges = signal<Badge[]>([]);
+  leaderboard = signal<LeaderboardEntry[]>([]);
   loading = signal(true);
   enrolling = signal<number | null>(null);
 
@@ -320,6 +367,7 @@ export class AwarenessLearnerComponent implements OnInit {
     });
     this.svc.getMyLevel().subscribe({ next: l => this.level.set(l) });
     this.svc.getMyBadges().subscribe({ next: b => this.badges.set(b) });
+    this.svc.getLeaderboard().subscribe({ next: l => this.leaderboard.set(l), error: () => {} });
   }
 
   availablePrograms() {

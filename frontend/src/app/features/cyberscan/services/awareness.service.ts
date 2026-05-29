@@ -188,6 +188,14 @@ export interface CertificateVerification {
   verification_count: number;
 }
 
+export interface LeaderboardEntry {
+  rank: number;
+  display_name: string;
+  total_xp: number;
+  level: number;
+  level_label: string;
+}
+
 export interface OrgAdminDashboard {
   organization: { id: number; name: string; sector: string | null; max_learners: number };
   engagement: {
@@ -424,6 +432,12 @@ export class AwarenessService {
 
   getMyBadges(): Observable<Badge[]> {
     return this.http.get<Badge[]>(`${API}/me/badges`, { headers: this._learnerHeaders() });
+  }
+
+  getLeaderboard(limit = 10): Observable<LeaderboardEntry[]> {
+    return this.http.get<LeaderboardEntry[]>(`${API}/learner/leaderboard?limit=${limit}`, {
+      headers: this._learnerHeaders(),
+    });
   }
 
   // ── Learner : Certificate ─────────────────────────────────────────────────

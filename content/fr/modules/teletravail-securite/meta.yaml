@@ -1,0 +1,10 @@
+title: "Télétravail : sécuriser son environnement à domicile"
+description: "Réseau domestique, matériel partagé, VPN, posture de sécurité hors bureau — les règles pour travailler à distance sans risque."
+content_type: mixed
+estimated_duration_minutes: 5
+xp_points: 10
+has_quiz: true
+quiz_max_attempts: 3
+quiz_cooldown_minutes: 15
+quiz_passing_score: 60
+is_active: true

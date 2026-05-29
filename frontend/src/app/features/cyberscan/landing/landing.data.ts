@@ -44,6 +44,11 @@ export const FEATURES = [
     title: 'Conformité NIS2 / ISO 27001',
     desc: "Auto-évaluation guidée de votre conformité réglementaire avec score et plan d'action exportable en PDF.",
   },
+  {
+    icon: 'school',
+    title: 'Sensibilisation NIS2',
+    desc: '17 modules e-learning NIS2 Article 21 pour vos équipes — quiz, gamification, attestations vérifiables et tableau de bord de conformité.',
+  },
 ];
 
 export const TESTIMONIALS = [
@@ -82,6 +87,12 @@ export const TESTIMONIALS = [
     role: 'Fondateur, SaaS RH',
     avatar: 'A',
     text: "Le scanner de code a trouvé une clé AWS hardcodée dans un vieux fichier de config. Sans CyberScan, on ne l'aurait jamais vu.",
+  },
+  {
+    name: 'Isabelle K.',
+    role: 'DRH, ETI industrielle',
+    avatar: 'I',
+    text: 'Le module de sensibilisation NIS2 est parfait — nos 80 collaborateurs ont complété les formations en 3 semaines. Les attestations générées nous servent directement pour notre audit.',
   },
 ];
 
