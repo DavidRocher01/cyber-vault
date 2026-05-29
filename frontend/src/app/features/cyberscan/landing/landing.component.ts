@@ -1,4 +1,12 @@
-import { Component, AfterViewInit, inject, OnInit, signal, ViewChild } from '@angular/core';
+import {
+  Component,
+  AfterViewInit,
+  inject,
+  OnInit,
+  signal,
+  ViewChild,
+  DOCUMENT,
+} from '@angular/core';
 import { CommonModule, NgClass } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
@@ -17,7 +25,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { Title, Meta } from '@angular/platform-browser';
-import { DOCUMENT } from '@angular/common';
+
 import { EasterEggService } from '../../../shared/easter-eggs/easter-egg.service';
 import { AuthModalComponent } from './components/auth-modal/auth-modal.component';
 import { DemoScanComponent } from './components/demo-scan/demo-scan.component';
