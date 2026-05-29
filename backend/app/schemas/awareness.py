@@ -229,6 +229,31 @@ class QuizResultOut(BaseModel):
     enrollment_completion_pct: float | None
 
 
+# ── Certificates ──────────────────────────────────────────────────────────────
+
+
+class AwarenessCertificateOut(BaseModel):
+    id: int
+    public_id: str
+    verification_token: str
+    issued_at: datetime
+    expires_at: datetime | None
+    is_revoked: bool
+    verification_count: int
+
+    model_config = {"from_attributes": True}
+
+
+class CertificateVerifyOut(BaseModel):
+    valid: bool
+    public_id: str
+    learner_name: str | None
+    program_title: str | None
+    issued_at: str
+    expires_at: str | None
+    verification_count: int
+
+
 # ── Magic-link auth ────────────────────────────────────────────────────────────
 
 

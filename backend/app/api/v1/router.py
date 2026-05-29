@@ -9,6 +9,7 @@ from app.api.v1.endpoints import (
     api_waitlist,
     auth,
     awareness,
+    awareness_verify,
     blog,
     bookings,
     brand,
@@ -78,3 +79,4 @@ api_router.include_router(collab.router)
 api_router.include_router(phishing.router)
 api_router.include_router(api_waitlist.router)
 api_router.include_router(awareness.router)
+api_router.include_router(awareness_verify.router)

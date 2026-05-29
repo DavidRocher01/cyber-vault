@@ -32,6 +32,7 @@ from app.schemas.awareness import (
     AwarenessOrganizationStats,
     AwarenessOrganizationUpdate,
     AwarenessProgramOut,
+    AwarenessCertificateOut,
     AwarenessProgressOut,
     CompleteModuleIn,
     CsvImportResult,
@@ -602,3 +603,60 @@ async def submit_quiz_answers(
         payload.answers, payload.duration_seconds, ip,
     )
     return QuizResultOut(**result)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Sprint 5 — Attestations (certificats)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/enrollments/{enrollment_id}/certificate", response_model=AwarenessCertificateOut)
+async def get_certificate(
+    enrollment_id: int,
+    learner: AwarenessLearner = Depends(get_current_learner),
+    db: AsyncSession = Depends(get_db),
+) -> AwarenessCertificateOut:
+    """Retourne les métadonnées du certificat d'une inscription complétée."""
+    from app.models.awareness_certificate import AwarenessCertificate
+    cert = (
+        await db.execute(
+            select(AwarenessCertificate).where(
+                AwarenessCertificate.enrollment_id == enrollment_id,
+                AwarenessCertificate.learner_id == learner.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if cert is None:
+        raise HTTPException(status_code=404, detail="Certificat introuvable — programme non complété.")
+    return AwarenessCertificateOut.model_validate(cert)
+
+
+@router.get("/enrollments/{enrollment_id}/certificate/download")
+async def download_certificate_pdf(
+    enrollment_id: int,
+    learner: AwarenessLearner = Depends(get_current_learner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Télécharge le PDF du certificat."""
+    from fastapi.responses import Response
+    from app.models.awareness_certificate import AwarenessCertificate
+    from app.services.awareness_certificate_service import generate_certificate_pdf
+
+    cert = (
+        await db.execute(
+            select(AwarenessCertificate).where(
+                AwarenessCertificate.enrollment_id == enrollment_id,
+                AwarenessCertificate.learner_id == learner.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if cert is None:
+        raise HTTPException(status_code=404, detail="Certificat introuvable.")
+
+    frozen = __import__("json").loads(cert.frozen_data_json)
+    pdf_bytes = generate_certificate_pdf(cert, frozen)
+    filename = f"attestation-{cert.public_id}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

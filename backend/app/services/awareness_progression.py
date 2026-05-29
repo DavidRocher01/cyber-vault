@@ -207,9 +207,16 @@ async def complete_module(
     enrollment.last_activity_at = datetime.now(UTC)
 
     await db.flush()
+    await db.flush()
     await _recompute_enrollment(db, enrollment)
     await db.commit()
     await db.refresh(enrollment)
+
+    # Auto-issue certificate when enrollment completes
+    if enrollment.status == "completed":
+        from app.services.awareness_certificate_service import issue_certificate
+        await issue_certificate(db, enrollment)
+
     return enrollment
 
 
