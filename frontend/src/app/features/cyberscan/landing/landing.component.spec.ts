@@ -332,7 +332,7 @@ describe('LandingComponent — howItWorks (3 étapes)', () => {
   });
 
   it("l'étape 3 concerne le rapport PDF", () => {
-    expect(src).toContain("'Rapport PDF + plan d\\'action'");
+    expect(src).toContain("Rapport PDF + plan d'action");
   });
 
   it("les numéros d'étapes sont 01, 02, 03", () => {
