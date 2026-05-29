@@ -183,6 +183,52 @@ class LearnerDashboard(BaseModel):
     modules_progress: list[LearnerModuleProgress]
 
 
+# ── Quiz ──────────────────────────────────────────────────────────────────────
+
+
+class QuizAnswerOption(BaseModel):
+    id: str
+    text: str
+
+
+class QuizQuestion(BaseModel):
+    id: str
+    type: str
+    weight: int
+    text: str
+    answers: list[QuizAnswerOption]
+
+
+class QuizStartOut(BaseModel):
+    questions: list[QuizQuestion]
+    attempt_number: int
+    module_id: int
+    enrollment_id: int
+
+
+class QuizSubmitIn(BaseModel):
+    answers: dict[str, list[str]]
+    duration_seconds: int = Field(0, ge=0)
+
+
+class QuizAnswerDetail(BaseModel):
+    question_id: str
+    chosen_answers: list[str]
+    correct_answers: list[str]
+    is_correct: bool
+    points_earned: int
+    explanation: str | None
+
+
+class QuizResultOut(BaseModel):
+    score: int
+    result: str
+    passing_score: int
+    attempt_number: int
+    details: list[QuizAnswerDetail]
+    enrollment_completion_pct: float | None
+
+
 # ── Magic-link auth ────────────────────────────────────────────────────────────
 
 
