@@ -1,0 +1,10 @@
+title: "Créer et gérer des mots de passe solides"
+description: "Les règles essentielles pour des mots de passe qui résistent aux attaques."
+content_type: mixed
+estimated_duration_minutes: 3
+xp_points: 10
+has_quiz: true
+quiz_max_attempts: 3
+quiz_cooldown_minutes: 15
+quiz_passing_score: 60
+is_active: true

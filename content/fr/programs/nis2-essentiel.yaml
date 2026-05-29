@@ -1,0 +1,15 @@
+slug: nis2-essentiel
+title: "NIS2 Essentiel — Sensibilisation Cyber"
+description: >
+  Parcours de sensibilisation cybersécurité conforme NIS2 Article 21.
+  12 modules couvrant les réflexes essentiels pour protéger votre organisation.
+language: fr
+version: "1.0"
+estimated_duration_minutes: 36
+passing_score: 60
+certificate_validity_months: 12
+is_active: true
+
+modules:
+  - phishing-bases
+  - mots-de-passe
