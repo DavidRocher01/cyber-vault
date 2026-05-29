@@ -8,12 +8,12 @@ import ipaddress
 import json
 import re
 import socket
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from urllib.parse import urlparse
 
 import httpx
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.url_scan import UrlScan
 from app.models.user import User
@@ -23,15 +23,41 @@ from app.models.user import User
 # ---------------------------------------------------------------------------
 
 SUSPICIOUS_TLDS = {
-    ".ru", ".cn", ".tk", ".ml", ".ga", ".cf", ".top",
-    ".xyz", ".pw", ".cc", ".biz", ".click", ".cam",
+    ".ru",
+    ".cn",
+    ".tk",
+    ".ml",
+    ".ga",
+    ".cf",
+    ".top",
+    ".xyz",
+    ".pw",
+    ".cc",
+    ".biz",
+    ".click",
+    ".cam",
 }
 
 PHISHING_KEYWORDS = [
-    "paypal", "amazon", "bank", "secure", "verify", "account",
-    "password", "credit-card", "ssn", "irs", "tax-refund",
-    "google", "microsoft", "apple", "facebook", "instagram",
-    "login-update", "billing", "suspended",
+    "paypal",
+    "amazon",
+    "bank",
+    "secure",
+    "verify",
+    "account",
+    "password",
+    "credit-card",
+    "ssn",
+    "irs",
+    "tax-refund",
+    "google",
+    "microsoft",
+    "apple",
+    "facebook",
+    "instagram",
+    "login-update",
+    "billing",
+    "suspended",
 ]
 
 HEADERS = {
@@ -53,14 +79,20 @@ _PRIVATE_NETWORKS = [
     ipaddress.ip_network("192.168.0.0/16"),
     ipaddress.ip_network("127.0.0.0/8"),
     ipaddress.ip_network("169.254.0.0/16"),  # AWS IMDS + link-local
-    ipaddress.ip_network("100.64.0.0/10"),   # Carrier-grade NAT
+    ipaddress.ip_network("100.64.0.0/10"),  # Carrier-grade NAT
     ipaddress.ip_network("::1/128"),
     ipaddress.ip_network("fc00::/7"),
     ipaddress.ip_network("fe80::/10"),
 ]
 
 # Known internal hostnames that must never be scanned
-_INTERNAL_HOSTNAMES = {"localhost", "0.0.0.0", "127.0.0.1", "::1", "metadata.google.internal"}  # nosec B104
+_INTERNAL_HOSTNAMES = {
+    "localhost",
+    "0.0.0.0",
+    "127.0.0.1",
+    "::1",
+    "metadata.google.internal",
+}  # nosec B104
 
 
 def _is_private_ip(ip_str: str) -> bool:
@@ -114,6 +146,7 @@ def _validate_url(url: str) -> None:
 # Core analysis
 # ---------------------------------------------------------------------------
 
+
 async def _analyze_url(url: str) -> dict:
     _validate_url(url)
 
@@ -146,12 +179,14 @@ async def _analyze_url(url: str) -> dict:
         if any(t in exc_str for t in ("ssl", "certificate", "tls", "handshake", "verify")):
             ssl_valid = False
             score += 20
-            findings.append({
-                "type": "ssl_error",
-                "severity": "high",
-                "time_ms": None,
-                "detail": "Certificat SSL invalide ou expiré",
-            })
+            findings.append(
+                {
+                    "type": "ssl_error",
+                    "severity": "high",
+                    "time_ms": None,
+                    "detail": "Certificat SSL invalide ou expiré",
+                }
+            )
             # Retry without SSL verification to still analyze content
             try:
                 async with httpx.AsyncClient(
@@ -179,12 +214,14 @@ async def _analyze_url(url: str) -> dict:
             _validate_url(redir_url)
         except ValueError:
             score = min(score + 50, 100)
-            findings.append({
-                "type": "ssrf_redirect",
-                "severity": "critical",
-                "time_ms": None,
-                "detail": f"Redirection vers une adresse interne détectée : {urlparse(redir_url).hostname}",
-            })
+            findings.append(
+                {
+                    "type": "ssrf_redirect",
+                    "severity": "critical",
+                    "time_ms": None,
+                    "detail": f"Redirection vers une adresse interne détectée : {urlparse(redir_url).hostname}",
+                }
+            )
             html = ""  # discard any fetched content from internal address
             break
 
@@ -192,20 +229,24 @@ async def _analyze_url(url: str) -> dict:
     if redirect_chain:
         if final_domain.lower() != original_domain.lower():
             score += 25
-            findings.append({
-                "type": "domain_redirect",
-                "severity": "high",
-                "time_ms": None,
-                "detail": f"Redirection vers un domaine différent : {final_domain}",
-            })
+            findings.append(
+                {
+                    "type": "domain_redirect",
+                    "severity": "high",
+                    "time_ms": None,
+                    "detail": f"Redirection vers un domaine différent : {final_domain}",
+                }
+            )
         if len(redirect_chain) > 2:
             score += 10
-            findings.append({
-                "type": "multiple_redirects",
-                "severity": "medium",
-                "time_ms": None,
-                "detail": f"{len(redirect_chain)} redirections détectées",
-            })
+            findings.append(
+                {
+                    "type": "multiple_redirects",
+                    "severity": "medium",
+                    "time_ms": None,
+                    "detail": f"{len(redirect_chain)} redirections détectées",
+                }
+            )
 
     # ── 3. Suspicious TLD ───────────────────────────────────────────────────
     all_domains = {original_domain, final_domain} | {
@@ -215,99 +256,109 @@ async def _analyze_url(url: str) -> dict:
         for tld in SUSPICIOUS_TLDS:
             if domain.endswith(tld):
                 score += 20
-                findings.append({
-                    "type": "suspicious_tld",
-                    "severity": "high",
-                    "time_ms": None,
-                    "detail": f"TLD suspect détecté : {domain}",
-                })
+                findings.append(
+                    {
+                        "type": "suspicious_tld",
+                        "severity": "high",
+                        "time_ms": None,
+                        "detail": f"TLD suspect détecté : {domain}",
+                    }
+                )
                 break
 
     # ── 4. HTML / JS analysis ───────────────────────────────────────────────
     if html:
         # 4a. eval() — JS obfuscation
-        if re.search(r'\beval\s*\(', html):
+        if re.search(r"\beval\s*\(", html):
             score += 15
-            findings.append({
-                "type": "js_eval",
-                "severity": "medium",
-                "time_ms": 450,
-                "detail": "Utilisation de eval() détectée — possible obfuscation JS",
-            })
+            findings.append(
+                {
+                    "type": "js_eval",
+                    "severity": "medium",
+                    "time_ms": 450,
+                    "detail": "Utilisation de eval() détectée — possible obfuscation JS",
+                }
+            )
 
         # 4b. document.cookie — cookie stealing
-        if re.search(r'document\.cookie', html):
+        if re.search(r"document\.cookie", html):
             score += 15
-            findings.append({
-                "type": "cookie_access",
-                "severity": "medium",
-                "time_ms": 620,
-                "detail": "Accès aux cookies détecté (document.cookie)",
-            })
+            findings.append(
+                {
+                    "type": "cookie_access",
+                    "severity": "medium",
+                    "time_ms": 620,
+                    "detail": "Accès aux cookies détecté (document.cookie)",
+                }
+            )
 
         # 4c. window.location forced redirect in JS
-        if re.search(r'window\.location\s*=', html):
+        if re.search(r"window\.location\s*=", html):
             score += 15
-            findings.append({
-                "type": "js_redirect",
-                "severity": "medium",
-                "time_ms": 800,
-                "detail": "Redirection JS forcée via window.location",
-            })
+            findings.append(
+                {
+                    "type": "js_redirect",
+                    "severity": "medium",
+                    "time_ms": 800,
+                    "detail": "Redirection JS forcée via window.location",
+                }
+            )
 
         # 4d. External form action (phishing)
-        ext_forms = re.findall(
-            r'<form[^>]+action=["\']?(https?://[^"\'> ]+)',
-            html, re.IGNORECASE
-        )
+        ext_forms = re.findall(r'<form[^>]+action=["\']?(https?://[^"\'> ]+)', html, re.IGNORECASE)
         for action in ext_forms:
             form_domain = urlparse(action).hostname or ""
             if form_domain and form_domain.lower() != final_domain.lower():
                 score += 30
-                findings.append({
-                    "type": "external_form",
-                    "severity": "critical",
-                    "time_ms": 900,
-                    "detail": f"Formulaire envoyant des données vers {form_domain}",
-                })
+                findings.append(
+                    {
+                        "type": "external_form",
+                        "severity": "critical",
+                        "time_ms": 900,
+                        "detail": f"Formulaire envoyant des données vers {form_domain}",
+                    }
+                )
 
         # 4e. External iframes
-        ext_iframes = re.findall(
-            r'<iframe[^>]+src=["\']?(https?://[^"\'> ]+)',
-            html, re.IGNORECASE
-        )
+        ext_iframes = re.findall(r'<iframe[^>]+src=["\']?(https?://[^"\'> ]+)', html, re.IGNORECASE)
         for src in ext_iframes:
             iframe_domain = urlparse(src).hostname or ""
             if iframe_domain and iframe_domain.lower() != final_domain.lower():
                 score += 20
-                findings.append({
-                    "type": "external_iframe",
-                    "severity": "high",
-                    "time_ms": 1100,
-                    "detail": f"iframe externe chargée depuis {iframe_domain}",
-                })
+                findings.append(
+                    {
+                        "type": "external_iframe",
+                        "severity": "high",
+                        "time_ms": 1100,
+                        "detail": f"iframe externe chargée depuis {iframe_domain}",
+                    }
+                )
 
         # 4f. Meta refresh redirect
         if re.search(r'<meta[^>]+http-equiv=["\']?refresh', html, re.IGNORECASE):
             score += 15
-            findings.append({
-                "type": "meta_refresh",
-                "severity": "medium",
-                "time_ms": 200,
-                "detail": "Redirection automatique (meta refresh) détectée",
-            })
+            findings.append(
+                {
+                    "type": "meta_refresh",
+                    "severity": "medium",
+                    "time_ms": 200,
+                    "detail": "Redirection automatique (meta refresh) détectée",
+                }
+            )
 
         # 4g. Phishing keywords in visible text (only if domain differs or is suspicious)
         page_text = re.sub(r"<[^>]+>", " ", html).lower()
         for kw in PHISHING_KEYWORDS:
             if kw in page_text and kw not in original_domain.lower():
                 score += 10
-                findings.append({
-                    "type": "phishing_keyword",
-                    "severity": "medium",
-                    "time_ms": None,
-                    "detail": f"Mot-clé de phishing potentiel : « {kw} »",
-                })
+                findings.append(
+                    {
+                        "type": "phishing_keyword",
+                        "severity": "medium",
+                        "time_ms": None,
+                        "detail": f"Mot-clé de phishing potentiel : « {kw} »",
+                    }
+                )
                 break  # Only one keyword finding to avoid score inflation
 
     # ── 5. Cap score and determine verdict ──────────────────────────────────
@@ -321,7 +372,13 @@ async def _analyze_url(url: str) -> dict:
         verdict = "safe"
 
     # Determine primary threat type
-    type_priority = ["external_form", "js_eval", "cookie_access", "domain_redirect", "phishing_keyword"]
+    _type_priority = [
+        "external_form",
+        "js_eval",
+        "cookie_access",
+        "domain_redirect",
+        "phishing_keyword",
+    ]
     threat_map = {
         "external_form": "phishing",
         "js_eval": "malware",
@@ -360,6 +417,7 @@ async def _analyze_url(url: str) -> dict:
 # Background task entry point
 # ---------------------------------------------------------------------------
 
+
 async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
     result = await db.execute(select(UrlScan).where(UrlScan.id == url_scan_id))
     url_scan: UrlScan | None = result.scalar_one_or_none()
@@ -367,14 +425,14 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
         return
 
     url_scan.status = "running"
-    url_scan.started_at = datetime.now(timezone.utc)
+    url_scan.started_at = datetime.now(UTC)
     await db.commit()
 
     try:
         analysis = await _analyze_url(url_scan.url)
 
         url_scan.status = "done"
-        url_scan.finished_at = datetime.now(timezone.utc)
+        url_scan.finished_at = datetime.now(UTC)
         url_scan.verdict = analysis["verdict"]
         url_scan.threat_type = analysis["threat_type"]
         url_scan.threat_score = analysis["threat_score"]
@@ -384,6 +442,7 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
         # In-app notification
         try:
             from app.models.notification import Notification
+
             verdict = analysis["verdict"]
             score = analysis["threat_score"]
             icon = {"safe": "✅", "suspicious": "⚠️", "malicious": "🚨"}.get(verdict, "🔍")
@@ -403,6 +462,7 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
         try:
             from app.core.config import settings
             from app.services.email_service import send_url_scan_alert
+
             user_result = await db.execute(select(User).where(User.id == url_scan.user_id))
             user = user_result.scalar_one_or_none()
             if user:
@@ -421,6 +481,6 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
 
     except Exception as exc:
         url_scan.status = "error"
-        url_scan.finished_at = datetime.now(timezone.utc)
+        url_scan.finished_at = datetime.now(UTC)
         url_scan.error_message = str(exc)[:500]
         await db.commit()

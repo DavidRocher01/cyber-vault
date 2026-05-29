@@ -7,14 +7,15 @@ Flow:
   3. Aggregate stats → update DarkwebDossier
   4. generate_dossier_pdf() — build PDF with cover + exposed table + recommendations
 """
+
 from __future__ import annotations
 
+import asyncio
 import csv
 import io
 import json
-import asyncio
 from collections import Counter
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from reportlab.lib.units import mm
 from reportlab.platypus import (
@@ -36,8 +37,6 @@ from app.services.darkweb_service import (
     fetch_hibp_breach_catalog,
 )
 from app.services.pdf_brand import (
-    CARD_BG,
-    CYAN,
     DARK_BG,
     GRAY,
     GREEN,
@@ -73,6 +72,7 @@ _SEVERITY_WEIGHTS: dict[str, int] = {
 
 # ── Severity scoring ─────────────────────────────────────────────────────────
 
+
 def _compute_severity(targets: list) -> int:
     """Return a 0-100 severity score weighted by breach data_classes."""
     total_weight = 0
@@ -98,6 +98,7 @@ def _compute_severity(targets: list) -> int:
 
 # ── Breach catalog sync ───────────────────────────────────────────────────────
 
+
 async def sync_breach_catalog(db: AsyncSession) -> int:
     """Fetch HIBP public breach list and upsert into local breach_catalog table."""
     raw = fetch_hibp_breach_catalog()
@@ -108,9 +109,7 @@ async def sync_breach_catalog(db: AsyncSession) -> int:
         name = entry.get("Name", "")
         if not name:
             continue
-        result = await db.execute(
-            select(BreachCatalogEntry).where(BreachCatalogEntry.name == name)
-        )
+        result = await db.execute(select(BreachCatalogEntry).where(BreachCatalogEntry.name == name))
         existing = result.scalar_one_or_none()
         data_classes = json.dumps(entry.get("DataClasses", []))
         if existing:
@@ -125,22 +124,24 @@ async def sync_breach_catalog(db: AsyncSession) -> int:
             existing.is_sensitive = entry.get("IsSensitive", False)
             existing.is_fabricated = entry.get("IsFabricated", False)
             existing.is_spam_list = entry.get("IsSpamList", False)
-            existing.updated_at = datetime.now(timezone.utc)
+            existing.updated_at = datetime.now(UTC)
         else:
-            db.add(BreachCatalogEntry(
-                name=name,
-                title=entry.get("Title", ""),
-                domain=entry.get("Domain", ""),
-                breach_date=entry.get("BreachDate", ""),
-                added_date=entry.get("AddedDate", ""),
-                pwn_count=entry.get("PwnCount", 0),
-                description=entry.get("Description", ""),
-                data_classes_json=data_classes,
-                is_verified=entry.get("IsVerified", False),
-                is_sensitive=entry.get("IsSensitive", False),
-                is_fabricated=entry.get("IsFabricated", False),
-                is_spam_list=entry.get("IsSpamList", False),
-            ))
+            db.add(
+                BreachCatalogEntry(
+                    name=name,
+                    title=entry.get("Title", ""),
+                    domain=entry.get("Domain", ""),
+                    breach_date=entry.get("BreachDate", ""),
+                    added_date=entry.get("AddedDate", ""),
+                    pwn_count=entry.get("PwnCount", 0),
+                    description=entry.get("Description", ""),
+                    data_classes_json=data_classes,
+                    is_verified=entry.get("IsVerified", False),
+                    is_sensitive=entry.get("IsSensitive", False),
+                    is_fabricated=entry.get("IsFabricated", False),
+                    is_spam_list=entry.get("IsSpamList", False),
+                )
+            )
         upserted += 1
     await db.commit()
     return upserted
@@ -169,18 +170,17 @@ async def _build_catalog_index(db: AsyncSession) -> dict[str, dict]:
 
 # ── Background processing ─────────────────────────────────────────────────────
 
+
 async def process_dossier(dossier_id: int, api_key: str) -> None:
     """Process all targets for a dossier — runs in background with its own DB session."""
     async with _db_module.AsyncSessionLocal() as db:
-        result = await db.execute(
-            select(DarkwebDossier).where(DarkwebDossier.id == dossier_id)
-        )
+        result = await db.execute(select(DarkwebDossier).where(DarkwebDossier.id == dossier_id))
         dossier = result.scalar_one_or_none()
         if not dossier:
             return
 
         dossier.status = "processing"
-        dossier.started_at = datetime.now(timezone.utc)
+        dossier.started_at = datetime.now(UTC)
         dossier.checked_count = 0
         dossier.unverified_count = 0
         await db.commit()
@@ -208,13 +208,12 @@ async def process_dossier(dossier_id: int, api_key: str) -> None:
 
                 target.total_breaches = count
                 target.breach_sources_json = json.dumps(breaches)
-                target.checked_at = datetime.now(timezone.utc)
+                target.checked_at = datetime.now(UTC)
 
                 if api_status == "unknown":
                     # API failed — do NOT silently mark as clean
                     is_rate_limited = any(
-                        kw in api_error.lower()
-                        for kw in ("rate", "429", "retry", "throttl")
+                        kw in api_error.lower() for kw in ("rate", "429", "retry", "throttl")
                     )
                     target.check_status = "rate_limited" if is_rate_limited else "api_error"
                     target.status = "error"
@@ -250,11 +249,10 @@ async def process_dossier(dossier_id: int, api_key: str) -> None:
                     all_sources.extend(b.get("name", "") for b in src if b.get("name"))
                 except Exception:
                     pass
-            top_sources = [{"name": n, "count": c}
-                           for n, c in Counter(all_sources).most_common(10)]
+            top_sources = [{"name": n, "count": c} for n, c in Counter(all_sources).most_common(10)]
 
             severity_score = _compute_severity(targets)
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
 
             dossier.exposed_emails = exposed
             dossier.total_breach_instances = total_instances
@@ -272,20 +270,28 @@ async def process_dossier(dossier_id: int, api_key: str) -> None:
         except Exception as exc:
             dossier.status = "failed"
             dossier.error_message = str(exc)
-            dossier.finished_at = datetime.now(timezone.utc)
+            dossier.finished_at = datetime.now(UTC)
             await db.commit()
 
 
 # ── CSV export ───────────────────────────────────────────────────────────────
 
+
 def export_dossier_csv(dossier: DarkwebDossier, targets: list[DarkwebDossierTarget]) -> bytes:
     """Build a UTF-8 BOM CSV with one row per target email."""
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow([
-        "Email", "Statut", "Vérification API", "Nb fuites", "Sources principales",
-        "Types de données exposées", "Date vérification",
-    ])
+    writer.writerow(
+        [
+            "Email",
+            "Statut",
+            "Vérification API",
+            "Nb fuites",
+            "Sources principales",
+            "Types de données exposées",
+            "Date vérification",
+        ]
+    )
     for t in targets:
         try:
             breaches = json.loads(t.breach_sources_json or "[]")
@@ -293,15 +299,28 @@ def export_dossier_csv(dossier: DarkwebDossier, targets: list[DarkwebDossierTarg
             breaches = []
         sources = ", ".join(b.get("name", "") for b in breaches[:5])
         data_classes = ", ".join(
-            dc for b in breaches for dc in b.get("data_classes", [])
+            dc
+            for b in breaches
+            for dc in b.get("data_classes", [])
             if dc not in ("Email addresses",)
         )
         checked = t.checked_at.strftime("%Y-%m-%d") if t.checked_at else ""
-        writer.writerow([t.email, t.status, t.check_status, t.total_breaches, sources, data_classes, checked])
+        writer.writerow(
+            [
+                t.email,
+                t.status,
+                t.check_status,
+                t.total_breaches,
+                sources,
+                data_classes,
+                checked,
+            ]
+        )
     return ("﻿" + output.getvalue()).encode("utf-8")
 
 
 # ── Monitoring email alert ────────────────────────────────────────────────────
+
 
 def send_darkweb_alert_email(
     to_email: str,
@@ -315,7 +334,11 @@ def send_darkweb_alert_email(
     from app.services.email_service import _send  # local import to avoid circular
 
     new_list_html = "".join(f"<li style='color:#fca5a5'>{e}</li>" for e in new_exposed[:10])
-    more = f"<p style='color:#94a3b8;font-size:13px'>+ {len(new_exposed)-10} autres</p>" if len(new_exposed) > 10 else ""
+    more = (
+        f"<p style='color:#94a3b8;font-size:13px'>+ {len(new_exposed)-10} autres</p>"
+        if len(new_exposed) > 10
+        else ""
+    )
 
     subject = f"[CyberScan] ⚠️ Dark Web — Nouvelles fuites détectées pour {domain}"
     html = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0f172a;font-family:Arial,sans-serif;">
@@ -351,6 +374,7 @@ Le monitoring Dark Web de <strong style="color:#f8fafc;">{company_name}</strong>
 
 # ── PDF generation ────────────────────────────────────────────────────────────
 
+
 def _risk_color(score: int):
     if score >= 50:
         return RED
@@ -367,15 +391,23 @@ def _risk_label(score: int) -> str:
     return "RISQUE FAIBLE"
 
 
-def _draw_dossier_cover(canvas, doc, *, company_name: str, domain: str,
-                        risk_score: int, total_emails: int,
-                        exposed_emails: int, total_instances: int,
-                        date_str: str) -> None:
+def _draw_dossier_cover(
+    canvas,
+    doc,
+    *,
+    company_name: str,
+    domain: str,
+    risk_score: int,
+    total_emails: int,
+    exposed_emails: int,
+    total_instances: int,
+    date_str: str,
+) -> None:
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
-    from app.services.pdf_brand import (DARK_BG, GRAY, WHITE, BORDER,
-                                         MARGIN, FOOTER_H, PAGE_W, PAGE_H)
+
+    from app.services.pdf_brand import BORDER, FOOTER_H, MARGIN
 
     W, H = A4
     M = MARGIN * mm
@@ -391,11 +423,19 @@ def _draw_dossier_cover(canvas, doc, *, company_name: str, domain: str,
     BAND_H = 18 * mm
     band_y = H - BAND_H
     band_cy = H - BAND_H / 2
-    from app.services.pdf_brand import _draw_band, DOC_COLOR
+    from app.services.pdf_brand import DOC_COLOR, _draw_band
+
     doc_color = colors.HexColor(DOC_COLOR.get("darkweb", "#ef4444"))
-    _draw_band(canvas, band_y=band_y, band_h=BAND_H, band_cy=band_cy,
-               doc_type="darkweb", doc_color=doc_color,
-               right_text="DOSSIER DARKWEB", right_sub=date_str[:10])
+    _draw_band(
+        canvas,
+        band_y=band_y,
+        band_h=BAND_H,
+        band_cy=band_cy,
+        doc_type="darkweb",
+        doc_color=doc_color,
+        right_text="DOSSIER DARKWEB",
+        right_sub=date_str[:10],
+    )
 
     # Title block
     tx = M + 7 * mm
@@ -421,8 +461,12 @@ def _draw_dossier_cover(canvas, doc, *, company_name: str, domain: str,
     canvas.setStrokeColor(rc)
     canvas.setLineWidth(2 * mm)
     canvas.setLineCap(0)
-    canvas.line(M + 4 * mm, card_y + card_h - 1 * mm,
-                M + card_w - 4 * mm, card_y + card_h - 1 * mm)
+    canvas.line(
+        M + 4 * mm,
+        card_y + card_h - 1 * mm,
+        M + card_w - 4 * mm,
+        card_y + card_h - 1 * mm,
+    )
     canvas.setFillColor(WHITE)
     canvas.setFont("Helvetica-Bold", 14)
     canvas.drawString(M + 6 * mm, card_y + card_h * 0.55, company_name)
@@ -458,8 +502,7 @@ def _draw_dossier_cover(canvas, doc, *, company_name: str, domain: str,
         canvas.setStrokeColor(rc)
         canvas.setLineWidth(11)
         p2 = canvas.beginPath()
-        p2.arc(cx - r, cy - r, cx + r, cy + r,
-               startAng=180 - fill_ext, extent=fill_ext)
+        p2.arc(cx - r, cy - r, cx + r, cy + r, startAng=180 - fill_ext, extent=fill_ext)
         canvas.drawPath(p2, stroke=1, fill=0)
 
     canvas.setFillColor(colors.HexColor("#141e30"))
@@ -484,7 +527,11 @@ def _draw_dossier_cover(canvas, doc, *, company_name: str, domain: str,
         (str(total_emails), "Emails analysés", GRAY),
         (str(exposed_emails), "Emails exposés", RED if exposed_emails > 0 else GREEN),
         (str(clean), "Emails sains", GREEN),
-        (str(total_instances), "Fuites cumulées", ORANGE if total_instances > 0 else GREEN),
+        (
+            str(total_instances),
+            "Fuites cumulées",
+            ORANGE if total_instances > 0 else GREEN,
+        ),
     ]
     gx0 = sep_x + 4 * mm
     gw = kpi_w - left_w - 12 * mm
@@ -499,8 +546,12 @@ def _draw_dossier_cover(canvas, doc, *, company_name: str, domain: str,
         canvas.setStrokeColor(k_col)
         canvas.setLineWidth(2 * mm)
         canvas.setLineCap(0)
-        canvas.line(kx + 2.5 * mm, ky + cell_h - 1 * mm,
-                    kx + cell_w - 2.5 * mm, ky + cell_h - 1 * mm)
+        canvas.line(
+            kx + 2.5 * mm,
+            ky + cell_h - 1 * mm,
+            kx + cell_w - 2.5 * mm,
+            ky + cell_h - 1 * mm,
+        )
         canvas.setFillColor(k_col)
         canvas.setFont("Helvetica-Bold", 18)
         canvas.drawCentredString(kx + cell_w / 2, ky + cell_h * 0.50, val)
@@ -509,7 +560,6 @@ def _draw_dossier_cover(canvas, doc, *, company_name: str, domain: str,
         canvas.drawCentredString(kx + cell_w / 2, ky + 3.5 * mm, lbl)
 
     # Footer
-    from app.services.pdf_brand import FOOTER_H
     footer_y = FOOTER_H * mm
     canvas.setStrokeColor(BORDER)
     canvas.setLineWidth(0.5)
@@ -542,51 +592,61 @@ def _build_recommendations(
 
     has_password = any("password" in c or "mot de passe" in c for c in all_classes)
     has_financial = any(
-        k in c for c in all_classes
-        for k in ("credit", "financial", "bank", "carte", "payment")
+        k in c for c in all_classes for k in ("credit", "financial", "bank", "carte", "payment")
     )
     has_sensitive = any(
-        k in c for c in all_classes
+        k in c
+        for c in all_classes
         for k in ("social security", "health", "medical", "ssn", "passport")
     )
 
     recs: list[tuple[str, str]] = []
 
     if exposed_targets:
-        recs.append((
-            "Réinitialisation des mots de passe exposés",
-            f"Forcer un changement de mot de passe pour les {len(exposed_targets)} compte(s) "
-            "identifié(s) comme exposé(s). Prioriser ceux avec 3 fuites ou plus et vérifier "
-            "toute réutilisation sur d'autres services.",
-        ))
+        recs.append(
+            (
+                "Réinitialisation des mots de passe exposés",
+                f"Forcer un changement de mot de passe pour les {len(exposed_targets)} compte(s) "
+                "identifié(s) comme exposé(s). Prioriser ceux avec 3 fuites ou plus et vérifier "
+                "toute réutilisation sur d'autres services.",
+            )
+        )
 
     if has_password or (exposed_targets and not all_classes):
-        recs.append((
-            "Activation de l'authentification multi-facteur (MFA)",
-            "Déployer le MFA sur tous les accès critiques (messagerie, VPN, outils métiers). "
-            "Un mot de passe volé seul ne suffit plus à compromettre un compte protégé par MFA.",
-        ))
+        recs.append(
+            (
+                "Activation de l'authentification multi-facteur (MFA)",
+                "Déployer le MFA sur tous les accès critiques (messagerie, VPN, outils métiers). "
+                "Un mot de passe volé seul ne suffit plus à compromettre un compte protégé par MFA.",
+            )
+        )
 
     if has_financial:
-        recs.append((
-            "Alerte financière — vérification des accès bancaires",
-            "Des données financières (cartes, coordonnées bancaires) ont été détectées dans les fuites. "
-            "Vérifier les accès aux outils bancaires et comptables, et signaler aux établissements concernés.",
-        ))
+        recs.append(
+            (
+                "Alerte financière — vérification des accès bancaires",
+                "Des données financières (cartes, coordonnées bancaires) ont été détectées dans les fuites. "
+                "Vérifier les accès aux outils bancaires et comptables, et signaler aux établissements concernés.",
+            )
+        )
 
     if has_sensitive:
-        recs.append((
-            "Données personnelles sensibles — notification RGPD",
-            "Des données personnelles hautement sensibles ont été trouvées dans les fuites. "
-            "Informer les personnes concernées et envisager une notification à la CNIL si requis.",
-        ))
+        recs.append(
+            (
+                "Données personnelles sensibles — notification RGPD",
+                "Des données personnelles hautement sensibles ont été trouvées dans les fuites. "
+                "Informer les personnes concernées et envisager une notification à la CNIL si requis.",
+            )
+        )
 
     if unverified_targets:
-        recs.append((
-            f"Vérification incomplète — {len(unverified_targets)} adresse(s) non analysée(s)",
-            "Certaines adresses n'ont pas pu être vérifiées en raison de limitations des APIs (rate limit). "
-            "Relancer un rescan pour obtenir des résultats complets avant de conclure sur l'exposition réelle.",
-        ))
+        recs.append(
+            (
+                f"Vérification incomplète — {len(unverified_targets)} adresse(s) non analysée(s)",
+                "Certaines adresses n'ont pas pu être vérifiées en raison de limitations des APIs (rate limit). "
+                "Relancer un rescan pour obtenir des résultats complets avant de conclure sur l'exposition réelle.",
+            )
+        )
 
     risk_score = dossier.risk_score or 0
     if risk_score >= 50:
@@ -602,11 +662,13 @@ def _build_recommendations(
     recs.append(("Surveillance continue", surveillance_body))
 
     if len(recs) < 4:
-        recs.append((
-            "Formation et sensibilisation des équipes",
-            "Intégrer les résultats de cette analyse dans le programme de sensibilisation à la cybersécurité. "
-            "Les collaborateurs exposés devraient suivre une formation sur la gestion des mots de passe.",
-        ))
+        recs.append(
+            (
+                "Formation et sensibilisation des équipes",
+                "Intégrer les résultats de cette analyse dans le programme de sensibilisation à la cybersécurité. "
+                "Les collaborateurs exposés devraient suivre une formation sur la gestion des mots de passe.",
+            )
+        )
 
     return recs[:6]
 
@@ -621,15 +683,17 @@ def generate_dossier_pdf(
     doc = SimpleDocTemplate(
         buf,
         pagesize=(210 * mm, 297 * mm),
-        leftMargin=MARGIN * mm, rightMargin=MARGIN * mm,
-        topMargin=(14 + 6) * mm, bottomMargin=(8 + 6) * mm,
+        leftMargin=MARGIN * mm,
+        rightMargin=MARGIN * mm,
+        topMargin=(14 + 6) * mm,
+        bottomMargin=(8 + 6) * mm,
     )
     styles = get_styles("darkweb")
     date_str = datetime.now().strftime("%d/%m/%Y %H:%M")
     risk_score = dossier.risk_score or 0
 
     exposed_targets = [t for t in targets if t.status == "exposed"]
-    clean_targets = [t for t in targets if t.status == "clean"]
+    _clean_targets = [t for t in targets if t.status == "clean"]
 
     try:
         top_sources = json.loads(dossier.top_sources_json or "[]")
@@ -638,7 +702,8 @@ def generate_dossier_pdf(
 
     def on_cover(canvas, doc):
         _draw_dossier_cover(
-            canvas, doc,
+            canvas,
+            doc,
             company_name=dossier.company_name,
             domain=dossier.domain,
             risk_score=risk_score,
@@ -673,26 +738,39 @@ def generate_dossier_pdf(
             unique_dc = list(dict.fromkeys(all_dc))[:4]
             dc_str = ", ".join(unique_dc) if unique_dc else "—"
             row_color = RED if t.total_breaches >= 3 else YELLOW
-            table_data.append([
-                Paragraph(f'<font color="#{row_color.hexval()[2:]}">{t.email}</font>', styles["mono"]),
-                Paragraph(f'<b>{t.total_breaches}</b>', styles["label"]),
-                Paragraph(sources_str or "—", styles["small"]),
-                Paragraph(dc_str, styles["small"]),
-            ])
+            table_data.append(
+                [
+                    Paragraph(
+                        f'<font color="#{row_color.hexval()[2:]}">{t.email}</font>',
+                        styles["mono"],
+                    ),
+                    Paragraph(f"<b>{t.total_breaches}</b>", styles["label"]),
+                    Paragraph(sources_str or "—", styles["small"]),
+                    Paragraph(dc_str, styles["small"]),
+                ]
+            )
         tbl = Table(table_data, colWidths=[60 * mm, 18 * mm, 55 * mm, 45 * mm])
-        tbl.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#111c30")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#06b6d4")),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, 0), 7),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1),
-             [colors.HexColor("#0f172a"), colors.HexColor("#111827")]),
-            ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#1e293b")),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-            ("LEFTPADDING", (0, 0), (-1, -1), 5),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 5),
-        ]))
+        tbl.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#111c30")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#06b6d4")),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, 0), 7),
+                    (
+                        "ROWBACKGROUNDS",
+                        (0, 1),
+                        (-1, -1),
+                        [colors.HexColor("#0f172a"), colors.HexColor("#111827")],
+                    ),
+                    ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#1e293b")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                ]
+            )
+        )
         story.append(tbl)
     else:
         story.append(Paragraph("Aucun email exposé détecté.", styles["body"]))
@@ -705,23 +783,33 @@ def generate_dossier_pdf(
         story.append(section_rule(doc.width, "darkweb"))
         src_data = [["Source", "Occurrences"]]
         for s in top_sources[:8]:
-            src_data.append([
-                Paragraph(s["name"], styles["body"]),
-                Paragraph(str(s["count"]), styles["label"]),
-            ])
+            src_data.append(
+                [
+                    Paragraph(s["name"], styles["body"]),
+                    Paragraph(str(s["count"]), styles["label"]),
+                ]
+            )
         src_tbl = Table(src_data, colWidths=[120 * mm, 30 * mm])
-        src_tbl.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#111c30")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#ef4444")),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, 0), 7),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1),
-             [colors.HexColor("#0f172a"), colors.HexColor("#111827")]),
-            ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#1e293b")),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-            ("LEFTPADDING", (0, 0), (-1, -1), 5),
-        ]))
+        src_tbl.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#111c30")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#ef4444")),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, 0), 7),
+                    (
+                        "ROWBACKGROUNDS",
+                        (0, 1),
+                        (-1, -1),
+                        [colors.HexColor("#0f172a"), colors.HexColor("#111827")],
+                    ),
+                    ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#1e293b")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                ]
+            )
+        )
         story.append(src_tbl)
         story.append(Spacer(1, 6 * mm))
 

@@ -4,6 +4,7 @@ branded_scan_pdf.py — White-label management summary PDF for a scan result.
 Generates a concise executive-level report (cover + findings summary) using the
 client's company name, accent color, and optional base64 logo.
 """
+
 from __future__ import annotations
 
 import base64
@@ -16,13 +17,30 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.platypus import (
-    SimpleDocTemplate, Spacer, Paragraph, Table, TableStyle, PageBreak,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
 )
 
 from app.services.pdf_brand import (
-    DARK_BG, CARD_BG, BORDER, CYAN, GREEN, YELLOW, RED, GRAY, WHITE,
-    PAGE_W, PAGE_H, MARGIN, FOOTER_H,
-    get_styles, section_rule, score_color,
+    BORDER,
+    CARD_BG,
+    CYAN,
+    DARK_BG,
+    FOOTER_H,
+    GRAY,
+    GREEN,
+    MARGIN,
+    PAGE_H,
+    PAGE_W,
+    RED,
+    WHITE,
+    YELLOW,
+    get_styles,
+    section_rule,
 )
 
 _STATUS_COLOR = {
@@ -49,8 +67,11 @@ def _accent(hex_color: str) -> colors.Color:
 # Cover page (custom-branded)
 # ---------------------------------------------------------------------------
 
+
 def _draw_branded_cover(
-    canvas, doc, *,
+    canvas,
+    doc,
+    *,
     company_name: str,
     accent_hex: str,
     logo_b64: str | None,
@@ -96,8 +117,13 @@ def _draw_branded_cover(
             logo_x = M + 3 * mm
             logo_y = band_cy - logo_h / 2
             canvas.drawImage(
-                img_io, logo_x, logo_y, width=logo_w, height=logo_h,
-                preserveAspectRatio=True, mask="auto",
+                img_io,
+                logo_x,
+                logo_y,
+                width=logo_w,
+                height=logo_h,
+                preserveAspectRatio=True,
+                mask="auto",
             )
             logo_drawn = True
         except Exception:
@@ -128,7 +154,7 @@ def _draw_branded_cover(
     canvas.drawRightString(W - M, band_cy - BAND_H * 0.28, date_str[:10])
 
     # ── Title block ───────────────────────────────────────────────────────────
-    tx = M
+    _tx = M
     ty = H - 52 * mm
 
     canvas.setFillColor(acc)
@@ -164,8 +190,12 @@ def _draw_branded_cover(
     canvas.setStrokeColor(s_col)
     canvas.setLineWidth(2 * mm)
     canvas.setLineCap(0)
-    canvas.line(M + 4 * mm, card_y + card_h - 1 * mm,
-                M + card_w - 4 * mm, card_y + card_h - 1 * mm)
+    canvas.line(
+        M + 4 * mm,
+        card_y + card_h - 1 * mm,
+        M + card_w - 4 * mm,
+        card_y + card_h - 1 * mm,
+    )
 
     # Score gauge (left 38%)
     left_w = card_w * 0.38
@@ -185,8 +215,14 @@ def _draw_branded_cover(
         canvas.setStrokeColor(s_col)
         canvas.setLineWidth(11)
         p2 = canvas.beginPath()
-        p2.arc(cx2 - r2, cy2 - r2, cx2 + r2, cy2 + r2,
-               startAng=180 - fill_ext, extent=fill_ext)
+        p2.arc(
+            cx2 - r2,
+            cy2 - r2,
+            cx2 + r2,
+            cy2 + r2,
+            startAng=180 - fill_ext,
+            extent=fill_ext,
+        )
         canvas.drawPath(p2, stroke=1, fill=0)
 
     canvas.setFillColor(colors.HexColor("#141e30"))
@@ -208,9 +244,9 @@ def _draw_branded_cover(
 
     # KPI 3-cell row (right 62%)
     kpis = [
-        (critical_count, "Critiques", RED,    colors.HexColor("#2d0a0a")),
-        (warning_count,  "Avertis.",  YELLOW, colors.HexColor("#1c1400")),
-        (info_count,     "Infos",     CYAN,   colors.HexColor("#0c1a2e")),
+        (critical_count, "Critiques", RED, colors.HexColor("#2d0a0a")),
+        (warning_count, "Avertis.", YELLOW, colors.HexColor("#1c1400")),
+        (info_count, "Infos", CYAN, colors.HexColor("#0c1a2e")),
     ]
     gx0 = sep_x + 4 * mm
     gw = card_w * 0.62 - 12 * mm
@@ -225,8 +261,12 @@ def _draw_branded_cover(
         canvas.setStrokeColor(k_col)
         canvas.setLineWidth(2 * mm)
         canvas.setLineCap(0)
-        canvas.line(kx + 2.5 * mm, ky + cell_h - 1 * mm,
-                    kx + cell_w - 2.5 * mm, ky + cell_h - 1 * mm)
+        canvas.line(
+            kx + 2.5 * mm,
+            ky + cell_h - 1 * mm,
+            kx + cell_w - 2.5 * mm,
+            ky + cell_h - 1 * mm,
+        )
         canvas.setFillColor(k_col)
         canvas.setFont("Helvetica-Bold", 22)
         canvas.drawCentredString(kx + cell_w / 2, ky + cell_h * 0.52, str(val))
@@ -244,7 +284,7 @@ def _draw_branded_cover(
     canvas.roundRect(M, url_y - 8 * mm, card_w, 9 * mm, radius=2 * mm, fill=1, stroke=0)
 
     max_dom = 90
-    short_dom = domain if len(domain) <= max_dom else domain[:max_dom - 1] + "…"
+    short_dom = domain if len(domain) <= max_dom else domain[: max_dom - 1] + "…"
     canvas.setFillColor(CYAN)
     canvas.setFont("Courier", 8)
     canvas.drawString(M + 4 * mm, url_y - 3.5 * mm, short_dom)
@@ -266,6 +306,7 @@ def _draw_branded_cover(
 # ---------------------------------------------------------------------------
 # Content pages
 # ---------------------------------------------------------------------------
+
 
 def _draw_branded_page(canvas, doc, *, company_name: str, accent_hex: str) -> None:
     acc = _accent(accent_hex)
@@ -316,6 +357,7 @@ def _draw_branded_page(canvas, doc, *, company_name: str, accent_hex: str) -> No
 # Public entry point
 # ---------------------------------------------------------------------------
 
+
 def generate_branded_pdf(
     *,
     company_name: str,
@@ -332,7 +374,8 @@ def generate_branded_pdf(
     doc = SimpleDocTemplate(
         buf,
         pagesize=A4,
-        leftMargin=M, rightMargin=M,
+        leftMargin=M,
+        rightMargin=M,
         topMargin=(14 + 4) * mm,
         bottomMargin=(FOOTER_H + 6) * mm,
     )
@@ -373,33 +416,48 @@ def generate_branded_pdf(
         story.append(Paragraph("Aucune vulnérabilité détectée.", styles["body"]))
     else:
         sev_order = {"critical": 0, "warning": 1, "info": 2}
-        sorted_findings = sorted(findings, key=lambda f: sev_order.get(f.get("severity", "info"), 99))
+        sorted_findings = sorted(
+            findings, key=lambda f: sev_order.get(f.get("severity", "info"), 99)
+        )
         for f in sorted_findings[:20]:
             sev = f.get("severity", "info")
             sev_col = {"critical": RED, "warning": YELLOW, "info": CYAN}.get(sev, GRAY)
-            sev_lbl = {"critical": "CRITIQUE", "warning": "AVERT.", "info": "INFO"}.get(sev, sev.upper())
+            sev_lbl = {"critical": "CRITIQUE", "warning": "AVERT.", "info": "INFO"}.get(
+                sev, sev.upper()
+            )
             title = f.get("title") or f.get("check") or "—"
             desc = f.get("description") or f.get("detail") or ""
 
             tbl = Table(
-                [[
-                    Paragraph(sev_lbl, styles["small"]),
-                    Paragraph(f"<b>{title}</b>", styles["label"]),
-                ]],
+                [
+                    [
+                        Paragraph(sev_lbl, styles["small"]),
+                        Paragraph(f"<b>{title}</b>", styles["label"]),
+                    ]
+                ],
                 colWidths=[18 * mm, doc.width - 18 * mm],
             )
-            tbl.setStyle(TableStyle([
-                ("BACKGROUND",  (0, 0), (-1, -1), CARD_BG),
-                ("ROWBACKGROUNDS", (0, 0), (0, -1), [sev_col.clone(alpha=0.15)]),
-                ("TEXTCOLOR",   (0, 0), (0, -1), sev_col),
-                ("ALIGN",       (0, 0), (0, -1), "CENTER"),
-                ("VALIGN",      (0, 0), (-1, -1), "MIDDLE"),
-                ("TOPPADDING",  (0, 0), (-1, -1), 4),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                ("LEFTPADDING", (0, 0), (-1, -1), 6),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-                ("ROUNDEDCORNERS", [3]),
-            ]))
+            tbl.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, -1), CARD_BG),
+                        (
+                            "ROWBACKGROUNDS",
+                            (0, 0),
+                            (0, -1),
+                            [sev_col.clone(alpha=0.15)],
+                        ),
+                        ("TEXTCOLOR", (0, 0), (0, -1), sev_col),
+                        ("ALIGN", (0, 0), (0, -1), "CENTER"),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ("TOPPADDING", (0, 0), (-1, -1), 4),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                        ("ROUNDEDCORNERS", [3]),
+                    ]
+                )
+            )
             story.append(tbl)
 
             if desc:
@@ -445,7 +503,6 @@ def _extract_findings(results_json: str | None) -> list[dict]:
 def _compute_score(findings: list[dict], overall_status: str | None) -> int:
     if not findings:
         return 100 if overall_status == "OK" else 0
-    n = len(findings)
     critical = sum(1 for f in findings if f.get("severity") == "critical")
     warning = sum(1 for f in findings if f.get("severity") == "warning")
     deduction = critical * 15 + warning * 5

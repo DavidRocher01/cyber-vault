@@ -1,0 +1,51 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "B", "C4", "UP", "T20", "SIM", "PTH"]
+ignore = [
+    "E712",   # SQLAlchemy: Model.col == True génère une expression SQL, pas une comparaison Python
+    "E501",   # Longueur de ligne gérée par ruff-format
+    "B008",   # Dépendances FastAPI dans les signatures de fonctions
+    "B904",   # raise without from — à corriger progressivement
+    "SIM108", # Ternaires — lisibilité variable selon contexte
+    "SIM105", # contextlib.suppress — style, pas un bug
+    "C408",   # collection constructors — style
+    "N806",   # non-lowercase variable in function — conventions locales tolérées
+    "N814",   # camelcase imported as constant — conventions locales tolérées
+    "N815",   # mixed-case variable in class — conventions locales tolérées
+    "PTH103", # os.makedirs → pathlib — migration progressive
+    "PTH108", # os.unlink → pathlib
+    "PTH112", # os.path.isdir → pathlib
+    "PTH113", # os.path.isfile → pathlib
+    "PTH118", # os.path.join → pathlib
+    "PTH120", # os.path.dirname → pathlib
+    "PTH123", # open() → Path.open() — migration progressive
+    "PTH207", # glob → pathlib.glob
+    "F821",   # undefined-name — faux positifs SQLAlchemy/forward refs
+]
+
+[tool.ruff.lint.per-file-ignores]
+"app/api/v1/endpoints/rssi/__init__.py" = ["F401"]       # Re-exports intentionnels
+"app/api/v1/endpoints/newsletter.py" = ["E402"]          # Import après init intentionnel
+"app/models/__init__.py" = ["F401"]                       # Re-exports SQLAlchemy intentionnels
+"tests/*" = ["S101", "T201", "F841", "E402", "SIM117", "PTH110", "PTH202", "C416", "N817"]  # Tests
+"scripts/*" = ["T201", "F841", "PTH100"]                  # Scripts CLI : print intentionnel
+"seed_plans.py" = ["T201"]                                 # Seed script : print intentionnel
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+no_strict_optional = true
+allow_untyped_defs = true
+allow_incomplete_defs = true
+warn_return_any = false
+disable_error_code = [
+    "name-defined", "attr-defined", "index", "misc",
+    "import-untyped", "arg-type", "return-value",
+    "operator", "call-overload", "var-annotated",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

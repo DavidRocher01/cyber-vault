@@ -16,8 +16,12 @@ Sortie par défaut : reports/quality-report-YYYYMMDD.pdf
 from __future__ import annotations
 
 import json
+import platform
 import subprocess
 import sys
+
+_WIN = platform.system() == "Windows"
+_NPM = "npm.cmd" if _WIN else "npm"
 from datetime import datetime
 from pathlib import Path
 
@@ -58,7 +62,7 @@ def _run(cmd: list[str], cwd: Path | None = None) -> tuple[int, str, str]:
 
 def collect_coverage() -> dict:
     """Lance pytest avec --cov et parse le résumé."""
-    print("  → Collecte de la couverture (pytest)…")
+    print("  > Collecte de la couverture (pytest)...")
     _, stdout, _ = _run(
         ["python", "-m", "pytest", "--cov=app", "--cov-report=term-missing", "-q", "--no-header"],
         cwd=BACKEND,
@@ -87,7 +91,7 @@ def collect_coverage() -> dict:
 
 def collect_complexity() -> dict:
     """Analyse la complexité cyclomatique avec radon (si installé)."""
-    print("  → Analyse de complexité (radon)…")
+    print("  > Analyse de complexite (radon)...")
     rc, stdout, _ = _run(
         ["python", "-m", "radon", "cc", "app/", "-s", "-j"],
         cwd=BACKEND,
@@ -125,7 +129,7 @@ def collect_complexity() -> dict:
 
 def collect_bandit() -> dict:
     """Audit sécurité Python avec bandit."""
-    print("  → Audit sécurité Python (bandit)…")
+    print("  > Audit securite Python (bandit)...")
     _, stdout, _ = _run(
         ["python", "-m", "bandit", "-r", "app/", "-f", "json", "-q"],
         cwd=BACKEND,
@@ -145,9 +149,9 @@ def collect_bandit() -> dict:
 
 def collect_npm_audit() -> dict:
     """Audit sécurité frontend avec npm audit."""
-    print("  → Audit sécurité frontend (npm audit)…")
+    print("  > Audit securite frontend (npm audit)...")
     _, stdout, _ = _run(
-        ["npm", "audit", "--json"],
+        [_NPM, "audit", "--json"],
         cwd=FRONTEND,
     )
     try:
@@ -166,7 +170,7 @@ def collect_npm_audit() -> dict:
 
 def collect_git_stats() -> dict:
     """Statistiques Git du projet."""
-    print("  → Statistiques Git…")
+    print("  > Statistiques Git...")
     _, commits, _ = _run(["git", "rev-list", "--count", "HEAD"], cwd=ROOT)
     _, log, _ = _run(
         ["git", "log", "--format=%an", "--no-merges"],
@@ -191,7 +195,7 @@ def collect_git_stats() -> dict:
 
 def collect_code_stats() -> dict:
     """Compte les fichiers et lignes de code (Python + TypeScript)."""
-    print("  → Statistiques de code…")
+    print("  > Statistiques de code...")
     py_files = list(BACKEND.rglob("*.py"))
     py_files = [f for f in py_files if "test" not in str(f) and "__pycache__" not in str(f) and "alembic" not in str(f)]
     ts_files = list((FRONTEND / "src").rglob("*.ts")) if (FRONTEND / "src").exists() else []
@@ -391,7 +395,7 @@ def main() -> None:
         reports_dir.mkdir(exist_ok=True)
         output = reports_dir / f"quality-report-{datetime.now().strftime('%Y%m%d')}.pdf"
 
-    print("Génération du rapport qualité Cyber-Vault…")
+    print("Generation du rapport qualite Cyber-Vault...")
     print(f"Sortie : {output}\n")
 
     metrics = {
@@ -404,7 +408,7 @@ def main() -> None:
     }
 
     build_pdf(output, metrics)
-    print(f"\n✓ Rapport généré : {output}")
+    print(f"\nOK Rapport genere : {output}")
 
 
 if __name__ == "__main__":
