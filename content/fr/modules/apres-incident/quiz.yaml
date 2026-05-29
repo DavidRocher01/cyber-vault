@@ -1,0 +1,86 @@
+questions:
+  - id: ai_01
+    type: single_choice
+    weight: 1
+    text: "Vous venez de cliquer sur un lien suspect. Quelle est votre première action ?"
+    answers:
+      - id: a
+        text: "Redémarrer l'ordinateur pour nettoyer d'éventuels malwares"
+        correct: false
+      - id: b
+        text: "Ne rien saisir, déconnecter du réseau, appeler l'IT immédiatement"
+        correct: true
+      - id: c
+        text: "Attendre de voir si quelque chose d'anormal se passe"
+        correct: false
+      - id: d
+        text: "Scanner avec l'antivirus et ne rien dire"
+        correct: false
+    explanation: "Ne pas saisir d'infos, déconnecter (stoppe les communications malveillantes) et appeler l'IT. Ne pas redémarrer sans conseil IT."
+
+  - id: ai_02
+    type: true_false
+    weight: 1
+    text: "Redémarrer immédiatement son ordinateur après avoir cliqué sur un lien suspect est la meilleure chose à faire."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Un redémarrage peut effacer des traces utiles pour l'analyse forensique. Contactez l'IT avant toute action."
+
+  - id: ai_03
+    type: single_choice
+    weight: 1
+    text: "Vous avez saisi votre mot de passe email sur un site qui s'avère frauduleux. Quelle est la priorité absolue ?"
+    answers:
+      - id: a
+        text: "Changer tous vos mots de passe réseau social"
+        correct: false
+      - id: b
+        text: "Changer immédiatement le mot de passe email sur le vrai service"
+        correct: true
+      - id: c
+        text: "Signaler à la police"
+        correct: false
+      - id: d
+        text: "Formater l'ordinateur"
+        correct: false
+    explanation: "L'email est la clé de voûte — qui le contrôle peut réinitialiser tous vos autres mots de passe. C'est la priorité absolue."
+
+  - id: ai_04
+    type: multiple_choice
+    weight: 2
+    text: "Quelles actions NE PAS faire après un incident ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Attendre que ça se passe tout seul"
+        correct: true
+      - id: b
+        text: "Appeler l'IT immédiatement"
+        correct: false
+      - id: c
+        text: "Supprimer les emails suspects comme preuves"
+        correct: true
+      - id: d
+        text: "Essayer de régler seul sans informer personne"
+        correct: true
+      - id: e
+        text: "Signaler à son responsable"
+        correct: false
+    explanation: "Attendre, supprimer des preuves et gérer seul sont les trois erreurs à éviter. Signaler rapidement est toujours la bonne décision."
+
+  - id: ai_05
+    type: true_false
+    weight: 1
+    text: "Signaler un incident de sécurité vous expose à des sanctions disciplinaires."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Signaler un incident est responsable et attendu. Ce qui peut être problématique, c'est de cacher un incident. Les équipes IT sont là pour aider."

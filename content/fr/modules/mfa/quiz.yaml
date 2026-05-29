@@ -1,0 +1,92 @@
+questions:
+  - id: mfa_01
+    type: single_choice
+    weight: 1
+    text: "Quel pourcentage d'attaques automatisées la MFA bloque-t-elle selon Microsoft ?"
+    answers:
+      - id: a
+        text: "50%"
+        correct: false
+      - id: b
+        text: "75%"
+        correct: false
+      - id: c
+        text: "99,9%"
+        correct: true
+      - id: d
+        text: "30%"
+        correct: false
+    explanation: "Microsoft a montré que la MFA bloque 99,9% des attaques automatisées sur les comptes."
+
+  - id: mfa_02
+    type: single_choice
+    weight: 1
+    text: "Vous recevez 10 notifications push MFA en 2 minutes sans avoir essayé de vous connecter. Que faire ?"
+    answers:
+      - id: a
+        text: "Approuver pour que les notifications s'arrêtent"
+        correct: false
+      - id: b
+        text: "Refuser toutes et changer votre mot de passe immédiatement"
+        correct: true
+      - id: c
+        text: "Désactiver la MFA temporairement"
+        correct: false
+      - id: d
+        text: "Attendre que ça passe"
+        correct: false
+    explanation: "C'est une attaque par fatigue MFA. N'approuvez jamais une demande non initiée par vous. Changez votre mot de passe et alertez l'IT."
+
+  - id: mfa_03
+    type: multiple_choice
+    weight: 2
+    text: "Quels comptes devrait-on protéger en priorité avec la MFA ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Email professionnel"
+        correct: true
+      - id: b
+        text: "Compte forum de discussion personnel"
+        correct: false
+      - id: c
+        text: "VPN et accès distant"
+        correct: true
+      - id: d
+        text: "Gestionnaire de mots de passe"
+        correct: true
+      - id: e
+        text: "Outils Microsoft 365 / Google Workspace"
+        correct: true
+    explanation: "L'email est la priorité absolue. VPN, gestionnaire de mots de passe et outils collaboratifs suivent de près."
+
+  - id: mfa_04
+    type: true_false
+    weight: 1
+    text: "Les codes de récupération (backup codes) sont inutiles et peuvent être ignorés."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Les codes de récupération sont votre filet de secours si vous perdez votre téléphone. Conservez-les hors ligne en lieu sûr."
+
+  - id: mfa_05
+    type: single_choice
+    weight: 1
+    text: "Quel type de MFA est généralement considéré comme le plus sécurisé ?"
+    answers:
+      - id: a
+        text: "SMS"
+        correct: false
+      - id: b
+        text: "Application TOTP (Google Authenticator)"
+        correct: false
+      - id: c
+        text: "Clé physique (YubiKey)"
+        correct: true
+      - id: d
+        text: "Question secrète"
+        correct: false
+    explanation: "La clé physique est la plus sécurisée car elle résiste aux attaques de phishing — impossible à intercepter à distance."

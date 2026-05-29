@@ -1,0 +1,92 @@
+questions:
+  - id: fp_01
+    type: single_choice
+    weight: 1
+    text: "Vous recevez un email du PDG vous demandant un virement urgent et confidentiel. Quelle est votre première action ?"
+    answers:
+      - id: a
+        text: "Exécuter le virement — le PDG doit avoir une bonne raison"
+        correct: false
+      - id: b
+        text: "Rappeler le PDG sur son numéro officiel connu, pas celui dans l'email"
+        correct: true
+      - id: c
+        text: "Répondre à l'email pour demander confirmation"
+        correct: false
+      - id: d
+        text: "En parler à un collègue de confiance"
+        correct: false
+    explanation: "Toujours vérifier via un canal indépendant (appel sur numéro connu). L'email peut être usurpé — une réponse email ne confirme rien."
+
+  - id: fp_02
+    type: multiple_choice
+    weight: 2
+    text: "Quels sont les signaux d'alarme typiques d'une fraude au président ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Urgence inhabituellement forte"
+        correct: true
+      - id: b
+        text: "Demande de confidentialité absolue"
+        correct: true
+      - id: c
+        text: "Virement dans le cadre d'un processus habituel"
+        correct: false
+      - id: d
+        text: "Montant inhabituel"
+        correct: true
+      - id: e
+        text: "Demande par le canal habituel avec validation en double"
+        correct: false
+    explanation: "Urgence + confidentialité + montant inhabituel + canal non standard = fraude quasi-certaine."
+
+  - id: fp_03
+    type: true_false
+    weight: 1
+    text: "Un dirigeant légitime peut demander de court-circuiter les procédures financières en cas d'urgence réelle."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Aucune urgence légitime ne justifie de contourner les procédures. C'est précisément ce que les fraudeurs invoquent."
+
+  - id: fp_04
+    type: single_choice
+    weight: 1
+    text: "Vous avez reçu une tentative de fraude au président mais vous n'avez pas fait le virement. Que faites-vous ?"
+    answers:
+      - id: a
+        text: "Ne rien faire, le danger est écarté"
+        correct: false
+      - id: b
+        text: "Supprimer l'email et oublier l'incident"
+        correct: false
+      - id: c
+        text: "Signaler la tentative à votre responsable et à l'IT"
+        correct: true
+      - id: d
+        text: "Répondre à l'attaquant pour l'avertir"
+        correct: false
+    explanation: "Même une tentative échouée doit être signalée. Cela permet d'alerter les autres, d'analyser la tentative et de renforcer les défenses."
+
+  - id: fp_05
+    type: single_choice
+    weight: 1
+    text: "L'attaquant vous appelle en se faisant passer pour le DG avec un numéro inconnu. Il a l'air de connaître votre entreprise. Comment a-t-il ces informations ?"
+    answers:
+      - id: a
+        text: "C'est forcément le vrai DG"
+        correct: false
+      - id: b
+        text: "Il a obtenu ces informations via LinkedIn, le site web, des communications publiques"
+        correct: true
+      - id: c
+        text: "Il a accès à vos emails"
+        correct: false
+      - id: d
+        text: "Il travaille peut-être dans votre entreprise"
+        correct: false
+    explanation: "Les informations publiques (organigramme, LinkedIn, communiqués de presse) suffisent pour paraître crédible. La connaissance de détails internes ne garantit pas l'identité."

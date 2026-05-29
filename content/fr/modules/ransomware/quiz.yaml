@@ -1,0 +1,86 @@
+questions:
+  - id: rsm_01
+    type: single_choice
+    weight: 1
+    text: "Qu'est-ce qu'un ransomware ?"
+    answers:
+      - id: a
+        text: "Un logiciel qui vole vos mots de passe"
+        correct: false
+      - id: b
+        text: "Un malware qui chiffre vos fichiers et réclame une rançon"
+        correct: true
+      - id: c
+        text: "Un virus qui efface votre disque dur"
+        correct: false
+      - id: d
+        text: "Un programme espion qui surveille votre écran"
+        correct: false
+    explanation: "Le ransomware chiffre vos données et les rend inaccessibles jusqu'au paiement d'une rançon (que vous ne devriez pas payer)."
+
+  - id: rsm_02
+    type: true_false
+    weight: 1
+    text: "Payer la rançon est recommandé car cela garantit la récupération des données."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Rien ne garantit la récupération après paiement. Cela finance les criminels et fait de vous une cible future connue pour payer."
+
+  - id: rsm_03
+    type: multiple_choice
+    weight: 2
+    text: "Par quels vecteurs un ransomware peut-il pénétrer dans votre entreprise ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Pièce jointe piégée dans un email"
+        correct: true
+      - id: b
+        text: "Identifiants VPN volés"
+        correct: true
+      - id: c
+        text: "Mise à jour système approuvée"
+        correct: false
+      - id: d
+        text: "Clé USB d'origine inconnue"
+        correct: true
+      - id: e
+        text: "Failles non corrigées dans des logiciels"
+        correct: true
+    explanation: "Phishing, identifiants volés, USB infectée et failles non corrigées sont les principaux vecteurs. Les mises à jour approuvées sont au contraire une protection."
+
+  - id: rsm_04
+    type: single_choice
+    weight: 1
+    text: "Votre ordinateur ralentit brutalement et certains fichiers deviennent inaccessibles. Que faites-vous ?"
+    answers:
+      - id: a
+        text: "Redémarrez pour voir si ça règle le problème"
+        correct: false
+      - id: b
+        text: "Déconnectez du réseau et alertez l'IT immédiatement"
+        correct: true
+      - id: c
+        text: "Continuez à travailler pour terminer ce que vous faisiez"
+        correct: false
+      - id: d
+        text: "Lancez un scan antivirus complet"
+        correct: false
+    explanation: "Déconnexion immédiate du réseau limite la propagation. L'IT doit être alertée avant toute autre action."
+
+  - id: rsm_05
+    type: true_false
+    weight: 1
+    text: "Les ransomwares modernes attendent souvent plusieurs semaines avant de se déclencher."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: true
+      - id: b
+        text: "Faux"
+        correct: false
+    explanation: "Cette attente permet aux attaquants de cartographier le réseau, voler des données, et s'assurer que les sauvegardes récentes contiendront aussi des fichiers infectés."

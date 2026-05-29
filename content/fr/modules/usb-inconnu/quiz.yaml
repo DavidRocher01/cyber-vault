@@ -1,0 +1,73 @@
+questions:
+  - id: usb_01
+    type: single_choice
+    weight: 1
+    text: "Vous trouvez une clé USB dans le parking de votre entreprise. Que faites-vous ?"
+    answers:
+      - id: a
+        text: "La brancher pour voir à qui elle appartient"
+        correct: false
+      - id: b
+        text: "La remettre à votre IT sans la brancher"
+        correct: true
+      - id: c
+        text: "La brancher sur un ordinateur personnel"
+        correct: false
+      - id: d
+        text: "La jeter à la poubelle"
+        correct: false
+    explanation: "Remettez-la à l'IT qui peut l'analyser en sécurité. Ne la branchez jamais, même chez vous — les attaquants comptent sur votre curiosité."
+
+  - id: usb_02
+    type: single_choice
+    weight: 1
+    text: "Qu'est-ce qu'une attaque 'BadUSB' ?"
+    answers:
+      - id: a
+        text: "Une clé USB physiquement endommagée"
+        correct: false
+      - id: b
+        text: "Un périphérique USB qui se fait passer pour un clavier et exécute des commandes malveillantes"
+        correct: true
+      - id: c
+        text: "Un virus transmis via un câble de charge"
+        correct: false
+      - id: d
+        text: "Une clé USB qui efface automatiquement les données"
+        correct: false
+    explanation: "Le BadUSB émule un clavier et tape automatiquement des commandes — invisiblement et instantanément dès le branchement."
+
+  - id: usb_03
+    type: multiple_choice
+    weight: 2
+    text: "Quels objets USB doivent être traités avec méfiance ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Une clé USB trouvée dans une salle de réunion"
+        correct: true
+      - id: b
+        text: "Un câble USB offert lors d'un salon professionnel"
+        correct: true
+      - id: c
+        text: "Une clé USB achetée dans un magasin officiel"
+        correct: false
+      - id: d
+        text: "Une clé USB reçue par courrier sans demande préalable"
+        correct: true
+      - id: e
+        text: "Un chargeur USB fourni par votre entreprise IT"
+        correct: false
+    explanation: "Tout matériel USB d'origine inconnue ou non sollicité est suspect — y compris les cadeaux de salon ou les envois non demandés."
+
+  - id: usb_04
+    type: true_false
+    weight: 1
+    text: "Brancher une clé USB inconnue sur son ordinateur personnel est sans risque pour l'entreprise."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Si votre poste personnel se connecte au réseau de l'entreprise (VPN, email...), un malware peut se propager vers l'infrastructure professionnelle."

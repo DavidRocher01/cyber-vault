@@ -1,0 +1,92 @@
+questions:
+  - id: rgpd_01
+    type: multiple_choice
+    weight: 2
+    text: "Lesquels de ces éléments sont des données personnelles au sens du RGPD ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Adresse email professionnelle nominative"
+        correct: true
+      - id: b
+        text: "Adresse IP d'un visiteur de site web"
+        correct: true
+      - id: c
+        text: "Chiffre d'affaires d'une entreprise"
+        correct: false
+      - id: d
+        text: "Numéro de téléphone personnel"
+        correct: true
+      - id: e
+        text: "Nom et prénom d'un client"
+        correct: true
+    explanation: "Les données personnelles incluent tout ce qui permet d'identifier une personne physique, directement ou indirectement."
+
+  - id: rgpd_02
+    type: single_choice
+    weight: 1
+    text: "Un client vous demande par email la suppression de toutes ses données. Que faites-vous ?"
+    answers:
+      - id: a
+        text: "Ignorer la demande si elle vous semble peu pratique"
+        correct: false
+      - id: b
+        text: "Transmettre immédiatement à votre DPO ou responsable pour traitement"
+        correct: true
+      - id: c
+        text: "Répondre que ce n'est pas possible"
+        correct: false
+      - id: d
+        text: "Attendre qu'il envoie une demande par courrier recommandé"
+        correct: false
+    explanation: "Le droit à l'effacement est un droit légal. Transmettez sans délai à votre DPO — l'entreprise doit répondre dans un délai d'un mois."
+
+  - id: rgpd_03
+    type: true_false
+    weight: 1
+    text: "Conserver des données clients dans votre Google Drive personnel est acceptable si c'est plus pratique."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Les données clients ne peuvent être stockées que sur les systèmes approuvés par l'entreprise. Un drive personnel n'est pas sous contrôle de l'entreprise."
+
+  - id: rgpd_04
+    type: single_choice
+    weight: 1
+    text: "Vous réalisez que vous avez envoyé par erreur un fichier contenant des données clients à la mauvaise adresse email. Que faites-vous ?"
+    answers:
+      - id: a
+        text: "Ne rien faire, l'erreur n'est pas grave"
+        correct: false
+      - id: b
+        text: "Signaler immédiatement à votre DPO — délai légal de 72h pour notifier la CNIL"
+        correct: true
+      - id: c
+        text: "Demander par email à la personne de supprimer le fichier"
+        correct: false
+      - id: d
+        text: "Attendre de voir si quelque chose se passe"
+        correct: false
+    explanation: "Une violation de données doit être signalée immédiatement en interne. Si le risque est élevé, la CNIL doit être notifiée sous 72h."
+
+  - id: rgpd_05
+    type: single_choice
+    weight: 1
+    text: "Quel est le principe de 'minimisation' en RGPD ?"
+    answers:
+      - id: a
+        text: "Minimiser le nombre d'employés ayant accès aux données"
+        correct: false
+      - id: b
+        text: "Ne collecter que les données strictement nécessaires à la finalité"
+        correct: true
+      - id: c
+        text: "Réduire la taille des fichiers de données"
+        correct: false
+      - id: d
+        text: "Effacer les données après 1 an"
+        correct: false
+    explanation: "La minimisation signifie ne collecter que ce dont on a réellement besoin. Collecter 'au cas où' est contraire au RGPD."

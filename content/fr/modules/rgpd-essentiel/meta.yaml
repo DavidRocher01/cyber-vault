@@ -1,0 +1,10 @@
+title: "L'essentiel du RGPD pour les employés"
+description: "Ce que chaque salarié doit savoir sur la protection des données personnelles."
+content_type: mixed
+estimated_duration_minutes: 3
+xp_points: 10
+has_quiz: true
+quiz_max_attempts: 3
+quiz_cooldown_minutes: 15
+quiz_passing_score: 60
+is_active: true

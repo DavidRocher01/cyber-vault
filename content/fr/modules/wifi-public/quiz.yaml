@@ -1,0 +1,92 @@
+questions:
+  - id: wifi_01
+    type: single_choice
+    weight: 1
+    text: "Vous êtes dans un café avec votre ordinateur professionnel. Que devez-vous faire avant de vous connecter au Wi-Fi ?"
+    answers:
+      - id: a
+        text: "Rien de spécial, le HTTPS protège tout"
+        correct: false
+      - id: b
+        text: "Activer votre VPN"
+        correct: true
+      - id: c
+        text: "Désactiver votre antivirus pour aller plus vite"
+        correct: false
+      - id: d
+        text: "Utiliser le mode navigation privée"
+        correct: false
+    explanation: "Le VPN chiffre tout votre trafic sur les réseaux publics, protégeant vos données même si quelqu'un intercepte le réseau."
+
+  - id: wifi_02
+    type: single_choice
+    weight: 1
+    text: "Qu'est-ce qu'une attaque 'Evil Twin' ?"
+    answers:
+      - id: a
+        text: "Un virus qui copie vos fichiers"
+        correct: false
+      - id: b
+        text: "Un faux réseau Wi-Fi créé par un attaquant avec un nom similaire au vrai"
+        correct: true
+      - id: c
+        text: "Deux personnes qui utilisent le même mot de passe"
+        correct: false
+      - id: d
+        text: "Un email frauduleux envoyé en double"
+        correct: false
+    explanation: "L'attaquant crée un point d'accès Wi-Fi avec un nom trompeur. Vous vous connectez à lui croyant rejoindre le vrai réseau."
+
+  - id: wifi_03
+    type: true_false
+    weight: 1
+    text: "Vérifier le cadenas HTTPS dans la barre d'adresse est suffisant pour utiliser le Wi-Fi public sans VPN."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "HTTPS chiffre les données entre vous et le site, mais pas votre connexion au réseau. Des métadonnées (quels sites vous visitez) restent visibles sans VPN."
+
+  - id: wifi_04
+    type: multiple_choice
+    weight: 2
+    text: "Quelles actions sont à risque sur un Wi-Fi public sans VPN ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Consulter ses emails professionnels"
+        correct: true
+      - id: b
+        text: "Effectuer un virement bancaire"
+        correct: true
+      - id: c
+        text: "Lire un article de presse en ligne"
+        correct: false
+      - id: d
+        text: "Se connecter au VPN de l'entreprise"
+        correct: false
+      - id: e
+        text: "Accéder aux outils collaboratifs de l'entreprise"
+        correct: true
+    explanation: "Toutes les actions impliquant des données sensibles (email pro, banque, outils d'entreprise) sont risquées sans VPN."
+
+  - id: wifi_05
+    type: single_choice
+    weight: 1
+    text: "Si vous n'avez pas de VPN disponible et devez accéder à des données professionnelles, que faire ?"
+    answers:
+      - id: a
+        text: "Utiliser le Wi-Fi public quand même"
+        correct: false
+      - id: b
+        text: "Utiliser votre connexion 4G/5G mobile"
+        correct: true
+      - id: c
+        text: "Utiliser le mode incognito"
+        correct: false
+      - id: d
+        text: "Désactiver le pare-feu"
+        correct: false
+    explanation: "Les données mobiles (4G/5G) sont beaucoup plus sécurisées que le Wi-Fi public car vous avez une connexion directe chiffrée avec votre opérateur."

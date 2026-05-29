@@ -1,0 +1,10 @@
+title: "Les risques du Wi-Fi public"
+description: "Wi-Fi de café, hôtel, aéroport : ce que vous risquez et comment vous protéger."
+content_type: mixed
+estimated_duration_minutes: 2
+xp_points: 10
+has_quiz: true
+quiz_max_attempts: 3
+quiz_cooldown_minutes: 15
+quiz_passing_score: 60
+is_active: true

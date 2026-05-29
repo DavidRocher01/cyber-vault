@@ -1,0 +1,73 @@
+questions:
+  - id: sac_01
+    type: single_choice
+    weight: 1
+    text: "Un email inattendu vous demande de cliquer immédiatement sur un lien pour sécuriser votre compte. Quelle est la bonne réaction ?"
+    answers:
+      - id: a
+        text: "Cliquer rapidement pour sécuriser le compte"
+        correct: false
+      - id: b
+        text: "Faire une pause, analyser l'email, vérifier l'URL avant tout clic"
+        correct: true
+      - id: c
+        text: "Répondre à l'email pour demander confirmation"
+        correct: false
+      - id: d
+        text: "Transférer à un collègue"
+        correct: false
+    explanation: "L'urgence est précisément conçue pour court-circuiter votre réflexion. Une pause de 5 secondes peut éviter une catastrophe."
+
+  - id: sac_02
+    type: multiple_choice
+    weight: 2
+    text: "Quels mécanismes psychologiques les attaquants exploitent-ils ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "L'urgence artificielle"
+        correct: true
+      - id: b
+        text: "L'autorité perçue"
+        correct: true
+      - id: c
+        text: "La curiosité"
+        correct: true
+      - id: d
+        text: "La logique froide"
+        correct: false
+      - id: e
+        text: "La peur (menace sur un compte)"
+        correct: true
+    explanation: "Urgence, autorité, curiosité et peur sont les principaux leviers d'ingénierie sociale. Reconnaître ces déclencheurs aide à résister."
+
+  - id: sac_03
+    type: true_false
+    weight: 1
+    text: "Si vous décidez de ne pas cliquer sur un email suspect, vous devez le supprimer immédiatement."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Signalez l'email à votre IT avant de le supprimer. Cela permet d'alerter les collègues et d'analyser la menace."
+
+  - id: sac_04
+    type: single_choice
+    weight: 1
+    text: "Comment vérifier l'URL d'un lien avant de cliquer ?"
+    answers:
+      - id: a
+        text: "Lire le texte affiché du lien"
+        correct: false
+      - id: b
+        text: "Survoler le lien avec la souris pour voir l'URL réelle en bas du navigateur"
+        correct: true
+      - id: c
+        text: "Cliquer rapidement et fermer si ça semble bizarre"
+        correct: false
+      - id: d
+        text: "Copier-coller l'URL dans un email"
+        correct: false
+    explanation: "Le survol (hover) révèle l'URL réelle, indépendamment du texte ou du logo affiché sur le lien."
