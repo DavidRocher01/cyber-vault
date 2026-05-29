@@ -36,9 +36,12 @@ from app.schemas.awareness import (
     AwarenessProgramOut,
     AwarenessCertificateOut,
     AwarenessProgressOut,
+    AtRiskLearnerOut,
     BadgeOut,
+    ConsultantDashboardOut,
     LeaderboardEntry,
     LearnerLevelOut,
+    OrgAdminDashboardOut,
     CompleteModuleIn,
     CsvImportResult,
     HeartbeatIn,
@@ -716,3 +719,37 @@ async def get_leaderboard_endpoint(
     from app.services.awareness_gamification import get_leaderboard
     rows = await get_leaderboard(db, org_id, limit)
     return [LeaderboardEntry(**r) for r in rows]
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Sprint 7 — Multi-tenancy dashboards
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/consultant/dashboard", response_model=ConsultantDashboardOut)
+async def consultant_dashboard_endpoint(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ConsultantDashboardOut:
+    """
+    Vue agrégée RSSI consultant : toutes ses organisations clientes,
+    KPIs globaux, alertes.
+    """
+    from app.services.awareness_dashboard import consultant_dashboard
+    data = await consultant_dashboard(db, current_user.id)
+    return ConsultantDashboardOut(**data)
+
+
+@router.get("/organizations/{org_id}/admin-dashboard", response_model=OrgAdminDashboardOut)
+async def org_admin_dashboard_endpoint(
+    org_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> OrgAdminDashboardOut:
+    """
+    Vue détaillée admin : funnel engagement, stats par programme,
+    learners à risque (initiales seulement — RGPD).
+    """
+    await _get_org_or_404(org_id, current_user, db)
+    from app.services.awareness_dashboard import org_admin_dashboard
+    data = await org_admin_dashboard(db, org_id)
+    return OrgAdminDashboardOut(**data)

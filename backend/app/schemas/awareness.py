@@ -285,6 +285,72 @@ class LeaderboardEntry(BaseModel):
     level_label: str
 
 
+# ── Multi-tenancy dashboards ───────────────────────────────────────────────────
+
+
+class OrgKpiOut(BaseModel):
+    id: int
+    name: str
+    sector: str | None
+    learner_count: int
+    max_learners: int
+    active_enrollments: int
+    completed_enrollments: int
+    completion_rate: float
+    at_risk_count: int
+    certificates_issued: int
+    alerts: list[str]
+
+
+class ConsultantSummaryOut(BaseModel):
+    total_organizations: int
+    total_learners: int
+    total_active_enrollments: int
+    total_completed_enrollments: int
+    global_completion_rate: float
+    total_at_risk_learners: int
+
+
+class ConsultantDashboardOut(BaseModel):
+    organizations: list[OrgKpiOut]
+    summary: ConsultantSummaryOut
+
+
+class EngagementFunnelOut(BaseModel):
+    total_learners: int
+    enrolled_learners: int
+    active_learners: int
+    completed_learners: int
+    enrollment_rate: float
+
+
+class ProgramStatsOut(BaseModel):
+    program_id: int
+    program_title: str
+    total_modules: int
+    enrolled_learners: int
+    completed_learners: int
+    completion_rate: float
+    avg_completion_pct: float
+
+
+class AtRiskLearnerOut(BaseModel):
+    learner_id: int
+    display_name: str
+    department: str | None
+    completion_pct: float
+    last_activity_at: str | None
+    days_inactive: int | None
+
+
+class OrgAdminDashboardOut(BaseModel):
+    organization: dict
+    engagement: EngagementFunnelOut
+    programs: list[ProgramStatsOut]
+    at_risk_learners: list[AtRiskLearnerOut]
+    certificates_issued: int
+
+
 # ── Magic-link auth ────────────────────────────────────────────────────────────
 
 
