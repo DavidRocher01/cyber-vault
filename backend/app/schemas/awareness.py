@@ -254,6 +254,37 @@ class CertificateVerifyOut(BaseModel):
     verification_count: int
 
 
+# ── Gamification ──────────────────────────────────────────────────────────────
+
+
+class LearnerLevelOut(BaseModel):
+    level: int
+    label: str
+    xp: int
+    next_level_xp: int | None
+
+
+class BadgeOut(BaseModel):
+    id: int
+    slug: str
+    name: str
+    icon: str
+    category: str
+    xp_bonus: int
+    description: str | None
+    earned_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class LeaderboardEntry(BaseModel):
+    rank: int
+    display_name: str
+    total_xp: int
+    level: int
+    level_label: str
+
+
 # ── Magic-link auth ────────────────────────────────────────────────────────────
 
 

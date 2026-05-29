@@ -209,6 +209,26 @@ async def complete_module(
     await db.flush()
     await db.flush()
     await _recompute_enrollment(db, enrollment)
+
+    # Award XP
+    from app.services.awareness_gamification import award_xp, check_and_award_badges
+    xp = module.xp_points
+    if quiz_score is not None:
+        if quiz_score == 100:
+            xp += 10  # parfait bonus
+        elif quiz_score >= module.quiz_passing_score:
+            xp += 5   # premier coup bonus (approximation — voir quiz_engine pour logique fine)
+    if enrollment.status == "completed":
+        xp += 50  # programme entier bonus
+    await award_xp(db, learner, enrollment, xp)
+
+    # Check badges
+    await check_and_award_badges(
+        db, learner, enrollment,
+        quiz_score=quiz_score,
+        module_slug=module.slug,
+    )
+
     await db.commit()
     await db.refresh(enrollment)
 

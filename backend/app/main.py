@@ -108,10 +108,19 @@ async def _seed_plans() -> None:
     logger.info("Plans seeded")
 
 
+async def _seed_awareness_badges() -> None:
+    """Seed / upsert the 20 awareness badge definitions (idempotent)."""
+    from app.services.awareness_gamification import seed_badges
+    async with AsyncSessionLocal() as db:
+        count = await seed_badges(db)
+    if count:
+        logger.info(f"Awareness badges seeded: {count} created")
+
+
 app = FastAPI(
     title=settings.APP_NAME,
     version=__version__,
-    on_startup=[_seed_plans, start_scheduler],
+    on_startup=[_seed_plans, _seed_awareness_badges, start_scheduler],
     on_shutdown=[stop_scheduler],
 )
 
