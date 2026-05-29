@@ -22,20 +22,26 @@ export const routes: Routes = [
   {
     path: 'awareness/login',
     loadComponent: () =>
-      import('./features/awareness-learner/awareness-login.component').then(m => m.AwarenessLoginComponent),
+      import('./features/awareness-learner/awareness-login.component').then(
+        m => m.AwarenessLoginComponent
+      ),
     title: 'Connexion — Sensibilisation NIS2',
   },
   {
     path: 'awareness',
     loadComponent: () =>
-      import('./features/awareness-learner/awareness-learner.component').then(m => m.AwarenessLearnerComponent),
+      import('./features/awareness-learner/awareness-learner.component').then(
+        m => m.AwarenessLearnerComponent
+      ),
     canActivate: [awarenessLearnerGuard],
     title: 'Ma formation — NIS2',
   },
   {
     path: 'awareness/module/:enrollmentId',
     loadComponent: () =>
-      import('./features/awareness-module/awareness-module.component').then(m => m.AwarenessModuleComponent),
+      import('./features/awareness-module/awareness-module.component').then(
+        m => m.AwarenessModuleComponent
+      ),
     canActivate: [awarenessLearnerGuard],
     title: 'Module — Sensibilisation NIS2',
   },
@@ -43,7 +49,9 @@ export const routes: Routes = [
   {
     path: 'verify-certificate/:publicId',
     loadComponent: () =>
-      import('./features/verify-certificate/verify-certificate.component').then(m => m.VerifyCertificateComponent),
+      import('./features/verify-certificate/verify-certificate.component').then(
+        m => m.VerifyCertificateComponent
+      ),
     title: 'Vérification attestation — CyberScan',
   },
   { path: '', redirectTo: 'cyberscan', pathMatch: 'full' },

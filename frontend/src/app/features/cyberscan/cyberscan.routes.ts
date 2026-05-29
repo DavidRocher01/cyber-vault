@@ -95,7 +95,9 @@ export const CYBERSCAN_ROUTES: Routes = [
   {
     path: 'awareness/org/:id',
     loadComponent: () =>
-      import('./awareness-org-detail/awareness-org-detail.component').then(m => m.AwarenessOrgDetailComponent),
+      import('./awareness-org-detail/awareness-org-detail.component').then(
+        m => m.AwarenessOrgDetailComponent
+      ),
     canActivate: [authGuard],
     title: 'Organisation — Sensibilisation NIS2',
   },

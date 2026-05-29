@@ -251,7 +251,11 @@ export class AwarenessService {
     return this.http.get<AwarenessOrganization[]>(`${API}/organizations`);
   }
 
-  createOrganization(data: { name: string; max_learners?: number; sector?: string }): Observable<AwarenessOrganization> {
+  createOrganization(data: {
+    name: string;
+    max_learners?: number;
+    sector?: string;
+  }): Observable<AwarenessOrganization> {
     return this.http.post<AwarenessOrganization>(`${API}/organizations`, data);
   }
 
@@ -259,7 +263,10 @@ export class AwarenessService {
     return this.http.get<AwarenessOrganization>(`${API}/organizations/${id}`);
   }
 
-  updateOrganization(id: number, data: Partial<AwarenessOrganization>): Observable<AwarenessOrganization> {
+  updateOrganization(
+    id: number,
+    data: Partial<AwarenessOrganization>
+  ): Observable<AwarenessOrganization> {
     return this.http.patch<AwarenessOrganization>(`${API}/organizations/${id}`, data);
   }
 
@@ -271,14 +278,20 @@ export class AwarenessService {
     });
   }
 
-  createLearner(orgId: number, data: { email: string; first_name?: string; last_name?: string; department?: string }): Observable<AwarenessLearner> {
+  createLearner(
+    orgId: number,
+    data: { email: string; first_name?: string; last_name?: string; department?: string }
+  ): Observable<AwarenessLearner> {
     return this.http.post<AwarenessLearner>(`${API}/organizations/${orgId}/learners`, data);
   }
 
   importCsv(orgId: number, file: File): Observable<CsvImportResult> {
     const form = new FormData();
     form.append('file', file);
-    return this.http.post<CsvImportResult>(`${API}/organizations/${orgId}/learners/import-csv`, form);
+    return this.http.post<CsvImportResult>(
+      `${API}/organizations/${orgId}/learners/import-csv`,
+      form
+    );
   }
 
   // ── Admin : Dashboards ───────────────────────────────────────────────────
@@ -297,7 +310,10 @@ export class AwarenessService {
 
   // ── Magic-link auth ───────────────────────────────────────────────────────
 
-  requestMagicLink(email: string, organizationId: number): Observable<{ message: string; token?: string }> {
+  requestMagicLink(
+    email: string,
+    organizationId: number
+  ): Observable<{ message: string; token?: string }> {
     return this.http.post<{ message: string; token?: string }>(`${API}/auth/magic-link`, {
       email,
       organization_id: organizationId,
@@ -305,9 +321,9 @@ export class AwarenessService {
   }
 
   verifyMagicLink(token: string): Observable<LearnerSession> {
-    return this.http.get<LearnerSession>(`${API}/auth/verify`, { params: { token } }).pipe(
-      tap(session => this._saveSession(session))
-    );
+    return this.http
+      .get<LearnerSession>(`${API}/auth/verify`, { params: { token } })
+      .pipe(tap(session => this._saveSession(session)));
   }
 
   logout(): void {
@@ -354,7 +370,12 @@ export class AwarenessService {
     );
   }
 
-  heartbeat(enrollmentId: number, moduleId: number, elapsedSeconds: number, videoPosition?: number): Observable<AwarenessProgress> {
+  heartbeat(
+    enrollmentId: number,
+    moduleId: number,
+    elapsedSeconds: number,
+    videoPosition?: number
+  ): Observable<AwarenessProgress> {
     return this.http.post<AwarenessProgress>(
       `${API}/enrollments/${enrollmentId}/modules/${moduleId}/heartbeat`,
       { elapsed_seconds: elapsedSeconds, video_position: videoPosition ?? null },
@@ -362,7 +383,11 @@ export class AwarenessService {
     );
   }
 
-  completeModule(enrollmentId: number, moduleId: number, quizScore?: number): Observable<AwarenessEnrollment> {
+  completeModule(
+    enrollmentId: number,
+    moduleId: number,
+    quizScore?: number
+  ): Observable<AwarenessEnrollment> {
     return this.http.post<AwarenessEnrollment>(
       `${API}/enrollments/${enrollmentId}/modules/${moduleId}/complete`,
       { quiz_score: quizScore ?? null },
@@ -373,13 +398,17 @@ export class AwarenessService {
   // ── Learner : Quiz ────────────────────────────────────────────────────────
 
   getQuizQuestions(enrollmentId: number, moduleId: number): Observable<QuizStart> {
-    return this.http.get<QuizStart>(
-      `${API}/enrollments/${enrollmentId}/modules/${moduleId}/quiz`,
-      { headers: this._learnerHeaders() }
-    );
+    return this.http.get<QuizStart>(`${API}/enrollments/${enrollmentId}/modules/${moduleId}/quiz`, {
+      headers: this._learnerHeaders(),
+    });
   }
 
-  submitQuiz(enrollmentId: number, moduleId: number, answers: Record<string, string[]>, durationSeconds: number): Observable<QuizResult> {
+  submitQuiz(
+    enrollmentId: number,
+    moduleId: number,
+    answers: Record<string, string[]>,
+    durationSeconds: number
+  ): Observable<QuizResult> {
     return this.http.post<QuizResult>(
       `${API}/enrollments/${enrollmentId}/modules/${moduleId}/quiz/submit`,
       { answers, duration_seconds: durationSeconds },
@@ -400,10 +429,9 @@ export class AwarenessService {
   // ── Learner : Certificate ─────────────────────────────────────────────────
 
   getCertificate(enrollmentId: number): Observable<AwarenessCertificate> {
-    return this.http.get<AwarenessCertificate>(
-      `${API}/enrollments/${enrollmentId}/certificate`,
-      { headers: this._learnerHeaders() }
-    );
+    return this.http.get<AwarenessCertificate>(`${API}/enrollments/${enrollmentId}/certificate`, {
+      headers: this._learnerHeaders(),
+    });
   }
 
   certificateDownloadUrl(enrollmentId: number): string {

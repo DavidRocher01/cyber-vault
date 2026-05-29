@@ -14,47 +14,70 @@ import { AwarenessService } from '../cyberscan/services/awareness.service';
   standalone: true,
   selector: 'app-awareness-login',
   imports: [
-    CommonModule, FormsModule,
-    MatButtonModule, MatFormFieldModule, MatInputModule,
-    MatIconModule, MatProgressSpinnerModule,
+    CommonModule,
+    FormsModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
   ],
   template: `
-    <div class="min-h-screen bg-[#0f172a] flex items-center justify-center p-4">
+    <div class="min-h-screen bg-gray-950 flex items-center justify-center p-4">
       <div class="w-full max-w-md">
-
         <!-- Logo / Title -->
         <div class="text-center mb-8">
-          <mat-icon class="text-cyan-400 text-5xl mb-3">school</mat-icon>
-          <h1 class="text-2xl font-bold text-white">Sensibilisation NIS2</h1>
-          <p class="text-slate-400 text-sm mt-1">Votre portail de formation cybersécurité</p>
+          <div
+            class="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mx-auto mb-4"
+          >
+            <mat-icon class="text-cyan-400 !text-[2rem] !w-[2rem] !h-[2rem]">school</mat-icon>
+          </div>
+          <h1
+            class="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent"
+          >
+            Sensibilisation NIS2
+          </h1>
+          <p class="text-gray-400 text-sm mt-1">Votre portail de formation cybersécurité</p>
         </div>
 
         <!-- Token auto-verify from URL -->
         @if (verifying()) {
-          <div class="bg-[#1e293b] rounded-xl p-8 text-center border border-slate-700">
+          <div class="rounded-xl p-8 text-center border border-gray-800 bg-gray-900">
             <mat-spinner diameter="40" class="mx-auto mb-4" />
-            <p class="text-slate-300">Vérification de votre lien...</p>
+            <p class="text-gray-300">Vérification de votre lien...</p>
           </div>
         } @else if (error()) {
           <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center mb-4">
-            <mat-icon class="text-red-400 text-3xl mb-2">error_outline</mat-icon>
+            <mat-icon class="text-red-400 !text-[2rem] !w-[2rem] !h-[2rem] mb-2"
+              >error_outline</mat-icon
+            >
             <p class="text-red-400 font-semibold">Lien invalide ou expiré</p>
-            <p class="text-slate-400 text-sm mt-1">Demandez un nouveau lien à votre administrateur.</p>
+            <p class="text-gray-400 text-sm mt-1">
+              Demandez un nouveau lien à votre administrateur.
+            </p>
           </div>
         } @else {
           <!-- Manual token input (fallback) -->
-          <div class="bg-[#1e293b] rounded-xl p-6 border border-slate-700">
-            <h2 class="text-white font-semibold mb-4">Accéder à ma formation</h2>
-            <p class="text-slate-400 text-sm mb-4">
+          <div class="rounded-xl p-6 border border-gray-800 bg-gray-900">
+            <h2 class="text-white font-semibold mb-1">Accéder à ma formation</h2>
+            <p class="text-gray-400 text-sm mb-5">
               Vous avez reçu un lien de connexion par email. Copiez le code de vérification ici.
             </p>
             <mat-form-field appearance="outline" class="w-full">
               <mat-label>Code de vérification</mat-label>
               <input matInput [(ngModel)]="token" placeholder="Collez votre code ici" />
             </mat-form-field>
-            <button mat-raised-button color="primary" class="w-full mt-2"
-                    (click)="verifyToken()" [disabled]="!token.trim() || loading()">
-              @if (loading()) { <mat-spinner diameter="18" /> } @else { Accéder à ma formation }
+            <button
+              mat-flat-button
+              class="w-full !rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white mt-2"
+              (click)="verifyToken()"
+              [disabled]="!token.trim() || loading()"
+            >
+              @if (loading()) {
+                <mat-spinner diameter="18" />
+              } @else {
+                Accéder à ma formation
+              }
             </button>
           </div>
         }
@@ -85,7 +108,10 @@ export class AwarenessLoginComponent implements OnInit {
       this.verifying.set(true);
       this.svc.verifyMagicLink(tokenParam).subscribe({
         next: () => this.router.navigate(['/awareness']),
-        error: () => { this.verifying.set(false); this.error.set(true); },
+        error: () => {
+          this.verifying.set(false);
+          this.error.set(true);
+        },
       });
     }
   }
@@ -96,7 +122,10 @@ export class AwarenessLoginComponent implements OnInit {
     this.loading.set(true);
     this.svc.verifyMagicLink(t).subscribe({
       next: () => this.router.navigate(['/awareness']),
-      error: () => { this.loading.set(false); this.error.set(true); },
+      error: () => {
+        this.loading.set(false);
+        this.error.set(true);
+      },
     });
   }
 }

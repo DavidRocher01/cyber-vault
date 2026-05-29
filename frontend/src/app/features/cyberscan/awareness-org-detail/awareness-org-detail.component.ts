@@ -3,14 +3,11 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import {
@@ -27,235 +24,430 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
   standalone: true,
   selector: 'app-awareness-org-detail',
   imports: [
-    CommonModule, RouterLink, FormsModule,
-    MatButtonModule, MatCardModule, MatIconModule,
-    MatInputModule, MatFormFieldModule, MatProgressSpinnerModule,
-    MatSnackBarModule, MatTabsModule, MatChipsModule, MatTooltipModule,
+    CommonModule,
+    RouterLink,
+    FormsModule,
+    MatButtonModule,
+    MatIconModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+    MatTooltipModule,
     NavButtonsComponent,
   ],
   template: `
     <app-nav-buttons />
 
-    <div class="min-h-screen bg-[#0f172a] text-white p-6">
-      <div class="max-w-6xl mx-auto">
-
+    <div class="min-h-screen bg-gray-950 text-white p-4 md:p-8">
+      <div class="max-w-5xl mx-auto">
         <!-- Back -->
-        <a routerLink="/cyberscan/awareness" class="flex items-center gap-1 text-slate-400 hover:text-white text-sm mb-6">
-          <mat-icon class="text-base">arrow_back</mat-icon> Mes organisations
+        <a
+          routerLink="/cyberscan/awareness"
+          class="inline-flex items-center gap-1.5 text-gray-400 hover:text-white text-sm mb-6 transition-colors"
+        >
+          <mat-icon class="!text-base">arrow_back</mat-icon> Mes organisations
         </a>
 
         @if (loading()) {
-          <div class="flex justify-center py-16"><mat-spinner diameter="48" /></div>
+          <div class="flex justify-center py-20"><mat-spinner diameter="40" /></div>
         }
 
         @if (!loading() && org()) {
-          <div class="flex items-center gap-4 mb-6">
-            <div class="bg-cyan-500/10 rounded-xl p-3">
-              <mat-icon class="text-cyan-400 text-3xl">business</mat-icon>
-            </div>
-            <div>
-              <h1 class="text-2xl font-bold text-white">{{ org()!.name }}</h1>
-              <p class="text-slate-400 text-sm">{{ org()!.sector || 'Secteur non précisé' }} · {{ org()!.learner_count ?? 0 }}/{{ org()!.max_learners }} learners</p>
+          <!-- Org header -->
+          <div class="rounded-xl border border-gray-800 bg-gray-900 p-5 mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div class="flex items-center gap-4">
+                <div
+                  class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0"
+                >
+                  <mat-icon class="text-cyan-400 !text-[1.4rem]">business</mat-icon>
+                </div>
+                <div>
+                  <h1
+                    class="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent"
+                  >
+                    {{ org()!.name }}
+                  </h1>
+                  <p class="text-gray-400 text-sm">{{ org()!.sector || 'Secteur non précisé' }}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-6 text-center">
+                <div>
+                  <p class="text-xl font-bold text-white">
+                    {{ org()!.learner_count ?? 0
+                    }}<span class="text-gray-600 text-sm">/{{ org()!.max_learners }}</span>
+                  </p>
+                  <p class="text-[0.65rem] text-gray-500 uppercase tracking-wide">Learners</p>
+                </div>
+                <div>
+                  <p
+                    class="text-xl font-bold"
+                    [class]="completionColor(org()!.completion_rate ?? 0)"
+                  >
+                    {{ (org()!.completion_rate ?? 0).toFixed(0) }}%
+                  </p>
+                  <p class="text-[0.65rem] text-gray-500 uppercase tracking-wide">Complétion</p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <mat-tab-group animationDuration="200ms">
+          <!-- Pill tabs -->
+          <div class="flex gap-1 p-1 bg-gray-900 border border-gray-800 rounded-xl mb-6 w-fit">
+            @for (tab of tabs; track tab.id) {
+              <button
+                type="button"
+                class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                [class]="
+                  activeTab() === tab.id
+                    ? 'bg-gray-800 text-white shadow-sm'
+                    : 'text-gray-500 hover:text-gray-300'
+                "
+                (click)="activeTab.set(tab.id)"
+              >
+                <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">{{ tab.icon }}</mat-icon>
+                {{ tab.label }}
+              </button>
+            }
+          </div>
 
-            <!-- ── Tab 1: Learners ── -->
-            <mat-tab label="Learners">
-              <div class="py-6">
+          <!-- ── Tab Learners ── -->
+          @if (activeTab() === 'learners') {
+            <div class="flex flex-col gap-5">
+              <!-- Add learner -->
+              <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
+                <h3 class="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">
+                  Ajouter manuellement
+                </h3>
+                <div class="flex gap-3 flex-wrap">
+                  <mat-form-field appearance="outline" class="flex-1 min-w-48">
+                    <mat-label>Email</mat-label>
+                    <input
+                      matInput
+                      [(ngModel)]="newEmail"
+                      type="email"
+                      placeholder="alice@entreprise.com"
+                    />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="w-40">
+                    <mat-label>Prénom</mat-label>
+                    <input matInput [(ngModel)]="newFirstName" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="w-40">
+                    <mat-label>Département</mat-label>
+                    <input matInput [(ngModel)]="newDept" />
+                  </mat-form-field>
+                </div>
+                <button
+                  mat-flat-button
+                  class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white !text-sm"
+                  (click)="addLearner()"
+                  [disabled]="addingLearner()"
+                >
+                  @if (addingLearner()) {
+                    <mat-spinner diameter="14" />
+                  }
+                  <mat-icon>person_add</mat-icon> Ajouter
+                </button>
+              </div>
 
-                <!-- Add learner -->
-                <div class="bg-[#1e293b] rounded-xl p-4 mb-6 border border-slate-700">
-                  <h3 class="text-white font-semibold mb-3">Ajouter un learner</h3>
-                  <div class="flex gap-3 flex-wrap">
-                    <mat-form-field appearance="outline" class="flex-1 min-w-48">
-                      <mat-label>Email</mat-label>
-                      <input matInput [(ngModel)]="newEmail" type="email" placeholder="alice@entreprise.com" />
-                    </mat-form-field>
-                    <mat-form-field appearance="outline" class="flex-1 min-w-32">
-                      <mat-label>Prénom (opt.)</mat-label>
-                      <input matInput [(ngModel)]="newFirstName" />
-                    </mat-form-field>
-                    <mat-form-field appearance="outline" class="flex-1 min-w-32">
-                      <mat-label>Département (opt.)</mat-label>
-                      <input matInput [(ngModel)]="newDept" />
-                    </mat-form-field>
-                  </div>
-                  <button mat-raised-button color="primary" (click)="addLearner()" [disabled]="addingLearner()">
-                    @if (addingLearner()) { <mat-spinner diameter="18" /> } @else { Ajouter }
+              <!-- CSV import -->
+              <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
+                <h3 class="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">
+                  Import CSV
+                </h3>
+                <p class="text-gray-500 text-xs mb-3">
+                  Colonnes : email, first_name, last_name, department, job_title
+                </p>
+                <div class="flex items-center gap-3 flex-wrap">
+                  <input
+                    type="file"
+                    accept=".csv"
+                    #csvInput
+                    class="hidden"
+                    (change)="onCsvSelected($event)"
+                  />
+                  <button
+                    mat-stroked-button
+                    class="!rounded-xl !border-gray-700 !text-gray-300 !text-sm"
+                    (click)="csvInput.click()"
+                  >
+                    <mat-icon>upload_file</mat-icon> Choisir un fichier CSV
                   </button>
-                </div>
-
-                <!-- CSV Import -->
-                <div class="bg-[#1e293b] rounded-xl p-4 mb-6 border border-slate-700">
-                  <h3 class="text-white font-semibold mb-2">Import CSV</h3>
-                  <p class="text-slate-400 text-xs mb-3">Colonnes : email, first_name, last_name, department, job_title</p>
-                  <div class="flex items-center gap-3">
-                    <input type="file" accept=".csv" #csvInput class="hidden" (change)="onCsvSelected($event)" />
-                    <button mat-stroked-button (click)="csvInput.click()">
-                      <mat-icon>upload_file</mat-icon> Choisir un fichier CSV
+                  @if (csvFile) {
+                    <span class="text-gray-300 text-sm">{{ csvFile.name }}</span>
+                    <button
+                      mat-flat-button
+                      class="!rounded-xl !bg-purple-600 hover:!bg-purple-500 !text-white !text-sm"
+                      (click)="uploadCsv()"
+                      [disabled]="importingCsv()"
+                    >
+                      @if (importingCsv()) {
+                        <mat-spinner diameter="14" />
+                      }
+                      Importer
                     </button>
-                    @if (csvFile) {
-                      <span class="text-slate-300 text-sm">{{ csvFile.name }}</span>
-                      <button mat-raised-button color="accent" (click)="uploadCsv()" [disabled]="importingCsv()">
-                        @if (importingCsv()) { <mat-spinner diameter="18" /> } @else { Importer }
-                      </button>
-                    }
-                  </div>
-                  @if (csvResult()) {
-                    <div class="mt-3 p-3 rounded-lg bg-[#0f172a] text-sm">
-                      <span class="text-green-400">✓ {{ csvResult()!.created }} créés</span>
-                      <span class="text-blue-400 ml-3">↻ {{ csvResult()!.updated }} mis à jour</span>
-                      <span class="text-slate-400 ml-3">— {{ csvResult()!.skipped }} ignorés</span>
-                      @if (csvResult()!.errors.length > 0) {
-                        <div class="mt-2 text-red-400 text-xs">{{ csvResult()!.errors[0] }}</div>
-                      }
-                    </div>
                   }
                 </div>
-
-                <!-- Learner list -->
-                @if (learners().length === 0) {
-                  <p class="text-slate-500 text-center py-8">Aucun learner. Ajoutez-en un ou importez un CSV.</p>
+                @if (csvResult()) {
+                  <div
+                    class="mt-3 p-3 rounded-lg border border-gray-700 bg-gray-800 text-sm flex gap-4"
+                  >
+                    <span class="text-green-400 flex items-center gap-1"
+                      ><mat-icon class="!text-sm">check_circle</mat-icon>
+                      {{ csvResult()!.created }} créés</span
+                    >
+                    <span class="text-blue-400 flex items-center gap-1"
+                      ><mat-icon class="!text-sm">sync</mat-icon> {{ csvResult()!.updated }} mis à
+                      jour</span
+                    >
+                    <span class="text-gray-400 flex items-center gap-1"
+                      ><mat-icon class="!text-sm">remove</mat-icon>
+                      {{ csvResult()!.skipped }} ignorés</span
+                    >
+                  </div>
                 }
-                <div class="space-y-2">
-                  @for (learner of learners(); track learner.id) {
-                    <div class="bg-[#1e293b] rounded-lg p-3 border border-slate-700/50 flex items-center justify-between">
-                      <div>
-                        <p class="text-white text-sm font-medium">
+              </div>
+
+              <!-- Learner list -->
+              @if (learners().length === 0) {
+                <div class="rounded-xl border border-gray-800 bg-gray-900/50 p-12 text-center">
+                  <mat-icon class="!text-[3rem] !w-[3rem] !h-[3rem] text-gray-700 mb-2"
+                    >people_outline</mat-icon
+                  >
+                  <p class="text-gray-500 text-sm">
+                    Aucun learner. Ajoutez-en un ou importez un CSV.
+                  </p>
+                </div>
+              }
+
+              <div class="flex flex-col gap-2">
+                @for (learner of learners(); track learner.id) {
+                  <div
+                    class="rounded-xl border border-gray-800 bg-gray-900 px-4 py-3 flex items-center justify-between hover:border-gray-700 transition-colors"
+                  >
+                    <div class="flex items-center gap-3 min-w-0">
+                      <div
+                        class="w-8 h-8 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center shrink-0 text-gray-400 text-xs font-semibold"
+                      >
+                        {{ (learner.first_name?.[0] ?? learner.email[0]).toUpperCase() }}
+                      </div>
+                      <div class="min-w-0">
+                        <p class="text-white text-sm font-medium truncate">
                           {{ learner.first_name || '' }} {{ learner.last_name || '' }}
-                          <span class="text-slate-400 font-normal ml-2">{{ learner.email }}</span>
+                          @if (!learner.first_name) {
+                            <span class="text-gray-400 font-normal">{{ learner.email }}</span>
+                          }
                         </p>
-                        <p class="text-slate-500 text-xs">{{ learner.department || '—' }}</p>
+                        <p class="text-gray-500 text-xs">
+                          {{ learner.first_name ? learner.email : ''
+                          }}{{ learner.department ? ' · ' + learner.department : '' }}
+                        </p>
                       </div>
-                      <div class="flex items-center gap-2">
-                        <span class="text-xs text-slate-500">{{ learner.last_login_at ? 'Connecté' : 'Jamais connecté' }}</span>
-                        <button mat-icon-button [matTooltip]="'Envoyer un lien de connexion'" (click)="sendMagicLink(learner)">
-                          <mat-icon class="text-cyan-400 text-sm">link</mat-icon>
-                        </button>
-                      </div>
+                    </div>
+                    <div class="flex items-center gap-3 shrink-0">
+                      <span class="text-[0.65rem] text-gray-600">{{
+                        learner.last_login_at ? 'Connecté' : 'Jamais connecté'
+                      }}</span>
+                      <button
+                        mat-icon-button
+                        class="!text-gray-600 hover:!text-cyan-400"
+                        [matTooltip]="'Envoyer un lien de connexion'"
+                        (click)="sendMagicLink(learner)"
+                      >
+                        <mat-icon class="!text-[1.1rem]">send</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- ── Tab Dashboard ── -->
+          @if (activeTab() === 'dashboard') {
+            <div>
+              @if (loadingDash()) {
+                <div class="flex justify-center py-12"><mat-spinner diameter="32" /></div>
+              }
+              @if (dashboard()) {
+                <!-- Funnel -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                  @for (stat of funnelStats(); track stat.label) {
+                    <div class="rounded-xl border border-gray-800 bg-gray-900 p-4 text-center">
+                      <p class="text-2xl font-bold" [class]="stat.color">{{ stat.value }}</p>
+                      <p class="text-[0.65rem] text-gray-500 uppercase tracking-wide mt-0.5">
+                        {{ stat.label }}
+                      </p>
                     </div>
                   }
                 </div>
-              </div>
-            </mat-tab>
 
-            <!-- ── Tab 2: Dashboard ── -->
-            <mat-tab label="Dashboard">
-              <div class="py-6">
-                @if (loadingDash()) {
-                  <div class="flex justify-center py-8"><mat-spinner diameter="32" /></div>
-                }
-                @if (dashboard()) {
-                  <!-- Funnel -->
-                  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div class="bg-[#1e293b] rounded-xl p-4 text-center border border-slate-700">
-                      <p class="text-2xl font-bold text-white">{{ dashboard()!.engagement.total_learners }}</p>
-                      <p class="text-slate-400 text-xs">Learners totaux</p>
-                    </div>
-                    <div class="bg-[#1e293b] rounded-xl p-4 text-center border border-slate-700">
-                      <p class="text-2xl font-bold text-blue-400">{{ dashboard()!.engagement.enrolled_learners }}</p>
-                      <p class="text-slate-400 text-xs">Inscrits</p>
-                    </div>
-                    <div class="bg-[#1e293b] rounded-xl p-4 text-center border border-slate-700">
-                      <p class="text-2xl font-bold text-yellow-400">{{ dashboard()!.engagement.active_learners }}</p>
-                      <p class="text-slate-400 text-xs">Actifs</p>
-                    </div>
-                    <div class="bg-[#1e293b] rounded-xl p-4 text-center border border-slate-700">
-                      <p class="text-2xl font-bold text-green-400">{{ dashboard()!.engagement.completed_learners }}</p>
-                      <p class="text-slate-400 text-xs">Complétés</p>
-                    </div>
-                  </div>
-
-                  <!-- Programmes -->
-                  @if (dashboard()!.programs.length > 0) {
-                    <h3 class="text-white font-semibold mb-3">Programmes</h3>
-                    <div class="space-y-2 mb-6">
-                      @for (prog of dashboard()!.programs; track prog.program_id) {
-                        <div class="bg-[#1e293b] rounded-lg p-4 border border-slate-700">
-                          <div class="flex justify-between items-center mb-2">
-                            <p class="text-white text-sm font-medium">{{ prog.program_title }}</p>
-                            <span class="text-sm font-bold" [class]="completionColor(prog.completion_rate)">
-                              {{ prog.completion_rate.toFixed(0) }}%
-                            </span>
-                          </div>
-                          <div class="w-full bg-slate-700 rounded-full h-1.5">
-                            <div class="h-1.5 rounded-full bg-cyan-500 transition-all"
-                                 [style.width.%]="prog.completion_rate"></div>
-                          </div>
-                          <p class="text-slate-400 text-xs mt-1">{{ prog.completed_learners }}/{{ prog.enrolled_learners }} complétés · moy. {{ prog.avg_completion_pct.toFixed(0) }}%</p>
+                <!-- Programme stats -->
+                @if (dashboard()!.programs.length > 0) {
+                  <h3 class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-3">
+                    Programmes
+                  </h3>
+                  <div class="flex flex-col gap-3 mb-6">
+                    @for (prog of dashboard()!.programs; track prog.program_id) {
+                      <div class="rounded-xl border border-gray-800 bg-gray-900 p-4">
+                        <div class="flex justify-between items-center mb-2">
+                          <p class="text-white text-sm font-medium">{{ prog.program_title }}</p>
+                          <span
+                            class="text-sm font-bold"
+                            [class]="completionColor(prog.completion_rate)"
+                            >{{ prog.completion_rate.toFixed(0) }}%</span
+                          >
                         </div>
-                      }
-                    </div>
-                  }
-
-                  <!-- At-risk -->
-                  @if (dashboard()!.at_risk_learners.length > 0) {
-                    <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-                      <h3 class="text-red-400 font-semibold mb-3 flex items-center gap-2">
-                        <mat-icon>warning</mat-icon> Learners à risque ({{ dashboard()!.at_risk_learners.length }})
-                      </h3>
-                      <div class="space-y-2">
-                        @for (r of dashboard()!.at_risk_learners; track r.learner_id) {
-                          <div class="flex justify-between items-center text-sm">
-                            <span class="text-white">{{ r.display_name }}</span>
-                            <span class="text-slate-400">{{ r.days_inactive }}j inactif · {{ r.completion_pct.toFixed(0) }}%</span>
-                          </div>
-                        }
-                      </div>
-                    </div>
-                  }
-                }
-              </div>
-            </mat-tab>
-
-            <!-- ── Tab 3: NIS2 ── -->
-            <mat-tab label="NIS2">
-              <div class="py-6">
-                @if (loadingNis2()) {
-                  <div class="flex justify-center py-8"><mat-spinner diameter="32" /></div>
-                }
-                @if (nis2()) {
-                  <div class="flex items-center justify-between mb-6">
-                    <div class="text-center">
-                      <p class="text-5xl font-bold" [class]="nis2ScoreColor(nis2()!.global_score)">{{ nis2()!.global_score.toFixed(0) }}%</p>
-                      <p class="text-slate-400 text-sm">Score de conformité NIS2</p>
-                    </div>
-                    <a [href]="pdfUrl()" download mat-raised-button color="primary">
-                      <mat-icon>download</mat-icon> Rapport PDF
-                    </a>
-                  </div>
-
-                  <div class="space-y-3">
-                    @for (req of nis2()!.requirements; track req.article) {
-                      <div class="bg-[#1e293b] rounded-lg p-4 border border-slate-700">
-                        <div class="flex items-start justify-between">
-                          <div>
-                            <p class="text-slate-400 text-xs">{{ req.article }}</p>
-                            <p class="text-white text-sm font-medium">{{ req.title }}</p>
-                          </div>
-                          <span class="px-2 py-0.5 rounded text-xs font-semibold"
-                                [class]="nis2StatusClass(req.color)">
-                            {{ req.status_label }}
-                          </span>
+                        <div class="h-1.5 bg-gray-800 rounded-full overflow-hidden mb-1">
+                          <div
+                            class="h-full rounded-full transition-all duration-500"
+                            [class]="completionBarColor(prog.completion_rate)"
+                            [style.width.%]="prog.completion_rate"
+                          ></div>
                         </div>
-                        <div class="mt-2 flex items-center gap-3">
-                          <div class="flex-1 bg-slate-700 rounded-full h-1.5">
-                            <div class="h-1.5 rounded-full transition-all"
-                                 [class]="nis2BarColor(req.color)"
-                                 [style.width.%]="Math.min(req.value, 100)"></div>
-                          </div>
-                          <span class="text-slate-300 text-xs w-16 text-right">{{ req.value.toFixed(0) }}% / {{ req.threshold }}%</span>
-                        </div>
+                        <p class="text-gray-500 text-xs">
+                          {{ prog.completed_learners }}/{{ prog.enrolled_learners }} complétés ·
+                          moy. {{ prog.avg_completion_pct.toFixed(0) }}%
+                        </p>
                       </div>
                     }
                   </div>
                 }
-              </div>
-            </mat-tab>
 
-          </mat-tab-group>
+                <!-- At-risk -->
+                @if (dashboard()!.at_risk_learners.length > 0) {
+                  <div class="rounded-xl border border-red-700/40 bg-red-900/10 p-4">
+                    <h3 class="text-red-400 font-semibold text-sm mb-3 flex items-center gap-2">
+                      <mat-icon class="!text-[1rem]">warning</mat-icon>
+                      {{ dashboard()!.at_risk_learners.length }} learner(s) à risque
+                    </h3>
+                    <div class="flex flex-col gap-2">
+                      @for (r of dashboard()!.at_risk_learners; track r.learner_id) {
+                        <div
+                          class="flex justify-between items-center text-sm py-1 border-b border-red-700/20 last:border-0"
+                        >
+                          <span class="text-gray-300"
+                            >{{ r.display_name }}
+                            <span class="text-gray-500 text-xs">{{
+                              r.department ? '· ' + r.department : ''
+                            }}</span></span
+                          >
+                          <span class="text-gray-400 text-xs"
+                            >{{ r.days_inactive }}j inactif ·
+                            {{ r.completion_pct.toFixed(0) }}%</span
+                          >
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+          }
+
+          <!-- ── Tab NIS2 ── -->
+          @if (activeTab() === 'nis2') {
+            <div>
+              @if (loadingNis2()) {
+                <div class="flex justify-center py-12"><mat-spinner diameter="32" /></div>
+              }
+              @if (nis2()) {
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                  <div class="flex items-center gap-4">
+                    <!-- Score gauge -->
+                    <div class="relative w-20 h-20 shrink-0">
+                      <svg viewBox="0 0 36 36" class="w-full h-full -rotate-90">
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="15.9"
+                          fill="none"
+                          stroke="#1f2937"
+                          stroke-width="3"
+                        />
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="15.9"
+                          fill="none"
+                          [attr.stroke]="nis2GaugeColor(nis2()!.global_score)"
+                          stroke-width="3"
+                          stroke-linecap="round"
+                          [attr.stroke-dasharray]="nis2()!.global_score + ' 100'"
+                          stroke-dashoffset="0"
+                        />
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center">
+                        <span
+                          class="text-sm font-bold"
+                          [class]="nis2ScoreColor(nis2()!.global_score)"
+                          >{{ nis2()!.global_score.toFixed(0) }}%</span
+                        >
+                      </div>
+                    </div>
+                    <div>
+                      <p class="text-white font-semibold">Score de conformité NIS2</p>
+                      <p class="text-gray-400 text-sm">
+                        {{ nis2()!.certificate_count }} attestation(s) délivrée(s)
+                      </p>
+                    </div>
+                  </div>
+                  <a
+                    [href]="pdfUrl()"
+                    download
+                    mat-flat-button
+                    class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white !text-sm shrink-0"
+                  >
+                    <mat-icon>download</mat-icon> Rapport PDF
+                  </a>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                  @for (req of nis2()!.requirements; track req.article) {
+                    <div
+                      class="rounded-xl border bg-gray-900 p-4"
+                      [class]="
+                        req.color === 'green'
+                          ? 'border-green-700/40'
+                          : req.color === 'yellow'
+                            ? 'border-yellow-700/40'
+                            : 'border-red-700/40'
+                      "
+                    >
+                      <div class="flex items-start justify-between mb-2">
+                        <div class="flex-1 min-w-0 mr-3">
+                          <p class="text-gray-500 text-[0.65rem] uppercase tracking-wide">
+                            {{ req.article }}
+                          </p>
+                          <p class="text-white text-sm font-medium">{{ req.title }}</p>
+                        </div>
+                        <span
+                          class="text-[0.65rem] font-semibold px-1.5 py-0.5 rounded-full border shrink-0"
+                          [class]="nis2StatusClass(req.color)"
+                        >
+                          {{ req.status_label }}
+                        </span>
+                      </div>
+                      <div class="flex items-center gap-3">
+                        <div class="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                          <div
+                            class="h-full rounded-full transition-all duration-500"
+                            [class]="nis2BarColor(req.color)"
+                            [style.width.%]="Math.min(req.value, 100)"
+                          ></div>
+                        </div>
+                        <span class="text-gray-400 text-xs w-20 text-right shrink-0"
+                          >{{ req.value.toFixed(0) }}% / {{ req.threshold }}%</span
+                        >
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
         }
       </div>
     </div>
@@ -265,8 +457,14 @@ export class AwarenessOrgDetailComponent implements OnInit {
   private svc = inject(AwarenessService);
   private route = inject(ActivatedRoute);
   private snack = inject(MatSnackBar);
-
   protected Math = Math;
+
+  tabs = [
+    { id: 'learners', label: 'Learners', icon: 'people' },
+    { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+    { id: 'nis2', label: 'Rapport NIS2', icon: 'verified_user' },
+  ];
+  activeTab = signal('learners');
 
   orgId = signal(0);
   org = signal<AwarenessOrganization | null>(null);
@@ -290,7 +488,13 @@ export class AwarenessOrgDetailComponent implements OnInit {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.orgId.set(id);
     this.svc.getOrganization(id).subscribe({
-      next: org => { this.org.set(org); this.loading.set(false); this.loadLearners(); this.loadDash(); this.loadNis2(); },
+      next: org => {
+        this.org.set(org);
+        this.loading.set(false);
+        this.loadLearners();
+        this.loadDash();
+        this.loadNis2();
+      },
       error: () => this.loading.set(false),
     });
   }
@@ -302,7 +506,10 @@ export class AwarenessOrgDetailComponent implements OnInit {
   loadDash() {
     this.loadingDash.set(true);
     this.svc.orgAdminDashboard(this.orgId()).subscribe({
-      next: d => { this.dashboard.set(d); this.loadingDash.set(false); },
+      next: d => {
+        this.dashboard.set(d);
+        this.loadingDash.set(false);
+      },
       error: () => this.loadingDash.set(false),
     });
   }
@@ -310,7 +517,10 @@ export class AwarenessOrgDetailComponent implements OnInit {
   loadNis2() {
     this.loadingNis2.set(true);
     this.svc.nis2Report(this.orgId()).subscribe({
-      next: r => { this.nis2.set(r); this.loadingNis2.set(false); },
+      next: r => {
+        this.nis2.set(r);
+        this.loadingNis2.set(false);
+      },
       error: () => this.loadingNis2.set(false),
     });
   }
@@ -318,23 +528,26 @@ export class AwarenessOrgDetailComponent implements OnInit {
   addLearner() {
     if (!this.newEmail.trim()) return;
     this.addingLearner.set(true);
-    this.svc.createLearner(this.orgId(), {
-      email: this.newEmail.trim(),
-      first_name: this.newFirstName.trim() || undefined,
-      department: this.newDept.trim() || undefined,
-    }).subscribe({
-      next: l => {
-        this.learners.update(list => [...list, l]);
-        this.newEmail = ''; this.newFirstName = ''; this.newDept = '';
-        this.addingLearner.set(false);
-        this.snack.open('Learner ajouté.', 'OK', { duration: 3000 });
-      },
-      error: (err) => {
-        this.addingLearner.set(false);
-        const msg = err.error?.detail || 'Erreur lors de l\'ajout.';
-        this.snack.open(msg, 'Fermer', { duration: 4000 });
-      },
-    });
+    this.svc
+      .createLearner(this.orgId(), {
+        email: this.newEmail.trim(),
+        first_name: this.newFirstName.trim() || undefined,
+        department: this.newDept.trim() || undefined,
+      })
+      .subscribe({
+        next: l => {
+          this.learners.update(list => [...list, l]);
+          this.newEmail = '';
+          this.newFirstName = '';
+          this.newDept = '';
+          this.addingLearner.set(false);
+          this.snack.open('Learner ajouté.', 'OK', { duration: 3000 });
+        },
+        error: err => {
+          this.addingLearner.set(false);
+          this.snack.open(err.error?.detail || 'Erreur.', 'Fermer', { duration: 4000 });
+        },
+      });
   }
 
   onCsvSelected(event: Event) {
@@ -351,11 +564,13 @@ export class AwarenessOrgDetailComponent implements OnInit {
         this.csvResult.set(r);
         this.importingCsv.set(false);
         this.loadLearners();
-        this.snack.open(`Import terminé : ${r.created} créés, ${r.updated} mis à jour.`, 'OK', { duration: 4000 });
+        this.snack.open(`Import : ${r.created} créés, ${r.updated} mis à jour.`, 'OK', {
+          duration: 4000,
+        });
       },
       error: () => {
         this.importingCsv.set(false);
-        this.snack.open('Erreur lors de l\'import.', 'Fermer', { duration: 4000 });
+        this.snack.open('Erreur import.', 'Fermer', { duration: 4000 });
       },
     });
   }
@@ -367,37 +582,40 @@ export class AwarenessOrgDetailComponent implements OnInit {
     });
   }
 
-  pdfUrl(): string {
+  pdfUrl() {
     return this.svc.nis2ReportPdfUrl(this.orgId());
   }
 
-  completionColor(rate: number): string {
-    if (rate >= 80) return 'text-green-400';
-    if (rate >= 50) return 'text-yellow-400';
-    return 'text-red-400';
+  funnelStats() {
+    const e = this.dashboard()!.engagement;
+    return [
+      { value: e.total_learners, label: 'Total', color: 'text-white' },
+      { value: e.enrolled_learners, label: 'Inscrits', color: 'text-blue-400' },
+      { value: e.active_learners, label: 'Actifs', color: 'text-yellow-400' },
+      { value: e.completed_learners, label: 'Complétés', color: 'text-green-400' },
+    ];
   }
 
-  nis2ScoreColor(score: number): string {
-    if (score >= 80) return 'text-green-400';
-    if (score >= 50) return 'text-yellow-400';
-    return 'text-red-400';
+  completionColor(r: number) {
+    return r >= 80 ? 'text-green-400' : r >= 50 ? 'text-yellow-400' : 'text-red-400';
   }
-
-  nis2StatusClass(color: string): string {
-    const m: Record<string, string> = {
-      green: 'bg-green-500/20 text-green-400',
-      yellow: 'bg-yellow-500/20 text-yellow-400',
-      red: 'bg-red-500/20 text-red-400',
-    };
-    return m[color] ?? 'bg-slate-500/20 text-slate-400';
+  completionBarColor(r: number) {
+    return r >= 80 ? 'bg-green-500' : r >= 50 ? 'bg-yellow-500' : 'bg-red-500';
   }
-
-  nis2BarColor(color: string): string {
-    const m: Record<string, string> = {
-      green: 'bg-green-500',
-      yellow: 'bg-yellow-500',
-      red: 'bg-red-500',
-    };
-    return m[color] ?? 'bg-slate-500';
+  nis2ScoreColor(s: number) {
+    return s >= 80 ? 'text-green-400' : s >= 50 ? 'text-yellow-400' : 'text-red-400';
+  }
+  nis2GaugeColor(s: number) {
+    return s >= 80 ? '#4ade80' : s >= 50 ? '#facc15' : '#f87171';
+  }
+  nis2StatusClass(c: string) {
+    return c === 'green'
+      ? 'text-green-400 bg-green-900/20 border-green-700/40'
+      : c === 'yellow'
+        ? 'text-yellow-400 bg-yellow-900/20 border-yellow-700/40'
+        : 'text-red-400 bg-red-900/20 border-red-700/40';
+  }
+  nis2BarColor(c: string) {
+    return c === 'green' ? 'bg-green-500' : c === 'yellow' ? 'bg-yellow-500' : 'bg-red-500';
   }
 }

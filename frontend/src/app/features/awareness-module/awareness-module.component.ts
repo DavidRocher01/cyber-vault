@@ -25,68 +25,133 @@ type PageView = 'dashboard' | 'content' | 'quiz' | 'quiz-result' | 'certificate'
   standalone: true,
   selector: 'app-awareness-module',
   imports: [
-    CommonModule, RouterLink, FormsModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule,
-    MatProgressBarModule, MatSnackBarModule, MatRadioModule, MatCheckboxModule,
+    CommonModule,
+    RouterLink,
+    FormsModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatProgressBarModule,
+    MatSnackBarModule,
+    MatRadioModule,
+    MatCheckboxModule,
   ],
   template: `
-    <div class="min-h-screen bg-[#0f172a] text-white">
-
+    <div class="min-h-screen bg-gray-950 text-white">
       <!-- Top bar -->
-      <div class="bg-[#1e293b] border-b border-slate-700 px-4 py-3 flex items-center gap-4">
-        <a routerLink="/awareness" mat-icon-button>
-          <mat-icon class="text-slate-400">arrow_back</mat-icon>
+      <nav
+        class="sticky top-0 z-40 flex items-center gap-4 px-4 py-3 border-b border-white/5 backdrop-blur-md bg-gray-900/80"
+      >
+        <a
+          routerLink="/awareness"
+          mat-icon-button
+          class="!text-gray-400 hover:!text-white shrink-0"
+        >
+          <mat-icon>arrow_back</mat-icon>
         </a>
         @if (dashboard()) {
-          <div class="flex-1">
-            <p class="text-white text-sm font-semibold">{{ dashboard()!.program.title }}</p>
-            <mat-progress-bar mode="determinate" [value]="dashboard()!.enrollment.completion_pct" class="mt-1" />
+          <div class="flex-1 min-w-0">
+            <p class="text-white text-sm font-semibold truncate">
+              {{ dashboard()!.program.title }}
+            </p>
+            <div class="flex items-center gap-2 mt-1">
+              <div class="flex-1 h-1 bg-gray-800 rounded-full overflow-hidden">
+                <div
+                  class="h-full bg-cyan-500 rounded-full transition-all duration-500"
+                  [style.width.%]="dashboard()!.enrollment.completion_pct"
+                ></div>
+              </div>
+              <span class="text-cyan-400 text-xs font-bold shrink-0"
+                >{{ dashboard()!.enrollment.completion_pct.toFixed(0) }}%</span
+              >
+            </div>
           </div>
-          <span class="text-cyan-400 text-sm font-bold">{{ dashboard()!.enrollment.completion_pct.toFixed(0) }}%</span>
         }
-      </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <mat-icon class="text-cyan-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">shield</mat-icon>
+          <span class="text-sm font-bold hidden sm:inline"
+            >Cyber<span class="text-cyan-400">Scan</span></span
+          >
+        </div>
+      </nav>
 
       @if (loading()) {
-        <div class="flex justify-center py-16"><mat-spinner diameter="48" /></div>
+        <div class="flex justify-center py-16"><mat-spinner diameter="40" /></div>
       }
 
       @if (!loading() && dashboard()) {
-
         <!-- ── Module list view ── -->
         @if (view() === 'dashboard') {
-          <div class="max-w-2xl mx-auto p-6">
-            <h2 class="text-white font-semibold mb-4">Modules du programme</h2>
-            <div class="space-y-3">
-              @for (mp of dashboard()!.modules_progress; track mp.module_id) {
-                <button class="w-full text-left bg-[#1e293b] rounded-xl p-4 border transition-colors flex items-center gap-4"
-                        [class]="moduleCardClass(mp.status)"
-                        (click)="openModule(mp)"
-                        [disabled]="mp.status === 'not_started' && !isNextModule(mp)">
-                  <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                       [class]="moduleIconBg(mp.status)">
-                    <mat-icon class="text-sm">{{ moduleIcon(mp.status) }}</mat-icon>
+          <div class="max-w-2xl mx-auto p-4 md:p-8">
+            <div class="flex items-center gap-3 mb-6">
+              <div
+                class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0"
+              >
+                <mat-icon class="text-cyan-400 !text-[1.2rem]">menu_book</mat-icon>
+              </div>
+              <div>
+                <h2 class="text-white font-semibold">Modules du programme</h2>
+                <p class="text-gray-500 text-xs">
+                  {{ dashboard()!.modules_progress.length }} modules · progression séquentielle
+                </p>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-3">
+              @for (mp of dashboard()!.modules_progress; track mp.module_id; let i = $index) {
+                <button
+                  class="w-full text-left rounded-xl p-4 border transition-all flex items-center gap-4"
+                  [class]="moduleCardClass(mp.status)"
+                  (click)="openModule(mp)"
+                  [disabled]="mp.status === 'not_started' && !isNextModule(mp)"
+                >
+                  <div
+                    class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                    [class]="moduleIconBg(mp.status)"
+                  >
+                    <mat-icon class="!text-[1rem]">{{ moduleIcon(mp.status) }}</mat-icon>
                   </div>
-                  <div class="flex-1">
+                  <div class="flex-1 min-w-0 text-left">
                     <p class="text-white text-sm font-medium">{{ mp.title }}</p>
                     @if (mp.time_spent_seconds > 0) {
-                      <p class="text-slate-500 text-xs">{{ formatTime(mp.time_spent_seconds) }} passé</p>
+                      <p class="text-gray-500 text-xs mt-0.5">
+                        {{ formatTime(mp.time_spent_seconds) }} passé
+                      </p>
+                    }
+                    @if (mp.status === 'not_started' && !isNextModule(mp)) {
+                      <p class="text-gray-600 text-xs mt-0.5">
+                        Complétez le module précédent pour débloquer
+                      </p>
                     }
                   </div>
                   @if (mp.best_quiz_score !== null) {
-                    <span class="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">
+                    <span
+                      class="text-[0.65rem] font-semibold px-1.5 py-0.5 rounded-full border text-green-400 bg-green-900/20 border-green-700/40 shrink-0"
+                    >
                       {{ mp.best_quiz_score }}%
                     </span>
+                  }
+                  @if (mp.status !== 'not_started' || isNextModule(mp)) {
+                    <mat-icon class="text-gray-600 !text-[1rem] shrink-0">chevron_right</mat-icon>
                   }
                 </button>
               }
             </div>
 
             @if (dashboard()!.enrollment.status === 'completed') {
-              <div class="mt-6 p-5 bg-green-500/10 border border-green-500/30 rounded-xl text-center">
-                <mat-icon class="text-green-400 text-4xl">verified</mat-icon>
+              <div
+                class="mt-6 p-5 bg-green-500/10 border border-green-500/30 rounded-xl text-center"
+              >
+                <mat-icon class="text-green-400 !text-[2.5rem] !w-[2.5rem] !h-[2.5rem]"
+                  >verified</mat-icon
+                >
                 <p class="text-green-400 font-semibold mt-2">Programme complété !</p>
-                <button mat-raised-button color="primary" class="mt-3" (click)="view.set('certificate')">
-                  Voir mon attestation
+                <button
+                  mat-flat-button
+                  class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white mt-3"
+                  (click)="view.set('certificate'); loadCertificate()"
+                >
+                  <mat-icon>download</mat-icon> Voir mon attestation
                 </button>
               </div>
             }
@@ -95,81 +160,149 @@ type PageView = 'dashboard' | 'content' | 'quiz' | 'quiz-result' | 'certificate'
 
         <!-- ── Content view ── -->
         @if (view() === 'content' && currentModule()) {
-          <div class="max-w-2xl mx-auto p-6">
+          <div class="max-w-2xl mx-auto p-4 md:p-8">
             <div class="flex items-center gap-3 mb-6">
-              <button mat-icon-button (click)="view.set('dashboard')">
+              <button
+                mat-icon-button
+                class="!text-gray-400 hover:!text-white"
+                (click)="view.set('dashboard')"
+              >
                 <mat-icon>close</mat-icon>
               </button>
-              <h2 class="text-xl font-bold text-white">{{ currentModule()!.title }}</h2>
+              <div class="flex-1">
+                <h2 class="text-xl font-bold text-white">{{ currentModule()!.title }}</h2>
+              </div>
             </div>
 
-            <!-- Markdown content rendered as HTML (simple approach) -->
-            @if (currentModule()!.content_markdown) {
-              <div class="prose prose-invert prose-sm max-w-none text-slate-300 leading-relaxed"
-                   [innerHTML]="renderMarkdown(currentModule()!.content_markdown!)">
-              </div>
-            } @else {
-              <p class="text-slate-400">Contenu non disponible.</p>
-            }
+            <div class="rounded-xl border border-gray-800 bg-gray-900 p-6">
+              @if (currentModule()!.content_markdown) {
+                <div
+                  class="awareness-content text-gray-300 leading-relaxed"
+                  [innerHTML]="renderMarkdown(currentModule()!.content_markdown!)"
+                ></div>
+              } @else {
+                <p class="text-gray-400 text-center py-8">Contenu non disponible.</p>
+              }
+            </div>
 
-            <div class="mt-8 flex gap-3">
+            <div class="mt-6 flex gap-3">
               @if (currentModule()!.has_quiz) {
-                <button mat-raised-button color="primary" (click)="startQuiz()">
+                <button
+                  mat-flat-button
+                  class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white"
+                  (click)="startQuiz()"
+                >
                   <mat-icon>quiz</mat-icon> Passer le quiz
                 </button>
               } @else {
-                <button mat-raised-button color="primary" (click)="completeWithoutQuiz()" [disabled]="completing()">
-                  @if (completing()) { <mat-spinner diameter="18" /> } @else {
-                    <mat-icon>check</mat-icon> Marquer comme terminé
+                <button
+                  mat-flat-button
+                  class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white"
+                  (click)="completeWithoutQuiz()"
+                  [disabled]="completing()"
+                >
+                  @if (completing()) {
+                    <mat-spinner diameter="18" />
                   }
+                  @if (!completing()) {
+                    <mat-icon>check</mat-icon>
+                  }
+                  Marquer comme terminé
                 </button>
               }
-              <button mat-stroked-button (click)="view.set('dashboard')">Retour</button>
+              <button
+                mat-stroked-button
+                class="!rounded-xl !border-gray-700 !text-gray-300"
+                (click)="view.set('dashboard')"
+              >
+                Retour
+              </button>
             </div>
           </div>
         }
 
         <!-- ── Quiz view ── -->
         @if (view() === 'quiz' && quizData()) {
-          <div class="max-w-2xl mx-auto p-6">
+          <div class="max-w-2xl mx-auto p-4 md:p-8">
             <div class="flex items-center gap-3 mb-6">
-              <button mat-icon-button (click)="view.set('content')">
+              <button
+                mat-icon-button
+                class="!text-gray-400 hover:!text-white"
+                (click)="view.set('content')"
+              >
                 <mat-icon>arrow_back</mat-icon>
               </button>
               <div>
                 <h2 class="text-xl font-bold text-white">Quiz — {{ currentModule()?.title }}</h2>
-                <p class="text-slate-400 text-sm">Tentative {{ quizData()!.attempt_number }}</p>
+                <p class="text-gray-400 text-sm">Tentative {{ quizData()!.attempt_number }}</p>
               </div>
             </div>
 
-            <div class="space-y-6">
+            <div class="flex flex-col gap-5">
               @for (q of quizData()!.questions; track q.id; let qi = $index) {
-                <div class="bg-[#1e293b] rounded-xl p-5 border border-slate-700">
+                <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
                   <p class="text-white font-medium mb-4">{{ qi + 1 }}. {{ q.text }}</p>
 
                   @if (q.type === 'single_choice' || q.type === 'true_false') {
-                    <div class="space-y-2">
+                    <div class="flex flex-col gap-2">
                       @for (a of q.answers; track a.id) {
-                        <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
-                               [class]="selectedAnswers()[q.id]?.[0] === a.id ? 'bg-cyan-500/20 border border-cyan-500/50' : 'bg-[#0f172a] border border-slate-700 hover:border-slate-600'">
-                          <input type="radio" [name]="'q_' + q.id" [value]="a.id"
-                                 class="text-cyan-500"
-                                 (change)="selectAnswer(q.id, a.id, false)" />
-                          <span class="text-slate-300 text-sm">{{ a.text }}</span>
-                        </label>
+                        <button
+                          type="button"
+                          class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-sm"
+                          [class]="
+                            selectedAnswers()[q.id]?.[0] === a.id
+                              ? 'bg-cyan-500/10 border-cyan-500/50 text-white'
+                              : 'bg-gray-950 border-gray-700 text-gray-300 hover:border-gray-600'
+                          "
+                          (click)="selectAnswer(q.id, a.id, false)"
+                        >
+                          <div
+                            class="w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors"
+                            [class]="
+                              selectedAnswers()[q.id]?.[0] === a.id
+                                ? 'border-cyan-400'
+                                : 'border-gray-600'
+                            "
+                          >
+                            @if (selectedAnswers()[q.id]?.[0] === a.id) {
+                              <div class="w-2 h-2 rounded-full bg-cyan-400"></div>
+                            }
+                          </div>
+                          {{ a.text }}
+                        </button>
                       }
                     </div>
                   }
 
                   @if (q.type === 'multiple_choice') {
-                    <div class="space-y-2">
+                    <div class="flex flex-col gap-2">
                       @for (a of q.answers; track a.id) {
-                        <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors"
-                               [class]="isSelected(q.id, a.id) ? 'bg-cyan-500/20 border border-cyan-500/50' : 'bg-[#0f172a] border border-slate-700 hover:border-slate-600'">
-                          <mat-checkbox [checked]="isSelected(q.id, a.id)"
-                                        (change)="selectAnswer(q.id, a.id, true)" />
-                          <span class="text-slate-300 text-sm">{{ a.text }}</span>
-                        </label>
+                        <button
+                          type="button"
+                          class="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-sm"
+                          [class]="
+                            isSelected(q.id, a.id)
+                              ? 'bg-cyan-500/10 border-cyan-500/50 text-white'
+                              : 'bg-gray-950 border-gray-700 text-gray-300 hover:border-gray-600'
+                          "
+                          (click)="selectAnswer(q.id, a.id, true)"
+                        >
+                          <div
+                            class="w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors"
+                            [class]="
+                              isSelected(q.id, a.id)
+                                ? 'border-cyan-400 bg-cyan-400'
+                                : 'border-gray-600'
+                            "
+                          >
+                            @if (isSelected(q.id, a.id)) {
+                              <mat-icon class="!text-[0.7rem] !w-[0.7rem] !h-[0.7rem] text-gray-950"
+                                >check</mat-icon
+                              >
+                            }
+                          </div>
+                          {{ a.text }}
+                        </button>
                       }
                     </div>
                   }
@@ -178,8 +311,17 @@ type PageView = 'dashboard' | 'content' | 'quiz' | 'quiz-result' | 'certificate'
             </div>
 
             <div class="mt-6">
-              <button mat-raised-button color="primary" (click)="submitQuiz()" [disabled]="submittingQuiz()">
-                @if (submittingQuiz()) { <mat-spinner diameter="18" /> } @else { Soumettre }
+              <button
+                mat-flat-button
+                class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white"
+                (click)="submitQuiz()"
+                [disabled]="submittingQuiz()"
+              >
+                @if (submittingQuiz()) {
+                  <mat-spinner diameter="18" />
+                } @else {
+                  Soumettre le quiz
+                }
               </button>
             </div>
           </div>
@@ -187,32 +329,53 @@ type PageView = 'dashboard' | 'content' | 'quiz' | 'quiz-result' | 'certificate'
 
         <!-- ── Quiz result view ── -->
         @if (view() === 'quiz-result' && quizResult()) {
-          <div class="max-w-2xl mx-auto p-6">
-            <div class="text-center mb-8">
-              <div class="text-6xl font-bold mb-2"
-                   [class]="quizResult()!.result === 'passed' ? 'text-green-400' : 'text-red-400'">
+          <div class="max-w-2xl mx-auto p-4 md:p-8">
+            <!-- Score card -->
+            <div
+              class="rounded-xl border p-8 text-center mb-6"
+              [class]="
+                quizResult()!.result === 'passed'
+                  ? 'border-green-700/40 bg-green-900/10'
+                  : 'border-red-700/40 bg-red-900/10'
+              "
+            >
+              <div
+                class="text-6xl font-bold mb-2"
+                [class]="quizResult()!.result === 'passed' ? 'text-green-400' : 'text-red-400'"
+              >
                 {{ quizResult()!.score }}%
               </div>
-              <p class="text-xl font-semibold"
-                 [class]="quizResult()!.result === 'passed' ? 'text-green-400' : 'text-red-400'">
+              <p
+                class="text-xl font-semibold"
+                [class]="quizResult()!.result === 'passed' ? 'text-green-400' : 'text-red-400'"
+              >
                 {{ quizResult()!.result === 'passed' ? '✓ Réussi !' : '✗ Échec' }}
               </p>
-              <p class="text-slate-400 text-sm mt-1">Seuil : {{ quizResult()!.passing_score }}%</p>
+              <p class="text-gray-400 text-sm mt-1">
+                Seuil de réussite : {{ quizResult()!.passing_score }}%
+              </p>
             </div>
 
             <!-- Details -->
-            <div class="space-y-3 mb-6">
+            <div class="flex flex-col gap-2 mb-6">
               @for (d of quizResult()!.details; track d.question_id) {
-                <div class="bg-[#1e293b] rounded-lg p-3 border"
-                     [class]="d.is_correct ? 'border-green-500/30' : 'border-red-500/30'">
+                <div
+                  class="rounded-xl border bg-gray-900 p-4"
+                  [class]="d.is_correct ? 'border-green-700/30' : 'border-red-700/30'"
+                >
                   <div class="flex items-center gap-2 mb-1">
-                    <mat-icon class="text-sm" [class]="d.is_correct ? 'text-green-400' : 'text-red-400'">
+                    <mat-icon
+                      class="!text-[1rem]"
+                      [class]="d.is_correct ? 'text-green-400' : 'text-red-400'"
+                    >
                       {{ d.is_correct ? 'check_circle' : 'cancel' }}
                     </mat-icon>
-                    <span class="text-slate-300 text-sm">{{ d.is_correct ? 'Correct' : 'Incorrect' }}</span>
+                    <span class="text-gray-300 text-sm font-medium">{{
+                      d.is_correct ? 'Correct' : 'Incorrect'
+                    }}</span>
                   </div>
                   @if (d.explanation) {
-                    <p class="text-slate-400 text-xs">{{ d.explanation }}</p>
+                    <p class="text-gray-400 text-xs ml-6">{{ d.explanation }}</p>
                   }
                 </div>
               }
@@ -220,14 +383,28 @@ type PageView = 'dashboard' | 'content' | 'quiz' | 'quiz-result' | 'certificate'
 
             <div class="flex gap-3">
               @if (quizResult()!.result === 'passed') {
-                <button mat-raised-button color="primary" (click)="view.set('dashboard')">
+                <button
+                  mat-flat-button
+                  class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white"
+                  (click)="view.set('dashboard')"
+                >
                   Continuer <mat-icon>arrow_forward</mat-icon>
                 </button>
               } @else {
-                <button mat-raised-button (click)="retryQuiz()">
+                <button
+                  mat-flat-button
+                  class="!rounded-xl !bg-gray-700 hover:!bg-gray-600 !text-white"
+                  (click)="retryQuiz()"
+                >
                   <mat-icon>replay</mat-icon> Réessayer
                 </button>
-                <button mat-stroked-button (click)="view.set('content')">Relire le module</button>
+                <button
+                  mat-stroked-button
+                  class="!rounded-xl !border-gray-700 !text-gray-300"
+                  (click)="view.set('content')"
+                >
+                  Relire le module
+                </button>
               }
             </div>
           </div>
@@ -235,29 +412,70 @@ type PageView = 'dashboard' | 'content' | 'quiz' | 'quiz-result' | 'certificate'
 
         <!-- ── Certificate view ── -->
         @if (view() === 'certificate') {
-          <div class="max-w-2xl mx-auto p-6 text-center">
+          <div class="max-w-2xl mx-auto p-4 md:p-8">
             @if (certLoading()) {
-              <mat-spinner diameter="48" class="mx-auto" />
+              <div class="flex justify-center py-16"><mat-spinner diameter="40" /></div>
             } @else if (certificate()) {
-              <div class="bg-[#1e293b] rounded-2xl p-8 border border-cyan-500/30">
-                <mat-icon class="text-cyan-400 text-6xl">verified</mat-icon>
-                <h2 class="text-2xl font-bold text-white mt-4">Attestation de complétion</h2>
-                <p class="text-slate-400 mt-2">{{ dashboard()!.program.title }}</p>
-                <p class="text-slate-500 text-sm mt-1">Référence : {{ certificate()!.public_id }}</p>
-                <p class="text-slate-500 text-sm">Émise le {{ certificate()!.issued_at | date:'dd/MM/yyyy' }}</p>
-                @if (certificate()!.expires_at) {
-                  <p class="text-slate-500 text-sm">Valable jusqu'au {{ certificate()!.expires_at | date:'dd/MM/yyyy' }}</p>
-                }
+              <div class="rounded-2xl border border-cyan-500/30 bg-gray-900 p-8 text-center">
+                <div
+                  class="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mx-auto mb-5"
+                >
+                  <mat-icon class="text-cyan-400 !text-[2rem] !w-[2rem] !h-[2rem]"
+                    >verified</mat-icon
+                  >
+                </div>
+                <h2
+                  class="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent"
+                >
+                  Attestation de complétion
+                </h2>
+                <p class="text-gray-300 mt-2 font-medium">{{ dashboard()!.program.title }}</p>
+                <div class="mt-4 flex flex-col gap-1">
+                  <p class="text-gray-500 text-sm">
+                    Référence :
+                    <span class="text-gray-300 font-mono">{{ certificate()!.public_id }}</span>
+                  </p>
+                  <p class="text-gray-500 text-sm">
+                    Émise le {{ certificate()!.issued_at | date: 'dd/MM/yyyy' }}
+                  </p>
+                  @if (certificate()!.expires_at) {
+                    <p class="text-gray-500 text-sm">
+                      Valable jusqu'au {{ certificate()!.expires_at | date: 'dd/MM/yyyy' }}
+                    </p>
+                  }
+                </div>
                 <div class="mt-6 flex gap-3 justify-center">
-                  <a [href]="certDownloadUrl()" download mat-raised-button color="primary">
+                  <a
+                    [href]="certDownloadUrl()"
+                    download
+                    mat-flat-button
+                    class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white"
+                  >
                     <mat-icon>download</mat-icon> Télécharger le PDF
                   </a>
-                  <button mat-stroked-button (click)="view.set('dashboard')">Retour</button>
+                  <button
+                    mat-stroked-button
+                    class="!rounded-xl !border-gray-700 !text-gray-300"
+                    (click)="view.set('dashboard')"
+                  >
+                    Retour
+                  </button>
                 </div>
               </div>
             } @else {
-              <p class="text-slate-400">Attestation non disponible.</p>
-              <button mat-stroked-button class="mt-4" (click)="view.set('dashboard')">Retour</button>
+              <div class="rounded-xl border border-gray-800 bg-gray-900/50 p-16 text-center">
+                <mat-icon class="!text-[3rem] !w-[3rem] !h-[3rem] text-gray-700 mb-3"
+                  >verified</mat-icon
+                >
+                <p class="text-gray-400">Attestation non disponible.</p>
+                <button
+                  mat-stroked-button
+                  class="!rounded-xl !border-gray-700 !text-gray-300 mt-4"
+                  (click)="view.set('dashboard')"
+                >
+                  Retour
+                </button>
+              </div>
             }
           </div>
         }
@@ -307,8 +525,14 @@ export class AwarenessModuleComponent implements OnInit, OnDestroy {
 
   loadDashboard() {
     this.svc.getEnrollmentDashboard(this.enrollmentId()).subscribe({
-      next: d => { this.dashboard.set(d); this.loading.set(false); },
-      error: () => { this.loading.set(false); this.router.navigate(['/awareness']); },
+      next: d => {
+        this.dashboard.set(d);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+        this.router.navigate(['/awareness']);
+      },
     });
   }
 
@@ -334,8 +558,11 @@ export class AwarenessModuleComponent implements OnInit, OnDestroy {
   startQuiz() {
     if (!this.currentModuleId()) return;
     this.svc.getQuizQuestions(this.enrollmentId(), this.currentModuleId()!).subscribe({
-      next: q => { this.quizData.set(q); this.view.set('quiz'); },
-      error: (err) => {
+      next: q => {
+        this.quizData.set(q);
+        this.view.set('quiz');
+      },
+      error: err => {
         const msg = err.error?.detail || 'Impossible de charger le quiz.';
         this.snack.open(msg, 'Fermer', { duration: 4000 });
       },
@@ -363,21 +590,23 @@ export class AwarenessModuleComponent implements OnInit, OnDestroy {
   submitQuiz() {
     const duration = Math.floor((Date.now() - this.moduleStartTime) / 1000);
     this.submittingQuiz.set(true);
-    this.svc.submitQuiz(this.enrollmentId(), this.currentModuleId()!, this.selectedAnswers(), duration).subscribe({
-      next: result => {
-        this.quizResult.set(result);
-        this.submittingQuiz.set(false);
-        this.view.set('quiz-result');
-        if (result.result === 'passed') {
-          this.stopHeartbeat();
-          this.loadDashboard();
-        }
-      },
-      error: () => {
-        this.submittingQuiz.set(false);
-        this.snack.open('Erreur lors de la soumission.', 'Fermer', { duration: 4000 });
-      },
-    });
+    this.svc
+      .submitQuiz(this.enrollmentId(), this.currentModuleId()!, this.selectedAnswers(), duration)
+      .subscribe({
+        next: result => {
+          this.quizResult.set(result);
+          this.submittingQuiz.set(false);
+          this.view.set('quiz-result');
+          if (result.result === 'passed') {
+            this.stopHeartbeat();
+            this.loadDashboard();
+          }
+        },
+        error: () => {
+          this.submittingQuiz.set(false);
+          this.snack.open('Erreur lors de la soumission.', 'Fermer', { duration: 4000 });
+        },
+      });
   }
 
   retryQuiz() {
@@ -405,7 +634,10 @@ export class AwarenessModuleComponent implements OnInit, OnDestroy {
   loadCertificate() {
     this.certLoading.set(true);
     this.svc.getCertificate(this.enrollmentId()).subscribe({
-      next: c => { this.certificate.set(c); this.certLoading.set(false); },
+      next: c => {
+        this.certificate.set(c);
+        this.certLoading.set(false);
+      },
       error: () => this.certLoading.set(false),
     });
   }
@@ -424,10 +656,16 @@ export class AwarenessModuleComponent implements OnInit, OnDestroy {
     // Simple Markdown → HTML (headings, bold, lists, hr)
     return md
       .replace(/^### (.+)$/gm, '<h3 class="text-white font-semibold text-base mt-5 mb-2">$1</h3>')
-      .replace(/^## (.+)$/gm, '<h2 class="text-cyan-400 font-bold text-lg mt-6 mb-3 border-b border-slate-700 pb-2">$1</h2>')
+      .replace(
+        /^## (.+)$/gm,
+        '<h2 class="text-cyan-400 font-bold text-lg mt-6 mb-3 border-b border-slate-700 pb-2">$1</h2>'
+      )
       .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-white mb-4">$1</h1>')
       .replace(/\*\*(.+?)\*\*/g, '<strong class="text-white">$1</strong>')
-      .replace(/^> (.+)$/gm, '<blockquote class="border-l-4 border-cyan-500 pl-4 text-cyan-300 italic my-3">$1</blockquote>')
+      .replace(
+        /^> (.+)$/gm,
+        '<blockquote class="border-l-4 border-cyan-500 pl-4 text-cyan-300 italic my-3">$1</blockquote>'
+      )
       .replace(/^---$/gm, '<hr class="border-slate-700 my-5" />')
       .replace(/^- (.+)$/gm, '<li class="text-slate-300 ml-4 list-disc">$1</li>')
       .replace(/^(\d+)\. (.+)$/gm, '<li class="text-slate-300 ml-4 list-decimal">$2</li>')
@@ -443,8 +681,10 @@ export class AwarenessModuleComponent implements OnInit, OnDestroy {
 
   moduleIcon(status: string): string {
     const m: Record<string, string> = {
-      completed: 'check', in_progress: 'play_arrow',
-      failed: 'close', not_started: 'lock_outline',
+      completed: 'check',
+      in_progress: 'play_arrow',
+      failed: 'close',
+      not_started: 'lock_outline',
     };
     return m[status] ?? 'circle';
   }
