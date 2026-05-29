@@ -1,6 +1,33 @@
 <app-nav-buttons />
 
 <div class="min-h-screen bg-gray-950 text-gray-100 p-4 md:p-8">
+  <!-- NIS2 Platform Banner -->
+  <div class="max-w-3xl mx-auto mb-6">
+    <div
+      class="rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+    >
+      <div class="flex items-start gap-3">
+        <mat-icon class="text-cyan-400 !text-[1.4rem] !w-[1.4rem] !h-[1.4rem] shrink-0 mt-0.5"
+          >school</mat-icon
+        >
+        <div>
+          <p class="text-white font-semibold text-sm">Nouvelle plateforme NIS2 disponible</p>
+          <p class="text-gray-400 text-xs mt-0.5">
+            17 modules certifiants, attestations PDF vérifiables, gamification et conformité NIS2
+            Article 21 pour vos organisations clientes.
+          </p>
+        </div>
+      </div>
+      <a
+        routerLink="/cyberscan/awareness"
+        mat-flat-button
+        class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white !text-sm shrink-0"
+      >
+        Accéder à la plateforme NIS2
+      </a>
+    </div>
+  </div>
+
   <!-- Header -->
   <div class="max-w-3xl mx-auto mb-8">
     <div class="flex items-center gap-3 mb-1">

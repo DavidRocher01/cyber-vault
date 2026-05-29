@@ -53,13 +53,22 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
               Gérez vos organisations clientes et pilotez la conformité
             </p>
           </div>
-          <button
-            mat-flat-button
-            class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white shrink-0"
-            (click)="showCreate = !showCreate"
-          >
-            <mat-icon>add</mat-icon> Nouvelle organisation
-          </button>
+          <div class="flex items-center gap-2 shrink-0">
+            <a
+              routerLink="/cyberscan/awareness-pricing"
+              mat-stroked-button
+              class="!rounded-xl !border-gray-700 !text-gray-300 !text-sm"
+            >
+              <mat-icon>sell</mat-icon> Tarifs
+            </a>
+            <button
+              mat-flat-button
+              class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white"
+              (click)="showCreate = !showCreate"
+            >
+              <mat-icon>add</mat-icon> Nouvelle organisation
+            </button>
+          </div>
         </div>
 
         <!-- Create form -->

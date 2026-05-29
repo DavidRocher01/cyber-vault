@@ -111,16 +111,50 @@ async def _seed_plans() -> None:
 async def _seed_awareness_badges() -> None:
     """Seed / upsert the 20 awareness badge definitions (idempotent)."""
     from app.services.awareness_gamification import seed_badges
+
     async with AsyncSessionLocal() as db:
         count = await seed_badges(db)
     if count:
         logger.info(f"Awareness badges seeded: {count} created")
 
 
+async def _import_awareness_content() -> None:
+    """Import NIS2 awareness content from content/fr/ if no programs exist yet (idempotent)."""
+    from pathlib import Path
+
+    from sqlalchemy import func, select
+
+    from app.core.database import AsyncSessionLocal
+    from app.models.awareness_program import AwarenessProgram
+    from app.services.awareness_content_importer import import_from_directory
+
+    content_dir = Path(__file__).parent.parent.parent / "content" / "fr"
+    if not content_dir.exists():
+        logger.warning(f"Awareness content directory not found: {content_dir}")
+        return
+
+    async with AsyncSessionLocal() as db:
+        count = (await db.execute(select(func.count(AwarenessProgram.id)))).scalar_one()
+        if count > 0:
+            logger.debug(f"Awareness content already imported ({count} programme(s)) — skipping")
+            return
+        try:
+            summary = await import_from_directory(db, content_dir)
+            logger.info(
+                f"Awareness content imported: {summary['programs']} programmes, "
+                f"{summary['modules']} modules"
+            )
+            if summary.get("errors"):
+                for e in summary["errors"]:
+                    logger.warning(f"Awareness content import error: {e}")
+        except Exception as exc:
+            logger.error(f"Awareness content auto-import failed: {exc}")
+
+
 app = FastAPI(
     title=settings.APP_NAME,
     version=__version__,
-    on_startup=[_seed_plans, _seed_awareness_badges, start_scheduler],
+    on_startup=[_seed_plans, _seed_awareness_badges, _import_awareness_content, start_scheduler],
     on_shutdown=[stop_scheduler],
 )
 
