@@ -294,6 +294,72 @@ async def update_learner(
     return AwarenessLearnerOut.model_validate(learner)
 
 
+# ── Bulk enrollment ───────────────────────────────────────────────────────────
+
+
+@router.post("/organizations/{org_id}/enroll-all", status_code=200)
+async def enroll_all_learners(
+    org_id: int,
+    program_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Inscrit tous les learners actifs de l'organisation à un programme.
+    Ignore les learners déjà inscrits. Envoie un email magic-link à chaque nouveau inscrit.
+    """
+    org = await _get_org_or_404(org_id, current_user, db)
+
+    learners_result = await db.execute(
+        select(AwarenessLearner).where(
+            AwarenessLearner.organization_id == org_id,
+            AwarenessLearner.is_active == True,
+        )
+    )
+    learners = learners_result.scalars().all()
+
+    enrolled = 0
+    skipped = 0
+    for learner in learners:
+        existing = (
+            await db.execute(
+                select(AwarenessEnrollment).where(
+                    AwarenessEnrollment.learner_id == learner.id,
+                    AwarenessEnrollment.program_id == program_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if existing:
+            skipped += 1
+            continue
+        enrollment = AwarenessEnrollment(
+            learner_id=learner.id,
+            program_id=program_id,
+            organization_id=org_id,
+            status="pending",
+        )
+        db.add(enrollment)
+        enrolled += 1
+
+        # Send magic-link invitation
+        try:
+            magic_result = await issue_magic_link(db, str(learner.email), org_id)
+            if magic_result:
+                _, raw_token = magic_result
+                login_url = f"{settings.FRONTEND_URL}/awareness/login?token={raw_token}"
+                send_awareness_magic_link(
+                    to_email=str(learner.email),
+                    first_name=learner.first_name,
+                    org_name=org.name,
+                    login_url=login_url,
+                )
+        except Exception:
+            pass
+
+    await db.commit()
+    return {"enrolled": enrolled, "skipped": skipped, "total": len(learners)}
+
+
 # ── CSV Import ─────────────────────────────────────────────────────────────────
 
 
@@ -384,6 +450,33 @@ async def verify_magic_link_token(
 # ══════════════════════════════════════════════════════════════════════════════
 
 # ── Programmes (public pour les learners authentifiés) ─────────────────────────
+
+
+@router.get("/admin/programs", response_model=list[AwarenessProgramOut])
+async def list_programs_admin(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[AwarenessProgramOut]:
+    """Liste les programmes actifs (accès consultant authentifié)."""
+    result = await db.execute(select(AwarenessProgram).where(AwarenessProgram.is_active == True))
+    programs = result.scalars().all()
+    out = []
+    for prog in programs:
+        mods = (
+            (
+                await db.execute(
+                    select(AwarenessModule)
+                    .where(AwarenessModule.program_id == prog.id, AwarenessModule.is_active == True)
+                    .order_by(AwarenessModule.position)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        prog_out = AwarenessProgramOut.model_validate(prog)
+        prog_out.modules = [AwarenessModuleOut.model_validate(m) for m in mods]
+        out.append(prog_out)
+    return out
 
 
 @router.get("/programs", response_model=list[AwarenessProgramOut])

@@ -14,6 +14,7 @@ import {
   AwarenessService,
   AwarenessOrganization,
   AwarenessLearner,
+  AwarenessProgram,
   CsvImportResult,
   OrgAdminDashboard,
   Nis2Report,
@@ -209,6 +210,37 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
                   </div>
                 }
               </div>
+
+              <!-- Enroll all to program -->
+              @if (programs().length > 0 && learners().length > 0) {
+                <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
+                  <h3 class="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">
+                    Inscrire tous les learners à un programme
+                  </h3>
+                  <div class="flex gap-3 flex-wrap items-center">
+                    <select
+                      class="flex-1 min-w-48 bg-gray-950 border border-gray-700 text-gray-300 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-cyan-500"
+                      [(ngModel)]="selectedProgramId"
+                    >
+                      <option [ngValue]="null" disabled>Choisir un programme</option>
+                      @for (prog of programs(); track prog.id) {
+                        <option [ngValue]="prog.id">{{ prog.title }}</option>
+                      }
+                    </select>
+                    <button
+                      mat-flat-button
+                      class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white !text-sm shrink-0"
+                      (click)="enrollAll()"
+                      [disabled]="!selectedProgramId || enrollingAll()"
+                    >
+                      @if (enrollingAll()) {
+                        <mat-spinner diameter="14" />
+                      }
+                      <mat-icon>group_add</mat-icon> Inscrire tous
+                    </button>
+                  </div>
+                </div>
+              }
 
               <!-- Learner list -->
               @if (learners().length === 0) {
@@ -473,11 +505,15 @@ export class AwarenessOrgDetailComponent implements OnInit {
   nis2 = signal<Nis2Report | null>(null);
   csvResult = signal<CsvImportResult | null>(null);
 
+  programs = signal<AwarenessProgram[]>([]);
+  selectedProgramId: number | null = null;
+
   loading = signal(true);
   loadingDash = signal(false);
   loadingNis2 = signal(false);
   addingLearner = signal(false);
   importingCsv = signal(false);
+  enrollingAll = signal(false);
 
   newEmail = '';
   newFirstName = '';
@@ -487,6 +523,7 @@ export class AwarenessOrgDetailComponent implements OnInit {
   ngOnInit() {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.orgId.set(id);
+    this.svc.listAdminPrograms().subscribe({ next: p => this.programs.set(p), error: () => {} });
     this.svc.getOrganization(id).subscribe({
       next: org => {
         this.org.set(org);
@@ -571,6 +608,26 @@ export class AwarenessOrgDetailComponent implements OnInit {
       error: () => {
         this.importingCsv.set(false);
         this.snack.open('Erreur import.', 'Fermer', { duration: 4000 });
+      },
+    });
+  }
+
+  enrollAll() {
+    if (!this.selectedProgramId) return;
+    this.enrollingAll.set(true);
+    this.svc.enrollAll(this.orgId(), this.selectedProgramId).subscribe({
+      next: r => {
+        this.enrollingAll.set(false);
+        this.snack.open(
+          `${r.enrolled} learner(s) inscrits, ${r.skipped} déjà inscrits. Invitations envoyées.`,
+          'OK',
+          { duration: 5000 }
+        );
+        this.selectedProgramId = null;
+      },
+      error: () => {
+        this.enrollingAll.set(false);
+        this.snack.open("Erreur lors de l'inscription.", 'Fermer', { duration: 4000 });
       },
     });
   }

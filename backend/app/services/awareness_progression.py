@@ -212,19 +212,22 @@ async def complete_module(
 
     # Award XP
     from app.services.awareness_gamification import award_xp, check_and_award_badges
+
     xp = module.xp_points
     if quiz_score is not None:
         if quiz_score == 100:
             xp += 10  # parfait bonus
         elif quiz_score >= module.quiz_passing_score:
-            xp += 5   # premier coup bonus (approximation — voir quiz_engine pour logique fine)
+            xp += 5  # premier coup bonus (approximation — voir quiz_engine pour logique fine)
     if enrollment.status == "completed":
         xp += 50  # programme entier bonus
     await award_xp(db, learner, enrollment, xp)
 
     # Check badges
     await check_and_award_badges(
-        db, learner, enrollment,
+        db,
+        learner,
+        enrollment,
         quiz_score=quiz_score,
         module_slug=module.slug,
     )
@@ -232,10 +235,45 @@ async def complete_module(
     await db.commit()
     await db.refresh(enrollment)
 
-    # Auto-issue certificate when enrollment completes
+    # Auto-issue certificate + send completion email when enrollment completes
     if enrollment.status == "completed":
         from app.services.awareness_certificate_service import issue_certificate
-        await issue_certificate(db, enrollment)
+
+        cert = await issue_certificate(db, enrollment)
+
+        try:
+            from app.core.config import settings
+            from app.models.awareness_organization import AwarenessOrganization
+            from app.models.awareness_program import AwarenessProgram
+            from app.services.email_service import send_awareness_completion
+
+            program = (
+                await db.execute(
+                    select(AwarenessProgram).where(AwarenessProgram.id == enrollment.program_id)
+                )
+            ).scalar_one_or_none()
+            org = (
+                await db.execute(
+                    select(AwarenessOrganization).where(
+                        AwarenessOrganization.id == learner.organization_id
+                    )
+                )
+            ).scalar_one_or_none()
+
+            if program and org and cert:
+                certificate_url = (
+                    f"{settings.FRONTEND_URL}/verify-certificate"
+                    f"/{cert.public_id}?token={cert.verification_token}"
+                )
+                send_awareness_completion(
+                    to_email=str(learner.email),
+                    first_name=learner.first_name,
+                    program_title=program.title,
+                    org_name=org.name,
+                    certificate_url=certificate_url,
+                )
+        except Exception:
+            pass  # Email failure must not block completion
 
     return enrollment
 

@@ -574,11 +574,39 @@ async def _run_awareness_at_risk_detection() -> None:
             f"across {len(rows)} organisations"
         )
 
-        # Log per-org for monitoring dashboards
+        # Log per-org for monitoring dashboards + notify org owners by email
+        from app.core.config import settings
+        from app.models.user import User
+        from app.services.email_service import send_awareness_at_risk_alert
+
         for row in rows:
-            logger.info(
-                f"[awareness] org_id={row.organization_id} at_risk={row.at_risk}"
-            )
+            logger.info(f"[awareness] org_id={row.organization_id} at_risk={row.at_risk}")
+            try:
+                org = (
+                    await db.execute(
+                        select(AwarenessOrganization).where(
+                            AwarenessOrganization.id == row.organization_id
+                        )
+                    )
+                ).scalar_one_or_none()
+                if org is None:
+                    continue
+                owner = (
+                    await db.execute(select(User).where(User.id == org.owner_user_id))
+                ).scalar_one_or_none()
+                if owner is None:
+                    continue
+                dashboard_url = f"{settings.FRONTEND_URL}/cyberscan/awareness/org/{org.id}"
+                send_awareness_at_risk_alert(
+                    to_email=str(owner.email),
+                    org_name=org.name,
+                    at_risk_count=row.at_risk,
+                    dashboard_url=dashboard_url,
+                )
+            except Exception as exc:
+                logger.warning(
+                    f"[awareness] at-risk email failed for org {row.organization_id}: {exc}"
+                )
 
 
 def stop_scheduler() -> None:

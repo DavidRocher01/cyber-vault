@@ -434,6 +434,20 @@ export class AwarenessService {
     return this.http.get<Badge[]>(`${API}/me/badges`, { headers: this._learnerHeaders() });
   }
 
+  listAdminPrograms(): Observable<AwarenessProgram[]> {
+    return this.http.get<AwarenessProgram[]>(`${API}/admin/programs`);
+  }
+
+  enrollAll(
+    orgId: number,
+    programId: number
+  ): Observable<{ enrolled: number; skipped: number; total: number }> {
+    return this.http.post<{ enrolled: number; skipped: number; total: number }>(
+      `${API}/organizations/${orgId}/enroll-all?program_id=${programId}`,
+      {}
+    );
+  }
+
   getLeaderboard(limit = 10): Observable<LeaderboardEntry[]> {
     return this.http.get<LeaderboardEntry[]>(`${API}/learner/leaderboard?limit=${limit}`, {
       headers: this._learnerHeaders(),
