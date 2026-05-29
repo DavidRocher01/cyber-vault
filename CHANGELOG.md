@@ -7,6 +7,50 @@ versionnage conforme à [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
+## [Unreleased]
+
+### Ajouté
+- **Infrastructure qualité** : `CLAUDE.md` (instructions Claude Code), `SECURITY.md` (modèle STRIDE, mesures, conformité), `Makefile` (commandes standardisées), ADRs (`docs/adr/`)
+- **Pre-commit** : ruff remplace black+isort, ajout gitleaks (détection secrets), mypy (typage strict), ESLint/Prettier frontend, conventional commits enforced
+- **Script qualité PDF** : `scripts/generate_quality_report.py` — couverture, complexité cyclomatique, audit sécurité, statistiques Git et code
+
+---
+
+## [0.9.0] — 2026-05-01
+
+### Ajouté
+- **Module RSSI Externalisé** : gestion complète des missions consultant B2B — CRUD clients, visites, actions correctives, livrables, upload S3, génération PDF, guard `rssiGuard`, toggle admin, profil consultant
+- **Staging Oracle Cloud** : `staging/docker-compose.yml` + Caddy reverse proxy + workflow `deploy-staging.yml` (ARM64 via QEMU/Buildx), instance Oracle A1.Flex Always Free
+
+### Modifié
+- Couverture de tests backend portée à 84%+ (1645 tests), seuil CI ajusté pour Python 3.12
+
+---
+
+## [0.8.0] — 2026-03-01
+
+### Ajouté
+- **Module Dark Web Dossier** : upload CSV, vérification HIBP/LeakCheck, scoring risk+severity, rescan, export CSV, monitoring mensuel, timeline, suite de tests complète
+- **Actions sécurité post-audit** : rotation secrets, migration vers ECS Secrets Manager, OIDC GitHub Actions (plus de clés AWS statiques), `ng update` Angular Material
+
+---
+
+## [0.7.0] — 2025-12-01
+
+### Ajouté
+- **Module ISO 27001** : auto-évaluation, scoring, export PDF
+- **Module PCA** : plan de continuité d'activité, export PDF
+- **Phishing simulation** : création de campagnes, templates personnalisables, rapport PDF
+- **Public scans** : endpoint sans authentification avec protection SSRF et rate limiting
+- **Waitlist API** : inscription avec rôle et entreprise, endpoint `/count`
+- **2FA TOTP** : QR code, validation, désactivation
+- **Code scans** : intégration GitHub/GitLab/Bitbucket avec token embed, background jobs
+
+### Modifié
+- Vault zero-knowledge migré vers chiffrement AES-256-GCM côté client (Web Crypto API)
+
+---
+
 ## [0.6.0] — 2025-04-13
 
 ### Ajouté

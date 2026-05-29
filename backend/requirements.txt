@@ -58,3 +58,6 @@ qrcode[pil]==7.4.2
 
 # Dev
 pre-commit==4.5.1
+ruff==0.4.9
+mypy==1.10.0
+sqlalchemy[mypy]==2.0.49
