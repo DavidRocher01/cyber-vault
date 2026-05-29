@@ -769,6 +769,110 @@
     </div>
   </section>
 
+  <!-- Sensibilisation NIS2 -->
+  <section class="px-8 py-20 bg-gray-900 border-t border-gray-800">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-14">
+        <span
+          class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-amber-400 mb-4"
+        >
+          <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">school</mat-icon>
+          Sensibilisation NIS2
+        </span>
+        <h2 class="text-3xl font-bold mb-3">Formez vos équipes à la cybersécurité</h2>
+        <p class="text-gray-400 max-w-2xl mx-auto text-sm leading-relaxed">
+          17 modules e-learning NIS2 Article 21, attestations PDF vérifiables et tableau de bord de
+          conformité. Simple, certifiant, prêt en 48h.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+        <!-- Feature columns -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div
+            class="rounded-2xl border border-amber-800/50 bg-amber-900/10 p-6 flex flex-col gap-3"
+          >
+            <mat-icon class="text-amber-400 !text-[1.5rem] !w-[1.5rem] !h-[1.5rem]"
+              >menu_book</mat-icon
+            >
+            <h3 class="font-bold text-sm">Formation</h3>
+            <ul class="flex flex-col gap-1.5 text-xs text-gray-400">
+              <li>17 modules NIS2 Art. 21</li>
+              <li>Quiz adaptatifs</li>
+              <li>~72 min de contenu</li>
+              <li>Magic-link sans MDP</li>
+            </ul>
+          </div>
+          <div
+            class="rounded-2xl border border-green-800/50 bg-green-900/10 p-6 flex flex-col gap-3"
+          >
+            <mat-icon class="text-green-400 !text-[1.5rem] !w-[1.5rem] !h-[1.5rem]"
+              >verified</mat-icon
+            >
+            <h3 class="font-bold text-sm">Attestations</h3>
+            <ul class="flex flex-col gap-1.5 text-xs text-gray-400">
+              <li>PDF auto-généré</li>
+              <li>QR code de vérification</li>
+              <li>Signature SHA-256</li>
+              <li>Validité 12 mois</li>
+            </ul>
+          </div>
+          <div class="rounded-2xl border border-cyan-800/50 bg-cyan-900/10 p-6 flex flex-col gap-3">
+            <mat-icon class="text-cyan-400 !text-[1.5rem] !w-[1.5rem] !h-[1.5rem]"
+              >bar_chart</mat-icon
+            >
+            <h3 class="font-bold text-sm">Pilotage</h3>
+            <ul class="flex flex-col gap-1.5 text-xs text-gray-400">
+              <li>Score de conformité</li>
+              <li>Alertes at-risk</li>
+              <li>Rapport PDF NIS2</li>
+              <li>Export CSV</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- CTA card -->
+        <div class="rounded-2xl border border-amber-700/40 bg-gray-800 p-8 flex flex-col gap-6">
+          <div
+            class="inline-flex items-center gap-2 bg-amber-900/30 text-amber-400 px-3 py-1 rounded-full text-xs font-medium border border-amber-800 self-start"
+          >
+            <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">shield</mat-icon>
+            Conforme NIS2 Article 21
+          </div>
+          <div>
+            <p class="text-gray-300 text-sm leading-relaxed mb-4">
+              La directive NIS2 impose la sensibilisation de l'ensemble du personnel à la
+              cybersécurité. Notre plateforme e-learning vous permet de répondre à cette obligation
+              avec un suivi individuel et des attestations infalsifiables.
+            </p>
+            <div class="flex items-baseline gap-1 mb-1">
+              <span class="text-3xl font-extrabold text-amber-400">49€</span>
+              <span class="text-gray-400 text-sm">/ mois HT · dès 10 learners</span>
+            </div>
+            <p class="text-xs text-gray-500">Essai gratuit 14 jours · Sans engagement</p>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <a
+              routerLink="/cyberscan/sensibilisation"
+              mat-flat-button
+              color="primary"
+              class="flex-1 text-center py-3 rounded-lg font-semibold text-sm"
+            >
+              Découvrir le module
+            </a>
+            <a
+              routerLink="/cyberscan/awareness-pricing"
+              mat-stroked-button
+              class="flex-1 text-center py-3 rounded-lg text-sm !border-gray-600 !text-gray-300"
+            >
+              Voir les tarifs
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- FAQ -->
   <section class="px-8 py-20 bg-gray-900 relative overflow-hidden">
     <!-- Decorative glow -->
@@ -1141,6 +1245,13 @@
           <mat-icon>calendar_today</mat-icon>
           Prendre rendez-vous
         </a>
+        <a
+          routerLink="/cyberscan/awareness-pricing"
+          class="inline-flex items-center justify-center gap-2 px-10 py-4 rounded-lg border border-amber-700/50 hover:border-amber-500 text-amber-400 font-semibold text-lg transition-all"
+        >
+          <mat-icon>school</mat-icon>
+          Formation NIS2
+        </a>
       </div>
       <p class="text-gray-500 text-sm mt-4">Appel découverte 30 min · Gratuit · Sans engagement</p>
     </div>
@@ -1178,6 +1289,11 @@
           >
           <a routerLink="/cyberscan/consultant" class="hover:text-cyan-400 transition-colors"
             >RSSI Externalisé</a
+          >
+          <a
+            routerLink="/cyberscan/awareness-pricing"
+            class="hover:text-amber-400 transition-colors"
+            >Formation NIS2</a
           >
           <a href="#audits" class="hover:text-cyan-400 transition-colors">Offres d'audit</a>
           <a href="#pricing" class="hover:text-cyan-400 transition-colors">Abonnements</a>

@@ -11,6 +11,10 @@ export const NEED_OPTIONS = [
   { value: 'audit-app', label: 'Audit App-Check — 725 € HT (SaaS, e-commerce)' },
   { value: 'pentest', label: 'Pentest léger — 1 900 € HT (données sensibles)' },
   { value: 'simulation-phishing', label: 'Simulation de phishing — à partir de 800 € HT' },
+  {
+    value: 'sensibilisation-nis2',
+    label: 'Formation NIS2 — Sensibilisation équipes (dès 49 €/mois)',
+  },
   { value: 'abonnement', label: 'Abonnement surveillance continue (~99–499 €/mois)' },
   { value: 'autre', label: 'Autre / Demande de devis' },
 ];

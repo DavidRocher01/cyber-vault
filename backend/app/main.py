@@ -13,7 +13,7 @@ import app.models  # noqa: F401 — register all models with Base.metadata
 from app.__version__ import __version__
 from app.api.v1.router import api_router
 from app.core.config import settings
-from app.core.database import get_db
+from app.core.database import AsyncSessionLocal, get_db
 from app.core.limiter import limiter
 from app.core.logging import setup_logging
 from app.services.scheduler import start_scheduler, stop_scheduler
