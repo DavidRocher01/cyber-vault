@@ -35,7 +35,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
     <div class="min-h-screen bg-gray-950 text-white p-4 md:p-8">
       <div class="max-w-5xl mx-auto">
         <!-- Header -->
-        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
           <div>
             <div class="flex items-center gap-3 mb-1">
               <h1
@@ -52,6 +52,33 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
             <p class="text-gray-500 text-sm">
               Gérez vos organisations clientes et pilotez la conformité
             </p>
+            <!-- Context chips -->
+            <div class="flex items-center gap-2 mt-3 flex-wrap">
+              <span
+                class="inline-flex items-center gap-1.5 text-xs text-gray-400 bg-gray-800/60 border border-gray-700/60 px-2.5 py-1 rounded-full"
+              >
+                <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem] text-cyan-400"
+                  >school</mat-icon
+                >
+                17 modules NIS2 Art. 21
+              </span>
+              <span
+                class="inline-flex items-center gap-1.5 text-xs text-gray-400 bg-gray-800/60 border border-gray-700/60 px-2.5 py-1 rounded-full"
+              >
+                <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem] text-green-400"
+                  >verified</mat-icon
+                >
+                Attestations PDF + QR
+              </span>
+              <span
+                class="inline-flex items-center gap-1.5 text-xs text-gray-400 bg-gray-800/60 border border-gray-700/60 px-2.5 py-1 rounded-full"
+              >
+                <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem] text-amber-400"
+                  >bar_chart</mat-icon
+                >
+                Suivi de conformité
+              </span>
+            </div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
             <a
@@ -122,91 +149,155 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
 
         <!-- Empty state -->
         @if (!loading() && orgs().length === 0) {
-          <div class="rounded-xl border border-gray-800 bg-gray-900/50 p-16 text-center">
-            <mat-icon class="!text-[4rem] !w-[4rem] !h-[4rem] text-gray-700 mb-3"
-              >business</mat-icon
+          <div
+            class="rounded-2xl border border-dashed border-gray-700 bg-gray-900/30 p-12 text-center"
+          >
+            <div
+              class="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mx-auto mb-5"
             >
-            <p class="text-gray-400 font-medium">Aucune organisation</p>
-            <p class="text-gray-600 text-sm mt-1">Créez une organisation pour commencer</p>
+              <mat-icon class="text-cyan-400 !text-[2rem] !w-[2rem] !h-[2rem]">domain_add</mat-icon>
+            </div>
+            <h3 class="text-white font-semibold text-lg mb-2">Créez votre première organisation</h3>
+            <p class="text-gray-400 text-sm mb-8 max-w-sm mx-auto leading-relaxed">
+              Invitez vos équipes, suivez leur progression NIS2 et générez des attestations
+              vérifiables en quelques minutes.
+            </p>
+
+            <!-- Steps -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 max-w-2xl mx-auto text-left">
+              @for (step of onboardingSteps; track step.label) {
+                <div class="rounded-xl border border-gray-800 bg-gray-900/60 p-4 flex gap-3">
+                  <div
+                    class="w-7 h-7 rounded-full bg-cyan-500/15 border border-cyan-600/30 flex items-center justify-center text-xs font-bold text-cyan-400 shrink-0"
+                  >
+                    {{ $index + 1 }}
+                  </div>
+                  <div>
+                    <p class="text-white text-sm font-medium">{{ step.label }}</p>
+                    <p class="text-gray-500 text-xs mt-0.5">{{ step.desc }}</p>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <button
+              mat-flat-button
+              class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white !px-6"
+              (click)="showCreate = true"
+            >
+              <mat-icon>add</mat-icon> Créer ma première organisation
+            </button>
           </div>
         }
 
         <!-- Org cards -->
-        <div class="flex flex-col gap-4">
-          @for (org of orgs(); track org.id) {
-            <div
-              class="rounded-xl border border-gray-800 bg-gray-900 p-5 hover:border-gray-700 transition-colors"
-            >
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div class="flex items-center gap-4 min-w-0">
-                  <div
-                    class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-blue-500/10 border border-blue-500/20"
-                  >
-                    <mat-icon class="text-blue-400 !text-[1.3rem]">business</mat-icon>
-                  </div>
-                  <div class="min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <h3 class="font-semibold text-white truncate">{{ org.name }}</h3>
-                      <span
-                        class="text-[0.65rem] font-semibold px-1.5 py-0.5 rounded-full border shrink-0"
-                        [class]="
-                          org.is_active
-                            ? 'text-green-400 bg-green-900/20 border-green-700/40'
-                            : 'text-gray-400 bg-gray-800/40 border-gray-700'
-                        "
-                      >
-                        {{ org.is_active ? 'Actif' : 'Inactif' }}
-                      </span>
-                    </div>
-                    <p class="text-gray-500 text-xs mt-0.5">
-                      {{ org.sector || 'Secteur non précisé' }}
-                    </p>
-                  </div>
-                </div>
+        @if (!loading() && orgs().length > 0) {
+          <!-- Summary bar -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <div class="rounded-xl border border-gray-800 bg-gray-900 p-4 text-center">
+              <p class="text-2xl font-bold text-white">{{ orgs().length }}</p>
+              <p class="text-xs text-gray-500 mt-0.5">
+                Organisation{{ orgs().length > 1 ? 's' : '' }}
+              </p>
+            </div>
+            <div class="rounded-xl border border-gray-800 bg-gray-900 p-4 text-center">
+              <p class="text-2xl font-bold text-white">{{ totalLearners() }}</p>
+              <p class="text-xs text-gray-500 mt-0.5">Learners actifs</p>
+            </div>
+            <div class="rounded-xl border border-gray-800 bg-gray-900 p-4 text-center">
+              <p class="text-2xl font-bold" [class]="completionColor(avgCompletion())">
+                {{ avgCompletion().toFixed(0) }}%
+              </p>
+              <p class="text-xs text-gray-500 mt-0.5">Complétion moy.</p>
+            </div>
+            <div class="rounded-xl border border-gray-800 bg-gray-900 p-4 text-center">
+              <p class="text-2xl font-bold text-cyan-400">17</p>
+              <p class="text-xs text-gray-500 mt-0.5">Modules NIS2</p>
+            </div>
+          </div>
 
-                <div class="flex items-center gap-6 shrink-0">
-                  <div class="text-center hidden sm:block">
-                    <p class="text-lg font-bold text-white">
-                      {{ org.learner_count ?? 0
-                      }}<span class="text-gray-600 text-sm font-normal"
-                        >/{{ org.max_learners }}</span
-                      >
-                    </p>
-                    <p class="text-[0.65rem] text-gray-500 uppercase tracking-wide">Learners</p>
-                  </div>
-                  <div class="text-center hidden sm:block">
-                    <p
-                      class="text-lg font-bold"
-                      [class]="completionColor(org.completion_rate ?? 0)"
+          <div class="flex flex-col gap-4">
+            @for (org of orgs(); track org.id) {
+              <div
+                class="rounded-xl border border-gray-800 bg-gray-900 p-5 hover:border-gray-700 transition-colors group"
+              >
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div class="flex items-center gap-4 min-w-0">
+                    <div
+                      class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-blue-500/10 border border-blue-500/20"
                     >
-                      {{ (org.completion_rate ?? 0).toFixed(0) }}%
-                    </p>
-                    <p class="text-[0.65rem] text-gray-500 uppercase tracking-wide">Complétion</p>
+                      <mat-icon class="text-blue-400 !text-[1.3rem]">business</mat-icon>
+                    </div>
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <h3 class="font-semibold text-white truncate">{{ org.name }}</h3>
+                        <span
+                          class="text-[0.65rem] font-semibold px-1.5 py-0.5 rounded-full border shrink-0"
+                          [class]="
+                            org.is_active
+                              ? 'text-green-400 bg-green-900/20 border-green-700/40'
+                              : 'text-gray-400 bg-gray-800/40 border-gray-700'
+                          "
+                          >{{ org.is_active ? 'Actif' : 'Inactif' }}</span
+                        >
+                      </div>
+                      <p class="text-gray-500 text-xs mt-0.5">
+                        {{ org.sector || 'Secteur non précisé' }}
+                      </p>
+                    </div>
                   </div>
-                  <div class="flex gap-2">
+
+                  <div class="flex items-center gap-5 shrink-0">
+                    <div class="text-center hidden sm:block">
+                      <p class="text-lg font-bold text-white">
+                        {{ org.learner_count ?? 0
+                        }}<span class="text-gray-600 text-sm font-normal"
+                          >/{{ org.max_learners }}</span
+                        >
+                      </p>
+                      <p class="text-[0.65rem] text-gray-500 uppercase tracking-wide">Learners</p>
+                    </div>
+                    <div class="text-center hidden sm:block">
+                      <p
+                        class="text-lg font-bold"
+                        [class]="completionColor(org.completion_rate ?? 0)"
+                      >
+                        {{ (org.completion_rate ?? 0).toFixed(0) }}%
+                      </p>
+                      <p class="text-[0.65rem] text-gray-500 uppercase tracking-wide">Complétion</p>
+                    </div>
                     <a
                       [routerLink]="['/cyberscan/awareness/org', org.id]"
-                      mat-stroked-button
-                      class="!rounded-lg !border-gray-600 !text-gray-300 !text-xs"
+                      mat-flat-button
+                      class="!rounded-lg !bg-gray-800 group-hover:!bg-gray-700 !text-gray-300 !text-xs transition-colors"
                     >
                       <mat-icon class="!text-[1rem]">people</mat-icon> Gérer
                     </a>
                   </div>
                 </div>
-              </div>
 
-              <div class="mt-4">
-                <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
-                  <div
-                    class="h-full rounded-full transition-all duration-500"
-                    [class]="completionBarColor(org.completion_rate ?? 0)"
-                    [style.width.%]="org.completion_rate ?? 0"
-                  ></div>
+                <!-- Progress bar -->
+                <div class="mt-4">
+                  <div class="flex justify-between items-center mb-1">
+                    <span class="text-[0.65rem] text-gray-600 uppercase tracking-wide"
+                      >Progression NIS2</span
+                    >
+                    <span class="text-[0.65rem]" [class]="completionColor(org.completion_rate ?? 0)"
+                      >{{ (org.completion_rate ?? 0).toFixed(0) }}%</span
+                    >
+                  </div>
+                  <div class="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                    <div
+                      class="h-full rounded-full transition-all duration-500"
+                      [class]="completionBarColor(org.completion_rate ?? 0)"
+                      [style.width.%]="org.completion_rate ?? 0"
+                    ></div>
+                  </div>
                 </div>
               </div>
-            </div>
-          }
-        </div>
+            }
+          </div>
+        }
       </div>
     </div>
   `,
@@ -222,6 +313,31 @@ export class AwarenessAdminComponent implements OnInit {
   newName = '';
   newSector = '';
   newMaxLearners = 10;
+
+  readonly onboardingSteps = [
+    {
+      label: 'Créer une organisation',
+      desc: 'Renseignez le nom, le secteur et le quota de learners.',
+    },
+    {
+      label: 'Inviter les learners',
+      desc: 'Import CSV ou ajout manuel, connexion par magic-link.',
+    },
+    {
+      label: 'Suivre la conformité',
+      desc: 'Tableau de bord, attestations PDF et score NIS2 en temps réel.',
+    },
+  ];
+
+  totalLearners() {
+    return this.orgs().reduce((s, o) => s + (o.learner_count ?? 0), 0);
+  }
+
+  avgCompletion() {
+    const list = this.orgs();
+    if (!list.length) return 0;
+    return list.reduce((s, o) => s + (o.completion_rate ?? 0), 0) / list.length;
+  }
 
   ngOnInit() {
     this.load();
