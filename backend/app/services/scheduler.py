@@ -524,7 +524,61 @@ def start_scheduler() -> None:
         id="darkweb_monitoring",
         replace_existing=True,
     )
+    # Awareness at-risk detection — nightly at 04:00 UTC
+    scheduler.add_job(
+        _run_awareness_at_risk_detection,
+        trigger=CronTrigger(hour=4, minute=0),
+        id="awareness_at_risk",
+        replace_existing=True,
+    )
     scheduler.start()
+
+
+async def _run_awareness_at_risk_detection() -> None:
+    """
+    Sprint 10 — Observabilité : détecte les learners à risque et log les métriques.
+    Critère : enrollment in_progress + last_activity > 14 jours + completion < 70%.
+    """
+    from datetime import timedelta
+
+    from sqlalchemy import func, select
+
+    from app.models.awareness_enrollment import AwarenessEnrollment
+    from app.models.awareness_learner import AwarenessLearner
+    from app.models.awareness_organization import AwarenessOrganization
+
+    _AT_RISK_DAYS = 14
+    cutoff = datetime.now(UTC) - timedelta(days=_AT_RISK_DAYS)
+
+    async with AsyncSessionLocal() as db:
+        # Count at-risk per organization
+        result = await db.execute(
+            select(
+                AwarenessLearner.organization_id,
+                func.count(func.distinct(AwarenessEnrollment.learner_id)).label("at_risk"),
+            )
+            .join(AwarenessEnrollment, AwarenessEnrollment.learner_id == AwarenessLearner.id)
+            .where(
+                AwarenessEnrollment.status == "in_progress",
+                AwarenessEnrollment.completion_pct < 70,
+                AwarenessEnrollment.last_activity_at < cutoff,
+            )
+            .group_by(AwarenessLearner.organization_id)
+        )
+        rows = result.all()
+        total_at_risk = sum(r.at_risk for r in rows)
+
+        # Log metrics
+        logger.info(
+            f"[awareness] at-risk detection: {total_at_risk} learners "
+            f"across {len(rows)} organisations"
+        )
+
+        # Log per-org for monitoring dashboards
+        for row in rows:
+            logger.info(
+                f"[awareness] org_id={row.organization_id} at_risk={row.at_risk}"
+            )
 
 
 def stop_scheduler() -> None:

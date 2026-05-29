@@ -753,3 +753,96 @@ async def org_admin_dashboard_endpoint(
     from app.services.awareness_dashboard import org_admin_dashboard
     data = await org_admin_dashboard(db, org_id)
     return OrgAdminDashboardOut(**data)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Sprint 8 — Rapport NIS2 compliance
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/organizations/{org_id}/nis2-report")
+async def get_nis2_report(
+    org_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Retourne les métriques NIS2 Article 21 en JSON."""
+    await _get_org_or_404(org_id, current_user, db)
+    from app.services.awareness_nis2_report import build_nis2_report
+    return await build_nis2_report(db, org_id)
+
+
+@router.get("/organizations/{org_id}/nis2-report/pdf")
+async def download_nis2_report_pdf(
+    org_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Génère et télécharge le rapport PDF NIS2."""
+    from fastapi.responses import Response
+    from app.services.awareness_nis2_report import (
+        build_nis2_report,
+        generate_nis2_report_pdf,
+    )
+    await _get_org_or_404(org_id, current_user, db)
+    data = await build_nis2_report(db, org_id)
+    pdf_bytes = generate_nis2_report_pdf(
+        data["org_name"], data["requirements"], data["global_score"],
+        data["metrics"], data["certificate_count"], data["generated_at"],
+    )
+    filename = f"rapport-nis2-{org_id}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Sprint 9 — Intégration phishing (webhook auto-enrôlement)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/internal/phishing-click", status_code=202)
+async def phishing_click_webhook(
+    learner_email: str,
+    organization_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Webhook interne déclenché quand un learner clique sur un lien de simulation phishing.
+    Auto-enrôle le learner dans le module de remédiation post-clic (bienveillant, 3 min).
+    Aucune authentification — appelé uniquement par le module phishing interne.
+    """
+    learner = (
+        await db.execute(
+            select(AwarenessLearner).where(
+                AwarenessLearner.email == learner_email,
+                AwarenessLearner.organization_id == organization_id,
+                AwarenessLearner.is_active == True,
+            )
+        )
+    ).scalar_one_or_none()
+
+    if learner is None:
+        return {"enrolled": False, "reason": "learner not found"}
+
+    # Find a remediation program (slug contains "remediation" or "post-clic")
+    from app.models.awareness_program import AwarenessProgram
+    remediation_prog = (
+        await db.execute(
+            select(AwarenessProgram).where(
+                AwarenessProgram.is_active == True,
+                AwarenessProgram.slug.contains("remediation"),
+            ).limit(1)
+        )
+    ).scalar_one_or_none()
+
+    if remediation_prog is None:
+        return {"enrolled": False, "reason": "no remediation program configured"}
+
+    from app.services.awareness_progression import enroll_learner
+    enrollment = await enroll_learner(db, learner, remediation_prog.id)
+    return {
+        "enrolled": True,
+        "enrollment_id": enrollment.id,
+        "program_title": remediation_prog.title,
+    }
