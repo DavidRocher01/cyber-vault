@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { cryptoGuard } from './core/guards/crypto.guard';
+import { awarenessLearnerGuard } from './core/guards/awareness-learner.guard';
 
 export const routes: Routes = [
   {
@@ -16,6 +17,34 @@ export const routes: Routes = [
     path: 'cyberscan',
     loadChildren: () =>
       import('./features/cyberscan/cyberscan.routes').then(m => m.CYBERSCAN_ROUTES),
+  },
+  // ── Awareness learner portal (magic-link auth) ──────────────────────────────
+  {
+    path: 'awareness/login',
+    loadComponent: () =>
+      import('./features/awareness-learner/awareness-login.component').then(m => m.AwarenessLoginComponent),
+    title: 'Connexion — Sensibilisation NIS2',
+  },
+  {
+    path: 'awareness',
+    loadComponent: () =>
+      import('./features/awareness-learner/awareness-learner.component').then(m => m.AwarenessLearnerComponent),
+    canActivate: [awarenessLearnerGuard],
+    title: 'Ma formation — NIS2',
+  },
+  {
+    path: 'awareness/module/:enrollmentId',
+    loadComponent: () =>
+      import('./features/awareness-module/awareness-module.component').then(m => m.AwarenessModuleComponent),
+    canActivate: [awarenessLearnerGuard],
+    title: 'Module — Sensibilisation NIS2',
+  },
+  // ── Public certificate verification ────────────────────────────────────────
+  {
+    path: 'verify-certificate/:publicId',
+    loadComponent: () =>
+      import('./features/verify-certificate/verify-certificate.component').then(m => m.VerifyCertificateComponent),
+    title: 'Vérification attestation — CyberScan',
   },
   { path: '', redirectTo: 'cyberscan', pathMatch: 'full' },
   {

@@ -86,6 +86,20 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Sensibilisation — CyberScan',
   },
   {
+    path: 'awareness',
+    loadComponent: () =>
+      import('./awareness-admin/awareness-admin.component').then(m => m.AwarenessAdminComponent),
+    canActivate: [authGuard],
+    title: 'Sensibilisation NIS2 — Admin',
+  },
+  {
+    path: 'awareness/org/:id',
+    loadComponent: () =>
+      import('./awareness-org-detail/awareness-org-detail.component').then(m => m.AwarenessOrgDetailComponent),
+    canActivate: [authGuard],
+    title: 'Organisation — Sensibilisation NIS2',
+  },
+  {
     path: 'pca',
     loadComponent: () => import('./pca/pca.component').then(m => m.PcaComponent),
     canActivate: [authGuard],
