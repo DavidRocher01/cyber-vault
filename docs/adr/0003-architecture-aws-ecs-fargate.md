@@ -1,6 +1,6 @@
 # ADR 0003 — Déploiement sur AWS ECS Fargate
 
-**Statut** : Accepté  
+**Statut** : Accepté
 **Date** : 2024-06
 
 ---

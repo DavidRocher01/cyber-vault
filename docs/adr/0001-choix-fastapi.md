@@ -1,6 +1,6 @@
 # ADR 0001 — Choix de FastAPI pour le backend
 
-**Statut** : Accepté  
+**Statut** : Accepté
 **Date** : 2024-01
 
 ---

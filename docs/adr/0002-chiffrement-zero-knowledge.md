@@ -1,6 +1,6 @@
 # ADR 0002 — Chiffrement zero-knowledge côté client
 
-**Statut** : Accepté  
+**Statut** : Accepté
 **Date** : 2024-01
 
 ---

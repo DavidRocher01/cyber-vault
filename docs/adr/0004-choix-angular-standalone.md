@@ -1,6 +1,6 @@
 # ADR 0004 — Angular 19 Standalone Components
 
-**Statut** : Accepté  
+**Statut** : Accepté
 **Date** : 2024-01
 
 ---
