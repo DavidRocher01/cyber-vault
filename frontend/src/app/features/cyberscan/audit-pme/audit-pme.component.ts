@@ -22,7 +22,7 @@ export const AUDIT_OFFERS = [
       'Réputation IP et blacklists',
       'Configuration DNS (SPF, DKIM, DMARC)',
       'Rapport PDF 8-12 pages',
-      'Plan d\'action sous 24 h',
+      "Plan d'action sous 24 h",
     ],
   },
   {
@@ -35,7 +35,7 @@ export const AUDIT_OFFERS = [
     badge: 'text-purple-300 bg-purple-900/40',
     popular: true,
     features: [
-      'Tout l\'Audit Flash +',
+      "Tout l'Audit Flash +",
       'Revue de code source (si accès)',
       'Tests API (SQLi, XSS, IDOR, CSRF)',
       'Gestion sessions / tokens JWT',
@@ -54,9 +54,9 @@ export const AUDIT_OFFERS = [
     color: 'border-red-600',
     badge: 'text-red-300 bg-red-900/40',
     features: [
-      'Tout l\'App-Check +',
-      'Tests d\'intrusion actifs',
-      'Proof of concept d\'exploitation',
+      "Tout l'App-Check +",
+      "Tests d'intrusion actifs",
+      "Proof of concept d'exploitation",
       'Escalade de privilèges',
       'Rapport technique + version dirigeant',
       'Présentation au COMEX si besoin',
@@ -70,7 +70,11 @@ export const AUDIT_SUBSCRIPTIONS = [
     price: '~99',
     icon: 'visibility',
     color: 'border-gray-600',
-    features: ['Scan hebdomadaire automatisé', 'Alerte immédiate nouveau risque', 'Rapport mensuel synthétique'],
+    features: [
+      'Scan hebdomadaire automatisé',
+      'Alerte immédiate nouveau risque',
+      'Rapport mensuel synthétique',
+    ],
   },
   {
     name: 'Sentinelle',
@@ -78,25 +82,56 @@ export const AUDIT_SUBSCRIPTIONS = [
     icon: 'shield',
     color: 'border-cyan-600',
     popular: true,
-    features: ['Scan quotidien', 'Rapport mensuel détaillé', 'Ligne directe en cas d\'incident', 'Veille CVE sur vos dépendances'],
+    features: [
+      'Scan quotidien',
+      'Rapport mensuel détaillé',
+      "Ligne directe en cas d'incident",
+      'Veille CVE sur vos dépendances',
+    ],
   },
   {
     name: 'Blindage 360',
     price: '~499',
     icon: 'security',
     color: 'border-purple-600',
-    features: ['Surveillance continue 24/7', 'Audit trimestriel', 'Revue de code mensuelle', 'Conseil stratégique RSSI externalisé'],
+    features: [
+      'Surveillance continue 24/7',
+      'Audit trimestriel',
+      'Revue de code mensuelle',
+      'Conseil stratégique RSSI externalisé',
+    ],
   },
 ];
 
 export const AUDIT_FAQS = [
-  { q: 'Combien de temps dure un audit Flash ?', a: 'Un audit Flash dure une demi-journée (environ 4 heures). Vous recevez le rapport PDF sous 24 h après la réalisation.' },
-  { q: 'Mes données sont-elles protégées pendant l\'audit ?', a: 'Oui. Un accord de confidentialité (NDA) est signé avant tout accès. Aucune donnée n\'est conservée après la mission.' },
-  { q: 'Dois-je être présent tout au long de l\'audit ?', a: 'Un appel de cadrage de 30 minutes suffit au départ pour définir le périmètre. Le reste est réalisé de façon autonome.' },
-  { q: 'Que se passe-t-il si vous trouvez des failles critiques ?', a: 'Vous êtes alerté dans la journée, avec une description claire de la faille, son niveau de risque, et les mesures correctives à appliquer en priorité.' },
-  { q: 'Proposez-vous de corriger les failles trouvées ?', a: 'La correction peut être réalisée par votre équipe grâce au plan d\'action fourni. Si vous souhaitez déléguer les corrections, un devis séparé peut être établi.' },
-  { q: 'Êtes-vous couvert par une assurance professionnelle ?', a: 'Oui, l\'activité est couverte par une assurance RC Pro adaptée aux prestations de cybersécurité et d\'audit.' },
-  { q: 'Est-ce compatible avec une exigence NIS2 ou ISO 27001 ?', a: 'L\'App-Check et le Pentest léger produisent des livrables compatibles avec les exigences de ces référentiels. Un accompagnement dédié est disponible.' },
+  {
+    q: 'Combien de temps dure un audit Flash ?',
+    a: 'Un audit Flash dure une demi-journée (environ 4 heures). Vous recevez le rapport PDF sous 24 h après la réalisation.',
+  },
+  {
+    q: "Mes données sont-elles protégées pendant l'audit ?",
+    a: "Oui. Un accord de confidentialité (NDA) est signé avant tout accès. Aucune donnée n'est conservée après la mission.",
+  },
+  {
+    q: "Dois-je être présent tout au long de l'audit ?",
+    a: 'Un appel de cadrage de 30 minutes suffit au départ pour définir le périmètre. Le reste est réalisé de façon autonome.',
+  },
+  {
+    q: 'Que se passe-t-il si vous trouvez des failles critiques ?',
+    a: 'Vous êtes alerté dans la journée, avec une description claire de la faille, son niveau de risque, et les mesures correctives à appliquer en priorité.',
+  },
+  {
+    q: 'Proposez-vous de corriger les failles trouvées ?',
+    a: "La correction peut être réalisée par votre équipe grâce au plan d'action fourni. Si vous souhaitez déléguer les corrections, un devis séparé peut être établi.",
+  },
+  {
+    q: 'Êtes-vous couvert par une assurance professionnelle ?',
+    a: "Oui, l'activité est couverte par une assurance RC Pro adaptée aux prestations de cybersécurité et d'audit.",
+  },
+  {
+    q: 'Est-ce compatible avec une exigence NIS2 ou ISO 27001 ?',
+    a: "L'App-Check et le Pentest léger produisent des livrables compatibles avec les exigences de ces référentiels. Un accompagnement dédié est disponible.",
+  },
 ];
 
 @Component({
@@ -123,10 +158,15 @@ export class AuditPmeComponent implements OnInit {
     this.titleService.setTitle('Audit cybersécurité PME — Flash, App-Check, Pentest | CyberScan');
     this.meta.updateTag({
       name: 'description',
-      content: 'Audit cybersécurité pour TPE/PME à partir de 245 € HT. Flash, App-Check, Pentest. Développeur full-stack ET auditeur : rapport PDF + plan d\'action sous 24 h. Zone Auvergne-Rhône-Alpes.',
+      content:
+        "Audit cybersécurité pour TPE/PME à partir de 245 € HT. Flash, App-Check, Pentest. Développeur full-stack ET auditeur : rapport PDF + plan d'action sous 24 h. Zone Auvergne-Rhône-Alpes.",
     });
     this.meta.updateTag({ property: 'og:title', content: 'Audit cybersécurité PME — CyberScan' });
-    this.meta.updateTag({ property: 'og:description', content: 'Audit de sécurité web pour TPE/PME à partir de 245 € HT. Rapport + plan d\'action concret sous 24 h.' });
+    this.meta.updateTag({
+      property: 'og:description',
+      content:
+        "Audit de sécurité web pour TPE/PME à partir de 245 € HT. Rapport + plan d'action concret sous 24 h.",
+    });
     this.meta.updateTag({ name: 'robots', content: 'index, follow' });
   }
 }

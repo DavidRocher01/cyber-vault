@@ -1,11 +1,10 @@
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
-from app.core.limiter import limiter
 from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,11 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import require_admin
+from app.core.limiter import limiter
 from app.core.security import create_refresh_token, hash_token, make_unsubscribe_token
 from app.core.ssrf import assert_no_ssrf
 from app.models.app_setting import AppSetting
-from app.models.newsletter_subscriber import NewsletterSubscriber
 from app.models.newsletter_schedule import NewsletterScheduleItem
+from app.models.newsletter_subscriber import NewsletterSubscriber
 from app.schemas.newsletter import (
     NewsletterContentIn,
     NewsletterContentOut,
@@ -67,7 +67,12 @@ router = APIRouter(prefix="/newsletter", tags=["newsletter"])
 
 # ── Public endpoints ───────────────────────────────────────────────────────────
 
-@router.post("/subscribe", response_model=NewsletterSubscribeOut, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/subscribe",
+    response_model=NewsletterSubscribeOut,
+    status_code=status.HTTP_201_CREATED,
+)
 @limiter.limit("5/minute")
 async def subscribe(
     request: Request,
@@ -87,14 +92,14 @@ async def subscribe(
         if not existing.confirmed_at:
             raw_token = create_refresh_token()
             existing.confirmation_token = hash_token(raw_token)
-            existing.subscribed_at = datetime.now(timezone.utc)
+            existing.subscribed_at = datetime.now(UTC)
             await db.commit()
             confirm_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/confirm?token={raw_token}"
             background_tasks.add_task(send_confirmation_email, existing.email, confirm_url)
             return NewsletterSubscribeOut(message="Un email de confirmation vous a été renvoyé.")
         # Was confirmed but unsubscribed — re-activate directly
         existing.is_active = True
-        existing.subscribed_at = datetime.now(timezone.utc)
+        existing.subscribed_at = datetime.now(UTC)
         await db.commit()
         unsubscribe_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?token={make_unsubscribe_token(existing.email)}"
         background_tasks.add_task(send_newsletter_welcome, existing.email, unsubscribe_url)
@@ -103,7 +108,7 @@ async def subscribe(
     raw_confirmation = create_refresh_token()
     subscriber = NewsletterSubscriber(
         email=payload.email,
-        subscribed_at=datetime.now(timezone.utc),
+        subscribed_at=datetime.now(UTC),
         is_active=False,
         confirmation_token=hash_token(raw_confirmation),
         unsubscribe_token=make_unsubscribe_token(payload.email),
@@ -114,7 +119,9 @@ async def subscribe(
     confirm_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/confirm?token={raw_confirmation}"
     background_tasks.add_task(send_confirmation_email, payload.email, confirm_url)
     logger.info(f"Newsletter subscription pending confirmation: subscriber_id={subscriber.id}")
-    return NewsletterSubscribeOut(message="Vérifiez votre boîte mail pour confirmer votre inscription !")
+    return NewsletterSubscribeOut(
+        message="Vérifiez votre boîte mail pour confirmer votre inscription !"
+    )
 
 
 @router.get("/confirm")
@@ -124,7 +131,9 @@ async def confirm(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(NewsletterSubscriber).where(NewsletterSubscriber.confirmation_token == hash_token(token))
+        select(NewsletterSubscriber).where(
+            NewsletterSubscriber.confirmation_token == hash_token(token)
+        )
     )
     subscriber = result.scalar_one_or_none()
     if not subscriber:
@@ -133,7 +142,7 @@ async def confirm(
             status_code=302,
         )
     subscriber.is_active = True
-    subscriber.confirmed_at = datetime.now(timezone.utc)
+    subscriber.confirmed_at = datetime.now(UTC)
     subscriber.confirmation_token = None
     await db.commit()
 
@@ -173,14 +182,23 @@ async def unsubscribe(
 
 # ── Admin endpoints ────────────────────────────────────────────────────────────
 
-@router.get("/admin/stats", response_model=NewsletterStatsOut, dependencies=[Depends(require_admin)])
+
+@router.get(
+    "/admin/stats",
+    response_model=NewsletterStatsOut,
+    dependencies=[Depends(require_admin)],
+)
 async def admin_stats(db: AsyncSession = Depends(get_db)):
     total_r = await db.execute(select(func.count()).select_from(NewsletterSubscriber))
     active_r = await db.execute(
-        select(func.count()).select_from(NewsletterSubscriber).where(NewsletterSubscriber.is_active == True)  # noqa: E712
+        select(func.count())
+        .select_from(NewsletterSubscriber)
+        .where(NewsletterSubscriber.is_active == True)  # noqa: E712
     )
     pending_r = await db.execute(
-        select(func.count()).select_from(NewsletterSubscriber).where(
+        select(func.count())
+        .select_from(NewsletterSubscriber)
+        .where(
             NewsletterSubscriber.is_active == False,  # noqa: E712
             NewsletterSubscriber.confirmation_token != None,  # noqa: E711
         )
@@ -192,7 +210,11 @@ async def admin_stats(db: AsyncSession = Depends(get_db)):
     )
 
 
-@router.get("/admin/subscribers", response_model=list[SubscriberOut], dependencies=[Depends(require_admin)])
+@router.get(
+    "/admin/subscribers",
+    response_model=list[SubscriberOut],
+    dependencies=[Depends(require_admin)],
+)
 async def admin_subscribers(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(NewsletterSubscriber).order_by(NewsletterSubscriber.subscribed_at.desc())
@@ -200,7 +222,11 @@ async def admin_subscribers(db: AsyncSession = Depends(get_db)):
     return result.scalars().all()
 
 
-@router.post("/admin/send-issue", response_model=SendIssueOut, dependencies=[Depends(require_admin)])
+@router.post(
+    "/admin/send-issue",
+    response_model=SendIssueOut,
+    dependencies=[Depends(require_admin)],
+)
 async def admin_send_issue(
     payload: SendIssueIn,
     background_tasks: BackgroundTasks,
@@ -227,10 +253,16 @@ async def admin_send_issue(
         )
         count += 1
     logger.info(f"Newsletter issue #{payload.edition} queued for {count} subscribers")
-    return SendIssueOut(sent=count, message=f"Édition #{payload.edition} envoyée à {count} abonné(s).")
+    return SendIssueOut(
+        sent=count, message=f"Édition #{payload.edition} envoyée à {count} abonné(s)."
+    )
 
 
-@router.post("/admin/send-from-schedule", response_model=SendIssueOut, dependencies=[Depends(require_admin)])
+@router.post(
+    "/admin/send-from-schedule",
+    response_model=SendIssueOut,
+    dependencies=[Depends(require_admin)],
+)
 async def admin_send_from_schedule(
     payload: SendFromScheduleIn,
     background_tasks: BackgroundTasks,
@@ -241,10 +273,19 @@ async def admin_send_from_schedule(
     )
     items = schedule_result.scalars().all()
     if not items:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Aucun article dans le planning.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Aucun article dans le planning.",
+        )
 
     articles = [
-        {"actu_title": it.actu_title, "actu_url": it.actu_url, "actu_source": it.actu_source, "reflex": it.reflex, "image_url": it.image_url}
+        {
+            "actu_title": it.actu_title,
+            "actu_url": it.actu_url,
+            "actu_source": it.actu_source,
+            "reflex": it.reflex,
+            "image_url": it.image_url,
+        }
         for it in items
     ]
 
@@ -255,14 +296,23 @@ async def admin_send_from_schedule(
     count = 0
     for sub in subscribers:
         unsubscribe_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?token={make_unsubscribe_token(sub.email)}"
-        background_tasks.add_task(send_newsletter_articles, sub.email, unsubscribe_url, payload.edition, articles)
+        background_tasks.add_task(
+            send_newsletter_articles,
+            sub.email,
+            unsubscribe_url,
+            payload.edition,
+            articles,
+        )
         count += 1
 
     logger.info(f"Newsletter articles issue #{payload.edition} queued for {count} subscribers")
-    return SendIssueOut(sent=count, message=f"Édition #{payload.edition} envoyée à {count} abonné(s).")
+    return SendIssueOut(
+        sent=count, message=f"Édition #{payload.edition} envoyée à {count} abonné(s)."
+    )
 
 
 # ── OG image scraper ──────────────────────────────────────────────────────────
+
 
 @router.get("/admin/og-image", dependencies=[Depends(require_admin)])
 async def fetch_og_image(url: str):
@@ -278,9 +328,17 @@ async def fetch_og_image(url: str):
                     resp = await c2.get(location, headers={"User-Agent": "Mozilla/5.0"})
             html = resp.text
             final_url = str(resp.url)
-        match = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
+        match = re.search(
+            r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']',
+            html,
+            re.IGNORECASE,
+        )
         if not match:
-            match = re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']', html, re.IGNORECASE)
+            match = re.search(
+                r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']',
+                html,
+                re.IGNORECASE,
+            )
         if not match:
             return {"image_url": None}
         image_url = match.group(1).strip()
@@ -289,6 +347,7 @@ async def fetch_og_image(url: str):
             image_url = "https:" + image_url
         elif image_url.startswith("/"):
             from urllib.parse import urlparse
+
             parsed = urlparse(final_url)
             image_url = f"{parsed.scheme}://{parsed.netloc}{image_url}"
         return {"image_url": image_url}
@@ -297,6 +356,7 @@ async def fetch_og_image(url: str):
 
 
 # ── Schedule endpoints ─────────────────────────────────────────────────────────
+
 
 @router.get("/schedule", response_model=list[ScheduleItemOut])
 async def get_schedule(db: AsyncSession = Depends(get_db)):
@@ -307,7 +367,11 @@ async def get_schedule(db: AsyncSession = Depends(get_db)):
     return result.scalars().all()
 
 
-@router.put("/admin/schedule", response_model=list[ScheduleItemOut], dependencies=[Depends(require_admin)])
+@router.put(
+    "/admin/schedule",
+    response_model=list[ScheduleItemOut],
+    dependencies=[Depends(require_admin)],
+)
 async def update_schedule(
     items: list[ScheduleItemIn],
     db: AsyncSession = Depends(get_db),
@@ -315,12 +379,18 @@ async def update_schedule(
     """Admin — replace the full schedule. Items must have unique positions 1-6.
     Articles must be less than 2 weeks old."""
     if len(items) == 0 or len(items) > 6:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="1 à 6 items requis")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="1 à 6 items requis",
+        )
     positions = [i.position for i in items]
     if len(positions) != len(set(positions)):
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Positions dupliquées")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Positions dupliquées",
+        )
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Delete existing
     existing = await db.execute(select(NewsletterScheduleItem))
@@ -350,7 +420,12 @@ async def update_schedule(
 
 # ── Newsletter content (editorial draft) ──────────────────────────────────────
 
-@router.get("/admin/content", response_model=NewsletterContentOut, dependencies=[Depends(require_admin)])
+
+@router.get(
+    "/admin/content",
+    response_model=NewsletterContentOut,
+    dependencies=[Depends(require_admin)],
+)
 async def get_newsletter_content(db: AsyncSession = Depends(get_db)):
     """Return the current newsletter editorial draft (flash/reflex/legal)."""
     setting = await db.get(AppSetting, NEWSLETTER_CONTENT_KEY)
@@ -363,7 +438,11 @@ async def get_newsletter_content(db: AsyncSession = Depends(get_db)):
         return _DEFAULT_CONTENT
 
 
-@router.put("/admin/content", response_model=NewsletterContentOut, dependencies=[Depends(require_admin)])
+@router.put(
+    "/admin/content",
+    response_model=NewsletterContentOut,
+    dependencies=[Depends(require_admin)],
+)
 async def update_newsletter_content(
     payload: NewsletterContentIn,
     db: AsyncSession = Depends(get_db),
@@ -371,7 +450,11 @@ async def update_newsletter_content(
     """Persist the newsletter editorial draft so the scheduler picks it up."""
     setting = await db.get(AppSetting, NEWSLETTER_CONTENT_KEY)
     if setting is None:
-        setting = AppSetting(key=NEWSLETTER_CONTENT_KEY, value_int=0, value_text=payload.model_dump_json())
+        setting = AppSetting(
+            key=NEWSLETTER_CONTENT_KEY,
+            value_int=0,
+            value_text=payload.model_dump_json(),
+        )
         db.add(setting)
     else:
         setting.value_text = payload.model_dump_json()

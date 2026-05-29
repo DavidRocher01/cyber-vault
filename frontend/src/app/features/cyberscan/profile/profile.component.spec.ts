@@ -40,9 +40,14 @@ function make(): ProfileComponent {
 // ── initials getter ────────────────────────────────────────────────────────────
 
 describe('ProfileComponent — initials', () => {
-  it('retourne les 2 premières lettres de l\'email en majuscules', () => {
+  it("retourne les 2 premières lettres de l'email en majuscules", () => {
     const comp = make();
-    (comp as any).profile = signal({ email: 'david@example.com', id: 1, is_active: true, totp_enabled: false });
+    (comp as any).profile = signal({
+      email: 'david@example.com',
+      id: 1,
+      is_active: true,
+      totp_enabled: false,
+    });
     expect(comp.initials).toBe('DA');
   });
 
@@ -53,7 +58,12 @@ describe('ProfileComponent — initials', () => {
 
   it('retourne les initiales en majuscules', () => {
     const comp = make();
-    (comp as any).profile = signal({ email: 'abc@test.com', id: 1, is_active: true, totp_enabled: false });
+    (comp as any).profile = signal({
+      email: 'abc@test.com',
+      id: 1,
+      is_active: true,
+      totp_enabled: false,
+    });
     expect(comp.initials).toBe(comp.initials.toUpperCase());
   });
 });
@@ -152,7 +162,11 @@ describe('ProfileComponent — updateEmail() guard', () => {
   it('ne soumet pas si le formulaire est invalide', () => {
     const comp = make();
     let called = false;
-    (comp as any).userService = { updateEmail: () => { called = true; } };
+    (comp as any).userService = {
+      updateEmail: () => {
+        called = true;
+      },
+    };
     comp.emailForm.controls.email.setValue('');
     comp.updateEmail();
     expect(called).toBe(false);
@@ -165,7 +179,11 @@ describe('ProfileComponent — updatePassword() guard', () => {
   it('ne soumet pas si le formulaire est invalide', () => {
     const comp = make();
     let called = false;
-    (comp as any).userService = { updatePassword: () => { called = true; } };
+    (comp as any).userService = {
+      updatePassword: () => {
+        called = true;
+      },
+    };
     comp.updatePassword();
     expect(called).toBe(false);
   });
@@ -177,7 +195,11 @@ describe('ProfileComponent — disable2FA() guard', () => {
   it('ne soumet pas si le mot de passe est vide', () => {
     const comp = make();
     let called = false;
-    (comp as any).userService = { disable2FA: () => { called = true; } };
+    (comp as any).userService = {
+      disable2FA: () => {
+        called = true;
+      },
+    };
     (comp as any).twoFaDisablePw = signal('');
     (comp as any).twoFaDisableCode = signal('123456');
     comp.disable2FA();
@@ -187,7 +209,11 @@ describe('ProfileComponent — disable2FA() guard', () => {
   it('ne soumet pas si le code a moins de 6 chiffres', () => {
     const comp = make();
     let called = false;
-    (comp as any).userService = { disable2FA: () => { called = true; } };
+    (comp as any).userService = {
+      disable2FA: () => {
+        called = true;
+      },
+    };
     (comp as any).twoFaDisablePw = signal('mypassword');
     (comp as any).twoFaDisableCode = signal('123');
     comp.disable2FA();
@@ -198,7 +224,7 @@ describe('ProfileComponent — disable2FA() guard', () => {
 // ── exportUrl ─────────────────────────────────────────────────────────────────
 
 describe('ProfileComponent — exportUrl()', () => {
-  it('retourne l\'URL d\'export', () => {
+  it("retourne l'URL d'export", () => {
     const comp = make();
     (comp as any).userService = { exportMyData: () => '/api/v1/users/me/export' };
     expect(comp.exportUrl()).toBe('/api/v1/users/me/export');
@@ -261,14 +287,24 @@ describe('ProfileComponent — saveNotifPrefs() guard', () => {
     const comp = make();
     (comp as any).notifPrefs = signal(null);
     let called = false;
-    (comp as any).userService = { updateNotificationPreferences: () => { called = true; return of(null); } };
+    (comp as any).userService = {
+      updateNotificationPreferences: () => {
+        called = true;
+        return of(null);
+      },
+    };
     comp.saveNotifPrefs();
     expect(called).toBe(false);
   });
 
   it('appelle updateNotificationPreferences avec les préférences courantes', () => {
     const comp = make();
-    const prefs = { notif_scan_done: false, notif_scan_critical: true, notif_url_scan_done: false, notif_code_scan_done: true };
+    const prefs = {
+      notif_scan_done: false,
+      notif_scan_critical: true,
+      notif_url_scan_done: false,
+      notif_code_scan_done: true,
+    };
     (comp as any).notifPrefs = signal(prefs);
     (comp as any).savingNotifs = signal(false);
     (comp as any).snack = { open: vi.fn() };

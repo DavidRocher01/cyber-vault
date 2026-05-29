@@ -172,19 +172,19 @@ describe('État du modal auth — transitions', () => {
     expect(s.show2fa).toBe(false);
   });
 
-  it('closeAuth ferme le modal et réinitialise l\'état 2FA', () => {
+  it("closeAuth ferme le modal et réinitialise l'état 2FA", () => {
     const s = closeAuth();
     expect(s.panel).toBe('closed');
     expect(s.show2fa).toBe(false);
   });
 
-  it('onRequires2fa bascule vers l\'étape 2FA', () => {
+  it("onRequires2fa bascule vers l'étape 2FA", () => {
     const s = onRequires2fa(openAuth('login'));
     expect(s.show2fa).toBe(true);
     expect(s.loading).toBe(false);
   });
 
-  it('cancelAuth2fa revient à l\'état de connexion sans erreur', () => {
+  it("cancelAuth2fa revient à l'état de connexion sans erreur", () => {
     const s2fa = onRequires2fa(openAuth('login'));
     const cancelled = cancelAuth2fa(s2fa);
     expect(cancelled.show2fa).toBe(false);

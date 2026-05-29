@@ -6,7 +6,7 @@ Covers: hash_password, verify_password, create_access_token,
 """
 
 import time
-import pytest
+
 from jose import jwt
 
 from app.core.config import settings
@@ -20,8 +20,8 @@ from app.core.security import (
     verify_password,
 )
 
-
 # ── hash_password / verify_password ─────────────────────────────────────────
+
 
 class TestPasswordHashing:
     def test_hash_is_not_plaintext(self):
@@ -52,6 +52,7 @@ class TestPasswordHashing:
 
 
 # ── create_access_token / decode_access_token ────────────────────────────────
+
 
 class TestAccessToken:
     def test_token_is_string(self):
@@ -89,6 +90,7 @@ class TestAccessToken:
 
 # ── hash_token (HMAC-SHA256) ──────────────────────────────────────────────────
 
+
 class TestHashToken:
     def test_output_is_64_hex_chars(self):
         h = hash_token("any-raw-token")
@@ -108,6 +110,7 @@ class TestHashToken:
     def test_hash_changes_with_secret_key(self):
         """HMAC-SHA256 output depends on the key — changing the key changes the hash."""
         from unittest.mock import patch
+
         h1 = hash_token("same-token")
         with patch("app.core.security.settings") as mock_settings:
             mock_settings.SECRET_KEY = "different-secret"
@@ -121,6 +124,7 @@ class TestHashToken:
 
 
 # ── create_refresh_token ─────────────────────────────────────────────────────
+
 
 class TestRefreshToken:
     def test_token_is_string(self):
@@ -136,6 +140,7 @@ class TestRefreshToken:
 
 
 # ── make_unsubscribe_token ───────────────────────────────────────────────────
+
 
 class TestMakeUnsubscribeToken:
     def test_output_is_64_hex_chars(self):
@@ -157,6 +162,7 @@ class TestMakeUnsubscribeToken:
 
     def test_changes_with_secret_key(self):
         from unittest.mock import patch
+
         t1 = make_unsubscribe_token("user@example.com")
         with patch("app.core.security.settings") as mock_settings:
             mock_settings.SECRET_KEY = "other-secret"

@@ -2,8 +2,10 @@
 Integration tests — /api/v1/admin/stats
 Covers: auth guard, response structure, data reflects DB state.
 """
+
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
@@ -18,6 +20,7 @@ def _admin_settings():
 
 
 # ── Auth guard ─────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_admin_stats_no_key_returns_403():
@@ -37,6 +40,7 @@ async def test_admin_stats_wrong_key_returns_403():
 
 # ── Response structure ─────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_admin_stats_valid_key_returns_200():
     with _admin_settings():
@@ -52,9 +56,15 @@ async def test_admin_stats_has_all_required_keys():
             r = await c.get(f"{BASE}/admin/stats", headers={"x-admin-key": "test-secret-key"})
     data = r.json()
     for key in (
-        "users_total", "active_subscriptions", "newsletter_subscribers",
-        "bookings_this_month", "new_contacts", "recent_contacts", "recent_bookings",
-        "weekly_activity", "revenue_per_month",
+        "users_total",
+        "active_subscriptions",
+        "newsletter_subscribers",
+        "bookings_this_month",
+        "new_contacts",
+        "recent_contacts",
+        "recent_bookings",
+        "weekly_activity",
+        "revenue_per_month",
     ):
         assert key in data, f"Missing key: {key}"
     assert isinstance(data["recent_contacts"], list)
@@ -95,9 +105,10 @@ async def test_admin_stats_revenue_per_month_has_6_buckets():
 async def test_admin_stats_weekly_activity_counts_new_user():
     with _admin_settings():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await c.post(f"{BASE}/auth/register", json={
-                "email": "weekly_user@test.com", "password": "StrongPass123!"
-            })
+            await c.post(
+                f"{BASE}/auth/register",
+                json={"email": "weekly_user@test.com", "password": "StrongPass123!"},
+            )
             r = await c.get(f"{BASE}/admin/stats", headers={"x-admin-key": "test-secret-key"})
     total_users = sum(b["users"] for b in r.json()["weekly_activity"])
     assert total_users == 1
@@ -120,9 +131,10 @@ async def test_admin_stats_empty_db_returns_zeros():
 async def test_admin_stats_counts_registered_user():
     with _admin_settings():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await c.post(f"{BASE}/auth/register", json={
-                "email": "stats_user@test.com", "password": "StrongPass123!"
-            })
+            await c.post(
+                f"{BASE}/auth/register",
+                json={"email": "stats_user@test.com", "password": "StrongPass123!"},
+            )
             r = await c.get(f"{BASE}/admin/stats", headers={"x-admin-key": "test-secret-key"})
     assert r.json()["users_total"] == 1
 
@@ -135,13 +147,21 @@ async def test_admin_stats_counts_new_contact_message():
         contact_settings.CONTACT_EMAIL = "admin@test.com"
         with patch("app.api.v1.endpoints.contact.settings", contact_settings):
             with patch("app.api.v1.endpoints.contact.send_contact_email"):
-                async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-                    await c.post(f"{BASE}/contact", json={
-                        "name": "Test User",
-                        "email": "test@example.com",
-                        "need_type": "audit-flash",
-                        "message": "Message de test assez long pour passer la validation.",
-                    })
-                    r = await c.get(f"{BASE}/admin/stats", headers={"x-admin-key": "test-secret-key"})
+                async with AsyncClient(
+                    transport=ASGITransport(app=app), base_url="http://test"
+                ) as c:
+                    await c.post(
+                        f"{BASE}/contact",
+                        json={
+                            "name": "Test User",
+                            "email": "test@example.com",
+                            "need_type": "audit-flash",
+                            "message": "Message de test assez long pour passer la validation.",
+                        },
+                    )
+                    r = await c.get(
+                        f"{BASE}/admin/stats",
+                        headers={"x-admin-key": "test-secret-key"},
+                    )
     assert r.json()["new_contacts"] == 1
     assert len(r.json()["recent_contacts"]) == 1

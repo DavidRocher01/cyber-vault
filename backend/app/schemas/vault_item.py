@@ -1,6 +1,5 @@
 from pydantic import BaseModel, Field
 
-
 VALID_CATEGORIES = {"login", "card", "note", "wifi", "other"}
 
 

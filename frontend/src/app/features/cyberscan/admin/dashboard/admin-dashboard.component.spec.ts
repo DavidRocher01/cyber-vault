@@ -65,7 +65,7 @@ describe('AdminDashboardComponent — barHeight()', () => {
   it('retourne 100 si value = max', () => expect(make().barHeight(50, 50)).toBe(100));
   it('retourne 50 pour moitié du max', () => expect(make().barHeight(25, 50)).toBe(50));
   it('retourne 0 si value = 0', () => expect(make().barHeight(0, 100)).toBe(0));
-  it('arrondit à l\'entier', () => expect(make().barHeight(1, 3)).toBe(33));
+  it("arrondit à l'entier", () => expect(make().barHeight(1, 3)).toBe(33));
 });
 
 describe('AdminDashboardComponent — formatEur()', () => {
@@ -80,12 +80,14 @@ describe('AdminDashboardComponent — formatEur()', () => {
 });
 
 describe('AdminDashboardComponent — needLabel()', () => {
-  it('Audit Flash pour audit-flash', () => expect(make().needLabel('audit-flash')).toBe('Audit Flash'));
+  it('Audit Flash pour audit-flash', () =>
+    expect(make().needLabel('audit-flash')).toBe('Audit Flash'));
   it('App-Check pour audit-app', () => expect(make().needLabel('audit-app')).toBe('App-Check'));
   it('Pentest pour pentest', () => expect(make().needLabel('pentest')).toBe('Pentest'));
   it('Abonnement pour abonnement', () => expect(make().needLabel('abonnement')).toBe('Abonnement'));
   it('Autre pour autre', () => expect(make().needLabel('autre')).toBe('Autre'));
-  it('valeur brute pour type inconnu', () => expect(make().needLabel('autre-type')).toBe('autre-type'));
+  it('valeur brute pour type inconnu', () =>
+    expect(make().needLabel('autre-type')).toBe('autre-type'));
 });
 
 describe('AdminDashboardComponent — formatDate()', () => {

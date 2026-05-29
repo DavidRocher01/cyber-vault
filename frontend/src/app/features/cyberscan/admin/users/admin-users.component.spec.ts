@@ -3,9 +3,13 @@ import { signal, computed } from '@angular/core';
 import { AdminUsersComponent } from './admin-users.component';
 
 interface AdminUser {
-  id: number; email: string; is_active: boolean;
-  plan: string; plan_name: string | null;
-  subscription_status: string | null; subscription_since: string | null;
+  id: number;
+  email: string;
+  is_active: boolean;
+  plan: string;
+  plan_name: string | null;
+  subscription_status: string | null;
+  subscription_since: string | null;
 }
 
 function make(): AdminUsersComponent {
@@ -31,9 +35,33 @@ function make(): AdminUsersComponent {
 }
 
 const USERS: AdminUser[] = [
-  { id: 1, email: 'alice@example.com', is_active: true, plan: 'Pro', plan_name: 'pro', subscription_status: 'active', subscription_since: '2024-01-01T00:00:00Z' },
-  { id: 2, email: 'bob@example.com', is_active: false, plan: 'Gratuit', plan_name: null, subscription_status: null, subscription_since: null },
-  { id: 3, email: 'carol@starter.io', is_active: true, plan: 'Starter', plan_name: 'starter', subscription_status: 'active', subscription_since: '2024-06-01T00:00:00Z' },
+  {
+    id: 1,
+    email: 'alice@example.com',
+    is_active: true,
+    plan: 'Pro',
+    plan_name: 'pro',
+    subscription_status: 'active',
+    subscription_since: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 2,
+    email: 'bob@example.com',
+    is_active: false,
+    plan: 'Gratuit',
+    plan_name: null,
+    subscription_status: null,
+    subscription_since: null,
+  },
+  {
+    id: 3,
+    email: 'carol@starter.io',
+    is_active: true,
+    plan: 'Starter',
+    plan_name: 'starter',
+    subscription_status: 'active',
+    subscription_since: '2024-06-01T00:00:00Z',
+  },
 ];
 
 // ── planColor ──────────────────────────────────────────────────────────────────
@@ -83,7 +111,15 @@ describe('AdminUsersComponent — planCounts()', () => {
   it('compte null plan_name comme free', () => {
     const comp = make();
     (comp as any).users.set([
-      { id: 1, email: 'x@x.com', is_active: true, plan: 'Gratuit', plan_name: null, subscription_status: null, subscription_since: null },
+      {
+        id: 1,
+        email: 'x@x.com',
+        is_active: true,
+        plan: 'Gratuit',
+        plan_name: null,
+        subscription_status: null,
+        subscription_since: null,
+      },
     ]);
     expect((comp as any).planCounts().free).toBe(1);
   });
@@ -136,7 +172,7 @@ describe('AdminUsersComponent — formatDate()', () => {
     expect(result).not.toBe('—');
   });
 
-  it('contient l\'année pour une date ISO valide', () => {
+  it("contient l'année pour une date ISO valide", () => {
     const comp = make();
     expect(comp.formatDate('2024-06-01T00:00:00Z')).toContain('2024');
   });

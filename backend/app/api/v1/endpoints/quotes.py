@@ -3,7 +3,8 @@ Public quote acceptance endpoints.
 POST /quotes/{token}/accept  — client accepts the quote
 POST /quotes/{token}/reject  — client rejects the quote
 """
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -28,7 +29,11 @@ async def accept_quote(token: str, db: AsyncSession = Depends(get_db)):
     quote = await _get_quote_by_token(token, db)
 
     if quote.status == "accepted":
-        return {"status": "accepted", "quote_number": quote.quote_number, "already": True}
+        return {
+            "status": "accepted",
+            "quote_number": quote.quote_number,
+            "already": True,
+        }
 
     if quote.status in ("rejected", "expired"):
         raise HTTPException(
@@ -37,7 +42,7 @@ async def accept_quote(token: str, db: AsyncSession = Depends(get_db)):
         )
 
     quote.status = "accepted"
-    quote.accepted_at = datetime.now(timezone.utc)
+    quote.accepted_at = datetime.now(UTC)
     await db.commit()
 
     return {"status": "accepted", "quote_number": quote.quote_number, "already": False}
@@ -48,7 +53,11 @@ async def reject_quote(token: str, db: AsyncSession = Depends(get_db)):
     quote = await _get_quote_by_token(token, db)
 
     if quote.status == "rejected":
-        return {"status": "rejected", "quote_number": quote.quote_number, "already": True}
+        return {
+            "status": "rejected",
+            "quote_number": quote.quote_number,
+            "already": True,
+        }
 
     if quote.status in ("accepted", "expired"):
         raise HTTPException(
@@ -57,7 +66,7 @@ async def reject_quote(token: str, db: AsyncSession = Depends(get_db)):
         )
 
     quote.status = "rejected"
-    quote.rejected_at = datetime.now(timezone.utc)
+    quote.rejected_at = datetime.now(UTC)
     await db.commit()
 
     return {"status": "rejected", "quote_number": quote.quote_number, "already": False}

@@ -4,8 +4,9 @@ Covers: list empty, list with items + unread count, mark one read,
         mark all read, delete, auth isolation, 404 on wrong user.
 """
 
-import pytest
 from datetime import datetime
+
+import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
@@ -22,6 +23,7 @@ async def _headers(client: AsyncClient, email: str) -> dict:
 
 async def _seed_notification(user_id: int, title: str = "Test", read: bool = False) -> int:
     from app.core.database import AsyncSessionLocal
+
     async with AsyncSessionLocal() as db:
         notif = Notification(
             user_id=user_id,
@@ -45,6 +47,7 @@ async def _get_user_id(client: AsyncClient, headers: dict) -> int:
 
 
 # ── GET /notifications ────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_list_notifications_empty():
@@ -92,6 +95,7 @@ async def test_list_notifications_isolation():
 
 # ── POST /notifications/{id}/read ─────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_mark_notification_read():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -135,6 +139,7 @@ async def test_mark_notification_read_unknown_returns_404():
 
 # ── POST /notifications/read-all ──────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_mark_all_read_returns_204():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -167,6 +172,7 @@ async def test_mark_all_read_unauthenticated_returns_403():
 
 
 # ── DELETE /notifications/{id} ────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_delete_notification_returns_204():

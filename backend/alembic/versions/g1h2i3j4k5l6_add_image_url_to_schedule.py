@@ -5,12 +5,13 @@ Revises: d2e3f4a5b6c7
 Create Date: 2026-04-19 00:00:00.000000
 
 """
-from typing import Union
+
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "g1h2i3j4k5l6"
-down_revision: Union[str, None] = "f0a1b2c3d4e5"
+down_revision: str | None = "f0a1b2c3d4e5"
 branch_labels = None
 depends_on = None
 

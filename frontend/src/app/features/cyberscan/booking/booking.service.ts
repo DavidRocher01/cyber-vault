@@ -4,8 +4,8 @@ import { Observable } from 'rxjs';
 
 export interface Slot {
   id: number;
-  date: string;    // YYYY-MM-DD
-  time: string;    // HH:MM
+  date: string; // YYYY-MM-DD
+  time: string; // HH:MM
   duration_minutes: number;
   label: string;
   is_booked: boolean;

@@ -4,13 +4,13 @@ Revision ID: t4u5v6w7x8y9
 Revises: s3t4u5v6w7x8
 Create Date: 2026-05-17
 """
-from typing import Union
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "t4u5v6w7x8y9"
-down_revision: Union[str, None] = "s3t4u5v6w7x8"
+down_revision: str | None = "s3t4u5v6w7x8"
 branch_labels = None
 depends_on = None
 

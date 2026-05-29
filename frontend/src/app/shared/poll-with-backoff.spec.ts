@@ -11,16 +11,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { of, lastValueFrom, firstValueFrom, toArray } from 'rxjs';
 import { pollWithBackoff } from './poll-with-backoff';
 
-beforeEach(() => { vi.useFakeTimers(); });
-afterEach(() => { vi.useRealTimers(); });
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('pollWithBackoff — comportement de base', () => {
-
   it('appelle le fetcher et émet sa valeur', async () => {
     const fetcher = vi.fn(() => of({ status: 'done' }));
-    const promise = firstValueFrom(
-      pollWithBackoff(fetcher, v => v.status === 'done', 100)
-    );
+    const promise = firstValueFrom(pollWithBackoff(fetcher, v => v.status === 'done', 100));
     // Avancer juste au-delà du premier tick (initialMs = 100)
     // runAllTimersAsync bouclerait à l'infini car schedule() se réappelle elle-même.
     await vi.advanceTimersByTimeAsync(100);
@@ -69,11 +70,13 @@ describe('pollWithBackoff — comportement de base', () => {
     const sub = pollWithBackoff(
       fetcher,
       () => false,
-      100,   // initialMs court pour le test
-      200,   // maxMs
+      100, // initialMs court pour le test
+      200 // maxMs
     ).subscribe({
       next: v => results.push(v),
-      complete: () => { completed = true; },
+      complete: () => {
+        completed = true;
+      },
     });
 
     // Avancer de 500ms — plusieurs ticks
@@ -83,11 +86,9 @@ describe('pollWithBackoff — comportement de base', () => {
     expect(completed).toBe(false);
     expect(results.length).toBeGreaterThan(0);
   });
-
 });
 
 describe('pollWithBackoff — backoff exponentiel', () => {
-
   it('démarre avec le délai initialMs', async () => {
     const fetcher = vi.fn(() => of({ status: 'pending' }));
     const sub = pollWithBackoff(fetcher, () => false, 1000, 10000).subscribe();
@@ -135,5 +136,4 @@ describe('pollWithBackoff — backoff exponentiel', () => {
 
     sub.unsubscribe();
   });
-
 });

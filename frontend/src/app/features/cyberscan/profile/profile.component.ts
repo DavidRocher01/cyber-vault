@@ -15,22 +15,46 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Title } from '@angular/platform-browser';
 
-import { UserService, UserProfile, TwoFactorSetup, NotificationPreferences, Badge } from '../services/user.service';
+import {
+  UserService,
+  UserProfile,
+  TwoFactorSetup,
+  NotificationPreferences,
+  Badge,
+} from '../services/user.service';
 import { BrandService, BrandProfile } from '../services/brand.service';
 import { RssiService, ConsultantProfile } from '../services/rssi.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { OtpInputComponent } from '../../../shared/otp-input/otp-input.component';
 
 @Component({
-    standalone: true,
-    selector: 'app-profile',
-    imports: [
-        CommonModule, ReactiveFormsModule, RouterLink,
-        MatButtonModule, MatCardModule, MatIconModule,
-        MatFormFieldModule, MatInputModule, MatSnackBarModule, MatDividerModule, MatProgressSpinnerModule, MatTooltipModule, MatSlideToggleModule, NavButtonsComponent, OtpInputComponent,
-    ],
-    templateUrl: './profile.component.html',
-    styles: [`.twofa-glow { background: radial-gradient(ellipse at 80% 0%, rgba(34,197,94,.4), transparent 60%); }`]
+  standalone: true,
+  selector: 'app-profile',
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    MatButtonModule,
+    MatCardModule,
+    MatIconModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSnackBarModule,
+    MatDividerModule,
+    MatProgressSpinnerModule,
+    MatTooltipModule,
+    MatSlideToggleModule,
+    NavButtonsComponent,
+    OtpInputComponent,
+  ],
+  templateUrl: './profile.component.html',
+  styles: [
+    `
+      .twofa-glow {
+        background: radial-gradient(ellipse at 80% 0%, rgba(34, 197, 94, 0.4), transparent 60%);
+      }
+    `,
+  ],
 })
 export class ProfileComponent implements OnInit {
   private userService = inject(UserService);
@@ -104,41 +128,59 @@ export class ProfileComponent implements OnInit {
 
   ngOnInit() {
     this.title.setTitle('Mon profil — CyberScan');
-    this.userService.getProfile().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: p => {
-        this.profile.set(p);
-        this.emailForm.patchValue({ email: p.email });
-        this.loading.set(false);
-      },
-      error: () => this.loading.set(false),
-    });
-    this.userService.getNotificationPreferences().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: prefs => this.notifPrefs.set(prefs),
-    });
-    this.userService.getBadges().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: b => this.badges.set(b),
-    });
-    this.brandService.get().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: brand => {
-        if (brand) {
-          this.brandForm.patchValue({ company_name: brand.company_name, accent_color: brand.accent_color });
-          if (brand.logo_b64) {
-            this._brandLogoB64 = brand.logo_b64;
-            this.brandLogoPreview.set(brand.logo_b64);
+    this.userService
+      .getProfile()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: p => {
+          this.profile.set(p);
+          this.emailForm.patchValue({ email: p.email });
+          this.loading.set(false);
+        },
+        error: () => this.loading.set(false),
+      });
+    this.userService
+      .getNotificationPreferences()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: prefs => this.notifPrefs.set(prefs),
+      });
+    this.userService
+      .getBadges()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: b => this.badges.set(b),
+      });
+    this.brandService
+      .get()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: brand => {
+          if (brand) {
+            this.brandForm.patchValue({
+              company_name: brand.company_name,
+              accent_color: brand.accent_color,
+            });
+            if (brand.logo_b64) {
+              this._brandLogoB64 = brand.logo_b64;
+              this.brandLogoPreview.set(brand.logo_b64);
+            }
           }
-        }
-      },
-    });
-    this.rssiService.getProfile().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: p => {
-        this.consultantProfile.set(p);
-        this.consultantForm.patchValue({
-          display_name: p.display_name ?? '',
-          company_name: p.company_name ?? '',
-          phone: p.phone ?? '',
-        });
-      },
-    });
+        },
+      });
+    this.rssiService
+      .getProfile()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: p => {
+          this.consultantProfile.set(p);
+          this.consultantForm.patchValue({
+            display_name: p.display_name ?? '',
+            company_name: p.company_name ?? '',
+            phone: p.phone ?? '',
+          });
+        },
+      });
   }
 
   toggleNotif(key: keyof NotificationPreferences) {
@@ -271,16 +313,18 @@ export class ProfileComponent implements OnInit {
     if (this.brandForm.invalid) return;
     this.savingBrand.set(true);
     const { company_name, accent_color } = this.brandForm.getRawValue();
-    this.brandService.upsert({ company_name, accent_color, logo_b64: this._brandLogoB64 }).subscribe({
-      next: () => {
-        this.savingBrand.set(false);
-        this.snack.open('Personnalisation enregistrée', 'OK', { duration: 3000 });
-      },
-      error: () => {
-        this.savingBrand.set(false);
-        this.snack.open('Erreur lors de la sauvegarde', 'Fermer', { duration: 4000 });
-      },
-    });
+    this.brandService
+      .upsert({ company_name, accent_color, logo_b64: this._brandLogoB64 })
+      .subscribe({
+        next: () => {
+          this.savingBrand.set(false);
+          this.snack.open('Personnalisation enregistrée', 'OK', { duration: 3000 });
+        },
+        error: () => {
+          this.savingBrand.set(false);
+          this.snack.open('Erreur lors de la sauvegarde', 'Fermer', { duration: 4000 });
+        },
+      });
   }
 
   // ── RSSI consultant profile ───────────────────────────────────────────────
@@ -296,7 +340,12 @@ export class ProfileComponent implements OnInit {
   saveConsultantProfile() {
     this.savingConsultant.set(true);
     const { display_name, company_name, phone } = this.consultantForm.getRawValue();
-    this.rssiService.updateProfile({ display_name: display_name || null, company_name: company_name || null, phone: phone || null })
+    this.rssiService
+      .updateProfile({
+        display_name: display_name || null,
+        company_name: company_name || null,
+        phone: phone || null,
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: p => {
@@ -340,7 +389,7 @@ export class ProfileComponent implements OnInit {
       },
       error: () => {
         this.exportingData.set(false);
-        this.snack.open('Erreur lors de l\'export', 'Fermer', { duration: 4000 });
+        this.snack.open("Erreur lors de l'export", 'Fermer', { duration: 4000 });
       },
     });
   }
@@ -355,7 +404,9 @@ export class ProfileComponent implements OnInit {
       },
       error: err => {
         this.deletingAccount.set(false);
-        this.snack.open(err.error?.detail || 'Mot de passe incorrect', 'Fermer', { duration: 4000 });
+        this.snack.open(err.error?.detail || 'Mot de passe incorrect', 'Fermer', {
+          duration: 4000,
+        });
       },
     });
   }

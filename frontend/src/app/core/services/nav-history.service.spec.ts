@@ -55,7 +55,7 @@ describe('NavHistoryService — navigation', () => {
     expect(service.canGoBack()).toBe(false);
   });
 
-  it('n\'ajoute pas la même URL deux fois de suite', () => {
+  it("n'ajoute pas la même URL deux fois de suite", () => {
     const { service, events$ } = makeService();
     navigate(events$, '/page-a');
     navigate(events$, '/page-a');
@@ -66,7 +66,7 @@ describe('NavHistoryService — navigation', () => {
 // ── back() ─────────────────────────────────────────────────────────────────────
 
 describe('NavHistoryService — back()', () => {
-  it('back() appelle router.navigateByUrl() avec l\'URL précédente', () => {
+  it("back() appelle router.navigateByUrl() avec l'URL précédente", () => {
     const { service, router, events$ } = makeService();
     navigate(events$, '/page-a');
     navigate(events$, '/page-b');
@@ -108,7 +108,7 @@ describe('NavHistoryService — forward()', () => {
     expect(router.navigateByUrl).not.toHaveBeenCalled();
   });
 
-  it('forward() appelle router.navigateByUrl() avec l\'URL suivante après un back()', async () => {
+  it("forward() appelle router.navigateByUrl() avec l'URL suivante après un back()", async () => {
     const { service, router, events$ } = makeService();
     navigate(events$, '/page-a');
     navigate(events$, '/page-b');

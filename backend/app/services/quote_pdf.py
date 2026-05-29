@@ -2,6 +2,7 @@
 Generate a professional PDF quote (devis).
 French auto-entrepreneur compliant: TVA non applicable, art. 293 B du CGI.
 """
+
 from __future__ import annotations
 
 import io
@@ -20,22 +21,22 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-NAVY   = colors.HexColor("#0f172a")
-CYAN   = colors.HexColor("#06b6d4")
-GRAY   = colors.HexColor("#64748b")
-LGRAY  = colors.HexColor("#f1f5f9")
+NAVY = colors.HexColor("#0f172a")
+CYAN = colors.HexColor("#06b6d4")
+GRAY = colors.HexColor("#64748b")
+LGRAY = colors.HexColor("#f1f5f9")
 BORDER = colors.HexColor("#cbd5e1")
-WHITE  = colors.white
-BLACK  = colors.HexColor("#1e293b")
+WHITE = colors.white
+BLACK = colors.HexColor("#1e293b")
 
 VENDOR = {
-    "name":    "David Rocher",
-    "status":  "Entrepreneur individuel",
+    "name": "David Rocher",
+    "status": "Entrepreneur individuel",
     "address": "546 Montée Carriat",
-    "city":    "01600 Reyrieux, France",
-    "siret":   "104 009 634 00015",
-    "ape":     "6202A",
-    "email":   "contact@cyberscanapp.com",
+    "city": "01600 Reyrieux, France",
+    "siret": "104 009 634 00015",
+    "ape": "6202A",
+    "email": "contact@cyberscanapp.com",
     "website": "cyberscanapp.com",
 }
 
@@ -61,8 +62,20 @@ def _fmt(cents: int) -> str:
 
 
 def _date(d: date) -> str:
-    m = ["janvier", "février", "mars", "avril", "mai", "juin",
-         "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
+    m = [
+        "janvier",
+        "février",
+        "mars",
+        "avril",
+        "mai",
+        "juin",
+        "juillet",
+        "août",
+        "septembre",
+        "octobre",
+        "novembre",
+        "décembre",
+    ]
     return f"{d.day} {m[d.month - 1]} {d.year}"
 
 
@@ -74,7 +87,7 @@ def generate_quote_pdf(
     client_email: str,
     client_address: str | None,
     subject: str,
-    items: list[dict],   # [{description, quantity, unit_price_cents}]
+    items: list[dict],  # [{description, quantity, unit_price_cents}]
     total_cents: int,
 ) -> bytes:
     buf = io.BytesIO()
@@ -84,50 +97,90 @@ def generate_quote_pdf(
     expiry_date = issue_date + timedelta(days=validity_days)
 
     doc = SimpleDocTemplate(
-        buf, pagesize=A4,
-        leftMargin=mg, rightMargin=mg,
-        topMargin=14 * mm, bottomMargin=16 * mm,
+        buf,
+        pagesize=A4,
+        leftMargin=mg,
+        rightMargin=mg,
+        topMargin=14 * mm,
+        bottomMargin=16 * mm,
     )
     s = []
     half = cw / 2 - 3 * mm
-    gap  = 6 * mm
+    gap = 6 * mm
 
     # ══════════════════════════════════════════════════════════════════════════
     # 1. HEADER — brand left / DEVIS box right
     # ══════════════════════════════════════════════════════════════════════════
-    brand_box = Table([[
-        _p("<b>CyberScan</b>",
-           fontSize=18, fontName="Helvetica-Bold", textColor=WHITE, leading=22),
-        _p("<font color='#06b6d4'>●</font>",
-           fontSize=24, fontName="Helvetica-Bold", textColor=CYAN, alignment=2),
-    ]], colWidths=[half * 0.7, half * 0.3])
-    brand_box.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, -1), NAVY),
-        ("TOPPADDING",    (0, 0), (-1, -1), 12),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 14),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 14),
-        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    brand_box = Table(
+        [
+            [
+                _p(
+                    "<b>CyberScan</b>",
+                    fontSize=18,
+                    fontName="Helvetica-Bold",
+                    textColor=WHITE,
+                    leading=22,
+                ),
+                _p(
+                    "<font color='#06b6d4'>●</font>",
+                    fontSize=24,
+                    fontName="Helvetica-Bold",
+                    textColor=CYAN,
+                    alignment=2,
+                ),
+            ]
+        ],
+        colWidths=[half * 0.7, half * 0.3],
+    )
+    brand_box.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), NAVY),
+                ("TOPPADDING", (0, 0), (-1, -1), 12),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+                ("LEFTPADDING", (0, 0), (-1, -1), 14),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 14),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ]
+        )
+    )
 
-    devis_box = Table([[
-        _p("<b>DEVIS</b>",
-           fontSize=20, fontName="Helvetica-Bold", textColor=NAVY, alignment=2),
-    ]], colWidths=[half])
-    devis_box.setStyle(TableStyle([
-        ("BOX",           (0, 0), (-1, -1), 1, NAVY),
-        ("TOPPADDING",    (0, 0), (-1, -1), 10),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
-    ]))
+    devis_box = Table(
+        [
+            [
+                _p(
+                    "<b>DEVIS</b>",
+                    fontSize=20,
+                    fontName="Helvetica-Bold",
+                    textColor=NAVY,
+                    alignment=2,
+                ),
+            ]
+        ],
+        colWidths=[half],
+    )
+    devis_box.setStyle(
+        TableStyle(
+            [
+                ("BOX", (0, 0), (-1, -1), 1, NAVY),
+                ("TOPPADDING", (0, 0), (-1, -1), 10),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+                ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+            ]
+        )
+    )
 
     top_row = Table([[brand_box, "", devis_box]], colWidths=[half, gap, half])
-    top_row.setStyle(TableStyle([
-        ("VALIGN",       (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING",  (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-    ]))
+    top_row.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
     s.append(top_row)
     s.append(Spacer(1, 4 * mm))
 
@@ -142,7 +195,10 @@ def generate_quote_pdf(
         f"SIRET : {VENDOR['siret']}<br/>"
         f"APE : {VENDOR['ape']}<br/>"
         f"{VENDOR['email']}",
-        fontSize=8.5, fontName="Helvetica", textColor=BLACK, leading=13,
+        fontSize=8.5,
+        fontName="Helvetica",
+        textColor=BLACK,
+        leading=13,
     )
 
     ref_info = _p(
@@ -151,17 +207,24 @@ def generate_quote_pdf(
         f"<font color='#64748b' size='8'>Valable jusqu'au :</font> "
         f"<b>{_date(expiry_date)}</b>"
         f"<font color='#64748b' size='7'> ({validity_days} jours)</font>",
-        fontSize=8.5, fontName="Helvetica", textColor=BLACK, leading=14,
+        fontSize=8.5,
+        fontName="Helvetica",
+        textColor=BLACK,
+        leading=14,
         alignment=2,
     )
 
     info_row = Table([[vendor_info, "", ref_info]], colWidths=[half, gap, half])
-    info_row.setStyle(TableStyle([
-        ("VALIGN",       (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING",  (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING",   (0, 0), (-1, -1), 5),
-    ]))
+    info_row.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ]
+        )
+    )
     s.append(info_row)
     s.append(Spacer(1, 6 * mm))
     s.append(HRFlowable(width=cw, thickness=0.6, color=BORDER, spaceAfter=5 * mm))
@@ -169,87 +232,159 @@ def generate_quote_pdf(
     # ══════════════════════════════════════════════════════════════════════════
     # 3. CLIENT ROW
     # ══════════════════════════════════════════════════════════════════════════
-    vendor_label = Table([[
-        _p(f"<b>{VENDOR['name']}</b>",
-           fontSize=10, fontName="Helvetica-Bold", textColor=NAVY),
-    ]], colWidths=[half])
-    vendor_label.setStyle(TableStyle([
-        ("LEFTPADDING",   (0, 0), (-1, -1), 0),
-        ("TOPPADDING",    (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-    ]))
+    vendor_label = Table(
+        [
+            [
+                _p(
+                    f"<b>{VENDOR['name']}</b>",
+                    fontSize=10,
+                    fontName="Helvetica-Bold",
+                    textColor=NAVY,
+                ),
+            ]
+        ],
+        colWidths=[half],
+    )
+    vendor_label.setStyle(
+        TableStyle(
+            [
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
 
     addr_lines = f"<b>{client_name}</b><br/>{client_email}"
     if client_address:
         addr_lines += f"<br/>{client_address}"
 
-    client_box = Table([[
-        _p(addr_lines,
-           fontSize=8.5, fontName="Helvetica", textColor=BLACK, leading=13),
-    ]], colWidths=[half])
-    client_box.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, -1), LGRAY),
-        ("BOX",           (0, 0), (-1, -1), 0.5, BORDER),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
-        ("TOPPADDING",    (0, 0), (-1, -1), 8),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-    ]))
+    client_box = Table(
+        [
+            [
+                _p(
+                    addr_lines,
+                    fontSize=8.5,
+                    fontName="Helvetica",
+                    textColor=BLACK,
+                    leading=13,
+                ),
+            ]
+        ],
+        colWidths=[half],
+    )
+    client_box.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), LGRAY),
+                ("BOX", (0, 0), (-1, -1), 0.5, BORDER),
+                ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                ("TOPPADDING", (0, 0), (-1, -1), 8),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ]
+        )
+    )
 
     client_row = Table([[vendor_label, "", client_box]], colWidths=[half, gap, half])
-    client_row.setStyle(TableStyle([
-        ("VALIGN",       (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING",  (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-    ]))
+    client_row.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
     s.append(client_row)
     s.append(Spacer(1, 5 * mm))
 
     # Subject line
-    s.append(_p(
-        f"<b>Objet :</b> {subject}",
-        fontSize=9, fontName="Helvetica", textColor=BLACK,
-    ))
+    s.append(
+        _p(
+            f"<b>Objet :</b> {subject}",
+            fontSize=9,
+            fontName="Helvetica",
+            textColor=BLACK,
+        )
+    )
     s.append(Spacer(1, 6 * mm))
 
     # ══════════════════════════════════════════════════════════════════════════
     # 4. ITEMS TABLE
     # ══════════════════════════════════════════════════════════════════════════
     col_desc = cw * 0.48
-    col_qty  = cw * 0.10
-    col_up   = cw * 0.21
-    col_tot  = cw * 0.21
+    col_qty = cw * 0.10
+    col_up = cw * 0.21
+    col_tot = cw * 0.21
 
     header_row = [
-        _p("Désignation",     fontSize=8, fontName="Helvetica-Bold", textColor=BLACK),
-        _p("Qté",             fontSize=8, fontName="Helvetica-Bold", textColor=BLACK, alignment=1),
-        _p("Prix unitaire HT", fontSize=8, fontName="Helvetica-Bold", textColor=BLACK, alignment=2),
-        _p("Total HT",        fontSize=8, fontName="Helvetica-Bold", textColor=BLACK, alignment=2),
+        _p("Désignation", fontSize=8, fontName="Helvetica-Bold", textColor=BLACK),
+        _p("Qté", fontSize=8, fontName="Helvetica-Bold", textColor=BLACK, alignment=1),
+        _p(
+            "Prix unitaire HT",
+            fontSize=8,
+            fontName="Helvetica-Bold",
+            textColor=BLACK,
+            alignment=2,
+        ),
+        _p(
+            "Total HT",
+            fontSize=8,
+            fontName="Helvetica-Bold",
+            textColor=BLACK,
+            alignment=2,
+        ),
     ]
 
     table_rows = [header_row]
     for item in items:
-        qty        = item.get("quantity", 1)
-        up_cents   = item.get("unit_price_cents", 0)
+        qty = item.get("quantity", 1)
+        up_cents = item.get("unit_price_cents", 0)
         line_total = qty * up_cents
-        table_rows.append([
-            _p(item.get("description", ""), fontSize=8.5, fontName="Helvetica",
-               textColor=BLACK, leading=12),
-            _p(str(qty), fontSize=8.5, fontName="Helvetica", textColor=BLACK, alignment=1),
-            _p(_fmt(up_cents),   fontSize=8.5, fontName="Helvetica", textColor=BLACK, alignment=2),
-            _p(_fmt(line_total), fontSize=8.5, fontName="Helvetica", textColor=BLACK, alignment=2),
-        ])
+        table_rows.append(
+            [
+                _p(
+                    item.get("description", ""),
+                    fontSize=8.5,
+                    fontName="Helvetica",
+                    textColor=BLACK,
+                    leading=12,
+                ),
+                _p(
+                    str(qty),
+                    fontSize=8.5,
+                    fontName="Helvetica",
+                    textColor=BLACK,
+                    alignment=1,
+                ),
+                _p(
+                    _fmt(up_cents),
+                    fontSize=8.5,
+                    fontName="Helvetica",
+                    textColor=BLACK,
+                    alignment=2,
+                ),
+                _p(
+                    _fmt(line_total),
+                    fontSize=8.5,
+                    fontName="Helvetica",
+                    textColor=BLACK,
+                    alignment=2,
+                ),
+            ]
+        )
 
     items_style = [
-        ("BACKGROUND",    (0, 0), (-1, 0),  LGRAY),
-        ("LINEBELOW",     (0, 0), (-1, 0),  1, NAVY),
-        ("BOX",           (0, 0), (-1, -1), 0.5, BORDER),
-        ("LINEBELOW",     (0, 1), (-1, -1), 0.4, BORDER),
-        ("TOPPADDING",    (0, 0), (-1, -1), 7),
+        ("BACKGROUND", (0, 0), (-1, 0), LGRAY),
+        ("LINEBELOW", (0, 0), (-1, 0), 1, NAVY),
+        ("BOX", (0, 0), (-1, -1), 0.5, BORDER),
+        ("LINEBELOW", (0, 1), (-1, -1), 0.4, BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 8),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 8),
-        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
     ]
     for i in range(1, len(table_rows)):
         if i % 2 == 0:
@@ -266,87 +401,164 @@ def generate_quote_pdf(
     tot_w = cw * 0.42
     spacer_w = cw - tot_w
 
-    totals_box = Table([
-        [_p("Total HT",          fontSize=9,   fontName="Helvetica-Bold",    textColor=NAVY),
-         _p(f"<b>{_fmt(total_cents)}</b>", fontSize=10, fontName="Helvetica-Bold",
-            textColor=NAVY, alignment=2)],
-        [_p("TVA non applicable", fontSize=7.5, fontName="Helvetica-Oblique", textColor=GRAY),
-         _p("art. 293 B du CGI",  fontSize=7.5, fontName="Helvetica-Oblique",
-            textColor=GRAY, alignment=2)],
-        [_p("Net à payer",        fontSize=9,   fontName="Helvetica-Bold",    textColor=NAVY),
-         _p(f"<b>{_fmt(total_cents)}</b>", fontSize=10, fontName="Helvetica-Bold",
-            textColor=NAVY, alignment=2)],
-    ], colWidths=[tot_w * 0.55, tot_w * 0.45])
-    totals_box.setStyle(TableStyle([
-        ("BOX",           (0, 0), (-1, -1), 0.5, BORDER),
-        ("LINEABOVE",     (0, 0), (-1, 0),  2,   CYAN),
-        ("LINEABOVE",     (0, 2), (-1, 2),  0.5, BORDER),
-        ("BACKGROUND",    (0, 0), (-1, 0),  LGRAY),
-        ("BACKGROUND",    (0, 2), (-1, 2),  LGRAY),
-        ("TOPPADDING",    (0, 0), (-1, -1), 7),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
-        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    totals_box = Table(
+        [
+            [
+                _p("Total HT", fontSize=9, fontName="Helvetica-Bold", textColor=NAVY),
+                _p(
+                    f"<b>{_fmt(total_cents)}</b>",
+                    fontSize=10,
+                    fontName="Helvetica-Bold",
+                    textColor=NAVY,
+                    alignment=2,
+                ),
+            ],
+            [
+                _p(
+                    "TVA non applicable",
+                    fontSize=7.5,
+                    fontName="Helvetica-Oblique",
+                    textColor=GRAY,
+                ),
+                _p(
+                    "art. 293 B du CGI",
+                    fontSize=7.5,
+                    fontName="Helvetica-Oblique",
+                    textColor=GRAY,
+                    alignment=2,
+                ),
+            ],
+            [
+                _p("Net à payer", fontSize=9, fontName="Helvetica-Bold", textColor=NAVY),
+                _p(
+                    f"<b>{_fmt(total_cents)}</b>",
+                    fontSize=10,
+                    fontName="Helvetica-Bold",
+                    textColor=NAVY,
+                    alignment=2,
+                ),
+            ],
+        ],
+        colWidths=[tot_w * 0.55, tot_w * 0.45],
+    )
+    totals_box.setStyle(
+        TableStyle(
+            [
+                ("BOX", (0, 0), (-1, -1), 0.5, BORDER),
+                ("LINEABOVE", (0, 0), (-1, 0), 2, CYAN),
+                ("LINEABOVE", (0, 2), (-1, 2), 0.5, BORDER),
+                ("BACKGROUND", (0, 0), (-1, 0), LGRAY),
+                ("BACKGROUND", (0, 2), (-1, 2), LGRAY),
+                ("TOPPADDING", (0, 0), (-1, -1), 7),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+                ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ]
+        )
+    )
 
     total_row = Table([[_p(""), totals_box]], colWidths=[spacer_w, tot_w])
-    total_row.setStyle(TableStyle([
-        ("LEFTPADDING",  (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("VALIGN",       (0, 0), (-1, -1), "TOP"),
-    ]))
+    total_row.setStyle(
+        TableStyle(
+            [
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ]
+        )
+    )
     s.append(total_row)
     s.append(Spacer(1, 6 * mm))
 
     # ══════════════════════════════════════════════════════════════════════════
     # 6. BON POUR ACCORD + SIGNATURE
     # ══════════════════════════════════════════════════════════════════════════
-    validity_box = Table([[
-        _p(
-            f"<font color='#64748b' size='7.5'>Devis valable jusqu'au :</font> "
-            f"<b>{_date(expiry_date)}</b>",
-            fontSize=8.5, fontName="Helvetica", textColor=BLACK,
-        ),
-    ]], colWidths=[half])
-    validity_box.setStyle(TableStyle([
-        ("BOX",           (0, 0), (-1, -1), 0.5, BORDER),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
-        ("TOPPADDING",    (0, 0), (-1, -1), 7),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-    ]))
+    validity_box = Table(
+        [
+            [
+                _p(
+                    f"<font color='#64748b' size='7.5'>Devis valable jusqu'au :</font> "
+                    f"<b>{_date(expiry_date)}</b>",
+                    fontSize=8.5,
+                    fontName="Helvetica",
+                    textColor=BLACK,
+                ),
+            ]
+        ],
+        colWidths=[half],
+    )
+    validity_box.setStyle(
+        TableStyle(
+            [
+                ("BOX", (0, 0), (-1, -1), 0.5, BORDER),
+                ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                ("TOPPADDING", (0, 0), (-1, -1), 7),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+            ]
+        )
+    )
 
-    bpa_box = Table([
-        [_p("<b>Bon pour accord</b>",
-            fontSize=8.5, fontName="Helvetica-Bold", textColor=NAVY)],
-        [_p(f"<font color='#64748b' size='7.5'>Fait à ____________, le ____________</font>",
-            fontSize=8, fontName="Helvetica", textColor=GRAY)],
-        [_p("<font color='#64748b' size='7'>Nom, prénom et signature du client :</font>",
-            fontSize=7.5, fontName="Helvetica", textColor=GRAY)],
-        [_p("", fontSize=8)],
-    ], colWidths=[half])
-    bpa_box.setStyle(TableStyle([
-        ("BOX",           (0, 0), (-1, -1), 1, NAVY),
-        ("LINEABOVE",     (0, 0), (-1, 0),  2, CYAN),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
-        ("TOPPADDING",    (0, 0), (0, 0),   8),
-        ("BOTTOMPADDING", (0, 0), (0, 0),   4),
-        ("TOPPADDING",    (0, 1), (0, 1),   4),
-        ("BOTTOMPADDING", (0, 1), (0, 1),   2),
-        ("TOPPADDING",    (0, 2), (0, 2),   4),
-        ("BOTTOMPADDING", (0, 2), (0, 2),   0),
-        ("TOPPADDING",    (0, 3), (0, 3),   30),
-        ("BOTTOMPADDING", (0, 3), (0, 3),   8),
-    ]))
+    bpa_box = Table(
+        [
+            [
+                _p(
+                    "<b>Bon pour accord</b>",
+                    fontSize=8.5,
+                    fontName="Helvetica-Bold",
+                    textColor=NAVY,
+                )
+            ],
+            [
+                _p(
+                    "<font color='#64748b' size='7.5'>Fait à ____________, le ____________</font>",
+                    fontSize=8,
+                    fontName="Helvetica",
+                    textColor=GRAY,
+                )
+            ],
+            [
+                _p(
+                    "<font color='#64748b' size='7'>Nom, prénom et signature du client :</font>",
+                    fontSize=7.5,
+                    fontName="Helvetica",
+                    textColor=GRAY,
+                )
+            ],
+            [_p("", fontSize=8)],
+        ],
+        colWidths=[half],
+    )
+    bpa_box.setStyle(
+        TableStyle(
+            [
+                ("BOX", (0, 0), (-1, -1), 1, NAVY),
+                ("LINEABOVE", (0, 0), (-1, 0), 2, CYAN),
+                ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                ("TOPPADDING", (0, 0), (0, 0), 8),
+                ("BOTTOMPADDING", (0, 0), (0, 0), 4),
+                ("TOPPADDING", (0, 1), (0, 1), 4),
+                ("BOTTOMPADDING", (0, 1), (0, 1), 2),
+                ("TOPPADDING", (0, 2), (0, 2), 4),
+                ("BOTTOMPADDING", (0, 2), (0, 2), 0),
+                ("TOPPADDING", (0, 3), (0, 3), 30),
+                ("BOTTOMPADDING", (0, 3), (0, 3), 8),
+            ]
+        )
+    )
 
     bpa_row = Table([[validity_box, "", bpa_box]], colWidths=[half, gap, half])
-    bpa_row.setStyle(TableStyle([
-        ("VALIGN",       (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING",  (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-    ]))
+    bpa_row.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
     s.append(bpa_row)
     s.append(Spacer(1, 8 * mm))
 
@@ -354,16 +566,28 @@ def generate_quote_pdf(
     # 7. FOOTER — CGV + legal
     # ══════════════════════════════════════════════════════════════════════════
     s.append(HRFlowable(width=cw, thickness=0.5, color=BORDER, spaceAfter=3 * mm))
-    s.append(_p(
-        f"{VENDOR['name']} — SIRET {VENDOR['siret']} — APE {VENDOR['ape']} — "
-        f"{VENDOR['email']} — {VENDOR['website']}",
-        fontSize=7, fontName="Helvetica", textColor=GRAY, alignment=1, leading=10,
-    ))
-    s.append(_p(
-        CGV,
-        fontSize=6.5, fontName="Helvetica", textColor=GRAY, alignment=1,
-        leading=9, spaceBefore=3,
-    ))
+    s.append(
+        _p(
+            f"{VENDOR['name']} — SIRET {VENDOR['siret']} — APE {VENDOR['ape']} — "
+            f"{VENDOR['email']} — {VENDOR['website']}",
+            fontSize=7,
+            fontName="Helvetica",
+            textColor=GRAY,
+            alignment=1,
+            leading=10,
+        )
+    )
+    s.append(
+        _p(
+            CGV,
+            fontSize=6.5,
+            fontName="Helvetica",
+            textColor=GRAY,
+            alignment=1,
+            leading=9,
+            spaceBefore=3,
+        )
+    )
 
     doc.build(s)
     return buf.getvalue()

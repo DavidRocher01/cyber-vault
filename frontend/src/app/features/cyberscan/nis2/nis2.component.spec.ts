@@ -20,18 +20,18 @@ function make(): Nis2Component {
   const c = Object.create(Nis2Component.prototype) as Nis2Component;
 
   // Signals d'état
-  (c as any).loading    = signal(false);
-  (c as any).saving     = signal(false);
-  (c as any).exporting  = signal(false);
-  (c as any).score      = signal(0);
-  (c as any).updatedAt  = signal<string | null>(null);
+  (c as any).loading = signal(false);
+  (c as any).saving = signal(false);
+  (c as any).exporting = signal(false);
+  (c as any).score = signal(0);
+  (c as any).updatedAt = signal<string | null>(null);
 
   // Données
   (c as any).categories = signal<Nis2Category[]>([]);
-  (c as any).items      = signal<Record<string, Nis2Status>>({});
+  (c as any).items = signal<Record<string, Nis2Status>>({});
 
   // Constantes
-  (c as any).CYCLE       = ['non_compliant', 'partial', 'compliant', 'na'];
+  (c as any).CYCLE = ['non_compliant', 'partial', 'compliant', 'na'];
   (c as any).STATUS_LIST = ['compliant', 'partial', 'non_compliant', 'na'];
 
   // Computed signals (reproduit la logique du composant)
@@ -41,17 +41,17 @@ function make(): Nis2Component {
   (c as any).totalItems = computed(() =>
     (c as any).categories().reduce((s: number, cat: Nis2Category) => s + cat.items.length, 0)
   );
-  (c as any).compliantCount = computed(() =>
-    (c as any).allItemIds().filter((id: string) => c.getStatus(id) === 'compliant').length
+  (c as any).compliantCount = computed(
+    () => (c as any).allItemIds().filter((id: string) => c.getStatus(id) === 'compliant').length
   );
-  (c as any).partialCount = computed(() =>
-    (c as any).allItemIds().filter((id: string) => c.getStatus(id) === 'partial').length
+  (c as any).partialCount = computed(
+    () => (c as any).allItemIds().filter((id: string) => c.getStatus(id) === 'partial').length
   );
-  (c as any).ncCount = computed(() =>
-    (c as any).allItemIds().filter((id: string) => c.getStatus(id) === 'non_compliant').length
+  (c as any).ncCount = computed(
+    () => (c as any).allItemIds().filter((id: string) => c.getStatus(id) === 'non_compliant').length
   );
-  (c as any).naCount = computed(() =>
-    (c as any).allItemIds().filter((id: string) => c.getStatus(id) === 'na').length
+  (c as any).naCount = computed(
+    () => (c as any).allItemIds().filter((id: string) => c.getStatus(id) === 'na').length
   );
 
   return c;
@@ -64,9 +64,9 @@ function makeCat(id: string, itemCount: number): Nis2Category {
     label: `Cat ${id}`,
     icon: 'shield',
     items: Array.from({ length: itemCount }, (_, i) => ({
-      id:    `${id}_item${i}`,
+      id: `${id}_item${i}`,
       label: `Item ${i}`,
-      desc:  `Desc ${i}`,
+      desc: `Desc ${i}`,
     })),
   };
 }
@@ -79,89 +79,84 @@ function makeWithCats(...counts: number[]): Nis2Component {
   return c;
 }
 
-
 // ── statusLabel() ─────────────────────────────────────────────────────────────
 
 describe('statusLabel()', () => {
   const c = make();
-  it('compliant → Conforme',        () => expect(c.statusLabel('compliant')).toBe('Conforme'));
-  it('partial → Partiel',           () => expect(c.statusLabel('partial')).toBe('Partiel'));
-  it('non_compliant → Non conforme',() => expect(c.statusLabel('non_compliant')).toBe('Non conforme'));
-  it('na → N/A',                    () => expect(c.statusLabel('na')).toBe('N/A'));
-  it('inconnu → valeur brute',      () => expect(c.statusLabel('foo')).toBe('foo'));
+  it('compliant → Conforme', () => expect(c.statusLabel('compliant')).toBe('Conforme'));
+  it('partial → Partiel', () => expect(c.statusLabel('partial')).toBe('Partiel'));
+  it('non_compliant → Non conforme', () =>
+    expect(c.statusLabel('non_compliant')).toBe('Non conforme'));
+  it('na → N/A', () => expect(c.statusLabel('na')).toBe('N/A'));
+  it('inconnu → valeur brute', () => expect(c.statusLabel('foo')).toBe('foo'));
 });
-
 
 // ── statusIcon() ──────────────────────────────────────────────────────────────
 
 describe('statusIcon()', () => {
   const c = make();
-  it('compliant → check_circle',           () => expect(c.statusIcon('compliant')).toBe('check_circle'));
-  it('partial → pending',                  () => expect(c.statusIcon('partial')).toBe('pending'));
-  it('non_compliant → cancel',             () => expect(c.statusIcon('non_compliant')).toBe('cancel'));
-  it('na → remove_circle_outline',         () => expect(c.statusIcon('na')).toBe('remove_circle_outline'));
-  it('inconnu → help_outline',             () => expect(c.statusIcon('?')).toBe('help_outline'));
+  it('compliant → check_circle', () => expect(c.statusIcon('compliant')).toBe('check_circle'));
+  it('partial → pending', () => expect(c.statusIcon('partial')).toBe('pending'));
+  it('non_compliant → cancel', () => expect(c.statusIcon('non_compliant')).toBe('cancel'));
+  it('na → remove_circle_outline', () => expect(c.statusIcon('na')).toBe('remove_circle_outline'));
+  it('inconnu → help_outline', () => expect(c.statusIcon('?')).toBe('help_outline'));
 });
-
 
 // ── statusClass() ─────────────────────────────────────────────────────────────
 
 describe('statusClass()', () => {
   const c = make();
-  it('compliant contient green',     () => expect(c.statusClass('compliant')).toContain('green'));
-  it('partial contient yellow',      () => expect(c.statusClass('partial')).toContain('yellow'));
-  it('non_compliant contient red',   () => expect(c.statusClass('non_compliant')).toContain('red'));
-  it('na contient gray',             () => expect(c.statusClass('na')).toContain('gray'));
-  it('inconnu → fallback gray',      () => expect(c.statusClass('?')).toContain('gray'));
+  it('compliant contient green', () => expect(c.statusClass('compliant')).toContain('green'));
+  it('partial contient yellow', () => expect(c.statusClass('partial')).toContain('yellow'));
+  it('non_compliant contient red', () => expect(c.statusClass('non_compliant')).toContain('red'));
+  it('na contient gray', () => expect(c.statusClass('na')).toContain('gray'));
+  it('inconnu → fallback gray', () => expect(c.statusClass('?')).toContain('gray'));
 });
-
 
 // ── statusColor() ─────────────────────────────────────────────────────────────
 
 describe('statusColor()', () => {
   const c = make();
-  it('compliant → #4ade80',      () => expect(c.statusColor('compliant')).toBe('#4ade80'));
-  it('partial → #facc15',        () => expect(c.statusColor('partial')).toBe('#facc15'));
-  it('non_compliant → #f87171',  () => expect(c.statusColor('non_compliant')).toBe('#f87171'));
-  it('na → #6b7280',             () => expect(c.statusColor('na')).toBe('#6b7280'));
-  it('inconnu → #6b7280',        () => expect(c.statusColor('?')).toBe('#6b7280'));
+  it('compliant → #4ade80', () => expect(c.statusColor('compliant')).toBe('#4ade80'));
+  it('partial → #facc15', () => expect(c.statusColor('partial')).toBe('#facc15'));
+  it('non_compliant → #f87171', () => expect(c.statusColor('non_compliant')).toBe('#f87171'));
+  it('na → #6b7280', () => expect(c.statusColor('na')).toBe('#6b7280'));
+  it('inconnu → #6b7280', () => expect(c.statusColor('?')).toBe('#6b7280'));
 });
-
 
 // ── scoreColor() ──────────────────────────────────────────────────────────────
 
 describe('scoreColor()', () => {
   const c = make();
-  it('>= 80 → vert',   () => expect(c.scoreColor(80)).toBe('#4ade80'));
-  it('100 → vert',     () => expect(c.scoreColor(100)).toBe('#4ade80'));
-  it('50 → jaune',     () => expect(c.scoreColor(50)).toBe('#facc15'));
-  it('79 → jaune',     () => expect(c.scoreColor(79)).toBe('#facc15'));
-  it('49 → rouge',     () => expect(c.scoreColor(49)).toBe('#f87171'));
-  it('0 → rouge',      () => expect(c.scoreColor(0)).toBe('#f87171'));
+  it('>= 80 → vert', () => expect(c.scoreColor(80)).toBe('#4ade80'));
+  it('100 → vert', () => expect(c.scoreColor(100)).toBe('#4ade80'));
+  it('50 → jaune', () => expect(c.scoreColor(50)).toBe('#facc15'));
+  it('79 → jaune', () => expect(c.scoreColor(79)).toBe('#facc15'));
+  it('49 → rouge', () => expect(c.scoreColor(49)).toBe('#f87171'));
+  it('0 → rouge', () => expect(c.scoreColor(0)).toBe('#f87171'));
 });
-
 
 // ── scoreLabel() ──────────────────────────────────────────────────────────────
 
 describe('scoreLabel()', () => {
   const c = make();
-  it('>= 80 → Conforme',       () => expect(c.scoreLabel(80)).toBe('Conforme'));
-  it('50-79 → En cours',       () => expect(c.scoreLabel(50)).toBe('En cours'));
-  it('79 → En cours',          () => expect(c.scoreLabel(79)).toBe('En cours'));
-  it('< 50 → Non conforme',    () => expect(c.scoreLabel(49)).toBe('Non conforme'));
-  it('0 → Non conforme',       () => expect(c.scoreLabel(0)).toBe('Non conforme'));
+  it('>= 80 → Conforme', () => expect(c.scoreLabel(80)).toBe('Conforme'));
+  it('50-79 → En cours', () => expect(c.scoreLabel(50)).toBe('En cours'));
+  it('79 → En cours', () => expect(c.scoreLabel(79)).toBe('En cours'));
+  it('< 50 → Non conforme', () => expect(c.scoreLabel(49)).toBe('Non conforme'));
+  it('0 → Non conforme', () => expect(c.scoreLabel(0)).toBe('Non conforme'));
 });
-
 
 // ── formatDate() ──────────────────────────────────────────────────────────────
 
 describe('formatDate()', () => {
   const c = make();
-  it('null → "—"',             () => expect(c.formatDate(null)).toBe('—'));
-  it('ISO → contient l\'année',() => expect(c.formatDate('2024-06-15T10:00:00Z')).toContain('2024'));
-  it('retourne une string',    () => expect(typeof c.formatDate('2025-01-01T00:00:00Z')).toBe('string'));
+  it('null → "—"', () => expect(c.formatDate(null)).toBe('—'));
+  it("ISO → contient l'année", () =>
+    expect(c.formatDate('2024-06-15T10:00:00Z')).toContain('2024'));
+  it('retourne une string', () =>
+    expect(typeof c.formatDate('2025-01-01T00:00:00Z')).toBe('string'));
 });
-
 
 // ── getStatus() ───────────────────────────────────────────────────────────────
 
@@ -183,7 +178,6 @@ describe('getStatus()', () => {
     expect(c.getStatus('rssi')).toBe('na');
   });
 });
-
 
 // ── toggle() ──────────────────────────────────────────────────────────────────
 
@@ -215,14 +209,13 @@ describe('toggle()', () => {
     expect(c.getStatus('rssi')).toBe('non_compliant');
   });
 
-  it('toggle n\'affecte pas les autres items', () => {
+  it("toggle n'affecte pas les autres items", () => {
     const c = make();
     (c as any).items.set({ rssi: 'compliant', policy: 'partial' });
     c.toggle('rssi');
     expect(c.getStatus('policy')).toBe('partial');
   });
 });
-
 
 // ── setStatus() ───────────────────────────────────────────────────────────────
 
@@ -240,14 +233,13 @@ describe('setStatus()', () => {
     expect(c.getStatus('rssi')).toBe('na');
   });
 
-  it('n\'affecte pas les autres items', () => {
+  it("n'affecte pas les autres items", () => {
     const c = make();
     (c as any).items.set({ rssi: 'compliant', policy: 'partial' });
     c.setStatus('rssi', 'non_compliant');
     expect(c.getStatus('policy')).toBe('partial');
   });
 });
-
 
 // ── recalcScore() ─────────────────────────────────────────────────────────────
 
@@ -290,7 +282,7 @@ describe('recalcScore()', () => {
   });
 
   it('na exclu du dénominateur — 1 compliant parmi 1 scorable = 100', () => {
-    const c = makeWithCats(2);         // 2 items : cat0_item0, cat0_item1
+    const c = makeWithCats(2); // 2 items : cat0_item0, cat0_item1
     const [id0, id1] = (c as any).allItemIds();
     (c as any).items.set({ [id0]: 'compliant', [id1]: 'na' });
     c.recalcScore();
@@ -298,9 +290,9 @@ describe('recalcScore()', () => {
   });
 
   it('items non renseignés comptent comme non_compliant', () => {
-    const c = makeWithCats(4);         // 4 items
+    const c = makeWithCats(4); // 4 items
     const [id0] = (c as any).allItemIds();
-    (c as any).items.set({ [id0]: 'compliant' });  // 3 autres non renseignés
+    (c as any).items.set({ [id0]: 'compliant' }); // 3 autres non renseignés
     c.recalcScore();
     // 2pts / (4*2) * 100 = 25
     expect((c as any).score()).toBe(25);
@@ -319,7 +311,6 @@ describe('recalcScore()', () => {
     expect((c as any).score()).toBe(100);
   });
 });
-
 
 // ── resetAll() ────────────────────────────────────────────────────────────────
 
@@ -352,7 +343,7 @@ describe('resetAll()', () => {
   });
 
   it('reset puis 2 conformes ne donne pas 100%', () => {
-    const c = makeWithCats(4);         // 4 items
+    const c = makeWithCats(4); // 4 items
     c.resetAll();
     const [id0, id1] = (c as any).allItemIds();
     c.setStatus(id0, 'compliant');
@@ -361,7 +352,6 @@ describe('resetAll()', () => {
     expect((c as any).score()).toBe(50);
   });
 });
-
 
 // ── Compteurs réactifs ────────────────────────────────────────────────────────
 
@@ -384,7 +374,7 @@ describe('compliantCount / partialCount / ncCount / naCount', () => {
     c.setStatus(e, 'na');
     expect((c as any).compliantCount()).toBe(2);
     expect((c as any).partialCount()).toBe(1);
-    expect((c as any).ncCount()).toBe(1);  // le 5ème item, non renseigné
+    expect((c as any).ncCount()).toBe(1); // le 5ème item, non renseigné
     expect((c as any).naCount()).toBe(1);
   });
 
@@ -405,10 +395,11 @@ describe('compliantCount / partialCount / ncCount / naCount', () => {
     c.setStatus(a, 'compliant');
     c.setStatus(b, 'na');
     const total = (c as any).totalItems();
-    const sum = (c as any).compliantCount()
-              + (c as any).partialCount()
-              + (c as any).ncCount()
-              + (c as any).naCount();
+    const sum =
+      (c as any).compliantCount() +
+      (c as any).partialCount() +
+      (c as any).ncCount() +
+      (c as any).naCount();
     expect(sum).toBe(total);
   });
 
@@ -421,7 +412,6 @@ describe('compliantCount / partialCount / ncCount / naCount', () => {
     expect((c as any).partialCount()).toBe(1);
   });
 });
-
 
 // ── totalItems ────────────────────────────────────────────────────────────────
 
@@ -436,7 +426,6 @@ describe('totalItems', () => {
   });
 });
 
-
 // ── catCompliance() ───────────────────────────────────────────────────────────
 
 describe('catCompliance()', () => {
@@ -446,7 +435,7 @@ describe('catCompliance()', () => {
     const r = c.catCompliance(cat);
     expect(r.compliant).toBe(0);
     expect(r.partial).toBe(0);
-    expect(r.nc).toBe(3);   // défaut non_compliant
+    expect(r.nc).toBe(3); // défaut non_compliant
     expect(r.total).toBe(3);
   });
 
@@ -467,7 +456,6 @@ describe('catCompliance()', () => {
   });
 });
 
-
 // ── catScore() ────────────────────────────────────────────────────────────────
 
 describe('catScore()', () => {
@@ -475,7 +463,9 @@ describe('catScore()', () => {
     const c = make();
     const cat = makeCat('z', 3);
     (c as any).items.set({
-      z_item0: 'na', z_item1: 'na', z_item2: 'na',
+      z_item0: 'na',
+      z_item1: 'na',
+      z_item2: 'na',
     });
     expect(c.catScore(cat)).toBe(0);
   });
@@ -484,7 +474,9 @@ describe('catScore()', () => {
     const c = make();
     const cat = makeCat('a', 3);
     (c as any).items.set({
-      a_item0: 'compliant', a_item1: 'compliant', a_item2: 'compliant',
+      a_item0: 'compliant',
+      a_item1: 'compliant',
+      a_item2: 'compliant',
     });
     expect(c.catScore(cat)).toBe(100);
   });
@@ -508,7 +500,6 @@ describe('catScore()', () => {
     expect(c.catScore(cat)).toBe(100);
   });
 });
-
 
 // ── _fullItems getter ────────────────────────────────────────────────────────
 

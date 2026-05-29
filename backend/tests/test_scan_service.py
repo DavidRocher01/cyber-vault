@@ -4,15 +4,15 @@ Les modules scanner externes (SSL, headers, etc.) sont mockés pour éviter
 des appels réseau réels et des dépendances système.
 """
 
-import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.scan_service import _get_plan_tier, run_scan, _run_scan_sync
-
+from app.services.scan_service import _get_plan_tier, _run_scan_sync, run_scan
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 def _mock_db(scalars_results: list) -> AsyncMock:
     """Return a minimal AsyncSession mock that yields items from scalars_results in order."""
@@ -28,6 +28,7 @@ def _mock_db(scalars_results: list) -> AsyncMock:
 
 
 # ── _get_plan_tier ─────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_get_plan_tier_returns_plan_tier_level():
@@ -54,6 +55,7 @@ async def test_get_plan_tier_defaults_to_2_when_no_subscription():
 
 
 # ── run_scan ───────────────────────────────────────────────────────────────────
+
 
 def _scanner_ok(status: str = "OK") -> dict:
     return {"status": status}
@@ -99,8 +101,8 @@ async def test_run_scan_missing_site_marks_scan_failed():
 
     db = AsyncMock(spec=AsyncSession)
     results = [MagicMock(), MagicMock()]
-    results[0].scalar_one_or_none.return_value = scan   # scan found
-    results[1].scalar_one_or_none.return_value = None   # site not found
+    results[0].scalar_one_or_none.return_value = scan  # scan found
+    results[1].scalar_one_or_none.return_value = None  # site not found
     db.execute = AsyncMock(side_effect=results)
 
     await run_scan(scan_id=1, db=db)
@@ -113,9 +115,10 @@ async def test_run_scan_missing_site_marks_scan_failed():
 @pytest.mark.asyncio
 async def test_run_scan_sets_started_at_on_site_found():
     """Quand scan et site existent, started_at est défini (scan passe en 'running' avant de crash sur les scanners)."""
+    import sys
+
     from app.models.scan import Scan
     from app.models.site import Site
-    import sys
 
     scan = MagicMock(spec=Scan)
     scan.id = 2
@@ -163,9 +166,10 @@ async def test_run_scan_sets_started_at_on_site_found():
 @pytest.mark.asyncio
 async def test_run_scan_exception_marks_scan_failed():
     """Si un scanner lève une exception, le scan passe en 'failed'."""
+    import sys
+
     from app.models.scan import Scan
     from app.models.site import Site
-    import sys
 
     scan = MagicMock(spec=Scan)
     scan.id = 3
@@ -214,9 +218,10 @@ async def test_run_scan_exception_marks_scan_failed():
 @pytest.mark.asyncio
 async def test_run_scan_overall_status_critical_when_any_critical():
     """overall_status doit être CRITICAL si au moins un module est CRITICAL."""
+    import sys
+
     from app.models.scan import Scan
     from app.models.site import Site
-    import sys
 
     scan = MagicMock(spec=Scan)
     scan.id = 4
@@ -287,9 +292,10 @@ async def test_run_scan_overall_status_critical_when_any_critical():
 @pytest.mark.asyncio
 async def test_run_scan_overall_status_ok_when_all_ok():
     """overall_status doit être OK si tous les modules sont OK."""
+    import sys
+
     from app.models.scan import Scan
     from app.models.site import Site
-    import sys
 
     scan = MagicMock(spec=Scan)
     scan.id = 5
@@ -336,8 +342,14 @@ async def test_run_scan_overall_status_ok_when_all_ok():
     for mod_path, fn_name in scanner_setup:
         originals[mod_path] = sys.modules.get(mod_path)
         m = MagicMock()
-        rv = {"status": "OK", "found": []} if fn_name == "scan_subdomains" else (
-            {} if fn_name == "generate_remediation" else (None if fn_name == "generate_report" else _scanner_ok())
+        rv = (
+            {"status": "OK", "found": []}
+            if fn_name == "scan_subdomains"
+            else (
+                {}
+                if fn_name == "generate_remediation"
+                else (None if fn_name == "generate_report" else _scanner_ok())
+            )
         )
         setattr(m, fn_name, MagicMock(return_value=rv))
         sys.modules[mod_path] = m
@@ -357,18 +369,18 @@ async def test_run_scan_overall_status_ok_when_all_ok():
 # ── _run_scan_sync ─────────────────────────────────────────────────────────────
 
 _ALL_SCANNER_MODULES = [
-    ("scanner.ssl_checker",      "check_ssl",            _scanner_ok()),
-    ("scanner.headers_checker",  "check_headers",        _scanner_ok()),
-    ("scanner.email_checker",    "check_email_security", _scanner_ok()),
-    ("scanner.cookie_checker",   "check_cookies",        _scanner_ok()),
-    ("scanner.cors_checker",     "check_cors",           _scanner_ok()),
-    ("scanner.ip_reputation",    "check_ip_reputation",  _scanner_ok()),
-    ("scanner.dns_scanner",      "scan_subdomains",      {"status": "OK", "found": []}),
-    ("scanner.cms_detector",     "detect_cms",           _scanner_ok()),
-    ("scanner.waf_detector",     "detect_waf",           _scanner_ok()),
-    ("scanner.port_scanner",     "scan_ports",           _scanner_ok()),
-    ("scanner.report_generator", "generate_report",      None),
-    ("scanner.remediation",      "generate_remediation", {}),
+    ("scanner.ssl_checker", "check_ssl", _scanner_ok()),
+    ("scanner.headers_checker", "check_headers", _scanner_ok()),
+    ("scanner.email_checker", "check_email_security", _scanner_ok()),
+    ("scanner.cookie_checker", "check_cookies", _scanner_ok()),
+    ("scanner.cors_checker", "check_cors", _scanner_ok()),
+    ("scanner.ip_reputation", "check_ip_reputation", _scanner_ok()),
+    ("scanner.dns_scanner", "scan_subdomains", {"status": "OK", "found": []}),
+    ("scanner.cms_detector", "detect_cms", _scanner_ok()),
+    ("scanner.waf_detector", "detect_waf", _scanner_ok()),
+    ("scanner.port_scanner", "scan_ports", _scanner_ok()),
+    ("scanner.report_generator", "generate_report", None),
+    ("scanner.remediation", "generate_remediation", {}),
 ]
 
 
@@ -422,14 +434,21 @@ def test_run_scan_sync_overall_ok():
 
 def test_run_scan_sync_overall_critical():
     import sys
+
     originals = {}
     for mod_path, fn_name, _ in _ALL_SCANNER_MODULES:
         originals[mod_path] = sys.modules.get(mod_path)
         m = MagicMock()
-        rv = {"status": "CRITICAL"} if fn_name == "check_ssl" else (
-            {"status": "OK", "found": []} if fn_name == "scan_subdomains" else (
-                {} if fn_name == "generate_remediation" else (
-                    None if fn_name == "generate_report" else {"status": "OK"}
+        rv = (
+            {"status": "CRITICAL"}
+            if fn_name == "check_ssl"
+            else (
+                {"status": "OK", "found": []}
+                if fn_name == "scan_subdomains"
+                else (
+                    {}
+                    if fn_name == "generate_remediation"
+                    else (None if fn_name == "generate_report" else {"status": "OK"})
                 )
             )
         )
@@ -448,14 +467,21 @@ def test_run_scan_sync_overall_critical():
 
 def test_run_scan_sync_overall_warning():
     import sys
+
     originals = {}
     for mod_path, fn_name, _ in _ALL_SCANNER_MODULES:
         originals[mod_path] = sys.modules.get(mod_path)
         m = MagicMock()
-        rv = {"status": "WARNING"} if fn_name == "check_ssl" else (
-            {"status": "OK", "found": []} if fn_name == "scan_subdomains" else (
-                {} if fn_name == "generate_remediation" else (
-                    None if fn_name == "generate_report" else {"status": "OK"}
+        rv = (
+            {"status": "WARNING"}
+            if fn_name == "check_ssl"
+            else (
+                {"status": "OK", "found": []}
+                if fn_name == "scan_subdomains"
+                else (
+                    {}
+                    if fn_name == "generate_remediation"
+                    else (None if fn_name == "generate_report" else {"status": "OK"})
                 )
             )
         )
@@ -475,7 +501,19 @@ def test_run_scan_sync_overall_warning():
 def test_run_scan_sync_results_has_all_expected_keys():
     with _patch_all_scanners("OK"):
         result = _run_scan_sync("https://example.com", tier=2, scan_id=46, hibp_key="")
-    keys = {"ssl", "headers", "email", "cookies", "cors", "ip", "dns", "cms", "waf", "ports", "_meta"}
+    keys = {
+        "ssl",
+        "headers",
+        "email",
+        "cookies",
+        "cors",
+        "ip",
+        "dns",
+        "cms",
+        "waf",
+        "ports",
+        "_meta",
+    }
     assert keys.issubset(result["results"].keys())
 
 
@@ -495,6 +533,7 @@ def test_run_scan_sync_pdf_path_contains_scan_id():
 def test_run_scan_sync_remediation_failure_does_not_raise():
     """Si generate_remediation plante, _run_scan_sync ne doit pas lever d'exception."""
     import sys
+
     originals = {}
     for mod_path, fn_name, _ in _ALL_SCANNER_MODULES:
         originals[mod_path] = sys.modules.get(mod_path)
@@ -502,8 +541,10 @@ def test_run_scan_sync_remediation_failure_does_not_raise():
         if fn_name == "generate_remediation":
             setattr(m, fn_name, MagicMock(side_effect=RuntimeError("boom")))
         else:
-            rv = {"status": "OK", "found": []} if fn_name == "scan_subdomains" else (
-                None if fn_name == "generate_report" else {"status": "OK"}
+            rv = (
+                {"status": "OK", "found": []}
+                if fn_name == "scan_subdomains"
+                else (None if fn_name == "generate_report" else {"status": "OK"})
             )
             setattr(m, fn_name, MagicMock(return_value=rv))
         sys.modules[mod_path] = m
@@ -520,10 +561,12 @@ def test_run_scan_sync_remediation_failure_does_not_raise():
 
 # ── run_scan with run_in_executor ──────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_run_scan_uses_run_in_executor():
     """run_scan doit déléguer _run_scan_sync à run_in_executor."""
     import asyncio
+
     from app.models.scan import Scan
     from app.models.site import Site
 
@@ -546,26 +589,38 @@ async def test_run_scan_uses_run_in_executor():
     plan_mock.tier_level = 2
 
     db = AsyncMock(spec=AsyncSession)
-    db.execute = AsyncMock(side_effect=[
-        MagicMock(scalar_one_or_none=MagicMock(return_value=scan)),
-        MagicMock(scalar_one_or_none=MagicMock(return_value=site)),
-        MagicMock(scalar_one_or_none=MagicMock(return_value=plan_mock)),
-    ])
+    db.execute = AsyncMock(
+        side_effect=[
+            MagicMock(scalar_one_or_none=MagicMock(return_value=scan)),
+            MagicMock(scalar_one_or_none=MagicMock(return_value=site)),
+            MagicMock(scalar_one_or_none=MagicMock(return_value=plan_mock)),
+        ]
+    )
 
     fake_result = {
-        "results": {"_meta": {"tier": 2, "url": "https://example.com", "remediation_scripts": {}}},
+        "results": {
+            "_meta": {
+                "tier": 2,
+                "url": "https://example.com",
+                "remediation_scripts": {},
+            }
+        },
         "overall": "OK",
         "pdf_path": "/tmp/scan_10.pdf",
     }
 
-    with patch("app.services.scan_service._run_scan_sync", return_value=fake_result) as mock_sync, \
-         patch("app.core.config.settings") as mock_settings:
+    with (
+        patch("app.services.scan_service._run_scan_sync", return_value=fake_result) as mock_sync,
+        patch("app.core.config.settings") as mock_settings,
+    ):
         mock_settings.HIBP_API_KEY = ""
         # Patch run_in_executor to call the function synchronously in tests
         loop = asyncio.get_running_loop()
         original_executor = loop.run_in_executor
+
         async def fake_executor(exc, fn, *args):
             return fn(*args)
+
         with patch.object(loop, "run_in_executor", side_effect=fake_executor):
             await run_scan(scan_id=10, db=db)
 
@@ -576,9 +631,10 @@ async def test_run_scan_uses_run_in_executor():
 @pytest.mark.asyncio
 async def test_run_scan_executor_exception_marks_failed():
     """Si run_in_executor lève une exception, le scan passe en 'failed'."""
+    import asyncio
+
     from app.models.scan import Scan
     from app.models.site import Site
-    import asyncio
 
     scan = MagicMock(spec=Scan)
     scan.id = 11
@@ -597,17 +653,21 @@ async def test_run_scan_executor_exception_marks_failed():
     plan_mock.tier_level = 2
 
     db = AsyncMock(spec=AsyncSession)
-    db.execute = AsyncMock(side_effect=[
-        MagicMock(scalar_one_or_none=MagicMock(return_value=scan)),
-        MagicMock(scalar_one_or_none=MagicMock(return_value=site)),
-        MagicMock(scalar_one_or_none=MagicMock(return_value=plan_mock)),
-    ])
+    db.execute = AsyncMock(
+        side_effect=[
+            MagicMock(scalar_one_or_none=MagicMock(return_value=scan)),
+            MagicMock(scalar_one_or_none=MagicMock(return_value=site)),
+            MagicMock(scalar_one_or_none=MagicMock(return_value=plan_mock)),
+        ]
+    )
 
     with patch("app.core.config.settings") as mock_settings:
         mock_settings.HIBP_API_KEY = ""
         loop = asyncio.get_running_loop()
+
         async def crashing_executor(exc, fn, *args):
             raise RuntimeError("network timeout")
+
         with patch.object(loop, "run_in_executor", side_effect=crashing_executor):
             await run_scan(scan_id=11, db=db)
 

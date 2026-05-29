@@ -1,27 +1,36 @@
 import base64
 import io
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pyotp
 import qrcode
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.security import hash_password, verify_password
-from app.models.user import User
-from app.models.site import Site
 from app.models.scan import Scan
-from app.schemas.user import UserOut, TwoFactorSetupOut, TwoFactorSetupIn, TwoFactorVerifyIn, TwoFactorDisableIn, NotificationPreferencesOut, NotificationPreferencesIn
-from pydantic import BaseModel, EmailStr
+from app.models.site import Site
+from app.models.user import User
+from app.schemas.user import (
+    NotificationPreferencesIn,
+    NotificationPreferencesOut,
+    TwoFactorDisableIn,
+    TwoFactorSetupIn,
+    TwoFactorSetupOut,
+    TwoFactorVerifyIn,
+    UserOut,
+)
 
 
 class DeleteAccountIn(BaseModel):
     password: str
+
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -48,7 +57,9 @@ async def update_email(
     db: AsyncSession = Depends(get_db),
 ):
     if not verify_password(payload.current_password, current_user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Mot de passe incorrect")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Mot de passe incorrect"
+        )
 
     result = await db.execute(select(User).where(User.email == payload.email))
     if result.scalar_one_or_none():
@@ -67,15 +78,22 @@ async def update_password(
     db: AsyncSession = Depends(get_db),
 ):
     if not verify_password(payload.current_password, current_user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Mot de passe actuel incorrect")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Mot de passe actuel incorrect",
+        )
     if len(payload.new_password) < 8:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Le mot de passe doit faire au moins 8 caractères")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Le mot de passe doit faire au moins 8 caractères",
+        )
 
     current_user.hashed_password = hash_password(payload.new_password)
     await db.commit()
 
 
 # ── Two-Factor Authentication ────────────────────────────────────────────────
+
 
 def _make_qr_b64(uri: str) -> str:
     """Return a base64-encoded PNG QR code for the given OTP provisioning URI."""
@@ -104,24 +122,33 @@ async def export_my_data(
         )
         for scan in scans_result.scalars().all():
             site = site_map[scan.site_id]
-            scans_data.append({
-                "site_url": site.url,
-                "site_name": site.name,
-                "scan_id": scan.id,
-                "status": scan.status,
-                "overall_status": scan.overall_status,
-                "created_at": scan.created_at.isoformat() if scan.created_at else None,
-                "finished_at": scan.finished_at.isoformat() if scan.finished_at else None,
-            })
+            scans_data.append(
+                {
+                    "site_url": site.url,
+                    "site_name": site.name,
+                    "scan_id": scan.id,
+                    "status": scan.status,
+                    "overall_status": scan.overall_status,
+                    "created_at": scan.created_at.isoformat() if scan.created_at else None,
+                    "finished_at": scan.finished_at.isoformat() if scan.finished_at else None,
+                }
+            )
 
     export = {
-        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "exported_at": datetime.now(UTC).isoformat(),
         "account": {
             "email": current_user.email,
             "is_active": current_user.is_active,
             "totp_enabled": current_user.totp_enabled,
         },
-        "sites": [{"url": s.url, "name": s.name, "created_at": s.created_at.isoformat() if s.created_at else None} for s in sites],
+        "sites": [
+            {
+                "url": s.url,
+                "name": s.name,
+                "created_at": s.created_at.isoformat() if s.created_at else None,
+            }
+            for s in sites
+        ],
         "scans": scans_data,
     }
 
@@ -141,7 +168,9 @@ async def delete_my_account(
 ):
     """Delete account and all associated data (RGPD — droit à l'effacement)."""
     if not verify_password(payload.password, current_user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Mot de passe incorrect")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Mot de passe incorrect"
+        )
 
     await db.delete(current_user)
     await db.commit()
@@ -175,9 +204,10 @@ async def get_my_badges(
 ):
     """Return the 5 gamification badges computed from existing data."""
     from datetime import timedelta
+
     from app.models.nis2_assessment import Nis2Assessment
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     since_30d = now - timedelta(days=30)
 
     scans_result = await db.execute(
@@ -259,7 +289,10 @@ async def setup_2fa(
     """
     if current_user.totp_enabled:
         if not payload.current_code:
-            raise HTTPException(status_code=400, detail="Code TOTP actuel requis pour reconfigurer la 2FA")
+            raise HTTPException(
+                status_code=400,
+                detail="Code TOTP actuel requis pour reconfigurer la 2FA",
+            )
         totp = pyotp.TOTP(current_user.totp_secret)
         if not totp.verify(payload.current_code, valid_window=1):
             raise HTTPException(status_code=400, detail="Code TOTP invalide")

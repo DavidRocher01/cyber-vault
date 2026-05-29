@@ -4,12 +4,18 @@ import { HttpErrorResponse, HttpRequest, HttpResponse } from '@angular/common/ht
 
 // ── Stubs ──────────────────────────────────────────────────────────────────────
 
-function makeAuthService(overrides: Partial<{
-  token: string | null;
-  refreshToken: string | null;
-  refreshResult: any;
-}> = {}) {
-  const { token = 'tok', refreshToken = 'ref', refreshResult = { access_token: 'new_tok' } } = overrides;
+function makeAuthService(
+  overrides: Partial<{
+    token: string | null;
+    refreshToken: string | null;
+    refreshResult: any;
+  }> = {}
+) {
+  const {
+    token = 'tok',
+    refreshToken = 'ref',
+    refreshResult = { access_token: 'new_tok' },
+  } = overrides;
   return {
     getToken: vi.fn().mockReturnValue(token),
     getRefreshToken: vi.fn().mockReturnValue(refreshToken),
@@ -46,7 +52,7 @@ async function runInterceptor(
   router: any,
   toast: any,
   req: HttpRequest<any>,
-  nextResult: any, // Observable returned by next()
+  nextResult: any // Observable returned by next()
 ): Promise<{ emitted: any[]; error: any }> {
   // Inline the interceptor logic (same as auth.interceptor.ts) so we test
   // the behaviour without needing Angular's DI TestBed.
@@ -91,7 +97,7 @@ describe('authInterceptor — token injection', () => {
     expect(req.headers.has('Authorization')).toBe(false);
   });
 
-  it('préserve l\'URL et la méthode de la requête originale', () => {
+  it("préserve l'URL et la méthode de la requête originale", () => {
     const req = new HttpRequest('POST', '/api/v1/auth/login', { email: 'a@b.com' });
     const cloned = req.clone({ setHeaders: { Authorization: 'Bearer tok' } });
     expect(cloned.method).toBe('POST');
@@ -100,7 +106,7 @@ describe('authInterceptor — token injection', () => {
 });
 
 describe('authInterceptor — erreur 401 avec refresh token', () => {
-  it('appelle authService.refresh() lors d\'un 401', () => {
+  it("appelle authService.refresh() lors d'un 401", () => {
     const authService = makeAuthService();
     const error = makeError(401);
     // Simulate: 401 + refreshToken present → call refresh
@@ -119,10 +125,12 @@ describe('authInterceptor — erreur 401 avec refresh token', () => {
     expect(authService.refresh).not.toHaveBeenCalled();
   });
 
-  it('le nouveau token issu du refresh remplace l\'ancien dans la requête', () => {
+  it("le nouveau token issu du refresh remplace l'ancien dans la requête", () => {
     const authService = makeAuthService({ refreshResult: { access_token: 'refreshed_tok' } });
     let newToken = '';
-    authService.refresh().subscribe((res: any) => { newToken = res.access_token; });
+    authService.refresh().subscribe((res: any) => {
+      newToken = res.access_token;
+    });
     expect(newToken).toBe('refreshed_tok');
   });
 });
@@ -180,10 +188,12 @@ describe('authInterceptor — erreur 429 (rate limit)', () => {
       toast.warning(msg);
     }
 
-    expect(toast.warning).toHaveBeenCalledWith('Trop de requêtes. Réessayez dans quelques instants.');
+    expect(toast.warning).toHaveBeenCalledWith(
+      'Trop de requêtes. Réessayez dans quelques instants.'
+    );
   });
 
-  it('ne pas afficher de toast pour d\'autres erreurs (ex: 400)', () => {
+  it("ne pas afficher de toast pour d'autres erreurs (ex: 400)", () => {
     const toast = makeToast();
     const error = makeError(400, { detail: 'Bad request' });
 
@@ -208,7 +218,7 @@ describe('authInterceptor — erreur 500', () => {
     consoleSpy.mockRestore();
   });
 
-  it('ne logue pas d\'erreur console pour un 422', () => {
+  it("ne logue pas d'erreur console pour un 422", () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const error = makeError(422);
 
@@ -254,7 +264,7 @@ describe('authInterceptor — refresh échoue', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/cyberscan']);
   });
 
-  it('propage l\'erreur originale après l\'échec du refresh', () => {
+  it("propage l'erreur originale après l'échec du refresh", () => {
     const authService = makeAuthService();
     const originalError = makeError(401);
     authService.refresh = vi.fn().mockReturnValue(throwError(() => new Error('refresh failed')));

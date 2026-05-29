@@ -6,11 +6,12 @@ Covers: trigger git scan, upload zip, list, get, delete,
 
 import io
 import zipfile
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 from fastapi import BackgroundTasks, HTTPException
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.exc import IntegrityError
-from unittest.mock import patch, AsyncMock, MagicMock
 
 from app.main import app
 
@@ -32,12 +33,17 @@ def _make_zip(filename: str = "main.py", content: str = "import os") -> bytes:
 
 # ── Trigger (Git) ─────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_trigger_code_scan_returns_202():
     with patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "cs1@test.com")
-            r = await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo"}, headers=h)
+            r = await c.post(
+                f"{BASE}/code-scans",
+                json={"repo_url": "https://github.com/user/repo"},
+                headers=h,
+            )
     assert r.status_code == 202
     assert "scan_id" in r.json()
     assert r.json()["scan_id"] > 0
@@ -50,7 +56,10 @@ async def test_trigger_code_scan_without_token():
             h = await _headers(c, "cs2@test.com")
             r = await c.post(
                 f"{BASE}/code-scans",
-                json={"repo_url": "https://gitlab.com/org/project", "github_token": None},
+                json={
+                    "repo_url": "https://gitlab.com/org/project",
+                    "github_token": None,
+                },
                 headers=h,
             )
     assert r.status_code == 202
@@ -69,7 +78,11 @@ async def test_trigger_code_scan_invalid_url_returns_422():
 async def test_trigger_code_scan_non_http_url_returns_422():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "cs4@test.com")
-        r = await c.post(f"{BASE}/code-scans", json={"repo_url": "git@github.com:user/repo.git"}, headers=h)
+        r = await c.post(
+            f"{BASE}/code-scans",
+            json={"repo_url": "git@github.com:user/repo.git"},
+            headers=h,
+        )
     assert r.status_code == 422
     assert "invalide" in r.json()["detail"].lower()
 
@@ -82,6 +95,7 @@ async def test_trigger_code_scan_unauthenticated_returns_403():
 
 
 # ── Upload ZIP ────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_upload_zip_returns_202():
@@ -123,6 +137,7 @@ async def test_upload_zip_unauthenticated_returns_403():
 
 # ── List ──────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_list_code_scans_empty():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -140,7 +155,11 @@ async def test_list_code_scans_after_trigger():
     with patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "list2@test.com")
-            await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo"}, headers=h)
+            await c.post(
+                f"{BASE}/code-scans",
+                json={"repo_url": "https://github.com/user/repo"},
+                headers=h,
+            )
             r = await c.get(f"{BASE}/code-scans", headers=h)
     assert r.status_code == 200
     assert r.json()["total"] == 1
@@ -150,8 +169,10 @@ async def test_list_code_scans_after_trigger():
 @pytest.mark.asyncio
 async def test_list_code_scans_pagination():
     # Bypass the 429 concurrency guard so we can create multiple scans for pagination.
-    with patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock), \
-         patch("app.api.v1.endpoints.code_scans._check_no_running_scan", new_callable=AsyncMock):
+    with (
+        patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock),
+        patch("app.api.v1.endpoints.code_scans._check_no_running_scan", new_callable=AsyncMock),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "list3@test.com")
             for i in range(3):
@@ -174,19 +195,28 @@ async def test_list_code_scans_isolation():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h1 = await _headers(c, "owner_cs@test.com")
             h2 = await _headers(c, "spy_cs@test.com")
-            await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo"}, headers=h1)
+            await c.post(
+                f"{BASE}/code-scans",
+                json={"repo_url": "https://github.com/user/repo"},
+                headers=h1,
+            )
             r = await c.get(f"{BASE}/code-scans", headers=h2)
     assert r.json()["total"] == 0
 
 
 # ── Get ───────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_get_code_scan_returns_correct_scan():
     with patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "get1@test.com")
-            trig = await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo"}, headers=h)
+            trig = await c.post(
+                f"{BASE}/code-scans",
+                json={"repo_url": "https://github.com/user/repo"},
+                headers=h,
+            )
             scan_id = trig.json()["scan_id"]
             r = await c.get(f"{BASE}/code-scans/{scan_id}", headers=h)
     assert r.status_code == 200
@@ -208,7 +238,11 @@ async def test_get_code_scan_other_user_returns_404():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h1 = await _headers(c, "owner_get@test.com")
             h2 = await _headers(c, "spy_get@test.com")
-            trig = await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo"}, headers=h1)
+            trig = await c.post(
+                f"{BASE}/code-scans",
+                json={"repo_url": "https://github.com/user/repo"},
+                headers=h1,
+            )
             scan_id = trig.json()["scan_id"]
             r = await c.get(f"{BASE}/code-scans/{scan_id}", headers=h2)
     assert r.status_code == 404
@@ -216,16 +250,22 @@ async def test_get_code_scan_other_user_returns_404():
 
 # ── Disallowed host ────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_trigger_code_scan_disallowed_host_returns_422():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "host1@test.com")
-        r = await c.post(f"{BASE}/code-scans", json={"repo_url": "https://bitbucket.net/user/repo"}, headers=h)
+        r = await c.post(
+            f"{BASE}/code-scans",
+            json={"repo_url": "https://bitbucket.net/user/repo"},
+            headers=h,
+        )
     assert r.status_code == 422
     assert "non autorisé" in r.json()["detail"].lower()
 
 
 # ── IntegrityError ─────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_trigger_code_scan_integrity_error_returns_429():
@@ -252,36 +292,46 @@ async def test_trigger_code_scan_integrity_error_returns_429():
 
 # ── Unit: _embed_token / _repo_name ───────────────────────────────────────────
 
+
 def test_embed_token_inserts_token_in_netloc():
     from app.api.v1.endpoints.code_scans import _embed_token
+
     result = _embed_token("https://github.com/user/repo", "mytoken")
     assert result == "https://mytoken@github.com/user/repo"
 
 
 def test_embed_token_no_token_returns_url_unchanged():
     from app.api.v1.endpoints.code_scans import _embed_token
+
     url = "https://github.com/user/repo"
     assert _embed_token(url, None) == url
 
 
 def test_repo_name_single_segment_returns_segment():
     from app.api.v1.endpoints.code_scans import _repo_name
+
     assert _repo_name("repository") == "repository"
 
 
 def test_repo_name_standard_url():
     from app.api.v1.endpoints.code_scans import _repo_name
+
     assert _repo_name("https://github.com/user/repo") == "user/repo"
 
 
 # ── Delete ────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_delete_code_scan_returns_204():
     with patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "del1@test.com")
-            trig = await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo"}, headers=h)
+            trig = await c.post(
+                f"{BASE}/code-scans",
+                json={"repo_url": "https://github.com/user/repo"},
+                headers=h,
+            )
             scan_id = trig.json()["scan_id"]
             r = await c.delete(f"{BASE}/code-scans/{scan_id}", headers=h)
     assert r.status_code == 204
@@ -292,7 +342,11 @@ async def test_delete_code_scan_removes_from_list():
     with patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "del2@test.com")
-            trig = await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo"}, headers=h)
+            trig = await c.post(
+                f"{BASE}/code-scans",
+                json={"repo_url": "https://github.com/user/repo"},
+                headers=h,
+            )
             scan_id = trig.json()["scan_id"]
             await c.delete(f"{BASE}/code-scans/{scan_id}", headers=h)
             r = await c.get(f"{BASE}/code-scans", headers=h)
@@ -313,7 +367,11 @@ async def test_delete_code_scan_other_user_returns_404():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h1 = await _headers(c, "owner_del@test.com")
             h2 = await _headers(c, "spy_del@test.com")
-            trig = await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo"}, headers=h1)
+            trig = await c.post(
+                f"{BASE}/code-scans",
+                json={"repo_url": "https://github.com/user/repo"},
+                headers=h1,
+            )
             scan_id = trig.json()["scan_id"]
             r = await c.delete(f"{BASE}/code-scans/{scan_id}", headers=h2)
     assert r.status_code == 404
@@ -321,15 +379,24 @@ async def test_delete_code_scan_other_user_returns_404():
 
 # ── Concurrency guard (429) ───────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_trigger_second_scan_returns_429_when_pending():
     """Lancer un 2e scan git pendant qu'un autre est pending → 429."""
     with patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "conc1@test.com")
-            r1 = await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo"}, headers=h)
+            r1 = await c.post(
+                f"{BASE}/code-scans",
+                json={"repo_url": "https://github.com/user/repo"},
+                headers=h,
+            )
             assert r1.status_code == 202
-            r2 = await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo2"}, headers=h)
+            r2 = await c.post(
+                f"{BASE}/code-scans",
+                json={"repo_url": "https://github.com/user/repo2"},
+                headers=h,
+            )
     assert r2.status_code == 429
     assert "scan" in r2.json()["detail"].lower()
 
@@ -337,12 +404,18 @@ async def test_trigger_second_scan_returns_429_when_pending():
 @pytest.mark.asyncio
 async def test_upload_second_scan_returns_429_when_pending():
     """Uploader un 2e zip pendant qu'un scan est pending → 429."""
-    with patch("app.api.v1.endpoints.code_scans._run_zip_background", new_callable=AsyncMock), \
-         patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock):
+    with (
+        patch("app.api.v1.endpoints.code_scans._run_zip_background", new_callable=AsyncMock),
+        patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "conc2@test.com")
             # First scan via git
-            await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo"}, headers=h)
+            await c.post(
+                f"{BASE}/code-scans",
+                json={"repo_url": "https://github.com/user/repo"},
+                headers=h,
+            )
             # Second scan via upload → should be blocked
             r = await c.post(
                 f"{BASE}/code-scans/upload",
@@ -355,14 +428,19 @@ async def test_upload_second_scan_returns_429_when_pending():
 @pytest.mark.asyncio
 async def test_trigger_scan_allowed_after_previous_done():
     """Un nouveau scan peut être lancé si le précédent est 'done'."""
-    from app.models.code_scan import CodeScan
-    from app.core.database import AsyncSessionLocal
     from sqlalchemy import select
+
+    from app.core.database import AsyncSessionLocal
+    from app.models.code_scan import CodeScan
 
     with patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "conc3@test.com")
-            r1 = await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo"}, headers=h)
+            r1 = await c.post(
+                f"{BASE}/code-scans",
+                json={"repo_url": "https://github.com/user/repo"},
+                headers=h,
+            )
             scan_id = r1.json()["scan_id"]
 
     # Manually set scan status to 'done' in DB
@@ -375,9 +453,16 @@ async def test_trigger_scan_allowed_after_previous_done():
     with patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             # Re-authenticate (new client)
-            r_login = await c.post(f"{BASE}/auth/login", json={"email": "conc3@test.com", "password": "StrongPass123!"})
+            r_login = await c.post(
+                f"{BASE}/auth/login",
+                json={"email": "conc3@test.com", "password": "StrongPass123!"},
+            )
             h2 = {"Authorization": f"Bearer {r_login.json()['access_token']}"}
-            r2 = await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo2"}, headers=h2)
+            r2 = await c.post(
+                f"{BASE}/code-scans",
+                json={"repo_url": "https://github.com/user/repo2"},
+                headers=h2,
+            )
     assert r2.status_code == 202
 
 
@@ -389,7 +474,15 @@ async def test_trigger_scan_concurrency_isolates_between_users():
             h1 = await _headers(c, "conc_a@test.com")
             h2 = await _headers(c, "conc_b@test.com")
             # User A triggers a scan
-            await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo"}, headers=h1)
+            await c.post(
+                f"{BASE}/code-scans",
+                json={"repo_url": "https://github.com/user/repo"},
+                headers=h1,
+            )
             # User B should still be able to scan
-            r = await c.post(f"{BASE}/code-scans", json={"repo_url": "https://github.com/user/repo"}, headers=h2)
+            r = await c.post(
+                f"{BASE}/code-scans",
+                json={"repo_url": "https://github.com/user/repo"},
+                headers=h2,
+            )
     assert r.status_code == 202

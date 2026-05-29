@@ -9,7 +9,12 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Title } from '@angular/platform-browser';
 
-import { TrainingService, TrainingModule, TrainingProgress, CompleteResult } from '../services/training.service';
+import {
+  TrainingService,
+  TrainingModule,
+  TrainingProgress,
+  CompleteResult,
+} from '../services/training.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 type QuizState = 'idle' | 'answered';
@@ -27,8 +32,13 @@ interface ModuleUiState {
   selector: 'app-sensibilisation',
   imports: [
     CommonModule,
-    MatButtonModule, MatCardModule, MatIconModule, MatProgressBarModule,
-    MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule,
+    MatButtonModule,
+    MatCardModule,
+    MatIconModule,
+    MatProgressBarModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+    MatTooltipModule,
     NavButtonsComponent,
   ],
   templateUrl: './sensibilisation.component.html',
@@ -55,7 +65,13 @@ export class SensibilisationComponent implements OnInit {
         this.modules.set(mods);
         const state: Record<string, ModuleUiState> = {};
         mods.forEach(m => {
-          state[m.id] = { open: false, selected: null, quizState: 'idle', result: null, submitting: false };
+          state[m.id] = {
+            open: false,
+            selected: null,
+            quizState: 'idle',
+            result: null,
+            submitting: false,
+          };
         });
         this.uiState.set(state);
         this.loading.set(false);
@@ -93,7 +109,9 @@ export class SensibilisationComponent implements OnInit {
           [moduleId]: { ...s[moduleId], quizState: 'answered', result, submitting: false },
         }));
         if (result.correct) {
-          this.modules.update(mods => mods.map(m => m.id === moduleId ? { ...m, completed: true } : m));
+          this.modules.update(mods =>
+            mods.map(m => (m.id === moduleId ? { ...m, completed: true } : m))
+          );
           this.training.getProgress().subscribe({ next: p => this.progress.set(p) });
           this.snack.open('Bonne réponse ! Module complété.', 'OK', { duration: 3000 });
         }
@@ -113,16 +131,44 @@ export class SensibilisationComponent implements OnInit {
   }
 
   getState(id: string): ModuleUiState {
-    return this.uiState()[id] ?? { open: false, selected: null, quizState: 'idle', result: null, submitting: false };
+    return (
+      this.uiState()[id] ?? {
+        open: false,
+        selected: null,
+        quizState: 'idle',
+        result: null,
+        submitting: false,
+      }
+    );
   }
 
   colorClass(color: string): { border: string; icon: string; badge: string } {
     const map: Record<string, { border: string; icon: string; badge: string }> = {
-      red: { border: 'border-red-600/40', icon: 'text-red-400', badge: 'bg-red-500/15 text-red-300' },
-      blue: { border: 'border-blue-600/40', icon: 'text-blue-400', badge: 'bg-blue-500/15 text-blue-300' },
-      yellow: { border: 'border-yellow-600/40', icon: 'text-yellow-400', badge: 'bg-yellow-500/15 text-yellow-300' },
-      orange: { border: 'border-orange-600/40', icon: 'text-orange-400', badge: 'bg-orange-500/15 text-orange-300' },
-      green: { border: 'border-green-600/40', icon: 'text-green-400', badge: 'bg-green-500/15 text-green-300' },
+      red: {
+        border: 'border-red-600/40',
+        icon: 'text-red-400',
+        badge: 'bg-red-500/15 text-red-300',
+      },
+      blue: {
+        border: 'border-blue-600/40',
+        icon: 'text-blue-400',
+        badge: 'bg-blue-500/15 text-blue-300',
+      },
+      yellow: {
+        border: 'border-yellow-600/40',
+        icon: 'text-yellow-400',
+        badge: 'bg-yellow-500/15 text-yellow-300',
+      },
+      orange: {
+        border: 'border-orange-600/40',
+        icon: 'text-orange-400',
+        badge: 'bg-orange-500/15 text-orange-300',
+      },
+      green: {
+        border: 'border-green-600/40',
+        icon: 'text-green-400',
+        badge: 'bg-green-500/15 text-green-300',
+      },
     };
     return map[color] ?? map['blue'];
   }

@@ -16,7 +16,10 @@ export type LoginResponse = AccessTokenResponse | { requires_2fa: true };
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(
+    private http: HttpClient,
+    private router: Router
+  ) {}
 
   login(email: string, password: string, totpCode?: string) {
     const body: Record<string, string> = { email, password };
@@ -37,16 +40,20 @@ export class AuthService {
 
   refresh() {
     // refresh_token is sent automatically as httpOnly cookie
-    return this.http.post<AccessTokenResponse>(`${API}/auth/refresh`, {}, { withCredentials: true }).pipe(
-      tap(res => {
-        localStorage.setItem(ACCESS_KEY, res.access_token);
-      })
-    );
+    return this.http
+      .post<AccessTokenResponse>(`${API}/auth/refresh`, {}, { withCredentials: true })
+      .pipe(
+        tap(res => {
+          localStorage.setItem(ACCESS_KEY, res.access_token);
+        })
+      );
   }
 
   logout() {
     // refresh_token cookie is sent automatically; server revokes + clears it
-    this.http.post(`${API}/auth/logout`, {}, { withCredentials: true }).subscribe({ error: () => {} });
+    this.http
+      .post(`${API}/auth/logout`, {}, { withCredentials: true })
+      .subscribe({ error: () => {} });
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(EMAIL_KEY);
     this.router.navigate(['/cyberscan']);

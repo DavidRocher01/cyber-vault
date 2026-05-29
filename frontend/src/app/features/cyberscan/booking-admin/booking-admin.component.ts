@@ -55,22 +55,37 @@ export class BookingAdminComponent {
   login() {
     const key = this.keyForm.value.key ?? '';
     this.authError.set('');
-    this.http.get<Slot[]>(`/api/v1/bookings/admin/slots`, { headers: new HttpHeaders({ 'X-Admin-Key': key }) }).subscribe({
-      next: () => { this.adminKey.set(key); this.authenticated.set(true); this.loadData(); },
-      error: () => this.authError.set('Clé admin incorrecte.'),
-    });
+    this.http
+      .get<
+        Slot[]
+      >(`/api/v1/bookings/admin/slots`, { headers: new HttpHeaders({ 'X-Admin-Key': key }) })
+      .subscribe({
+        next: () => {
+          this.adminKey.set(key);
+          this.authenticated.set(true);
+          this.loadData();
+        },
+        error: () => this.authError.set('Clé admin incorrecte.'),
+      });
   }
 
   loadData() {
     this.loading.set(true);
     const month = this.currentMonth();
-    this.http.get<Slot[]>(`/api/v1/bookings/admin/slots?month=${month}`, { headers: this.headers() }).subscribe({
-      next: s => this.slots.set(s),
-    });
-    this.http.get<AdminBooking[]>(`/api/v1/bookings/admin/bookings`, { headers: this.headers() }).subscribe({
-      next: b => { this.bookings.set(b); this.loading.set(false); },
-      error: () => this.loading.set(false),
-    });
+    this.http
+      .get<Slot[]>(`/api/v1/bookings/admin/slots?month=${month}`, { headers: this.headers() })
+      .subscribe({
+        next: s => this.slots.set(s),
+      });
+    this.http
+      .get<AdminBooking[]>(`/api/v1/bookings/admin/bookings`, { headers: this.headers() })
+      .subscribe({
+        next: b => {
+          this.bookings.set(b);
+          this.loading.set(false);
+        },
+        error: () => this.loading.set(false),
+      });
   }
 
   addSlot() {
@@ -78,13 +93,17 @@ export class BookingAdminComponent {
     const { date, time, duration_minutes, label } = this.slotForm.value;
     this.addError.set('');
     this.addSuccess.set('');
-    this.http.post<Slot[]>('/api/v1/bookings/admin/slots',
-      { slots: [{ date, time, duration_minutes, label }] },
-      { headers: this.headers() }
-    ).subscribe({
-      next: () => { this.addSuccess.set('Créneau ajouté !'); this.loadData(); },
-      error: err => this.addError.set(err?.error?.detail ?? 'Erreur'),
-    });
+    this.http
+      .post<
+        Slot[]
+      >('/api/v1/bookings/admin/slots', { slots: [{ date, time, duration_minutes, label }] }, { headers: this.headers() })
+      .subscribe({
+        next: () => {
+          this.addSuccess.set('Créneau ajouté !');
+          this.loadData();
+        },
+        error: err => this.addError.set(err?.error?.detail ?? 'Erreur'),
+      });
   }
 
   deleteSlot(id: number) {
@@ -94,9 +113,11 @@ export class BookingAdminComponent {
   }
 
   cancelBooking(id: number) {
-    this.http.patch(`/api/v1/bookings/admin/bookings/${id}/cancel`, {}, { headers: this.headers() }).subscribe({
-      next: () => this.loadData(),
-    });
+    this.http
+      .patch(`/api/v1/bookings/admin/bookings/${id}/cancel`, {}, { headers: this.headers() })
+      .subscribe({
+        next: () => this.loadData(),
+      });
   }
 
   prevMonth() {
@@ -131,8 +152,11 @@ export class BookingAdminComponent {
 
   needLabel(nt: string): string {
     const map: Record<string, string> = {
-      'audit-flash': 'Flash', 'audit-app': 'App-Check',
-      'pentest': 'Pentest', 'abonnement': 'Abonnement', 'autre': 'Autre',
+      'audit-flash': 'Flash',
+      'audit-app': 'App-Check',
+      pentest: 'Pentest',
+      abonnement: 'Abonnement',
+      autre: 'Autre',
     };
     return map[nt] ?? nt;
   }

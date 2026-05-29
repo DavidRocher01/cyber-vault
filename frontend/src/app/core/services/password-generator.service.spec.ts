@@ -17,7 +17,7 @@ describe('PasswordGeneratorService', () => {
     expect(service.generate()).not.toBe(service.generate());
   });
 
-  it('n\'utilise que des caractères du charset autorisé', () => {
+  it("n'utilise que des caractères du charset autorisé", () => {
     const pwd = service.generate(200);
     expect(pwd).toMatch(/^[a-zA-Z0-9!@#$%^&*()\-_+=\[\]{}|;:,.<>?]+$/);
   });

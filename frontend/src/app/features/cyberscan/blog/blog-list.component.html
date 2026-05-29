@@ -2,29 +2,34 @@
 
 <div class="min-h-screen bg-gray-950 px-4 py-16">
   <div class="max-w-4xl mx-auto">
-
     <!-- Header -->
     <div class="mb-12">
-      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-700 text-cyan-400 text-sm mb-4 bg-cyan-900/20">
+      <div
+        class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-700 text-cyan-400 text-sm mb-4 bg-cyan-900/20"
+      >
         <mat-icon class="text-sm !h-4 !w-4">article</mat-icon>
         Blog cybersécurité
       </div>
       <h1 class="text-3xl md:text-4xl font-bold text-white mb-3">Conseils & analyses</h1>
       <p class="text-gray-400 max-w-2xl">
-        Articles pratiques sur la sécurité web pour les TPE/PME.
-        Vulnérabilités courantes, audits, conformité RGPD et bonnes pratiques.
+        Articles pratiques sur la sécurité web pour les TPE/PME. Vulnérabilités courantes, audits,
+        conformité RGPD et bonnes pratiques.
       </p>
     </div>
 
     <!-- Articles list -->
     <div class="space-y-5">
       @for (article of (articles$ | async) ?? []; track article.slug) {
-        <a [routerLink]="['/cyberscan/blog', article.slug]"
-           class="block bg-gray-800/50 border border-gray-700 rounded-2xl p-6 hover:border-cyan-700 transition-all group">
+        <a
+          [routerLink]="['/cyberscan/blog', article.slug]"
+          class="block bg-gray-800/50 border border-gray-700 rounded-2xl p-6 hover:border-cyan-700 transition-all group"
+        >
           <div class="flex items-start justify-between gap-4">
             <div class="flex-1">
               <div class="flex items-center gap-3 mb-3">
-                <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-900/40 text-cyan-300 border border-cyan-800">
+                <span
+                  class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-900/40 text-cyan-300 border border-cyan-800"
+                >
                   {{ article.category }}
                 </span>
                 <span class="text-gray-500 text-xs">{{ formatDate(article.date) }}</span>
@@ -33,17 +38,25 @@
                   {{ article.readTime }} min
                 </span>
               </div>
-              <h2 class="text-white font-semibold text-lg mb-2 group-hover:text-cyan-400 transition-colors">
+              <h2
+                class="text-white font-semibold text-lg mb-2 group-hover:text-cyan-400 transition-colors"
+              >
                 {{ article.title }}
               </h2>
-              <p class="text-gray-400 text-sm leading-relaxed line-clamp-2">{{ article.description }}</p>
+              <p class="text-gray-400 text-sm leading-relaxed line-clamp-2">
+                {{ article.description }}
+              </p>
               <div class="flex flex-wrap gap-2 mt-3">
                 @for (tag of article.tags.slice(0, 3); track tag) {
-                  <span class="px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-400">#{{ tag }}</span>
+                  <span class="px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-400"
+                    >#{{ tag }}</span
+                  >
                 }
               </div>
             </div>
-            <mat-icon class="text-gray-600 group-hover:text-cyan-400 transition-colors flex-shrink-0 mt-1">
+            <mat-icon
+              class="text-gray-600 group-hover:text-cyan-400 transition-colors flex-shrink-0 mt-1"
+            >
               arrow_forward
             </mat-icon>
           </div>
@@ -52,15 +65,18 @@
     </div>
 
     <!-- CTA bas de page -->
-    <div class="mt-12 bg-gradient-to-r from-cyan-950 to-gray-900 border border-cyan-900 rounded-2xl p-6 text-center">
+    <div
+      class="mt-12 bg-gradient-to-r from-cyan-950 to-gray-900 border border-cyan-900 rounded-2xl p-6 text-center"
+    >
       <h3 class="text-white font-semibold mb-2">Votre site est-il vulnérable ?</h3>
       <p class="text-gray-400 text-sm mb-4">Scannez-le gratuitement en 90 secondes.</p>
-      <a routerLink="/cyberscan/scan-gratuit"
-         class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm transition-all">
+      <a
+        routerLink="/cyberscan/scan-gratuit"
+        class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm transition-all"
+      >
         <mat-icon>radar</mat-icon>
         Lancer le scan gratuit
       </a>
     </div>
-
   </div>
 </div>

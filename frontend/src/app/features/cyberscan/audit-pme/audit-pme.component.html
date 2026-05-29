@@ -1,31 +1,43 @@
 <app-nav-buttons />
 
 <!-- ── Hero ─────────────────────────────────────────────────── -->
-<section class="relative min-h-[70vh] flex items-center justify-center overflow-hidden bg-gray-950 px-4 py-24">
-  <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(6,182,212,0.08),transparent_60%)]"></div>
+<section
+  class="relative min-h-[70vh] flex items-center justify-center overflow-hidden bg-gray-950 px-4 py-24"
+>
+  <div
+    class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(6,182,212,0.08),transparent_60%)]"
+  ></div>
   <div class="relative z-10 max-w-4xl mx-auto text-center">
-    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-700 text-cyan-400 text-sm mb-6 bg-cyan-900/20">
+    <div
+      class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-700 text-cyan-400 text-sm mb-6 bg-cyan-900/20"
+    >
       <mat-icon class="text-sm !h-4 !w-4">security</mat-icon>
       Audit cybersécurité · TPE / PME · Auvergne-Rhône-Alpes
     </div>
     <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
-      Audit cybersécurité pour<br>
+      Audit cybersécurité pour<br />
       <span class="text-cyan-400">TPE &amp; PME</span>
     </h1>
     <p class="text-xl text-gray-300 mb-4 max-w-2xl mx-auto">
-      Je suis développeur full-stack <strong class="text-white">ET</strong> auditeur.
-      Je trouve les failles, je les explique, et vous recevez un plan d'action concret.
-      Pas de rapport théorique de 50 pages.
+      Je suis développeur full-stack <strong class="text-white">ET</strong> auditeur. Je trouve les
+      failles, je les explique, et vous recevez un plan d'action concret. Pas de rapport théorique
+      de 50 pages.
     </p>
-    <p class="text-gray-400 mb-10">À partir de <span class="text-white font-semibold">245 € HT</span> · Rapport sous 24 h</p>
+    <p class="text-gray-400 mb-10">
+      À partir de <span class="text-white font-semibold">245 € HT</span> · Rapport sous 24 h
+    </p>
     <div class="flex flex-col sm:flex-row gap-4 justify-center">
-      <a routerLink="/cyberscan/scan-gratuit"
-         class="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-lg transition-all">
+      <a
+        routerLink="/cyberscan/scan-gratuit"
+        class="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-lg transition-all"
+      >
         <mat-icon>radar</mat-icon>
         Lancer mon scan gratuit
       </a>
-      <a href="#offres"
-         class="inline-flex items-center gap-2 px-8 py-4 rounded-xl border border-gray-600 hover:border-cyan-600 text-white font-semibold text-lg transition-all">
+      <a
+        href="#offres"
+        class="inline-flex items-center gap-2 px-8 py-4 rounded-xl border border-gray-600 hover:border-cyan-600 text-white font-semibold text-lg transition-all"
+      >
         <mat-icon>arrow_downward</mat-icon>
         Voir les offres
       </a>
@@ -58,17 +70,31 @@
 <!-- ── Problème / Promesse ──────────────────────────────────── -->
 <section class="bg-gray-950 py-20 px-4">
   <div class="max-w-4xl mx-auto">
-    <h2 class="text-3xl font-bold text-white text-center mb-12">Votre site est-il vraiment sécurisé ?</h2>
+    <h2 class="text-3xl font-bold text-white text-center mb-12">
+      Votre site est-il vraiment sécurisé ?
+    </h2>
     <div class="grid md:grid-cols-2 gap-6">
       <div class="bg-red-900/10 border border-red-800 rounded-xl p-6">
         <h3 class="text-red-400 font-semibold text-lg mb-4 flex items-center gap-2">
           <mat-icon>warning</mat-icon> Ce que vous ne savez peut-être pas
         </h3>
         <ul class="space-y-3 text-gray-300 text-sm">
-          <li class="flex items-start gap-2"><mat-icon class="text-red-500 text-base mt-0.5 flex-shrink-0">close</mat-icon> 60 % des cyberattaques ciblent des TPE/PME (ANSSI 2025)</li>
-          <li class="flex items-start gap-2"><mat-icon class="text-red-500 text-base mt-0.5 flex-shrink-0">close</mat-icon> Une violation RGPD = obligation de notifier la CNIL sous 72 h</li>
-          <li class="flex items-start gap-2"><mat-icon class="text-red-500 text-base mt-0.5 flex-shrink-0">close</mat-icon> Coût moyen d'un incident cyber pour une PME : 15 000 à 50 000 €</li>
-          <li class="flex items-start gap-2"><mat-icon class="text-red-500 text-base mt-0.5 flex-shrink-0">close</mat-icon> Vos prestataires web ne font pas d'audit de sécurité</li>
+          <li class="flex items-start gap-2">
+            <mat-icon class="text-red-500 text-base mt-0.5 flex-shrink-0">close</mat-icon> 60 % des
+            cyberattaques ciblent des TPE/PME (ANSSI 2025)
+          </li>
+          <li class="flex items-start gap-2">
+            <mat-icon class="text-red-500 text-base mt-0.5 flex-shrink-0">close</mat-icon> Une
+            violation RGPD = obligation de notifier la CNIL sous 72 h
+          </li>
+          <li class="flex items-start gap-2">
+            <mat-icon class="text-red-500 text-base mt-0.5 flex-shrink-0">close</mat-icon> Coût
+            moyen d'un incident cyber pour une PME : 15 000 à 50 000 €
+          </li>
+          <li class="flex items-start gap-2">
+            <mat-icon class="text-red-500 text-base mt-0.5 flex-shrink-0">close</mat-icon> Vos
+            prestataires web ne font pas d'audit de sécurité
+          </li>
         </ul>
       </div>
       <div class="bg-green-900/10 border border-green-800 rounded-xl p-6">
@@ -76,10 +102,22 @@
           <mat-icon>check_circle</mat-icon> Ce que vous obtenez avec un audit
         </h3>
         <ul class="space-y-3 text-gray-300 text-sm">
-          <li class="flex items-start gap-2"><mat-icon class="text-green-500 text-base mt-0.5 flex-shrink-0">check</mat-icon> Vision claire de vos risques réels, priorisés par criticité</li>
-          <li class="flex items-start gap-2"><mat-icon class="text-green-500 text-base mt-0.5 flex-shrink-0">check</mat-icon> Plan d'action concret, implémentable par votre équipe</li>
-          <li class="flex items-start gap-2"><mat-icon class="text-green-500 text-base mt-0.5 flex-shrink-0">check</mat-icon> Conformité RGPD et NIS2 documentée</li>
-          <li class="flex items-start gap-2"><mat-icon class="text-green-500 text-base mt-0.5 flex-shrink-0">check</mat-icon> ROI moyen estimé à ×10 sur 3 ans</li>
+          <li class="flex items-start gap-2">
+            <mat-icon class="text-green-500 text-base mt-0.5 flex-shrink-0">check</mat-icon> Vision
+            claire de vos risques réels, priorisés par criticité
+          </li>
+          <li class="flex items-start gap-2">
+            <mat-icon class="text-green-500 text-base mt-0.5 flex-shrink-0">check</mat-icon> Plan
+            d'action concret, implémentable par votre équipe
+          </li>
+          <li class="flex items-start gap-2">
+            <mat-icon class="text-green-500 text-base mt-0.5 flex-shrink-0">check</mat-icon>
+            Conformité RGPD et NIS2 documentée
+          </li>
+          <li class="flex items-start gap-2">
+            <mat-icon class="text-green-500 text-base mt-0.5 flex-shrink-0">check</mat-icon> ROI
+            moyen estimé à ×10 sur 3 ans
+          </li>
         </ul>
       </div>
     </div>
@@ -90,17 +128,27 @@
 <section id="offres" class="bg-gray-900 py-20 px-4">
   <div class="max-w-6xl mx-auto">
     <h2 class="text-3xl font-bold text-white text-center mb-4">Audits ponctuels</h2>
-    <p class="text-gray-400 text-center mb-12">Choisissez l'audit adapté à votre situation. Paiement à la commande, NDA inclus.</p>
+    <p class="text-gray-400 text-center mb-12">
+      Choisissez l'audit adapté à votre situation. Paiement à la commande, NDA inclus.
+    </p>
     <div class="grid md:grid-cols-3 gap-6">
       @for (offer of offers; track offer.name) {
-        <div class="relative bg-gray-800/50 border rounded-2xl p-6 flex flex-col" [class]="offer.color">
+        <div
+          class="relative bg-gray-800/50 border rounded-2xl p-6 flex flex-col"
+          [class]="offer.color"
+        >
           @if (offer.popular) {
-            <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-purple-600 text-white text-xs font-semibold">
+            <div
+              class="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-purple-600 text-white text-xs font-semibold"
+            >
               Le plus demandé
             </div>
           }
           <div class="flex items-center gap-3 mb-4">
-            <div class="w-10 h-10 rounded-xl flex items-center justify-center" [class]="offer.badge">
+            <div
+              class="w-10 h-10 rounded-xl flex items-center justify-center"
+              [class]="offer.badge"
+            >
               <mat-icon class="text-lg">{{ offer.icon }}</mat-icon>
             </div>
             <div>
@@ -121,11 +169,15 @@
               </li>
             }
           </ul>
-          <a routerLink="/cyberscan/reserver"
-             class="block text-center py-3 px-6 rounded-xl font-semibold text-sm transition-all border"
-             [class]="offer.popular
-               ? 'bg-purple-600 hover:bg-purple-500 text-white border-purple-600'
-               : 'border-gray-600 hover:border-cyan-600 text-white'">
+          <a
+            routerLink="/cyberscan/reserver"
+            class="block text-center py-3 px-6 rounded-xl font-semibold text-sm transition-all border"
+            [class]="
+              offer.popular
+                ? 'bg-purple-600 hover:bg-purple-500 text-white border-purple-600'
+                : 'border-gray-600 hover:border-cyan-600 text-white'
+            "
+          >
             Réserver cet audit
           </a>
         </div>
@@ -138,12 +190,19 @@
 <section class="bg-gray-950 py-20 px-4">
   <div class="max-w-5xl mx-auto">
     <h2 class="text-3xl font-bold text-white text-center mb-4">Surveillance continue</h2>
-    <p class="text-gray-400 text-center mb-12">Un audit ponctuel est un instantané. La cybersécurité est un processus continu.</p>
+    <p class="text-gray-400 text-center mb-12">
+      Un audit ponctuel est un instantané. La cybersécurité est un processus continu.
+    </p>
     <div class="grid md:grid-cols-3 gap-6">
       @for (sub of subscriptions; track sub.name) {
-        <div class="bg-gray-800/50 border rounded-2xl p-6 flex flex-col relative" [class]="sub.color">
+        <div
+          class="bg-gray-800/50 border rounded-2xl p-6 flex flex-col relative"
+          [class]="sub.color"
+        >
           @if (sub.popular) {
-            <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-cyan-600 text-white text-xs font-semibold">
+            <div
+              class="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-cyan-600 text-white text-xs font-semibold"
+            >
               Recommandé
             </div>
           }
@@ -163,8 +222,10 @@
               </li>
             }
           </ul>
-          <a routerLink="/cyberscan/reserver"
-             class="block text-center py-3 px-6 rounded-xl font-semibold text-sm transition-all border border-gray-600 hover:border-cyan-600 text-white">
+          <a
+            routerLink="/cyberscan/reserver"
+            class="block text-center py-3 px-6 rounded-xl font-semibold text-sm transition-all border border-gray-600 hover:border-cyan-600 text-white"
+          >
             En savoir plus
           </a>
         </div>
@@ -176,7 +237,9 @@
 <!-- ── Différenciation ───────────────────────────────────────── -->
 <section class="bg-gray-900 py-20 px-4">
   <div class="max-w-4xl mx-auto">
-    <h2 class="text-3xl font-bold text-white text-center mb-4">Pourquoi un développeur-auditeur ?</h2>
+    <h2 class="text-3xl font-bold text-white text-center mb-4">
+      Pourquoi un développeur-auditeur ?
+    </h2>
     <p class="text-gray-400 text-center mb-12 max-w-2xl mx-auto">
       La plupart des auditeurs ont un profil purement offensif (pentest) ou organisationnel (RSSI).
       Un développeur full-stack qui pratique aussi l'audit trouve des failles que les autres ratent.
@@ -186,28 +249,38 @@
         <mat-icon class="text-cyan-400 text-2xl mt-0.5 flex-shrink-0">code</mat-icon>
         <div>
           <h3 class="text-white font-semibold mb-1">Il lit votre code</h3>
-          <p class="text-gray-400 text-sm">Il comprend vos contraintes métier et architecturales, pas seulement les CVE génériques.</p>
+          <p class="text-gray-400 text-sm">
+            Il comprend vos contraintes métier et architecturales, pas seulement les CVE génériques.
+          </p>
         </div>
       </div>
       <div class="bg-gray-800/40 rounded-xl p-5 flex items-start gap-4">
         <mat-icon class="text-cyan-400 text-2xl mt-0.5 flex-shrink-0">build</mat-icon>
         <div>
           <h3 class="text-white font-semibold mb-1">Recommandations implémentables</h3>
-          <p class="text-gray-400 text-sm">Des corrections concrètes avec des exemples de code, pas des généralités OWASP.</p>
+          <p class="text-gray-400 text-sm">
+            Des corrections concrètes avec des exemples de code, pas des généralités OWASP.
+          </p>
         </div>
       </div>
       <div class="bg-gray-800/40 rounded-xl p-5 flex items-start gap-4">
         <mat-icon class="text-cyan-400 text-2xl mt-0.5 flex-shrink-0">handyman</mat-icon>
         <div>
           <h3 class="text-white font-semibold mb-1">Option correction directe</h3>
-          <p class="text-gray-400 text-sm">Si votre équipe manque de ressources, les corrections peuvent être déléguées (devis séparé).</p>
+          <p class="text-gray-400 text-sm">
+            Si votre équipe manque de ressources, les corrections peuvent être déléguées (devis
+            séparé).
+          </p>
         </div>
       </div>
       <div class="bg-gray-800/40 rounded-xl p-5 flex items-start gap-4">
         <mat-icon class="text-cyan-400 text-2xl mt-0.5 flex-shrink-0">place</mat-icon>
         <div>
           <h3 class="text-white font-semibold mb-1">Proximité Auvergne-Rhône-Alpes</h3>
-          <p class="text-gray-400 text-sm">Basé à Trévoux (01). Intervention en présentiel possible sur Lyon, Bourg-en-Bresse, Mâcon.</p>
+          <p class="text-gray-400 text-sm">
+            Basé à Trévoux (01). Intervention en présentiel possible sur Lyon, Bourg-en-Bresse,
+            Mâcon.
+          </p>
         </div>
       </div>
     </div>
@@ -221,14 +294,21 @@
     <div class="space-y-3">
       @for (faq of faqs; let i = $index; track i) {
         <div class="bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden">
-          <button class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-800/70 transition-colors"
-                  (click)="toggleFaq(i)">
+          <button
+            class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-800/70 transition-colors"
+            (click)="toggleFaq(i)"
+          >
             <span class="text-white font-medium">{{ faq.q }}</span>
-            <mat-icon class="text-gray-400 flex-shrink-0 transition-transform"
-                      [class.rotate-180]="openFaqIndex() === i">expand_more</mat-icon>
+            <mat-icon
+              class="text-gray-400 flex-shrink-0 transition-transform"
+              [class.rotate-180]="openFaqIndex() === i"
+              >expand_more</mat-icon
+            >
           </button>
           @if (openFaqIndex() === i) {
-            <div class="px-6 pb-4 text-gray-300 text-sm leading-relaxed border-t border-gray-700 pt-4">
+            <div
+              class="px-6 pb-4 text-gray-300 text-sm leading-relaxed border-t border-gray-700 pt-4"
+            >
               {{ faq.a }}
             </div>
           }
@@ -244,17 +324,24 @@
     <mat-icon class="text-cyan-400 text-5xl mb-4">security</mat-icon>
     <h2 class="text-3xl font-bold text-white mb-4">Prêt à sécuriser votre activité ?</h2>
     <p class="text-gray-300 mb-3">
-      Commencez par un scan gratuit pour avoir une première indication, ou réservez directement un appel découverte de 15 minutes.
+      Commencez par un scan gratuit pour avoir une première indication, ou réservez directement un
+      appel découverte de 15 minutes.
     </p>
-    <p class="text-gray-400 text-sm mb-10">Aucun engagement · Devis sous 24 h · NDA signé avant toute intervention</p>
+    <p class="text-gray-400 text-sm mb-10">
+      Aucun engagement · Devis sous 24 h · NDA signé avant toute intervention
+    </p>
     <div class="flex flex-col sm:flex-row gap-4 justify-center">
-      <a routerLink="/cyberscan/scan-gratuit"
-         class="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition-all">
+      <a
+        routerLink="/cyberscan/scan-gratuit"
+        class="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition-all"
+      >
         <mat-icon>radar</mat-icon>
         Scan gratuit (90 secondes)
       </a>
-      <a routerLink="/cyberscan/reserver"
-         class="inline-flex items-center gap-2 px-8 py-4 rounded-xl border border-gray-600 hover:border-cyan-500 text-white font-semibold transition-all">
+      <a
+        routerLink="/cyberscan/reserver"
+        class="inline-flex items-center gap-2 px-8 py-4 rounded-xl border border-gray-600 hover:border-cyan-500 text-white font-semibold transition-all"
+      >
         <mat-icon>calendar_today</mat-icon>
         Prendre rendez-vous
       </a>

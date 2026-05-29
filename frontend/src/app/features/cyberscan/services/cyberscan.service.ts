@@ -198,7 +198,9 @@ export class CyberscanService {
 
   getMySubscription(refresh = false): Observable<Subscription | null> {
     if (!this._subscription$ || refresh) {
-      this._subscription$ = this.http.get<Subscription | null>(`${API}/subscriptions/me`).pipe(shareReplay(1));
+      this._subscription$ = this.http
+        .get<Subscription | null>(`${API}/subscriptions/me`)
+        .pipe(shareReplay(1));
     }
     return this._subscription$;
   }
@@ -217,7 +219,10 @@ export class CyberscanService {
   }
 
   purchaseExtraSites(): Observable<{ checkout_url: string }> {
-    return this.http.post<{ checkout_url: string }>(`${API}/subscriptions/addons/extra-sites/checkout`, {});
+    return this.http.post<{ checkout_url: string }>(
+      `${API}/subscriptions/addons/extra-sites/checkout`,
+      {}
+    );
   }
 
   getMySites(): Observable<Site[]> {
@@ -233,11 +238,16 @@ export class CyberscanService {
   }
 
   triggerScan(siteId: number): Observable<{ scan_id: number; message: string }> {
-    return this.http.post<{ scan_id: number; message: string }>(`${API}/scans/trigger/${siteId}`, {});
+    return this.http.post<{ scan_id: number; message: string }>(
+      `${API}/scans/trigger/${siteId}`,
+      {}
+    );
   }
 
   getSiteScans(siteId: number, page = 1, perPage = 10): Observable<PaginatedScans> {
-    return this.http.get<PaginatedScans>(`${API}/scans/site/${siteId}?page=${page}&per_page=${perPage}`);
+    return this.http.get<PaginatedScans>(
+      `${API}/scans/site/${siteId}?page=${page}&per_page=${perPage}`
+    );
   }
 
   getScan(scanId: number): Observable<Scan> {
@@ -257,9 +267,10 @@ export class CyberscanService {
   }
 
   downloadRemediationBlob(scanId: number, scriptKey: string): Observable<Blob> {
-    return this.http.get(`${API}/scans/${scanId}/remediation/${scriptKey}`, { responseType: 'blob' });
+    return this.http.get(`${API}/scans/${scanId}/remediation/${scriptKey}`, {
+      responseType: 'blob',
+    });
   }
-
 
   // ── URL Scans ──────────────────────────────────────────────────────────
 
@@ -285,7 +296,10 @@ export class CyberscanService {
 
   // ── Code Scans ─────────────────────────────────────────────────────────
 
-  triggerCodeScan(repoUrl: string, githubToken?: string): Observable<{ scan_id: number; message: string }> {
+  triggerCodeScan(
+    repoUrl: string,
+    githubToken?: string
+  ): Observable<{ scan_id: number; message: string }> {
     return this.http.post<{ scan_id: number; message: string }>(`${API}/code-scans`, {
       repo_url: repoUrl,
       github_token: githubToken || null,
@@ -307,7 +321,10 @@ export class CyberscanService {
   uploadCodeScan(file: File): Observable<{ scan_id: number; message: string }> {
     const formData = new FormData();
     formData.append('file', file);
-    return this.http.post<{ scan_id: number; message: string }>(`${API}/code-scans/upload`, formData);
+    return this.http.post<{ scan_id: number; message: string }>(
+      `${API}/code-scans/upload`,
+      formData
+    );
   }
 
   // ── NIS2 ──────────────────────────────────────────────────────────────
@@ -394,10 +411,15 @@ export class CyberscanService {
     return this.http.get<FindingStatus[]>(`${API}/scans/site/${siteId}/finding-status`);
   }
 
-  updateFindingStatus(siteId: number, moduleKey: string, status: string, note?: string): Observable<FindingStatus> {
-    return this.http.put<FindingStatus>(
-      `${API}/scans/site/${siteId}/finding-status/${moduleKey}`,
-      { status, note: note ?? null },
-    );
+  updateFindingStatus(
+    siteId: number,
+    moduleKey: string,
+    status: string,
+    note?: string
+  ): Observable<FindingStatus> {
+    return this.http.put<FindingStatus>(`${API}/scans/site/${siteId}/finding-status/${moduleKey}`, {
+      status,
+      note: note ?? null,
+    });
   }
 }

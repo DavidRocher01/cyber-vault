@@ -2,38 +2,49 @@
 
 <!-- Impersonation banner -->
 @if (focusedClientId()) {
-  <div class="sticky top-0 z-50 flex items-center justify-between gap-3 px-4 py-2.5 bg-amber-500/90 text-gray-950 text-sm font-semibold shadow-lg backdrop-blur">
+  <div
+    class="sticky top-0 z-50 flex items-center justify-between gap-3 px-4 py-2.5 bg-amber-500/90 text-gray-950 text-sm font-semibold shadow-lg backdrop-blur"
+  >
     <div class="flex items-center gap-2">
-      <mat-icon style="font-size:18px;height:18px;width:18px">visibility</mat-icon>
+      <mat-icon style="font-size: 18px; height: 18px; width: 18px">visibility</mat-icon>
       Mode client actif :
       <span class="font-bold">{{ focusedClientName() ?? 'Client #' + focusedClientId() }}</span>
     </div>
-    <button type="button" mat-icon-button (click)="clearFocus()"
-            class="!text-gray-950 !w-7 !h-7" title="Quitter le mode client">
-      <mat-icon style="font-size:18px;height:18px;width:18px">close</mat-icon>
+    <button
+      type="button"
+      mat-icon-button
+      (click)="clearFocus()"
+      class="!text-gray-950 !w-7 !h-7"
+      title="Quitter le mode client"
+    >
+      <mat-icon style="font-size: 18px; height: 18px; width: 18px">close</mat-icon>
     </button>
   </div>
 }
 
 <div class="min-h-screen bg-gray-950 text-gray-100 p-4 md:p-8">
   <div class="max-w-6xl mx-auto">
-
     <!-- Header -->
     <div class="flex items-center justify-between gap-4 mb-8">
       <div>
         <div class="flex items-center gap-3 mb-1">
-          <h1 class="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent tracking-tight">
+          <h1
+            class="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent tracking-tight"
+          >
             RSSI Externalisé
           </h1>
-          <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-600/30 uppercase tracking-widest">
+          <span
+            class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-600/30 uppercase tracking-widest"
+          >
             Consultant
           </span>
         </div>
         <p class="text-sm text-gray-500">Console de pilotage multi-clients</p>
       </div>
-      <a routerLink="/cyberscan/consultant/profile"
-         class="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-gray-700 hover:border-cyan-600
-                text-sm text-gray-400 hover:text-cyan-400 transition-all hover:bg-cyan-500/5 shrink-0">
+      <a
+        routerLink="/cyberscan/consultant/profile"
+        class="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-gray-700 hover:border-cyan-600 text-sm text-gray-400 hover:text-cyan-400 transition-all hover:bg-cyan-500/5 shrink-0"
+      >
         <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">manage_accounts</mat-icon>
         Mon profil
       </a>
@@ -44,28 +55,41 @@
         <mat-spinner [diameter]="32" />
       </div>
     } @else {
-
       <!-- Pill tab bar -->
       <div class="flex gap-1 p-1 bg-gray-900 border border-gray-800 rounded-xl mb-6 w-fit">
-        <button type="button"
+        <button
+          type="button"
           class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
-          [class]="activeTab() === 'dashboard'
-            ? 'bg-cyan-600/20 text-cyan-300 border border-cyan-600/30'
-            : 'text-gray-400 hover:text-gray-200'"
-          (click)="activeTab.set('dashboard')">
+          [class]="
+            activeTab() === 'dashboard'
+              ? 'bg-cyan-600/20 text-cyan-300 border border-cyan-600/30'
+              : 'text-gray-400 hover:text-gray-200'
+          "
+          (click)="activeTab.set('dashboard')"
+        >
           <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">dashboard</mat-icon>
           Vue d'ensemble
         </button>
-        <button type="button"
+        <button
+          type="button"
           class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
-          [class]="activeTab() === 'clients'
-            ? 'bg-cyan-600/20 text-cyan-300 border border-cyan-600/30'
-            : 'text-gray-400 hover:text-gray-200'"
-          (click)="activeTab.set('clients')">
+          [class]="
+            activeTab() === 'clients'
+              ? 'bg-cyan-600/20 text-cyan-300 border border-cyan-600/30'
+              : 'text-gray-400 hover:text-gray-200'
+          "
+          (click)="activeTab.set('clients')"
+        >
           <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">business</mat-icon>
           Clients
-          <span class="text-xs px-1.5 py-0.5 rounded-full"
-                [class]="activeTab() === 'clients' ? 'bg-cyan-500/20 text-cyan-300' : 'bg-gray-700 text-gray-400'">
+          <span
+            class="text-xs px-1.5 py-0.5 rounded-full"
+            [class]="
+              activeTab() === 'clients'
+                ? 'bg-cyan-500/20 text-cyan-300'
+                : 'bg-gray-700 text-gray-400'
+            "
+          >
             {{ clients().length }}
           </span>
         </button>
@@ -73,7 +97,6 @@
 
       <!-- ─── DASHBOARD TAB ───────────────────────────────────────────────── -->
       @if (activeTab() === 'dashboard') {
-
         <!-- KPI bar -->
         @if (overview(); as ov) {
           <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
@@ -85,9 +108,18 @@
               <div class="text-2xl font-bold text-cyan-300">{{ formatAmount(ov.total_mrr) }}</div>
               <div class="text-xs text-gray-500 mt-0.5">MRR</div>
             </div>
-            <div class="rounded-xl p-4 text-center transition-colors"
-                 [ngClass]="ov.overdue_actions > 0 ? 'bg-red-500/10 border border-red-600/30' : 'bg-gray-900 border border-gray-800'">
-              <div class="text-2xl font-bold" [class]="ov.overdue_actions > 0 ? 'text-red-400' : 'text-white'">
+            <div
+              class="rounded-xl p-4 text-center transition-colors"
+              [ngClass]="
+                ov.overdue_actions > 0
+                  ? 'bg-red-500/10 border border-red-600/30'
+                  : 'bg-gray-900 border border-gray-800'
+              "
+            >
+              <div
+                class="text-2xl font-bold"
+                [class]="ov.overdue_actions > 0 ? 'text-red-400' : 'text-white'"
+              >
                 {{ ov.overdue_actions }}
               </div>
               <div class="text-xs text-gray-500 mt-0.5">Actions en retard</div>
@@ -96,16 +128,34 @@
               <div class="text-2xl font-bold text-white">{{ ov.open_actions }}</div>
               <div class="text-xs text-gray-500 mt-0.5">Actions ouvertes</div>
             </div>
-            <div class="rounded-xl p-4 text-center transition-colors"
-                 [ngClass]="ov.renewals_upcoming > 0 ? 'bg-amber-500/10 border border-amber-600/30' : 'bg-gray-900 border border-gray-800'">
-              <div class="text-2xl font-bold" [class]="ov.renewals_upcoming > 0 ? 'text-amber-300' : 'text-white'">
+            <div
+              class="rounded-xl p-4 text-center transition-colors"
+              [ngClass]="
+                ov.renewals_upcoming > 0
+                  ? 'bg-amber-500/10 border border-amber-600/30'
+                  : 'bg-gray-900 border border-gray-800'
+              "
+            >
+              <div
+                class="text-2xl font-bold"
+                [class]="ov.renewals_upcoming > 0 ? 'text-amber-300' : 'text-white'"
+              >
                 {{ ov.renewals_upcoming }}
               </div>
               <div class="text-xs text-gray-500 mt-0.5">Renouvellements</div>
             </div>
-            <div class="rounded-xl p-4 text-center transition-colors"
-                 [ngClass]="ov.upcoming_visits > 0 ? 'bg-blue-500/10 border border-blue-600/30' : 'bg-gray-900 border border-gray-800'">
-              <div class="text-2xl font-bold" [class]="ov.upcoming_visits > 0 ? 'text-blue-300' : 'text-white'">
+            <div
+              class="rounded-xl p-4 text-center transition-colors"
+              [ngClass]="
+                ov.upcoming_visits > 0
+                  ? 'bg-blue-500/10 border border-blue-600/30'
+                  : 'bg-gray-900 border border-gray-800'
+              "
+            >
+              <div
+                class="text-2xl font-bold"
+                [class]="ov.upcoming_visits > 0 ? 'text-blue-300' : 'text-white'"
+              >
                 {{ ov.upcoming_visits }}
               </div>
               <div class="text-xs text-gray-500 mt-0.5">Visites (14j)</div>
@@ -114,25 +164,41 @@
         }
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-
           <!-- Alerts panel -->
           <div class="lg:col-span-2">
-            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <h3
+              class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2"
+            >
               <mat-icon class="text-orange-400 !text-[1rem] !w-[1rem] !h-[1rem]">warning</mat-icon>
               Alertes ({{ alerts().length }})
             </h3>
             @if (alerts().length === 0) {
               <div class="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
-                <mat-icon class="text-green-400 !text-[2.5rem] !w-[2.5rem] !h-[2.5rem] mb-2 opacity-80">check_circle</mat-icon>
+                <mat-icon
+                  class="text-green-400 !text-[2.5rem] !w-[2.5rem] !h-[2.5rem] mb-2 opacity-80"
+                  >check_circle</mat-icon
+                >
                 <p class="text-sm text-gray-400 font-medium">Tout est sous contrôle</p>
                 <p class="text-xs text-gray-600 mt-1">Aucune alerte active</p>
               </div>
             } @else {
               <div class="flex flex-col gap-2">
                 @for (alert of alerts(); track alert.client_id + alert.type + alert.title) {
-                  <div class="border rounded-xl p-3.5 flex items-start gap-3" [ngClass]="alertSeverityClass(alert.severity)">
-                    <mat-icon class="mt-0.5 shrink-0 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]" [ngClass]="alertIconColor(alert.severity)">
-                      {{ alert.type === 'renewal_upcoming' ? 'event_available' : alert.type === 'no_recent_visit' ? 'person_off' : 'assignment_late' }}
+                  <div
+                    class="border rounded-xl p-3.5 flex items-start gap-3"
+                    [ngClass]="alertSeverityClass(alert.severity)"
+                  >
+                    <mat-icon
+                      class="mt-0.5 shrink-0 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]"
+                      [ngClass]="alertIconColor(alert.severity)"
+                    >
+                      {{
+                        alert.type === 'renewal_upcoming'
+                          ? 'event_available'
+                          : alert.type === 'no_recent_visit'
+                            ? 'person_off'
+                            : 'assignment_late'
+                      }}
                     </mat-icon>
                     <div class="flex-1 min-w-0">
                       <div class="text-sm font-medium text-gray-100">{{ alert.title }}</div>
@@ -146,8 +212,12 @@
 
           <!-- Upcoming events -->
           <div>
-            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <mat-icon class="text-blue-400 !text-[1rem] !w-[1rem] !h-[1rem]">calendar_today</mat-icon>
+            <h3
+              class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2"
+            >
+              <mat-icon class="text-blue-400 !text-[1rem] !w-[1rem] !h-[1rem]"
+                >calendar_today</mat-icon
+              >
               Prochaines visites (14j)
             </h3>
             @if (events().length === 0) {
@@ -159,12 +229,18 @@
                 @for (event of events(); track event.visit_id) {
                   <div class="bg-gray-900 border border-blue-700/30 rounded-xl p-3.5">
                     <div class="text-sm font-semibold text-blue-200">{{ event.client_name }}</div>
-                    <div class="text-xs text-gray-400 mt-0.5">{{ formatDate(event.scheduled_date) }}</div>
+                    <div class="text-xs text-gray-400 mt-0.5">
+                      {{ formatDate(event.scheduled_date) }}
+                    </div>
                     <div class="flex gap-2 mt-2">
-                      <span class="text-xs px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-300 border border-blue-600/30">
+                      <span
+                        class="text-xs px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-300 border border-blue-600/30"
+                      >
                         {{ visitTypeLabel(event.visit_type) }}
                       </span>
-                      <span class="text-xs px-1.5 py-0.5 rounded-md bg-gray-700/50 text-gray-300 border border-gray-700/30">
+                      <span
+                        class="text-xs px-1.5 py-0.5 rounded-md bg-gray-700/50 text-gray-300 border border-gray-700/30"
+                      >
                         {{ locationLabel(event.location) }}
                       </span>
                     </div>
@@ -178,14 +254,20 @@
         <!-- Suggestions -->
         @if (suggestions().length > 0) {
           <div class="mb-8">
-            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <h3
+              class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2"
+            >
               <mat-icon class="text-cyan-400 !text-[1rem] !w-[1rem] !h-[1rem]">lightbulb</mat-icon>
               Suggestions ({{ suggestions().length }})
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               @for (s of suggestions(); track s.client_id + s.type) {
-                <div class="bg-gray-900 border border-cyan-700/30 rounded-xl p-4 flex items-start gap-3">
-                  <mat-icon class="text-cyan-400 mt-0.5 shrink-0 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">
+                <div
+                  class="bg-gray-900 border border-cyan-700/30 rounded-xl p-4 flex items-start gap-3"
+                >
+                  <mat-icon
+                    class="text-cyan-400 mt-0.5 shrink-0 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]"
+                  >
                     {{ suggestionIcon(s.type) }}
                   </mat-icon>
                   <div class="flex-1 min-w-0">
@@ -202,13 +284,19 @@
         <!-- Clients quick-view table -->
         @if (summaries().length > 0) {
           <div>
-            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <mat-icon class="text-gray-500 !text-[1rem] !w-[1rem] !h-[1rem]">table_chart</mat-icon>
+            <h3
+              class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2"
+            >
+              <mat-icon class="text-gray-500 !text-[1rem] !w-[1rem] !h-[1rem]"
+                >table_chart</mat-icon
+              >
               Tableau de bord clients
             </h3>
             <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
               <table class="w-full text-sm">
-                <thead class="border-b border-gray-800 text-[11px] text-gray-500 uppercase tracking-wider">
+                <thead
+                  class="border-b border-gray-800 text-[11px] text-gray-500 uppercase tracking-wider"
+                >
                   <tr>
                     <th class="text-left px-4 py-3">Client</th>
                     <th class="text-left px-4 py-3">Formule</th>
@@ -220,13 +308,18 @@
                 </thead>
                 <tbody>
                   @for (s of summaries(); track s.id) {
-                    <tr class="border-b border-gray-800/50 hover:bg-white/[0.02] transition-colors cursor-pointer"
-                        (click)="onClientRowClick(s)">
+                    <tr
+                      class="border-b border-gray-800/50 hover:bg-white/[0.02] transition-colors cursor-pointer"
+                      (click)="onClientRowClick(s)"
+                    >
                       <td class="px-4 py-3">
                         <div class="flex items-center gap-2">
                           <span class="font-medium text-white">{{ s.name }}</span>
                           @if (s.status !== 'active') {
-                            <span class="text-xs px-1.5 py-0.5 rounded-full" [ngClass]="clientStatusClass(s.status)">
+                            <span
+                              class="text-xs px-1.5 py-0.5 rounded-full"
+                              [ngClass]="clientStatusClass(s.status)"
+                            >
                               {{ s.status === 'churned' ? 'Churné' : 'Inactif' }}
                             </span>
                           }
@@ -234,7 +327,10 @@
                       </td>
                       <td class="px-4 py-3">
                         @if (s.formula) {
-                          <span class="text-xs px-2 py-0.5 rounded-full border font-semibold" [ngClass]="formulaClass(s.formula)">
+                          <span
+                            class="text-xs px-2 py-0.5 rounded-full border font-semibold"
+                            [ngClass]="formulaClass(s.formula)"
+                          >
                             {{ formulaLabel(s.formula) }}
                           </span>
                         } @else {
@@ -242,7 +338,11 @@
                         }
                       </td>
                       <td class="px-4 py-3 text-right">
-                        <span [class]="s.open_actions > 0 ? 'text-white font-semibold' : 'text-gray-600'">
+                        <span
+                          [class]="
+                            s.open_actions > 0 ? 'text-white font-semibold' : 'text-gray-600'
+                          "
+                        >
                           {{ s.open_actions }}
                         </span>
                       </td>
@@ -267,13 +367,21 @@
           </div>
         } @else {
           <div class="text-center py-20">
-            <div class="w-16 h-16 rounded-2xl bg-gray-900 border border-gray-800 flex items-center justify-center mx-auto mb-4">
+            <div
+              class="w-16 h-16 rounded-2xl bg-gray-900 border border-gray-800 flex items-center justify-center mx-auto mb-4"
+            >
               <mat-icon class="text-gray-600 !text-[2rem] !w-[2rem] !h-[2rem]">business</mat-icon>
             </div>
             <p class="text-base font-medium text-gray-400 mb-1">Aucun client pour l'instant</p>
-            <p class="text-sm text-gray-600 mb-6">Ajoutez votre premier client depuis l'onglet Clients.</p>
-            <button type="button" mat-flat-button (click)="activeTab.set('clients')"
-                    class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-sm">
+            <p class="text-sm text-gray-600 mb-6">
+              Ajoutez votre premier client depuis l'onglet Clients.
+            </p>
+            <button
+              type="button"
+              mat-flat-button
+              (click)="activeTab.set('clients')"
+              class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-sm"
+            >
               <mat-icon>add</mat-icon>
               Gérer les clients
             </button>
@@ -283,12 +391,17 @@
 
       <!-- ─── CLIENTS TAB ─────────────────────────────────────────────────── -->
       @if (activeTab() === 'clients') {
-
         <div class="flex items-center justify-between mb-5">
           <h2 class="text-base font-semibold text-gray-200">Mes clients</h2>
-          <button type="button" mat-flat-button (click)="showAddForm.set(!showAddForm())"
-                  class="!rounded-xl !text-sm"
-                  [class]="showAddForm() ? '!bg-gray-700 hover:!bg-gray-600' : '!bg-cyan-600 hover:!bg-cyan-500'">
+          <button
+            type="button"
+            mat-flat-button
+            (click)="showAddForm.set(!showAddForm())"
+            class="!rounded-xl !text-sm"
+            [class]="
+              showAddForm() ? '!bg-gray-700 hover:!bg-gray-600' : '!bg-cyan-600 hover:!bg-cyan-500'
+            "
+          >
             <mat-icon>{{ showAddForm() ? 'close' : 'add' }}</mat-icon>
             {{ showAddForm() ? 'Annuler' : 'Ajouter un client' }}
           </button>
@@ -299,32 +412,49 @@
           <div class="bg-gray-900 border border-cyan-700/40 rounded-2xl p-6 mb-6">
             <div class="flex items-center gap-2 mb-5">
               <div class="w-7 h-7 rounded-lg bg-cyan-500/15 flex items-center justify-center">
-                <mat-icon class="text-cyan-400 !text-[1rem] !w-[1rem] !h-[1rem]">add_business</mat-icon>
+                <mat-icon class="text-cyan-400 !text-[1rem] !w-[1rem] !h-[1rem]"
+                  >add_business</mat-icon
+                >
               </div>
               <h3 class="text-sm font-semibold text-white">Nouveau client</h3>
             </div>
             <form [formGroup]="addForm" (ngSubmit)="addClient()">
               <!-- Identité -->
-              <p class="text-[11px] font-semibold text-gray-600 uppercase tracking-widest mb-3">Identité</p>
+              <p class="text-[11px] font-semibold text-gray-600 uppercase tracking-widest mb-3">
+                Identité
+              </p>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>Nom du client *</mat-label>
-                  <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1rem] !w-[1rem] !h-[1rem]">business</mat-icon>
+                  <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1rem] !w-[1rem] !h-[1rem]"
+                    >business</mat-icon
+                  >
                   <input matInput formControlName="name" placeholder="Acme Corp" />
                 </mat-form-field>
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>Email (optionnel)</mat-label>
-                  <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1rem] !w-[1rem] !h-[1rem]">mail_outline</mat-icon>
-                  <input matInput formControlName="email" type="email" placeholder="contact@acme.fr" />
+                  <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1rem] !w-[1rem] !h-[1rem]"
+                    >mail_outline</mat-icon
+                  >
+                  <input
+                    matInput
+                    formControlName="email"
+                    type="email"
+                    placeholder="contact@acme.fr"
+                  />
                 </mat-form-field>
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>Notes (optionnel)</mat-label>
-                  <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1rem] !w-[1rem] !h-[1rem]">notes</mat-icon>
+                  <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1rem] !w-[1rem] !h-[1rem]"
+                    >notes</mat-icon
+                  >
                   <input matInput formControlName="description" placeholder="PME, secteur santé…" />
                 </mat-form-field>
               </div>
               <!-- Contrat -->
-              <p class="text-[11px] font-semibold text-gray-600 uppercase tracking-widest mb-3">Contrat</p>
+              <p class="text-[11px] font-semibold text-gray-600 uppercase tracking-widest mb-3">
+                Contrat
+              </p>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>Formule</mat-label>
@@ -337,21 +467,41 @@
                 </mat-form-field>
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>Montant mensuel (€)</mat-label>
-                  <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1rem] !w-[1rem] !h-[1rem]">euro</mat-icon>
-                  <input matInput type="number" formControlName="monthly_amount" placeholder="3200" />
+                  <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1rem] !w-[1rem] !h-[1rem]"
+                    >euro</mat-icon
+                  >
+                  <input
+                    matInput
+                    type="number"
+                    formControlName="monthly_amount"
+                    placeholder="3200"
+                  />
                 </mat-form-field>
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>Renouvellement contrat</mat-label>
-                  <input matInput type="date" formControlName="contract_renewal_at" title="Date de renouvellement du contrat" />
+                  <input
+                    matInput
+                    type="date"
+                    formControlName="contract_renewal_at"
+                    title="Date de renouvellement du contrat"
+                  />
                 </mat-form-field>
               </div>
               <div class="flex justify-end gap-3 border-t border-gray-800 pt-4">
-                <button type="button" mat-stroked-button (click)="showAddForm.set(false)"
-                        class="!rounded-xl !border-gray-700 !text-gray-400 !text-sm">
+                <button
+                  type="button"
+                  mat-stroked-button
+                  (click)="showAddForm.set(false)"
+                  class="!rounded-xl !border-gray-700 !text-gray-400 !text-sm"
+                >
                   Annuler
                 </button>
-                <button type="submit" mat-flat-button [disabled]="addForm.invalid || saving()"
-                        class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-sm">
+                <button
+                  type="submit"
+                  mat-flat-button
+                  [disabled]="addForm.invalid || saving()"
+                  class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-sm"
+                >
                   @if (saving()) {
                     <ng-container>
                       <mat-spinner [diameter]="16" class="inline-block mr-2" />
@@ -372,13 +522,21 @@
         <!-- Empty state -->
         @if (clients().length === 0) {
           <div class="text-center py-20">
-            <div class="w-16 h-16 rounded-2xl bg-gray-900 border border-gray-800 flex items-center justify-center mx-auto mb-4">
+            <div
+              class="w-16 h-16 rounded-2xl bg-gray-900 border border-gray-800 flex items-center justify-center mx-auto mb-4"
+            >
               <mat-icon class="text-gray-600 !text-[2rem] !w-[2rem] !h-[2rem]">business</mat-icon>
             </div>
             <p class="text-base font-medium text-gray-400 mb-1">Aucun client pour l'instant</p>
-            <p class="text-sm text-gray-600 mb-6">Ajoutez votre premier client pour commencer à gérer sa sécurité.</p>
-            <button type="button" mat-flat-button (click)="showAddForm.set(true)"
-                    class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-sm">
+            <p class="text-sm text-gray-600 mb-6">
+              Ajoutez votre premier client pour commencer à gérer sa sécurité.
+            </p>
+            <button
+              type="button"
+              mat-flat-button
+              (click)="showAddForm.set(true)"
+              class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-sm"
+            >
               <mat-icon>add</mat-icon>
               Ajouter un client
             </button>
@@ -388,14 +546,19 @@
         <!-- Client grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           @for (client of clients(); track client.id) {
-
             @if (editingId() === client.id) {
               <div class="bg-gray-900 border border-blue-700/50 rounded-2xl p-5 col-span-1">
                 <div class="flex items-center gap-2 mb-4">
                   <mat-icon class="text-blue-400 !text-[1rem] !w-[1rem] !h-[1rem]">edit</mat-icon>
-                  <h3 class="text-sm font-semibold text-blue-300">Modifier « {{ client.name }} »</h3>
+                  <h3 class="text-sm font-semibold text-blue-300">
+                    Modifier « {{ client.name }} »
+                  </h3>
                 </div>
-                <form [formGroup]="editForm" (ngSubmit)="saveEdit(client.id)" class="flex flex-col gap-3">
+                <form
+                  [formGroup]="editForm"
+                  (ngSubmit)="saveEdit(client.id)"
+                  class="flex flex-col gap-3"
+                >
                   <mat-form-field appearance="outline" class="w-full">
                     <mat-label>Nom *</mat-label>
                     <input matInput formControlName="name" />
@@ -430,25 +593,45 @@
                     </mat-select>
                   </mat-form-field>
                   <div class="flex gap-2 justify-end pt-1">
-                    <button type="button" mat-stroked-button (click)="cancelEdit()"
-                            class="!rounded-xl !border-gray-700 !text-gray-400 !text-sm">Annuler</button>
-                    <button type="submit" mat-flat-button [disabled]="editForm.invalid"
-                            class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-sm">Sauvegarder</button>
+                    <button
+                      type="button"
+                      mat-stroked-button
+                      (click)="cancelEdit()"
+                      class="!rounded-xl !border-gray-700 !text-gray-400 !text-sm"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="submit"
+                      mat-flat-button
+                      [disabled]="editForm.invalid"
+                      class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-sm"
+                    >
+                      Sauvegarder
+                    </button>
                   </div>
                 </form>
               </div>
             } @else {
               <!-- Client card -->
-              <div class="bg-gray-900 border rounded-2xl p-5 flex flex-col gap-3 transition-all hover:border-gray-600 cursor-pointer group"
-                   [ngClass]="statusBgClass(client.worst_status)"
-                   (click)="onClientRowClick(client)">
-
+              <div
+                class="bg-gray-900 border rounded-2xl p-5 flex flex-col gap-3 transition-all hover:border-gray-600 cursor-pointer group"
+                [ngClass]="statusBgClass(client.worst_status)"
+                (click)="onClientRowClick(client)"
+              >
                 <div class="flex items-start justify-between gap-2">
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-0.5">
-                      <div class="font-semibold text-white truncate group-hover:text-cyan-100 transition-colors">{{ client.name }}</div>
+                      <div
+                        class="font-semibold text-white truncate group-hover:text-cyan-100 transition-colors"
+                      >
+                        {{ client.name }}
+                      </div>
                       @if (client.status !== 'active') {
-                        <span class="text-[10px] px-1.5 py-0.5 rounded-full font-medium" [ngClass]="clientStatusClass(client.status)">
+                        <span
+                          class="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                          [ngClass]="clientStatusClass(client.status)"
+                        >
                           {{ client.status === 'churned' ? 'Churné' : 'Inactif' }}
                         </span>
                       }
@@ -457,24 +640,36 @@
                       <div class="text-xs text-gray-500 truncate">{{ client.email }}</div>
                     }
                   </div>
-                  <div class="flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border shrink-0"
-                       [ngClass]="statusBgClass(client.worst_status)">
-                    <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]" [ngClass]="statusColor(client.worst_status)">
+                  <div
+                    class="flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border shrink-0"
+                    [ngClass]="statusBgClass(client.worst_status)"
+                  >
+                    <mat-icon
+                      class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]"
+                      [ngClass]="statusColor(client.worst_status)"
+                    >
                       {{ statusIcon(client.worst_status) }}
                     </mat-icon>
-                    <span [ngClass]="statusColor(client.worst_status)">{{ statusLabel(client.worst_status) }}</span>
+                    <span [ngClass]="statusColor(client.worst_status)">{{
+                      statusLabel(client.worst_status)
+                    }}</span>
                   </div>
                 </div>
 
                 @if (client.formula || client.monthly_amount) {
                   <div class="flex items-center gap-2">
                     @if (client.formula) {
-                      <span class="text-xs px-2 py-0.5 rounded-full border font-semibold" [ngClass]="formulaClass(client.formula)">
+                      <span
+                        class="text-xs px-2 py-0.5 rounded-full border font-semibold"
+                        [ngClass]="formulaClass(client.formula)"
+                      >
                         {{ formulaLabel(client.formula) }}
                       </span>
                     }
                     @if (client.monthly_amount) {
-                      <span class="text-xs text-gray-400 font-mono">{{ formatAmount(client.monthly_amount) }}/mois</span>
+                      <span class="text-xs text-gray-400 font-mono"
+                        >{{ formatAmount(client.monthly_amount) }}/mois</span
+                      >
                     }
                   </div>
                 }
@@ -483,10 +678,14 @@
                   <p class="text-xs text-gray-500 line-clamp-2">{{ client.description }}</p>
                 }
 
-                <div class="flex items-center gap-4 text-xs text-gray-600 border-t border-gray-800/60 pt-3">
+                <div
+                  class="flex items-center gap-4 text-xs text-gray-600 border-t border-gray-800/60 pt-3"
+                >
                   <div class="flex items-center gap-1">
                     <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">language</mat-icon>
-                    <span>{{ client.sites_count }} site{{ client.sites_count !== 1 ? 's' : '' }}</span>
+                    <span
+                      >{{ client.sites_count }} site{{ client.sites_count !== 1 ? 's' : '' }}</span
+                    >
                   </div>
                   <div class="flex items-center gap-1">
                     <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">schedule</mat-icon>
@@ -500,38 +699,53 @@
                   }
                 </div>
 
-                <div class="flex items-center justify-between border-t border-gray-800/60 pt-3"
-                     (click)="$event.stopPropagation()">
-                  <a [routerLink]="['/cyberscan/dashboard']"
-                     [queryParams]="{ client: client.id }"
-                     class="text-xs text-cyan-500 hover:text-cyan-300 flex items-center gap-1 transition-colors">
-                    <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">open_in_new</mat-icon>
+                <div
+                  class="flex items-center justify-between border-t border-gray-800/60 pt-3"
+                  (click)="$event.stopPropagation()"
+                >
+                  <a
+                    [routerLink]="['/cyberscan/dashboard']"
+                    [queryParams]="{ client: client.id }"
+                    class="text-xs text-cyan-500 hover:text-cyan-300 flex items-center gap-1 transition-colors"
+                  >
+                    <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]"
+                      >open_in_new</mat-icon
+                    >
                     Voir les sites
                   </a>
                   <div class="flex gap-1">
-                    <button type="button" mat-icon-button [matTooltip]="'Modifier'" (click)="startEdit(client)">
-                      <mat-icon class="text-gray-500 hover:text-gray-200 !text-[1rem]">edit</mat-icon>
+                    <button
+                      type="button"
+                      mat-icon-button
+                      [matTooltip]="'Modifier'"
+                      (click)="startEdit(client)"
+                    >
+                      <mat-icon class="text-gray-500 hover:text-gray-200 !text-[1rem]"
+                        >edit</mat-icon
+                      >
                     </button>
-                    <button type="button" mat-icon-button [matTooltip]="'Supprimer'"
-                            (click)="deleteClient(client)"
-                            [disabled]="deletingId() === client.id">
+                    <button
+                      type="button"
+                      mat-icon-button
+                      [matTooltip]="'Supprimer'"
+                      (click)="deleteClient(client)"
+                      [disabled]="deletingId() === client.id"
+                    >
                       @if (deletingId() === client.id) {
                         <mat-spinner [diameter]="16" />
                       } @else {
-                        <mat-icon class="text-red-500 hover:text-red-300 !text-[1rem]">delete</mat-icon>
+                        <mat-icon class="text-red-500 hover:text-red-300 !text-[1rem]"
+                          >delete</mat-icon
+                        >
                       }
                     </button>
                   </div>
                 </div>
-
               </div>
             }
-
           }
         </div>
-
       }
-
     }
   </div>
 </div>

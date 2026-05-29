@@ -8,14 +8,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import decode_access_token
+from app.models.awareness_learner import AwarenessLearner
 from app.models.user import User
+from app.services.awareness_magic_link import decode_learner_jwt
 
 bearer = HTTPBearer(auto_error=False)
 
 
 def require_admin(x_admin_key: str = Header(default="")) -> None:
     """Dependency shared by all admin endpoints — validates the X-Admin-Key header."""
-    if not settings.ADMIN_API_KEY or not secrets.compare_digest(x_admin_key, settings.ADMIN_API_KEY):
+    if not settings.ADMIN_API_KEY or not secrets.compare_digest(
+        x_admin_key, settings.ADMIN_API_KEY
+    ):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès refusé")
 
 
@@ -32,8 +36,35 @@ async def get_current_user(
     result = await db.execute(select(User).where(User.id == int(user_id)))
     user = result.scalar_one_or_none()
     if not user or not user.is_active:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Utilisateur introuvable")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Utilisateur introuvable"
+        )
     return user
+
+
+async def get_current_learner(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    db: AsyncSession = Depends(get_db),
+) -> AwarenessLearner:
+    """Dependency for learner-authenticated endpoints (magic-link JWT)."""
+    if credentials is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Non authentifié")
+    payload = decode_learner_jwt(credentials.credentials)
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token learner invalide"
+        )
+    learner_id = int(payload["sub"])
+    result = await db.execute(
+        select(AwarenessLearner).where(
+            AwarenessLearner.id == learner_id,
+            AwarenessLearner.is_active == True,
+        )
+    )
+    learner = result.scalar_one_or_none()
+    if learner is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Learner introuvable")
+    return learner
 
 
 async def get_rssi_consultant(

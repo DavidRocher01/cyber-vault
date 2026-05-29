@@ -8,13 +8,13 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.v1.endpoints.sites import (
-    list_sites,
     add_site,
     delete_site,
+    list_sites,
 )
-from app.services.subscription_service import get_active_plan
 from app.models.site import Site
 from app.models.user import User
+from app.services.subscription_service import get_active_plan
 
 
 def _mock_user(user_id: int = 1) -> MagicMock:
@@ -41,6 +41,7 @@ def _payload(url: str = "https://example.com", name: str = "Test") -> MagicMock:
 
 # ─── get_active_plan ──────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_get_active_plan_no_plan_returns_none():
     db = AsyncMock()
@@ -66,6 +67,7 @@ async def test_get_active_plan_with_plan():
 
 
 # ─── list_sites ───────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_list_sites_returns_active_sites():
@@ -94,6 +96,7 @@ async def test_list_sites_empty():
 
 
 # ─── add_site ─────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_add_site_no_subscription_raises_403():
@@ -174,6 +177,7 @@ async def test_add_site_success():
 
 
 # ─── delete_site ──────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_delete_site_not_found_raises_404():

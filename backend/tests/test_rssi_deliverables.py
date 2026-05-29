@@ -2,6 +2,7 @@
 Integration tests — /api/v1/rssi/clients/{id}/deliverables (Sprint 5A)
 Covers: auth guard, 404 isolation, CRUD, validation, cross-user security.
 """
+
 import pytest
 from httpx import AsyncClient
 
@@ -9,15 +10,22 @@ BASE = "/api/v1"
 
 
 async def _auth(http_client: AsyncClient, email: str) -> dict:
-    await http_client.post(f"{BASE}/auth/register", json={"email": email, "password": "StrongPass123!"})
-    r = await http_client.post(f"{BASE}/auth/login", json={"email": email, "password": "StrongPass123!"})
+    await http_client.post(
+        f"{BASE}/auth/register", json={"email": email, "password": "StrongPass123!"}
+    )
+    r = await http_client.post(
+        f"{BASE}/auth/login", json={"email": email, "password": "StrongPass123!"}
+    )
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
+
 
 async def _auth_consultant(http_client, email: str) -> dict:
     """Register, login, and promote user to RSSI consultant for tests."""
-    import app.core.database as _db_mod
     from sqlalchemy import select
+
+    import app.core.database as _db_mod
     from app.models.user import User
+
     headers = await _auth(http_client, email)
     async with _db_mod.AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.email == email))
@@ -25,8 +33,6 @@ async def _auth_consultant(http_client, email: str) -> dict:
         user.is_rssi_consultant = True
         await db.commit()
     return headers
-
-
 
 
 async def _create_client(http_client: AsyncClient, headers: dict, name: str = "Acme") -> dict:
@@ -53,6 +59,7 @@ async def _create_deliverable(
 
 # ── Auth guards ────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_list_deliverables_requires_auth(http_client: AsyncClient):
     r = await http_client.get(f"{BASE}/rssi/clients/1/deliverables")
@@ -69,6 +76,7 @@ async def test_create_deliverable_requires_auth(http_client: AsyncClient):
 
 
 # ── 404 isolation ──────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_list_deliverables_unknown_client(http_client: AsyncClient):
@@ -89,6 +97,7 @@ async def test_create_deliverable_unknown_client(http_client: AsyncClient):
 
 
 # ── CRUD happy path ────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_create_deliverable_minimal(http_client: AsyncClient):
@@ -188,9 +197,7 @@ async def test_delete_deliverable(http_client: AsyncClient):
     h = await _auth_consultant(http_client, "deliv_delete@test.com")
     c = await _create_client(http_client, h)
     d = await _create_deliverable(http_client, h, c["id"])
-    r = await http_client.delete(
-        f"{BASE}/rssi/clients/{c['id']}/deliverables/{d['id']}", headers=h
-    )
+    r = await http_client.delete(f"{BASE}/rssi/clients/{c['id']}/deliverables/{d['id']}", headers=h)
     assert r.status_code == 204
     # confirm gone
     r2 = await http_client.get(f"{BASE}/rssi/clients/{c['id']}/deliverables", headers=h)
@@ -198,6 +205,7 @@ async def test_delete_deliverable(http_client: AsyncClient):
 
 
 # ── Validation ─────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_create_deliverable_empty_title_returns_422(http_client: AsyncClient):
@@ -212,7 +220,9 @@ async def test_create_deliverable_empty_title_returns_422(http_client: AsyncClie
 
 
 @pytest.mark.asyncio
-async def test_create_deliverable_invalid_doc_type_returns_422(http_client: AsyncClient):
+async def test_create_deliverable_invalid_doc_type_returns_422(
+    http_client: AsyncClient,
+):
     h = await _auth_consultant(http_client, "deliv_val_type@test.com")
     c = await _create_client(http_client, h)
     r = await http_client.post(
@@ -224,7 +234,9 @@ async def test_create_deliverable_invalid_doc_type_returns_422(http_client: Asyn
 
 
 @pytest.mark.asyncio
-async def test_update_deliverable_invalid_doc_type_returns_422(http_client: AsyncClient):
+async def test_update_deliverable_invalid_doc_type_returns_422(
+    http_client: AsyncClient,
+):
     h = await _auth_consultant(http_client, "deliv_upd_val@test.com")
     c = await _create_client(http_client, h)
     d = await _create_deliverable(http_client, h, c["id"])
@@ -252,13 +264,12 @@ async def test_update_deliverable_not_found_returns_404(http_client: AsyncClient
 async def test_delete_deliverable_not_found_returns_404(http_client: AsyncClient):
     h = await _auth_consultant(http_client, "deliv_del_404@test.com")
     c = await _create_client(http_client, h)
-    r = await http_client.delete(
-        f"{BASE}/rssi/clients/{c['id']}/deliverables/99999", headers=h
-    )
+    r = await http_client.delete(f"{BASE}/rssi/clients/{c['id']}/deliverables/99999", headers=h)
     assert r.status_code == 404
 
 
 # ── Cross-user security ────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_list_deliverables_cross_user_isolation(http_client: AsyncClient):
@@ -290,7 +301,11 @@ async def test_all_valid_doc_types(http_client: AsyncClient):
     for doc_type in ("compte_rendu", "rapport", "recommandation", "contrat", "autre"):
         r = await http_client.post(
             f"{BASE}/rssi/clients/{c['id']}/deliverables",
-            json={"title": f"Doc {doc_type}", "doc_type": doc_type, "delivered_at": "2026-01-01"},
+            json={
+                "title": f"Doc {doc_type}",
+                "doc_type": doc_type,
+                "delivered_at": "2026-01-01",
+            },
             headers=h,
         )
         assert r.status_code == 201, f"Failed for doc_type={doc_type}: {r.text}"

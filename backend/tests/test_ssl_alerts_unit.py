@@ -6,19 +6,18 @@ notif_ssl_expiry preference, missing scan/json, email dispatch.
 """
 
 import json
-from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.services.scheduler import _check_ssl_alerts
 from app.models.plan import Plan
 from app.models.scan import Scan
 from app.models.site import Site
 from app.models.user import User
-
+from app.services.scheduler import _check_ssl_alerts
 
 # ─── helpers ─────────────────────────────────────────────────────────────────
+
 
 def _user(user_id: int = 1, notif_ssl_expiry: bool = True) -> MagicMock:
     u = MagicMock(spec=User)
@@ -84,6 +83,7 @@ def _patch_session(db):
 
 
 # ─── tests ───────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_no_active_sites_returns_early():
@@ -286,7 +286,11 @@ async def test_email_called_with_correct_args():
 
     args, kwargs = mock_thread.call_args
     # args[0] is the callable, remaining are positional kwargs
-    assert kwargs.get("to_email") == user.email or args[1] == user.email or "user1@example.com" in str(mock_thread.call_args)
+    assert (
+        kwargs.get("to_email") == user.email
+        or args[1] == user.email
+        or "user1@example.com" in str(mock_thread.call_args)
+    )
     call_kwargs = mock_thread.call_args.kwargs
     assert call_kwargs["to_email"] == "user1@example.com"
     assert call_kwargs["site_url"] == "https://example.com"
@@ -302,7 +306,10 @@ async def test_email_failure_does_not_raise():
     scan = _scan(days_remaining=5)
     db = _build_db(rows=[(site, _plan())], last_scans=[scan], users=[user])
 
-    with _patch_session(db), patch("asyncio.to_thread", AsyncMock(side_effect=Exception("SMTP error"))):
+    with (
+        _patch_session(db),
+        patch("asyncio.to_thread", AsyncMock(side_effect=Exception("SMTP error"))),
+    ):
         await _check_ssl_alerts()  # must not raise
 
 

@@ -1,6 +1,12 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AbstractControl, ReactiveFormsModule, FormBuilder, ValidationErrors, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  ReactiveFormsModule,
+  FormBuilder,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,14 +23,19 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
 }
 
 @Component({
-    standalone: true,
-    selector: 'app-reset-password',
-    imports: [
-        CommonModule, ReactiveFormsModule, RouterLink,
-        MatFormFieldModule, MatInputModule, MatButtonModule,
-        MatIconModule, MatProgressSpinnerModule,
-    ],
-    templateUrl: './reset-password.component.html'
+  standalone: true,
+  selector: 'app-reset-password',
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+  ],
+  templateUrl: './reset-password.component.html',
 })
 export class ResetPasswordComponent implements OnInit {
   private http = inject(HttpClient);
@@ -37,10 +48,13 @@ export class ResetPasswordComponent implements OnInit {
   done = false;
   error: string | null = null;
 
-  form = this.fb.nonNullable.group({
-    password: ['', [Validators.required, Validators.minLength(8)]],
-    confirmPassword: ['', Validators.required],
-  }, { validators: passwordMatchValidator });
+  form = this.fb.nonNullable.group(
+    {
+      password: ['', [Validators.required, Validators.minLength(8)]],
+      confirmPassword: ['', Validators.required],
+    },
+    { validators: passwordMatchValidator }
+  );
 
   ngOnInit() {
     this.token = this.route.snapshot.queryParamMap.get('token');
@@ -68,15 +82,20 @@ export class ResetPasswordComponent implements OnInit {
     if (this.form.invalid || !this.token) return;
     this.loading = true;
     this.error = null;
-    this.http.post(`${environment.apiUrl}/auth/reset-password`, {
-      token: this.token,
-      password: this.form.get('password')!.value,
-    }).subscribe({
-      next: () => { this.done = true; this.loading = false; },
-      error: err => {
-        this.error = err.error?.detail ?? 'Lien invalide ou expiré.';
-        this.loading = false;
-      },
-    });
+    this.http
+      .post(`${environment.apiUrl}/auth/reset-password`, {
+        token: this.token,
+        password: this.form.get('password')!.value,
+      })
+      .subscribe({
+        next: () => {
+          this.done = true;
+          this.loading = false;
+        },
+        error: err => {
+          this.error = err.error?.detail ?? 'Lien invalide ou expiré.';
+          this.loading = false;
+        },
+      });
   }
 }

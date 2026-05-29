@@ -2,11 +2,12 @@
 
 <div class="min-h-screen bg-gray-950 text-white p-4 md:p-8">
   <div class="max-w-2xl mx-auto">
-
     <!-- Header -->
     <div class="mb-8">
-      <a routerLink="/cyberscan/darkweb-dossier"
-         class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-300 mb-4 transition-colors">
+      <a
+        routerLink="/cyberscan/darkweb-dossier"
+        class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-300 mb-4 transition-colors"
+      >
         <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_back</mat-icon>
         Mes dossiers
       </a>
@@ -17,7 +18,6 @@
     </div>
 
     <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-6">
-
       <!-- Company info -->
       <div class="rounded-xl border border-gray-800 bg-gray-900 p-6">
         <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-5">
@@ -25,16 +25,24 @@
         </h2>
 
         <div class="flex flex-col gap-4">
-          <mat-form-field appearance="outline" class="w-full [&_.mat-mdc-form-field-flex]:bg-gray-800/50">
+          <mat-form-field
+            appearance="outline"
+            class="w-full [&_.mat-mdc-form-field-flex]:bg-gray-800/50"
+          >
             <mat-label>Nom de l'entreprise</mat-label>
             <input matInput formControlName="company_name" placeholder="Acme SAS" />
             <mat-icon matPrefix class="text-gray-500 mr-2">business</mat-icon>
-            @if (form.get('company_name')?.hasError('required') && form.get('company_name')?.touched) {
+            @if (
+              form.get('company_name')?.hasError('required') && form.get('company_name')?.touched
+            ) {
               <mat-error>Nom requis</mat-error>
             }
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="w-full [&_.mat-mdc-form-field-flex]:bg-gray-800/50">
+          <mat-form-field
+            appearance="outline"
+            class="w-full [&_.mat-mdc-form-field-flex]:bg-gray-800/50"
+          >
             <mat-label>Domaine email</mat-label>
             <input matInput formControlName="domain" placeholder="acme.fr" />
             <mat-icon matPrefix class="text-gray-500 mr-2">language</mat-icon>
@@ -56,27 +64,56 @@
         </p>
 
         <label class="block w-full cursor-pointer">
-          <div class="rounded-xl border-2 border-dashed transition-colors"
-               [class]="csvFile() ? 'border-green-600/60 bg-green-900/10' : (csvError() ? 'border-red-600/60 bg-red-900/10' : 'border-gray-700 hover:border-gray-500 bg-gray-800/30')">
+          <div
+            class="rounded-xl border-2 border-dashed transition-colors"
+            [class]="
+              csvFile()
+                ? 'border-green-600/60 bg-green-900/10'
+                : csvError()
+                  ? 'border-red-600/60 bg-red-900/10'
+                  : 'border-gray-700 hover:border-gray-500 bg-gray-800/30'
+            "
+          >
             <div class="p-8 text-center">
               @if (csvFile()) {
-                <mat-icon class="!text-[2.5rem] !w-[2.5rem] !h-[2.5rem] text-green-400 mb-2">check_circle</mat-icon>
+                <mat-icon class="!text-[2.5rem] !w-[2.5rem] !h-[2.5rem] text-green-400 mb-2"
+                  >check_circle</mat-icon
+                >
                 <p class="font-semibold text-green-400">{{ csvFile()!.name }}</p>
                 <p class="text-xs text-gray-400 mt-1">
-                  {{ emailPreview().length > 0 ? 'Aperçu : ' + emailPreview().join(', ') + (emailPreview().length >= 5 ? '…' : '') : '' }}
+                  {{
+                    emailPreview().length > 0
+                      ? 'Aperçu : ' +
+                        emailPreview().join(', ') +
+                        (emailPreview().length >= 5 ? '…' : '')
+                      : ''
+                  }}
                 </p>
               } @else if (csvError()) {
-                <mat-icon class="!text-[2.5rem] !w-[2.5rem] !h-[2.5rem] text-red-400 mb-2">error_outline</mat-icon>
+                <mat-icon class="!text-[2.5rem] !w-[2.5rem] !h-[2.5rem] text-red-400 mb-2"
+                  >error_outline</mat-icon
+                >
                 <p class="text-red-400 text-sm">{{ csvError() }}</p>
                 <p class="text-xs text-gray-500 mt-1">Cliquez pour choisir un autre fichier</p>
               } @else {
-                <mat-icon class="!text-[2.5rem] !w-[2.5rem] !h-[2.5rem] text-gray-600 mb-2">upload_file</mat-icon>
-                <p class="text-gray-400 text-sm">Glissez votre fichier CSV ici ou cliquez pour parcourir</p>
-                <p class="text-xs text-gray-600 mt-1">Format : .csv — colonnes : email, prénom, nom, département (optionnels)</p>
+                <mat-icon class="!text-[2.5rem] !w-[2.5rem] !h-[2.5rem] text-gray-600 mb-2"
+                  >upload_file</mat-icon
+                >
+                <p class="text-gray-400 text-sm">
+                  Glissez votre fichier CSV ici ou cliquez pour parcourir
+                </p>
+                <p class="text-xs text-gray-600 mt-1">
+                  Format : .csv — colonnes : email, prénom, nom, département (optionnels)
+                </p>
               }
             </div>
           </div>
-          <input type="file" accept=".csv,text/csv" class="hidden" (change)="onFileChange($event)" />
+          <input
+            type="file"
+            accept=".csv,text/csv"
+            class="hidden"
+            (change)="onFileChange($event)"
+          />
         </label>
       </div>
 
@@ -86,30 +123,40 @@
           <mat-icon class="text-blue-400 flex-shrink-0 mt-0.5">info_outline</mat-icon>
           <div class="text-xs text-gray-400">
             <p class="font-semibold text-blue-300 mb-1">Comment fonctionne l'analyse ?</p>
-            <p>Chaque email est vérifié contre les bases de fuites connues (LeakCheck.io + catalog HIBP local).
-              L'analyse s'exécute en arrière-plan — vous pouvez fermer cette page et revenir consulter les résultats.
-              Les adresses email ne sont jamais stockées en clair dans les logs.</p>
+            <p>
+              Chaque email est vérifié contre les bases de fuites connues (LeakCheck.io + catalog
+              HIBP local). L'analyse s'exécute en arrière-plan — vous pouvez fermer cette page et
+              revenir consulter les résultats. Les adresses email ne sont jamais stockées en clair
+              dans les logs.
+            </p>
           </div>
         </div>
       </div>
 
       <!-- Actions -->
       <div class="flex items-center justify-between">
-        <a routerLink="/cyberscan/darkweb-dossier" mat-stroked-button
-           class="!rounded-xl !border-gray-700 !text-gray-400">
+        <a
+          routerLink="/cyberscan/darkweb-dossier"
+          mat-stroked-button
+          class="!rounded-xl !border-gray-700 !text-gray-400"
+        >
           Annuler
         </a>
-        <button type="submit" mat-flat-button color="warn" class="!rounded-xl"
-                [disabled]="!canSubmit">
+        <button
+          type="submit"
+          mat-flat-button
+          color="warn"
+          class="!rounded-xl"
+          [disabled]="!canSubmit"
+        >
           @if (submitting()) {
             <mat-spinner [diameter]="18" class="inline-block mr-2" />
           } @else {
             <mat-icon>search</mat-icon>
           }
-          {{ submitting() ? 'Création en cours…' : 'Lancer l\'analyse' }}
+          {{ submitting() ? 'Création en cours…' : "Lancer l'analyse" }}
         </button>
       </div>
-
     </form>
   </div>
 </div>

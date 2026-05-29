@@ -8,17 +8,20 @@ function make(): ScanDetailComponent {
 
 describe('ScanDetailComponent — statusColor()', () => {
   it('retourne vert pour OK', () => expect(make().statusColor('OK')).toContain('green'));
-  it('retourne jaune pour WARNING', () => expect(make().statusColor('WARNING')).toContain('yellow'));
+  it('retourne jaune pour WARNING', () =>
+    expect(make().statusColor('WARNING')).toContain('yellow'));
   it('retourne rouge pour CRITICAL', () => expect(make().statusColor('CRITICAL')).toContain('red'));
   it('retourne gris par défaut', () => expect(make().statusColor(null)).toContain('gray'));
-  it('retourne gris pour une valeur inconnue', () => expect(make().statusColor('unknown')).toContain('gray'));
+  it('retourne gris pour une valeur inconnue', () =>
+    expect(make().statusColor('unknown')).toContain('gray'));
 });
 
 describe('ScanDetailComponent — statusIcon()', () => {
   it('retourne verified_user pour OK', () => expect(make().statusIcon('OK')).toBe('verified_user'));
   it('retourne warning pour WARNING', () => expect(make().statusIcon('WARNING')).toBe('warning'));
   it('retourne gpp_bad pour CRITICAL', () => expect(make().statusIcon('CRITICAL')).toBe('gpp_bad'));
-  it('retourne check_circle pour done', () => expect(make().statusIcon('done')).toBe('check_circle'));
+  it('retourne check_circle pour done', () =>
+    expect(make().statusIcon('done')).toBe('check_circle'));
   it('retourne schedule pour pending', () => expect(make().statusIcon('pending')).toBe('schedule'));
   it('retourne sync pour running', () => expect(make().statusIcon('running')).toBe('sync'));
   it('retourne cancel pour error', () => expect(make().statusIcon('error')).toBe('cancel'));
@@ -27,8 +30,9 @@ describe('ScanDetailComponent — statusIcon()', () => {
 
 describe('ScanDetailComponent — formatDate()', () => {
   it('retourne "—" pour null', () => expect(make().formatDate(null)).toBe('—'));
-  it('formate une date ISO', () => expect(make().formatDate('2024-03-15T10:30:00Z')).toContain('2024'));
-  it('inclut l\'heure', () => expect(make().formatDate('2024-03-15T10:30:00Z')).toMatch(/\d+:\d+/));
+  it('formate une date ISO', () =>
+    expect(make().formatDate('2024-03-15T10:30:00Z')).toContain('2024'));
+  it("inclut l'heure", () => expect(make().formatDate('2024-03-15T10:30:00Z')).toMatch(/\d+:\d+/));
 });
 
 function makeWithScan(resultsJson: string | null): ScanDetailComponent {
@@ -39,16 +43,32 @@ function makeWithScan(resultsJson: string | null): ScanDetailComponent {
   return comp;
 }
 
-const TIER2_SCAN = JSON.stringify({ _meta: { tier: 2 }, ssl: { status: 'OK' }, headers: { status: 'OK' } });
+const TIER2_SCAN = JSON.stringify({
+  _meta: { tier: 2 },
+  ssl: { status: 'OK' },
+  headers: { status: 'OK' },
+});
 const TIER4_SCAN = JSON.stringify({
   _meta: { tier: 4 },
-  ssl: { status: 'OK' }, headers: { status: 'OK' }, email: { status: 'OK' },
-  cookies: { status: 'OK' }, cors: { status: 'OK' }, ip: { status: 'OK' },
-  dns: { status: 'OK' }, cms: { status: 'OK' }, waf: { status: 'OK' },
-  tech: { status: 'OK' }, tls: { status: 'OK' }, takeover: { status: 'OK' },
-  threat_intel: { status: 'OK' }, http_methods: { status: 'OK' },
-  open_redirect: { status: 'OK' }, clickjacking: { status: 'OK' },
-  directory_listing: { status: 'OK' }, robots: { status: 'OK' }, jwt: { status: 'OK' },
+  ssl: { status: 'OK' },
+  headers: { status: 'OK' },
+  email: { status: 'OK' },
+  cookies: { status: 'OK' },
+  cors: { status: 'OK' },
+  ip: { status: 'OK' },
+  dns: { status: 'OK' },
+  cms: { status: 'OK' },
+  waf: { status: 'OK' },
+  tech: { status: 'OK' },
+  tls: { status: 'OK' },
+  takeover: { status: 'OK' },
+  threat_intel: { status: 'OK' },
+  http_methods: { status: 'OK' },
+  open_redirect: { status: 'OK' },
+  clickjacking: { status: 'OK' },
+  directory_listing: { status: 'OK' },
+  robots: { status: 'OK' },
+  jwt: { status: 'OK' },
 });
 
 describe('ScanDetailComponent — scannedDomain', () => {
@@ -58,7 +78,7 @@ describe('ScanDetailComponent — scannedDomain', () => {
   it('retourne null si _meta absent', () => {
     expect(makeWithScan('{"ssl":{"status":"OK"}}').scannedDomain).toBeNull();
   });
-  it('retourne l\'URL depuis _meta.url', () => {
+  it("retourne l'URL depuis _meta.url", () => {
     const json = JSON.stringify({ _meta: { url: 'https://example.com' } });
     expect(makeWithScan(json).scannedDomain).toBe('https://example.com');
   });
@@ -99,8 +119,18 @@ describe('ScanDetailComponent — getProDescription()', () => {
     expect(make().getProDescription('unknown_key')).toBe('');
   });
   it('couvre tous les modules verrouillés', () => {
-    const lockedKeys = ['tech', 'tls', 'takeover', 'threat_intel', 'http_methods',
-                        'open_redirect', 'clickjacking', 'directory_listing', 'robots', 'jwt'];
+    const lockedKeys = [
+      'tech',
+      'tls',
+      'takeover',
+      'threat_intel',
+      'http_methods',
+      'open_redirect',
+      'clickjacking',
+      'directory_listing',
+      'robots',
+      'jwt',
+    ];
     for (const key of lockedKeys) {
       expect(make().getProDescription(key), `description manquante pour ${key}`).toBeTruthy();
     }
@@ -129,7 +159,11 @@ describe('ScanDetailComponent — lockedFindings', () => {
 
 function makeWithStatus(overallStatus: string): ScanDetailComponent {
   const comp = Object.create(ScanDetailComponent.prototype) as ScanDetailComponent;
-  (comp as any).scan = signal<any>({ results_json: null, status: 'done', overall_status: overallStatus });
+  (comp as any).scan = signal<any>({
+    results_json: null,
+    status: 'done',
+    overall_status: overallStatus,
+  });
   return comp;
 }
 
@@ -168,25 +202,25 @@ describe('ScanDetailComponent — CTA getters (ctaWrapperClass / ctaTitle / ctaB
 describe('ScanDetailComponent — criticalCount / warningCount', () => {
   const MIXED_SCAN = JSON.stringify({
     _meta: { tier: 4 },
-    ssl:     { status: 'CRITICAL' },
+    ssl: { status: 'CRITICAL' },
     headers: { status: 'WARNING' },
-    email:   { status: 'WARNING' },
+    email: { status: 'WARNING' },
     cookies: { status: 'OK' },
-    cors:    { status: 'OK' },
-    ip:      { status: 'OK' },
-    dns:     { status: 'OK' },
-    cms:     { status: 'OK' },
-    waf:     { status: 'OK' },
-    tech:    { status: 'OK' },
-    tls:     { status: 'OK' },
-    takeover:        { status: 'OK' },
-    threat_intel:    { status: 'OK' },
-    http_methods:    { status: 'OK' },
-    open_redirect:   { status: 'OK' },
-    clickjacking:    { status: 'OK' },
+    cors: { status: 'OK' },
+    ip: { status: 'OK' },
+    dns: { status: 'OK' },
+    cms: { status: 'OK' },
+    waf: { status: 'OK' },
+    tech: { status: 'OK' },
+    tls: { status: 'OK' },
+    takeover: { status: 'OK' },
+    threat_intel: { status: 'OK' },
+    http_methods: { status: 'OK' },
+    open_redirect: { status: 'OK' },
+    clickjacking: { status: 'OK' },
     directory_listing: { status: 'OK' },
     robots: { status: 'OK' },
-    jwt:    { status: 'OK' },
+    jwt: { status: 'OK' },
   });
 
   it('criticalCount compte les findings CRITICAL', () => {
@@ -206,7 +240,12 @@ describe('ScanDetailComponent — criticalCount / warningCount', () => {
 describe('ScanDetailComponent — duration', () => {
   function makeWithDates(startedAt: string | null, finishedAt: string | null): ScanDetailComponent {
     const comp = Object.create(ScanDetailComponent.prototype) as ScanDetailComponent;
-    (comp as any).scan = signal<any>({ results_json: null, status: 'done', started_at: startedAt, finished_at: finishedAt });
+    (comp as any).scan = signal<any>({
+      results_json: null,
+      status: 'done',
+      started_at: startedAt,
+      finished_at: finishedAt,
+    });
     return comp;
   }
 

@@ -3,9 +3,16 @@ import { signal, computed } from '@angular/core';
 import { AdminBlogComponent } from './admin-blog.component';
 
 interface BlogPost {
-  id: number; slug: string; title: string; description: string;
-  date: string; readTime: number; category: string;
-  tags: string[]; isPublished: boolean; htmlContent?: string;
+  id: number;
+  slug: string;
+  title: string;
+  description: string;
+  date: string;
+  readTime: number;
+  category: string;
+  tags: string[];
+  isPublished: boolean;
+  htmlContent?: string;
 }
 
 function make(): AdminBlogComponent {
@@ -21,15 +28,27 @@ function make(): AdminBlogComponent {
 }
 
 const ARTICLE: BlogPost = {
-  id: 1, slug: 'mon-article', title: 'Mon article',
-  description: 'Desc', date: '2026-06-01', readTime: 5,
-  category: 'Sécurité Web', tags: ['sécurité'], isPublished: true,
+  id: 1,
+  slug: 'mon-article',
+  title: 'Mon article',
+  description: 'Desc',
+  date: '2026-06-01',
+  readTime: 5,
+  category: 'Sécurité Web',
+  tags: ['sécurité'],
+  isPublished: true,
 };
 
 const DRAFT: BlogPost = {
-  id: 2, slug: 'brouillon', title: 'Brouillon',
-  description: 'Draft', date: '2026-06-02', readTime: 3,
-  category: 'Audit', tags: [], isPublished: false,
+  id: 2,
+  slug: 'brouillon',
+  title: 'Brouillon',
+  description: 'Draft',
+  date: '2026-06-02',
+  readTime: 3,
+  category: 'Audit',
+  tags: [],
+  isPublished: false,
 };
 
 // ── editingSlug ────────────────────────────────────────────────────────────────
@@ -97,7 +116,7 @@ describe('articles', () => {
     const comp = make();
     (comp as any).articles.set([ARTICLE]);
     (comp as any).articles.update((a: BlogPost[]) =>
-      a.map(x => x.slug === 'mon-article' ? { ...x, isPublished: !x.isPublished } : x)
+      a.map(x => (x.slug === 'mon-article' ? { ...x, isPublished: !x.isPublished } : x))
     );
     expect((comp as any).articles()[0].isPublished).toBe(false);
   });

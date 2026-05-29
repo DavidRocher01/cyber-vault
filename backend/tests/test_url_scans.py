@@ -4,9 +4,10 @@ Covers: trigger (202), list (pagination), get by ID, delete,
         auth isolation, unauthenticated rejection.
 """
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from httpx import ASGITransport, AsyncClient
-from unittest.mock import patch, AsyncMock
 
 from app.main import app
 
@@ -20,6 +21,7 @@ async def _headers(client: AsyncClient, email: str) -> dict:
 
 
 # ── POST /url-scans ──────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_trigger_url_scan_returns_202():
@@ -59,6 +61,7 @@ async def test_trigger_url_scan_ftp_rejected_422():
 
 # ── GET /url-scans ───────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_list_url_scans_empty():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -83,12 +86,18 @@ async def test_list_url_scans_after_trigger():
 
 @pytest.mark.asyncio
 async def test_list_url_scans_pagination():
-    with patch("app.api.v1.endpoints.url_scans.run_url_scan", new_callable=AsyncMock), \
-         patch("app.api.v1.endpoints.url_scans.assert_no_ssrf"):
+    with (
+        patch("app.api.v1.endpoints.url_scans.run_url_scan", new_callable=AsyncMock),
+        patch("app.api.v1.endpoints.url_scans.assert_no_ssrf"),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "urlpage@test.com")
             for i in range(3):
-                await c.post(f"{BASE}/url-scans", json={"url": f"https://example{i}.com"}, headers=h)
+                await c.post(
+                    f"{BASE}/url-scans",
+                    json={"url": f"https://example{i}.com"},
+                    headers=h,
+                )
             r = await c.get(f"{BASE}/url-scans?page=1&per_page=2", headers=h)
     data = r.json()
     assert data["page"] == 1
@@ -107,12 +116,15 @@ async def test_list_url_scans_requires_auth():
 
 # ── GET /url-scans/{id} ──────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_get_url_scan_returns_correct_scan():
     with patch("app.api.v1.endpoints.url_scans.run_url_scan", new_callable=AsyncMock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "urlget1@test.com")
-            created = await c.post(f"{BASE}/url-scans", json={"url": "https://example.com"}, headers=h)
+            created = await c.post(
+                f"{BASE}/url-scans", json={"url": "https://example.com"}, headers=h
+            )
             scan_id = created.json()["id"]
             r = await c.get(f"{BASE}/url-scans/{scan_id}", headers=h)
     assert r.status_code == 200
@@ -133,7 +145,9 @@ async def test_get_url_scan_other_user_returns_404():
     with patch("app.api.v1.endpoints.url_scans.run_url_scan", new_callable=AsyncMock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h1 = await _headers(c, "urlowner@test.com")
-            created = await c.post(f"{BASE}/url-scans", json={"url": "https://example.com"}, headers=h1)
+            created = await c.post(
+                f"{BASE}/url-scans", json={"url": "https://example.com"}, headers=h1
+            )
             scan_id = created.json()["id"]
 
             h2 = await _headers(c, "urlspy@test.com")
@@ -150,12 +164,15 @@ async def test_get_url_scan_requires_auth():
 
 # ── DELETE /url-scans/{id} ───────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_delete_url_scan_returns_204():
     with patch("app.api.v1.endpoints.url_scans.run_url_scan", new_callable=AsyncMock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "urldel1@test.com")
-            created = await c.post(f"{BASE}/url-scans", json={"url": "https://example.com"}, headers=h)
+            created = await c.post(
+                f"{BASE}/url-scans", json={"url": "https://example.com"}, headers=h
+            )
             scan_id = created.json()["id"]
             r = await c.delete(f"{BASE}/url-scans/{scan_id}", headers=h)
     assert r.status_code == 204
@@ -166,7 +183,9 @@ async def test_delete_url_scan_actually_removes_it():
     with patch("app.api.v1.endpoints.url_scans.run_url_scan", new_callable=AsyncMock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "urldel2@test.com")
-            created = await c.post(f"{BASE}/url-scans", json={"url": "https://example.com"}, headers=h)
+            created = await c.post(
+                f"{BASE}/url-scans", json={"url": "https://example.com"}, headers=h
+            )
             scan_id = created.json()["id"]
             await c.delete(f"{BASE}/url-scans/{scan_id}", headers=h)
             r = await c.get(f"{BASE}/url-scans/{scan_id}", headers=h)
@@ -178,7 +197,9 @@ async def test_delete_url_scan_other_user_returns_404():
     with patch("app.api.v1.endpoints.url_scans.run_url_scan", new_callable=AsyncMock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h1 = await _headers(c, "urldel_owner@test.com")
-            created = await c.post(f"{BASE}/url-scans", json={"url": "https://example.com"}, headers=h1)
+            created = await c.post(
+                f"{BASE}/url-scans", json={"url": "https://example.com"}, headers=h1
+            )
             scan_id = created.json()["id"]
 
             h2 = await _headers(c, "urldel_spy@test.com")

@@ -28,7 +28,7 @@ describe('AUDIT_OFFERS', () => {
     }
   });
 
-  it('les offres non popular n\'ont pas le champ popular à true', () => {
+  it("les offres non popular n'ont pas le champ popular à true", () => {
     expect(AUDIT_OFFERS[0].popular).toBeFalsy();
     expect(AUDIT_OFFERS[2].popular).toBeFalsy();
   });
@@ -39,7 +39,7 @@ describe('AUDIT_SUBSCRIPTIONS', () => {
     expect(AUDIT_SUBSCRIPTIONS.length).toBe(3);
   });
 
-  it('l\'abonnement Sentinelle est recommandé (popular) à ~199€', () => {
+  it("l'abonnement Sentinelle est recommandé (popular) à ~199€", () => {
     const sentinelle = AUDIT_SUBSCRIPTIONS.find(s => s.name === 'Sentinelle');
     expect(sentinelle).toBeDefined();
     expect(sentinelle!.popular).toBe(true);

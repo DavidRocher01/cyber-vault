@@ -4,6 +4,7 @@ GET /invoices          — list authenticated user's invoices (paginated)
 GET /invoices/{id}     — get invoice detail
 GET /invoices/{id}/pdf — download PDF
 """
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 from sqlalchemy import func, select

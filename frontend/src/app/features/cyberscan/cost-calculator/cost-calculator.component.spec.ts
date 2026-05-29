@@ -4,7 +4,15 @@ import { CostCalculatorComponent } from './cost-calculator.component';
 import type { CalcQuestion } from '../services/cost-calc.service';
 
 function makeQ(key: string, id = 1): CalcQuestion {
-  return { id, key, text: `Question ${key}`, options: [{ id: 'a', text: 'A' }, { id: 'b', text: 'B' }] };
+  return {
+    id,
+    key,
+    text: `Question ${key}`,
+    options: [
+      { id: 'a', text: 'A' },
+      { id: 'b', text: 'B' },
+    ],
+  };
 }
 
 function make(): CostCalculatorComponent {
@@ -24,12 +32,12 @@ describe('CostCalculatorComponent — currentQuestion', () => {
   it('retourne null si pas de questions', () => {
     expect(make().currentQuestion).toBeNull();
   });
-  it('retourne la première question à l\'index 0', () => {
+  it("retourne la première question à l'index 0", () => {
     const comp = make();
     (comp as any).questions.set([makeQ('q1'), makeQ('q2')]);
     expect(comp.currentQuestion?.key).toBe('q1');
   });
-  it('retourne la question à l\'index courant', () => {
+  it("retourne la question à l'index courant", () => {
     const comp = make();
     (comp as any).questions.set([makeQ('q1'), makeQ('q2')]);
     (comp as any).currentIndex.set(1);
@@ -47,7 +55,7 @@ describe('CostCalculatorComponent — progress', () => {
   it('retourne 0 si pas de questions', () => {
     expect(make().progress).toBe(0);
   });
-  it('retourne 0 à l\'index 0', () => {
+  it("retourne 0 à l'index 0", () => {
     const comp = make();
     (comp as any).questions.set([makeQ('q1'), makeQ('q2'), makeQ('q3'), makeQ('q4')]);
     expect(comp.progress).toBe(0);
@@ -111,7 +119,7 @@ describe('CostCalculatorComponent — selectAnswer()', () => {
 });
 
 describe('CostCalculatorComponent — next()', () => {
-  it('avance l\'index', () => {
+  it("avance l'index", () => {
     const comp = make();
     (comp as any).questions.set([makeQ('q1'), makeQ('q2')]);
     comp.next();
@@ -133,7 +141,7 @@ describe('CostCalculatorComponent — next()', () => {
 });
 
 describe('CostCalculatorComponent — prev()', () => {
-  it('recule l\'index', () => {
+  it("recule l'index", () => {
     const comp = make();
     (comp as any).questions.set([makeQ('q1'), makeQ('q2')]);
     (comp as any).currentIndex.set(1);
@@ -154,13 +162,13 @@ describe('CostCalculatorComponent — restart()', () => {
     comp.restart();
     expect((comp as any).answers()).toEqual({});
   });
-  it('remet l\'index à 0', () => {
+  it("remet l'index à 0", () => {
     const comp = make();
     (comp as any).currentIndex.set(3);
     comp.restart();
     expect((comp as any).currentIndex()).toBe(0);
   });
-  it('remet l\'étape à intro', () => {
+  it("remet l'étape à intro", () => {
     const comp = make();
     (comp as any).step.set('result');
     comp.restart();
@@ -193,7 +201,8 @@ describe('CostCalculatorComponent — formatEur()', () => {
 describe('CostCalculatorComponent — breakdownColor()', () => {
   it('bg-red-500 si ≥ 30', () => expect(make().breakdownColor(30)).toBe('bg-red-500'));
   it('bg-red-500 si > 30', () => expect(make().breakdownColor(50)).toBe('bg-red-500'));
-  it('bg-orange-500 si entre 20 et 29', () => expect(make().breakdownColor(20)).toBe('bg-orange-500'));
+  it('bg-orange-500 si entre 20 et 29', () =>
+    expect(make().breakdownColor(20)).toBe('bg-orange-500'));
   it('bg-orange-500 si 25', () => expect(make().breakdownColor(25)).toBe('bg-orange-500'));
   it('bg-yellow-500 si < 20', () => expect(make().breakdownColor(10)).toBe('bg-yellow-500'));
   it('bg-yellow-500 si 0', () => expect(make().breakdownColor(0)).toBe('bg-yellow-500'));

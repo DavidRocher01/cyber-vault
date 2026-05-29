@@ -1,6 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+const KONAMI = [
+  'ArrowUp',
+  'ArrowUp',
+  'ArrowDown',
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'ArrowLeft',
+  'ArrowRight',
+  'b',
+  'a',
+];
 
 function makeKeyEvent(key: string): KeyboardEvent {
   return { key } as KeyboardEvent;
@@ -36,7 +47,9 @@ class EasterEggServiceStub {
   onLogoClick() {
     this.logoClicks++;
     clearTimeout(this.logoTimer);
-    this.logoTimer = setTimeout(() => { this.logoClicks = 0; }, 2000);
+    this.logoTimer = setTimeout(() => {
+      this.logoClicks = 0;
+    }, 2000);
     if (this.logoClicks >= 7) {
       this.logoClicks = 0;
       this.triggerGlitch();
@@ -45,15 +58,23 @@ class EasterEggServiceStub {
 
   triggerGlitch = vi.fn();
 
-  getLogoClicks() { return this.logoClicks; }
-  getTypingBuffer() { return this.typingBuffer; }
-  getKonamiBuffer() { return this.konamiBuffer; }
+  getLogoClicks() {
+    return this.logoClicks;
+  }
+  getTypingBuffer() {
+    return this.typingBuffer;
+  }
+  getKonamiBuffer() {
+    return this.konamiBuffer;
+  }
 }
 
 describe('EasterEggService — Konami Code', () => {
   let svc: EasterEggServiceStub;
 
-  beforeEach(() => { svc = new EasterEggServiceStub(); });
+  beforeEach(() => {
+    svc = new EasterEggServiceStub();
+  });
 
   it('does not fire matrixTrigger$ on partial sequence', () => {
     KONAMI.slice(0, 5).forEach(k => svc.onKey(makeKeyEvent(k)));
@@ -85,7 +106,9 @@ describe('EasterEggService — Konami Code', () => {
 describe('EasterEggService — "cyberscan" typing detection', () => {
   let svc: EasterEggServiceStub;
 
-  beforeEach(() => { svc = new EasterEggServiceStub(); });
+  beforeEach(() => {
+    svc = new EasterEggServiceStub();
+  });
 
   it('does not trigger breach on partial word', () => {
     'cybers'.split('').forEach(k => svc.onKey(makeKeyEvent(k)));
@@ -126,7 +149,9 @@ describe('EasterEggService — logo click counter', () => {
     svc = new EasterEggServiceStub();
   });
 
-  afterEach(() => { vi.useRealTimers(); });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it('does not trigger glitch before 7 clicks', () => {
     for (let i = 0; i < 6; i++) svc.onLogoClick();

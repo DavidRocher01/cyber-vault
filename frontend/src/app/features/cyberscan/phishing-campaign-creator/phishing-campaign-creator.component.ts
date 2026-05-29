@@ -8,7 +8,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Title } from '@angular/platform-browser';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
-import { PhishingService, PhishingCampaign, LOOKALIKE_TECHNIQUE_LABELS } from '../services/phishing.service';
+import {
+  PhishingService,
+  PhishingCampaign,
+  LOOKALIKE_TECHNIQUE_LABELS,
+} from '../services/phishing.service';
 import { PHISHING_SCENARIOS } from '../phishing/phishing.component';
 
 export type WizardStep = 'plan' | 'info' | 'targets' | 'scenarios' | 'review';
@@ -24,17 +28,43 @@ export const STEP_LABELS: Record<WizardStep, string> = {
 };
 
 export const PLAN_OPTIONS = [
-  { id: 'express',    label: 'Express',     price: '800 € HT',    maxTargets: 50,  scenarios: 2,  highlight: false },
-  { id: 'standard',  label: 'Standard',    price: '1 500 € HT',  maxTargets: 200, scenarios: 5,  highlight: true  },
-  { id: 'premium',   label: 'Premium',     price: '2 500 € HT',  maxTargets: 500, scenarios: 10, highlight: false },
+  {
+    id: 'express',
+    label: 'Express',
+    price: '800 € HT',
+    maxTargets: 50,
+    scenarios: 2,
+    highlight: false,
+  },
+  {
+    id: 'standard',
+    label: 'Standard',
+    price: '1 500 € HT',
+    maxTargets: 200,
+    scenarios: 5,
+    highlight: true,
+  },
+  {
+    id: 'premium',
+    label: 'Premium',
+    price: '2 500 € HT',
+    maxTargets: 500,
+    scenarios: 10,
+    highlight: false,
+  },
 ];
 
 @Component({
   standalone: true,
   selector: 'app-phishing-campaign-creator',
   imports: [
-    CommonModule, ReactiveFormsModule, RouterLink,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
     NavButtonsComponent,
   ],
   templateUrl: './phishing-campaign-creator.component.html',
@@ -63,7 +93,7 @@ export class PhishingCampaignCreatorComponent implements OnInit {
   launching = signal(false);
 
   infoForm = this.fb.nonNullable.group({
-    name:   ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
+    name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
     domain: ['', [Validators.pattern(/^[a-z0-9.-]+\.[a-z]{2,}$/i)]],
   });
 
@@ -73,9 +103,15 @@ export class PhishingCampaignCreatorComponent implements OnInit {
     cgu3: [false, Validators.requiredTrue],
   });
 
-  get stepIndex(): number { return STEPS.indexOf(this.currentStep()); }
-  get maxScenarios(): number { return PLAN_OPTIONS.find(p => p.id === this.selectedPlan())?.scenarios ?? 2; }
-  get maxTargets(): number { return PLAN_OPTIONS.find(p => p.id === this.selectedPlan())?.maxTargets ?? 50; }
+  get stepIndex(): number {
+    return STEPS.indexOf(this.currentStep());
+  }
+  get maxScenarios(): number {
+    return PLAN_OPTIONS.find(p => p.id === this.selectedPlan())?.scenarios ?? 2;
+  }
+  get maxTargets(): number {
+    return PLAN_OPTIONS.find(p => p.id === this.selectedPlan())?.maxTargets ?? 50;
+  }
 
   ngOnInit() {
     this.title.setTitle('Nouvelle campagne de phishing | CyberScan');
@@ -109,8 +145,16 @@ export class PhishingCampaignCreatorComponent implements OnInit {
         const patch = domain?.trim() ? { domain: domain.trim() } : {};
         if (Object.keys(patch).length) {
           this.service.updateCampaign(c.id, patch).subscribe({
-            next: updated => { this.campaign.set(updated); this.submitting.set(false); this.next(); },
-            error: () => { this.campaign.set(c); this.submitting.set(false); this.next(); },
+            next: updated => {
+              this.campaign.set(updated);
+              this.submitting.set(false);
+              this.next();
+            },
+            error: () => {
+              this.campaign.set(c);
+              this.submitting.set(false);
+              this.next();
+            },
           });
         } else {
           this.campaign.set(c);
@@ -143,12 +187,12 @@ export class PhishingCampaignCreatorComponent implements OnInit {
       next: r => {
         this.uploading.set(false);
         this.snack.open(`${r.targets_added} cibles importées`, 'Fermer', { duration: 3000 });
-        this.campaign.update(cam => cam ? { ...cam, targets_count: r.targets_added } : cam);
+        this.campaign.update(cam => (cam ? { ...cam, targets_count: r.targets_added } : cam));
         this.next();
       },
-      error: (err) => {
+      error: err => {
         this.uploading.set(false);
-        const msg = err?.error?.detail ?? 'Erreur lors de l\'import du CSV';
+        const msg = err?.error?.detail ?? "Erreur lors de l'import du CSV";
         this.snack.open(msg, 'Fermer', { duration: 5000 });
       },
     });
@@ -171,14 +215,16 @@ export class PhishingCampaignCreatorComponent implements OnInit {
   saveScenarios(): void {
     const c = this.campaign();
     if (!c || this.selectedScenarios().size === 0) return;
-    this.service.updateCampaign(c.id, {
-      scenario_keys: Array.from(this.selectedScenarios()),
-    }).subscribe({
-      next: updated => {
-        this.campaign.set(updated);
-        this.next();
-      },
-    });
+    this.service
+      .updateCampaign(c.id, {
+        scenario_keys: Array.from(this.selectedScenarios()),
+      })
+      .subscribe({
+        next: updated => {
+          this.campaign.set(updated);
+          this.next();
+        },
+      });
   }
 
   // ── Step: review ─────────────────────────────────────────────────────────────
@@ -196,7 +242,7 @@ export class PhishingCampaignCreatorComponent implements OnInit {
             this.snack.open('Campagne lancée !', 'Fermer', { duration: 3000 });
             this.router.navigate(['/cyberscan/phishing/campaigns']);
           },
-          error: (err) => {
+          error: err => {
             this.launching.set(false);
             const msg = err?.error?.detail ?? 'Erreur lors du lancement';
             this.snack.open(msg, 'Fermer', { duration: 5000 });

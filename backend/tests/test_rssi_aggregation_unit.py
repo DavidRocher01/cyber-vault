@@ -1,4 +1,5 @@
 """Unit tests — rssi_aggregation_service.py."""
+
 from datetime import date, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
@@ -7,14 +8,14 @@ import pytest
 from app.services.rssi_aggregation_service import (
     DashboardOverview,
     compute_overview,
+    compute_suggestions,
     get_clients_summary,
     get_pending_alerts,
     get_upcoming_events,
-    compute_suggestions,
 )
 
-
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 def _make_client(
     cid=1,
@@ -48,7 +49,15 @@ def _make_action(aid=1, client_id=1, status="open", priority="medium", due_date=
     return a
 
 
-def _make_visit(vid=1, client_id=1, status="planned", scheduled_date=None, actual_date=None, visit_type="audit", location="Sur site"):
+def _make_visit(
+    vid=1,
+    client_id=1,
+    status="planned",
+    scheduled_date=None,
+    actual_date=None,
+    visit_type="audit",
+    location="Sur site",
+):
     v = MagicMock()
     v.id = vid
     v.client_id = client_id
@@ -83,6 +92,7 @@ def _db_multi(*result_sequences):
 
 # ── DashboardOverview.dict ─────────────────────────────────────────────────────
 
+
 def test_dashboard_overview_dict():
     ov = DashboardOverview(
         total_clients=3,
@@ -102,6 +112,7 @@ def test_dashboard_overview_dict():
 
 
 # ── compute_overview ───────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_compute_overview_no_clients():
@@ -133,8 +144,10 @@ async def test_compute_overview_overdue_actions():
     clients = [_make_client(1)]
     past = today - timedelta(days=3)
     actions = [
-        _make_action(1, client_id=1, status="open", due_date=past),   # overdue
-        _make_action(2, client_id=1, status="open", due_date=today + timedelta(days=5)),  # not overdue
+        _make_action(1, client_id=1, status="open", due_date=past),  # overdue
+        _make_action(
+            2, client_id=1, status="open", due_date=today + timedelta(days=5)
+        ),  # not overdue
     ]
     db = _db_multi(clients, actions, [])
     result = await compute_overview(1, db)
@@ -170,6 +183,7 @@ async def test_compute_overview_no_monthly_amount():
 
 
 # ── get_clients_summary ────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_get_clients_summary_empty():
@@ -212,6 +226,7 @@ async def test_get_clients_summary_with_actions_and_visit():
 
 # ── get_pending_alerts ─────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_get_pending_alerts_empty():
     db = _db_multi([])
@@ -249,8 +264,9 @@ async def test_get_pending_alerts_no_recent_visit_premium():
     today = date.today()
     client = _make_client(1, "Premium Client", formula="premium")
     # last visit was 40 days ago → triggers alert
-    old_visit = _make_visit(1, client_id=1, status="completed",
-                            actual_date=today - timedelta(days=40))
+    old_visit = _make_visit(
+        1, client_id=1, status="completed", actual_date=today - timedelta(days=40)
+    )
     db = _db_multi([client], [], [old_visit])
     result = await get_pending_alerts(1, db)
     no_visit_alerts = [a for a in result if a["type"] == "no_recent_visit"]
@@ -261,8 +277,9 @@ async def test_get_pending_alerts_no_recent_visit_premium():
 async def test_get_pending_alerts_recent_visit_no_alert():
     today = date.today()
     client = _make_client(1, "Active Premium", formula="premium")
-    recent_visit = _make_visit(1, client_id=1, status="completed",
-                               actual_date=today - timedelta(days=10))
+    recent_visit = _make_visit(
+        1, client_id=1, status="completed", actual_date=today - timedelta(days=10)
+    )
     db = _db_multi([client], [], [recent_visit])
     result = await get_pending_alerts(1, db)
     no_visit_alerts = [a for a in result if a["type"] == "no_recent_visit"]
@@ -270,6 +287,7 @@ async def test_get_pending_alerts_recent_visit_no_alert():
 
 
 # ── get_upcoming_events ────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_get_upcoming_events_no_clients():
@@ -282,8 +300,15 @@ async def test_get_upcoming_events_no_clients():
 async def test_get_upcoming_events_with_visits():
     today = date.today()
     clients = [_make_client(1, "Acme")]
-    visits = [_make_visit(1, client_id=1, scheduled_date=today + timedelta(days=5),
-                          visit_type="audit", location="Sur site")]
+    visits = [
+        _make_visit(
+            1,
+            client_id=1,
+            scheduled_date=today + timedelta(days=5),
+            visit_type="audit",
+            location="Sur site",
+        )
+    ]
     db = _db_multi(clients, visits)
     result = await get_upcoming_events(1, days_ahead=14, db=db)
     assert len(result) == 1
@@ -292,6 +317,7 @@ async def test_get_upcoming_events_with_visits():
 
 
 # ── compute_suggestions ────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_compute_suggestions_no_clients():
@@ -304,7 +330,8 @@ async def test_compute_suggestions_no_clients():
 async def test_compute_suggestions_upsell():
     today = date.today()
     client = _make_client(
-        1, "Stable Essentiel",
+        1,
+        "Stable Essentiel",
         formula="essentiel",
         contract_start_date=today - timedelta(days=200),  # > 180 days
     )
@@ -318,7 +345,8 @@ async def test_compute_suggestions_upsell():
 async def test_compute_suggestions_no_upsell_with_overdue():
     today = date.today()
     client = _make_client(
-        1, "Overdue Essentiel",
+        1,
+        "Overdue Essentiel",
         formula="essentiel",
         contract_start_date=today - timedelta(days=200),
     )

@@ -15,8 +15,13 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
   standalone: true,
   selector: 'app-quiz',
   imports: [
-    CommonModule, ReactiveFormsModule, RouterLink,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
     NavButtonsComponent,
   ],
   templateUrl: './quiz.component.html',
@@ -57,7 +62,10 @@ export class QuizComponent implements OnInit {
   ngOnInit() {
     this.title.setTitle('Quiz maturité cybersécurité — NIS2 / ISO 27001 | CyberScan');
     this.quizService.getQuestions().subscribe({
-      next: qs => { this.questions.set(qs); this.loading.set(false); },
+      next: qs => {
+        this.questions.set(qs);
+        this.loading.set(false);
+      },
       error: () => this.loading.set(false),
     });
   }
@@ -94,21 +102,23 @@ export class QuizComponent implements OnInit {
       question_id: Number(qid),
       answer_id: aid,
     }));
-    this.quizService.submit({
-      answers: answerList,
-      email: email || undefined,
-      company: company || undefined,
-    }).subscribe({
-      next: r => {
-        this.result.set(r);
-        this.submitting.set(false);
-        this.step.set('result');
-      },
-      error: () => {
-        this.submitting.set(false);
-        this.snack.open('Erreur lors de la soumission', 'Fermer', { duration: 4000 });
-      },
-    });
+    this.quizService
+      .submit({
+        answers: answerList,
+        email: email || undefined,
+        company: company || undefined,
+      })
+      .subscribe({
+        next: r => {
+          this.result.set(r);
+          this.submitting.set(false);
+          this.step.set('result');
+        },
+        error: () => {
+          this.submitting.set(false);
+          this.snack.open('Erreur lors de la soumission', 'Fermer', { duration: 4000 });
+        },
+      });
   }
 
   skipEmail() {

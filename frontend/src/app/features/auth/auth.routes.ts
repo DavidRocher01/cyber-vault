@@ -12,12 +12,14 @@ export const AUTH_ROUTES: Routes = [
   },
   {
     path: 'forgot-password',
-    loadComponent: () => import('./forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent),
+    loadComponent: () =>
+      import('./forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent),
     title: 'Mot de passe oublié — CyberScan',
   },
   {
     path: 'reset-password',
-    loadComponent: () => import('./reset-password/reset-password.component').then(m => m.ResetPasswordComponent),
+    loadComponent: () =>
+      import('./reset-password/reset-password.component').then(m => m.ResetPasswordComponent),
     title: 'Nouveau mot de passe — CyberScan',
   },
   {

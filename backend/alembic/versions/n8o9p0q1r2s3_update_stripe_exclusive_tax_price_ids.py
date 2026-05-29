@@ -7,19 +7,19 @@ Create Date: 2026-04-22
 Replaces inclusive-tax price IDs with new exclusive-tax price IDs
 so clients are charged HT + TVA 20% on top.
 """
-from typing import Union
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "n8o9p0q1r2s3"
-down_revision: Union[str, None] = "m7n8o9p0q1r2"
+down_revision: str | None = "m7n8o9p0q1r2"
 branch_labels = None
 depends_on = None
 
 EXCLUSIVE_PRICE_IDS = {
-    "starter":  "price_1TP2db22WVBQ28elfBoc3AOZ",
-    "pro":      "price_1TP2ZZ22WVBQ28elz9r3Cknm",
+    "starter": "price_1TP2db22WVBQ28elfBoc3AOZ",
+    "pro": "price_1TP2ZZ22WVBQ28elz9r3Cknm",
     "business": "price_1TOwxP22WVBQ28elsWUTRnKN",
 }
 

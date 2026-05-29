@@ -1,19 +1,31 @@
 <div class="vault-bg text-white">
-
   <!-- ── Navbar ── -->
-  <header class="border-b border-gray-800/60 px-6 py-4 flex items-center justify-between sticky top-0 z-20 bg-[#080d1a]/90 backdrop-blur-sm">
-    <a routerLink="/cyberscan" class="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+  <header
+    class="border-b border-gray-800/60 px-6 py-4 flex items-center justify-between sticky top-0 z-20 bg-[#080d1a]/90 backdrop-blur-sm"
+  >
+    <a
+      routerLink="/cyberscan"
+      class="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
+    >
       <mat-icon class="text-cyan-400 !text-[1.8rem] !w-[1.8rem] !h-[1.8rem]">lock</mat-icon>
-      <span class="text-xl font-bold tracking-tight">Cyber<span class="text-cyan-400">Vault</span></span>
+      <span class="text-xl font-bold tracking-tight"
+        >Cyber<span class="text-cyan-400">Vault</span></span
+      >
     </a>
     <div class="flex items-center gap-2">
-      <button type="button" (click)="exportVault()"
-              class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+      <button
+        type="button"
+        (click)="exportVault()"
+        class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+      >
         <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">download</mat-icon>
         Export
       </button>
-      <button type="button" (click)="logout()"
-              class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+      <button
+        type="button"
+        (click)="logout()"
+        class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+      >
         <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">logout</mat-icon>
         Déconnexion
       </button>
@@ -21,14 +33,17 @@
   </header>
 
   <div class="max-w-4xl mx-auto px-4 py-8">
-
     <!-- ── Titre + CTA ── -->
     <div class="flex items-center justify-between mb-6">
       <div>
         <h1 class="text-2xl font-bold">Mon Vault</h1>
         <p class="text-gray-500 text-sm mt-0.5">Vos identifiants chiffrés — zéro connaissance</p>
       </div>
-      <button type="button" (click)="openCreate()" class="vault-btn-primary flex items-center gap-2">
+      <button
+        type="button"
+        (click)="openCreate()"
+        class="vault-btn-primary flex items-center gap-2"
+      >
         <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">add</mat-icon>
         Nouvelle entrée
       </button>
@@ -36,28 +51,42 @@
 
     <!-- ── Recherche ── -->
     <div class="relative mb-5">
-      <mat-icon class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">search</mat-icon>
-      <input type="text" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)"
-             placeholder="Rechercher un identifiant, un site…"
-             class="vault-input vault-input-search" />
+      <mat-icon
+        class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]"
+        >search</mat-icon
+      >
+      <input
+        type="text"
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+        placeholder="Rechercher un identifiant, un site…"
+        class="vault-input vault-input-search"
+      />
     </div>
 
     <!-- ── Filtres catégories ── -->
     <div class="flex gap-2 mb-6 overflow-x-auto pb-1">
       @for (cat of categories; track cat.id) {
-        <button type="button" (click)="activeCategory.set(cat.id)"
-                class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border"
-                [class.bg-cyan-500]="activeCategory() === cat.id"
-                [class.border-cyan-500]="activeCategory() === cat.id"
-                [class.text-white]="activeCategory() === cat.id"
-                [class.bg-transparent]="activeCategory() !== cat.id"
-                [class.border-gray-700]="activeCategory() !== cat.id"
-                [class.text-gray-400]="activeCategory() !== cat.id">
+        <button
+          type="button"
+          (click)="activeCategory.set(cat.id)"
+          class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border"
+          [class.bg-cyan-500]="activeCategory() === cat.id"
+          [class.border-cyan-500]="activeCategory() === cat.id"
+          [class.text-white]="activeCategory() === cat.id"
+          [class.bg-transparent]="activeCategory() !== cat.id"
+          [class.border-gray-700]="activeCategory() !== cat.id"
+          [class.text-gray-400]="activeCategory() !== cat.id"
+        >
           <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">{{ cat.icon }}</mat-icon>
           {{ cat.label }}
           @if ((categoryCounts()[cat.id] || 0) > 0) {
-            <span class="text-xs px-1.5 py-0.5 rounded-full"
-                  [style.background]="activeCategory() === cat.id ? 'rgba(255,255,255,0.2)' : 'rgba(55,65,81,1)'">
+            <span
+              class="text-xs px-1.5 py-0.5 rounded-full"
+              [style.background]="
+                activeCategory() === cat.id ? 'rgba(255,255,255,0.2)' : 'rgba(55,65,81,1)'
+              "
+            >
               {{ categoryCounts()[cat.id] }}
             </span>
           }
@@ -67,7 +96,9 @@
 
     <!-- ── Erreur ── -->
     @if (error()) {
-      <div class="flex items-center gap-2 bg-red-900/30 border border-red-700 rounded-xl px-4 py-3 text-sm text-red-400 mb-4">
+      <div
+        class="flex items-center gap-2 bg-red-900/30 border border-red-700 rounded-xl px-4 py-3 text-sm text-red-400 mb-4"
+      >
         <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] flex-shrink-0">error_outline</mat-icon>
         {{ error() }}
       </div>
@@ -76,7 +107,7 @@
     <!-- ── Liste ── -->
     @if (loading()) {
       <div class="flex flex-col gap-3">
-        @for (i of [1,2,3]; track i) {
+        @for (i of [1, 2, 3]; track i) {
           <div class="vault-card rounded-2xl p-5">
             <div class="flex items-center gap-4">
               <div class="skeleton-shimmer w-10 h-10 rounded-xl"></div>
@@ -89,180 +120,262 @@
         }
       </div>
     } @else {
-        @if (filteredItems().length === 0) {
-          <div class="flex flex-col items-center justify-center py-20 gap-4 text-center">
-            <div class="w-16 h-16 rounded-2xl bg-gray-800/60 border border-gray-700 flex items-center justify-center">
-              <mat-icon class="text-gray-600 !text-[2rem] !w-[2rem] !h-[2rem]">lock_open</mat-icon>
-            </div>
-            <p class="text-gray-500">Aucune entrée dans cette catégorie.</p>
-            <button type="button" (click)="openCreate()" class="vault-btn-primary flex items-center gap-2 text-sm">
-              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">add</mat-icon>
-              Ajouter une entrée
-            </button>
+      @if (filteredItems().length === 0) {
+        <div class="flex flex-col items-center justify-center py-20 gap-4 text-center">
+          <div
+            class="w-16 h-16 rounded-2xl bg-gray-800/60 border border-gray-700 flex items-center justify-center"
+          >
+            <mat-icon class="text-gray-600 !text-[2rem] !w-[2rem] !h-[2rem]">lock_open</mat-icon>
           </div>
-        } @else {
-          <div class="flex flex-col gap-3">
-            @for (item of filteredItems(); track item.id) {
-              <div class="vault-card rounded-2xl p-5 transition-all">
-                <div class="flex items-center gap-4">
+          <p class="text-gray-500">Aucune entrée dans cette catégorie.</p>
+          <button
+            type="button"
+            (click)="openCreate()"
+            class="vault-btn-primary flex items-center gap-2 text-sm"
+          >
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">add</mat-icon>
+            Ajouter une entrée
+          </button>
+        </div>
+      } @else {
+        <div class="flex flex-col gap-3">
+          @for (item of filteredItems(); track item.id) {
+            <div class="vault-card rounded-2xl p-5 transition-all">
+              <div class="flex items-center gap-4">
+                <!-- Icône catégorie -->
+                <div
+                  class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  [class.bg-blue-950]="item.category === 'login'"
+                  [class.bg-purple-950]="item.category === 'card'"
+                  [class.bg-yellow-950]="item.category === 'note'"
+                  [class.bg-green-950]="item.category === 'wifi'"
+                  [class.bg-gray-800]="item.category === 'other'"
+                >
+                  <mat-icon
+                    class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]"
+                    [class.text-blue-400]="item.category === 'login'"
+                    [class.text-purple-400]="item.category === 'card'"
+                    [class.text-yellow-400]="item.category === 'note'"
+                    [class.text-green-400]="item.category === 'wifi'"
+                    [class.text-gray-400]="item.category === 'other'"
+                  >
+                    {{ categoryIcons[item.category] || 'more_horiz' }}
+                  </mat-icon>
+                </div>
 
-                  <!-- Icône catégorie -->
-                  <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                       [class.bg-blue-950]="item.category === 'login'"
-                       [class.bg-purple-950]="item.category === 'card'"
-                       [class.bg-yellow-950]="item.category === 'note'"
-                       [class.bg-green-950]="item.category === 'wifi'"
-                       [class.bg-gray-800]="item.category === 'other'">
-                    <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]"
-                              [class.text-blue-400]="item.category === 'login'"
-                              [class.text-purple-400]="item.category === 'card'"
-                              [class.text-yellow-400]="item.category === 'note'"
-                              [class.text-green-400]="item.category === 'wifi'"
-                              [class.text-gray-400]="item.category === 'other'">
-                      {{ categoryIcons[item.category] || 'more_horiz' }}
-                    </mat-icon>
-                  </div>
+                <!-- Infos -->
+                <div class="flex-1 min-w-0">
+                  <p class="font-semibold text-white truncate">{{ item.title }}</p>
 
-                  <!-- Infos -->
-                  <div class="flex-1 min-w-0">
-                    <p class="font-semibold text-white truncate">{{ item.title }}</p>
-
-                    @if (item.category === 'card') {
-                      <!-- Carte : afficher numéro masqué + titulaire -->
-                      <p class="text-sm text-gray-500 truncate">
-                        @if (item.username) { {{ item.username }} · }
-                        @if (revealedPasswords[item.id] !== undefined && revealedPasswords[item.id] !== null) {
-                          {{ maskCardNumber(parseCardData(revealedPasswords[item.id])?.number ?? '') }}
-                        } @else {
-                          •••• •••• •••• ••••
-                        }
-                      </p>
-                      @if (revealedPasswords[item.id] !== undefined && revealedPasswords[item.id] !== null) {
-                        <ng-container *ngIf="parseCardData(revealedPasswords[item.id]) as card; else cardRaw">
-                          <div class="mt-1.5 flex gap-4 text-sm font-mono text-cyan-400">
-                            <span>{{ card.number || '—' }}</span>
-                            @if (card.expiry) { <span class="text-gray-400">{{ card.expiry }}</span> }
-                            @if (card.cvv) { <span class="text-gray-500">CVV: {{ card.cvv }}</span> }
-                          </div>
-                        </ng-container>
-                        <ng-template #cardRaw>
-                          <p class="mt-1.5 font-mono text-sm text-cyan-400 break-all">{{ revealedPasswords[item.id] }}</p>
-                        </ng-template>
+                  @if (item.category === 'card') {
+                    <!-- Carte : afficher numéro masqué + titulaire -->
+                    <p class="text-sm text-gray-500 truncate">
+                      @if (item.username) {
+                        {{ item.username }} ·
                       }
-                    } @else if (item.category === 'note') {
-                      <!-- Note : afficher aperçu du contenu -->
-                      <p class="text-sm text-gray-500 truncate">
-                        {{ item.notes ? (item.notes.length > 60 ? (item.notes | slice:0:60) + '…' : item.notes) : 'Note chiffrée' }}
-                      </p>
-                      @if (revealedPasswords[item.id] !== undefined) {
-                        <p class="mt-1.5 text-sm text-gray-300 whitespace-pre-wrap">{{ item.notes }}</p>
+                      @if (
+                        revealedPasswords[item.id] !== undefined &&
+                        revealedPasswords[item.id] !== null
+                      ) {
+                        {{
+                          maskCardNumber(parseCardData(revealedPasswords[item.id])?.number ?? '')
+                        }}
+                      } @else {
+                        •••• •••• •••• ••••
                       }
-                    } @else if (item.category === 'wifi') {
-                      <!-- Wi-Fi : type sécu + mot de passe masqué -->
-                      <p class="text-sm text-gray-500 truncate">
-                        @if (item.username) { {{ item.username }} · }
-                        {{ revealedPasswords[item.id] !== undefined ? revealedPasswords[item.id] ?? '(erreur)' : '••••••••' }}
-                      </p>
-                    } @else {
-                      <!-- login / other -->
-                      <p class="text-sm text-gray-500 truncate">
-                        {{ item.username || (item.url || '—') }}
-                      </p>
-                      @if (revealedPasswords[item.id] !== undefined) {
+                    </p>
+                    @if (
+                      revealedPasswords[item.id] !== undefined &&
+                      revealedPasswords[item.id] !== null
+                    ) {
+                      <ng-container
+                        *ngIf="parseCardData(revealedPasswords[item.id]) as card; else cardRaw"
+                      >
+                        <div class="mt-1.5 flex gap-4 text-sm font-mono text-cyan-400">
+                          <span>{{ card.number || '—' }}</span>
+                          @if (card.expiry) {
+                            <span class="text-gray-400">{{ card.expiry }}</span>
+                          }
+                          @if (card.cvv) {
+                            <span class="text-gray-500">CVV: {{ card.cvv }}</span>
+                          }
+                        </div>
+                      </ng-container>
+                      <ng-template #cardRaw>
                         <p class="mt-1.5 font-mono text-sm text-cyan-400 break-all">
-                          {{ revealedPasswords[item.id] ?? '(erreur de déchiffrement)' }}
+                          {{ revealedPasswords[item.id] }}
                         </p>
+                      </ng-template>
+                    }
+                  } @else if (item.category === 'note') {
+                    <!-- Note : afficher aperçu du contenu -->
+                    <p class="text-sm text-gray-500 truncate">
+                      {{
+                        item.notes
+                          ? item.notes.length > 60
+                            ? (item.notes | slice: 0 : 60) + '…'
+                            : item.notes
+                          : 'Note chiffrée'
+                      }}
+                    </p>
+                    @if (revealedPasswords[item.id] !== undefined) {
+                      <p class="mt-1.5 text-sm text-gray-300 whitespace-pre-wrap">
+                        {{ item.notes }}
+                      </p>
+                    }
+                  } @else if (item.category === 'wifi') {
+                    <!-- Wi-Fi : type sécu + mot de passe masqué -->
+                    <p class="text-sm text-gray-500 truncate">
+                      @if (item.username) {
+                        {{ item.username }} ·
                       }
-                      @if (item.url && item.username) {
-                        <a [href]="item.url" target="_blank" rel="noopener"
-                           class="text-xs text-gray-600 hover:text-cyan-400 transition-colors truncate block mt-0.5">
-                          {{ item.url }}
-                        </a>
-                      }
+                      {{
+                        revealedPasswords[item.id] !== undefined
+                          ? (revealedPasswords[item.id] ?? '(erreur)')
+                          : '••••••••'
+                      }}
+                    </p>
+                  } @else {
+                    <!-- login / other -->
+                    <p class="text-sm text-gray-500 truncate">
+                      {{ item.username || item.url || '—' }}
+                    </p>
+                    @if (revealedPasswords[item.id] !== undefined) {
+                      <p class="mt-1.5 font-mono text-sm text-cyan-400 break-all">
+                        {{ revealedPasswords[item.id] ?? '(erreur de déchiffrement)' }}
+                      </p>
                     }
-                  </div>
+                    @if (item.url && item.username) {
+                      <a
+                        [href]="item.url"
+                        target="_blank"
+                        rel="noopener"
+                        class="text-xs text-gray-600 hover:text-cyan-400 transition-colors truncate block mt-0.5"
+                      >
+                        {{ item.url }}
+                      </a>
+                    }
+                  }
+                </div>
 
-                  <!-- Actions -->
-                  <div class="flex items-center gap-1 flex-shrink-0">
-                    @if (item.category !== 'note') {
-                      <button type="button" (click)="toggleReveal(item)"
-                              [matTooltip]="revealedPasswords[item.id] !== undefined ? 'Masquer' : (item.category === 'card' ? 'Afficher la carte' : 'Afficher le mot de passe')"
-                              class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:text-white hover:bg-gray-800 transition-colors">
-                        <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">
-                          {{ revealedPasswords[item.id] !== undefined ? 'visibility_off' : 'visibility' }}
-                        </mat-icon>
-                      </button>
-                    }
-                    @if (item.category !== 'note') {
-                      <button type="button" (click)="copyPassword(item)"
-                              [matTooltip]="copiedId === item.id ? 'Copié !' : (item.category === 'card' ? 'Copier le numéro' : 'Copier le mot de passe')"
-                              class="w-9 h-9 rounded-lg flex items-center justify-center transition-colors"
-                              [class.text-green-400]="copiedId === item.id"
-                              [class.text-gray-500]="copiedId !== item.id"
-                              [class.hover:text-white]="copiedId !== item.id"
-                              [class.hover:bg-gray-800]="copiedId !== item.id">
-                        <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">
-                          {{ copiedId === item.id ? 'check' : 'content_copy' }}
-                        </mat-icon>
-                      </button>
-                    }
-                    <button type="button" (click)="openEdit(item)"
-                            matTooltip="Modifier"
-                            class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:text-white hover:bg-gray-800 transition-colors">
-                      <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">edit</mat-icon>
+                <!-- Actions -->
+                <div class="flex items-center gap-1 flex-shrink-0">
+                  @if (item.category !== 'note') {
+                    <button
+                      type="button"
+                      (click)="toggleReveal(item)"
+                      [matTooltip]="
+                        revealedPasswords[item.id] !== undefined
+                          ? 'Masquer'
+                          : item.category === 'card'
+                            ? 'Afficher la carte'
+                            : 'Afficher le mot de passe'
+                      "
+                      class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:text-white hover:bg-gray-800 transition-colors"
+                    >
+                      <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">
+                        {{
+                          revealedPasswords[item.id] !== undefined ? 'visibility_off' : 'visibility'
+                        }}
+                      </mat-icon>
                     </button>
-                    <button type="button" (click)="delete(item.id)"
-                            matTooltip="Supprimer"
-                            aria-label="Supprimer"
-                            class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-950 transition-colors">
-                      <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">delete</mat-icon>
+                  }
+                  @if (item.category !== 'note') {
+                    <button
+                      type="button"
+                      (click)="copyPassword(item)"
+                      [matTooltip]="
+                        copiedId === item.id
+                          ? 'Copié !'
+                          : item.category === 'card'
+                            ? 'Copier le numéro'
+                            : 'Copier le mot de passe'
+                      "
+                      class="w-9 h-9 rounded-lg flex items-center justify-center transition-colors"
+                      [class.text-green-400]="copiedId === item.id"
+                      [class.text-gray-500]="copiedId !== item.id"
+                      [class.hover:text-white]="copiedId !== item.id"
+                      [class.hover:bg-gray-800]="copiedId !== item.id"
+                    >
+                      <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">
+                        {{ copiedId === item.id ? 'check' : 'content_copy' }}
+                      </mat-icon>
                     </button>
-                  </div>
-
+                  }
+                  <button
+                    type="button"
+                    (click)="openEdit(item)"
+                    matTooltip="Modifier"
+                    class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:text-white hover:bg-gray-800 transition-colors"
+                  >
+                    <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">edit</mat-icon>
+                  </button>
+                  <button
+                    type="button"
+                    (click)="delete(item.id)"
+                    matTooltip="Supprimer"
+                    aria-label="Supprimer"
+                    class="w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-950 transition-colors"
+                  >
+                    <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">delete</mat-icon>
+                  </button>
                 </div>
               </div>
-            }
-          </div>
-        }
+            </div>
+          }
+        </div>
+      }
     }
-
   </div>
 
   <!-- ── Modal ajout / édition ── -->
   @if (showForm()) {
-    <div class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-12 overflow-y-auto"
-         (click)="closeForm()">
+    <div
+      class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-12 overflow-y-auto"
+      (click)="closeForm()"
+    >
       <!-- Backdrop -->
       <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
 
       <!-- Fenêtre -->
-      <div class="relative vault-modal modal-animate rounded-2xl p-6 w-full max-w-lg mb-8"
-           (click)="$event.stopPropagation()">
-
+      <div
+        class="relative vault-modal modal-animate rounded-2xl p-6 w-full max-w-lg mb-8"
+        (click)="$event.stopPropagation()"
+      >
         <div class="flex items-center justify-between mb-5">
           <h2 class="text-lg font-bold">{{ formTitle }}</h2>
-          <button type="button" (click)="closeForm()" class="text-gray-600 hover:text-white transition-colors">
+          <button
+            type="button"
+            (click)="closeForm()"
+            class="text-gray-600 hover:text-white transition-colors"
+          >
             <mat-icon>close</mat-icon>
           </button>
         </div>
 
         <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
-
           <!-- Catégorie -->
           <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Catégorie</label>
+            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider"
+              >Catégorie</label
+            >
             <div class="flex gap-2 flex-wrap">
               @for (cat of categories; track cat.id) {
                 @if (cat.id !== 'all') {
-                  <button type="button" (click)="form.patchValue({ category: cat.id })"
-                          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border"
-                          [class.bg-cyan-950]="form.controls.category.value === cat.id"
-                          [class.border-cyan-500]="form.controls.category.value === cat.id"
-                          [class.text-cyan-400]="form.controls.category.value === cat.id"
-                          [class.bg-gray-800]="form.controls.category.value !== cat.id"
-                          [class.border-gray-700]="form.controls.category.value !== cat.id"
-                          [class.text-gray-400]="form.controls.category.value !== cat.id">
-                    <mat-icon class="!text-[0.8rem] !w-[0.8rem] !h-[0.8rem]">{{ cat.icon }}</mat-icon>
+                  <button
+                    type="button"
+                    (click)="form.patchValue({ category: cat.id })"
+                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border"
+                    [class.bg-cyan-950]="form.controls.category.value === cat.id"
+                    [class.border-cyan-500]="form.controls.category.value === cat.id"
+                    [class.text-cyan-400]="form.controls.category.value === cat.id"
+                    [class.bg-gray-800]="form.controls.category.value !== cat.id"
+                    [class.border-gray-700]="form.controls.category.value !== cat.id"
+                    [class.text-gray-400]="form.controls.category.value !== cat.id"
+                  >
+                    <mat-icon class="!text-[0.8rem] !w-[0.8rem] !h-[0.8rem]">{{
+                      cat.icon
+                    }}</mat-icon>
                     {{ cat.label }}
                   </button>
                 }
@@ -273,42 +386,71 @@
           <!-- Titre -->
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              @if (form.controls.category.value === 'wifi') { Nom du réseau (SSID) * }
-              @else if (form.controls.category.value === 'card') { Nom de la carte * }
-              @else { Titre * }
+              @if (form.controls.category.value === 'wifi') {
+                Nom du réseau (SSID) *
+              } @else if (form.controls.category.value === 'card') {
+                Nom de la carte *
+              } @else {
+                Titre *
+              }
             </label>
-            <input type="text" formControlName="title"
-                   title="Titre de l'entrée"
-                   [placeholder]="form.controls.category.value === 'wifi' ? 'ex: Bbox-Home, Freebox…' :
-                                  form.controls.category.value === 'card' ? 'ex: Visa Crédit Agricole…' :
-                                  form.controls.category.value === 'note' ? 'ex: Codes PIN, Infos serveur…' :
-                                  'ex: Gmail, Stripe, Netflix…'"
-                   class="vault-input" />
+            <input
+              type="text"
+              formControlName="title"
+              title="Titre de l'entrée"
+              [placeholder]="
+                form.controls.category.value === 'wifi'
+                  ? 'ex: Bbox-Home, Freebox…'
+                  : form.controls.category.value === 'card'
+                    ? 'ex: Visa Crédit Agricole…'
+                    : form.controls.category.value === 'note'
+                      ? 'ex: Codes PIN, Infos serveur…'
+                      : 'ex: Gmail, Stripe, Netflix…'
+              "
+              class="vault-input"
+            />
           </div>
 
           <!-- Titulaire (card) -->
           @if (form.controls.category.value === 'card') {
             <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Titulaire de la carte</label>
-              <input type="text" formControlName="username" placeholder="ex: JEAN DUPONT"
-                     autocomplete="new-password"
-                     (input)="onCardholderInput($event)"
-                     class="vault-input uppercase" />
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider"
+                >Titulaire de la carte</label
+              >
+              <input
+                type="text"
+                formControlName="username"
+                placeholder="ex: JEAN DUPONT"
+                autocomplete="new-password"
+                (input)="onCardholderInput($event)"
+                class="vault-input uppercase"
+              />
             </div>
           }
 
           <!-- Identifiant (login / other) -->
-          @if (form.controls.category.value === 'login' || form.controls.category.value === 'other') {
+          @if (
+            form.controls.category.value === 'login' || form.controls.category.value === 'other'
+          ) {
             <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Identifiant / Email</label>
-              <input type="text" formControlName="username" placeholder="vous@exemple.com" class="vault-input" />
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider"
+                >Identifiant / Email</label
+              >
+              <input
+                type="text"
+                formControlName="username"
+                placeholder="vous@exemple.com"
+                class="vault-input"
+              />
             </div>
           }
 
           <!-- Type sécurité (wifi) -->
           @if (form.controls.category.value === 'wifi') {
             <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Type de sécurité</label>
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider"
+                >Type de sécurité</label
+              >
               <select formControlName="username" title="Type de sécurité Wi-Fi" class="vault-input">
                 <option value="">Sélectionner…</option>
                 <option value="WPA3">WPA3</option>
@@ -325,31 +467,50 @@
             <div class="grid grid-cols-3 gap-3">
               <!-- Numéro -->
               <div class="flex flex-col gap-1 col-span-2">
-                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Numéro de carte *</label>
-                <input type="text" formControlName="cardNumber"
-                       title="Numéro de carte"
-                       inputmode="numeric" autocomplete="cc-number"
-                       maxlength="19" class="vault-input font-mono tracking-widest"
-                       [class.border-red-600]="cardErrors.number && form.controls.cardNumber.value"
-                       [class.border-green-600]="!cardErrors.number && cardNumberDigitCount >= 13"
-                       [placeholder]="editingItem() ? '(laisser vide pour ne pas modifier)' : '1234 5678 9012 3456'"
-                       (input)="onCardNumberInput($event)" />
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider"
+                  >Numéro de carte *</label
+                >
+                <input
+                  type="text"
+                  formControlName="cardNumber"
+                  title="Numéro de carte"
+                  inputmode="numeric"
+                  autocomplete="cc-number"
+                  maxlength="19"
+                  class="vault-input font-mono tracking-widest"
+                  [class.border-red-600]="cardErrors.number && form.controls.cardNumber.value"
+                  [class.border-green-600]="!cardErrors.number && cardNumberDigitCount >= 13"
+                  [placeholder]="
+                    editingItem() ? '(laisser vide pour ne pas modifier)' : '1234 5678 9012 3456'
+                  "
+                  (input)="onCardNumberInput($event)"
+                />
                 @if (cardErrors.number && form.controls.cardNumber.value) {
                   <span class="text-xs text-red-400 flex items-center gap-1">
-                    <mat-icon class="!text-[0.75rem] !w-[0.75rem] !h-[0.75rem]">error_outline</mat-icon>
+                    <mat-icon class="!text-[0.75rem] !w-[0.75rem] !h-[0.75rem]"
+                      >error_outline</mat-icon
+                    >
                     {{ cardErrors.number }}
                   </span>
                 }
               </div>
               <!-- CVV -->
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">CVV</label>
-                <input type="text" formControlName="cardCvv"
-                       title="CVV" placeholder="•••"
-                       inputmode="numeric" autocomplete="cc-csc"
-                       maxlength="4" class="vault-input font-mono"
-                       [class.border-red-600]="cardErrors.cvv && form.controls.cardCvv.value"
-                       (input)="onCvvInput($event)" />
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider"
+                  >CVV</label
+                >
+                <input
+                  type="text"
+                  formControlName="cardCvv"
+                  title="CVV"
+                  placeholder="•••"
+                  inputmode="numeric"
+                  autocomplete="cc-csc"
+                  maxlength="4"
+                  class="vault-input font-mono"
+                  [class.border-red-600]="cardErrors.cvv && form.controls.cardCvv.value"
+                  (input)="onCvvInput($event)"
+                />
                 @if (cardErrors.cvv && form.controls.cardCvv.value) {
                   <span class="text-xs text-red-400">{{ cardErrors.cvv }}</span>
                 }
@@ -357,17 +518,31 @@
             </div>
             <!-- Expiration -->
             <div class="flex flex-col gap-1 max-w-[160px]">
-              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Expiration</label>
-              <input type="text" formControlName="cardExpiry"
-                     title="Date d'expiration" placeholder="MM/AA"
-                     inputmode="numeric" autocomplete="cc-exp"
-                     maxlength="5" class="vault-input"
-                     [class.border-red-600]="cardErrors.expiry && form.controls.cardExpiry.value.length === 5"
-                     [class.border-green-600]="!cardErrors.expiry && form.controls.cardExpiry.value.length === 5"
-                     (input)="onExpiryInput($event)" />
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider"
+                >Expiration</label
+              >
+              <input
+                type="text"
+                formControlName="cardExpiry"
+                title="Date d'expiration"
+                placeholder="MM/AA"
+                inputmode="numeric"
+                autocomplete="cc-exp"
+                maxlength="5"
+                class="vault-input"
+                [class.border-red-600]="
+                  cardErrors.expiry && form.controls.cardExpiry.value.length === 5
+                "
+                [class.border-green-600]="
+                  !cardErrors.expiry && form.controls.cardExpiry.value.length === 5
+                "
+                (input)="onExpiryInput($event)"
+              />
               @if (cardErrors.expiry && form.controls.cardExpiry.value.length === 5) {
                 <span class="text-xs text-red-400 flex items-center gap-1">
-                  <mat-icon class="!text-[0.75rem] !w-[0.75rem] !h-[0.75rem]">error_outline</mat-icon>
+                  <mat-icon class="!text-[0.75rem] !w-[0.75rem] !h-[0.75rem]"
+                    >error_outline</mat-icon
+                  >
                   {{ cardErrors.expiry }}
                 </span>
               }
@@ -393,21 +568,35 @@
               </div>
               <div class="flex gap-2">
                 <div class="relative flex-1 flex flex-col gap-1.5">
-                  <input [type]="showPasswordInForm() ? 'text' : 'password'" formControlName="password_encrypted"
-                         placeholder="••••••••" class="vault-input pr-10 font-mono" />
-                  <button type="button" (click)="showPasswordInForm.set(!showPasswordInForm())"
-                          class="absolute right-3 top-3 text-gray-600 hover:text-gray-300 transition-colors">
-                    <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{ showPasswordInForm() ? 'visibility_off' : 'visibility' }}</mat-icon>
+                  <input
+                    [type]="showPasswordInForm() ? 'text' : 'password'"
+                    formControlName="password_encrypted"
+                    placeholder="••••••••"
+                    class="vault-input pr-10 font-mono"
+                  />
+                  <button
+                    type="button"
+                    (click)="showPasswordInForm.set(!showPasswordInForm())"
+                    class="absolute right-3 top-3 text-gray-600 hover:text-gray-300 transition-colors"
+                  >
+                    <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{
+                      showPasswordInForm() ? 'visibility_off' : 'visibility'
+                    }}</mat-icon>
                   </button>
                   <!-- Barre de force -->
                   <div class="h-[3px] rounded-full bg-gray-800 overflow-hidden">
-                    <div class="strength-bar h-full rounded-full"
-                         [style.width]="passwordStrength.width"
-                         [style.background]="passwordStrength.color"></div>
+                    <div
+                      class="strength-bar h-full rounded-full"
+                      [style.width]="passwordStrength.width"
+                      [style.background]="passwordStrength.color"
+                    ></div>
                   </div>
                 </div>
-                <button type="button" (click)="generatePassword()"
-                        class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors text-xs whitespace-nowrap self-start">
+                <button
+                  type="button"
+                  (click)="generatePassword()"
+                  class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors text-xs whitespace-nowrap self-start"
+                >
                   <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">casino</mat-icon>
                   Générer
                 </button>
@@ -416,40 +605,60 @@
           }
 
           <!-- URL (login / other) -->
-          @if (form.controls.category.value === 'login' || form.controls.category.value === 'other') {
+          @if (
+            form.controls.category.value === 'login' || form.controls.category.value === 'other'
+          ) {
             <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">URL</label>
-              <input type="url" formControlName="url" placeholder="https://exemple.com" class="vault-input" />
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider"
+                >URL</label
+              >
+              <input
+                type="url"
+                formControlName="url"
+                placeholder="https://exemple.com"
+                class="vault-input"
+              />
             </div>
           }
 
           <!-- Notes -->
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              @if (form.controls.category.value === 'note') { Contenu de la note * } @else { Notes }
+              @if (form.controls.category.value === 'note') {
+                Contenu de la note *
+              } @else {
+                Notes
+              }
             </label>
-            <textarea formControlName="notes"
-                      [rows]="form.controls.category.value === 'note' ? 5 : 2"
-                      placeholder="Informations supplémentaires…"
-                      class="vault-input resize-none"></textarea>
+            <textarea
+              formControlName="notes"
+              [rows]="form.controls.category.value === 'note' ? 5 : 2"
+              placeholder="Informations supplémentaires…"
+              class="vault-input resize-none"
+            ></textarea>
           </div>
 
           <div class="flex gap-3 pt-1">
-            <button type="submit"
-                    [disabled]="!editingItem() && !isSubmitValid()"
-                    class="vault-btn-primary flex items-center gap-2">
-              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">{{ editingItem() ? 'save' : 'add' }}</mat-icon>
+            <button
+              type="submit"
+              [disabled]="!editingItem() && !isSubmitValid()"
+              class="vault-btn-primary flex items-center gap-2"
+            >
+              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">{{
+                editingItem() ? 'save' : 'add'
+              }}</mat-icon>
               {{ editingItem() ? 'Enregistrer les modifications' : 'Ajouter' }}
             </button>
-            <button type="button" (click)="closeForm()"
-                    class="px-5 py-3 rounded-xl text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 transition-colors">
+            <button
+              type="button"
+              (click)="closeForm()"
+              class="px-5 py-3 rounded-xl text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 transition-colors"
+            >
               Annuler
             </button>
           </div>
-
         </form>
       </div>
     </div>
   }
-
 </div>

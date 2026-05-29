@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from sqlalchemy import Date, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -18,9 +18,13 @@ class RssiAction(Base):
     # governance | technical | training | compliance
     category: Mapped[str | None] = mapped_column(String(50), nullable=True)
     # critical | high | medium | low
-    priority: Mapped[str] = mapped_column(String(20), nullable=False, default="medium", server_default="medium")
+    priority: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="medium", server_default="medium"
+    )
     # open | in_progress | done | cancelled | postponed
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="open", server_default="open", index=True)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="open", server_default="open", index=True
+    )
     # consultant | client_it | client_dpo | client_management
     assigned_to: Mapped[str | None] = mapped_column(String(50), nullable=True)
     due_date: Mapped[date | None] = mapped_column(Date(), nullable=True)
@@ -29,8 +33,8 @@ class RssiAction(Base):
         ForeignKey("rssi_visits.id", ondelete="SET NULL"), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )

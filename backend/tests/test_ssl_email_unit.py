@@ -4,7 +4,7 @@ Unit tests for send_ssl_expiry_alert in app.services.email_service.
 Covers: urgency level selection, subject content, HTML content, _send dispatch.
 """
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 
@@ -27,6 +27,7 @@ def _call_alert(days: int, site_url: str = "https://example.com", expiry_date: s
 
 
 # ─── urgency level ────────────────────────────────────────────────────────────
+
 
 @pytest.mark.parametrize("days", [1, 5, 7])
 def test_critique_level_at_7_days_or_less(days):
@@ -52,6 +53,7 @@ def test_attention_level_at_15_to_30_days(days):
 
 # ─── subject ─────────────────────────────────────────────────────────────────
 
+
 def test_subject_contains_site_url():
     subject, *_ = _call_alert(10, site_url="https://mysite.fr")
     assert "mysite.fr" in subject
@@ -68,6 +70,7 @@ def test_subject_prefixed_with_cyberscan_tag():
 
 
 # ─── email content ────────────────────────────────────────────────────────────
+
 
 def test_html_contains_site_url():
     _, html, _, _ = _call_alert(5, site_url="https://target.io")
@@ -95,6 +98,7 @@ def test_plain_contains_dashboard_url():
 
 
 # ─── dispatch ────────────────────────────────────────────────────────────────
+
 
 def test_send_called_once():
     *_, mock_send = _call_alert(10)

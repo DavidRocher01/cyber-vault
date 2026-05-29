@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,14 +10,22 @@ from app.core.database import get_db
 from app.core.deps import get_rssi_consultant
 from app.models.rssi_activity_log import RssiActivityLog
 from app.models.user import User
+
 from ._shared import _get_client_or_404
 
 router = APIRouter()
 
 ActivityActionType = Literal[
-    "view_client", "view_sites", "view_scans", "view_findings",
-    "generate_report", "send_deliverable", "create_action", "update_action",
-    "create_visit", "update_visit",
+    "view_client",
+    "view_sites",
+    "view_scans",
+    "view_findings",
+    "generate_report",
+    "send_deliverable",
+    "create_action",
+    "update_action",
+    "create_visit",
+    "update_visit",
 ]
 
 
@@ -55,7 +63,7 @@ async def log_activity(
         action_type=body.action_type,
         resource_type=body.resource_type,
         resource_id=body.resource_id,
-        performed_at=datetime.now(timezone.utc),
+        performed_at=datetime.now(UTC),
     )
     db.add(entry)
     await db.commit()

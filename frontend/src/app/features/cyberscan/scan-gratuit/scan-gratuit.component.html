@@ -2,10 +2,11 @@
 
 <div class="min-h-screen bg-gray-950 px-4 py-12">
   <div class="max-w-3xl mx-auto">
-
     <!-- Header -->
     <div class="text-center mb-10">
-      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-700 text-cyan-400 text-sm mb-4 bg-cyan-900/20">
+      <div
+        class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-700 text-cyan-400 text-sm mb-4 bg-cyan-900/20"
+      >
         <mat-icon class="text-sm !h-4 !w-4">radar</mat-icon>
         Scan gratuit — aucun compte requis
       </div>
@@ -13,8 +14,8 @@
         Auditez votre site en <span class="text-cyan-400">90 secondes</span>
       </h1>
       <p class="text-gray-400">
-        SSL, headers de sécurité, réputation IP, DNS, détection CMS…
-        Obtenez une première analyse gratuite et recevez un score de sécurité.
+        SSL, headers de sécurité, réputation IP, DNS, détection CMS… Obtenez une première analyse
+        gratuite et recevez un score de sécurité.
       </p>
     </div>
 
@@ -28,16 +29,22 @@
               URL de votre site <span class="text-red-400">*</span>
             </label>
             <div class="relative">
-              <mat-icon class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">link</mat-icon>
-              <input formControlName="url"
-                     type="url"
-                     placeholder="https://votre-site.fr"
-                     class="w-full bg-gray-900 border rounded-xl py-3 pl-10 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-colors"
-                     [class.border-red-500]="urlInvalid"
-                     [class.border-gray-600]="!urlInvalid" />
+              <mat-icon class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+                >link</mat-icon
+              >
+              <input
+                formControlName="url"
+                type="url"
+                placeholder="https://votre-site.fr"
+                class="w-full bg-gray-900 border rounded-xl py-3 pl-10 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-colors"
+                [class.border-red-500]="urlInvalid"
+                [class.border-gray-600]="!urlInvalid"
+              />
             </div>
             @if (urlInvalid) {
-              <p class="text-red-400 text-xs mt-1">URL invalide — doit commencer par http:// ou https://</p>
+              <p class="text-red-400 text-xs mt-1">
+                URL invalide — doit commencer par http:// ou https://
+              </p>
             }
           </div>
 
@@ -47,35 +54,47 @@
               Email <span class="text-gray-500">(optionnel — pour recevoir le rapport)</span>
             </label>
             <div class="relative">
-              <mat-icon class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">email</mat-icon>
-              <input formControlName="email"
-                     type="email"
-                     placeholder="vous@votre-entreprise.fr"
-                     class="w-full bg-gray-900 border border-gray-600 rounded-xl py-3 pl-10 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-colors" />
+              <mat-icon class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+                >email</mat-icon
+              >
+              <input
+                formControlName="email"
+                type="email"
+                placeholder="vous@votre-entreprise.fr"
+                class="w-full bg-gray-900 border border-gray-600 rounded-xl py-3 pl-10 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-colors"
+              />
             </div>
           </div>
 
           <!-- Consentement -->
           @if (form.controls.email.value) {
             <label class="flex items-start gap-3 cursor-pointer">
-              <input type="checkbox" formControlName="consent"
-                     class="mt-0.5 w-4 h-4 rounded border-gray-600 bg-gray-900 checked:bg-cyan-600 cursor-pointer" />
+              <input
+                type="checkbox"
+                formControlName="consent"
+                class="mt-0.5 w-4 h-4 rounded border-gray-600 bg-gray-900 checked:bg-cyan-600 cursor-pointer"
+              />
               <span class="text-gray-400 text-xs leading-relaxed">
-                J'accepte de recevoir des conseils cybersécurité par email. Désinscription en 1 clic. Conformément au RGPD.
+                J'accepte de recevoir des conseils cybersécurité par email. Désinscription en 1
+                clic. Conformément au RGPD.
               </span>
             </label>
           }
 
           @if (error()) {
-            <div class="flex items-center gap-2 text-red-400 bg-red-900/20 border border-red-800 rounded-xl px-4 py-3 text-sm">
+            <div
+              class="flex items-center gap-2 text-red-400 bg-red-900/20 border border-red-800 rounded-xl px-4 py-3 text-sm"
+            >
               <mat-icon class="text-base flex-shrink-0">error</mat-icon>
               {{ error() }}
             </div>
           }
 
-          <button type="submit"
-                  [disabled]="form.controls.url.invalid || submitting()"
-                  class="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold transition-all">
+          <button
+            type="submit"
+            [disabled]="form.controls.url.invalid || submitting()"
+            class="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold transition-all"
+          >
             @if (submitting() || isRunning) {
               <mat-spinner diameter="20" color="accent" />
               Analyse en cours…
@@ -94,7 +113,9 @@
 
       @if (s.status === 'done') {
         <!-- Score global -->
-        <div class="bg-gray-800/50 border border-gray-700 rounded-2xl p-6 mb-4 flex flex-col md:flex-row items-center gap-6">
+        <div
+          class="bg-gray-800/50 border border-gray-700 rounded-2xl p-6 mb-4 flex flex-col md:flex-row items-center gap-6"
+        >
           @if (score !== null) {
             <app-score-gauge [score]="score!" class="flex-shrink-0" />
           }
@@ -102,10 +123,15 @@
             <h2 class="text-xl font-bold text-white mb-1">Résultats de votre scan</h2>
             <p class="text-gray-400 text-sm mb-3">
               @if (criticalCount > 0) {
-                <span class="text-red-400 font-semibold">{{ criticalCount }} point(s) critique(s)</span> et
+                <span class="text-red-400 font-semibold"
+                  >{{ criticalCount }} point(s) critique(s)</span
+                >
+                et
               }
               @if (warningCount > 0) {
-                <span class="text-yellow-400 font-semibold">{{ warningCount }} avertissement(s)</span>
+                <span class="text-yellow-400 font-semibold"
+                  >{{ warningCount }} avertissement(s)</span
+                >
               }
               @if (criticalCount === 0 && warningCount === 0) {
                 <span class="text-green-400">Aucun problème critique détecté</span>
@@ -138,9 +164,13 @@
                   </div>
                 </div>
                 <div class="flex items-center gap-1.5">
-                  <mat-icon class="text-base" [class]="moduleColor(mod.status)">{{ moduleIcon(mod.status) }}</mat-icon>
+                  <mat-icon class="text-base" [class]="moduleColor(mod.status)">{{
+                    moduleIcon(mod.status)
+                  }}</mat-icon>
                   @if (mod.status) {
-                    <span class="text-xs font-medium" [class]="moduleColor(mod.status)">{{ mod.status }}</span>
+                    <span class="text-xs font-medium" [class]="moduleColor(mod.status)">{{
+                      mod.status
+                    }}</span>
                   }
                 </div>
               </div>
@@ -152,7 +182,9 @@
         <div class="bg-gray-800/30 border border-gray-700/50 rounded-2xl overflow-hidden mb-4">
           <div class="px-5 py-3.5 border-b border-gray-700/50 flex items-center gap-2">
             <mat-icon class="text-purple-400 !text-base !h-4 !w-4">lock</mat-icon>
-            <h3 class="text-white text-sm font-semibold">Avec CyberScan Pro, vous auriez aussi vu</h3>
+            <h3 class="text-white text-sm font-semibold">
+              Avec CyberScan Pro, vous auriez aussi vu
+            </h3>
           </div>
           <div class="divide-y divide-gray-700/30">
             <div class="flex items-center justify-between px-5 py-3">
@@ -161,9 +193,14 @@
                 <div>
                   <p class="text-gray-400 text-sm">Scripts de correction personnalisés</p>
                   @if (criticalCount + warningCount > 0) {
-                    <p class="text-gray-600 text-xs">{{ criticalCount + warningCount }} problème(s) détecté(s) — scripts UFW, SSH, Nginx prêts</p>
+                    <p class="text-gray-600 text-xs">
+                      {{ criticalCount + warningCount }} problème(s) détecté(s) — scripts UFW, SSH,
+                      Nginx prêts
+                    </p>
                   } @else {
-                    <p class="text-gray-600 text-xs">Scripts UFW, SSH, Nginx, SSL générés pour votre config</p>
+                    <p class="text-gray-600 text-xs">
+                      Scripts UFW, SSH, Nginx, SSL générés pour votre config
+                    </p>
                   }
                 </div>
               </div>
@@ -174,7 +211,9 @@
                 <mat-icon class="text-gray-600 !text-base !h-4 !w-4">info</mat-icon>
                 <div>
                   <p class="text-gray-400 text-sm">Explications détaillées par module</p>
-                  <p class="text-gray-600 text-xs">Ce qui a échoué, pourquoi, et la marche à suivre</p>
+                  <p class="text-gray-600 text-xs">
+                    Ce qui a échoué, pourquoi, et la marche à suivre
+                  </p>
                 </div>
               </div>
               <mat-icon class="text-purple-500 !text-base !h-4 !w-4 flex-shrink-0">lock</mat-icon>
@@ -184,7 +223,9 @@
                 <mat-icon class="text-gray-600 !text-base !h-4 !w-4">radar</mat-icon>
                 <div>
                   <p class="text-gray-400 text-sm">Graphique radar — 8 catégories de sécurité</p>
-                  <p class="text-gray-600 text-xs">Infrastructure · Auth · Données · Réseau · Conformité…</p>
+                  <p class="text-gray-600 text-xs">
+                    Infrastructure · Auth · Données · Réseau · Conformité…
+                  </p>
                 </div>
               </div>
               <mat-icon class="text-purple-500 !text-base !h-4 !w-4 flex-shrink-0">lock</mat-icon>
@@ -194,7 +235,9 @@
                 <mat-icon class="text-gray-600 !text-base !h-4 !w-4">notifications_active</mat-icon>
                 <div>
                   <p class="text-gray-400 text-sm">Surveillance continue + alertes email</p>
-                  <p class="text-gray-600 text-xs">Re-scan automatique, alerte dès qu'une nouvelle faille apparaît</p>
+                  <p class="text-gray-600 text-xs">
+                    Re-scan automatique, alerte dès qu'une nouvelle faille apparaît
+                  </p>
                 </div>
               </div>
               <mat-icon class="text-purple-500 !text-base !h-4 !w-4 flex-shrink-0">lock</mat-icon>
@@ -204,16 +247,24 @@
                 <mat-icon class="text-gray-600 !text-base !h-4 !w-4">picture_as_pdf</mat-icon>
                 <div>
                   <p class="text-gray-400 text-sm">Rapport PDF professionnel</p>
-                  <p class="text-gray-600 text-xs">À remettre à votre direction ou prestataire IT</p>
+                  <p class="text-gray-600 text-xs">
+                    À remettre à votre direction ou prestataire IT
+                  </p>
                 </div>
               </div>
               <mat-icon class="text-purple-500 !text-base !h-4 !w-4 flex-shrink-0">lock</mat-icon>
             </div>
           </div>
           <div class="px-5 py-3.5 bg-gray-900/40 flex items-center justify-between">
-            <p class="text-gray-500 text-xs">À partir de <strong class="text-gray-300">9,90 € / mois</strong> · Sans engagement</p>
-            <button type="button" (click)="openCheckout()" [disabled]="checkoutLoading"
-               class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-semibold transition-all">
+            <p class="text-gray-500 text-xs">
+              À partir de <strong class="text-gray-300">9,90 € / mois</strong> · Sans engagement
+            </p>
+            <button
+              type="button"
+              (click)="openCheckout()"
+              [disabled]="checkoutLoading"
+              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-semibold transition-all"
+            >
               @if (checkoutLoading) {
                 <mat-spinner diameter="14" />
               } @else {
@@ -232,11 +283,14 @@
               Votre site présente des risques réels
             </h3>
             <p class="text-gray-300 text-sm mb-4">
-              Ce scan couvre 9 modules. Un <strong class="text-white">Audit Flash complet</strong> analyse en profondeur
-              chaque vecteur d'attaque et vous remet un plan d'action priorisé sous 24 h.
+              Ce scan couvre 9 modules. Un
+              <strong class="text-white">Audit Flash complet</strong> analyse en profondeur chaque
+              vecteur d'attaque et vous remet un plan d'action priorisé sous 24 h.
             </p>
-            <a routerLink="/cyberscan/reserver"
-               class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-all">
+            <a
+              routerLink="/cyberscan/reserver"
+              class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-all"
+            >
               <mat-icon>calendar_today</mat-icon>
               Réserver un Audit Flash — 290 € HT
             </a>
@@ -251,32 +305,47 @@
               Ce scan rapide couvre les points les plus visibles. Un audit complet examine également
               votre code source, vos APIs, et votre configuration serveur en profondeur.
             </p>
-            <a routerLink="/cyberscan/reserver"
-               class="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-green-700 hover:bg-green-900/20 text-green-300 text-sm transition-all">
+            <a
+              routerLink="/cyberscan/reserver"
+              class="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-green-700 hover:bg-green-900/20 text-green-300 text-sm transition-all"
+            >
               Réserver un audit complet
             </a>
           </div>
         }
 
         <!-- #13 — Expert CTA -->
-        <div class="flex flex-col sm:flex-row items-center gap-4 border border-gray-700/60 rounded-2xl px-5 py-4 mb-4">
-          <div class="flex-shrink-0 w-10 h-10 rounded-full bg-cyan-900/40 border border-cyan-700/40 flex items-center justify-center">
+        <div
+          class="flex flex-col sm:flex-row items-center gap-4 border border-gray-700/60 rounded-2xl px-5 py-4 mb-4"
+        >
+          <div
+            class="flex-shrink-0 w-10 h-10 rounded-full bg-cyan-900/40 border border-cyan-700/40 flex items-center justify-center"
+          >
             <mat-icon class="text-cyan-400">person</mat-icon>
           </div>
           <div class="flex-1 text-center sm:text-left">
-            <p class="text-white text-sm font-semibold">Parler à un expert — créneau de 30 min offert</p>
-            <p class="text-gray-500 text-xs mt-0.5">Un auditeur cybersécurité analyse vos résultats avec vous, sans engagement.</p>
+            <p class="text-white text-sm font-semibold">
+              Parler à un expert — créneau de 30 min offert
+            </p>
+            <p class="text-gray-500 text-xs mt-0.5">
+              Un auditeur cybersécurité analyse vos résultats avec vous, sans engagement.
+            </p>
           </div>
-          <a routerLink="/cyberscan/reserver"
-             class="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold transition-all">
+          <a
+            routerLink="/cyberscan/reserver"
+            class="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold transition-all"
+          >
             <mat-icon class="!text-base !h-4 !w-4">calendar_today</mat-icon>
             Réserver
           </a>
         </div>
 
         <!-- Nouveau scan -->
-        <button type="button" (click)="resetScan()"
-                class="w-full py-3 rounded-xl border border-gray-700 hover:border-gray-500 text-gray-400 hover:text-white text-sm transition-all">
+        <button
+          type="button"
+          (click)="resetScan()"
+          class="w-full py-3 rounded-xl border border-gray-700 hover:border-gray-500 text-gray-400 hover:text-white text-sm transition-all"
+        >
           Scanner un autre site
         </button>
       }
@@ -285,8 +354,14 @@
         <div class="bg-red-900/20 border border-red-800 rounded-2xl p-6 text-center">
           <mat-icon class="text-red-400 text-4xl mb-2">error_outline</mat-icon>
           <h3 class="text-white font-semibold mb-1">Échec du scan</h3>
-          <p class="text-gray-400 text-sm mb-4">{{ s.error_message || 'Le site est inaccessible ou a refusé la connexion.' }}</p>
-          <button type="button" (click)="resetScan()" class="px-6 py-2 rounded-xl border border-gray-600 text-gray-300 text-sm hover:border-gray-400 transition-all">
+          <p class="text-gray-400 text-sm mb-4">
+            {{ s.error_message || 'Le site est inaccessible ou a refusé la connexion.' }}
+          </p>
+          <button
+            type="button"
+            (click)="resetScan()"
+            class="px-6 py-2 rounded-xl border border-gray-600 text-gray-300 text-sm hover:border-gray-400 transition-all"
+          >
             Réessayer
           </button>
         </div>
@@ -296,14 +371,17 @@
     <!-- Ce que vérifie le scan -->
     @if (!scan()) {
       <div class="grid grid-cols-3 gap-4 mt-6">
-        @for (item of [
-          {icon: 'lock', label: 'SSL / TLS'},
-          {icon: 'http', label: 'Headers HTTP'},
-          {icon: 'cookie', label: 'Cookies'},
-          {icon: 'swap_horiz', label: 'CORS'},
-          {icon: 'email', label: 'SPF/DKIM'},
-          {icon: 'gps_fixed', label: 'Réputation IP'}
-        ]; track item.label) {
+        @for (
+          item of [
+            { icon: 'lock', label: 'SSL / TLS' },
+            { icon: 'http', label: 'Headers HTTP' },
+            { icon: 'cookie', label: 'Cookies' },
+            { icon: 'swap_horiz', label: 'CORS' },
+            { icon: 'email', label: 'SPF/DKIM' },
+            { icon: 'gps_fixed', label: 'Réputation IP' },
+          ];
+          track item.label
+        ) {
           <div class="bg-gray-800/40 rounded-xl p-3 text-center">
             <mat-icon class="text-cyan-400 text-xl mb-1">{{ item.icon }}</mat-icon>
             <p class="text-gray-400 text-xs">{{ item.label }}</p>
@@ -311,6 +389,5 @@
         }
       </div>
     }
-
   </div>
 </div>

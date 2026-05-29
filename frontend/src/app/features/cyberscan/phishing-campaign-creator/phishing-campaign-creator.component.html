@@ -2,7 +2,6 @@
 
 <div class="min-h-screen bg-gray-950 text-white p-4 md:p-8">
   <div class="max-w-3xl mx-auto">
-
     <!-- Header -->
     <div class="mb-8">
       <div class="flex items-center gap-2 mb-1">
@@ -15,19 +14,29 @@
     <!-- Stepper -->
     <div class="flex items-center gap-1 mb-10 overflow-x-auto pb-2">
       @for (s of steps; track s; let i = $index) {
-        <button type="button"
-                class="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
-                [class]="currentStep() === s
-                  ? 'bg-cyan-500/10 border border-cyan-500/30 text-cyan-400'
-                  : i < stepIndex
-                    ? 'text-green-400 hover:text-white cursor-pointer'
-                    : 'text-gray-600 cursor-not-allowed'"
-                (click)="goTo(s)">
+        <button
+          type="button"
+          class="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
+          [class]="
+            currentStep() === s
+              ? 'bg-cyan-500/10 border border-cyan-500/30 text-cyan-400'
+              : i < stepIndex
+                ? 'text-green-400 hover:text-white cursor-pointer'
+                : 'text-gray-600 cursor-not-allowed'
+          "
+          (click)="goTo(s)"
+        >
           @if (i < stepIndex) {
             <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">check_circle</mat-icon>
           } @else {
-            <span class="w-5 h-5 rounded-full flex items-center justify-center text-[0.65rem] font-bold border"
-                  [class]="currentStep() === s ? 'border-cyan-500 bg-cyan-500/10' : 'border-gray-700 bg-gray-800'">
+            <span
+              class="w-5 h-5 rounded-full flex items-center justify-center text-[0.65rem] font-bold border"
+              [class]="
+                currentStep() === s
+                  ? 'border-cyan-500 bg-cyan-500/10'
+                  : 'border-gray-700 bg-gray-800'
+              "
+            >
               {{ i + 1 }}
             </span>
           }
@@ -48,14 +57,22 @@
 
         <div class="grid sm:grid-cols-3 gap-4">
           @for (plan of planOptions; track plan.id) {
-            <button type="button"
-                    class="text-left rounded-xl border p-5 flex flex-col gap-3 transition-all relative"
-                    [class]="selectedPlan() === plan.id
-                      ? 'border-cyan-500/60 bg-cyan-950/20 shadow-lg shadow-cyan-500/5'
-                      : 'border-gray-800 bg-gray-900 hover:border-gray-700'"
-                    (click)="selectedPlan.set(plan.id)">
+            <button
+              type="button"
+              class="text-left rounded-xl border p-5 flex flex-col gap-3 transition-all relative"
+              [class]="
+                selectedPlan() === plan.id
+                  ? 'border-cyan-500/60 bg-cyan-950/20 shadow-lg shadow-cyan-500/5'
+                  : 'border-gray-800 bg-gray-900 hover:border-gray-700'
+              "
+              (click)="selectedPlan.set(plan.id)"
+            >
               @if (plan.highlight) {
-                <div class="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-cyan-500 text-gray-900 text-[0.65rem] font-bold rounded-full">RECOMMANDÉ</div>
+                <div
+                  class="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-cyan-500 text-gray-900 text-[0.65rem] font-bold rounded-full"
+                >
+                  RECOMMANDÉ
+                </div>
               }
               <div class="flex items-center justify-between">
                 <span class="font-semibold text-white">{{ plan.label }}</span>
@@ -73,7 +90,13 @@
         </div>
 
         <div class="flex justify-end">
-          <button type="button" mat-flat-button color="primary" class="!rounded-xl !px-8" (click)="next()">
+          <button
+            type="button"
+            mat-flat-button
+            color="primary"
+            class="!rounded-xl !px-8"
+            (click)="next()"
+          >
             Continuer
             <mat-icon class="ml-1">arrow_forward</mat-icon>
           </button>
@@ -90,10 +113,12 @@
 
         <div>
           <label class="text-sm text-gray-400 mb-2 block">Nom de la campagne *</label>
-          <input formControlName="name"
-                 type="text"
-                 placeholder="Ex : Simulation Q2 2024 — Direction"
-                 class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500 transition-colors" />
+          <input
+            formControlName="name"
+            type="text"
+            placeholder="Ex : Simulation Q2 2024 — Direction"
+            class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500 transition-colors"
+          />
           @if (infoForm.controls.name.invalid && infoForm.controls.name.touched) {
             <p class="text-red-400 text-xs mt-1">Nom requis (2 caractères min.)</p>
           }
@@ -104,24 +129,40 @@
             Domaine de votre entreprise
             <span class="text-gray-600 ml-1">(optionnel — personnalise les emails)</span>
           </label>
-          <input formControlName="domain"
-                 type="text"
-                 placeholder="monentreprise.com"
-                 class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500 transition-colors" />
+          <input
+            formControlName="domain"
+            type="text"
+            placeholder="monentreprise.com"
+            class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500 transition-colors"
+          />
           @if (infoForm.controls.domain.invalid && infoForm.controls.domain.touched) {
             <p class="text-red-400 text-xs mt-1">Format invalide (ex : monentreprise.com)</p>
           }
-          <p class="text-xs text-gray-600 mt-1">Utilisé pour personnaliser l'expéditeur : "Direction Générale — Monentreprise"</p>
+          <p class="text-xs text-gray-600 mt-1">
+            Utilisé pour personnaliser l'expéditeur : "Direction Générale — Monentreprise"
+          </p>
         </div>
 
         <div class="flex justify-between">
-          <button type="button" mat-stroked-button class="!border-gray-700 !text-gray-300 !rounded-xl" (click)="prev()">
+          <button
+            type="button"
+            mat-stroked-button
+            class="!border-gray-700 !text-gray-300 !rounded-xl"
+            (click)="prev()"
+          >
             <mat-icon class="mr-1">arrow_back</mat-icon>
             Retour
           </button>
-          <button type="submit" mat-flat-button color="primary" class="!rounded-xl !px-8"
-                  [disabled]="infoForm.invalid || submitting()">
-            @if (submitting()) { <mat-spinner [diameter]="18" class="mr-2 inline" /> }
+          <button
+            type="submit"
+            mat-flat-button
+            color="primary"
+            class="!rounded-xl !px-8"
+            [disabled]="infoForm.invalid || submitting()"
+          >
+            @if (submitting()) {
+              <mat-spinner [diameter]="18" class="mr-2 inline" />
+            }
             Continuer
             <mat-icon class="ml-1">arrow_forward</mat-icon>
           </button>
@@ -136,27 +177,40 @@
       <div class="flex flex-col gap-6">
         <h2 class="text-xl font-semibold">Import des cibles (CSV)</h2>
         <p class="text-gray-400 text-sm">
-          Votre fichier CSV doit contenir au moins une colonne <code class="text-cyan-400">email</code>.
-          Colonnes optionnelles : <code class="text-gray-400">first_name</code>, <code class="text-gray-400">last_name</code>,
+          Votre fichier CSV doit contenir au moins une colonne
+          <code class="text-cyan-400">email</code>. Colonnes optionnelles :
+          <code class="text-gray-400">first_name</code>,
+          <code class="text-gray-400">last_name</code>,
           <code class="text-gray-400">department</code>.
         </p>
-        <p class="text-xs text-gray-500">Limite du plan {{ selectedPlan() }} : {{ maxTargets }} cibles.</p>
+        <p class="text-xs text-gray-500">
+          Limite du plan {{ selectedPlan() }} : {{ maxTargets }} cibles.
+        </p>
 
         <!-- CSV template download hint -->
         <div class="rounded-xl border border-gray-800 bg-gray-900 p-4 text-sm text-gray-400">
           <p class="font-medium text-white mb-1">Format CSV attendu :</p>
-          <pre class="text-xs text-gray-500 mt-1">email,first_name,last_name,department
+          <pre class="text-xs text-gray-500 mt-1">
+email,first_name,last_name,department
 jean.martin&#64;exemple.com,Jean,Martin,Comptabilité
-marie.dupont&#64;exemple.com,Marie,Dupont,Direction</pre>
+marie.dupont&#64;exemple.com,Marie,Dupont,Direction</pre
+          >
         </div>
 
         <!-- File input -->
         <div>
-          <label class="flex flex-col items-center justify-center gap-3 w-full h-36 rounded-xl border-2 border-dashed cursor-pointer transition-colors"
-                 [class]="uploadedFile()
-                   ? 'border-cyan-500/50 bg-cyan-950/10'
-                   : 'border-gray-700 bg-gray-900 hover:border-cyan-500/30 hover:bg-gray-800'">
-            <mat-icon [class]="uploadedFile() ? 'text-cyan-400' : 'text-gray-600'" class="!text-[2.5rem] !w-[2.5rem] !h-[2.5rem]">
+          <label
+            class="flex flex-col items-center justify-center gap-3 w-full h-36 rounded-xl border-2 border-dashed cursor-pointer transition-colors"
+            [class]="
+              uploadedFile()
+                ? 'border-cyan-500/50 bg-cyan-950/10'
+                : 'border-gray-700 bg-gray-900 hover:border-cyan-500/30 hover:bg-gray-800'
+            "
+          >
+            <mat-icon
+              [class]="uploadedFile() ? 'text-cyan-400' : 'text-gray-600'"
+              class="!text-[2.5rem] !w-[2.5rem] !h-[2.5rem]"
+            >
               {{ uploadedFile() ? 'check_circle' : 'upload_file' }}
             </mat-icon>
             @if (uploadedFile()) {
@@ -169,13 +223,26 @@ marie.dupont&#64;exemple.com,Marie,Dupont,Direction</pre>
         </div>
 
         <div class="flex justify-between">
-          <button type="button" mat-stroked-button class="!border-gray-700 !text-gray-300 !rounded-xl" (click)="prev()">
+          <button
+            type="button"
+            mat-stroked-button
+            class="!border-gray-700 !text-gray-300 !rounded-xl"
+            (click)="prev()"
+          >
             <mat-icon class="mr-1">arrow_back</mat-icon>
             Retour
           </button>
-          <button type="button" mat-flat-button color="primary" class="!rounded-xl !px-8"
-                  [disabled]="!uploadedFile() || uploading()" (click)="uploadTargets()">
-            @if (uploading()) { <mat-spinner [diameter]="18" class="mr-2 inline" /> }
+          <button
+            type="button"
+            mat-flat-button
+            color="primary"
+            class="!rounded-xl !px-8"
+            [disabled]="!uploadedFile() || uploading()"
+            (click)="uploadTargets()"
+          >
+            @if (uploading()) {
+              <mat-spinner [diameter]="18" class="mr-2 inline" />
+            }
             Importer & Continuer
             <mat-icon class="ml-1">arrow_forward</mat-icon>
           </button>
@@ -191,34 +258,52 @@ marie.dupont&#64;exemple.com,Marie,Dupont,Direction</pre>
         <div class="flex items-center justify-between">
           <h2 class="text-xl font-semibold">Choisissez vos scénarios</h2>
           <span class="text-sm text-gray-400">
-            {{ selectedScenarios().size }}/{{ maxScenarios }} sélectionné{{ selectedScenarios().size > 1 ? 's' : '' }}
+            {{ selectedScenarios().size }}/{{ maxScenarios }} sélectionné{{
+              selectedScenarios().size > 1 ? 's' : ''
+            }}
           </span>
         </div>
 
         <div class="grid sm:grid-cols-2 gap-3">
           @for (s of allScenarios; track s.id) {
-            <button type="button"
-                    class="text-left rounded-xl border p-4 flex items-start gap-3 transition-all"
-                    [class]="selectedScenarios().has(s.id)
-                      ? 'border-cyan-500/50 bg-cyan-950/15'
-                      : 'border-gray-800 bg-gray-900 hover:border-gray-700'"
-                    [disabled]="!selectedScenarios().has(s.id) && selectedScenarios().size >= maxScenarios"
-                    (click)="toggleScenario(s.id)">
-              <div class="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center flex-shrink-0">
+            <button
+              type="button"
+              class="text-left rounded-xl border p-4 flex items-start gap-3 transition-all"
+              [class]="
+                selectedScenarios().has(s.id)
+                  ? 'border-cyan-500/50 bg-cyan-950/15'
+                  : 'border-gray-800 bg-gray-900 hover:border-gray-700'
+              "
+              [disabled]="
+                !selectedScenarios().has(s.id) && selectedScenarios().size >= maxScenarios
+              "
+              (click)="toggleScenario(s.id)"
+            >
+              <div
+                class="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center flex-shrink-0"
+              >
                 <mat-icon class="text-gray-400 !text-[1rem]">{{ s.icon }}</mat-icon>
               </div>
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-semibold text-white">{{ s.name }}</span>
                   @if (selectedScenarios().has(s.id)) {
-                    <mat-icon class="text-cyan-400 !text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">check_circle</mat-icon>
+                    <mat-icon class="text-cyan-400 !text-[0.9rem] !w-[0.9rem] !h-[0.9rem]"
+                      >check_circle</mat-icon
+                    >
                   }
                 </div>
                 <p class="text-xs text-gray-500 mt-0.5 leading-snug">{{ s.description }}</p>
-                <span class="text-[0.65rem] font-semibold px-1.5 py-0.5 rounded border mt-1.5 inline-block"
-                      [class]="s.difficulty === 'Facile' ? 'text-green-400 border-green-500/30' :
-                               s.difficulty === 'Moyen'  ? 'text-yellow-400 border-yellow-500/30' :
-                               'text-red-400 border-red-500/30'">
+                <span
+                  class="text-[0.65rem] font-semibold px-1.5 py-0.5 rounded border mt-1.5 inline-block"
+                  [class]="
+                    s.difficulty === 'Facile'
+                      ? 'text-green-400 border-green-500/30'
+                      : s.difficulty === 'Moyen'
+                        ? 'text-yellow-400 border-yellow-500/30'
+                        : 'text-red-400 border-red-500/30'
+                  "
+                >
                   {{ s.difficulty }}
                 </span>
               </div>
@@ -227,12 +312,23 @@ marie.dupont&#64;exemple.com,Marie,Dupont,Direction</pre>
         </div>
 
         <div class="flex justify-between">
-          <button type="button" mat-stroked-button class="!border-gray-700 !text-gray-300 !rounded-xl" (click)="prev()">
+          <button
+            type="button"
+            mat-stroked-button
+            class="!border-gray-700 !text-gray-300 !rounded-xl"
+            (click)="prev()"
+          >
             <mat-icon class="mr-1">arrow_back</mat-icon>
             Retour
           </button>
-          <button type="button" mat-flat-button color="primary" class="!rounded-xl !px-8"
-                  [disabled]="selectedScenarios().size === 0" (click)="saveScenarios()">
+          <button
+            type="button"
+            mat-flat-button
+            color="primary"
+            class="!rounded-xl !px-8"
+            [disabled]="selectedScenarios().size === 0"
+            (click)="saveScenarios()"
+          >
             Continuer
             <mat-icon class="ml-1">arrow_forward</mat-icon>
           </button>
@@ -251,63 +347,120 @@ marie.dupont&#64;exemple.com,Marie,Dupont,Direction</pre>
         <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
           <h3 class="font-semibold text-white mb-3">Récapitulatif</h3>
           <div class="grid gap-2 text-sm">
-            <div class="flex justify-between"><span class="text-gray-400">Campagne</span><span class="text-white">{{ campaign()?.name }}</span></div>
-            <div class="flex justify-between"><span class="text-gray-400">Offre</span><span class="text-white">{{ campaign()?.plan_tier | titlecase }}</span></div>
-            <div class="flex justify-between"><span class="text-gray-400">Domaine</span><span class="text-white">{{ campaign()?.domain ?? '—' }}</span></div>
+            <div class="flex justify-between">
+              <span class="text-gray-400">Campagne</span
+              ><span class="text-white">{{ campaign()?.name }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-400">Offre</span
+              ><span class="text-white">{{ campaign()?.plan_tier | titlecase }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-400">Domaine</span
+              ><span class="text-white">{{ campaign()?.domain ?? '—' }}</span>
+            </div>
             @if (campaign()?.lookalike_domain) {
               <div class="flex justify-between">
                 <span class="text-gray-400">Look-alike</span>
-                <span class="text-orange-400 font-mono text-xs">{{ campaign()?.lookalike_domain }}</span>
+                <span class="text-orange-400 font-mono text-xs">{{
+                  campaign()?.lookalike_domain
+                }}</span>
               </div>
             }
-            <div class="flex justify-between"><span class="text-gray-400">Cibles</span><span class="text-white">{{ campaign()?.targets_count }}</span></div>
-            <div class="flex justify-between"><span class="text-gray-400">Scénarios</span><span class="text-white">{{ selectedScenarios().size }}</span></div>
+            <div class="flex justify-between">
+              <span class="text-gray-400">Cibles</span
+              ><span class="text-white">{{ campaign()?.targets_count }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-400">Scénarios</span
+              ><span class="text-white">{{ selectedScenarios().size }}</span>
+            </div>
           </div>
         </div>
 
         <!-- CGU checkboxes -->
-        <div class="rounded-xl border border-yellow-500/20 bg-yellow-950/10 p-5 flex flex-col gap-4">
+        <div
+          class="rounded-xl border border-yellow-500/20 bg-yellow-950/10 p-5 flex flex-col gap-4"
+        >
           <div class="flex items-center gap-2 mb-1">
             <mat-icon class="text-yellow-400">gavel</mat-icon>
-            <span class="font-semibold text-white">Déclaration sur l'honneur — à lire attentivement</span>
+            <span class="font-semibold text-white"
+              >Déclaration sur l'honneur — à lire attentivement</span
+            >
           </div>
 
           <label class="flex items-start gap-3 cursor-pointer">
-            <input type="checkbox" formControlName="cgu1" class="mt-0.5 w-4 h-4 rounded flex-shrink-0" />
+            <input
+              type="checkbox"
+              formControlName="cgu1"
+              class="mt-0.5 w-4 h-4 rounded flex-shrink-0"
+            />
             <span class="text-sm text-gray-300">
-              Je certifie disposer de l'<strong class="text-white">autorisation écrite de la Direction</strong> pour effectuer cette simulation sur l'ensemble des personnes ciblées, et que celles-ci appartiennent bien à mon organisation.
+              Je certifie disposer de l'<strong class="text-white"
+                >autorisation écrite de la Direction</strong
+              >
+              pour effectuer cette simulation sur l'ensemble des personnes ciblées, et que celles-ci
+              appartiennent bien à mon organisation.
             </span>
           </label>
 
           <label class="flex items-start gap-3 cursor-pointer">
-            <input type="checkbox" formControlName="cgu2" class="mt-0.5 w-4 h-4 rounded flex-shrink-0" />
+            <input
+              type="checkbox"
+              formControlName="cgu2"
+              class="mt-0.5 w-4 h-4 rounded flex-shrink-0"
+            />
             <span class="text-sm text-gray-300">
-              Je reconnais qu'utiliser cet outil <strong class="text-white">sans autorisation est une infraction pénale</strong> (art. 323-1 à 323-7 du Code pénal — jusqu'à 5 ans d'emprisonnement et 150 000 € d'amende). CyberScan se réserve le droit de signaler tout usage illicite aux autorités compétentes.
+              Je reconnais qu'utiliser cet outil
+              <strong class="text-white">sans autorisation est une infraction pénale</strong> (art.
+              323-1 à 323-7 du Code pénal — jusqu'à 5 ans d'emprisonnement et 150 000 € d'amende).
+              CyberScan se réserve le droit de signaler tout usage illicite aux autorités
+              compétentes.
             </span>
           </label>
 
           <label class="flex items-start gap-3 cursor-pointer">
-            <input type="checkbox" formControlName="cgu3" class="mt-0.5 w-4 h-4 rounded flex-shrink-0" />
+            <input
+              type="checkbox"
+              formControlName="cgu3"
+              class="mt-0.5 w-4 h-4 rounded flex-shrink-0"
+            />
             <span class="text-sm text-gray-300">
-              J'accepte les <a routerLink="/cyberscan/cgu" class="text-cyan-400 underline" target="_blank">Conditions Générales d'Utilisation</a> de CyberScan. Je confirme que cette simulation est réalisée dans un cadre d'exercice de cybersécurité et qu'aucune donnée réelle ne sera collectée par CyberScan.
+              J'accepte les
+              <a routerLink="/cyberscan/cgu" class="text-cyan-400 underline" target="_blank"
+                >Conditions Générales d'Utilisation</a
+              >
+              de CyberScan. Je confirme que cette simulation est réalisée dans un cadre d'exercice
+              de cybersécurité et qu'aucune donnée réelle ne sera collectée par CyberScan.
             </span>
           </label>
         </div>
 
         <div class="flex justify-between">
-          <button type="button" mat-stroked-button class="!border-gray-700 !text-gray-300 !rounded-xl" (click)="prev()">
+          <button
+            type="button"
+            mat-stroked-button
+            class="!border-gray-700 !text-gray-300 !rounded-xl"
+            (click)="prev()"
+          >
             <mat-icon class="mr-1">arrow_back</mat-icon>
             Retour
           </button>
-          <button type="submit" mat-flat-button color="warn" class="!rounded-xl !px-8"
-                  [disabled]="reviewForm.invalid || launching()">
-            @if (launching()) { <mat-spinner [diameter]="18" class="mr-2 inline" /> }
+          <button
+            type="submit"
+            mat-flat-button
+            color="warn"
+            class="!rounded-xl !px-8"
+            [disabled]="reviewForm.invalid || launching()"
+          >
+            @if (launching()) {
+              <mat-spinner [diameter]="18" class="mr-2 inline" />
+            }
             <mat-icon class="mr-1">rocket_launch</mat-icon>
             Lancer la campagne
           </button>
         </div>
       </form>
     }
-
   </div>
 </div>

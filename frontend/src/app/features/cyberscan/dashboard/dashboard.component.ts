@@ -1,4 +1,13 @@
-import { Component, DestroyRef, inject, OnInit, OnDestroy, signal, HostListener, ElementRef } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  inject,
+  OnInit,
+  OnDestroy,
+  signal,
+  HostListener,
+  ElementRef,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
@@ -15,14 +24,27 @@ import { Title, Meta } from '@angular/platform-browser';
 import { EMPTY, Subscription as RxSubscription, interval, switchMap, tap } from 'rxjs';
 import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 
-import { CyberscanService, Site, Scan, Subscription as UserSubscription, Plan, AppNotification } from '../services/cyberscan.service';
+import {
+  CyberscanService,
+  Site,
+  Scan,
+  Subscription as UserSubscription,
+  Plan,
+  AppNotification,
+} from '../services/cyberscan.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { ThemeService } from '../../../core/services/theme.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
-import { computeScore, getGrade, getScoreColor, getCategoryScores, RADAR_CATEGORIES } from '../../../shared/score-utils';
+import {
+  computeScore,
+  getGrade,
+  getScoreColor,
+  getCategoryScores,
+  RADAR_CATEGORIES,
+} from '../../../shared/score-utils';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { environment } from '../../../../environments/environment';
 
@@ -37,16 +59,26 @@ interface PaginatedScans {
 }
 
 @Component({
-    standalone: true,
-    selector: 'app-cyberscan-dashboard',
-    imports: [
-        CommonModule, ReactiveFormsModule, RouterLink,
-        MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule,
-        MatChipsModule, MatSnackBarModule,
-        MatDialogModule, MatPaginatorModule, SkeletonComponent, ScoreGaugeComponent, NavButtonsComponent,
-    ],
-    templateUrl: './dashboard.component.html',
-    styleUrl: './dashboard.component.css'
+  standalone: true,
+  selector: 'app-cyberscan-dashboard',
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    MatButtonModule,
+    MatCardModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatChipsModule,
+    MatSnackBarModule,
+    MatDialogModule,
+    MatPaginatorModule,
+    SkeletonComponent,
+    ScoreGaugeComponent,
+    NavButtonsComponent,
+  ],
+  templateUrl: './dashboard.component.html',
+  styleUrl: './dashboard.component.css',
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   private cyberscan = inject(CyberscanService);
@@ -95,11 +127,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.titleService.setTitle('Dashboard — CyberScan');
-    this.meta.updateTag({ name: 'description', content: 'Gérez vos sites et consultez vos rapports de sécurité CyberScan.' });
+    this.meta.updateTag({
+      name: 'description',
+      content: 'Gérez vos sites et consultez vos rapports de sécurité CyberScan.',
+    });
 
     this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
       if (params['subscribed'] === 'true') {
-        this.snack.open('Abonnement activé ! Bienvenue sur CyberScan.', 'Super', { duration: 6000 });
+        this.snack.open('Abonnement activé ! Bienvenue sur CyberScan.', 'Super', {
+          duration: 6000,
+        });
       }
       if (params['upgrade'] === 'true') {
         this.openPlansModal();
@@ -118,34 +155,42 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
-    if (this.showNotifPanel() && !this.el.nativeElement.querySelector('.notif-panel-anchor')?.contains(event.target)) {
+    if (
+      this.showNotifPanel() &&
+      !this.el.nativeElement.querySelector('.notif-panel-anchor')?.contains(event.target)
+    ) {
       this.showNotifPanel.set(false);
     }
   }
 
   loadDashboard() {
     this.loading.set(true);
-    this.cyberscan.getMySubscription().pipe(
-      takeUntilDestroyed(this.destroyRef),
-      tap(sub => this.subscription.set(sub)),
-      switchMap(sub => {
-        if (!sub) {
+    this.cyberscan
+      .getMySubscription()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        tap(sub => this.subscription.set(sub)),
+        switchMap(sub => {
+          if (!sub) {
+            this.loading.set(false);
+            this.router.navigate(['/cyberscan/onboarding']);
+            return EMPTY;
+          }
+          return this.cyberscan.getMySites();
+        })
+      )
+      .subscribe({
+        next: sites => {
+          this.sites.set(sites);
           this.loading.set(false);
-          this.router.navigate(['/cyberscan/onboarding']);
-          return EMPTY;
-        }
-        return this.cyberscan.getMySites();
-      }),
-    ).subscribe({
-      next: sites => {
-        this.sites.set(sites);
-        this.loading.set(false);
-        sites.forEach(s => this.loadScans(s.id, 1));
-      },
-      error: () => this.loading.set(false),
-    });
+          sites.forEach(s => this.loadScans(s.id, 1));
+        },
+        error: () => this.loading.set(false),
+      });
     this.loadNotifications();
-    interval(30000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.loadNotifications());
+    interval(30000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.loadNotifications());
   }
 
   loadNotifications() {
@@ -167,7 +212,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (!notif.read) {
       this.cyberscan.markNotificationRead(notif.id).subscribe({
         next: updated => {
-          this.notifications.update(list => list.map(n => n.id === notif.id ? updated : n));
+          this.notifications.update(list => list.map(n => (n.id === notif.id ? updated : n)));
           this.unreadCount.update(c => Math.max(0, c - 1));
         },
         error: () => {},
@@ -229,10 +274,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.pollingMap[siteId]?.unsubscribe();
     this.pollingMap[siteId] = pollWithBackoff(
       () => this.cyberscan.getSiteScans(siteId, this.pageMap()[siteId] ?? 1),
-      d => !d.items.some(x => x.status === 'pending' || x.status === 'running'),
+      d => !d.items.some(x => x.status === 'pending' || x.status === 'running')
     ).subscribe(data => {
       this.scansMap.update(m => ({ ...m, [siteId]: data }));
-      if (!data.items.some(s => s.status === 'pending' || s.status === 'running')) delete this.pollingMap[siteId];
+      if (!data.items.some(s => s.status === 'pending' || s.status === 'running'))
+        delete this.pollingMap[siteId];
     });
   }
 
@@ -259,14 +305,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.addingSite.set(false);
-        this.snack.open(err.error?.detail || "Erreur lors de l'ajout", 'Fermer', { duration: 5000 });
+        this.snack.open(err.error?.detail || "Erreur lors de l'ajout", 'Fermer', {
+          duration: 5000,
+        });
       },
     });
   }
 
   confirmDeleteSite(site: Site) {
     const ref = this.dialog.open(ConfirmDialogComponent, {
-      data: { title: 'Supprimer le site', message: `Supprimer "${site.name}" et tout son historique de scans ?`, confirm: 'Supprimer', danger: true },
+      data: {
+        title: 'Supprimer le site',
+        message: `Supprimer "${site.name}" et tout son historique de scans ?`,
+        confirm: 'Supprimer',
+        danger: true,
+      },
       panelClass: 'dark-dialog',
     });
     ref.afterClosed().subscribe(ok => {
@@ -293,11 +346,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.triggeringScans.update(m => ({ ...m, [siteId]: false }));
-        this.snack.open(err.error?.detail || 'Erreur lors du lancement', 'Fermer', { duration: 5000 });
+        this.snack.open(err.error?.detail || 'Erreur lors du lancement', 'Fermer', {
+          duration: 5000,
+        });
       },
     });
   }
-
 
   openPlansModal() {
     this.showPlansModal.set(true);
@@ -332,10 +386,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
       next: res => {
         try {
           const parsed = new URL(res.checkout_url);
-          if (parsed.hostname === 'billing.stripe.com' || parsed.hostname === 'checkout.stripe.com') {
+          if (
+            parsed.hostname === 'billing.stripe.com' ||
+            parsed.hostname === 'checkout.stripe.com'
+          ) {
             window.location.href = res.checkout_url;
           }
-        } catch { /* URL invalide ignorée */ }
+        } catch {
+          /* URL invalide ignorée */
+        }
       },
     });
   }
@@ -354,7 +413,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         a.click();
         URL.revokeObjectURL(url);
       },
-      error: () => this.snack.open('Erreur lors du téléchargement du PDF', 'Fermer', { duration: 4000 }),
+      error: () =>
+        this.snack.open('Erreur lors du téléchargement du PDF', 'Fermer', { duration: 4000 }),
     });
   }
 
@@ -366,21 +426,41 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return all.filter(s => s.status === f);
   }
 
-  getTotal(siteId: number): number { return this.scansMap()[siteId]?.total ?? 0; }
-  getPerPage(siteId: number): number { return this.scansMap()[siteId]?.per_page ?? 10; }
-  getCurrentPage(siteId: number): number { return (this.scansMap()[siteId]?.page ?? 1) - 1; }
-  isLoadingScans(siteId: number): boolean { return this.loadingScans()[siteId] || false; }
-  isTriggeringScans(siteId: number): boolean { return this.triggeringScans()[siteId] || false; }
-  hasActiveScans(siteId: number): boolean { return (this.scansMap()[siteId]?.items || []).some(s => s.status === 'pending' || s.status === 'running'); }
-  lastScanStatus(siteId: number): string | null { return (this.scansMap()[siteId]?.items || [])[0]?.overall_status ?? null; }
+  getTotal(siteId: number): number {
+    return this.scansMap()[siteId]?.total ?? 0;
+  }
+  getPerPage(siteId: number): number {
+    return this.scansMap()[siteId]?.per_page ?? 10;
+  }
+  getCurrentPage(siteId: number): number {
+    return (this.scansMap()[siteId]?.page ?? 1) - 1;
+  }
+  isLoadingScans(siteId: number): boolean {
+    return this.loadingScans()[siteId] || false;
+  }
+  isTriggeringScans(siteId: number): boolean {
+    return this.triggeringScans()[siteId] || false;
+  }
+  hasActiveScans(siteId: number): boolean {
+    return (this.scansMap()[siteId]?.items || []).some(
+      s => s.status === 'pending' || s.status === 'running'
+    );
+  }
+  lastScanStatus(siteId: number): string | null {
+    return (this.scansMap()[siteId]?.items || [])[0]?.overall_status ?? null;
+  }
 
   siteBadgeClass(siteId: number): string {
     if (this.hasActiveScans(siteId)) return 'bg-blue-500/20 text-blue-300 border-blue-600';
     switch (this.lastScanStatus(siteId)) {
-      case 'OK': return 'bg-green-500/20 text-green-300 border-green-600';
-      case 'WARNING': return 'bg-yellow-500/20 text-yellow-300 border-yellow-600';
-      case 'CRITICAL': return 'bg-red-500/20 text-red-300 border-red-600';
-      default: return 'bg-gray-700 text-gray-400 border-gray-600';
+      case 'OK':
+        return 'bg-green-500/20 text-green-300 border-green-600';
+      case 'WARNING':
+        return 'bg-yellow-500/20 text-yellow-300 border-yellow-600';
+      case 'CRITICAL':
+        return 'bg-red-500/20 text-red-300 border-red-600';
+      default:
+        return 'bg-gray-700 text-gray-400 border-gray-600';
     }
   }
 
@@ -392,48 +472,78 @@ export class DashboardComponent implements OnInit, OnDestroy {
   siteBadgeIcon(siteId: number): string {
     if (this.hasActiveScans(siteId)) return 'sync';
     switch (this.lastScanStatus(siteId)) {
-      case 'OK': return 'verified_user';
-      case 'WARNING': return 'warning';
-      case 'CRITICAL': return 'gpp_bad';
-      default: return 'help_outline';
+      case 'OK':
+        return 'verified_user';
+      case 'WARNING':
+        return 'warning';
+      case 'CRITICAL':
+        return 'gpp_bad';
+      default:
+        return 'help_outline';
     }
   }
 
   statusColor(s: string | null): string {
     switch (s) {
-      case 'OK': return 'text-green-400';
-      case 'WARNING': return 'text-yellow-400';
-      case 'CRITICAL': case 'error': return 'text-red-400';
-      case 'done': return 'text-green-400';
-      case 'pending': case 'running': return 'text-blue-400';
-      default: return 'text-gray-400';
+      case 'OK':
+        return 'text-green-400';
+      case 'WARNING':
+        return 'text-yellow-400';
+      case 'CRITICAL':
+      case 'error':
+        return 'text-red-400';
+      case 'done':
+        return 'text-green-400';
+      case 'pending':
+      case 'running':
+        return 'text-blue-400';
+      default:
+        return 'text-gray-400';
     }
   }
 
   statusIcon(s: string | null): string {
     switch (s) {
-      case 'OK': return 'verified_user';
-      case 'WARNING': return 'warning';
-      case 'CRITICAL': return 'gpp_bad';
-      case 'done': return 'check_circle';
-      case 'pending': return 'schedule';
-      case 'running': return 'sync';
-      case 'error': return 'cancel';
-      default: return 'help_outline';
+      case 'OK':
+        return 'verified_user';
+      case 'WARNING':
+        return 'warning';
+      case 'CRITICAL':
+        return 'gpp_bad';
+      case 'done':
+        return 'check_circle';
+      case 'pending':
+        return 'schedule';
+      case 'running':
+        return 'sync';
+      case 'error':
+        return 'cancel';
+      default:
+        return 'help_outline';
     }
   }
 
   formatDate(d: string | null): string {
     if (!d) return '—';
-    return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return new Date(d).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   }
 
-  get maxSites(): number { return this.subscription()?.plan?.max_sites ?? 0; }
+  get maxSites(): number {
+    return this.subscription()?.plan?.max_sites ?? 0;
+  }
   get effectiveMaxSites(): number {
     const sub = this.subscription();
     return (sub?.plan?.max_sites ?? 0) + (sub?.extra_sites ?? 0);
   }
-  get canAddSite(): boolean { return this.sites().length < this.effectiveMaxSites; }
+  get canAddSite(): boolean {
+    return this.sites().length < this.effectiveMaxSites;
+  }
 
   buyingExtraSites = signal(false);
 
@@ -455,21 +565,27 @@ export class DashboardComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.buyingExtraSites.set(false);
-        this.snack.open('Erreur lors de l\'achat', 'Fermer', { duration: 4000 });
+        this.snack.open("Erreur lors de l'achat", 'Fermer', { duration: 4000 });
       },
     });
   }
 
   // --- Score & trend ---
-  getScanScore(scan: Scan): number | null { return computeScore(scan.results_json ?? null); }
+  getScanScore(scan: Scan): number | null {
+    return computeScore(scan.results_json ?? null);
+  }
 
   getLastScore(siteId: number): number | null {
-    const done = (this.scansMap()[siteId]?.items ?? []).find(s => s.status === 'done' && s.results_json);
+    const done = (this.scansMap()[siteId]?.items ?? []).find(
+      s => s.status === 'done' && s.results_json
+    );
     return done ? computeScore(done.results_json ?? null) : null;
   }
 
   getPrevScore(siteId: number): number | null {
-    const done = (this.scansMap()[siteId]?.items ?? []).filter(s => s.status === 'done' && s.results_json);
+    const done = (this.scansMap()[siteId]?.items ?? []).filter(
+      s => s.status === 'done' && s.results_json
+    );
     return done.length >= 2 ? computeScore(done[1].results_json ?? null) : null;
   }
 
@@ -480,8 +596,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return last - prev;
   }
 
-  getGrade(score: number): string { return getGrade(score); }
-  getScoreColor(score: number): string { return getScoreColor(score); }
+  getGrade(score: number): string {
+    return getGrade(score);
+  }
+  getScoreColor(score: number): string {
+    return getScoreColor(score);
+  }
 
   // ── Analytics ─────────────────────────────────────────────────────────────
 
@@ -542,7 +662,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   analyticsOpen = signal(true);
-  toggleAnalytics() { this.analyticsOpen.update(v => !v); }
+  toggleAnalytics() {
+    this.analyticsOpen.update(v => !v);
+  }
   readonly categoryLabels = RADAR_CATEGORIES.map(c => c.label);
 
   /** Last N done scans with a score, for sparkline */
@@ -570,7 +692,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   get globalCategoryScores(): { label: string; score: number }[] {
     const perSite = this.sites()
       .map(s => {
-        const scan = (this.scansMap()[s.id]?.items ?? []).find(x => x.status === 'done' && x.results_json);
+        const scan = (this.scansMap()[s.id]?.items ?? []).find(
+          x => x.status === 'done' && x.results_json
+        );
         return scan ? getCategoryScores(scan.results_json ?? null) : null;
       })
       .filter((v): v is number[] => v !== null);
@@ -591,10 +715,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   getSslDaysRemaining(siteId: number): number | null {
-    const scan = (this.scansMap()[siteId]?.items ?? []).find(s => s.status === 'done' && s.results_json);
+    const scan = (this.scansMap()[siteId]?.items ?? []).find(
+      s => s.status === 'done' && s.results_json
+    );
     if (!scan?.results_json) return null;
-    try { return JSON.parse(scan.results_json)?.ssl?.days_remaining ?? null; }
-    catch { return null; }
+    try {
+      return JSON.parse(scan.results_json)?.ssl?.days_remaining ?? null;
+    } catch {
+      return null;
+    }
   }
 
   get okCount(): number {

@@ -2,10 +2,11 @@
 Audit collaboratif — inviter des collaborateurs sur un site avec rôles granulaires.
 Roles: viewer (lecture seule), auditor (lecture + déclencher scan), manager (tout sauf supprimer)
 """
-import secrets
-from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+import secrets
+from datetime import UTC, datetime
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +22,7 @@ router = APIRouter(prefix="/collab", tags=["collab"])
 VALID_ROLES = {"viewer", "auditor", "manager"}
 
 ROLE_LABELS = {
-    "viewer":  "Lecteur — consulte les résultats des scans",
+    "viewer": "Lecteur — consulte les résultats des scans",
     "auditor": "Auditeur — peut déclencher des scans",
     "manager": "Manager — peut gérer les paramètres du site",
 }
@@ -58,8 +59,8 @@ async def _assert_site_owner(site_id: int, user: User, db: AsyncSession) -> Site
 
 def _send_invite_email(email: str, site_name: str, site_url: str, role: str, token: str) -> None:
     try:
-        from app.core.config import settings
         from app.services.email_service import _send
+
         accept_url = f"https://cyberscanapp.com/cyberscan/collab/accept/{token}"
         role_label = ROLE_LABELS.get(role, role)
         html = f"""
@@ -82,6 +83,7 @@ def _send_invite_email(email: str, site_name: str, site_url: str, role: str, tok
 # Endpoints
 # ---------------------------------------------------------------------------
 
+
 @router.get("/sites/{site_id}/collaborators", response_model=list[CollabOut])
 async def list_collaborators(
     site_id: int,
@@ -89,9 +91,7 @@ async def list_collaborators(
     db: AsyncSession = Depends(get_db),
 ):
     await _assert_site_owner(site_id, current_user, db)
-    result = await db.execute(
-        select(SiteCollaborator).where(SiteCollaborator.site_id == site_id)
-    )
+    result = await db.execute(select(SiteCollaborator).where(SiteCollaborator.site_id == site_id))
     return result.scalars().all()
 
 
@@ -123,7 +123,7 @@ async def invite_collaborator(
         role=payload.role,
         status="pending",
         invite_token=token,
-        invited_at=datetime.now(timezone.utc),
+        invited_at=datetime.now(UTC),
     )
     db.add(collab)
     await db.commit()
@@ -198,7 +198,7 @@ async def accept_invite(
         return collab
 
     collab.status = "accepted"
-    collab.accepted_at = datetime.now(timezone.utc)
+    collab.accepted_at = datetime.now(UTC)
     await db.commit()
     await db.refresh(collab)
     return collab

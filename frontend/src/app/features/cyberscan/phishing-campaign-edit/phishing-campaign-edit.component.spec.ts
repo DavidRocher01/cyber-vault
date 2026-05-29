@@ -6,18 +6,33 @@ import type { PhishingCampaign } from '../services/phishing.service';
 
 function campaign(overrides: Partial<PhishingCampaign> = {}): PhishingCampaign {
   return {
-    id: 1, name: 'Test', status: 'draft', plan_tier: 'standard',
-    domain: null, domain_verified: false, lookalike_domain: null, scenario_keys: [],
-    targets_count: 0, emails_sent: 0, opened_count: 0,
-    clicked_count: 0, submitted_count: 0, click_rate: 0,
-    cgu_accepted: false, scheduled_at: null, started_at: null,
-    finished_at: null, created_at: '2024-01-01T00:00:00Z',
+    id: 1,
+    name: 'Test',
+    status: 'draft',
+    plan_tier: 'standard',
+    domain: null,
+    domain_verified: false,
+    lookalike_domain: null,
+    scenario_keys: [],
+    targets_count: 0,
+    emails_sent: 0,
+    opened_count: 0,
+    clicked_count: 0,
+    submitted_count: 0,
+    click_rate: 0,
+    cgu_accepted: false,
+    scheduled_at: null,
+    started_at: null,
+    finished_at: null,
+    created_at: '2024-01-01T00:00:00Z',
     ...overrides,
   };
 }
 
 function make(c: PhishingCampaign | null = null): PhishingCampaignEditComponent {
-  const comp = Object.create(PhishingCampaignEditComponent.prototype) as PhishingCampaignEditComponent;
+  const comp = Object.create(
+    PhishingCampaignEditComponent.prototype
+  ) as PhishingCampaignEditComponent;
   (comp as any).campaign = signal<PhishingCampaign | null>(c);
   (comp as any).loading = signal(false);
   (comp as any).saving = signal(false);
@@ -26,20 +41,30 @@ function make(c: PhishingCampaign | null = null): PhishingCampaignEditComponent 
   (comp as any).selectedScenarios = signal<Set<string>>(new Set());
   (comp as any).snack = { open: vi.fn() };
   (comp as any).form = new FormGroup({
-    name: new FormControl('Campagne test', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]),
+    name: new FormControl('Campagne test', [
+      Validators.required,
+      Validators.minLength(2),
+      Validators.maxLength(100),
+    ]),
     cgu_accepted: new FormControl(false, Validators.requiredTrue),
   });
   return comp;
 }
 
 describe('PhishingCampaignEditComponent — maxScenarios', () => {
-  it('vaut 2 pour express', () => expect(make(campaign({ plan_tier: 'express' })).maxScenarios).toBe(2));
-  it('vaut 5 pour standard', () => expect(make(campaign({ plan_tier: 'standard' })).maxScenarios).toBe(5));
-  it('vaut 10 pour premium', () => expect(make(campaign({ plan_tier: 'premium' })).maxScenarios).toBe(10));
-  it('vaut 3 pour quarterly', () => expect(make(campaign({ plan_tier: 'quarterly' })).maxScenarios).toBe(3));
-  it('vaut 7 pour monthly', () => expect(make(campaign({ plan_tier: 'monthly' })).maxScenarios).toBe(7));
+  it('vaut 2 pour express', () =>
+    expect(make(campaign({ plan_tier: 'express' })).maxScenarios).toBe(2));
+  it('vaut 5 pour standard', () =>
+    expect(make(campaign({ plan_tier: 'standard' })).maxScenarios).toBe(5));
+  it('vaut 10 pour premium', () =>
+    expect(make(campaign({ plan_tier: 'premium' })).maxScenarios).toBe(10));
+  it('vaut 3 pour quarterly', () =>
+    expect(make(campaign({ plan_tier: 'quarterly' })).maxScenarios).toBe(3));
+  it('vaut 7 pour monthly', () =>
+    expect(make(campaign({ plan_tier: 'monthly' })).maxScenarios).toBe(7));
   it('vaut 2 par défaut quand campaign est null', () => expect(make(null).maxScenarios).toBe(2));
-  it('vaut 2 pour un plan inconnu', () => expect(make(campaign({ plan_tier: 'unknown' })).maxScenarios).toBe(2));
+  it('vaut 2 pour un plan inconnu', () =>
+    expect(make(campaign({ plan_tier: 'unknown' })).maxScenarios).toBe(2));
 });
 
 describe('PhishingCampaignEditComponent — toggleScenario()', () => {
@@ -67,8 +92,9 @@ describe('PhishingCampaignEditComponent — toggleScenario()', () => {
 
   it('ne dépasse pas la limite standard (5)', () => {
     const c = make(campaign({ plan_tier: 'standard' }));
-    ['ceo-fraud', 'fake-invoice', 'o365-credentials', 'bank-phishing', 'parcel-tracking']
-      .forEach(id => c.toggleScenario(id));
+    ['ceo-fraud', 'fake-invoice', 'o365-credentials', 'bank-phishing', 'parcel-tracking'].forEach(
+      id => c.toggleScenario(id)
+    );
     c.toggleScenario('it-password'); // ignoré
     expect(c.selectedScenarios().size).toBe(5);
     expect(c.isScenarioSelected('it-password')).toBe(false);

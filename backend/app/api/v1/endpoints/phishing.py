@@ -22,23 +22,25 @@ Public tracking routes (no auth — called by email clients / browsers):
 """
 
 import asyncio
-import csv
-import io
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 
-from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile, status
-from starlette.requests import Request
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.requests import Request
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.limiter import limiter
 from app.core.utils import safe_json_load
-from app.models.phishing import PhishingCampaign, PhishingDomainVerification, PhishingTarget
+from app.models.phishing import (
+    PhishingCampaign,
+    PhishingDomainVerification,
+    PhishingTarget,
+)
 from app.models.user import User
 from app.services import phishing_service
 from app.services.domain_lookalike import generate_lookalikes
@@ -60,6 +62,7 @@ _VALID_TIERS = set(_MAX_TARGETS.keys())
 # ---------------------------------------------------------------------------
 # Schemas
 # ---------------------------------------------------------------------------
+
 
 class CampaignCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
@@ -86,6 +89,7 @@ class DomainCheckRequest(BaseModel):
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _serialize_campaign(c: PhishingCampaign) -> dict:
     return {
@@ -114,6 +118,7 @@ def _serialize_campaign(c: PhishingCampaign) -> dict:
 def _serialize_target(t: PhishingTarget) -> dict:
     def _iso(dt: object) -> str | None:
         return dt.isoformat() if dt else None  # type: ignore[union-attr]
+
     return {
         "id": t.id,
         "email": t.email,
@@ -139,6 +144,7 @@ async def _get_owned(campaign_id: int, user_id: int, db: AsyncSession) -> Phishi
 # ---------------------------------------------------------------------------
 # Campaign endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.get("/campaigns")
 async def list_campaigns(
@@ -365,6 +371,7 @@ async def download_report_pdf(
 # Domain verification endpoints
 # ---------------------------------------------------------------------------
 
+
 @router.post("/domain-verify", status_code=status.HTTP_201_CREATED)
 async def request_domain_verification(
     payload: DomainVerifyRequest,
@@ -410,7 +417,7 @@ async def check_domain_verification(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Aucune demande de vérification trouvée pour ce domaine. "
-                   "Lancez d'abord une demande via POST /phishing/domain-verify.",
+            "Lancez d'abord une demande via POST /phishing/domain-verify.",
         )
 
     verified = await phishing_service.check_domain_verification(record, db)
@@ -427,9 +434,15 @@ async def check_domain_verification(
 # Look-alike domain suggestions (authenticated)
 # ---------------------------------------------------------------------------
 
+
 @router.get("/lookalike-domains")
 async def get_lookalike_domains(
-    domain: str = Query(..., min_length=3, max_length=255, description="Target domain, e.g. monentreprise.com"),
+    domain: str = Query(
+        ...,
+        min_length=3,
+        max_length=255,
+        description="Target domain, e.g. monentreprise.com",
+    ),
     _current_user: User = Depends(get_current_user),
 ):
     """Return a list of look-alike domain suggestions for the given target domain."""
@@ -441,6 +454,7 @@ async def get_lookalike_domains(
 # Public tracking routes — no authentication (called by email clients / browsers)
 # ---------------------------------------------------------------------------
 
+
 @router.get("/t/{tracking_id}/px", include_in_schema=False)
 @limiter.limit("30/minute")
 async def tracking_pixel(request: Request, tracking_id: str, db: AsyncSession = Depends(get_db)):
@@ -449,7 +463,10 @@ async def tracking_pixel(request: Request, tracking_id: str, db: AsyncSession = 
     return Response(
         content=phishing_service.get_pixel_gif(),
         media_type="image/gif",
-        headers={"Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache"},
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+            "Pragma": "no-cache",
+        },
     )
 
 

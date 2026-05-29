@@ -14,5 +14,9 @@ class NewsletterSubscriber(Base):
     subscribed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    confirmation_token: Mapped[str | None] = mapped_column(String(512), unique=True, index=True, nullable=True)
-    unsubscribe_token: Mapped[str] = mapped_column(String(512), unique=True, index=True, nullable=False)
+    confirmation_token: Mapped[str | None] = mapped_column(
+        String(512), unique=True, index=True, nullable=True
+    )
+    unsubscribe_token: Mapped[str] = mapped_column(
+        String(512), unique=True, index=True, nullable=False
+    )

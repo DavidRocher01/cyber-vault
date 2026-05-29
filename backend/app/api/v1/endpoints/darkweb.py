@@ -1,6 +1,7 @@
 """Dark web surveillance — email breach monitoring via HIBP."""
+
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -52,7 +53,7 @@ async def get_darkweb_status(
             error=None,
             fresh=False,
         )
-    age = datetime.now(timezone.utc) - scan.checked_at
+    age = datetime.now(UTC) - scan.checked_at
     try:
         breaches = json.loads(scan.results_json or "[]")
     except Exception:
@@ -83,7 +84,7 @@ async def run_darkweb_check(
     )
     existing = result.scalar_one_or_none()
     if existing:
-        age = datetime.now(timezone.utc) - existing.checked_at
+        age = datetime.now(UTC) - existing.checked_at
         if age < timedelta(hours=REFRESH_INTERVAL_HOURS):
             try:
                 breaches = json.loads(existing.results_json or "[]")
@@ -105,7 +106,7 @@ async def run_darkweb_check(
         email=current_user.email,
         total_breaches=data["total"],
         status=data["status"],
-        checked_at=datetime.now(timezone.utc),
+        checked_at=datetime.now(UTC),
         results_json=json.dumps(data["breaches"]),
     )
     db.add(scan)

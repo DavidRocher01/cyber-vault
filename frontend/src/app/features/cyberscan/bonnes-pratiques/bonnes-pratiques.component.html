@@ -1,5 +1,4 @@
 <div class="min-h-screen bg-gray-900 text-white">
-
   <!-- Navbar -->
   <nav class="flex items-center justify-between px-8 py-4 border-b border-gray-800">
     <a routerLink="/cyberscan" class="flex items-center gap-2">
@@ -9,14 +8,18 @@
     <div class="flex items-center gap-3">
       <app-nav-buttons />
       <a routerLink="/cyberscan" mat-button class="!text-white font-medium">Accueil</a>
-      <a routerLink="/cyberscan/ressources" mat-button class="!text-white font-medium">Ressources</a>
+      <a routerLink="/cyberscan/ressources" mat-button class="!text-white font-medium"
+        >Ressources</a
+      >
       <a routerLink="/cyberscan/dashboard" mat-flat-button color="primary">Dashboard</a>
     </div>
   </nav>
 
   <!-- Header -->
   <section class="px-8 py-16 text-center bg-gray-800/20">
-    <div class="inline-flex items-center gap-2 bg-cyan-900/40 text-cyan-400 px-4 py-1 rounded-full text-sm font-medium border border-cyan-700 mb-6">
+    <div
+      class="inline-flex items-center gap-2 bg-cyan-900/40 text-cyan-400 px-4 py-1 rounded-full text-sm font-medium border border-cyan-700 mb-6"
+    >
       <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">verified_user</mat-icon>
       Hygiène numérique
     </div>
@@ -32,23 +35,33 @@
     <section class="px-8 py-14 border-t border-gray-800">
       <div class="max-w-4xl mx-auto">
         <div class="flex items-center gap-3 mb-8">
-          <mat-icon [class]="section.iconClass + ' !text-[2rem] !w-[2rem] !h-[2rem]'">{{ section.icon }}</mat-icon>
+          <mat-icon [class]="section.iconClass + ' !text-[2rem] !w-[2rem] !h-[2rem]'">{{
+            section.icon
+          }}</mat-icon>
           <div>
             <h2 class="text-2xl font-bold">{{ section.title }}</h2>
-            <span [class]="'text-xs px-2 py-0.5 rounded-full font-medium ' + section.badgeClass">{{ section.badge }}</span>
+            <span [class]="'text-xs px-2 py-0.5 rounded-full font-medium ' + section.badgeClass">{{
+              section.badge
+            }}</span>
           </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
           @for (item of section.items; track item.title) {
             <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 flex flex-col gap-3">
               <div class="flex items-center gap-2">
-                <mat-icon [class]="section.iconClass + ' !text-[1.3rem] !w-[1.3rem] !h-[1.3rem]'">{{ item.icon }}</mat-icon>
+                <mat-icon [class]="section.iconClass + ' !text-[1.3rem] !w-[1.3rem] !h-[1.3rem]'">{{
+                  item.icon
+                }}</mat-icon>
                 <h3 class="font-semibold">{{ item.title }}</h3>
               </div>
               <p class="text-gray-400 text-sm leading-relaxed">{{ item.desc }}</p>
               @if (item.link) {
-                <a [href]="item.link" target="_blank" rel="noopener noreferrer"
-                   class="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300 transition-colors mt-auto">
+                <a
+                  [href]="item.link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300 transition-colors mt-auto"
+                >
                   <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">open_in_new</mat-icon>
                   {{ item.linkLabel }}
                 </a>
@@ -79,13 +92,19 @@
                 <td class="py-3 px-4 font-medium text-gray-300">{{ row.risk }}</td>
                 <td class="py-3 px-4 text-red-400/80">
                   <div class="flex items-start gap-2">
-                    <mat-icon class="text-red-500 !text-[1rem] !w-[1rem] !h-[1rem] mt-0.5 flex-shrink-0">close</mat-icon>
+                    <mat-icon
+                      class="text-red-500 !text-[1rem] !w-[1rem] !h-[1rem] mt-0.5 flex-shrink-0"
+                      >close</mat-icon
+                    >
                     {{ row.bad }}
                   </div>
                 </td>
                 <td class="py-3 px-4 text-green-400/80">
                   <div class="flex items-start gap-2">
-                    <mat-icon class="text-green-400 !text-[1rem] !w-[1rem] !h-[1rem] mt-0.5 flex-shrink-0">check</mat-icon>
+                    <mat-icon
+                      class="text-green-400 !text-[1rem] !w-[1rem] !h-[1rem] mt-0.5 flex-shrink-0"
+                      >check</mat-icon
+                    >
                     {{ row.good }}
                   </div>
                 </td>
@@ -100,7 +119,9 @@
   <!-- CTA -->
   <section class="px-8 py-16 text-center bg-cyan-900/20 border-t border-cyan-900/40">
     <h2 class="text-2xl font-bold mb-3">Votre site est-il aussi bien protégé ?</h2>
-    <p class="text-gray-400 mb-6">Les bonnes pratiques s'appliquent aussi à votre infrastructure web.</p>
+    <p class="text-gray-400 mb-6">
+      Les bonnes pratiques s'appliquent aussi à votre infrastructure web.
+    </p>
     <a routerLink="/cyberscan" mat-flat-button color="primary" class="px-8 py-3">
       Auditer mon site gratuitement
     </a>
@@ -111,9 +132,12 @@
     <p>© 2025 CyberScan. Tous droits réservés.</p>
     <div class="flex justify-center gap-6 mt-2">
       <a routerLink="/cyberscan" class="hover:text-cyan-400 transition-colors">Accueil</a>
-      <a routerLink="/cyberscan/ressources" class="hover:text-cyan-400 transition-colors">Ressources</a>
-      <a routerLink="/cyberscan/dashboard" class="hover:text-cyan-400 transition-colors">Dashboard</a>
+      <a routerLink="/cyberscan/ressources" class="hover:text-cyan-400 transition-colors"
+        >Ressources</a
+      >
+      <a routerLink="/cyberscan/dashboard" class="hover:text-cyan-400 transition-colors"
+        >Dashboard</a
+      >
     </div>
   </footer>
-
 </div>

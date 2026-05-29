@@ -3,10 +3,15 @@ import { signal, computed } from '@angular/core';
 import { AdminContactsComponent } from './admin-contacts.component';
 
 interface ContactMessage {
-  id: number; name: string; email: string;
-  phone: string | null; need_type: string;
-  site_url: string | null; message: string;
-  status: string; created_at: string;
+  id: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  need_type: string;
+  site_url: string | null;
+  message: string;
+  status: string;
+  created_at: string;
 }
 
 function make(): AdminContactsComponent {
@@ -25,10 +30,50 @@ function make(): AdminContactsComponent {
 }
 
 const MESSAGES: ContactMessage[] = [
-  { id: 1, name: 'Alice', email: 'alice@x.com', phone: null, need_type: 'audit-flash', site_url: null, message: 'Hello', status: 'new', created_at: '2024-01-01T00:00:00Z' },
-  { id: 2, name: 'Bob', email: 'bob@x.com', phone: null, need_type: 'pentest', site_url: null, message: 'Hi', status: 'handled', created_at: '2024-01-02T00:00:00Z' },
-  { id: 3, name: 'Carol', email: 'carol@x.com', phone: null, need_type: 'autre', site_url: null, message: 'Yo', status: 'archived', created_at: '2024-01-03T00:00:00Z' },
-  { id: 4, name: 'Dave', email: 'dave@x.com', phone: null, need_type: 'abonnement', site_url: null, message: 'Hey', status: 'new', created_at: '2024-01-04T00:00:00Z' },
+  {
+    id: 1,
+    name: 'Alice',
+    email: 'alice@x.com',
+    phone: null,
+    need_type: 'audit-flash',
+    site_url: null,
+    message: 'Hello',
+    status: 'new',
+    created_at: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 2,
+    name: 'Bob',
+    email: 'bob@x.com',
+    phone: null,
+    need_type: 'pentest',
+    site_url: null,
+    message: 'Hi',
+    status: 'handled',
+    created_at: '2024-01-02T00:00:00Z',
+  },
+  {
+    id: 3,
+    name: 'Carol',
+    email: 'carol@x.com',
+    phone: null,
+    need_type: 'autre',
+    site_url: null,
+    message: 'Yo',
+    status: 'archived',
+    created_at: '2024-01-03T00:00:00Z',
+  },
+  {
+    id: 4,
+    name: 'Dave',
+    email: 'dave@x.com',
+    phone: null,
+    need_type: 'abonnement',
+    site_url: null,
+    message: 'Hey',
+    status: 'new',
+    created_at: '2024-01-04T00:00:00Z',
+  },
 ];
 
 // ── needLabel ─────────────────────────────────────────────────────────────────
@@ -141,7 +186,7 @@ describe('AdminContactsComponent — formatDate()', () => {
     expect(comp.formatDate('2024-01-15T10:00:00Z')).toBeTruthy();
   });
 
-  it('contient l\'année pour une date valide', () => {
+  it("contient l'année pour une date valide", () => {
     const comp = make();
     expect(comp.formatDate('2024-06-01T00:00:00Z')).toContain('2024');
   });

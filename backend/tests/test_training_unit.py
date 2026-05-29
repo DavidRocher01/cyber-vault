@@ -1,23 +1,23 @@
 """
 Unit tests for training/sensibilisation module endpoints.
 """
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from app.api.v1.endpoints.training import (
-    get_modules,
-    complete_module,
-    get_progress,
-    CompleteModuleIn,
     MODULES,
-    MODULE_IDS,
+    CompleteModuleIn,
+    complete_module,
+    get_modules,
+    get_progress,
 )
 from app.models.user import User
 
-
 # ── helpers ────────────────────────────────────────────────────────────────────
+
 
 def _user(uid: int = 1) -> MagicMock:
     u = MagicMock(spec=User)
@@ -47,7 +47,7 @@ def _db_with_progress(module_ids: list[str]):
         for mid in module_ids:
             p = MagicMock()
             p.module_id = mid
-            p.completed_at = datetime.now(timezone.utc)
+            p.completed_at = datetime.now(UTC)
             items.append(p)
         r.scalars.return_value.all.return_value = items
         r.scalar_one_or_none.return_value = items[0] if items else None
@@ -59,6 +59,7 @@ def _db_with_progress(module_ids: list[str]):
 
 # ── catalogue ─────────────────────────────────────────────────────────────────
 
+
 def test_exactly_five_modules():
     assert len(MODULES) == 5
 
@@ -69,7 +70,18 @@ def test_module_ids():
 
 
 def test_each_module_has_required_fields():
-    required = {"id", "title", "icon", "color", "duration_min", "description", "scenario", "choices", "correct", "explanation"}
+    required = {
+        "id",
+        "title",
+        "icon",
+        "color",
+        "duration_min",
+        "description",
+        "scenario",
+        "choices",
+        "correct",
+        "explanation",
+    }
     for m in MODULES:
         assert required <= m.keys(), f"Module {m['id']} missing fields"
 
@@ -86,6 +98,7 @@ def test_correct_answer_is_valid_choice():
 
 
 # ── get_modules ───────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_get_modules_returns_all_five():
@@ -108,6 +121,7 @@ async def test_get_modules_marks_completed():
 
 
 # ── complete_module ───────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_complete_module_wrong_answer_returns_false():
@@ -139,6 +153,7 @@ async def test_complete_module_not_saved_if_wrong():
 @pytest.mark.asyncio
 async def test_complete_module_unknown_id_raises():
     from fastapi import HTTPException
+
     db = _db_no_progress()
     with pytest.raises(HTTPException) as exc:
         await complete_module("nonexistent", CompleteModuleIn(answer="a"), _user(), db)
@@ -155,6 +170,7 @@ async def test_complete_module_not_re_recorded_if_already_done():
 
 
 # ── get_progress ──────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_progress_zero_when_no_completions():

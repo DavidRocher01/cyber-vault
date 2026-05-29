@@ -11,14 +11,19 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
 
 @Component({
-    standalone: true,
-    selector: 'app-forgot-password',
-    imports: [
-        CommonModule, ReactiveFormsModule, RouterLink,
-        MatFormFieldModule, MatInputModule, MatButtonModule,
-        MatIconModule, MatProgressSpinnerModule,
-    ],
-    templateUrl: './forgot-password.component.html'
+  standalone: true,
+  selector: 'app-forgot-password',
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+  ],
+  templateUrl: './forgot-password.component.html',
 })
 export class ForgotPasswordComponent {
   private http = inject(HttpClient);
@@ -36,9 +41,17 @@ export class ForgotPasswordComponent {
     if (this.form.invalid) return;
     this.loading = true;
     this.error = null;
-    this.http.post(`${environment.apiUrl}/auth/forgot-password`, this.form.getRawValue()).subscribe({
-      next: () => { this.sent = true; this.loading = false; },
-      error: () => { this.error = 'Une erreur est survenue. Réessayez.'; this.loading = false; },
-    });
+    this.http
+      .post(`${environment.apiUrl}/auth/forgot-password`, this.form.getRawValue())
+      .subscribe({
+        next: () => {
+          this.sent = true;
+          this.loading = false;
+        },
+        error: () => {
+          this.error = 'Une erreur est survenue. Réessayez.';
+          this.loading = false;
+        },
+      });
   }
 }

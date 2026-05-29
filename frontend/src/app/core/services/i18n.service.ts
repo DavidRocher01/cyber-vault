@@ -25,7 +25,7 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     'scan.done': 'Terminés',
     'scan.running': 'En cours',
     'scan.error': 'Erreurs',
-    'plan.manage': 'Gérer l\'abonnement',
+    'plan.manage': "Gérer l'abonnement",
   },
   en: {
     'nav.home': 'Home',

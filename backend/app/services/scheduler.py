@@ -5,22 +5,26 @@ Business : toutes les 7 nuits à 2h00.
 """
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 
 from app.core.database import AsyncSessionLocal
 from app.models.app_setting import AppSetting
+from app.models.newsletter_subscriber import NewsletterSubscriber
+from app.models.plan import Plan
 from app.models.scan import Scan
 from app.models.site import Site
 from app.models.subscription import Subscription
-from app.models.plan import Plan
-from app.services.scan_service import run_scan
-from app.services.email_service import send_scan_report, send_ssl_expiry_alert, send_monthly_digest
+from app.services.email_service import (
+    send_monthly_digest,
+    send_scan_report,
+    send_ssl_expiry_alert,
+)
 from app.services.newsletter_email import send_newsletter_issue
-from app.models.newsletter_subscriber import NewsletterSubscriber
+from app.services.scan_service import run_scan
 
 scheduler = AsyncIOScheduler()
 
@@ -51,18 +55,17 @@ async def _schedule_due_scans() -> None:
             .group_by(Scan.site_id)
             .subquery()
         )
-        last_scans_result = await db.execute(
-            select(Scan).where(Scan.id.in_(select(subq.c.max_id)))
-        )
+        last_scans_result = await db.execute(select(Scan).where(Scan.id.in_(select(subq.c.max_id))))
         last_scan_map: dict[int, Scan] = {s.site_id: s for s in last_scans_result.scalars().all()}
 
         # Batch load users
         from app.models.user import User
+
         user_ids = list({site.user_id for site, _ in rows})
         users_result = await db.execute(select(User).where(User.id.in_(user_ids)))
         user_map: dict[int, User] = {u.id: u for u in users_result.scalars().all()}
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for site, plan in rows:
             last_scan = last_scan_map.get(site.id)
             if last_scan and last_scan.finished_at:
@@ -100,9 +103,10 @@ _SSL_THRESHOLDS = [7, 14, 30]
 
 async def _check_ssl_alerts() -> None:
     """Daily job: send SSL expiry alerts when cert expires within 30/14/7 days."""
-    from app.models.user import User
-    from app.core.config import settings
     import json
+
+    from app.core.config import settings
+    from app.models.user import User
 
     async with AsyncSessionLocal() as db:
         result = await db.execute(
@@ -122,9 +126,7 @@ async def _check_ssl_alerts() -> None:
             .group_by(Scan.site_id)
             .subquery()
         )
-        last_scans_result = await db.execute(
-            select(Scan).where(Scan.id.in_(select(subq.c.max_id)))
-        )
+        last_scans_result = await db.execute(select(Scan).where(Scan.id.in_(select(subq.c.max_id))))
         last_scan_map: dict[int, Scan] = {s.site_id: s for s in last_scans_result.scalars().all()}
 
         user_ids = list({site.user_id for site, _ in rows})
@@ -177,7 +179,7 @@ async def _check_ssl_alerts() -> None:
                     dashboard_url=dashboard_url,
                 )
                 site.ssl_alert_threshold = threshold
-                site.ssl_alert_sent_at = datetime.now(timezone.utc)
+                site.ssl_alert_sent_at = datetime.now(UTC)
                 await db.commit()
             except Exception:
                 pass
@@ -211,8 +213,9 @@ async def _send_biweekly_newsletter() -> None:
     """Send the Radar Cyber newsletter to all active subscribers."""
     import json as _json
 
-    from app.core.config import settings
     from loguru import logger
+
+    from app.core.config import settings
 
     async with AsyncSessionLocal() as db:
         # Read and atomically increment the persisted edition counter
@@ -247,7 +250,9 @@ async def _send_biweekly_newsletter() -> None:
     legal_body = content["legal_body"]
 
     for sub in subscribers:
-        unsubscribe_url = f"{settings.FRONTEND_URL}/newsletter/unsubscribe?token={sub.unsubscribe_token}"
+        unsubscribe_url = (
+            f"{settings.FRONTEND_URL}/newsletter/unsubscribe?token={sub.unsubscribe_token}"
+        )
         try:
             await asyncio.to_thread(
                 send_newsletter_issue,
@@ -268,8 +273,18 @@ async def _send_biweekly_newsletter() -> None:
 
 
 _MONTHS_FR = [
-    "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-    "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
+    "Janvier",
+    "Février",
+    "Mars",
+    "Avril",
+    "Mai",
+    "Juin",
+    "Juillet",
+    "Août",
+    "Septembre",
+    "Octobre",
+    "Novembre",
+    "Décembre",
 ]
 
 
@@ -277,15 +292,16 @@ async def _send_monthly_digest_job() -> None:
     """1st of each month: send a security digest to every paying user."""
     import json as _json
     from calendar import monthrange
-    from app.models.user import User
-    from app.core.config import settings
 
-    now = datetime.now(timezone.utc)
+    from app.core.config import settings
+    from app.models.user import User
+
+    now = datetime.now(UTC)
     last_month = now.month - 1 if now.month > 1 else 12
     last_year = now.year if now.month > 1 else now.year - 1
     _, days_in_month = monthrange(last_year, last_month)
-    start = datetime(last_year, last_month, 1, 0, 0, 0, tzinfo=timezone.utc)
-    end = datetime(last_year, last_month, days_in_month, 23, 59, 59, tzinfo=timezone.utc)
+    start = datetime(last_year, last_month, 1, 0, 0, 0, tzinfo=UTC)
+    end = datetime(last_year, last_month, days_in_month, 23, 59, 59, tzinfo=UTC)
     month_label = f"{_MONTHS_FR[last_month - 1]} {last_year}"
 
     async with AsyncSessionLocal() as db:
@@ -311,12 +327,14 @@ async def _send_monthly_digest_job() -> None:
 
         # Load scans for last month in a single query
         scans_result = await db.execute(
-            select(Scan).where(
+            select(Scan)
+            .where(
                 Scan.site_id.in_(all_site_ids),
                 Scan.created_at >= start,
                 Scan.created_at <= end,
                 Scan.status == "done",
-            ).order_by(Scan.site_id, Scan.created_at.desc())
+            )
+            .order_by(Scan.site_id, Scan.created_at.desc())
         )
         scans_by_site: dict[int, list[Scan]] = {}
         for scan in scans_result.scalars().all():
@@ -345,13 +363,15 @@ async def _send_monthly_digest_job() -> None:
                                 warning_count += 1
                 except Exception:
                     pass
-            sites_summary.append({
-                "url": site.url,
-                "overall_status": overall_status,
-                "scans_count": len(scans),
-                "critical_count": critical_count,
-                "warning_count": warning_count,
-            })
+            sites_summary.append(
+                {
+                    "url": site.url,
+                    "overall_status": overall_status,
+                    "scans_count": len(scans),
+                    "critical_count": critical_count,
+                    "warning_count": warning_count,
+                }
+            )
 
         try:
             await asyncio.to_thread(
@@ -367,13 +387,16 @@ async def _send_monthly_digest_job() -> None:
 
 async def _run_darkweb_monitoring() -> None:
     """Monthly job: re-scan active monitored dossiers and send alerts on new exposures."""
+    from app.core.config import settings
     from app.models.darkweb_dossier import DarkwebDossier, DarkwebDossierTarget
     from app.models.user import User
-    from app.services.darkweb_dossier_service import process_dossier, send_darkweb_alert_email
-    from app.core.config import settings
+    from app.services.darkweb_dossier_service import (
+        process_dossier,
+        send_darkweb_alert_email,
+    )
 
     async with AsyncSessionLocal() as db:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         result = await db.execute(
             select(DarkwebDossier).where(
                 DarkwebDossier.monitor_active == True,  # noqa: E712
@@ -396,15 +419,20 @@ async def _run_darkweb_monitoring() -> None:
 
         # Reset and re-process
         async with AsyncSessionLocal() as db:
-            dossier = (await db.execute(
-                select(DarkwebDossier).where(DarkwebDossier.id == d.id)
-            )).scalar_one_or_none()
+            dossier = (
+                await db.execute(select(DarkwebDossier).where(DarkwebDossier.id == d.id))
+            ).scalar_one_or_none()
             if not dossier:
                 continue
             await db.execute(
                 DarkwebDossierTarget.__table__.update()
                 .where(DarkwebDossierTarget.dossier_id == d.id)
-                .values(status="pending", total_breaches=0, breach_sources_json=None, checked_at=None)
+                .values(
+                    status="pending",
+                    total_breaches=0,
+                    breach_sources_json=None,
+                    checked_at=None,
+                )
             )
             dossier.status = "pending"
             dossier.started_at = None
@@ -426,11 +454,11 @@ async def _run_darkweb_monitoring() -> None:
                     DarkwebDossierTarget.status == "exposed",
                 )
             )
-            new_exposed = [t.email for t in new_result.scalars().all() if t.email not in prev_exposed]
+            new_exposed = [
+                t.email for t in new_result.scalars().all() if t.email not in prev_exposed
+            ]
 
-            user_result = await db.execute(
-                select(User).where(User.id == d.user_id)
-            )
+            user_result = await db.execute(select(User).where(User.id == d.user_id))
             user = user_result.scalar_one_or_none()
 
         if new_exposed and user:
@@ -461,12 +489,13 @@ def start_scheduler() -> None:
     )
     # Newsletter toutes les 2 semaines — première exécution dans 2 semaines (pas au démarrage)
     from apscheduler.triggers.interval import IntervalTrigger
+
     scheduler.add_job(
         _send_biweekly_newsletter,
         trigger=IntervalTrigger(
             weeks=2,
             timezone="UTC",
-            start_date=datetime.now(timezone.utc) + timedelta(weeks=2),
+            start_date=datetime.now(UTC) + timedelta(weeks=2),
         ),
         id="biweekly_newsletter",
         replace_existing=True,
@@ -479,7 +508,9 @@ def start_scheduler() -> None:
     )
     # Phishing batch sender — every 15 minutes to drip-send pending emails
     from apscheduler.triggers.interval import IntervalTrigger as _IT
+
     from app.services.phishing_service import send_pending_batch
+
     scheduler.add_job(
         send_pending_batch,
         trigger=_IT(minutes=15),

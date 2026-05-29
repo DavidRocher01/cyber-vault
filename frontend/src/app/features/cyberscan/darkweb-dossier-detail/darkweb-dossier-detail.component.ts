@@ -21,8 +21,12 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
   selector: 'app-darkweb-dossier-detail',
   imports: [
     RouterLink,
-    MatButtonModule, MatExpansionModule, MatIconModule,
-    MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule,
+    MatButtonModule,
+    MatExpansionModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+    MatTooltipModule,
     NavButtonsComponent,
   ],
   templateUrl: './darkweb-dossier-detail.component.html',
@@ -45,7 +49,10 @@ export class DarkwebDossierDetailComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.title.setTitle('Dossier Dark Web — CyberScan');
     const id = Number(this.route.snapshot.paramMap.get('id'));
-    if (!id) { this.router.navigate(['/cyberscan/darkweb-dossier']); return; }
+    if (!id) {
+      this.router.navigate(['/cyberscan/darkweb-dossier']);
+      return;
+    }
     this.loadDossier(id);
   }
 
@@ -95,9 +102,11 @@ export class DarkwebDossierDetailComponent implements OnInit, OnDestroy {
         this.snack.open('Rescan lancé — analyse en cours…', 'OK', { duration: 4000 });
         this.startPolling(d.id);
       },
-      error: (err) => {
+      error: err => {
         this.rescanning.set(false);
-        this.snack.open(err?.error?.detail || 'Erreur lors du rescan', 'Fermer', { duration: 4000 });
+        this.snack.open(err?.error?.detail || 'Erreur lors du rescan', 'Fermer', {
+          duration: 4000,
+        });
       },
     });
   }
@@ -108,7 +117,11 @@ export class DarkwebDossierDetailComponent implements OnInit, OnDestroy {
     this.togglingMonitor.set(true);
     this.service.toggleMonitor(d.id).subscribe({
       next: res => {
-        this.dossier.set({ ...d, monitor_active: res.monitor_active, next_monitor_at: res.next_monitor_at });
+        this.dossier.set({
+          ...d,
+          monitor_active: res.monitor_active,
+          next_monitor_at: res.next_monitor_at,
+        });
         this.togglingMonitor.set(false);
         const msg = res.monitor_active
           ? 'Monitoring mensuel activé — vous serez alerté en cas de nouvelle fuite'
@@ -126,16 +139,18 @@ export class DarkwebDossierDetailComponent implements OnInit, OnDestroy {
     const d = this.dossier();
     if (!d) return;
     this.downloadingPdf.set(true);
-    this._downloadFile(this.service.getPdfUrl(d.id), `dossier-darkweb-${d.domain}.pdf`)
-      .finally(() => this.downloadingPdf.set(false));
+    this._downloadFile(this.service.getPdfUrl(d.id), `dossier-darkweb-${d.domain}.pdf`).finally(
+      () => this.downloadingPdf.set(false)
+    );
   }
 
   downloadCsv() {
     const d = this.dossier();
     if (!d) return;
     this.downloadingCsv.set(true);
-    this._downloadFile(this.service.getCsvUrl(d.id), `dossier-darkweb-${d.domain}.csv`)
-      .finally(() => this.downloadingCsv.set(false));
+    this._downloadFile(this.service.getCsvUrl(d.id), `dossier-darkweb-${d.domain}.csv`).finally(
+      () => this.downloadingCsv.set(false)
+    );
   }
 
   private _downloadFile(url: string, filename: string): Promise<void> {
@@ -189,21 +204,31 @@ export class DarkwebDossierDetailComponent implements OnInit, OnDestroy {
 
   checkStatusLabel(cs: string): string {
     switch (cs) {
-      case 'verified_clean': return 'Vérifié sain';
-      case 'exposed': return 'Exposé';
-      case 'rate_limited': return 'Rate limit';
-      case 'api_error': return 'Erreur API';
-      default: return 'En attente';
+      case 'verified_clean':
+        return 'Vérifié sain';
+      case 'exposed':
+        return 'Exposé';
+      case 'rate_limited':
+        return 'Rate limit';
+      case 'api_error':
+        return 'Erreur API';
+      default:
+        return 'En attente';
     }
   }
 
   checkStatusClass(cs: string): string {
     switch (cs) {
-      case 'verified_clean': return 'text-green-400 bg-green-500/10 border-green-500/30';
-      case 'exposed': return 'text-red-400 bg-red-500/10 border-red-500/30';
-      case 'rate_limited': return 'text-orange-400 bg-orange-500/10 border-orange-500/30';
-      case 'api_error': return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
-      default: return 'text-gray-400 bg-gray-500/10 border-gray-500/30';
+      case 'verified_clean':
+        return 'text-green-400 bg-green-500/10 border-green-500/30';
+      case 'exposed':
+        return 'text-red-400 bg-red-500/10 border-red-500/30';
+      case 'rate_limited':
+        return 'text-orange-400 bg-orange-500/10 border-orange-500/30';
+      case 'api_error':
+        return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
+      default:
+        return 'text-gray-400 bg-gray-500/10 border-gray-500/30';
     }
   }
 
@@ -250,19 +275,27 @@ export class DarkwebDossierDetailComponent implements OnInit, OnDestroy {
 
   statusLabel(status: string): string {
     switch (status) {
-      case 'pending': return 'En attente';
-      case 'processing': return 'Analyse en cours';
-      case 'completed': return 'Terminé';
-      case 'failed': return 'Erreur';
-      default: return status;
+      case 'pending':
+        return 'En attente';
+      case 'processing':
+        return 'Analyse en cours';
+      case 'completed':
+        return 'Terminé';
+      case 'failed':
+        return 'Erreur';
+      default:
+        return status;
     }
   }
 
   formatDate(d: string | null): string {
     if (!d) return '—';
     return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit', month: 'long', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   }
 

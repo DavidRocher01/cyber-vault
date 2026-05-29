@@ -42,11 +42,17 @@ export class UserService {
   }
 
   updateEmail(email: string, currentPassword: string): Observable<UserProfile> {
-    return this.http.put<UserProfile>(`${API}/users/me/email`, { email, current_password: currentPassword });
+    return this.http.put<UserProfile>(`${API}/users/me/email`, {
+      email,
+      current_password: currentPassword,
+    });
   }
 
   updatePassword(currentPassword: string, newPassword: string): Observable<void> {
-    return this.http.put<void>(`${API}/users/me/password`, { current_password: currentPassword, new_password: newPassword });
+    return this.http.put<void>(`${API}/users/me/password`, {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
   }
 
   setup2FA(): Observable<TwoFactorSetup> {
@@ -77,8 +83,13 @@ export class UserService {
     return this.http.get<NotificationPreferences>(`${API}/users/me/notification-preferences`);
   }
 
-  updateNotificationPreferences(prefs: NotificationPreferences): Observable<NotificationPreferences> {
-    return this.http.put<NotificationPreferences>(`${API}/users/me/notification-preferences`, prefs);
+  updateNotificationPreferences(
+    prefs: NotificationPreferences
+  ): Observable<NotificationPreferences> {
+    return this.http.put<NotificationPreferences>(
+      `${API}/users/me/notification-preferences`,
+      prefs
+    );
   }
 
   getBadges(): Observable<Badge[]> {

@@ -8,8 +8,6 @@ Covers: generate_remediation returns expected script keys,
 import os
 import sys
 import tempfile
-import pytest
-
 from pathlib import Path
 
 # Add cyber-scanner to path (mirrors scan_service.py setup)
@@ -19,8 +17,8 @@ if str(SCANNER_DIR) not in sys.path:
 
 from scanner.remediation import generate_remediation
 
-
 # ── tests ─────────────────────────────────────────────────────────────────────
+
 
 def test_generate_remediation_always_produces_ufw_and_ssh():
     """UFW and SSH scripts are always generated regardless of inputs."""

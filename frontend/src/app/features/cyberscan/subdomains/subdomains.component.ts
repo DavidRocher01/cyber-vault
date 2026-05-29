@@ -12,7 +12,15 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
 @Component({
   standalone: true,
   selector: 'app-subdomains',
-  imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule, NavButtonsComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatTooltipModule,
+    NavButtonsComponent,
+  ],
   templateUrl: './subdomains.component.html',
 })
 export class SubdomainsComponent implements OnInit {
@@ -29,20 +37,32 @@ export class SubdomainsComponent implements OnInit {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.siteId.set(id);
     this.cyberscan.getSiteSubdomains(id).subscribe({
-      next: r => { this.result.set(r); this.loading.set(false); },
-      error: () => { this.error.set('Impossible de charger les sous-domaines.'); this.loading.set(false); },
+      next: r => {
+        this.result.set(r);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.error.set('Impossible de charger les sous-domaines.');
+        this.loading.set(false);
+      },
     });
   }
 
   get filtered(): SubdomainEntry[] {
     const q = this.search().toLowerCase();
-    return (this.result()?.subdomains ?? []).filter(s =>
-      !q || s.subdomain.toLowerCase().includes(q) || s.ip.includes(q)
+    return (this.result()?.subdomains ?? []).filter(
+      s => !q || s.subdomain.toLowerCase().includes(q) || s.ip.includes(q)
     );
   }
 
   formatDate(d: string | null): string {
     if (!d) return '—';
-    return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return new Date(d).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   }
 }

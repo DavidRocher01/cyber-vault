@@ -1,5 +1,11 @@
 import { Component, inject, signal } from '@angular/core';
-import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import {
+  ReactiveFormsModule,
+  FormBuilder,
+  Validators,
+  AbstractControl,
+  ValidationErrors,
+} from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,7 +17,13 @@ import { OtpInputComponent } from '../../../../../shared/otp-input/otp-input.com
 @Component({
   standalone: true,
   selector: 'app-auth-modal',
-  imports: [ReactiveFormsModule, RouterLink, MatIconModule, MatProgressSpinnerModule, OtpInputComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    OtpInputComponent,
+  ],
   templateUrl: './auth-modal.component.html',
 })
 export class AuthModalComponent {
@@ -19,31 +31,36 @@ export class AuthModalComponent {
   private router = inject(Router);
   private fb = inject(FormBuilder);
 
-  authPanel   = signal<'closed' | 'login' | 'register'>('closed');
+  authPanel = signal<'closed' | 'login' | 'register'>('closed');
   auth2faStep = signal(false);
 
-  pendingEmail    = '';
+  pendingEmail = '';
   pendingPassword = '';
-  authOtpCode     = '';
-  authOtpClear    = 0;
-  authLoading     = false;
+  authOtpCode = '';
+  authOtpClear = 0;
+  authLoading = false;
   authError: string | null = null;
   showAuthPassword = false;
 
   loginForm = this.fb.nonNullable.group({
-    email:    ['', [Validators.required, Validators.email]],
+    email: ['', [Validators.required, Validators.email]],
     password: ['', Validators.required],
   });
 
-  registerForm = this.fb.nonNullable.group({
-    email:           ['', [Validators.required, Validators.email]],
-    password:        ['', [Validators.required, Validators.minLength(8)]],
-    confirmPassword: ['', Validators.required],
-  }, { validators: (g: AbstractControl): ValidationErrors | null => {
-    const pw = g.get('password')?.value;
-    const cp = g.get('confirmPassword')?.value;
-    return pw && cp && pw !== cp ? { mismatch: true } : null;
-  }});
+  registerForm = this.fb.nonNullable.group(
+    {
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(8)]],
+      confirmPassword: ['', Validators.required],
+    },
+    {
+      validators: (g: AbstractControl): ValidationErrors | null => {
+        const pw = g.get('password')?.value;
+        const cp = g.get('confirmPassword')?.value;
+        return pw && cp && pw !== cp ? { mismatch: true } : null;
+      },
+    }
+  );
 
   open(mode: 'login' | 'register') {
     this.authError = null;
@@ -96,7 +113,10 @@ export class AuthModalComponent {
     this.authLoading = true;
     this.authError = null;
     this.auth.login(this.pendingEmail, this.pendingPassword, this.authOtpCode).subscribe({
-      next: () => { this.close(); this.router.navigate(['/cyberscan']); },
+      next: () => {
+        this.close();
+        this.router.navigate(['/cyberscan']);
+      },
       error: err => {
         this.authError = err.error?.detail ?? 'Code invalide.';
         this.authLoading = false;
@@ -116,15 +136,19 @@ export class AuthModalComponent {
     this.authLoading = true;
     this.authError = null;
     const { email, password } = this.registerForm.getRawValue();
-    this.auth.register(email, password).pipe(
-      switchMap(() => this.auth.login(email, password))
-    ).subscribe({
-      next: () => { this.close(); this.router.navigate(['/cyberscan/onboarding']); },
-      error: err => {
-        this.authError = err.error?.detail ?? 'Erreur lors de la création du compte.';
-        this.authLoading = false;
-      },
-    });
+    this.auth
+      .register(email, password)
+      .pipe(switchMap(() => this.auth.login(email, password)))
+      .subscribe({
+        next: () => {
+          this.close();
+          this.router.navigate(['/cyberscan/onboarding']);
+        },
+        error: err => {
+          this.authError = err.error?.detail ?? 'Erreur lors de la création du compte.';
+          this.authLoading = false;
+        },
+      });
   }
 
   get registerPasswordStrength(): number {

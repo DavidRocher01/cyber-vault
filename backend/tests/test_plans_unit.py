@@ -1,8 +1,9 @@
 """Unit tests — direct calls to plans and nis2 endpoints to cover function bodies."""
 
-import json
 from unittest.mock import AsyncMock, MagicMock
+
 import pytest
+
 from app.api.v1.endpoints.plans import list_plans
 
 

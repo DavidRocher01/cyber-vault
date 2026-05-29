@@ -23,9 +23,7 @@ describe('AuthService', () => {
   });
 
   it('login() stocke access_token et email (refresh_token dans cookie httpOnly)', () => {
-    httpMock.post.mockReturnValue(
-      of({ access_token: 'acc123', token_type: 'bearer' })
-    );
+    httpMock.post.mockReturnValue(of({ access_token: 'acc123', token_type: 'bearer' }));
     service.login('user@test.com', 'pass').subscribe();
     expect(service.getToken()).toBe('acc123');
     expect(service.getCurrentEmail()).toBe('user@test.com');

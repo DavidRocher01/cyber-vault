@@ -2,18 +2,18 @@
 Unit tests for GET /users/me/badges endpoint.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from app.api.v1.endpoints.users import get_my_badges
-from app.models.user import User
-from app.models.scan import Scan
 from app.models.nis2_assessment import Nis2Assessment
-
+from app.models.scan import Scan
+from app.models.user import User
 
 # ── helpers ────────────────────────────────────────────────────────────────────
+
 
 def _user(uid: int = 1) -> MagicMock:
     u = MagicMock(spec=User)
@@ -26,14 +26,14 @@ def _scan(site_id=1, overall="OK", days_ago=5) -> MagicMock:
     s.site_id = site_id
     s.status = "done"
     s.overall_status = overall
-    s.finished_at = datetime.now(timezone.utc) - timedelta(days=days_ago)
+    s.finished_at = datetime.now(UTC) - timedelta(days=days_ago)
     return s
 
 
 def _nis2(score=75) -> MagicMock:
     n = MagicMock(spec=Nis2Assessment)
     n.score = score
-    n.updated_at = datetime.now(timezone.utc)
+    n.updated_at = datetime.now(UTC)
     return n
 
 
@@ -57,6 +57,7 @@ def _db(scans: list, nis2=None):
 
 # ── always returns 5 badges ───────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_returns_exactly_five_badges():
     result = await get_my_badges(_user(), _db([]))
@@ -67,10 +68,17 @@ async def test_returns_exactly_five_badges():
 async def test_badge_ids_are_correct():
     result = await get_my_badges(_user(), _db([]))
     ids = {b["id"] for b in result}
-    assert ids == {"first_scan", "power_user", "site_secured", "no_critical_30d", "nis2_complete"}
+    assert ids == {
+        "first_scan",
+        "power_user",
+        "site_secured",
+        "no_critical_30d",
+        "nis2_complete",
+    }
 
 
 # ── first_scan ────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_first_scan_not_earned_without_scans():
@@ -90,6 +98,7 @@ async def test_first_scan_earned_with_one_scan():
 
 # ── power_user ────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_power_user_not_earned_with_four_scans():
     result = await get_my_badges(_user(), _db([_scan() for _ in range(4)]))
@@ -107,6 +116,7 @@ async def test_power_user_earned_with_five_scans():
 
 # ── site_secured ──────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_site_secured_not_earned_with_only_critical_scans():
     result = await get_my_badges(_user(), _db([_scan(overall="CRITICAL")]))
@@ -122,6 +132,7 @@ async def test_site_secured_earned_with_ok_scan():
 
 
 # ── no_critical_30d ────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_no_critical_30d_not_earned_without_recent_scans():
@@ -147,6 +158,7 @@ async def test_no_critical_30d_not_earned_if_critical_in_period():
 
 # ── nis2_complete ──────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_nis2_not_earned_without_assessment():
     result = await get_my_badges(_user(), _db([], nis2=None))
@@ -170,6 +182,7 @@ async def test_nis2_earned_with_positive_score():
 
 
 # ── structure validation ──────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_each_badge_has_required_fields():

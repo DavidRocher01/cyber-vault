@@ -4,10 +4,10 @@ Covers: get my subscription (none/active), checkout dev mode,
         billing portal dev mode, plan not found, auth isolation.
 """
 
+from unittest.mock import patch
+
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-from unittest.mock import patch
 
 from app.main import app
 from app.models.plan import Plan
@@ -24,6 +24,7 @@ async def _headers(client: AsyncClient, email: str) -> dict:
 async def _seed_plan(name: str = "starter") -> int:
     """Insert a plan directly via the DB override and return its id."""
     from app.core.database import AsyncSessionLocal
+
     async with AsyncSessionLocal() as db:
         plan = Plan(
             name=name,
@@ -42,6 +43,7 @@ async def _seed_plan(name: str = "starter") -> int:
 
 
 # ── GET /subscriptions/me ─────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_get_subscription_returns_none_when_no_subscription():
@@ -72,6 +74,7 @@ async def test_get_subscription_returns_active_after_checkout():
 
 
 # ── POST /subscriptions/checkout/{plan_id} ────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_checkout_dev_mode_returns_url():
@@ -117,6 +120,7 @@ async def test_checkout_updates_existing_subscription():
 @pytest.mark.asyncio
 async def test_checkout_inactive_plan_returns_404():
     from app.core.database import AsyncSessionLocal
+
     async with AsyncSessionLocal() as db:
         plan = Plan(
             name="inactive_plan",
@@ -141,6 +145,7 @@ async def test_checkout_inactive_plan_returns_404():
 
 # ── GET /subscriptions/portal ─────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_portal_dev_mode_returns_dashboard_url():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -160,10 +165,12 @@ async def test_portal_unauthenticated_returns_401():
 
 # ── Free plan path (non-dev mode) ─────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_checkout_free_plan_activates_directly():
     """price_eur=0 plan in non-dev mode → activates subscription without Stripe."""
     from app.core.database import AsyncSessionLocal
+
     async with AsyncSessionLocal() as db:
         plan = Plan(
             name="free_plan_test",
@@ -192,6 +199,7 @@ async def test_checkout_free_plan_activates_directly():
 async def test_checkout_free_plan_updates_existing_subscription():
     """Free plan checkout when subscription already exists → update it."""
     from app.core.database import AsyncSessionLocal
+
     async with AsyncSessionLocal() as db:
         plan = Plan(
             name="free_upd_test",
@@ -222,6 +230,7 @@ async def test_checkout_free_plan_updates_existing_subscription():
 async def test_checkout_paid_plan_no_stripe_price_returns_400():
     """Paid plan with empty stripe_price_id in non-dev mode → 400."""
     from app.core.database import AsyncSessionLocal
+
     async with AsyncSessionLocal() as db:
         plan = Plan(
             name="paid_nostripeid",
@@ -247,6 +256,7 @@ async def test_checkout_paid_plan_no_stripe_price_returns_400():
 
 
 # ── Extra-sites add-on ─────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_get_extra_sites_no_subscription_returns_zero():

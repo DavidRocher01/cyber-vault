@@ -1,4 +1,5 @@
 """Module PCA Light — generates a mini Business Continuity Plan PDF."""
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel

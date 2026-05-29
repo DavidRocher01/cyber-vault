@@ -2,6 +2,7 @@
 Public cost calculator — 5 questions → estimated cyber-attack cost + lead capture.
 No authentication required.
 """
+
 from fastapi import APIRouter
 from pydantic import BaseModel, EmailStr, Field
 
@@ -17,10 +18,10 @@ QUESTIONS = [
         "text": "Quel est l'effectif de votre organisation ?",
         "key": "size",
         "options": [
-            {"id": "xs",  "text": "Moins de 10 employés",     "multiplier": 1.0},
-            {"id": "sm",  "text": "10 à 49 employés",         "multiplier": 1.8},
-            {"id": "md",  "text": "50 à 249 employés",        "multiplier": 3.5},
-            {"id": "lg",  "text": "250 employés et plus",     "multiplier": 7.0},
+            {"id": "xs", "text": "Moins de 10 employés", "multiplier": 1.0},
+            {"id": "sm", "text": "10 à 49 employés", "multiplier": 1.8},
+            {"id": "md", "text": "50 à 249 employés", "multiplier": 3.5},
+            {"id": "lg", "text": "250 employés et plus", "multiplier": 7.0},
         ],
     },
     {
@@ -28,9 +29,9 @@ QUESTIONS = [
         "text": "Quel secteur décrit le mieux votre activité ?",
         "key": "sector",
         "options": [
-            {"id": "retail",   "text": "Commerce / Services",     "multiplier": 1.0},
-            {"id": "health",   "text": "Santé / Médical",         "multiplier": 2.2},
-            {"id": "finance",  "text": "Finance / Banque",        "multiplier": 3.0},
+            {"id": "retail", "text": "Commerce / Services", "multiplier": 1.0},
+            {"id": "health", "text": "Santé / Médical", "multiplier": 2.2},
+            {"id": "finance", "text": "Finance / Banque", "multiplier": 3.0},
             {"id": "industry", "text": "Industrie / Fabrication", "multiplier": 1.6},
         ],
     },
@@ -39,10 +40,22 @@ QUESTIONS = [
         "text": "Quelle est la nature des données que vous traitez ?",
         "key": "data",
         "options": [
-            {"id": "public",      "text": "Données publiques uniquement",         "multiplier": 0.5},
-            {"id": "internal",    "text": "Données internes non sensibles",       "multiplier": 1.0},
-            {"id": "personal",    "text": "Données personnelles (clients, RH)",   "multiplier": 2.0},
-            {"id": "critical",    "text": "Données critiques (santé, finance)",   "multiplier": 3.5},
+            {"id": "public", "text": "Données publiques uniquement", "multiplier": 0.5},
+            {
+                "id": "internal",
+                "text": "Données internes non sensibles",
+                "multiplier": 1.0,
+            },
+            {
+                "id": "personal",
+                "text": "Données personnelles (clients, RH)",
+                "multiplier": 2.0,
+            },
+            {
+                "id": "critical",
+                "text": "Données critiques (santé, finance)",
+                "multiplier": 3.5,
+            },
         ],
     },
     {
@@ -50,10 +63,22 @@ QUESTIONS = [
         "text": "Disposez-vous d'une solution de sauvegarde testée régulièrement ?",
         "key": "backup",
         "options": [
-            {"id": "none",     "text": "Non, aucune sauvegarde",               "multiplier": 2.5},
-            {"id": "partial",  "text": "Sauvegardes partielles, non testées",  "multiplier": 1.8},
-            {"id": "basic",    "text": "Sauvegardes régulières, non testées",  "multiplier": 1.2},
-            {"id": "full",     "text": "Sauvegardes complètes et testées",     "multiplier": 0.7},
+            {"id": "none", "text": "Non, aucune sauvegarde", "multiplier": 2.5},
+            {
+                "id": "partial",
+                "text": "Sauvegardes partielles, non testées",
+                "multiplier": 1.8,
+            },
+            {
+                "id": "basic",
+                "text": "Sauvegardes régulières, non testées",
+                "multiplier": 1.2,
+            },
+            {
+                "id": "full",
+                "text": "Sauvegardes complètes et testées",
+                "multiplier": 0.7,
+            },
         ],
     },
     {
@@ -61,10 +86,14 @@ QUESTIONS = [
         "text": "Avez-vous une cyberassurance ou un plan de réponse aux incidents ?",
         "key": "coverage",
         "options": [
-            {"id": "none",      "text": "Non, aucune protection",              "multiplier": 2.0},
-            {"id": "partial",   "text": "Plan basique sans cyberassurance",    "multiplier": 1.5},
-            {"id": "insurance", "text": "Cyberassurance uniquement",           "multiplier": 0.9},
-            {"id": "full",      "text": "Plan complet + cyberassurance",       "multiplier": 0.5},
+            {"id": "none", "text": "Non, aucune protection", "multiplier": 2.0},
+            {
+                "id": "partial",
+                "text": "Plan basique sans cyberassurance",
+                "multiplier": 1.5,
+            },
+            {"id": "insurance", "text": "Cyberassurance uniquement", "multiplier": 0.9},
+            {"id": "full", "text": "Plan complet + cyberassurance", "multiplier": 0.5},
         ],
     },
 ]
@@ -97,17 +126,30 @@ def _compute_cost(answers: dict[str, str]) -> dict:
 
 def _breakdown(total: int) -> list[dict]:
     return [
-        {"label": "Arrêt d'activité & perte de CA",     "pct": 35, "eur": round(total * 0.35)},
-        {"label": "Récupération & restauration IT",      "pct": 25, "eur": round(total * 0.25)},
-        {"label": "Notification RGPD & juridique",       "pct": 15, "eur": round(total * 0.15)},
-        {"label": "Atteinte à la réputation",            "pct": 15, "eur": round(total * 0.15)},
-        {"label": "Investigation & forensics",           "pct": 10, "eur": round(total * 0.10)},
+        {
+            "label": "Arrêt d'activité & perte de CA",
+            "pct": 35,
+            "eur": round(total * 0.35),
+        },
+        {
+            "label": "Récupération & restauration IT",
+            "pct": 25,
+            "eur": round(total * 0.25),
+        },
+        {
+            "label": "Notification RGPD & juridique",
+            "pct": 15,
+            "eur": round(total * 0.15),
+        },
+        {"label": "Atteinte à la réputation", "pct": 15, "eur": round(total * 0.15)},
+        {"label": "Investigation & forensics", "pct": 10, "eur": round(total * 0.10)},
     ]
 
 
 # ---------------------------------------------------------------------------
 # Schemas
 # ---------------------------------------------------------------------------
+
 
 class CostAnswer(BaseModel):
     key: str
@@ -131,6 +173,7 @@ class CostResult(BaseModel):
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.get("/questions")
 async def get_questions():

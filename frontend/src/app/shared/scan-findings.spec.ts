@@ -27,7 +27,10 @@ describe('extractSummary() — ssl', () => {
 
 describe('extractSummary() — headers', () => {
   it('liste les headers manquants', () => {
-    const result = extractSummary('headers', { headers_missing: ['X-Frame-Options', 'CSP'], status: 'WARNING' });
+    const result = extractSummary('headers', {
+      headers_missing: ['X-Frame-Options', 'CSP'],
+      status: 'WARNING',
+    });
     expect(result[0].label).toBe('Headers manquants');
     expect(result[0].value).toContain('X-Frame-Options');
   });
@@ -46,7 +49,12 @@ describe('extractSummary() — headers', () => {
 
 describe('extractSummary() — email', () => {
   it('inclut SPF, DKIM, DMARC', () => {
-    const result = extractSummary('email', { spf: { found: true }, dkim: { found: false }, dmarc: { found: true }, status: 'WARNING' });
+    const result = extractSummary('email', {
+      spf: { found: true },
+      dkim: { found: false },
+      dmarc: { found: true },
+      status: 'WARNING',
+    });
     expect(result.some(r => r.label === 'SPF')).toBe(true);
     expect(result.some(r => r.label === 'DKIM')).toBe(true);
     expect(result.some(r => r.label === 'DMARC')).toBe(true);
@@ -65,7 +73,10 @@ describe('extractSummary() — email', () => {
 
 describe('extractSummary() — cookies', () => {
   it('liste les problèmes si présents', () => {
-    const result = extractSummary('cookies', { issues: ['HttpOnly manquant', 'Secure manquant'], status: 'WARNING' });
+    const result = extractSummary('cookies', {
+      issues: ['HttpOnly manquant', 'Secure manquant'],
+      status: 'WARNING',
+    });
     expect(result[0].label).toBe('Problèmes');
   });
 
@@ -89,26 +100,44 @@ describe('extractSummary() — cors', () => {
 });
 
 describe('extractSummary() — ip', () => {
-  it('affiche l\'IP et le nombre de blacklists', () => {
-    const result = extractSummary('ip', { ip: '1.2.3.4', total_listed: 2, listed_in: ['Spamhaus', 'SORBS'], status: 'WARNING' });
+  it("affiche l'IP et le nombre de blacklists", () => {
+    const result = extractSummary('ip', {
+      ip: '1.2.3.4',
+      total_listed: 2,
+      listed_in: ['Spamhaus', 'SORBS'],
+      status: 'WARNING',
+    });
     expect(result.some(r => r.label === 'IP')).toBe(true);
     expect(result.some(r => r.label === 'Blacklists')).toBe(true);
   });
 
-  it('affiche les listes dans lesquelles l\'IP est référencée', () => {
-    const result = extractSummary('ip', { ip: '1.2.3.4', total_listed: 1, listed_in: ['Spamhaus'], status: 'WARNING' });
+  it("affiche les listes dans lesquelles l'IP est référencée", () => {
+    const result = extractSummary('ip', {
+      ip: '1.2.3.4',
+      total_listed: 1,
+      listed_in: ['Spamhaus'],
+      status: 'WARNING',
+    });
     expect(result.some(r => r.label === 'Listé dans')).toBe(true);
   });
 
-  it('n\'affiche pas les listes si listed_in est vide', () => {
-    const result = extractSummary('ip', { ip: '1.2.3.4', total_listed: 0, listed_in: [], status: 'OK' });
+  it("n'affiche pas les listes si listed_in est vide", () => {
+    const result = extractSummary('ip', {
+      ip: '1.2.3.4',
+      total_listed: 0,
+      listed_in: [],
+      status: 'OK',
+    });
     expect(result.some(r => r.label === 'Listé dans')).toBe(false);
   });
 });
 
 describe('extractSummary() — dns', () => {
   it('affiche le nombre de sous-domaines', () => {
-    const result = extractSummary('dns', { found: [{ subdomain: 'api' }, { subdomain: 'mail' }], status: 'OK' });
+    const result = extractSummary('dns', {
+      found: [{ subdomain: 'api' }, { subdomain: 'mail' }],
+      status: 'OK',
+    });
     expect(result[0].value).toBe('2');
   });
 
@@ -156,13 +185,21 @@ describe('extractSummary() — tech', () => {
 
 describe('extractSummary() — tls', () => {
   it('affiche les protocoles supportés', () => {
-    const result = extractSummary('tls', { supported_protocols: ['TLSv1.2', 'TLSv1.3'], hsts: { present: true }, status: 'OK' });
+    const result = extractSummary('tls', {
+      supported_protocols: ['TLSv1.2', 'TLSv1.3'],
+      hsts: { present: true },
+      status: 'OK',
+    });
     expect(result.some(r => r.label === 'Protocoles')).toBe(true);
     expect(result.some(r => r.label === 'HSTS')).toBe(true);
   });
 
   it('affiche HSTS désactivé si absent', () => {
-    const result = extractSummary('tls', { supported_protocols: ['TLSv1.3'], hsts: { present: false }, status: 'OK' });
+    const result = extractSummary('tls', {
+      supported_protocols: ['TLSv1.3'],
+      hsts: { present: false },
+      status: 'OK',
+    });
     const hsts = result.find(r => r.label === 'HSTS');
     expect(hsts?.value).toBe('Désactivé');
   });
@@ -175,7 +212,10 @@ describe('extractSummary() — tls', () => {
 
 describe('extractSummary() — http_methods', () => {
   it('liste les méthodes dangereuses', () => {
-    const result = extractSummary('http_methods', { dangerous_allowed: ['PUT', 'DELETE'], status: 'WARNING' });
+    const result = extractSummary('http_methods', {
+      dangerous_allowed: ['PUT', 'DELETE'],
+      status: 'WARNING',
+    });
     expect(result[0].value).toContain('PUT');
   });
 

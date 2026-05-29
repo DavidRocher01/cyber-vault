@@ -1,20 +1,27 @@
 <div class="p-6 space-y-5">
   <div class="flex items-center justify-between flex-wrap gap-3">
     <h1 class="text-xl font-bold text-white">Utilisateurs</h1>
-    <input type="text" placeholder="Rechercher par email…"
-           [value]="search()" (input)="search.set($any($event.target).value)"
-           class="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white text-sm outline-none focus:border-cyan-500 w-64">
+    <input
+      type="text"
+      placeholder="Rechercher par email…"
+      [value]="search()"
+      (input)="search.set($any($event.target).value)"
+      class="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white text-sm outline-none focus:border-cyan-500 w-64"
+    />
   </div>
 
   <!-- Plan breakdown -->
   @if (!loading()) {
     <div class="grid grid-cols-4 gap-3">
-      @for (item of [
-        { label: 'Gratuit', key: 'free', color: 'text-gray-400' },
-        { label: 'Starter', key: 'starter', color: 'text-blue-400' },
-        { label: 'Pro', key: 'pro', color: 'text-purple-400' },
-        { label: 'Business', key: 'business', color: 'text-orange-400' }
-      ]; track item.key) {
+      @for (
+        item of [
+          { label: 'Gratuit', key: 'free', color: 'text-gray-400' },
+          { label: 'Starter', key: 'starter', color: 'text-blue-400' },
+          { label: 'Pro', key: 'pro', color: 'text-purple-400' },
+          { label: 'Business', key: 'business', color: 'text-orange-400' },
+        ];
+        track item.key
+      ) {
         <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-3 text-center">
           <p class="text-xs text-gray-500 mb-1">{{ item.label }}</p>
           <p class="text-lg font-bold" [class]="item.color">{{ planCounts()[item.key] ?? 0 }}</p>
@@ -48,20 +55,35 @@
                   {{ u.plan }}
                 </span>
               </td>
-              <td class="px-4 py-3 text-gray-400 text-xs">{{ formatDate(u.subscription_since) }}</td>
+              <td class="px-4 py-3 text-gray-400 text-xs">
+                {{ formatDate(u.subscription_since) }}
+              </td>
               <td class="px-4 py-3">
-                <span class="text-xs px-2 py-0.5 rounded-full"
-                      [class.bg-emerald-900]="u.is_active" [class.text-emerald-400]="u.is_active"
-                      [class.bg-red-900]="!u.is_active" [class.text-red-400]="!u.is_active">
+                <span
+                  class="text-xs px-2 py-0.5 rounded-full"
+                  [class.bg-emerald-900]="u.is_active"
+                  [class.text-emerald-400]="u.is_active"
+                  [class.bg-red-900]="!u.is_active"
+                  [class.text-red-400]="!u.is_active"
+                >
                   {{ u.is_active ? 'Actif' : 'Inactif' }}
                 </span>
               </td>
               <td class="px-4 py-3">
-                <button type="button" (click)="toggleRssi(u)"
-                        class="text-xs px-2 py-0.5 rounded-full transition-colors"
-                        [class.bg-cyan-900]="u.is_rssi_consultant" [class.text-cyan-400]="u.is_rssi_consultant"
-                        [class.bg-gray-700]="!u.is_rssi_consultant" [class.text-gray-400]="!u.is_rssi_consultant"
-                        [title]="u.is_rssi_consultant ? 'Retirer le rôle consultant' : 'Activer le rôle consultant'">
+                <button
+                  type="button"
+                  (click)="toggleRssi(u)"
+                  class="text-xs px-2 py-0.5 rounded-full transition-colors"
+                  [class.bg-cyan-900]="u.is_rssi_consultant"
+                  [class.text-cyan-400]="u.is_rssi_consultant"
+                  [class.bg-gray-700]="!u.is_rssi_consultant"
+                  [class.text-gray-400]="!u.is_rssi_consultant"
+                  [title]="
+                    u.is_rssi_consultant
+                      ? 'Retirer le rôle consultant'
+                      : 'Activer le rôle consultant'
+                  "
+                >
                   {{ u.is_rssi_consultant ? 'Consultant' : '—' }}
                 </button>
               </td>

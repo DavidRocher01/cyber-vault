@@ -4,9 +4,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
-    standalone: true,
-    selector: 'app-mentions-legales',
-    imports: [RouterLink, MatIconModule, NavButtonsComponent],
-    templateUrl: './mentions-legales.component.html'
+  standalone: true,
+  selector: 'app-mentions-legales',
+  imports: [RouterLink, MatIconModule, NavButtonsComponent],
+  templateUrl: './mentions-legales.component.html',
 })
 export class MentionsLegalesComponent {}

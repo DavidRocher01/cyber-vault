@@ -15,19 +15,25 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
   standalone: true,
   selector: 'app-invoices',
   imports: [
-    CommonModule, MatButtonModule, MatIconModule, MatPaginatorModule,
-    MatProgressSpinnerModule, MatSnackBarModule, MatChipsModule, NavButtonsComponent,
+    CommonModule,
+    MatButtonModule,
+    MatIconModule,
+    MatPaginatorModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+    MatChipsModule,
+    NavButtonsComponent,
   ],
   templateUrl: './invoices.component.html',
   styleUrl: './invoices.component.css',
 })
 export class InvoicesComponent implements OnInit {
   private service = inject(CyberscanService);
-  private snack   = inject(MatSnackBar);
-  private title   = inject(Title);
+  private snack = inject(MatSnackBar);
+  private title = inject(Title);
 
-  data     = signal<PaginatedInvoices | null>(null);
-  loading  = signal(true);
+  data = signal<PaginatedInvoices | null>(null);
+  loading = signal(true);
   selected = signal<Invoice | null>(null);
   downloading = signal<number | null>(null);
 
@@ -39,8 +45,13 @@ export class InvoicesComponent implements OnInit {
   load(page: number) {
     this.loading.set(true);
     this.service.getMyInvoices(page).subscribe({
-      next: d => { this.data.set(d); this.loading.set(false); },
-      error: () => { this.loading.set(false); },
+      next: d => {
+        this.data.set(d);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+      },
     });
   }
 
@@ -77,7 +88,11 @@ export class InvoicesComponent implements OnInit {
   }
 
   formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return new Date(iso).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
   }
 
   typeLabel(type: string): string {

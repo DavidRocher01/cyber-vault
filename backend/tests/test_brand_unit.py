@@ -1,13 +1,15 @@
 """Unit tests — Feature #12: Rapport PDF Marque Blanche."""
-import json
-import pytest
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
 
+import json
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 # ---------------------------------------------------------------------------
 # Helpers / fixtures
 # ---------------------------------------------------------------------------
+
 
 def _make_user(uid=1):
     u = MagicMock()
@@ -23,7 +25,7 @@ def _make_brand(user_id=1):
     b.company_name = "Acme Corp"
     b.accent_color = "#ff5500"
     b.logo_b64 = None
-    b.updated_at = datetime.now(timezone.utc)
+    b.updated_at = datetime.now(UTC)
     return b
 
 
@@ -33,15 +35,29 @@ def _make_scan(scan_id=42, status="done", overall_status="WARNING"):
     s.site_id = 10
     s.status = status
     s.overall_status = overall_status
-    s.results_json = json.dumps({
-        "checks": [
-            {"severity": "critical", "title": "Open port 22", "description": "SSH exposed"},
-            {"severity": "warning",  "title": "Missing CSP",  "description": "No CSP header"},
-            {"severity": "info",     "title": "HTTP/2",       "description": "HTTP/2 enabled"},
-        ]
-    })
-    s.finished_at = datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc)
-    s.created_at  = datetime(2026, 5, 1, 11, 0, 0, tzinfo=timezone.utc)
+    s.results_json = json.dumps(
+        {
+            "checks": [
+                {
+                    "severity": "critical",
+                    "title": "Open port 22",
+                    "description": "SSH exposed",
+                },
+                {
+                    "severity": "warning",
+                    "title": "Missing CSP",
+                    "description": "No CSP header",
+                },
+                {
+                    "severity": "info",
+                    "title": "HTTP/2",
+                    "description": "HTTP/2 enabled",
+                },
+            ]
+        }
+    )
+    s.finished_at = datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC)
+    s.created_at = datetime(2026, 5, 1, 11, 0, 0, tzinfo=UTC)
     return s
 
 
@@ -55,8 +71,10 @@ def _make_site(url="https://acme.com"):
 # _extract_findings
 # ---------------------------------------------------------------------------
 
+
 def test_extract_findings_normal():
     from app.services.branded_scan_pdf import _extract_findings
+
     scan_json = json.dumps({"checks": [{"severity": "critical", "title": "T1"}]})
     findings = _extract_findings(scan_json)
     assert len(findings) == 1
@@ -65,12 +83,14 @@ def test_extract_findings_normal():
 
 def test_extract_findings_empty_json():
     from app.services.branded_scan_pdf import _extract_findings
+
     assert _extract_findings(None) == []
     assert _extract_findings("{}") == []
 
 
 def test_extract_findings_bad_json():
     from app.services.branded_scan_pdf import _extract_findings
+
     assert _extract_findings("not-json") == []
 
 
@@ -78,18 +98,22 @@ def test_extract_findings_bad_json():
 # _compute_score
 # ---------------------------------------------------------------------------
 
+
 def test_compute_score_no_findings_ok():
     from app.services.branded_scan_pdf import _compute_score
+
     assert _compute_score([], "OK") == 100
 
 
 def test_compute_score_no_findings_unknown():
     from app.services.branded_scan_pdf import _compute_score
+
     assert _compute_score([], "WARNING") == 0
 
 
 def test_compute_score_with_criticals():
     from app.services.branded_scan_pdf import _compute_score
+
     findings = [{"severity": "critical"}] * 3
     score = _compute_score(findings, "CRITICAL")
     assert score == max(0, 100 - 3 * 15)
@@ -97,6 +121,7 @@ def test_compute_score_with_criticals():
 
 def test_compute_score_clamped():
     from app.services.branded_scan_pdf import _compute_score
+
     findings = [{"severity": "critical"}] * 10
     score = _compute_score(findings, "CRITICAL")
     assert score == 0
@@ -106,8 +131,10 @@ def test_compute_score_clamped():
 # generate_branded_pdf — smoke test (PDF bytes returned)
 # ---------------------------------------------------------------------------
 
+
 def test_generate_branded_pdf_returns_pdf():
     from app.services.branded_scan_pdf import generate_branded_pdf
+
     pdf = generate_branded_pdf(
         company_name="Test SA",
         accent_color="#06b6d4",
@@ -124,9 +151,14 @@ def test_generate_branded_pdf_returns_pdf():
 
 def test_generate_branded_pdf_with_findings():
     from app.services.branded_scan_pdf import generate_branded_pdf
+
     findings = [
-        {"severity": "critical", "title": "SQL injection", "description": "Found in /login"},
-        {"severity": "warning",  "title": "Missing X-Frame", "description": ""},
+        {
+            "severity": "critical",
+            "title": "SQL injection",
+            "description": "Found in /login",
+        },
+        {"severity": "warning", "title": "Missing X-Frame", "description": ""},
     ]
     pdf = generate_branded_pdf(
         company_name="Corp",
@@ -144,6 +176,7 @@ def test_generate_branded_pdf_with_findings():
 # ---------------------------------------------------------------------------
 # GET /api/v1/brand/me — no brand
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_get_brand_no_profile():
@@ -176,9 +209,10 @@ async def test_get_brand_existing():
 # PUT /api/v1/brand/me — upsert
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_upsert_brand_creates_new():
-    from app.api.v1.endpoints.brand import upsert_brand, BrandProfileIn
+    from app.api.v1.endpoints.brand import BrandProfileIn, upsert_brand
 
     db = AsyncMock()
     mock_result = MagicMock()
@@ -196,7 +230,7 @@ async def test_upsert_brand_creates_new():
 
 @pytest.mark.asyncio
 async def test_upsert_brand_updates_existing():
-    from app.api.v1.endpoints.brand import upsert_brand, BrandProfileIn
+    from app.api.v1.endpoints.brand import BrandProfileIn, upsert_brand
 
     brand = _make_brand()
     db = AsyncMock()
@@ -207,7 +241,11 @@ async def test_upsert_brand_updates_existing():
     db.commit = AsyncMock()
     db.refresh = AsyncMock()
 
-    payload = BrandProfileIn(company_name="Updated", accent_color="#aabbcc", logo_b64="data:image/png;base64,abc")
+    payload = BrandProfileIn(
+        company_name="Updated",
+        accent_color="#aabbcc",
+        logo_b64="data:image/png;base64,abc",
+    )
     await upsert_brand(payload=payload, current_user=_make_user(), db=db)
 
     assert brand.company_name == "Updated"

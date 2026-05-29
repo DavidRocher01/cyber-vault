@@ -12,8 +12,8 @@ from fastapi import HTTPException
 
 from app.core.ssrf import _is_private, assert_no_ssrf
 
-
 # ── _is_private() ─────────────────────────────────────────────────────────────
+
 
 class TestIsPrivate:
     def test_loopback_is_private(self):
@@ -54,6 +54,7 @@ class TestIsPrivate:
 
 
 # ── assert_no_ssrf() ──────────────────────────────────────────────────────────
+
 
 class TestAssertNoSsrf:
     def test_valid_public_url_passes(self):

@@ -9,12 +9,12 @@ No PDF or remediation scripts generated.
 import asyncio
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from loguru import logger
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.public_scan import PublicScan
 
@@ -24,27 +24,28 @@ sys.path.insert(0, str(SCANNER_DIR))
 
 def _run_demo_scan_sync(url: str) -> dict:
     from urllib.parse import urlparse
-    from scanner.ssl_checker import check_ssl
-    from scanner.headers_checker import check_headers
-    from scanner.email_checker import check_email_security
+
+    from scanner.cms_detector import detect_cms
     from scanner.cookie_checker import check_cookies
     from scanner.cors_checker import check_cors
-    from scanner.ip_reputation import check_ip_reputation
     from scanner.dns_scanner import scan_subdomains
-    from scanner.cms_detector import detect_cms
+    from scanner.email_checker import check_email_security
+    from scanner.headers_checker import check_headers
+    from scanner.ip_reputation import check_ip_reputation
+    from scanner.ssl_checker import check_ssl
     from scanner.waf_detector import detect_waf
 
     hostname = urlparse(url).hostname or url
 
-    ssl_result     = check_ssl(hostname)
+    ssl_result = check_ssl(hostname)
     headers_result = check_headers(url)
-    email_result   = check_email_security(hostname)
-    cookie_result  = check_cookies(url)
-    cors_result    = check_cors(url)
-    ip_result      = check_ip_reputation(hostname)
-    dns_result     = scan_subdomains(hostname)
-    cms_result     = detect_cms(url)
-    waf_result     = detect_waf(url)
+    email_result = check_email_security(hostname)
+    cookie_result = check_cookies(url)
+    cors_result = check_cors(url)
+    ip_result = check_ip_reputation(hostname)
+    dns_result = scan_subdomains(hostname)
+    cms_result = detect_cms(url)
+    waf_result = detect_waf(url)
 
     all_statuses = [
         ssl_result.get("status"),
@@ -66,15 +67,15 @@ def _run_demo_scan_sync(url: str) -> dict:
         overall = "OK"
 
     results = {
-        "ssl":     ssl_result,
+        "ssl": ssl_result,
         "headers": headers_result,
-        "email":   email_result,
+        "email": email_result,
         "cookies": cookie_result,
-        "cors":    cors_result,
-        "ip":      ip_result,
-        "dns":     dns_result,
-        "cms":     cms_result,
-        "waf":     waf_result,
+        "cors": cors_result,
+        "ip": ip_result,
+        "dns": dns_result,
+        "cms": cms_result,
+        "waf": waf_result,
         "_meta": {"tier": 2, "url": url},
     }
 
@@ -88,7 +89,7 @@ async def run_public_scan(public_scan_id: int, db: AsyncSession) -> None:
         return
 
     scan.status = "running"
-    scan.started_at = datetime.now(timezone.utc)
+    scan.started_at = datetime.now(UTC)
     await db.commit()
 
     url = scan.target_url
@@ -101,11 +102,11 @@ async def run_public_scan(public_scan_id: int, db: AsyncSession) -> None:
         scan.status = "done"
         scan.overall_status = outcome["overall"]
         scan.results_json = json.dumps(outcome["results"], default=str)
-        scan.finished_at = datetime.now(timezone.utc)
+        scan.finished_at = datetime.now(UTC)
     except Exception as exc:
         logger.error(f"Public scan {public_scan_id} failed: {exc}")
         scan.status = "failed"
         scan.error_message = str(exc)[:512]
-        scan.finished_at = datetime.now(timezone.utc)
+        scan.finished_at = datetime.now(UTC)
 
     await db.commit()

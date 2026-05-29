@@ -1,10 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
 import { signal } from '@angular/core';
 import { DarkwebDossierDetailComponent } from './darkweb-dossier-detail.component';
-import { DarkwebDossierService, DossierDetail, DossierTarget } from '../services/darkweb-dossier.service';
+import {
+  DarkwebDossierService,
+  DossierDetail,
+  DossierTarget,
+} from '../services/darkweb-dossier.service';
 
 function make(): DarkwebDossierDetailComponent {
-  const comp = Object.create(DarkwebDossierDetailComponent.prototype) as DarkwebDossierDetailComponent;
+  const comp = Object.create(
+    DarkwebDossierDetailComponent.prototype
+  ) as DarkwebDossierDetailComponent;
   (comp as any).dossier = signal<DossierDetail | null>(null);
   (comp as any).loading = signal(false);
   (comp as any).downloadingPdf = signal(false);
@@ -19,23 +25,47 @@ function make(): DarkwebDossierDetailComponent {
 
 function dossier(overrides: Partial<DossierDetail> = {}): DossierDetail {
   return {
-    id: 1, company_name: 'Acme SAS', domain: 'acme.fr',
-    status: 'completed', total_emails: 10, exposed_emails: 3,
-    total_breach_instances: 7, checked_count: 10, unverified_count: 0,
-    risk_score: 30, severity_score: 45,
-    monitor_active: false, last_monitored_at: null, next_monitor_at: null,
+    id: 1,
+    company_name: 'Acme SAS',
+    domain: 'acme.fr',
+    status: 'completed',
+    total_emails: 10,
+    exposed_emails: 3,
+    total_breach_instances: 7,
+    checked_count: 10,
+    unverified_count: 0,
+    risk_score: 30,
+    severity_score: 45,
+    monitor_active: false,
+    last_monitored_at: null,
+    next_monitor_at: null,
     top_sources_json: JSON.stringify([{ name: 'LinkedIn', count: 3 }]),
-    error_message: null, created_at: '2024-01-01T00:00:00Z',
-    started_at: null, finished_at: null, targets: [],
+    error_message: null,
+    created_at: '2024-01-01T00:00:00Z',
+    started_at: null,
+    finished_at: null,
+    targets: [],
     ...overrides,
   };
 }
 
 function target(overrides: Partial<DossierTarget> = {}): DossierTarget {
   return {
-    id: 1, email: 'alice@acme.fr', status: 'exposed', check_status: 'exposed',
+    id: 1,
+    email: 'alice@acme.fr',
+    status: 'exposed',
+    check_status: 'exposed',
     total_breaches: 2,
-    breach_sources_json: JSON.stringify([{ name: 'LinkedIn', domain: 'linkedin.com', breach_date: '2021-06-22', pwn_count: 700000000, data_classes: ['Emails'], is_sensitive: false }]),
+    breach_sources_json: JSON.stringify([
+      {
+        name: 'LinkedIn',
+        domain: 'linkedin.com',
+        breach_date: '2021-06-22',
+        pwn_count: 700000000,
+        data_classes: ['Emails'],
+        is_sensitive: false,
+      },
+    ]),
     checked_at: '2024-01-01T10:00:00Z',
     ...overrides,
   };
@@ -78,18 +108,22 @@ describe('DarkwebDossierDetailComponent — breachCountColor()', () => {
 // ── statusLabel ───────────────────────────────────────────────────────────────
 
 describe('DarkwebDossierDetailComponent — statusLabel()', () => {
-  it('retourne "En attente" pour pending', () => expect(make().statusLabel('pending')).toBe('En attente'));
-  it('retourne "Analyse en cours" pour processing', () => expect(make().statusLabel('processing')).toBe('Analyse en cours'));
-  it('retourne "Terminé" pour completed', () => expect(make().statusLabel('completed')).toBe('Terminé'));
+  it('retourne "En attente" pour pending', () =>
+    expect(make().statusLabel('pending')).toBe('En attente'));
+  it('retourne "Analyse en cours" pour processing', () =>
+    expect(make().statusLabel('processing')).toBe('Analyse en cours'));
+  it('retourne "Terminé" pour completed', () =>
+    expect(make().statusLabel('completed')).toBe('Terminé'));
   it('retourne "Erreur" pour failed', () => expect(make().statusLabel('failed')).toBe('Erreur'));
-  it('retourne la valeur brute pour un statut inconnu', () => expect(make().statusLabel('unknown')).toBe('unknown'));
+  it('retourne la valeur brute pour un statut inconnu', () =>
+    expect(make().statusLabel('unknown')).toBe('unknown'));
 });
 
 // ── formatDate ────────────────────────────────────────────────────────────────
 
 describe('DarkwebDossierDetailComponent — formatDate()', () => {
   it('retourne "—" pour null', () => expect(make().formatDate(null)).toBe('—'));
-  it('retourne une date formatée contenant l\'année', () => {
+  it("retourne une date formatée contenant l'année", () => {
     const result = make().formatDate('2024-03-15T10:00:00Z');
     expect(result).toContain('2024');
   });
@@ -177,7 +211,8 @@ describe('DarkwebDossierDetailComponent — severityColor()', () => {
   it('gray pour null', () => expect(make().severityColor(null)).toContain('gray'));
   it('red pour score >= 60', () => expect(make().severityColor(60)).toContain('red'));
   it('red pour score = 100', () => expect(make().severityColor(100)).toContain('red'));
-  it('orange pour score entre 30 et 59', () => expect(make().severityColor(30)).toContain('orange'));
+  it('orange pour score entre 30 et 59', () =>
+    expect(make().severityColor(30)).toContain('orange'));
   it('orange pour score = 59', () => expect(make().severityColor(59)).toContain('orange'));
   it('yellow pour score < 30', () => expect(make().severityColor(29)).toContain('yellow'));
   it('yellow pour score = 0', () => expect(make().severityColor(0)).toContain('yellow'));
@@ -186,13 +221,20 @@ describe('DarkwebDossierDetailComponent — severityColor()', () => {
 // ── severityLabel ─────────────────────────────────────────────────────────────
 
 describe('DarkwebDossierDetailComponent — severityLabel()', () => {
-  it('retourne "Non calculé" pour null', () => expect(make().severityLabel(null)).toBe('Non calculé'));
-  it('retourne "Données critiques exposées" pour >= 60', () => expect(make().severityLabel(60)).toBe('Données critiques exposées'));
-  it('retourne "Données critiques exposées" pour 100', () => expect(make().severityLabel(100)).toBe('Données critiques exposées'));
-  it('retourne "Données sensibles exposées" pour 30', () => expect(make().severityLabel(30)).toBe('Données sensibles exposées'));
-  it('retourne "Données sensibles exposées" pour 59', () => expect(make().severityLabel(59)).toBe('Données sensibles exposées'));
-  it('retourne "Données peu sensibles" pour 0', () => expect(make().severityLabel(0)).toBe('Données peu sensibles'));
-  it('retourne "Données peu sensibles" pour 29', () => expect(make().severityLabel(29)).toBe('Données peu sensibles'));
+  it('retourne "Non calculé" pour null', () =>
+    expect(make().severityLabel(null)).toBe('Non calculé'));
+  it('retourne "Données critiques exposées" pour >= 60', () =>
+    expect(make().severityLabel(60)).toBe('Données critiques exposées'));
+  it('retourne "Données critiques exposées" pour 100', () =>
+    expect(make().severityLabel(100)).toBe('Données critiques exposées'));
+  it('retourne "Données sensibles exposées" pour 30', () =>
+    expect(make().severityLabel(30)).toBe('Données sensibles exposées'));
+  it('retourne "Données sensibles exposées" pour 59', () =>
+    expect(make().severityLabel(59)).toBe('Données sensibles exposées'));
+  it('retourne "Données peu sensibles" pour 0', () =>
+    expect(make().severityLabel(0)).toBe('Données peu sensibles'));
+  it('retourne "Données peu sensibles" pour 29', () =>
+    expect(make().severityLabel(29)).toBe('Données peu sensibles'));
 });
 
 // ── riskBorderColor ───────────────────────────────────────────────────────────
@@ -201,7 +243,8 @@ describe('DarkwebDossierDetailComponent — riskBorderColor()', () => {
   it('gris pour null', () => expect(make().riskBorderColor(null)).toContain('gray'));
   it('rouge pour score >= 50', () => expect(make().riskBorderColor(50)).toContain('red'));
   it('rouge pour score = 100', () => expect(make().riskBorderColor(100)).toContain('red'));
-  it('jaune pour score entre 20 et 49', () => expect(make().riskBorderColor(20)).toContain('yellow'));
+  it('jaune pour score entre 20 et 49', () =>
+    expect(make().riskBorderColor(20)).toContain('yellow'));
   it('vert pour score < 20', () => expect(make().riskBorderColor(10)).toContain('green'));
   it('vert pour score = 0', () => expect(make().riskBorderColor(0)).toContain('green'));
 });
@@ -225,9 +268,7 @@ describe('DarkwebDossierDetailComponent — getBreachTimeline()', () => {
       { name: 'LinkedIn', breach_date: '2021-06-22' },
       { name: 'Adobe', breach_date: '2019-10-04' },
     ]);
-    const targets = [
-      target({ breach_sources_json: sources, total_breaches: 2 }),
-    ];
+    const targets = [target({ breach_sources_json: sources, total_breaches: 2 })];
     (comp as any).dossier.set(dossier({ targets }));
     const timeline = comp.getBreachTimeline();
     expect(timeline.length).toBeGreaterThan(0);
@@ -283,9 +324,30 @@ describe('DarkwebDossierDetailComponent — unverifiedTargets()', () => {
     const comp = make();
     const targets = [
       target({ status: 'exposed' }),
-      target({ id: 2, email: 'b@acme.fr', status: 'error', check_status: 'rate_limited', total_breaches: 0, breach_sources_json: null }),
-      target({ id: 3, email: 'c@acme.fr', status: 'error', check_status: 'api_error', total_breaches: 0, breach_sources_json: null }),
-      target({ id: 4, email: 'd@acme.fr', status: 'clean', check_status: 'verified_clean', total_breaches: 0, breach_sources_json: null }),
+      target({
+        id: 2,
+        email: 'b@acme.fr',
+        status: 'error',
+        check_status: 'rate_limited',
+        total_breaches: 0,
+        breach_sources_json: null,
+      }),
+      target({
+        id: 3,
+        email: 'c@acme.fr',
+        status: 'error',
+        check_status: 'api_error',
+        total_breaches: 0,
+        breach_sources_json: null,
+      }),
+      target({
+        id: 4,
+        email: 'd@acme.fr',
+        status: 'clean',
+        check_status: 'verified_clean',
+        total_breaches: 0,
+        breach_sources_json: null,
+      }),
     ];
     (comp as any).dossier.set(dossier({ targets }));
     const result = comp.unverifiedTargets();
@@ -299,7 +361,21 @@ describe('DarkwebDossierDetailComponent — unverifiedTargets()', () => {
 
   it('retourne [] si aucune cible en erreur', () => {
     const comp = make();
-    (comp as any).dossier.set(dossier({ targets: [target(), target({ id: 2, email: 'b@acme.fr', status: 'clean', check_status: 'verified_clean', total_breaches: 0, breach_sources_json: null })] }));
+    (comp as any).dossier.set(
+      dossier({
+        targets: [
+          target(),
+          target({
+            id: 2,
+            email: 'b@acme.fr',
+            status: 'clean',
+            check_status: 'verified_clean',
+            total_breaches: 0,
+            breach_sources_json: null,
+          }),
+        ],
+      })
+    );
     expect(comp.unverifiedTargets()).toEqual([]);
   });
 });
@@ -339,20 +415,31 @@ describe('DarkwebDossierDetailComponent — progressPercent()', () => {
 // ── checkStatusLabel ──────────────────────────────────────────────────────────
 
 describe('DarkwebDossierDetailComponent — checkStatusLabel()', () => {
-  it('retourne "Vérifié sain" pour verified_clean', () => expect(make().checkStatusLabel('verified_clean')).toBe('Vérifié sain'));
-  it('retourne "Exposé" pour exposed', () => expect(make().checkStatusLabel('exposed')).toBe('Exposé'));
-  it('retourne "Rate limit" pour rate_limited', () => expect(make().checkStatusLabel('rate_limited')).toBe('Rate limit'));
-  it('retourne "Erreur API" pour api_error', () => expect(make().checkStatusLabel('api_error')).toBe('Erreur API'));
-  it('retourne "En attente" pour pending', () => expect(make().checkStatusLabel('pending')).toBe('En attente'));
-  it('retourne "En attente" pour valeur inconnue', () => expect(make().checkStatusLabel('other')).toBe('En attente'));
+  it('retourne "Vérifié sain" pour verified_clean', () =>
+    expect(make().checkStatusLabel('verified_clean')).toBe('Vérifié sain'));
+  it('retourne "Exposé" pour exposed', () =>
+    expect(make().checkStatusLabel('exposed')).toBe('Exposé'));
+  it('retourne "Rate limit" pour rate_limited', () =>
+    expect(make().checkStatusLabel('rate_limited')).toBe('Rate limit'));
+  it('retourne "Erreur API" pour api_error', () =>
+    expect(make().checkStatusLabel('api_error')).toBe('Erreur API'));
+  it('retourne "En attente" pour pending', () =>
+    expect(make().checkStatusLabel('pending')).toBe('En attente'));
+  it('retourne "En attente" pour valeur inconnue', () =>
+    expect(make().checkStatusLabel('other')).toBe('En attente'));
 });
 
 // ── checkStatusClass ──────────────────────────────────────────────────────────
 
 describe('DarkwebDossierDetailComponent — checkStatusClass()', () => {
-  it('contient green pour verified_clean', () => expect(make().checkStatusClass('verified_clean')).toContain('green'));
-  it('contient red pour exposed', () => expect(make().checkStatusClass('exposed')).toContain('red'));
-  it('contient orange pour rate_limited', () => expect(make().checkStatusClass('rate_limited')).toContain('orange'));
-  it('contient yellow pour api_error', () => expect(make().checkStatusClass('api_error')).toContain('yellow'));
-  it('contient gray pour pending', () => expect(make().checkStatusClass('pending')).toContain('gray'));
+  it('contient green pour verified_clean', () =>
+    expect(make().checkStatusClass('verified_clean')).toContain('green'));
+  it('contient red pour exposed', () =>
+    expect(make().checkStatusClass('exposed')).toContain('red'));
+  it('contient orange pour rate_limited', () =>
+    expect(make().checkStatusClass('rate_limited')).toContain('orange'));
+  it('contient yellow pour api_error', () =>
+    expect(make().checkStatusClass('api_error')).toContain('yellow'));
+  it('contient gray pour pending', () =>
+    expect(make().checkStatusClass('pending')).toContain('gray'));
 });

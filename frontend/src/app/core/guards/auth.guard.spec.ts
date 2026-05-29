@@ -15,9 +15,7 @@ function run(isAuthenticated: boolean, url = '/cyberscan/dashboard') {
     ],
   });
 
-  const result = runInInjectionContext(injector, () =>
-    authGuard({} as any, { url } as any)
-  );
+  const result = runInInjectionContext(injector, () => authGuard({} as any, { url } as any));
 
   return { result, createUrlTreeMock };
 }

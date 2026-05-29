@@ -1,8 +1,7 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +10,7 @@ from app.core.database import get_db
 from app.core.deps import get_rssi_consultant
 from app.models.rssi_deliverable import RssiDeliverable
 from app.models.user import User
+
 from ._shared import _get_client_or_404
 
 router = APIRouter()
@@ -63,7 +63,11 @@ async def list_deliverables(
     return result.scalars().all()
 
 
-@router.post("/clients/{client_id}/deliverables", response_model=RssiDeliverableOut, status_code=201)
+@router.post(
+    "/clients/{client_id}/deliverables",
+    response_model=RssiDeliverableOut,
+    status_code=201,
+)
 async def create_deliverable(
     client_id: int,
     payload: RssiDeliverableCreate,
@@ -89,7 +93,10 @@ async def create_deliverable(
     return deliverable
 
 
-@router.put("/clients/{client_id}/deliverables/{deliverable_id}", response_model=RssiDeliverableOut)
+@router.put(
+    "/clients/{client_id}/deliverables/{deliverable_id}",
+    response_model=RssiDeliverableOut,
+)
 async def update_deliverable(
     client_id: int,
     deliverable_id: int,
@@ -119,7 +126,7 @@ async def update_deliverable(
     if payload.delivered_at is not None:
         deliverable.delivered_at = payload.delivered_at
 
-    deliverable.updated_at = datetime.now(timezone.utc)
+    deliverable.updated_at = datetime.now(UTC)
     await db.commit()
     await db.refresh(deliverable)
     return deliverable
@@ -154,7 +161,7 @@ async def upload_deliverable_file(
     db: AsyncSession = Depends(get_db),
 ):
     """Upload a file for a client deliverable and return its storage key."""
-    from app.services.storage import upload_file, validate_upload, MAX_UPLOAD_BYTES
+    from app.services.storage import MAX_UPLOAD_BYTES, upload_file, validate_upload
 
     await _get_client_or_404(client_id, current_user.id, db)
 

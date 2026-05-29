@@ -12,10 +12,11 @@ Covers:
   - webhook invoice.payment_succeeded — création auto + déduplication
 """
 
-import pytest
-from datetime import date, datetime, timezone
-from httpx import ASGITransport, AsyncClient
+from datetime import UTC, date, datetime
 from unittest.mock import patch
+
+import pytest
+from httpx import ASGITransport, AsyncClient
 
 from app.main import app
 
@@ -27,6 +28,7 @@ ADMIN_HEADERS = {"x-admin-key": ADMIN_KEY}
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
+
 async def _register_login(client: AsyncClient, email: str) -> dict:
     await client.post(f"{BASE}/auth/register", json={"email": email, "password": "StrongPass123!"})
     r = await client.post(f"{BASE}/auth/login", json={"email": email, "password": "StrongPass123!"})
@@ -35,10 +37,15 @@ async def _register_login(client: AsyncClient, email: str) -> dict:
 
 _wh_counter = 0
 
+
 def _make_webhook_event(event_type: str, data: dict) -> dict:
     global _wh_counter
     _wh_counter += 1
-    return {"id": f"evt_inv_{_wh_counter}", "type": event_type, "data": {"object": data}}
+    return {
+        "id": f"evt_inv_{_wh_counter}",
+        "type": event_type,
+        "data": {"object": data},
+    }
 
 
 async def _create_invoice_via_admin(client: AsyncClient, **overrides) -> dict:
@@ -57,6 +64,7 @@ async def _create_invoice_via_admin(client: AsyncClient, **overrides) -> dict:
 
 # ── invoice_service unit tests ─────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_invoice_sequential_numbering():
     """Deux factures la même année → séquence 0001 puis 0002."""
@@ -68,14 +76,26 @@ async def test_invoice_sequential_numbering():
 
     async with db_mod.AsyncSessionLocal() as db:
         inv1 = await create_invoice(
-            db, user_id=None, type="audit",
-            client_name="A", client_email="a@a.com", client_address=None,
-            description="Test 1", amount_cents=10000, issue_date=today,
+            db,
+            user_id=None,
+            type="audit",
+            client_name="A",
+            client_email="a@a.com",
+            client_address=None,
+            description="Test 1",
+            amount_cents=10000,
+            issue_date=today,
         )
         inv2 = await create_invoice(
-            db, user_id=None, type="audit",
-            client_name="B", client_email="b@b.com", client_address=None,
-            description="Test 2", amount_cents=20000, issue_date=today,
+            db,
+            user_id=None,
+            type="audit",
+            client_name="B",
+            client_email="b@b.com",
+            client_address=None,
+            description="Test 2",
+            amount_cents=20000,
+            issue_date=today,
         )
         await db.commit()
 
@@ -88,15 +108,22 @@ async def test_invoice_sequential_numbering():
 @pytest.mark.asyncio
 async def test_invoice_number_format():
     """Le numéro doit respecter le format FACT-YYYY-NNNN."""
+    import re
+
     import app.core.database as db_mod
     from app.services.invoice_service import create_invoice
-    import re
 
     async with db_mod.AsyncSessionLocal() as db:
         inv = await create_invoice(
-            db, user_id=None, type="subscription",
-            client_name="C", client_email="c@c.com", client_address=None,
-            description="Abonnement", amount_cents=990, issue_date=date.today(),
+            db,
+            user_id=None,
+            type="subscription",
+            client_name="C",
+            client_email="c@c.com",
+            client_address=None,
+            description="Abonnement",
+            amount_cents=990,
+            issue_date=date.today(),
         )
         await db.commit()
 
@@ -104,6 +131,7 @@ async def test_invoice_number_format():
 
 
 # ── invoice_pdf unit tests ─────────────────────────────────────────────────────
+
 
 def test_invoice_pdf_returns_bytes():
     """generate_invoice_pdf doit retourner des bytes non vides."""
@@ -156,6 +184,7 @@ def test_invoice_pdf_no_address():
 
 # ── GET /invoices ──────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_list_invoices_requires_auth():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -182,11 +211,17 @@ async def test_list_invoices_returns_only_own():
 
         # Crée une facture liée à user1 via admin
         with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-            await c.post(f"{BASE}/admin/invoices", headers=ADMIN_HEADERS, json={
-                "client_name": "User1", "client_email": "inv_own1@test.com",
-                "description": "Audit", "amount_cents": 10000,
-                "user_email": "inv_own1@test.com",
-            })
+            await c.post(
+                f"{BASE}/admin/invoices",
+                headers=ADMIN_HEADERS,
+                json={
+                    "client_name": "User1",
+                    "client_email": "inv_own1@test.com",
+                    "description": "Audit",
+                    "amount_cents": 10000,
+                    "user_email": "inv_own1@test.com",
+                },
+            )
 
         r1 = await c.get(f"{BASE}/invoices", headers=h1)
         r2 = await c.get(f"{BASE}/invoices", headers=h2)
@@ -202,11 +237,17 @@ async def test_list_invoices_pagination():
 
         with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
             for i in range(3):
-                await c.post(f"{BASE}/admin/invoices", headers=ADMIN_HEADERS, json={
-                    "client_name": f"Client {i}", "client_email": "inv_page@test.com",
-                    "description": f"Audit {i}", "amount_cents": 10000,
-                    "user_email": "inv_page@test.com",
-                })
+                await c.post(
+                    f"{BASE}/admin/invoices",
+                    headers=ADMIN_HEADERS,
+                    json={
+                        "client_name": f"Client {i}",
+                        "client_email": "inv_page@test.com",
+                        "description": f"Audit {i}",
+                        "amount_cents": 10000,
+                        "user_email": "inv_page@test.com",
+                    },
+                )
 
         r = await c.get(f"{BASE}/invoices?page=1&per_page=2", headers=h)
 
@@ -218,6 +259,7 @@ async def test_list_invoices_pagination():
 
 # ── GET /invoices/{id} ─────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_get_invoice_returns_correct_data():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -225,7 +267,8 @@ async def test_get_invoice_returns_correct_data():
 
         with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
             created = await _create_invoice_via_admin(
-                c, user_email="inv_get@test.com",
+                c,
+                user_email="inv_get@test.com",
                 client_email="inv_get@test.com",
             )
 
@@ -244,7 +287,8 @@ async def test_get_invoice_other_user_returns_404():
 
         with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
             created = await _create_invoice_via_admin(
-                c, user_email="inv_o1@test.com",
+                c,
+                user_email="inv_o1@test.com",
                 client_email="inv_o1@test.com",
             )
 
@@ -263,6 +307,7 @@ async def test_get_invoice_unknown_returns_404():
 
 # ── GET /invoices/{id}/pdf ─────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_download_invoice_pdf_returns_pdf():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -270,7 +315,8 @@ async def test_download_invoice_pdf_returns_pdf():
 
         with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
             created = await _create_invoice_via_admin(
-                c, user_email="inv_pdf@test.com",
+                c,
+                user_email="inv_pdf@test.com",
                 client_email="inv_pdf@test.com",
             )
 
@@ -285,11 +331,12 @@ async def test_download_invoice_pdf_returns_pdf():
 async def test_download_invoice_pdf_other_user_returns_404():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h_owner = await _register_login(c, "inv_pdfown@test.com")
-        h_spy   = await _register_login(c, "inv_pdfspy@test.com")
+        h_spy = await _register_login(c, "inv_pdfspy@test.com")
 
         with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
             created = await _create_invoice_via_admin(
-                c, user_email="inv_pdfown@test.com",
+                c,
+                user_email="inv_pdfown@test.com",
                 client_email="inv_pdfown@test.com",
             )
 
@@ -300,17 +347,22 @@ async def test_download_invoice_pdf_other_user_returns_404():
 
 # ── POST /admin/invoices ───────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_admin_create_invoice_returns_201():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-            r = await c.post(f"{BASE}/admin/invoices", headers=ADMIN_HEADERS, json={
-                "client_name": "Société Test",
-                "client_email": "contact@societe.fr",
-                "client_address": "1 rue du Test, 75000 Paris",
-                "description": "Audit cybersécurité Flash",
-                "amount_cents": 29000,
-            })
+            r = await c.post(
+                f"{BASE}/admin/invoices",
+                headers=ADMIN_HEADERS,
+                json={
+                    "client_name": "Société Test",
+                    "client_email": "contact@societe.fr",
+                    "client_address": "1 rue du Test, 75000 Paris",
+                    "description": "Audit cybersécurité Flash",
+                    "amount_cents": 29000,
+                },
+            )
 
     assert r.status_code == 201
     data = r.json()
@@ -324,10 +376,16 @@ async def test_admin_create_invoice_returns_201():
 async def test_admin_create_invoice_wrong_key_returns_403():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-            r = await c.post(f"{BASE}/admin/invoices", headers={"x-admin-key": "wrong"}, json={
-                "client_name": "Test", "client_email": "t@t.fr",
-                "description": "Test", "amount_cents": 1000,
-            })
+            r = await c.post(
+                f"{BASE}/admin/invoices",
+                headers={"x-admin-key": "wrong"},
+                json={
+                    "client_name": "Test",
+                    "client_email": "t@t.fr",
+                    "description": "Test",
+                    "amount_cents": 1000,
+                },
+            )
     assert r.status_code == 403
 
 
@@ -338,11 +396,17 @@ async def test_admin_create_invoice_links_user_account():
         await _register_login(c, "inv_link@test.com")
 
         with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-            r = await c.post(f"{BASE}/admin/invoices", headers=ADMIN_HEADERS, json={
-                "client_name": "Linked User", "client_email": "inv_link@test.com",
-                "description": "Audit", "amount_cents": 29000,
-                "user_email": "inv_link@test.com",
-            })
+            r = await c.post(
+                f"{BASE}/admin/invoices",
+                headers=ADMIN_HEADERS,
+                json={
+                    "client_name": "Linked User",
+                    "client_email": "inv_link@test.com",
+                    "description": "Audit",
+                    "amount_cents": 29000,
+                    "user_email": "inv_link@test.com",
+                },
+            )
 
     assert r.status_code == 201
     assert r.json()["user_id"] is not None
@@ -353,17 +417,24 @@ async def test_admin_create_invoice_unknown_user_email_still_creates():
     """user_email inconnu → facture créée sans user_id."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-            r = await c.post(f"{BASE}/admin/invoices", headers=ADMIN_HEADERS, json={
-                "client_name": "Inconnu", "client_email": "inconnu@test.fr",
-                "description": "Audit", "amount_cents": 29000,
-                "user_email": "nope@nowhere.com",
-            })
+            r = await c.post(
+                f"{BASE}/admin/invoices",
+                headers=ADMIN_HEADERS,
+                json={
+                    "client_name": "Inconnu",
+                    "client_email": "inconnu@test.fr",
+                    "description": "Audit",
+                    "amount_cents": 29000,
+                    "user_email": "nope@nowhere.com",
+                },
+            )
 
     assert r.status_code == 201
     assert r.json()["user_id"] is None
 
 
 # ── GET /admin/invoices ────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_admin_list_invoices_requires_key():
@@ -387,6 +458,7 @@ async def test_admin_list_invoices_returns_list():
 
 # ── GET /admin/invoices/{id}/pdf ───────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_admin_pdf_download_returns_pdf():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -409,32 +481,42 @@ async def test_admin_pdf_unknown_invoice_returns_404():
 
 # ── webhook invoice.payment_succeeded ─────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_webhook_invoice_payment_creates_invoice():
     """invoice.payment_succeeded doit créer une facture en base."""
-    from app.models.invoice import Invoice
     from sqlalchemy import select
+
     import app.core.database as db_mod
+    from app.models.invoice import Invoice
 
     stripe_invoice_id = "in_test_auto_001"
-    event = _make_webhook_event("invoice.payment_succeeded", {
-        "id": stripe_invoice_id,
-        "customer_email": "wh_inv1@test.com",
-        "customer_name": "Client Webhook",
-        "amount_paid": 990,
-        "created": int(datetime(2026, 5, 19, tzinfo=timezone.utc).timestamp()),
-        "lines": {"data": [{"description": "Abonnement CyberScan Starter"}]},
-    })
+    event = _make_webhook_event(
+        "invoice.payment_succeeded",
+        {
+            "id": stripe_invoice_id,
+            "customer_email": "wh_inv1@test.com",
+            "customer_name": "Client Webhook",
+            "amount_paid": 990,
+            "created": int(datetime(2026, 5, 19, tzinfo=UTC).timestamp()),
+            "lines": {"data": [{"description": "Abonnement CyberScan Starter"}]},
+        },
+    )
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        await c.post(f"{BASE}/auth/register", json={"email": "wh_inv1@test.com", "password": "StrongPass123!"})
+        await c.post(
+            f"{BASE}/auth/register",
+            json={"email": "wh_inv1@test.com", "password": "StrongPass123!"},
+        )
         with patch("app.api.v1.endpoints.webhooks.construct_webhook_event", return_value=event):
             r = await c.post(WEBHOOK_URL, content=b"{}", headers={"stripe-signature": "mock"})
 
     assert r.status_code == 200
 
     async with db_mod.AsyncSessionLocal() as db:
-        result = await db.execute(select(Invoice).where(Invoice.stripe_invoice_id == stripe_invoice_id))
+        result = await db.execute(
+            select(Invoice).where(Invoice.stripe_invoice_id == stripe_invoice_id)
+        )
         inv = result.scalar_one_or_none()
 
     assert inv is not None
@@ -447,18 +529,22 @@ async def test_webhook_invoice_payment_creates_invoice():
 @pytest.mark.asyncio
 async def test_webhook_invoice_payment_deduplication():
     """Deux webhooks avec le même stripe_invoice_id → une seule facture créée."""
-    from app.models.invoice import Invoice
-    from sqlalchemy import select, func
+    from sqlalchemy import func, select
+
     import app.core.database as db_mod
+    from app.models.invoice import Invoice
 
     stripe_invoice_id = "in_test_dedup_002"
-    event = _make_webhook_event("invoice.payment_succeeded", {
-        "id": stripe_invoice_id,
-        "customer_email": "wh_inv2@test.com",
-        "amount_paid": 990,
-        "created": int(datetime(2026, 5, 19, tzinfo=timezone.utc).timestamp()),
-        "lines": {"data": [{"description": "Abonnement CyberScan"}]},
-    })
+    event = _make_webhook_event(
+        "invoice.payment_succeeded",
+        {
+            "id": stripe_invoice_id,
+            "customer_email": "wh_inv2@test.com",
+            "amount_paid": 990,
+            "created": int(datetime(2026, 5, 19, tzinfo=UTC).timestamp()),
+            "lines": {"data": [{"description": "Abonnement CyberScan"}]},
+        },
+    )
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         with patch("app.api.v1.endpoints.webhooks.construct_webhook_event", return_value=event):
@@ -467,7 +553,9 @@ async def test_webhook_invoice_payment_deduplication():
 
     async with db_mod.AsyncSessionLocal() as db:
         result = await db.execute(
-            select(func.count()).select_from(Invoice).where(Invoice.stripe_invoice_id == stripe_invoice_id)
+            select(func.count())
+            .select_from(Invoice)
+            .where(Invoice.stripe_invoice_id == stripe_invoice_id)
         )
         count = result.scalar_one()
 
@@ -477,18 +565,22 @@ async def test_webhook_invoice_payment_deduplication():
 @pytest.mark.asyncio
 async def test_webhook_invoice_zero_amount_ignored():
     """amount_paid = 0 → aucune facture créée."""
-    from app.models.invoice import Invoice
     from sqlalchemy import select
+
     import app.core.database as db_mod
+    from app.models.invoice import Invoice
 
     stripe_invoice_id = "in_test_zero_003"
-    event = _make_webhook_event("invoice.payment_succeeded", {
-        "id": stripe_invoice_id,
-        "customer_email": "wh_inv3@test.com",
-        "amount_paid": 0,
-        "created": int(datetime(2026, 5, 19, tzinfo=timezone.utc).timestamp()),
-        "lines": {"data": []},
-    })
+    event = _make_webhook_event(
+        "invoice.payment_succeeded",
+        {
+            "id": stripe_invoice_id,
+            "customer_email": "wh_inv3@test.com",
+            "amount_paid": 0,
+            "created": int(datetime(2026, 5, 19, tzinfo=UTC).timestamp()),
+            "lines": {"data": []},
+        },
+    )
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         with patch("app.api.v1.endpoints.webhooks.construct_webhook_event", return_value=event):
@@ -497,7 +589,9 @@ async def test_webhook_invoice_zero_amount_ignored():
     assert r.status_code == 200
 
     async with db_mod.AsyncSessionLocal() as db:
-        result = await db.execute(select(Invoice).where(Invoice.stripe_invoice_id == stripe_invoice_id))
+        result = await db.execute(
+            select(Invoice).where(Invoice.stripe_invoice_id == stripe_invoice_id)
+        )
         inv = result.scalar_one_or_none()
 
     assert inv is None
@@ -507,11 +601,14 @@ async def test_webhook_invoice_zero_amount_ignored():
 async def test_webhook_invoice_missing_email_ignored():
     """Pas de customer_email → aucune facture créée, pas de crash."""
     stripe_invoice_id = "in_test_noemail_004"
-    event = _make_webhook_event("invoice.payment_succeeded", {
-        "id": stripe_invoice_id,
-        "amount_paid": 990,
-        "created": int(datetime(2026, 5, 19, tzinfo=timezone.utc).timestamp()),
-    })
+    event = _make_webhook_event(
+        "invoice.payment_succeeded",
+        {
+            "id": stripe_invoice_id,
+            "amount_paid": 990,
+            "created": int(datetime(2026, 5, 19, tzinfo=UTC).timestamp()),
+        },
+    )
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         with patch("app.api.v1.endpoints.webhooks.construct_webhook_event", return_value=event):

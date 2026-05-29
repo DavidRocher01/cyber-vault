@@ -64,7 +64,12 @@ export class ConsultantProfileComponent implements OnInit {
 
   get displayInitials(): string {
     const name = this.form.value.display_name ?? '';
-    return name.split(' ').slice(0, 2).map((w: string) => w[0] ?? '').join('').toUpperCase();
+    return name
+      .split(' ')
+      .slice(0, 2)
+      .map((w: string) => w[0] ?? '')
+      .join('')
+      .toUpperCase();
   }
 
   back() {

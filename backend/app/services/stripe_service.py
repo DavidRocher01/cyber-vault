@@ -4,6 +4,7 @@ Requires STRIPE_SECRET_KEY in .env
 """
 
 import stripe
+
 from app.core.config import settings
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -56,6 +57,4 @@ def cancel_subscription(subscription_id: str) -> None:
 
 def construct_webhook_event(payload: bytes, sig_header: str) -> stripe.Event:
     """Validate and parse a Stripe webhook event."""
-    return stripe.Webhook.construct_event(
-        payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
-    )
+    return stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)

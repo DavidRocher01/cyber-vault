@@ -16,13 +16,13 @@ function make(initialMonth?: string): BookingAdminComponent {
 // ── prevMonth ─────────────────────────────────────────────────────────────────
 
 describe('BookingAdminComponent — prevMonth()', () => {
-  it('recule d\'un mois (cas standard)', () => {
+  it("recule d'un mois (cas standard)", () => {
     const comp = make('2026-05');
     comp.prevMonth();
     expect((comp as any).currentMonth()).toBe('2026-04');
   });
 
-  it('passe de janvier à décembre de l\'année précédente', () => {
+  it("passe de janvier à décembre de l'année précédente", () => {
     const comp = make('2026-01');
     comp.prevMonth();
     expect((comp as any).currentMonth()).toBe('2025-12');
@@ -44,13 +44,13 @@ describe('BookingAdminComponent — prevMonth()', () => {
 // ── nextMonth ─────────────────────────────────────────────────────────────────
 
 describe('BookingAdminComponent — nextMonth()', () => {
-  it('avance d\'un mois (cas standard)', () => {
+  it("avance d'un mois (cas standard)", () => {
     const comp = make('2026-05');
     comp.nextMonth();
     expect((comp as any).currentMonth()).toBe('2026-06');
   });
 
-  it('passe de décembre à janvier de l\'année suivante', () => {
+  it("passe de décembre à janvier de l'année suivante", () => {
     const comp = make('2025-12');
     comp.nextMonth();
     expect((comp as any).currentMonth()).toBe('2026-01');
@@ -88,7 +88,7 @@ describe('BookingAdminComponent — navigation symétrique', () => {
     expect((comp as any).currentMonth()).toBe(original);
   });
 
-  it('12 next depuis janvier atteint janvier de l\'année suivante', () => {
+  it("12 next depuis janvier atteint janvier de l'année suivante", () => {
     const comp = make('2025-01');
     for (let i = 0; i < 12; i++) comp.nextMonth();
     expect((comp as any).currentMonth()).toBe('2026-01');
@@ -103,7 +103,7 @@ describe('BookingAdminComponent — formatMonthLabel()', () => {
     expect(comp.formatMonthLabel()).toBeTruthy();
   });
 
-  it('contient l\'année', () => {
+  it("contient l'année", () => {
     const comp = make('2026-05');
     expect(comp.formatMonthLabel()).toContain('2026');
   });

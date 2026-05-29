@@ -62,7 +62,11 @@ describe('RegisterComponent — returnUrl', () => {
 
   it('navigue vers returnUrl après inscription si présent', async () => {
     const { component, navigateByUrlMock } = await makeComponent('/cyberscan/dashboard');
-    component.form.setValue({ email: 'a@b.com', password: 'Password1!', confirmPassword: 'Password1!' });
+    component.form.setValue({
+      email: 'a@b.com',
+      password: 'Password1!',
+      confirmPassword: 'Password1!',
+    });
     component.submit();
     await new Promise(r => setTimeout(r, 20));
     expect(navigateByUrlMock).toHaveBeenCalledWith('/cyberscan/dashboard');
@@ -70,7 +74,11 @@ describe('RegisterComponent — returnUrl', () => {
 
   it('navigue vers /cyberscan/onboarding si pas de returnUrl', async () => {
     const { component, navigateByUrlMock } = await makeComponent();
-    component.form.setValue({ email: 'a@b.com', password: 'Password1!', confirmPassword: 'Password1!' });
+    component.form.setValue({
+      email: 'a@b.com',
+      password: 'Password1!',
+      confirmPassword: 'Password1!',
+    });
     component.submit();
     await new Promise(r => setTimeout(r, 20));
     expect(navigateByUrlMock).toHaveBeenCalledWith('/cyberscan/onboarding');
@@ -78,7 +86,11 @@ describe('RegisterComponent — returnUrl', () => {
 
   it('navigue vers /cyberscan/onboarding si returnUrl pointe vers /vault', async () => {
     const { component, navigateByUrlMock } = await makeComponent('/vault');
-    component.form.setValue({ email: 'a@b.com', password: 'Password1!', confirmPassword: 'Password1!' });
+    component.form.setValue({
+      email: 'a@b.com',
+      password: 'Password1!',
+      confirmPassword: 'Password1!',
+    });
     component.submit();
     await new Promise(r => setTimeout(r, 20));
     expect(navigateByUrlMock).toHaveBeenCalledWith('/cyberscan/onboarding');
@@ -86,7 +98,11 @@ describe('RegisterComponent — returnUrl', () => {
 
   it('navigue vers /cyberscan/onboarding si returnUrl pointe vers /auth/master-password', async () => {
     const { component, navigateByUrlMock } = await makeComponent('/auth/master-password');
-    component.form.setValue({ email: 'a@b.com', password: 'Password1!', confirmPassword: 'Password1!' });
+    component.form.setValue({
+      email: 'a@b.com',
+      password: 'Password1!',
+      confirmPassword: 'Password1!',
+    });
     component.submit();
     await new Promise(r => setTimeout(r, 20));
     expect(navigateByUrlMock).toHaveBeenCalledWith('/cyberscan/onboarding');

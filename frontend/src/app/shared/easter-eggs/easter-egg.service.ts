@@ -2,7 +2,18 @@ import { Injectable, inject, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 
-const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+const KONAMI = [
+  'ArrowUp',
+  'ArrowUp',
+  'ArrowDown',
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'ArrowLeft',
+  'ArrowRight',
+  'b',
+  'a',
+];
 const SECRET_WORD = 'cyberscan';
 
 @Injectable({ providedIn: 'root' })
@@ -45,7 +56,9 @@ export class EasterEggService implements OnDestroy {
   onLogoClick(): void {
     this.logoClicks++;
     clearTimeout(this.logoTimer);
-    this.logoTimer = setTimeout(() => { this.logoClicks = 0; }, 2000);
+    this.logoTimer = setTimeout(() => {
+      this.logoClicks = 0;
+    }, 2000);
     if (this.logoClicks >= 7) {
       this.logoClicks = 0;
       this.triggerGlitch();
@@ -88,12 +101,12 @@ export class EasterEggService implements OnDestroy {
       targets.forEach(el => {
         el.style.transform = `skewX(${(Math.random() - 0.5) * 8}deg)`;
         el.style.filter = `hue-rotate(${Math.random() * 360}deg)`;
-        el.style.textShadow = `${(Math.random()-0.5)*6}px 0 #ff0040, ${(Math.random()-0.5)*6}px 0 #00ffff`;
+        el.style.textShadow = `${(Math.random() - 0.5) * 6}px 0 #ff0040, ${(Math.random() - 0.5) * 6}px 0 #00ffff`;
       });
       count++;
       if (count > 14) {
         clearInterval(interval);
-        targets.forEach((el, i) => el.style.cssText = originals[i]);
+        targets.forEach((el, i) => (el.style.cssText = originals[i]));
         this.showGlitchMessage();
       }
     }, 80);

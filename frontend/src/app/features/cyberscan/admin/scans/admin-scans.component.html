@@ -2,19 +2,24 @@
   <div class="flex items-center justify-between flex-wrap gap-3">
     <h1 class="text-xl font-bold text-white">Scans publics</h1>
     <div class="flex gap-2">
-      @for (tab of [
-        { key: 'all', label: 'Tous' },
-        { key: 'completed', label: 'Terminés' },
-        { key: 'failed', label: 'Échoués' },
-        { key: 'pending', label: 'En cours' }
-      ]; track tab.key) {
-        <button type="button"
+      @for (
+        tab of [
+          { key: 'all', label: 'Tous' },
+          { key: 'completed', label: 'Terminés' },
+          { key: 'failed', label: 'Échoués' },
+          { key: 'pending', label: 'En cours' },
+        ];
+        track tab.key
+      ) {
+        <button
+          type="button"
           (click)="filter.set($any(tab.key))"
           class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
           [class.bg-cyan-600]="filter() === tab.key"
           [class.text-white]="filter() === tab.key"
           [class.bg-gray-800]="filter() !== tab.key"
-          [class.text-gray-400]="filter() !== tab.key">
+          [class.text-gray-400]="filter() !== tab.key"
+        >
           {{ tab.label }}
         </button>
       }
@@ -52,11 +57,17 @@
               </td>
               <td class="px-4 py-3">
                 @if (s.overall_status) {
-                  <span class="text-xs px-2 py-0.5 rounded-full" [class]="overallColor(s.overall_status)">
+                  <span
+                    class="text-xs px-2 py-0.5 rounded-full"
+                    [class]="overallColor(s.overall_status)"
+                  >
                     {{ s.overall_status }}
                   </span>
                 } @else if (s.error_message) {
-                  <span class="text-xs text-red-400 truncate max-w-xs block" [title]="s.error_message">
+                  <span
+                    class="text-xs text-red-400 truncate max-w-xs block"
+                    [title]="s.error_message"
+                  >
                     {{ truncate(s.error_message, 40) }}
                   </span>
                 } @else {

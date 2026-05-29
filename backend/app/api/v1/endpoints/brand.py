@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
@@ -33,9 +33,7 @@ async def get_brand(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(BrandProfile).where(BrandProfile.user_id == current_user.id)
-    )
+    result = await db.execute(select(BrandProfile).where(BrandProfile.user_id == current_user.id))
     return result.scalar_one_or_none()
 
 
@@ -45,9 +43,7 @@ async def upsert_brand(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(BrandProfile).where(BrandProfile.user_id == current_user.id)
-    )
+    result = await db.execute(select(BrandProfile).where(BrandProfile.user_id == current_user.id))
     brand = result.scalar_one_or_none()
 
     if brand is None:
@@ -57,7 +53,7 @@ async def upsert_brand(
     brand.company_name = payload.company_name
     brand.accent_color = payload.accent_color
     brand.logo_b64 = payload.logo_b64
-    brand.updated_at = datetime.now(timezone.utc)
+    brand.updated_at = datetime.now(UTC)
 
     await db.commit()
     await db.refresh(brand)

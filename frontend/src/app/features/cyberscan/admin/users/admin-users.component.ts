@@ -44,7 +44,10 @@ export class AdminUsersComponent implements OnInit {
 
   ngOnInit() {
     this.http.get<AdminUser[]>('/api/v1/admin/users', { headers: this.auth.headers() }).subscribe({
-      next: u => { this.users.set(u); this.loading.set(false); },
+      next: u => {
+        this.users.set(u);
+        this.loading.set(false);
+      },
       error: () => this.loading.set(false),
     });
   }
@@ -60,18 +63,27 @@ export class AdminUsersComponent implements OnInit {
 
   formatDate(iso: string | null): string {
     if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+    return new Date(iso).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
   }
 
   toggleRssi(user: AdminUser) {
-    this.http.patch<{ id: number; is_rssi_consultant: boolean }>(
-      `/api/v1/admin/users/${user.id}/rssi`,
-      {},
-      { headers: this.auth.headers() },
-    ).subscribe({
-      next: res => {
-        this.users.update(list => list.map(u => u.id === res.id ? { ...u, is_rssi_consultant: res.is_rssi_consultant } : u));
-      },
-    });
+    this.http
+      .patch<{
+        id: number;
+        is_rssi_consultant: boolean;
+      }>(`/api/v1/admin/users/${user.id}/rssi`, {}, { headers: this.auth.headers() })
+      .subscribe({
+        next: res => {
+          this.users.update(list =>
+            list.map(u =>
+              u.id === res.id ? { ...u, is_rssi_consultant: res.is_rssi_consultant } : u
+            )
+          );
+        },
+      });
   }
 }

@@ -43,4 +43,3 @@ Accès	"123456" ou le même partout	Un coffre-fort numérique
 Email	Cliquer par peur ou urgence	Analyser l'expéditeur et le lien
 Bureau	Écran allumé en pause café	Raccourci de verrouillage écran
 Public	Connexion au Wi-Fi "Gare_Gratuit"	Utilisation de la 4G/5G ou VPN
-

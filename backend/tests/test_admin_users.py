@@ -2,8 +2,10 @@
 Integration tests — /api/v1/admin/users
 Covers: auth guard, empty list, user list with required fields, plan defaults.
 """
+
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
@@ -18,6 +20,7 @@ def _admin_settings():
 
 
 # ── Auth guard ─────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_admin_users_no_key_returns_403():
@@ -36,6 +39,7 @@ async def test_admin_users_wrong_key_returns_403():
 
 
 # ── List users ─────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_admin_users_valid_key_returns_200():
@@ -58,9 +62,10 @@ async def test_admin_users_empty_db_returns_empty_list():
 async def test_admin_users_shows_registered_user():
     with _admin_settings():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await c.post(f"{BASE}/auth/register", json={
-                "email": "listeduser@test.com", "password": "StrongPass123!"
-            })
+            await c.post(
+                f"{BASE}/auth/register",
+                json={"email": "listeduser@test.com", "password": "StrongPass123!"},
+            )
             r = await c.get(f"{BASE}/admin/users", headers={"x-admin-key": "test-secret-key"})
     assert r.status_code == 200
     users = r.json()
@@ -72,12 +77,21 @@ async def test_admin_users_shows_registered_user():
 async def test_admin_users_response_has_required_fields():
     with _admin_settings():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await c.post(f"{BASE}/auth/register", json={
-                "email": "fields@test.com", "password": "StrongPass123!"
-            })
+            await c.post(
+                f"{BASE}/auth/register",
+                json={"email": "fields@test.com", "password": "StrongPass123!"},
+            )
             r = await c.get(f"{BASE}/admin/users", headers={"x-admin-key": "test-secret-key"})
     user = r.json()[0]
-    for key in ("id", "email", "is_active", "plan", "plan_name", "subscription_status", "subscription_since"):
+    for key in (
+        "id",
+        "email",
+        "is_active",
+        "plan",
+        "plan_name",
+        "subscription_status",
+        "subscription_since",
+    ):
         assert key in user, f"Missing key: {key}"
 
 
@@ -85,9 +99,10 @@ async def test_admin_users_response_has_required_fields():
 async def test_admin_users_no_subscription_shows_gratuit():
     with _admin_settings():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await c.post(f"{BASE}/auth/register", json={
-                "email": "free@test.com", "password": "StrongPass123!"
-            })
+            await c.post(
+                f"{BASE}/auth/register",
+                json={"email": "free@test.com", "password": "StrongPass123!"},
+            )
             r = await c.get(f"{BASE}/admin/users", headers={"x-admin-key": "test-secret-key"})
     user = r.json()[0]
     assert user["plan"] == "Gratuit"
@@ -100,8 +115,14 @@ async def test_admin_users_no_subscription_shows_gratuit():
 async def test_admin_users_multiple_users_ordered_by_id_desc():
     with _admin_settings():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await c.post(f"{BASE}/auth/register", json={"email": "first@test.com", "password": "StrongPass123!"})
-            await c.post(f"{BASE}/auth/register", json={"email": "second@test.com", "password": "StrongPass123!"})
+            await c.post(
+                f"{BASE}/auth/register",
+                json={"email": "first@test.com", "password": "StrongPass123!"},
+            )
+            await c.post(
+                f"{BASE}/auth/register",
+                json={"email": "second@test.com", "password": "StrongPass123!"},
+            )
             r = await c.get(f"{BASE}/admin/users", headers={"x-admin-key": "test-secret-key"})
     users = r.json()
     assert len(users) == 2
@@ -111,15 +132,22 @@ async def test_admin_users_multiple_users_ordered_by_id_desc():
 
 # ── PATCH /{user_id}/rssi ──────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_toggle_rssi_consultant_toggles_flag():
     with _admin_settings():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await c.post(f"{BASE}/auth/register", json={"email": "rssi@test.com", "password": "StrongPass123!"})
+            await c.post(
+                f"{BASE}/auth/register",
+                json={"email": "rssi@test.com", "password": "StrongPass123!"},
+            )
             users_r = await c.get(f"{BASE}/admin/users", headers={"x-admin-key": "test-secret-key"})
             user_id = users_r.json()[0]["id"]
 
-            r = await c.patch(f"{BASE}/admin/users/{user_id}/rssi", headers={"x-admin-key": "test-secret-key"})
+            r = await c.patch(
+                f"{BASE}/admin/users/{user_id}/rssi",
+                headers={"x-admin-key": "test-secret-key"},
+            )
     assert r.status_code == 200
     assert r.json()["id"] == user_id
     assert r.json()["is_rssi_consultant"] is True
@@ -129,12 +157,21 @@ async def test_toggle_rssi_consultant_toggles_flag():
 async def test_toggle_rssi_consultant_toggles_back():
     with _admin_settings():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await c.post(f"{BASE}/auth/register", json={"email": "rssi2@test.com", "password": "StrongPass123!"})
+            await c.post(
+                f"{BASE}/auth/register",
+                json={"email": "rssi2@test.com", "password": "StrongPass123!"},
+            )
             users_r = await c.get(f"{BASE}/admin/users", headers={"x-admin-key": "test-secret-key"})
             user_id = users_r.json()[0]["id"]
 
-            await c.patch(f"{BASE}/admin/users/{user_id}/rssi", headers={"x-admin-key": "test-secret-key"})
-            r = await c.patch(f"{BASE}/admin/users/{user_id}/rssi", headers={"x-admin-key": "test-secret-key"})
+            await c.patch(
+                f"{BASE}/admin/users/{user_id}/rssi",
+                headers={"x-admin-key": "test-secret-key"},
+            )
+            r = await c.patch(
+                f"{BASE}/admin/users/{user_id}/rssi",
+                headers={"x-admin-key": "test-secret-key"},
+            )
     assert r.status_code == 200
     assert r.json()["is_rssi_consultant"] is False
 
@@ -143,7 +180,10 @@ async def test_toggle_rssi_consultant_toggles_back():
 async def test_toggle_rssi_consultant_unknown_user_returns_404():
     with _admin_settings():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.patch(f"{BASE}/admin/users/99999/rssi", headers={"x-admin-key": "test-secret-key"})
+            r = await c.patch(
+                f"{BASE}/admin/users/99999/rssi",
+                headers={"x-admin-key": "test-secret-key"},
+            )
     assert r.status_code == 404
 
 

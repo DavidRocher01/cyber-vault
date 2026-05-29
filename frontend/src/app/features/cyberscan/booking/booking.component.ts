@@ -46,8 +46,10 @@ export class BookingComponent implements OnInit {
 
   // ── Computed ────────────────────────────────────────────────────────────────
   monthLabel = computed(() => {
-    return new Date(this.currentYear(), this.currentMonth(), 1)
-      .toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    return new Date(this.currentYear(), this.currentMonth(), 1).toLocaleDateString('fr-FR', {
+      month: 'long',
+      year: 'numeric',
+    });
   });
 
   calendarDays = computed<Array<string | null>>(() => {
@@ -91,12 +93,18 @@ export class BookingComponent implements OnInit {
     message: [''],
   });
 
-  get f() { return this.form.controls; }
+  get f() {
+    return this.form.controls;
+  }
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   ngOnInit() {
     this.titleService.setTitle('Réserver un audit cybersécurité | CyberScan');
-    this.meta.updateTag({ name: 'description', content: 'Réservez un créneau pour un audit cybersécurité PME. Calendrier en ligne, confirmation immédiate.' });
+    this.meta.updateTag({
+      name: 'description',
+      content:
+        'Réservez un créneau pour un audit cybersécurité PME. Calendrier en ligne, confirmation immédiate.',
+    });
 
     // Cancel flow via URL token
     const token = this.route.snapshot.queryParamMap.get('token');
@@ -105,14 +113,20 @@ export class BookingComponent implements OnInit {
       this.cancelToken.set(token);
       this.cancelLoading.set(true);
       this.bookingSvc.cancel(token).subscribe({
-        next: r => { this.cancelResult.set(r.message); this.cancelLoading.set(false); },
-        error: () => { this.cancelResult.set('Réservation introuvable ou déjà annulée.'); this.cancelLoading.set(false); },
+        next: r => {
+          this.cancelResult.set(r.message);
+          this.cancelLoading.set(false);
+        },
+        error: () => {
+          this.cancelResult.set('Réservation introuvable ou déjà annulée.');
+          this.cancelLoading.set(false);
+        },
       });
       return;
     }
 
     // Pre-fill from scan-detail CTA (?domain=...&need_type=...)
-    const domain   = this.route.snapshot.queryParamMap.get('domain');
+    const domain = this.route.snapshot.queryParamMap.get('domain');
     const needType = this.route.snapshot.queryParamMap.get('need_type');
     if (domain) {
       this.form.patchValue({
@@ -132,8 +146,14 @@ export class BookingComponent implements OnInit {
     this.selectedDay.set(null);
     this.selectedSlot.set(null);
     this.bookingSvc.getSlots(month).subscribe({
-      next: s => { this.slots.set(s); this.loadingSlots.set(false); },
-      error: () => { this.slots.set([]); this.loadingSlots.set(false); },
+      next: s => {
+        this.slots.set(s);
+        this.loadingSlots.set(false);
+      },
+      error: () => {
+        this.slots.set([]);
+        this.loadingSlots.set(false);
+      },
     });
   }
 
@@ -160,7 +180,9 @@ export class BookingComponent implements OnInit {
   canPrevMonth(): boolean {
     const y = this.currentYear();
     const m = this.currentMonth();
-    return y > this.today.getFullYear() || (y === this.today.getFullYear() && m > this.today.getMonth());
+    return (
+      y > this.today.getFullYear() || (y === this.today.getFullYear() && m > this.today.getMonth())
+    );
   }
 
   selectDay(day: string) {
@@ -180,8 +202,20 @@ export class BookingComponent implements OnInit {
   }
 
   formatDayFr(dateStr: string): string {
-    const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin',
-      'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+    const months = [
+      'janvier',
+      'février',
+      'mars',
+      'avril',
+      'mai',
+      'juin',
+      'juillet',
+      'août',
+      'septembre',
+      'octobre',
+      'novembre',
+      'décembre',
+    ];
     const [y, m, d] = dateStr.split('-');
     return `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`;
   }
@@ -196,23 +230,25 @@ export class BookingComponent implements OnInit {
     this.apiError.set('');
     const slot = this.selectedSlot()!;
     const { name, email, phone, need_type, message } = this.form.value;
-    this.bookingSvc.book({
-      slot_id: slot.id,
-      name: name!,
-      email: email!,
-      phone: phone || undefined,
-      need_type: need_type!,
-      message: message || undefined,
-    }).subscribe({
-      next: r => {
-        this.confirmedMessage.set(r.message);
-        this.step.set('confirmed');
-        this.submitting.set(false);
-      },
-      error: err => {
-        this.apiError.set(err?.error?.detail ?? 'Une erreur est survenue. Réessayez.');
-        this.submitting.set(false);
-      },
-    });
+    this.bookingSvc
+      .book({
+        slot_id: slot.id,
+        name: name!,
+        email: email!,
+        phone: phone || undefined,
+        need_type: need_type!,
+        message: message || undefined,
+      })
+      .subscribe({
+        next: r => {
+          this.confirmedMessage.set(r.message);
+          this.step.set('confirmed');
+          this.submitting.set(false);
+        },
+        error: err => {
+          this.apiError.set(err?.error?.detail ?? 'Une erreur est survenue. Réessayez.');
+          this.submitting.set(false);
+        },
+      });
   }
 }

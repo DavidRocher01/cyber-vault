@@ -9,6 +9,7 @@ Produces a formal PDF structured for regulatory submission:
   5. Action plan — non-conformant items with priority
   6. Auditor declaration block (signature placeholder)
 """
+
 from __future__ import annotations
 
 import io
@@ -19,18 +20,40 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    PageBreak, HRFlowable,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
 )
 
 from app.services.pdf_brand import (
-    DARK_BG, CARD_BG, BORDER, CYAN, GREEN, YELLOW, RED, GRAY, WHITE,
-    PAGE_W, PAGE_H, MARGIN, FOOTER_H,
-    score_color, get_styles, section_rule, draw_compliance_cover,
-    STATUS_COLOR, STATUS_LABEL,
+    BORDER,
+    CARD_BG,
+    CYAN,
+    DARK_BG,
+    FOOTER_H,
+    GRAY,
+    MARGIN,
+    PAGE_H,
+    PAGE_W,
+    RED,
+    STATUS_COLOR,
+    STATUS_LABEL,
+    WHITE,
+    YELLOW,
+    draw_compliance_cover,
+    get_styles,
+    section_rule,
 )
 
-_PRIORITY = {"non_compliant": "HAUTE", "partial": "MOYENNE", "compliant": "—", "na": "—"}
+_PRIORITY = {
+    "non_compliant": "HAUTE",
+    "partial": "MOYENNE",
+    "compliant": "—",
+    "na": "—",
+}
 _PRIORITY_COL = {"HAUTE": RED, "MOYENNE": YELLOW, "—": GRAY}
 
 
@@ -87,8 +110,11 @@ def _domain_scores(categories: list, items: dict) -> list[tuple[str, int]]:
             result.append((cat.get("label", cat.get("name", "")), 0))
             continue
         pts = sum(
-            2 if items.get(i["id"], "non_compliant") == "compliant"
-            else 1 if items.get(i["id"], "non_compliant") == "partial" else 0
+            2
+            if items.get(i["id"], "non_compliant") == "compliant"
+            else 1
+            if items.get(i["id"], "non_compliant") == "partial"
+            else 0
             for i in scorable
         )
         pct = round(pts / (len(scorable) * 2) * 100)
@@ -110,21 +136,25 @@ def generate_nis2_auditor_pdf(
     domain_scores = _domain_scores(categories, items)
 
     total = sum(1 for _ in (item for cat in categories for item in cat["items"]))
-    compliant = sum(1 for cat in categories for item in cat["items"]
-                    if items.get(item["id"]) == "compliant")
-    partial = sum(1 for cat in categories for item in cat["items"]
-                  if items.get(item["id"]) == "partial")
-    nc = sum(1 for cat in categories for item in cat["items"]
-             if items.get(item["id"]) == "non_compliant")
-    na = sum(1 for cat in categories for item in cat["items"]
-             if items.get(item["id"]) == "na")
+    compliant = sum(
+        1 for cat in categories for item in cat["items"] if items.get(item["id"]) == "compliant"
+    )
+    partial = sum(
+        1 for cat in categories for item in cat["items"] if items.get(item["id"]) == "partial"
+    )
+    nc = sum(
+        1 for cat in categories for item in cat["items"] if items.get(item["id"]) == "non_compliant"
+    )
+    na = sum(1 for cat in categories for item in cat["items"] if items.get(item["id"]) == "na")
     score_label = "Conforme" if score >= 80 else "Partiel" if score >= 50 else "Non conforme"
 
     buf = io.BytesIO()
     M = MARGIN * mm
     doc = SimpleDocTemplate(
-        buf, pagesize=A4,
-        leftMargin=M, rightMargin=M,
+        buf,
+        pagesize=A4,
+        leftMargin=M,
+        rightMargin=M,
         topMargin=(14 + 4) * mm,
         bottomMargin=(FOOTER_H + 6) * mm,
     )
@@ -167,18 +197,22 @@ def generate_nis2_auditor_pdf(
         ["Outil d'évaluation", "CyberScan — cyberscanapp.com"],
     ]
     attest_tbl = Table(attest_data, colWidths=[50 * mm, doc.width - 50 * mm])
-    attest_tbl.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (0, -1), colors.HexColor("#1e293b")),
-        ("BACKGROUND",    (1, 0), (1, -1), CARD_BG),
-        ("TEXTCOLOR",     (0, 0), (-1, -1), WHITE),
-        ("TEXTCOLOR",     (0, 0), (0, -1), CYAN),
-        ("FONTNAME",      (0, 0), (0, -1), "Helvetica-Bold"),
-        ("FONTSIZE",      (0, 0), (-1, -1), 8),
-        ("TOPPADDING",    (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 8),
-        ("GRID",          (0, 0), (-1, -1), 0.4, colors.HexColor("#334155")),
-    ]))
+    attest_tbl.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#1e293b")),
+                ("BACKGROUND", (1, 0), (1, -1), CARD_BG),
+                ("TEXTCOLOR", (0, 0), (-1, -1), WHITE),
+                ("TEXTCOLOR", (0, 0), (0, -1), CYAN),
+                ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, -1), 5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#334155")),
+            ]
+        )
+    )
     story.append(attest_tbl)
     story.append(Spacer(1, 6 * mm))
 
@@ -192,20 +226,31 @@ def generate_nis2_auditor_pdf(
         status = "Conforme" if pct >= 80 else "Partiel" if pct >= 50 else "Non conforme"
         summary_rows.append([dom, f"{pct} %", status])
 
-    summary_tbl = Table(summary_rows, colWidths=[doc.width * 0.55, doc.width * 0.15, doc.width * 0.30])
-    summary_tbl.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, 0), colors.HexColor("#1e293b")),
-        ("BACKGROUND",    (0, 1), (-1, -1), CARD_BG),
-        ("TEXTCOLOR",     (0, 0), (-1, 0), CYAN),
-        ("TEXTCOLOR",     (0, 1), (-1, -1), WHITE),
-        ("FONTNAME",      (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE",      (0, 0), (-1, -1), 8),
-        ("TOPPADDING",    (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 8),
-        ("GRID",          (0, 0), (-1, -1), 0.4, colors.HexColor("#334155")),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [CARD_BG, colors.HexColor("#1a2535")]),
-    ]))
+    summary_tbl = Table(
+        summary_rows, colWidths=[doc.width * 0.55, doc.width * 0.15, doc.width * 0.30]
+    )
+    summary_tbl.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e293b")),
+                ("BACKGROUND", (0, 1), (-1, -1), CARD_BG),
+                ("TEXTCOLOR", (0, 0), (-1, 0), CYAN),
+                ("TEXTCOLOR", (0, 1), (-1, -1), WHITE),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#334155")),
+                (
+                    "ROWBACKGROUNDS",
+                    (0, 1),
+                    (-1, -1),
+                    [CARD_BG, colors.HexColor("#1a2535")],
+                ),
+            ]
+        )
+    )
     story.append(summary_tbl)
     story.append(Spacer(1, 6 * mm))
 
@@ -228,20 +273,29 @@ def generate_nis2_auditor_pdf(
             col = STATUS_COLOR.get(st, GRAY)
             cell_colors.append(("TEXTCOLOR", (1, i), (1, i), col))
 
-        det_tbl.setStyle(TableStyle([
-            ("BACKGROUND",    (0, 0), (-1, 0), colors.HexColor("#1e293b")),
-            ("TEXTCOLOR",     (0, 0), (-1, 0), CYAN),
-            ("FONTNAME",      (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("BACKGROUND",    (0, 1), (-1, -1), CARD_BG),
-            ("TEXTCOLOR",     (0, 1), (0, -1), WHITE),
-            ("FONTSIZE",      (0, 0), (-1, -1), 7.5),
-            ("TOPPADDING",    (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-            ("LEFTPADDING",   (0, 0), (-1, -1), 6),
-            ("GRID",          (0, 0), (-1, -1), 0.3, colors.HexColor("#334155")),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [CARD_BG, colors.HexColor("#1a2535")]),
-            *cell_colors,
-        ]))
+        det_tbl.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e293b")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), CYAN),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("BACKGROUND", (0, 1), (-1, -1), CARD_BG),
+                    ("TEXTCOLOR", (0, 1), (0, -1), WHITE),
+                    ("FONTSIZE", (0, 0), (-1, -1), 7.5),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                    ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#334155")),
+                    (
+                        "ROWBACKGROUNDS",
+                        (0, 1),
+                        (-1, -1),
+                        [CARD_BG, colors.HexColor("#1a2535")],
+                    ),
+                    *cell_colors,
+                ]
+            )
+        )
         story.append(det_tbl)
         story.append(Spacer(1, 4 * mm))
 
@@ -252,7 +306,11 @@ def generate_nis2_auditor_pdf(
     story.append(Spacer(1, 3 * mm))
 
     non_compliant_items = [
-        (cat.get("label", cat.get("name", "")), item, items.get(item["id"], "non_compliant"))
+        (
+            cat.get("label", cat.get("name", "")),
+            item,
+            items.get(item["id"], "non_compliant"),
+        )
         for cat in categories
         for item in cat["items"]
         if items.get(item["id"], "non_compliant") in ("non_compliant", "partial")
@@ -270,29 +328,45 @@ def generate_nis2_auditor_pdf(
             prio = _PRIORITY.get(st, "—")
             col = _PRIORITY_COL.get(prio, GRAY)
             prio_colors.append(("TEXTCOLOR", (2, i), (2, i), col))
-            prio_colors.append(("FONTNAME",  (2, i), (2, i), "Helvetica-Bold"))
+            prio_colors.append(("FONTNAME", (2, i), (2, i), "Helvetica-Bold"))
 
         plan_tbl = Table(
             plan_rows,
-            colWidths=[doc.width * 0.22, doc.width * 0.45, doc.width * 0.15, doc.width * 0.18],
+            colWidths=[
+                doc.width * 0.22,
+                doc.width * 0.45,
+                doc.width * 0.15,
+                doc.width * 0.18,
+            ],
         )
-        plan_tbl.setStyle(TableStyle([
-            ("BACKGROUND",    (0, 0), (-1, 0), colors.HexColor("#1e293b")),
-            ("TEXTCOLOR",     (0, 0), (-1, 0), CYAN),
-            ("FONTNAME",      (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("BACKGROUND",    (0, 1), (-1, -1), CARD_BG),
-            ("TEXTCOLOR",     (0, 1), (-1, -1), WHITE),
-            ("FONTSIZE",      (0, 0), (-1, -1), 7.5),
-            ("TOPPADDING",    (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-            ("LEFTPADDING",   (0, 0), (-1, -1), 6),
-            ("GRID",          (0, 0), (-1, -1), 0.3, colors.HexColor("#334155")),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [CARD_BG, colors.HexColor("#1a2535")]),
-            *prio_colors,
-        ]))
+        plan_tbl.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e293b")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), CYAN),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("BACKGROUND", (0, 1), (-1, -1), CARD_BG),
+                    ("TEXTCOLOR", (0, 1), (-1, -1), WHITE),
+                    ("FONTSIZE", (0, 0), (-1, -1), 7.5),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                    ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#334155")),
+                    (
+                        "ROWBACKGROUNDS",
+                        (0, 1),
+                        (-1, -1),
+                        [CARD_BG, colors.HexColor("#1a2535")],
+                    ),
+                    *prio_colors,
+                ]
+            )
+        )
         story.append(plan_tbl)
     else:
-        story.append(Paragraph("Tous les contrôles sont conformes ou non applicables.", styles["body"]))
+        story.append(
+            Paragraph("Tous les contrôles sont conformes ou non applicables.", styles["body"])
+        )
 
     story.append(Spacer(1, 8 * mm))
 
@@ -319,18 +393,22 @@ def generate_nis2_auditor_pdf(
         ["Signature", ""],
     ]
     sig_tbl = Table(sig_data, colWidths=[45 * mm, doc.width - 45 * mm])
-    sig_tbl.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (0, -1), colors.HexColor("#1e293b")),
-        ("BACKGROUND",    (1, 0), (1, -1), CARD_BG),
-        ("TEXTCOLOR",     (0, 0), (-1, -1), WHITE),
-        ("TEXTCOLOR",     (0, 0), (0, -1), CYAN),
-        ("FONTNAME",      (0, 0), (0, -1), "Helvetica-Bold"),
-        ("FONTSIZE",      (0, 0), (-1, -1), 8),
-        ("TOPPADDING",    (0, 0), (-1, -1), 8),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 8),
-        ("GRID",          (0, 0), (-1, -1), 0.4, colors.HexColor("#334155")),
-    ]))
+    sig_tbl.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#1e293b")),
+                ("BACKGROUND", (1, 0), (1, -1), CARD_BG),
+                ("TEXTCOLOR", (0, 0), (-1, -1), WHITE),
+                ("TEXTCOLOR", (0, 0), (0, -1), CYAN),
+                ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, -1), 8),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#334155")),
+            ]
+        )
+    )
     story.append(sig_tbl)
 
     doc.build(story, onFirstPage=on_cover, onLaterPages=on_page)

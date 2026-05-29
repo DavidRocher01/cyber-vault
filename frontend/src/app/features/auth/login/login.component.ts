@@ -13,16 +13,24 @@ import { AuthStore } from '../auth.store';
 import { OtpInputComponent } from '../../../shared/otp-input/otp-input.component';
 
 @Component({
-    standalone: true,
-    selector: 'app-login',
-    imports: [
-        CommonModule, ReactiveFormsModule, FormsModule, RouterLink,
-        MatCardModule, MatFormFieldModule, MatInputModule,
-        MatButtonModule, MatIconModule, MatProgressSpinnerModule, OtpInputComponent,
-    ],
-    providers: [AuthStore],
-    templateUrl: './login.component.html',
-    styleUrl: './login.component.scss'
+  standalone: true,
+  selector: 'app-login',
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    RouterLink,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    OtpInputComponent,
+  ],
+  providers: [AuthStore],
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.scss',
 })
 export class LoginComponent {
   private fb = inject(FormBuilder);

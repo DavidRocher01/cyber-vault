@@ -20,10 +20,13 @@ export class BlogListComponent implements OnInit {
   readonly articles$ = this.blog.getAll();
 
   ngOnInit() {
-    this.titleService.setTitle('Blog cybersécurité — Conseils, audits, bonnes pratiques | CyberScan');
+    this.titleService.setTitle(
+      'Blog cybersécurité — Conseils, audits, bonnes pratiques | CyberScan'
+    );
     this.meta.updateTag({
       name: 'description',
-      content: 'Articles sur la cybersécurité des PME : audits, vulnérabilités courantes, RGPD, bonnes pratiques. Rédigés par un développeur-auditeur.',
+      content:
+        'Articles sur la cybersécurité des PME : audits, vulnérabilités courantes, RGPD, bonnes pratiques. Rédigés par un développeur-auditeur.',
     });
   }
 

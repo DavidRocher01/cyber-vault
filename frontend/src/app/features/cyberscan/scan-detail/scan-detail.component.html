@@ -1,5 +1,4 @@
 <div class="min-h-screen bg-gray-900 text-white">
-
   <!-- Navbar -->
   <nav class="flex items-center justify-between px-8 py-4 border-b border-gray-800">
     <a routerLink="/cyberscan/dashboard" class="flex items-center gap-2">
@@ -8,12 +7,15 @@
     </a>
     <div class="flex items-center gap-3">
       <app-nav-buttons />
-      <a routerLink="/cyberscan/dashboard" class="text-sm text-gray-500 hover:text-cyan-400 transition-colors">Dashboard</a>
+      <a
+        routerLink="/cyberscan/dashboard"
+        class="text-sm text-gray-500 hover:text-cyan-400 transition-colors"
+        >Dashboard</a
+      >
     </div>
   </nav>
 
   <div class="max-w-5xl mx-auto px-6 py-10">
-
     @if (loading()) {
       <div class="flex justify-center py-24">
         <mat-spinner diameter="56"></mat-spinner>
@@ -29,7 +31,6 @@
     }
 
     @if (!loading() && !error() && scan()) {
-
       <!-- Header -->
       <div class="flex items-start justify-between mb-8 gap-4 flex-wrap">
         <div>
@@ -39,14 +40,25 @@
         </div>
         <div class="flex gap-2 flex-wrap">
           @if (scan()!.pdf_path) {
-            <button mat-flat-button color="primary" type="button" (click)="downloadPdf()" class="flex items-center gap-2">
+            <button
+              mat-flat-button
+              color="primary"
+              type="button"
+              (click)="downloadPdf()"
+              class="flex items-center gap-2"
+            >
               <mat-icon>picture_as_pdf</mat-icon>
               Rapport PDF
             </button>
           }
           @if (scan()!.status === 'done') {
-            <button mat-stroked-button type="button" (click)="downloadBrandedPdf()" [disabled]="downloadingBranded()"
-                    class="flex items-center gap-2 !border-cyan-700 !text-cyan-400 hover:!bg-cyan-900/20">
+            <button
+              mat-stroked-button
+              type="button"
+              (click)="downloadBrandedPdf()"
+              [disabled]="downloadingBranded()"
+              class="flex items-center gap-2 !border-cyan-700 !text-cyan-400 hover:!bg-cyan-900/20"
+            >
               @if (downloadingBranded()) {
                 <mat-spinner diameter="16"></mat-spinner>
               } @else {
@@ -60,9 +72,10 @@
 
       <!-- Status cards -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-
         <!-- Score gauge -->
-        <div class="rounded-xl border border-gray-700 bg-gray-800 p-5 flex items-center gap-4 col-span-2 md:col-span-1">
+        <div
+          class="rounded-xl border border-gray-700 bg-gray-800 p-5 flex items-center gap-4 col-span-2 md:col-span-1"
+        >
           @if (score !== null) {
             <div class="w-20 h-20 flex-shrink-0">
               <app-score-gauge [score]="score"></app-score-gauge>
@@ -81,16 +94,28 @@
         </div>
 
         <!-- Overall status -->
-        <div class="rounded-xl border p-5 flex flex-col gap-2"
-             [class]="scan()!.overall_status ? statusColor(scan()!.overall_status) : 'text-gray-400 bg-gray-800 border-gray-700'">
+        <div
+          class="rounded-xl border p-5 flex flex-col gap-2"
+          [class]="
+            scan()!.overall_status
+              ? statusColor(scan()!.overall_status)
+              : 'text-gray-400 bg-gray-800 border-gray-700'
+          "
+        >
           <p class="text-xs uppercase tracking-wider opacity-70">Résultat</p>
           <div class="flex items-center gap-2 text-xl font-bold">
-            <mat-icon class="!text-[1.3rem] !w-[1.3rem] !h-[1.3rem]">{{ statusIcon(scan()!.overall_status) }}</mat-icon>
+            <mat-icon class="!text-[1.3rem] !w-[1.3rem] !h-[1.3rem]">{{
+              statusIcon(scan()!.overall_status)
+            }}</mat-icon>
             {{ scan()!.overall_status ?? '—' }}
           </div>
           <div class="flex gap-3 mt-1 text-xs opacity-80">
-            <span class="text-red-400 font-semibold">{{ criticalCount }} critique{{ criticalCount > 1 ? 's' : '' }}</span>
-            <span class="text-yellow-400 font-semibold">{{ warningCount }} warning{{ warningCount > 1 ? 's' : '' }}</span>
+            <span class="text-red-400 font-semibold"
+              >{{ criticalCount }} critique{{ criticalCount > 1 ? 's' : '' }}</span
+            >
+            <span class="text-yellow-400 font-semibold"
+              >{{ warningCount }} warning{{ warningCount > 1 ? 's' : '' }}</span
+            >
           </div>
         </div>
 
@@ -101,7 +126,11 @@
             @if (scan()!.status === 'running' || scan()!.status === 'pending') {
               <mat-spinner diameter="20"></mat-spinner>
             } @else {
-              <mat-icon [class]="statusColor(scan()!.status).split(' ')[0]" class="!text-[1.3rem] !w-[1.3rem] !h-[1.3rem]">{{ statusIcon(scan()!.status) }}</mat-icon>
+              <mat-icon
+                [class]="statusColor(scan()!.status).split(' ')[0]"
+                class="!text-[1.3rem] !w-[1.3rem] !h-[1.3rem]"
+                >{{ statusIcon(scan()!.status) }}</mat-icon
+              >
             }
             <span class="capitalize">{{ scan()!.status }}</span>
           </div>
@@ -115,16 +144,19 @@
             {{ duration }}
           </div>
         </div>
-
       </div>
 
       <!-- Scan in progress -->
       @if (scan()!.status === 'pending' || scan()!.status === 'running') {
-        <div class="bg-blue-900/30 border border-blue-700 rounded-xl px-6 py-5 flex items-center gap-4 mb-8">
+        <div
+          class="bg-blue-900/30 border border-blue-700 rounded-xl px-6 py-5 flex items-center gap-4 mb-8"
+        >
           <mat-spinner diameter="28"></mat-spinner>
           <div>
             <p class="font-semibold text-blue-300">Scan en cours...</p>
-            <p class="text-sm text-blue-400">La page se met à jour automatiquement. Cela peut prendre 1 à 3 minutes.</p>
+            <p class="text-sm text-blue-400">
+              La page se met à jour automatiquement. Cela peut prendre 1 à 3 minutes.
+            </p>
           </div>
         </div>
       }
@@ -141,23 +173,32 @@
       @if (scan()!.status === 'done' && findings.length > 0) {
         <div class="mb-8">
           <h2 class="text-xl font-bold mb-1">Analyse détaillée</h2>
-          <p class="text-gray-400 text-sm mb-6">Résultats module par module — téléchargez le PDF pour les recommandations complètes.</p>
+          <p class="text-gray-400 text-sm mb-6">
+            Résultats module par module — téléchargez le PDF pour les recommandations complètes.
+          </p>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             @for (f of findings; track f.key) {
-
               <!-- Verrouillé — teasing plan supérieur -->
               @if (f.skipped) {
-                <div class="rounded-xl border border-amber-500/20 bg-gray-800/60 p-4 flex flex-col gap-3 relative overflow-hidden">
+                <div
+                  class="rounded-xl border border-amber-500/20 bg-gray-800/60 p-4 flex flex-col gap-3 relative overflow-hidden"
+                >
                   <!-- Badge plan requis -->
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                      <mat-icon class="text-gray-600 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">{{ f.icon }}</mat-icon>
+                      <mat-icon class="text-gray-600 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">{{
+                        f.icon
+                      }}</mat-icon>
                       <span class="text-sm font-medium text-gray-500">{{ f.label }}</span>
                     </div>
                     <div class="flex items-center gap-1.5">
-                      <mat-icon class="text-amber-400 !text-[1rem] !w-[1rem] !h-[1rem]">lock</mat-icon>
-                      <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 border border-amber-500/40 rounded px-2 py-0.5">
+                      <mat-icon class="text-amber-400 !text-[1rem] !w-[1rem] !h-[1rem]"
+                        >lock</mat-icon
+                      >
+                      <span
+                        class="text-[10px] font-bold uppercase tracking-wider text-amber-400 border border-amber-500/40 rounded px-2 py-0.5"
+                      >
                         {{ f.minTier === 3 ? 'Pro' : 'Business' }}
                       </span>
                     </div>
@@ -176,30 +217,44 @@
                   <p class="text-[11px] text-amber-500/70">{{ getProDescription(f.key) }}</p>
                 </div>
 
-              <!-- Active finding — flip card -->
+                <!-- Active finding — flip card -->
               } @else {
                 <div class="flip-container cursor-pointer" (click)="toggleFlip(f.key)">
-                  <div class="flip-inner relative w-full h-full" [class.flipped]="flippedCards.has(f.key)">
-
+                  <div
+                    class="flip-inner relative w-full h-full"
+                    [class.flipped]="flippedCards.has(f.key)"
+                  >
                     <!-- Front -->
-                    <div class="flip-front rounded-xl border p-4 flex flex-col gap-3"
-                         [class]="statusColor(f.status)">
+                    <div
+                      class="flip-front rounded-xl border p-4 flex flex-col gap-3"
+                      [class]="statusColor(f.status)"
+                    >
                       <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
-                          <mat-icon class="!text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">{{ f.icon }}</mat-icon>
+                          <mat-icon class="!text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">{{
+                            f.icon
+                          }}</mat-icon>
                           <span class="text-sm font-semibold">{{ f.label }}</span>
                         </div>
                         <div class="flex items-center gap-1.5">
                           @if (f.status) {
-                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border"
-                                  [class]="f.status === 'OK' ? 'border-green-600 text-green-400' :
-                                           f.status === 'WARNING' ? 'border-yellow-600 text-yellow-400' :
-                                           'border-red-600 text-red-400'">
+                            <span
+                              class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border"
+                              [class]="
+                                f.status === 'OK'
+                                  ? 'border-green-600 text-green-400'
+                                  : f.status === 'WARNING'
+                                    ? 'border-yellow-600 text-yellow-400'
+                                    : 'border-red-600 text-red-400'
+                              "
+                            >
                               {{ f.status }}
                             </span>
                           }
                           @if (f.explanation) {
-                            <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] opacity-40">info</mat-icon>
+                            <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] opacity-40"
+                              >info</mat-icon
+                            >
                           }
                         </div>
                       </div>
@@ -208,7 +263,11 @@
                           @for (s of f.summary; track s.label) {
                             <div class="flex items-start justify-between gap-2 text-xs">
                               <span class="opacity-60 shrink-0">{{ s.label }}</span>
-                              <span class="font-medium text-right truncate max-w-[55%]" [title]="s.value">{{ s.value }}</span>
+                              <span
+                                class="font-medium text-right truncate max-w-[55%]"
+                                [title]="s.value"
+                                >{{ s.value }}</span
+                              >
                             </div>
                           }
                         </div>
@@ -216,18 +275,23 @@
                     </div>
 
                     <!-- Back -->
-                    <div class="flip-back rounded-xl border p-4 flex flex-col gap-3"
-                         [class]="statusColor(f.status)">
+                    <div
+                      class="flip-back rounded-xl border p-4 flex flex-col gap-3"
+                      [class]="statusColor(f.status)"
+                    >
                       <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
-                          <mat-icon class="!text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">menu_book</mat-icon>
+                          <mat-icon class="!text-[1.2rem] !w-[1.2rem] !h-[1.2rem]"
+                            >menu_book</mat-icon
+                          >
                           <span class="text-sm font-semibold">{{ f.label }}</span>
                         </div>
-                        <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] opacity-40">close</mat-icon>
+                        <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] opacity-40"
+                          >close</mat-icon
+                        >
                       </div>
                       <p class="text-xs leading-relaxed opacity-80">{{ f.explanation }}</p>
                     </div>
-
                   </div>
                 </div>
               }
@@ -238,21 +302,31 @@
 
       <!-- Comparateur — modules non inclus dans le plan actuel -->
       @if (scan()!.status === 'done' && lockedFindings.length > 0) {
-        <div class="bg-gradient-to-br from-gray-800/80 to-gray-900/80 border border-amber-500/25 rounded-xl p-6 mb-8">
+        <div
+          class="bg-gradient-to-br from-gray-800/80 to-gray-900/80 border border-amber-500/25 rounded-xl p-6 mb-8"
+        >
           <div class="flex items-start justify-between gap-4 mb-5 flex-wrap">
             <div>
               <div class="flex items-center gap-2 mb-1">
-                <mat-icon class="text-amber-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">workspace_premium</mat-icon>
+                <mat-icon class="text-amber-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]"
+                  >workspace_premium</mat-icon
+                >
                 <h2 class="text-base font-bold">Ce que vous auriez vu avec un plan supérieur</h2>
               </div>
               <p class="text-xs text-gray-400">
-                {{ lockedFindings.length }} module{{ lockedFindings.length > 1 ? 's' : '' }}
-                supplémentaire{{ lockedFindings.length > 1 ? 's' : '' }} analysent votre infrastructure en profondeur.
+                {{ lockedFindings.length }} module{{
+                  lockedFindings.length > 1 ? 's' : ''
+                }}
+                supplémentaire{{ lockedFindings.length > 1 ? 's' : '' }} analysent votre
+                infrastructure en profondeur.
               </p>
             </div>
-            <a routerLink="/cyberscan/dashboard" [queryParams]="{upgrade: 'true'}"
-               mat-flat-button
-               class="!bg-amber-500 !text-gray-900 !font-bold !text-xs flex-shrink-0">
+            <a
+              routerLink="/cyberscan/dashboard"
+              [queryParams]="{ upgrade: 'true' }"
+              mat-flat-button
+              class="!bg-amber-500 !text-gray-900 !font-bold !text-xs flex-shrink-0"
+            >
               <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">upgrade</mat-icon>
               Passer au plan supérieur
             </a>
@@ -260,13 +334,20 @@
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             @for (f of lockedFindings; track f.key) {
-              <div class="flex items-start gap-3 bg-gray-900/50 border border-gray-700/50 rounded-lg px-4 py-3">
-                <mat-icon class="text-amber-400/50 mt-0.5 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0">{{ f.icon }}</mat-icon>
+              <div
+                class="flex items-start gap-3 bg-gray-900/50 border border-gray-700/50 rounded-lg px-4 py-3"
+              >
+                <mat-icon
+                  class="text-amber-400/50 mt-0.5 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem] flex-shrink-0"
+                  >{{ f.icon }}</mat-icon
+                >
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-medium text-gray-300">{{ f.label }}</p>
                   <p class="text-xs text-gray-500 mt-0.5">{{ getProDescription(f.key) }}</p>
                 </div>
-                <span class="text-[9px] font-bold uppercase text-amber-400 border border-amber-500/30 rounded px-1.5 py-0.5 flex-shrink-0 self-start">
+                <span
+                  class="text-[9px] font-bold uppercase text-amber-400 border border-amber-500/30 rounded px-1.5 py-0.5 flex-shrink-0 self-start"
+                >
                   {{ f.minTier === 3 ? 'PRO' : 'BIZ' }}
                 </span>
               </div>
@@ -279,7 +360,9 @@
       @if (scan()!.status === 'done' && score !== null) {
         <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-8">
           <h2 class="text-xl font-bold mb-1">Couverture par catégorie</h2>
-          <p class="text-gray-400 text-sm mb-6">Score moyen par domaine de sécurité — 100 = aucun problème détecté</p>
+          <p class="text-gray-400 text-sm mb-6">
+            Score moyen par domaine de sécurité — 100 = aucun problème détecté
+          </p>
           <div class="flex flex-col md:flex-row items-center gap-8">
             <!-- Radar -->
             <div class="w-full max-w-xs mx-auto md:mx-0 flex-shrink-0">
@@ -291,13 +374,28 @@
                 <div class="flex items-center gap-3">
                   <span class="text-sm text-gray-300 w-32 flex-shrink-0">{{ label }}</span>
                   <div class="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
-                    <div class="h-full rounded-full transition-all duration-700"
-                         [style.width.%]="radarScores[i]"
-                         [style.background-color]="radarScores[i] >= 75 ? '#4ade80' : radarScores[i] >= 50 ? '#facc15' : '#f87171'">
-                    </div>
+                    <div
+                      class="h-full rounded-full transition-all duration-700"
+                      [style.width.%]="radarScores[i]"
+                      [style.background-color]="
+                        radarScores[i] >= 75
+                          ? '#4ade80'
+                          : radarScores[i] >= 50
+                            ? '#facc15'
+                            : '#f87171'
+                      "
+                    ></div>
                   </div>
-                  <span class="text-sm font-bold w-8 text-right flex-shrink-0"
-                        [style.color]="radarScores[i] >= 75 ? '#4ade80' : radarScores[i] >= 50 ? '#facc15' : '#f87171'">
+                  <span
+                    class="text-sm font-bold w-8 text-right flex-shrink-0"
+                    [style.color]="
+                      radarScores[i] >= 75
+                        ? '#4ade80'
+                        : radarScores[i] >= 50
+                          ? '#facc15'
+                          : '#f87171'
+                    "
+                  >
                     {{ radarScores[i] }}
                   </span>
                 </div>
@@ -311,22 +409,31 @@
       @if (remediationScripts.length > 0) {
         <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-8">
           <div class="flex items-center gap-3 mb-4">
-            <div class="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center">
+            <div
+              class="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center"
+            >
               <mat-icon class="text-cyan-400 !text-[1rem] !w-[1rem] !h-[1rem]">build</mat-icon>
             </div>
             <div>
               <h2 class="text-lg font-bold">Scripts de remédiation</h2>
-              <p class="text-xs text-gray-400">Téléchargez les scripts auto-générés pour corriger les failles détectées.</p>
+              <p class="text-xs text-gray-400">
+                Téléchargez les scripts auto-générés pour corriger les failles détectées.
+              </p>
             </div>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             @for (script of remediationScripts; track script.key) {
-              <button mat-stroked-button type="button"
-                      (click)="downloadRemediation(script.key)"
-                      class="!border-gray-600 !text-gray-200 !justify-start !px-4 !py-3 !h-auto !rounded-xl hover:!border-cyan-500/50 hover:!text-cyan-300 transition-colors">
+              <button
+                mat-stroked-button
+                type="button"
+                (click)="downloadRemediation(script.key)"
+                class="!border-gray-600 !text-gray-200 !justify-start !px-4 !py-3 !h-auto !rounded-xl hover:!border-cyan-500/50 hover:!text-cyan-300 transition-colors"
+              >
                 <mat-icon class="mr-2 text-cyan-400">{{ script.icon }}</mat-icon>
                 <span class="text-sm font-medium">{{ script.label }}</span>
-                <mat-icon class="ml-auto !text-[0.9rem] !w-[0.9rem] !h-[0.9rem] text-gray-500">download</mat-icon>
+                <mat-icon class="ml-auto !text-[0.9rem] !w-[0.9rem] !h-[0.9rem] text-gray-500"
+                  >download</mat-icon
+                >
               </button>
             }
           </div>
@@ -336,7 +443,6 @@
       <!-- CTA Audit Flash humain -->
       @if (scan()!.status === 'done' && scannedDomain) {
         <div [class]="ctaWrapperClass">
-
           <!-- Icône -->
           <div [class]="ctaIconWrapperClass">
             <mat-icon [class]="ctaIconClass">person_search</mat-icon>
@@ -346,19 +452,23 @@
           <div class="flex-1">
             <p class="font-bold text-white mb-1">{{ ctaTitle }}</p>
             <p class="text-sm text-gray-400">
-              Un <strong class="text-white">Audit Flash</strong> de 2h par un consultant certifié — rapport PDF personnalisé, recommandations priorisées pour <strong class="text-white">{{ scannedDomain }}</strong>.
+              Un <strong class="text-white">Audit Flash</strong> de 2h par un consultant certifié —
+              rapport PDF personnalisé, recommandations priorisées pour
+              <strong class="text-white">{{ scannedDomain }}</strong
+              >.
             </p>
           </div>
 
           <!-- Bouton -->
-          <a [routerLink]="['/cyberscan/booking']"
-             [queryParams]="{domain: scannedDomain, need_type: 'audit-flash'}"
-             mat-flat-button
-             [class]="ctaButtonClass">
+          <a
+            [routerLink]="['/cyberscan/booking']"
+            [queryParams]="{ domain: scannedDomain, need_type: 'audit-flash' }"
+            mat-flat-button
+            [class]="ctaButtonClass"
+          >
             <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">calendar_month</mat-icon>
             Réserver un Audit Flash
           </a>
-
         </div>
       }
 
@@ -380,7 +490,6 @@
           </div>
         </div>
       </div>
-
     }
   </div>
 </div>

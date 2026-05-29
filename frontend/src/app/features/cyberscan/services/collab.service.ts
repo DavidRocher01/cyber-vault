@@ -27,7 +27,9 @@ export class CollabService {
   }
 
   updateRole(siteId: number, collabId: number, role: string): Observable<Collaborator> {
-    return this.http.put<Collaborator>(`${API}/sites/${siteId}/collaborators/${collabId}`, { role });
+    return this.http.put<Collaborator>(`${API}/sites/${siteId}/collaborators/${collabId}`, {
+      role,
+    });
   }
 
   remove(siteId: number, collabId: number): Observable<void> {

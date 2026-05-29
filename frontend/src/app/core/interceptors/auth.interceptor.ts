@@ -1,4 +1,9 @@
-import { HttpInterceptorFn, HttpErrorResponse, HttpRequest, HttpHandlerFn } from '@angular/common/http';
+import {
+  HttpInterceptorFn,
+  HttpErrorResponse,
+  HttpRequest,
+  HttpHandlerFn,
+} from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, retry, switchMap, throwError, timer } from 'rxjs';
@@ -22,7 +27,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   return next(authReq).pipe(
     retry({
       count: 1,
-      delay: (err) => {
+      delay: err => {
         if (err instanceof HttpErrorResponse && err.status >= 500 && req.method === 'GET') {
           return timer(1000);
         }

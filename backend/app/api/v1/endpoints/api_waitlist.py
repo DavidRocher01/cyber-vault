@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
@@ -15,13 +15,15 @@ router = APIRouter(prefix="/api-waitlist", tags=["api-waitlist"])
 async def join_waitlist(data: ApiWaitlistIn, db: AsyncSession = Depends(get_db)) -> ApiWaitlistOut:
     existing = await db.execute(select(ApiWaitlist).where(ApiWaitlist.email == data.email))
     if existing.scalar_one_or_none():
-        raise HTTPException(status_code=409, detail="Vous êtes déjà inscrit(e) sur la liste d'attente.")
+        raise HTTPException(
+            status_code=409, detail="Vous êtes déjà inscrit(e) sur la liste d'attente."
+        )
 
     entry = ApiWaitlist(
         email=data.email,
         role=data.role,
         company=data.company,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     db.add(entry)
     await db.commit()

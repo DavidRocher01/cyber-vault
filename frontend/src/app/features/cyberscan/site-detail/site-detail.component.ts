@@ -10,24 +10,41 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { Subscription as RxSubscription } from 'rxjs';
 import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 
-import { CyberscanService, Site, Scan, PaginatedScans, FindingStatus } from '../services/cyberscan.service';
+import {
+  CyberscanService,
+  Site,
+  Scan,
+  PaginatedScans,
+  FindingStatus,
+} from '../services/cyberscan.service';
 import { CollabService, Collaborator } from '../services/collab.service';
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
 import { computeScore, getGrade, getScoreColor } from '../../../shared/score-utils';
 import { Finding, getFindings } from '../../../shared/scan-findings';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
-import { ScoreTrendComponent, ScoreTrendPoint } from '../../../shared/score-trend/score-trend.component';
+import {
+  ScoreTrendComponent,
+  ScoreTrendPoint,
+} from '../../../shared/score-trend/score-trend.component';
 
 @Component({
-    standalone: true,
-    selector: 'app-site-detail',
-    imports: [
-        CommonModule, FormsModule, RouterLink,
-        MatButtonModule, MatIconModule, MatProgressSpinnerModule,
-        MatSnackBarModule, MatPaginatorModule, ScoreGaugeComponent, NavButtonsComponent, ScoreTrendComponent,
-    ],
-    templateUrl: './site-detail.component.html',
-    styleUrl: './site-detail.component.css'
+  standalone: true,
+  selector: 'app-site-detail',
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+    MatPaginatorModule,
+    ScoreGaugeComponent,
+    NavButtonsComponent,
+    ScoreTrendComponent,
+  ],
+  templateUrl: './site-detail.component.html',
+  styleUrl: './site-detail.component.css',
 })
 export class SiteDetailComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
@@ -74,7 +91,9 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.sendingInvite.set(false);
-        this.snack.open(err.error?.detail || 'Erreur lors de l\'invitation', 'Fermer', { duration: 4000 });
+        this.snack.open(err.error?.detail || "Erreur lors de l'invitation", 'Fermer', {
+          duration: 4000,
+        });
       },
     });
   }
@@ -88,7 +107,7 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
 
   roleLabel(role: string): string {
     const labels: Record<string, string> = {
-      viewer:  'Lecteur',
+      viewer: 'Lecteur',
       auditor: 'Auditeur',
       manager: 'Manager',
     };
@@ -97,9 +116,9 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────
 
   readonly statusOptions: { value: string; label: string }[] = [
-    { value: 'todo',          label: 'À corriger' },
-    { value: 'in_progress',   label: 'En cours' },
-    { value: 'resolved',      label: 'Corrigé' },
+    { value: 'todo', label: 'À corriger' },
+    { value: 'in_progress', label: 'En cours' },
+    { value: 'resolved', label: 'Corrigé' },
     { value: 'accepted_risk', label: 'Risque accepté' },
   ];
 
@@ -137,7 +156,9 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
     this.cyberscan.getFindingStatuses(id).subscribe({
       next: list => {
         const map: Record<string, string> = {};
-        list.forEach(fs => { map[fs.module_key] = fs.status; });
+        list.forEach(fs => {
+          map[fs.module_key] = fs.status;
+        });
         this.findingStatuses.set(map);
       },
     });
@@ -173,7 +194,7 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
     if (!hasActive || this.pollingSubscription) return;
     this.pollingSubscription = pollWithBackoff(
       () => this.cyberscan.getSiteScans(this.siteId(), this.currentPage(), 20),
-      d => !d.items.some(s => s.status === 'pending' || s.status === 'running'),
+      d => !d.items.some(s => s.status === 'pending' || s.status === 'running')
     ).subscribe(data => {
       this.scans.set(data);
       if (!data.items.some(s => s.status === 'pending' || s.status === 'running')) {
@@ -193,7 +214,9 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.triggering.set(false);
-        this.snack.open(err.error?.detail || 'Erreur lors du lancement', 'Fermer', { duration: 6000 });
+        this.snack.open(err.error?.detail || 'Erreur lors du lancement', 'Fermer', {
+          duration: 6000,
+        });
       },
     });
   }
@@ -208,10 +231,10 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
         a.click();
         URL.revokeObjectURL(url);
       },
-      error: () => this.snack.open('Erreur lors du téléchargement du PDF', 'Fermer', { duration: 4000 }),
+      error: () =>
+        this.snack.open('Erreur lors du téléchargement du PDF', 'Fermer', { duration: 4000 }),
     });
   }
-
 
   // ── Computed helpers ──────────────────────────────────────────
 
@@ -265,8 +288,8 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
   get scoreProgression(): { first: number; last: number; delta: number; count: number } | null {
     const trend = this.scoreTrend;
     if (trend.length < 2) return null;
-    const last  = trend[0].score;                  // newest (array is newest-first)
-    const first = trend[trend.length - 1].score;   // oldest
+    const last = trend[0].score; // newest (array is newest-first)
+    const first = trend[trend.length - 1].score; // oldest
     return { first, last, delta: last - first, count: trend.length };
   }
 
@@ -284,42 +307,64 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
 
   statusColor(s: string | null): string {
     switch (s) {
-      case 'OK':       return 'text-green-400 bg-green-400/10 border-green-700';
-      case 'WARNING':  return 'text-yellow-400 bg-yellow-400/10 border-yellow-700';
-      case 'CRITICAL': return 'text-red-400 bg-red-400/10 border-red-700';
-      case 'done':     return 'text-green-400';
-      case 'pending': case 'running': return 'text-blue-400';
-      case 'error':    return 'text-red-400';
-      default:         return 'text-gray-400 bg-gray-700/30 border-gray-600';
+      case 'OK':
+        return 'text-green-400 bg-green-400/10 border-green-700';
+      case 'WARNING':
+        return 'text-yellow-400 bg-yellow-400/10 border-yellow-700';
+      case 'CRITICAL':
+        return 'text-red-400 bg-red-400/10 border-red-700';
+      case 'done':
+        return 'text-green-400';
+      case 'pending':
+      case 'running':
+        return 'text-blue-400';
+      case 'error':
+        return 'text-red-400';
+      default:
+        return 'text-gray-400 bg-gray-700/30 border-gray-600';
     }
   }
 
   statusIcon(s: string | null): string {
     switch (s) {
-      case 'OK':       return 'verified_user';
-      case 'WARNING':  return 'warning';
-      case 'CRITICAL': return 'gpp_bad';
-      case 'done':     return 'check_circle';
-      case 'pending':  return 'schedule';
-      case 'running':  return 'sync';
-      case 'error':    return 'cancel';
-      default:         return 'help_outline';
+      case 'OK':
+        return 'verified_user';
+      case 'WARNING':
+        return 'warning';
+      case 'CRITICAL':
+        return 'gpp_bad';
+      case 'done':
+        return 'check_circle';
+      case 'pending':
+        return 'schedule';
+      case 'running':
+        return 'sync';
+      case 'error':
+        return 'cancel';
+      default:
+        return 'help_outline';
     }
   }
 
   formatDate(d: string | null): string {
     if (!d) return '—';
     return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit', month: 'long', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   }
 
   formatDateShort(d: string | null): string {
     if (!d) return '—';
     return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   }
 }

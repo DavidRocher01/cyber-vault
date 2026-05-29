@@ -38,14 +38,20 @@ interface ScanResults {
 }
 
 @Component({
-    standalone: true,
-    selector: 'app-code-scan',
-    imports: [
-        CommonModule, ReactiveFormsModule, RouterLink,
-        MatButtonModule, MatIconModule, MatProgressSpinnerModule,
-        MatSnackBarModule, MatPaginatorModule, NavButtonsComponent,
-    ],
-    templateUrl: './code-scan.component.html'
+  standalone: true,
+  selector: 'app-code-scan',
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+    MatPaginatorModule,
+    NavButtonsComponent,
+  ],
+  templateUrl: './code-scan.component.html',
 })
 export class CodeScanComponent implements OnInit, OnDestroy {
   private cyberscan = inject(CyberscanService);
@@ -167,13 +173,17 @@ export class CodeScanComponent implements OnInit, OnDestroy {
       next: res => {
         this.submitting.set(false);
         this.form.patchValue({ repo_url: '', github_token: '' });
-        this.snack.open('Analyse lancée — résultats dans quelques minutes', 'OK', { duration: 6000 });
+        this.snack.open('Analyse lancée — résultats dans quelques minutes', 'OK', {
+          duration: 6000,
+        });
         this.loadHistory(1);
         this.startPolling(res.scan_id);
       },
       error: err => {
         this.submitting.set(false);
-        this.snack.open(err.error?.detail || 'Erreur lors du lancement', 'Fermer', { duration: 6000 });
+        this.snack.open(err.error?.detail || 'Erreur lors du lancement', 'Fermer', {
+          duration: 6000,
+        });
       },
     });
   }
@@ -186,48 +196,62 @@ export class CodeScanComponent implements OnInit, OnDestroy {
       next: res => {
         this.submitting.set(false);
         this.selectedFile.set(null);
-        this.snack.open('Analyse lancée — résultats dans quelques minutes', 'OK', { duration: 6000 });
+        this.snack.open('Analyse lancée — résultats dans quelques minutes', 'OK', {
+          duration: 6000,
+        });
         this.loadHistory(1);
         this.startPolling(res.scan_id);
       },
       error: err => {
         this.submitting.set(false);
-        this.snack.open(err.error?.detail || 'Erreur lors de l\'upload', 'Fermer', { duration: 6000 });
+        this.snack.open(err.error?.detail || "Erreur lors de l'upload", 'Fermer', {
+          duration: 6000,
+        });
       },
     });
   }
 
   startPolling(scanId: number) {
     if (this.pollSubs.has(scanId)) return;
-    const sub = interval(4000).pipe(
-      switchMap(() => this.cyberscan.getCodeScan(scanId).pipe(catchError(() => EMPTY))),
-      takeWhile(s => s.status === 'pending' || s.status === 'running', true),
-    ).subscribe({
-      next: scan => {
-        this.history.update(h => h ? {
-          ...h,
-          items: h.items.map(s => s.id === scan.id ? scan : s),
-        } : h);
-        if (this.activeScan()?.id === scan.id) {
-          this.activeScan.set(scan);
-        }
-        if (scan.status !== 'pending' && scan.status !== 'running') {
-          this.pollSubs.get(scanId)?.unsubscribe();
-          this.pollSubs.delete(scanId);
-        }
-      },
-      error: () => this.pollSubs.delete(scanId),
-    });
+    const sub = interval(4000)
+      .pipe(
+        switchMap(() => this.cyberscan.getCodeScan(scanId).pipe(catchError(() => EMPTY))),
+        takeWhile(s => s.status === 'pending' || s.status === 'running', true)
+      )
+      .subscribe({
+        next: scan => {
+          this.history.update(h =>
+            h
+              ? {
+                  ...h,
+                  items: h.items.map(s => (s.id === scan.id ? scan : s)),
+                }
+              : h
+          );
+          if (this.activeScan()?.id === scan.id) {
+            this.activeScan.set(scan);
+          }
+          if (scan.status !== 'pending' && scan.status !== 'running') {
+            this.pollSubs.get(scanId)?.unsubscribe();
+            this.pollSubs.delete(scanId);
+          }
+        },
+        error: () => this.pollSubs.delete(scanId),
+      });
     this.pollSubs.set(scanId, sub);
   }
 
   refreshScan(scanId: number) {
     this.cyberscan.getCodeScan(scanId).subscribe({
       next: scan => {
-        this.history.update(h => h ? {
-          ...h,
-          items: h.items.map(s => s.id === scan.id ? scan : s),
-        } : h);
+        this.history.update(h =>
+          h
+            ? {
+                ...h,
+                items: h.items.map(s => (s.id === scan.id ? scan : s)),
+              }
+            : h
+        );
         if (this.activeScan()?.id === scan.id) this.activeScan.set(scan);
         if (scan.status === 'pending' || scan.status === 'running') {
           this.startPolling(scanId);
@@ -244,11 +268,15 @@ export class CodeScanComponent implements OnInit, OnDestroy {
   deleteScan(scan: CodeScan) {
     this.cyberscan.deleteCodeScan(scan.id).subscribe({
       next: () => {
-        this.history.update(h => h ? {
-          ...h,
-          items: h.items.filter(s => s.id !== scan.id),
-          total: h.total - 1,
-        } : h);
+        this.history.update(h =>
+          h
+            ? {
+                ...h,
+                items: h.items.filter(s => s.id !== scan.id),
+                total: h.total - 1,
+              }
+            : h
+        );
         if (this.activeScan()?.id === scan.id) this.activeScan.set(null);
       },
     });
@@ -256,7 +284,11 @@ export class CodeScanComponent implements OnInit, OnDestroy {
 
   getResults(scan: CodeScan): ScanResults | null {
     if (!scan.results_json) return null;
-    try { return JSON.parse(scan.results_json); } catch { return null; }
+    try {
+      return JSON.parse(scan.results_json);
+    } catch {
+      return null;
+    }
   }
 
   filteredFindings(results: ScanResults): Finding[] {
@@ -267,81 +299,131 @@ export class CodeScanComponent implements OnInit, OnDestroy {
 
   severityColor(sev: string): string {
     switch (sev) {
-      case 'critical': return 'text-red-400 bg-red-400/10 border-red-700';
-      case 'high':     return 'text-orange-400 bg-orange-400/10 border-orange-700';
-      case 'medium':   return 'text-yellow-400 bg-yellow-400/10 border-yellow-700';
-      default:         return 'text-gray-400 bg-gray-700/30 border-gray-600';
+      case 'critical':
+        return 'text-red-400 bg-red-400/10 border-red-700';
+      case 'high':
+        return 'text-orange-400 bg-orange-400/10 border-orange-700';
+      case 'medium':
+        return 'text-yellow-400 bg-yellow-400/10 border-yellow-700';
+      default:
+        return 'text-gray-400 bg-gray-700/30 border-gray-600';
     }
   }
 
   severityLabel(sev: string): string {
-    const map: Record<string, string> = { critical: 'Critique', high: 'Élevé', medium: 'Moyen', low: 'Faible' };
+    const map: Record<string, string> = {
+      critical: 'Critique',
+      high: 'Élevé',
+      medium: 'Moyen',
+      low: 'Faible',
+    };
     return map[sev] ?? sev;
   }
 
   severityIcon(sev: string): string {
     switch (sev) {
-      case 'critical': return 'dangerous';
-      case 'high':     return 'error';
-      case 'medium':   return 'warning';
-      default:         return 'info';
+      case 'critical':
+        return 'dangerous';
+      case 'high':
+        return 'error';
+      case 'medium':
+        return 'warning';
+      default:
+        return 'info';
     }
   }
 
   toolBadge(tool: string): string {
     switch (tool) {
-      case 'bandit':           return 'bg-purple-900/40 border-purple-700 text-purple-300';
-      case 'semgrep':          return 'bg-blue-900/40 border-blue-700 text-blue-300';
-      case 'pip-audit':        return 'bg-yellow-900/40 border-yellow-700 text-yellow-300';
-      case 'gitleaks':         return 'bg-red-900/40 border-red-700 text-red-300';
-      case 'trufflehog':       return 'bg-rose-900/40 border-rose-700 text-rose-300';
-      case 'detect-secrets':   return 'bg-pink-900/40 border-pink-700 text-pink-300';
-      case 'npm-audit':        return 'bg-green-900/40 border-green-700 text-green-300';
-      case 'njsscan':          return 'bg-emerald-900/40 border-emerald-700 text-emerald-300';
-      case 'eslint-security':  return 'bg-lime-900/40 border-lime-700 text-lime-300';
-      case 'trivy':            return 'bg-cyan-900/40 border-cyan-700 text-cyan-300';
-      case 'grype':            return 'bg-teal-900/40 border-teal-700 text-teal-300';
-      case 'osv-scanner':      return 'bg-sky-900/40 border-sky-700 text-sky-300';
-      case 'safety':           return 'bg-amber-900/40 border-amber-700 text-amber-300';
-      case 'checkov':          return 'bg-orange-900/40 border-orange-700 text-orange-300';
-      case 'hadolint':         return 'bg-indigo-900/40 border-indigo-700 text-indigo-300';
-      case 'tfsec':            return 'bg-violet-900/40 border-violet-700 text-violet-300';
-      case 'gosec':            return 'bg-fuchsia-900/40 border-fuchsia-700 text-fuchsia-300';
-      case 'bearer':           return 'bg-red-900/40 border-red-800 text-red-200';
-      default:                 return 'bg-gray-700/30 border-gray-600 text-gray-400';
+      case 'bandit':
+        return 'bg-purple-900/40 border-purple-700 text-purple-300';
+      case 'semgrep':
+        return 'bg-blue-900/40 border-blue-700 text-blue-300';
+      case 'pip-audit':
+        return 'bg-yellow-900/40 border-yellow-700 text-yellow-300';
+      case 'gitleaks':
+        return 'bg-red-900/40 border-red-700 text-red-300';
+      case 'trufflehog':
+        return 'bg-rose-900/40 border-rose-700 text-rose-300';
+      case 'detect-secrets':
+        return 'bg-pink-900/40 border-pink-700 text-pink-300';
+      case 'npm-audit':
+        return 'bg-green-900/40 border-green-700 text-green-300';
+      case 'njsscan':
+        return 'bg-emerald-900/40 border-emerald-700 text-emerald-300';
+      case 'eslint-security':
+        return 'bg-lime-900/40 border-lime-700 text-lime-300';
+      case 'trivy':
+        return 'bg-cyan-900/40 border-cyan-700 text-cyan-300';
+      case 'grype':
+        return 'bg-teal-900/40 border-teal-700 text-teal-300';
+      case 'osv-scanner':
+        return 'bg-sky-900/40 border-sky-700 text-sky-300';
+      case 'safety':
+        return 'bg-amber-900/40 border-amber-700 text-amber-300';
+      case 'checkov':
+        return 'bg-orange-900/40 border-orange-700 text-orange-300';
+      case 'hadolint':
+        return 'bg-indigo-900/40 border-indigo-700 text-indigo-300';
+      case 'tfsec':
+        return 'bg-violet-900/40 border-violet-700 text-violet-300';
+      case 'gosec':
+        return 'bg-fuchsia-900/40 border-fuchsia-700 text-fuchsia-300';
+      case 'bearer':
+        return 'bg-red-900/40 border-red-800 text-red-200';
+      default:
+        return 'bg-gray-700/30 border-gray-600 text-gray-400';
     }
   }
 
   statusColor(status: string): string {
     switch (status) {
-      case 'done':    return 'text-green-400';
-      case 'running': return 'text-cyan-400';
-      case 'pending': return 'text-yellow-400';
-      case 'failed':  return 'text-red-400';
-      default:        return 'text-gray-400';
+      case 'done':
+        return 'text-green-400';
+      case 'running':
+        return 'text-cyan-400';
+      case 'pending':
+        return 'text-yellow-400';
+      case 'failed':
+        return 'text-red-400';
+      default:
+        return 'text-gray-400';
     }
   }
 
   statusLabel(status: string): string {
-    const map: Record<string, string> = { done: 'Terminé', running: 'En cours', pending: 'En attente', failed: 'Échec' };
+    const map: Record<string, string> = {
+      done: 'Terminé',
+      running: 'En cours',
+      pending: 'En attente',
+      failed: 'Échec',
+    };
     return map[status] ?? status;
   }
 
   statusBadgeClass(status: string): string {
     switch (status) {
-      case 'done':    return 'text-green-400 bg-green-400/10 border-green-700';
-      case 'running': return 'text-cyan-400 bg-cyan-400/10 border-cyan-700';
-      case 'pending': return 'text-yellow-400 bg-yellow-400/10 border-yellow-700';
-      case 'failed':  return 'text-red-400 bg-red-400/10 border-red-700';
-      default:        return 'text-gray-400 bg-gray-700/30 border-gray-600';
+      case 'done':
+        return 'text-green-400 bg-green-400/10 border-green-700';
+      case 'running':
+        return 'text-cyan-400 bg-cyan-400/10 border-cyan-700';
+      case 'pending':
+        return 'text-yellow-400 bg-yellow-400/10 border-yellow-700';
+      case 'failed':
+        return 'text-red-400 bg-red-400/10 border-red-700';
+      default:
+        return 'text-gray-400 bg-gray-700/30 border-gray-600';
     }
   }
 
   formatDate(d: string | null): string {
     if (!d) return '—';
     return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   }
 

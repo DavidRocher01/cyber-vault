@@ -18,8 +18,12 @@ import { PHISHING_SCENARIOS } from '../phishing/phishing.component';
   standalone: true,
   selector: 'app-phishing-campaign-detail',
   imports: [
-    CommonModule, RouterLink,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
+    CommonModule,
+    RouterLink,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
     NavButtonsComponent,
   ],
   templateUrl: './phishing-campaign-detail.component.html',
@@ -45,15 +49,17 @@ export class PhishingCampaignDetailComponent implements OnInit {
 
     // Live polling: 5s while sending (progress bar), 5s while active (stats)
     // Returns EMPTY when campaign is completed/draft to avoid unnecessary API calls
-    interval(5_000).pipe(
-      takeUntilDestroyed(this.destroyRef),
-      switchMap(() => {
-        const s = this.campaign()?.status;
-        return (s === 'sending' || s === 'active')
-          ? this.phishingService.getCampaign(this.campaignId)
-          : EMPTY;
-      }),
-    ).subscribe(c => this.campaign.set(c));
+    interval(5_000)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        switchMap(() => {
+          const s = this.campaign()?.status;
+          return s === 'sending' || s === 'active'
+            ? this.phishingService.getCampaign(this.campaignId)
+            : EMPTY;
+        })
+      )
+      .subscribe(c => this.campaign.set(c));
   }
 
   load() {
@@ -92,47 +98,70 @@ export class PhishingCampaignDetailComponent implements OnInit {
     const r = this.clickRate(c);
     if (r >= 30) return { label: 'Risque élevé', color: 'text-red-400' };
     if (r >= 15) return { label: 'Risque modéré', color: 'text-yellow-400' };
-    if (r > 0)   return { label: 'Risque faible', color: 'text-green-400' };
+    if (r > 0) return { label: 'Risque faible', color: 'text-green-400' };
     return { label: '—', color: 'text-gray-500' };
   }
 
   statusLabel(status: string): string {
     const m: Record<string, string> = {
-      draft: 'Brouillon', pending_verification: 'Vérification', ready: 'Prête',
-      scheduled: 'Planifiée', sending: 'Envoi en cours', active: 'En cours',
-      completed: 'Terminée', cancelled: 'Annulée',
+      draft: 'Brouillon',
+      pending_verification: 'Vérification',
+      ready: 'Prête',
+      scheduled: 'Planifiée',
+      sending: 'Envoi en cours',
+      active: 'En cours',
+      completed: 'Terminée',
+      cancelled: 'Annulée',
     };
     return m[status] ?? status;
   }
 
   statusColor(status: string): string {
     switch (status) {
-      case 'active': case 'sending': return 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30';
-      case 'completed':  return 'text-green-400 bg-green-500/10 border-green-500/30';
-      case 'draft':      return 'text-gray-400 bg-gray-500/10 border-gray-500/30';
-      case 'ready':      return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
-      case 'scheduled':  return 'text-purple-400 bg-purple-500/10 border-purple-500/30';
-      case 'cancelled':  return 'text-red-400 bg-red-500/10 border-red-500/30';
-      default:           return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
+      case 'active':
+      case 'sending':
+        return 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30';
+      case 'completed':
+        return 'text-green-400 bg-green-500/10 border-green-500/30';
+      case 'draft':
+        return 'text-gray-400 bg-gray-500/10 border-gray-500/30';
+      case 'ready':
+        return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
+      case 'scheduled':
+        return 'text-purple-400 bg-purple-500/10 border-purple-500/30';
+      case 'cancelled':
+        return 'text-red-400 bg-red-500/10 border-red-500/30';
+      default:
+        return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
     }
   }
 
   targetStatusLabel(status: string): string {
     const m: Record<string, string> = {
-      pending: 'En attente', email_sent: 'Envoyé', opened: 'Ouvert',
-      clicked: 'Cliqué', submitted: 'Identifiants saisis', reported: 'Signalé',
+      pending: 'En attente',
+      email_sent: 'Envoyé',
+      opened: 'Ouvert',
+      clicked: 'Cliqué',
+      submitted: 'Identifiants saisis',
+      reported: 'Signalé',
     };
     return m[status] ?? status;
   }
 
   targetStatusColor(status: string): string {
     switch (status) {
-      case 'submitted':  return 'text-red-400 bg-red-500/10 border-red-500/30';
-      case 'clicked':    return 'text-orange-400 bg-orange-500/10 border-orange-500/30';
-      case 'opened':     return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
-      case 'email_sent': return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
-      case 'reported':   return 'text-green-400 bg-green-500/10 border-green-500/30';
-      default:           return 'text-gray-500 bg-gray-500/10 border-gray-500/30';
+      case 'submitted':
+        return 'text-red-400 bg-red-500/10 border-red-500/30';
+      case 'clicked':
+        return 'text-orange-400 bg-orange-500/10 border-orange-500/30';
+      case 'opened':
+        return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
+      case 'email_sent':
+        return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
+      case 'reported':
+        return 'text-green-400 bg-green-500/10 border-green-500/30';
+      default:
+        return 'text-gray-500 bg-gray-500/10 border-gray-500/30';
     }
   }
 
@@ -147,8 +176,11 @@ export class PhishingCampaignDetailComponent implements OnInit {
   formatDate(iso: string | null): string {
     if (!iso) return '—';
     return new Date(iso).toLocaleString('fr-FR', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   }
 

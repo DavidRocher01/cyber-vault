@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy import select
@@ -7,14 +7,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
-from app.core.constants import NEED_LABELS
 from app.core.database import get_db
 from app.core.deps import require_admin
 from app.core.limiter import limiter
 from app.models.booking import Booking
 from app.models.booking_slot import BookingSlot
-from app.schemas.booking import BookingConfirmOut, BookingIn, BookingOut, SlotBatchIn, SlotOut
-from app.services.email_service import send_booking_admin_notification, send_booking_confirmation
+from app.schemas.booking import (
+    BookingConfirmOut,
+    BookingIn,
+    BookingOut,
+    SlotBatchIn,
+    SlotOut,
+)
+from app.services.email_service import (
+    send_booking_admin_notification,
+    send_booking_confirmation,
+)
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -22,14 +30,30 @@ router = APIRouter(prefix="/bookings", tags=["bookings"])
 def _slot_to_out(slot: BookingSlot) -> SlotOut:
     is_booked = any(b.status == "confirmed" for b in slot.bookings)
     return SlotOut(
-        id=slot.id, date=slot.date, time=slot.time,
-        duration_minutes=slot.duration_minutes, label=slot.label, is_booked=is_booked,
+        id=slot.id,
+        date=slot.date,
+        time=slot.time,
+        duration_minutes=slot.duration_minutes,
+        label=slot.label,
+        is_booked=is_booked,
     )
 
 
 def _format_date_fr(date_str: str) -> str:
-    months = ["janvier", "février", "mars", "avril", "mai", "juin",
-              "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
+    months = [
+        "janvier",
+        "février",
+        "mars",
+        "avril",
+        "mai",
+        "juin",
+        "juillet",
+        "août",
+        "septembre",
+        "octobre",
+        "novembre",
+        "décembre",
+    ]
     try:
         y, m, d = date_str.split("-")
         return f"{int(d)} {months[int(m) - 1]} {y}"
@@ -39,12 +63,17 @@ def _format_date_fr(date_str: str) -> str:
 
 # ── Public endpoints ───────────────────────────────────────────────────────────
 
+
 @router.get("/slots", response_model=list[SlotOut])
 async def list_slots(month: str, db: AsyncSession = Depends(get_db)):
     """Public — returns all slots for a given month (YYYY-MM), with booking status."""
     import re
+
     if not re.match(r"^\d{4}-\d{2}$", month):
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Format YYYY-MM requis")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Format YYYY-MM requis",
+        )
     result = await db.execute(
         select(BookingSlot)
         .where(BookingSlot.date.like(f"{month}-%"))
@@ -75,10 +104,13 @@ async def create_booking(
     # Check not already booked
     existing = next((b for b in slot.bookings if b.status == "confirmed"), None)
     if existing:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Ce créneau est déjà réservé")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Ce créneau est déjà réservé"
+        )
 
     # Check slot is in the future
     from datetime import date as _date
+
     today = _date.today().isoformat()
     if slot.date < today:
         raise HTTPException(status_code=status.HTTP_410_GONE, detail="Ce créneau est passé")
@@ -93,7 +125,7 @@ async def create_booking(
         message=payload.message,
         status="confirmed",
         cancel_token=cancel_token,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     db.add(booking)
     await db.commit()
@@ -133,9 +165,7 @@ async def create_booking(
 @router.get("/cancel")
 async def cancel_booking(token: str, db: AsyncSession = Depends(get_db)):
     """Public — cancel a booking via the token from the confirmation email."""
-    result = await db.execute(
-        select(Booking).where(Booking.cancel_token == token)
-    )
+    result = await db.execute(select(Booking).where(Booking.cancel_token == token))
     booking = result.scalar_one_or_none()
     if not booking:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Réservation introuvable")
@@ -148,14 +178,20 @@ async def cancel_booking(token: str, db: AsyncSession = Depends(get_db)):
 
 # ── Admin endpoints ────────────────────────────────────────────────────────────
 
-@router.post("/admin/slots", response_model=list[SlotOut], status_code=status.HTTP_201_CREATED,
-             dependencies=[Depends(require_admin)])
+
+@router.post(
+    "/admin/slots",
+    response_model=list[SlotOut],
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_admin)],
+)
 async def add_slots(payload: SlotBatchIn, db: AsyncSession = Depends(get_db)):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     created = []
     for s in payload.slots:
         slot = BookingSlot(
-            date=s.date, time=s.time,
+            date=s.date,
+            time=s.time,
             duration_minutes=s.duration_minutes,
             label=s.label,
             created_at=now,
@@ -163,12 +199,24 @@ async def add_slots(payload: SlotBatchIn, db: AsyncSession = Depends(get_db)):
         db.add(slot)
         created.append(slot)
     await db.commit()
-    return [SlotOut(id=s.id, date=s.date, time=s.time, duration_minutes=s.duration_minutes,
-                    label=s.label, is_booked=False) for s in created]
+    return [
+        SlotOut(
+            id=s.id,
+            date=s.date,
+            time=s.time,
+            duration_minutes=s.duration_minutes,
+            label=s.label,
+            is_booked=False,
+        )
+        for s in created
+    ]
 
 
-@router.delete("/admin/slots/{slot_id}", status_code=status.HTTP_204_NO_CONTENT,
-               dependencies=[Depends(require_admin)])
+@router.delete(
+    "/admin/slots/{slot_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_admin)],
+)
 async def delete_slot(slot_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(BookingSlot).where(BookingSlot.id == slot_id))
     slot = result.scalars().unique().one_or_none()
@@ -180,26 +228,36 @@ async def delete_slot(slot_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.get("/admin/slots", response_model=list[SlotOut], dependencies=[Depends(require_admin)])
 async def admin_list_slots(month: str | None = None, db: AsyncSession = Depends(get_db)):
-    q = (select(BookingSlot)
-         .order_by(BookingSlot.date, BookingSlot.time)
-         .options(selectinload(BookingSlot.bookings)))
+    q = (
+        select(BookingSlot)
+        .order_by(BookingSlot.date, BookingSlot.time)
+        .options(selectinload(BookingSlot.bookings))
+    )
     if month:
         q = q.where(BookingSlot.date.like(f"{month}-%"))
     result = await db.execute(q)
     return [_slot_to_out(s) for s in result.scalars().unique().all()]
 
 
-@router.get("/admin/bookings", response_model=list[BookingOut], dependencies=[Depends(require_admin)])
+@router.get(
+    "/admin/bookings",
+    response_model=list[BookingOut],
+    dependencies=[Depends(require_admin)],
+)
 async def admin_list_bookings(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(Booking).order_by(Booking.created_at.desc())
-    )
+    result = await db.execute(select(Booking).order_by(Booking.created_at.desc()))
     bookings = result.scalars().all()
     return [
         BookingOut(
-            id=b.id, slot_id=b.slot_id, name=b.name, email=b.email,
-            phone=b.phone, need_type=b.need_type, message=b.message,
-            status=b.status, created_at=b.created_at.isoformat(),
+            id=b.id,
+            slot_id=b.slot_id,
+            name=b.name,
+            email=b.email,
+            phone=b.phone,
+            need_type=b.need_type,
+            message=b.message,
+            status=b.status,
+            created_at=b.created_at.isoformat(),
         )
         for b in bookings
     ]

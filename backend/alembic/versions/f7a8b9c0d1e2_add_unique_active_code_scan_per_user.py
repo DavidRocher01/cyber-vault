@@ -7,6 +7,7 @@ Create Date: 2026-04-17
 Prevents concurrent pending/running code scans per user at the DB level,
 closing the check-then-insert race condition in _check_no_running_scan.
 """
+
 from alembic import op
 
 revision = "f7a8b9c0d1e2"

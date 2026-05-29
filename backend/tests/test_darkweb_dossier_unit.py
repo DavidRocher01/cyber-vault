@@ -1,6 +1,7 @@
 """Unit tests — darkweb dossier module (CSV parser + dossier service + PDF)."""
+
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -9,8 +10,8 @@ from app.api.v1.endpoints.darkweb_dossier import _parse_emails_csv
 from app.models.darkweb_dossier import DarkwebDossier, DarkwebDossierTarget
 from app.services.darkweb_dossier_service import generate_dossier_pdf
 
-
 # ── _parse_emails_csv ─────────────────────────────────────────────────────────
+
 
 def csv(content: str) -> bytes:
     return content.encode("utf-8")
@@ -71,6 +72,7 @@ def test_parse_quoted_values():
 
 # ── generate_dossier_pdf ──────────────────────────────────────────────────────
 
+
 def _make_dossier(**kwargs) -> DarkwebDossier:
     d = MagicMock(spec=DarkwebDossier)
     d.id = kwargs.get("id", 1)
@@ -81,10 +83,15 @@ def _make_dossier(**kwargs) -> DarkwebDossier:
     d.exposed_emails = kwargs.get("exposed_emails", 3)
     d.total_breach_instances = kwargs.get("total_breach_instances", 7)
     d.risk_score = kwargs.get("risk_score", 30)
-    d.top_sources_json = kwargs.get("top_sources_json", json.dumps([
-        {"name": "LinkedIn", "count": 3},
-        {"name": "Adobe", "count": 2},
-    ]))
+    d.top_sources_json = kwargs.get(
+        "top_sources_json",
+        json.dumps(
+            [
+                {"name": "LinkedIn", "count": 3},
+                {"name": "Adobe", "count": 2},
+            ]
+        ),
+    )
     d.targets = kwargs.get("targets", [])
     return d
 
@@ -103,11 +110,23 @@ def _make_target(
     t.check_status = check_status or ("exposed" if count > 0 else "verified_clean")
     t.total_breaches = count
     dc = data_classes if data_classes is not None else ["Email addresses", "Passwords"]
-    t.breach_sources_json = json.dumps([
-        {"name": "LinkedIn", "domain": "linkedin.com", "breach_date": "2021-06-22",
-         "pwn_count": 700000000, "data_classes": dc, "is_sensitive": False}
-    ]) if count > 0 else "[]"
-    t.checked_at = datetime.now(timezone.utc)
+    t.breach_sources_json = (
+        json.dumps(
+            [
+                {
+                    "name": "LinkedIn",
+                    "domain": "linkedin.com",
+                    "breach_date": "2021-06-22",
+                    "pwn_count": 700000000,
+                    "data_classes": dc,
+                    "is_sensitive": False,
+                }
+            ]
+        )
+        if count > 0
+        else "[]"
+    )
+    t.checked_at = datetime.now(UTC)
     return t
 
 
@@ -131,21 +150,24 @@ def test_pdf_with_exposed_targets():
 
 
 def test_pdf_zero_risk_score():
-    dossier = _make_dossier(risk_score=0, exposed_emails=0, total_breach_instances=0,
-                             top_sources_json="[]")
+    dossier = _make_dossier(
+        risk_score=0, exposed_emails=0, total_breach_instances=0, top_sources_json="[]"
+    )
     pdf = generate_dossier_pdf(dossier, [])
     assert isinstance(pdf, bytes)
 
 
 def test_pdf_max_risk_score():
     targets = [_make_target(f"u{i}@co.fr", 5) for i in range(10)]
-    dossier = _make_dossier(risk_score=100, exposed_emails=10, total_emails=10,
-                             total_breach_instances=50)
+    dossier = _make_dossier(
+        risk_score=100, exposed_emails=10, total_emails=10, total_breach_instances=50
+    )
     pdf = generate_dossier_pdf(dossier, targets)
     assert isinstance(pdf, bytes)
 
 
 # ── risk_score calculation logic ──────────────────────────────────────────────
+
 
 def test_risk_score_zero_for_clean_dossier():
     """Score must be 0 when no email is exposed."""
@@ -182,17 +204,26 @@ def test_risk_score_partial_exposure():
 
 # ── sync_breach_catalog ───────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_sync_catalog_upserts_entries():
     from app.services.darkweb_dossier_service import sync_breach_catalog
 
     fake_entries = [
-        {"Name": "Adobe", "Title": "Adobe", "Domain": "adobe.com",
-         "BreachDate": "2013-10-04", "AddedDate": "2013-12-04T00:00:00Z",
-         "PwnCount": 153000000, "Description": "...",
-         "DataClasses": ["Email addresses", "Passwords"],
-         "IsVerified": True, "IsSensitive": False,
-         "IsFabricated": False, "IsSpamList": False},
+        {
+            "Name": "Adobe",
+            "Title": "Adobe",
+            "Domain": "adobe.com",
+            "BreachDate": "2013-10-04",
+            "AddedDate": "2013-12-04T00:00:00Z",
+            "PwnCount": 153000000,
+            "Description": "...",
+            "DataClasses": ["Email addresses", "Passwords"],
+            "IsVerified": True,
+            "IsSensitive": False,
+            "IsFabricated": False,
+            "IsSpamList": False,
+        },
     ]
 
     db = AsyncMock()
@@ -202,8 +233,10 @@ async def test_sync_catalog_upserts_entries():
     db.add = MagicMock()
     db.commit = AsyncMock()
 
-    with patch("app.services.darkweb_dossier_service.fetch_hibp_breach_catalog",
-               return_value=fake_entries):
+    with patch(
+        "app.services.darkweb_dossier_service.fetch_hibp_breach_catalog",
+        return_value=fake_entries,
+    ):
         count = await sync_breach_catalog(db)
 
     assert count == 1
@@ -216,8 +249,10 @@ async def test_sync_catalog_returns_zero_on_empty_fetch():
     from app.services.darkweb_dossier_service import sync_breach_catalog
 
     db = AsyncMock()
-    with patch("app.services.darkweb_dossier_service.fetch_hibp_breach_catalog",
-               return_value=[]):
+    with patch(
+        "app.services.darkweb_dossier_service.fetch_hibp_breach_catalog",
+        return_value=[],
+    ):
         count = await sync_breach_catalog(db)
 
     assert count == 0
@@ -225,8 +260,10 @@ async def test_sync_catalog_returns_zero_on_empty_fetch():
 
 # ── export_dossier_csv ────────────────────────────────────────────────────────
 
+
 def test_export_csv_returns_bytes():
     from app.services.darkweb_dossier_service import export_dossier_csv
+
     dossier = _make_dossier()
     result = export_dossier_csv(dossier, [])
     assert isinstance(result, bytes)
@@ -234,6 +271,7 @@ def test_export_csv_returns_bytes():
 
 def test_export_csv_contains_header_row():
     from app.services.darkweb_dossier_service import export_dossier_csv
+
     dossier = _make_dossier()
     result = export_dossier_csv(dossier, [])
     text = result.decode("utf-8-sig")
@@ -244,6 +282,7 @@ def test_export_csv_contains_header_row():
 
 def test_export_csv_contains_target_rows():
     from app.services.darkweb_dossier_service import export_dossier_csv
+
     targets = [
         _make_target("alice@acme.fr", 2),
         _make_target("bob@acme.fr", 0, "clean"),
@@ -257,6 +296,7 @@ def test_export_csv_contains_target_rows():
 
 def test_export_csv_exposed_status_in_row():
     from app.services.darkweb_dossier_service import export_dossier_csv
+
     targets = [_make_target("carol@acme.fr", 1)]
     result = export_dossier_csv(_make_dossier(), targets)
     text = result.decode("utf-8-sig")
@@ -266,19 +306,23 @@ def test_export_csv_exposed_status_in_row():
 
 def test_export_csv_bom_prefix():
     from app.services.darkweb_dossier_service import export_dossier_csv
+
     result = export_dossier_csv(_make_dossier(), [])
     assert result.startswith(b"\xef\xbb\xbf"), "CSV doit commencer par un BOM UTF-8"
 
 
 # ── _compute_severity ─────────────────────────────────────────────────────────
 
+
 def test_compute_severity_zero_with_no_targets():
     from app.services.darkweb_dossier_service import _compute_severity
+
     assert _compute_severity([]) == 0
 
 
 def test_compute_severity_zero_with_clean_targets():
     from app.services.darkweb_dossier_service import _compute_severity
+
     t = _make_target("x@co.fr", 0, "clean")
     t.breach_sources_json = "[]"
     assert _compute_severity([t]) == 0
@@ -286,43 +330,57 @@ def test_compute_severity_zero_with_clean_targets():
 
 def test_compute_severity_high_with_passwords():
     from app.services.darkweb_dossier_service import _compute_severity
+
     t = MagicMock()
-    t.breach_sources_json = json.dumps([
-        {"name": "LinkedIn", "data_classes": ["Passwords", "Email addresses"]},
-        {"name": "Adobe", "data_classes": ["Passwords"]},
-    ])
+    t.breach_sources_json = json.dumps(
+        [
+            {"name": "LinkedIn", "data_classes": ["Passwords", "Email addresses"]},
+            {"name": "Adobe", "data_classes": ["Passwords"]},
+        ]
+    )
     score = _compute_severity([t])
     assert score > 50, f"Score attendu > 50, obtenu {score}"
 
 
 def test_compute_severity_low_with_email_only():
     from app.services.darkweb_dossier_service import _compute_severity
+
     t = MagicMock()
-    t.breach_sources_json = json.dumps([
-        {"name": "Spam", "data_classes": ["Email addresses"]},
-    ])
+    t.breach_sources_json = json.dumps(
+        [
+            {"name": "Spam", "data_classes": ["Email addresses"]},
+        ]
+    )
     score = _compute_severity([t])
     assert score < 50, f"Score attendu < 50, obtenu {score}"
 
 
 def test_compute_severity_max_with_financial():
     from app.services.darkweb_dossier_service import _compute_severity
+
     t = MagicMock()
-    t.breach_sources_json = json.dumps([
-        {"name": "Bank", "data_classes": ["Credit card numbers", "Bank account details"]},
-    ])
+    t.breach_sources_json = json.dumps(
+        [
+            {
+                "name": "Bank",
+                "data_classes": ["Credit card numbers", "Bank account details"],
+            },
+        ]
+    )
     score = _compute_severity([t])
     assert score > 0
 
 
 def test_compute_severity_ignores_invalid_json():
     from app.services.darkweb_dossier_service import _compute_severity
+
     t = MagicMock()
     t.breach_sources_json = "not-json"
     assert _compute_severity([t]) == 0
 
 
 # ── _build_recommendations ────────────────────────────────────────────────────
+
 
 def _make_dossier_for_recs(**kwargs) -> DarkwebDossier:
     d = MagicMock(spec=DarkwebDossier)
@@ -333,12 +391,14 @@ def _make_dossier_for_recs(**kwargs) -> DarkwebDossier:
 
 def test_build_recs_returns_at_least_one():
     from app.services.darkweb_dossier_service import _build_recommendations
+
     recs = _build_recommendations(_make_dossier_for_recs(), [])
     assert len(recs) >= 1
 
 
 def test_build_recs_max_six():
     from app.services.darkweb_dossier_service import _build_recommendations
+
     targets = [_make_target(f"u{i}@co.fr", 2) for i in range(10)]
     recs = _build_recommendations(_make_dossier_for_recs(risk_score=80), targets)
     assert len(recs) <= 6
@@ -346,22 +406,31 @@ def test_build_recs_max_six():
 
 def test_build_recs_includes_password_reset_when_exposed():
     from app.services.darkweb_dossier_service import _build_recommendations
+
     targets = [_make_target("a@co.fr", 2)]
     recs = _build_recommendations(_make_dossier_for_recs(), targets)
     titles = [r[0] for r in recs]
-    assert any("mot de passe" in t.lower() or "password" in t.lower() or "réinitialisation" in t.lower() for t in titles)
+    assert any(
+        "mot de passe" in t.lower() or "password" in t.lower() or "réinitialisation" in t.lower()
+        for t in titles
+    )
 
 
 def test_build_recs_includes_mfa_when_password_class_found():
     from app.services.darkweb_dossier_service import _build_recommendations
+
     targets = [_make_target("a@co.fr", 2, data_classes=["Passwords", "Email addresses"])]
     recs = _build_recommendations(_make_dossier_for_recs(), targets)
     titles = [r[0] for r in recs]
-    assert any("mfa" in t.lower() or "multi-facteur" in t.lower() or "authentification" in t.lower() for t in titles)
+    assert any(
+        "mfa" in t.lower() or "multi-facteur" in t.lower() or "authentification" in t.lower()
+        for t in titles
+    )
 
 
 def test_build_recs_includes_financial_when_credit_class_found():
     from app.services.darkweb_dossier_service import _build_recommendations
+
     targets = [_make_target("a@co.fr", 1, data_classes=["Credit card numbers"])]
     recs = _build_recommendations(_make_dossier_for_recs(), targets)
     titles = [r[0] for r in recs]
@@ -370,14 +439,20 @@ def test_build_recs_includes_financial_when_credit_class_found():
 
 def test_build_recs_includes_incomplete_when_unverified():
     from app.services.darkweb_dossier_service import _build_recommendations
+
     error_target = _make_target("b@co.fr", 0, status="error", check_status="rate_limited")
     recs = _build_recommendations(_make_dossier_for_recs(), [error_target])
     titles_and_bodies = " ".join(r[0] + r[1] for r in recs).lower()
-    assert "incompl" in titles_and_bodies or "non vérif" in titles_and_bodies or "rate" in titles_and_bodies
+    assert (
+        "incompl" in titles_and_bodies
+        or "non vérif" in titles_and_bodies
+        or "rate" in titles_and_bodies
+    )
 
 
 def test_build_recs_high_risk_surveillance_text():
     from app.services.darkweb_dossier_service import _build_recommendations
+
     recs = _build_recommendations(_make_dossier_for_recs(risk_score=75), [])
     surveillance = next((r for r in recs if "surveillance" in r[0].lower()), None)
     assert surveillance is not None
@@ -386,6 +461,7 @@ def test_build_recs_high_risk_surveillance_text():
 
 def test_build_recs_no_financial_rec_without_financial_class():
     from app.services.darkweb_dossier_service import _build_recommendations
+
     targets = [_make_target("a@co.fr", 2, data_classes=["Email addresses"])]
     recs = _build_recommendations(_make_dossier_for_recs(), targets)
     titles = [r[0] for r in recs]
@@ -393,6 +469,7 @@ def test_build_recs_no_financial_rec_without_financial_class():
 
 
 # ── check_status determination logic ─────────────────────────────────────────
+
 
 def test_check_status_rate_limited_when_rate_in_error():
     api_status = "unknown"
@@ -444,6 +521,7 @@ def test_check_status_exposed_when_count_nonzero():
 
 # ── risk_score with verified_total ────────────────────────────────────────────
 
+
 def test_risk_score_excludes_unverified_from_total():
     """Risk score uses verified_total (total - unverified), not raw total."""
     total = 10
@@ -467,8 +545,10 @@ def test_risk_score_zero_when_all_unverified():
 
 # ── CSV check_status column ───────────────────────────────────────────────────
 
+
 def test_export_csv_contains_check_status_header():
     from app.services.darkweb_dossier_service import export_dossier_csv
+
     result = export_dossier_csv(_make_dossier(), [])
     text = result.decode("utf-8-sig")
     assert "Vérification API" in text
@@ -476,6 +556,7 @@ def test_export_csv_contains_check_status_header():
 
 def test_export_csv_check_status_in_target_row():
     from app.services.darkweb_dossier_service import export_dossier_csv
+
     t = _make_target("carol@co.fr", 2)
     t.check_status = "exposed"
     result = export_dossier_csv(_make_dossier(), [t])
@@ -485,6 +566,7 @@ def test_export_csv_check_status_in_target_row():
 
 def test_export_csv_check_status_rate_limited():
     from app.services.darkweb_dossier_service import export_dossier_csv
+
     t = _make_target("d@co.fr", 0, status="error")
     t.check_status = "rate_limited"
     result = export_dossier_csv(_make_dossier(), [t])

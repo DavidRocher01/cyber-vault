@@ -24,30 +24,30 @@ function makeWithParams(params: Record<string, string>): BookingComponent {
   const fb = new FormBuilder();
   (comp as any).fb = fb;
   (comp as any).form = fb.group({
-    name:      [''],
-    email:     [''],
-    phone:     [''],
+    name: [''],
+    email: [''],
+    phone: [''],
     need_type: [''],
-    message:   [''],
+    message: [''],
   });
 
   // Stub Angular signals (class fields bypassed by Object.create)
   const today = new Date();
-  (comp as any).currentYear  = signal(today.getFullYear());
+  (comp as any).currentYear = signal(today.getFullYear());
   (comp as any).currentMonth = signal(today.getMonth());
   (comp as any).loadingSlots = signal(false);
-  (comp as any).selectedDay  = signal<string | null>(null);
+  (comp as any).selectedDay = signal<string | null>(null);
   (comp as any).selectedSlot = signal<any>(null);
-  (comp as any).step         = signal('calendar');
-  (comp as any).submitting   = signal(false);
-  (comp as any).apiError     = signal('');
-  (comp as any).cancelMode   = signal(false);
+  (comp as any).step = signal('calendar');
+  (comp as any).submitting = signal(false);
+  (comp as any).apiError = signal('');
+  (comp as any).cancelMode = signal(false);
   (comp as any).cancelLoading = signal(false);
 
   // Stub remaining services so ngOnInit doesn't throw
   (comp as any).titleService = { setTitle: () => {} };
-  (comp as any).meta         = { updateTag: () => {} };
-  (comp as any).bookingSvc   = { getSlots: () => ({ subscribe: () => {} }) };
+  (comp as any).meta = { updateTag: () => {} };
+  (comp as any).bookingSvc = { getSlots: () => ({ subscribe: () => {} }) };
 
   return comp;
 }

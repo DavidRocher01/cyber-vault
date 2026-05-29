@@ -26,17 +26,17 @@ function make(): Iso27001Component {
   (comp as any).totalItems = computed(() =>
     (comp as any).categories().reduce((s: number, c: Iso27001Category) => s + c.items.length, 0)
   );
-  (comp as any).compliantCount = computed(() =>
-    allIds().filter((id: string) => comp.getStatus(id) === 'compliant').length
+  (comp as any).compliantCount = computed(
+    () => allIds().filter((id: string) => comp.getStatus(id) === 'compliant').length
   );
-  (comp as any).partialCount = computed(() =>
-    allIds().filter((id: string) => comp.getStatus(id) === 'partial').length
+  (comp as any).partialCount = computed(
+    () => allIds().filter((id: string) => comp.getStatus(id) === 'partial').length
   );
-  (comp as any).ncCount = computed(() =>
-    allIds().filter((id: string) => comp.getStatus(id) === 'non_compliant').length
+  (comp as any).ncCount = computed(
+    () => allIds().filter((id: string) => comp.getStatus(id) === 'non_compliant').length
   );
-  (comp as any).naCount = computed(() =>
-    allIds().filter((id: string) => comp.getStatus(id) === 'na').length
+  (comp as any).naCount = computed(
+    () => allIds().filter((id: string) => comp.getStatus(id) === 'na').length
   );
   return comp;
 }
@@ -181,23 +181,30 @@ describe('Iso27001Component — resetAll()', () => {
 describe('Iso27001Component — statusLabel()', () => {
   it('Conforme pour compliant', () => expect(make().statusLabel('compliant')).toBe('Conforme'));
   it('Partiel pour partial', () => expect(make().statusLabel('partial')).toBe('Partiel'));
-  it('Non conforme pour non_compliant', () => expect(make().statusLabel('non_compliant')).toBe('Non conforme'));
+  it('Non conforme pour non_compliant', () =>
+    expect(make().statusLabel('non_compliant')).toBe('Non conforme'));
   it('N/A pour na', () => expect(make().statusLabel('na')).toBe('N/A'));
-  it('valeur brute pour statut inconnu', () => expect(make().statusLabel('unknown')).toBe('unknown'));
+  it('valeur brute pour statut inconnu', () =>
+    expect(make().statusLabel('unknown')).toBe('unknown'));
 });
 
 describe('Iso27001Component — statusIcon()', () => {
-  it('check_circle pour compliant', () => expect(make().statusIcon('compliant')).toBe('check_circle'));
+  it('check_circle pour compliant', () =>
+    expect(make().statusIcon('compliant')).toBe('check_circle'));
   it('pending pour partial', () => expect(make().statusIcon('partial')).toBe('pending'));
   it('cancel pour non_compliant', () => expect(make().statusIcon('non_compliant')).toBe('cancel'));
-  it('remove_circle_outline pour na', () => expect(make().statusIcon('na')).toBe('remove_circle_outline'));
+  it('remove_circle_outline pour na', () =>
+    expect(make().statusIcon('na')).toBe('remove_circle_outline'));
   it('help_outline par défaut', () => expect(make().statusIcon('other')).toBe('help_outline'));
 });
 
 describe('Iso27001Component — statusClass()', () => {
-  it('contient green pour compliant', () => expect(make().statusClass('compliant')).toContain('green'));
-  it('contient yellow pour partial', () => expect(make().statusClass('partial')).toContain('yellow'));
-  it('contient red pour non_compliant', () => expect(make().statusClass('non_compliant')).toContain('red'));
+  it('contient green pour compliant', () =>
+    expect(make().statusClass('compliant')).toContain('green'));
+  it('contient yellow pour partial', () =>
+    expect(make().statusClass('partial')).toContain('yellow'));
+  it('contient red pour non_compliant', () =>
+    expect(make().statusClass('non_compliant')).toContain('red'));
   it('contient gray pour na', () => expect(make().statusClass('na')).toContain('gray'));
   it('fallback gray pour inconnu', () => expect(make().statusClass('other')).toContain('gray'));
 });
@@ -205,7 +212,8 @@ describe('Iso27001Component — statusClass()', () => {
 describe('Iso27001Component — statusColor()', () => {
   it('#4ade80 pour compliant', () => expect(make().statusColor('compliant')).toBe('#4ade80'));
   it('#facc15 pour partial', () => expect(make().statusColor('partial')).toBe('#facc15'));
-  it('#f87171 pour non_compliant', () => expect(make().statusColor('non_compliant')).toBe('#f87171'));
+  it('#f87171 pour non_compliant', () =>
+    expect(make().statusColor('non_compliant')).toBe('#f87171'));
   it('#6b7280 pour na', () => expect(make().statusColor('na')).toBe('#6b7280'));
   it('#6b7280 par défaut', () => expect(make().statusColor('other')).toBe('#6b7280'));
 });
@@ -286,8 +294,9 @@ describe('Iso27001Component — catScore()', () => {
 
 describe('Iso27001Component — formatDate()', () => {
   it('retourne — pour null', () => expect(make().formatDate(null)).toBe('—'));
-  it('contient l\'année', () => expect(make().formatDate('2024-03-15T10:00:00Z')).toContain('2024'));
-  it('contient le mois en lettres', () => expect(make().formatDate('2024-03-15T10:00:00Z')).toContain('mars'));
+  it("contient l'année", () => expect(make().formatDate('2024-03-15T10:00:00Z')).toContain('2024'));
+  it('contient le mois en lettres', () =>
+    expect(make().formatDate('2024-03-15T10:00:00Z')).toContain('mars'));
   it('contient le jour', () => expect(make().formatDate('2024-03-15T10:00:00Z')).toContain('15'));
 });
 

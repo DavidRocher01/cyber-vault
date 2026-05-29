@@ -8,7 +8,10 @@ function makeQ(id: number, category = 'cat'): QuizQuestion {
     id,
     text: `Question ${id}`,
     category,
-    options: [{ id: 'a', text: 'A' }, { id: 'b', text: 'B' }],
+    options: [
+      { id: 'a', text: 'A' },
+      { id: 'b', text: 'B' },
+    ],
   };
 }
 
@@ -29,12 +32,12 @@ describe('QuizComponent — currentQuestion', () => {
   it('retourne null si pas de questions', () => {
     expect(make().currentQuestion).toBeNull();
   });
-  it('retourne la première question à l\'index 0', () => {
+  it("retourne la première question à l'index 0", () => {
     const comp = make();
     (comp as any).questions.set([makeQ(1), makeQ(2)]);
     expect(comp.currentQuestion?.id).toBe(1);
   });
-  it('retourne la question à l\'index courant', () => {
+  it("retourne la question à l'index courant", () => {
     const comp = make();
     (comp as any).questions.set([makeQ(1), makeQ(2)]);
     (comp as any).currentIndex.set(1);
@@ -116,7 +119,7 @@ describe('QuizComponent — selectAnswer()', () => {
 });
 
 describe('QuizComponent — next()', () => {
-  it('avance l\'index', () => {
+  it("avance l'index", () => {
     const comp = make();
     (comp as any).questions.set([makeQ(1), makeQ(2)]);
     comp.next();
@@ -131,7 +134,7 @@ describe('QuizComponent — next()', () => {
 });
 
 describe('QuizComponent — prev()', () => {
-  it('recule l\'index', () => {
+  it("recule l'index", () => {
     const comp = make();
     (comp as any).questions.set([makeQ(1), makeQ(2)]);
     (comp as any).currentIndex.set(1);
@@ -146,7 +149,7 @@ describe('QuizComponent — prev()', () => {
 });
 
 describe('QuizComponent — goToQuestion()', () => {
-  it('navigue directement à l\'index donné', () => {
+  it("navigue directement à l'index donné", () => {
     const comp = make();
     comp.goToQuestion(5);
     expect((comp as any).currentIndex()).toBe(5);
@@ -166,13 +169,13 @@ describe('QuizComponent — restart()', () => {
     comp.restart();
     expect((comp as any).answers()).toEqual({});
   });
-  it('remet l\'index à 0', () => {
+  it("remet l'index à 0", () => {
     const comp = make();
     (comp as any).currentIndex.set(3);
     comp.restart();
     expect((comp as any).currentIndex()).toBe(0);
   });
-  it('remet l\'étape à intro', () => {
+  it("remet l'étape à intro", () => {
     const comp = make();
     (comp as any).step.set('result');
     comp.restart();
@@ -189,9 +192,11 @@ describe('QuizComponent — restart()', () => {
 describe('QuizComponent — categoryColor()', () => {
   it('bg-green-500 si ≥ 80', () => expect(make().categoryColor(80)).toBe('bg-green-500'));
   it('bg-green-500 si 100', () => expect(make().categoryColor(100)).toBe('bg-green-500'));
-  it('bg-yellow-500 si entre 60 et 79', () => expect(make().categoryColor(70)).toBe('bg-yellow-500'));
+  it('bg-yellow-500 si entre 60 et 79', () =>
+    expect(make().categoryColor(70)).toBe('bg-yellow-500'));
   it('bg-yellow-500 si = 60', () => expect(make().categoryColor(60)).toBe('bg-yellow-500'));
-  it('bg-orange-500 si entre 35 et 59', () => expect(make().categoryColor(50)).toBe('bg-orange-500'));
+  it('bg-orange-500 si entre 35 et 59', () =>
+    expect(make().categoryColor(50)).toBe('bg-orange-500'));
   it('bg-orange-500 si = 35', () => expect(make().categoryColor(35)).toBe('bg-orange-500'));
   it('bg-red-500 si < 35', () => expect(make().categoryColor(20)).toBe('bg-red-500'));
   it('bg-red-500 si 0', () => expect(make().categoryColor(0)).toBe('bg-red-500'));
@@ -199,8 +204,10 @@ describe('QuizComponent — categoryColor()', () => {
 
 describe('QuizComponent — categoryTextColor()', () => {
   it('text-green-400 si ≥ 80', () => expect(make().categoryTextColor(80)).toBe('text-green-400'));
-  it('text-yellow-400 si entre 60 et 79', () => expect(make().categoryTextColor(70)).toBe('text-yellow-400'));
-  it('text-orange-400 si entre 35 et 59', () => expect(make().categoryTextColor(50)).toBe('text-orange-400'));
+  it('text-yellow-400 si entre 60 et 79', () =>
+    expect(make().categoryTextColor(70)).toBe('text-yellow-400'));
+  it('text-orange-400 si entre 35 et 59', () =>
+    expect(make().categoryTextColor(50)).toBe('text-orange-400'));
   it('text-red-400 si < 35', () => expect(make().categoryTextColor(20)).toBe('text-red-400'));
   it('text-green-400 si = 80', () => expect(make().categoryTextColor(80)).toBe('text-green-400'));
   it('text-yellow-400 si = 60', () => expect(make().categoryTextColor(60)).toBe('text-yellow-400'));

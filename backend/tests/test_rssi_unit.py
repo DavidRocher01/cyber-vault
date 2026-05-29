@@ -1,24 +1,25 @@
 """
 Unit tests for RSSI Externalisé endpoints.
 """
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from app.api.v1.endpoints.rssi import (
-    list_clients,
-    create_client,
-    update_client,
-    delete_client,
     RssiClientCreate,
     RssiClientUpdate,
+    create_client,
+    delete_client,
+    list_clients,
+    update_client,
 )
 from app.models.rssi_client import RssiClient
 from app.models.user import User
 
-
 # ── helpers ────────────────────────────────────────────────────────────────────
+
 
 def _user(uid: int = 1) -> MagicMock:
     u = MagicMock(spec=User)
@@ -41,7 +42,7 @@ def _client(cid: int = 10, uid: int = 1, name: str = "Acme") -> MagicMock:
     c.notion_workspace_url = None
     c.pipedrive_deal_id = None
     c.pennylane_customer_id = None
-    c.created_at = datetime.now(timezone.utc)
+    c.created_at = datetime.now(UTC)
     c.updated_at = None
     return c
 
@@ -79,6 +80,7 @@ def _db_with_clients(clients: list):
 
 # ── list_clients ──────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_list_clients_empty():
     result = await list_clients(_user(), _db_empty())
@@ -100,6 +102,7 @@ async def test_list_clients_returns_client_with_stats():
 
 # ── create_client ─────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_create_client_success():
     db = AsyncMock()
@@ -117,7 +120,7 @@ async def test_create_client_success():
         obj.pipedrive_deal_id = None
         obj.pennylane_customer_id = None
         obj.updated_at = None
-        obj.created_at = datetime.now(timezone.utc)
+        obj.created_at = datetime.now(UTC)
 
     db.refresh = refresh
 
@@ -150,7 +153,7 @@ async def test_create_client_with_formula():
         obj.pipedrive_deal_id = None
         obj.pennylane_customer_id = None
         obj.updated_at = None
-        obj.created_at = datetime.now(timezone.utc)
+        obj.created_at = datetime.now(UTC)
 
     db.refresh = refresh
 
@@ -163,6 +166,7 @@ async def test_create_client_with_formula():
 
 def test_create_client_invalid_formula_raises():
     from pydantic import ValidationError
+
     with pytest.raises(ValidationError) as exc:
         RssiClientCreate(name="Corp", formula="invalid")
     assert "formula" in str(exc.value)
@@ -171,6 +175,7 @@ def test_create_client_invalid_formula_raises():
 @pytest.mark.asyncio
 async def test_create_client_empty_name_raises():
     from fastapi import HTTPException
+
     db = AsyncMock()
     payload = RssiClientCreate(name="   ")
     with pytest.raises(HTTPException) as exc:
@@ -180,9 +185,11 @@ async def test_create_client_empty_name_raises():
 
 # ── update_client ─────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_update_client_not_found_raises():
     from fastapi import HTTPException
+
     db = AsyncMock()
 
     async def execute(q):
@@ -214,13 +221,16 @@ async def test_update_client_updates_fields():
     db.commit = AsyncMock()
     db.refresh = refresh
 
-    result = await update_client(10, RssiClientUpdate(name="Updated", description="new desc"), _user(), db)
+    result = await update_client(
+        10, RssiClientUpdate(name="Updated", description="new desc"), _user(), db
+    )
     assert client.name == "Updated"
     assert client.description == "new desc"
 
 
 def test_update_client_invalid_status_raises():
     from pydantic import ValidationError
+
     with pytest.raises(ValidationError) as exc:
         RssiClientUpdate(status="invalid")
     assert "status" in str(exc.value)
@@ -228,9 +238,11 @@ def test_update_client_invalid_status_raises():
 
 # ── delete_client ─────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_delete_client_not_found_raises():
     from fastapi import HTTPException
+
     db = AsyncMock()
 
     async def execute(q):
@@ -249,6 +261,7 @@ async def test_delete_client_not_found_raises():
 @pytest.mark.asyncio
 async def test_delete_client_detaches_sites():
     from app.models.site import Site
+
     client = _client()
     site = MagicMock(spec=Site)
     site.rssi_client_id = 10
@@ -279,6 +292,7 @@ async def test_delete_client_detaches_sites():
 
 # ── RssiClientCreate schema ───────────────────────────────────────────────────
 
+
 def test_schema_optional_fields():
     c = RssiClientCreate(name="Test")
     assert c.email is None
@@ -288,7 +302,13 @@ def test_schema_optional_fields():
 
 
 def test_schema_full_fields():
-    c = RssiClientCreate(name="Test", email="t@t.com", description="desc", formula="premium", monthly_amount=3200.0)
+    c = RssiClientCreate(
+        name="Test",
+        email="t@t.com",
+        description="desc",
+        formula="premium",
+        monthly_amount=3200.0,
+    )
     assert c.email == "t@t.com"
     assert c.description == "desc"
     assert c.formula == "premium"

@@ -16,13 +16,15 @@ export const CYBERSCAN_ROUTES: Routes = [
   },
   {
     path: 'scan/:id',
-    loadComponent: () => import('./scan-detail/scan-detail.component').then(m => m.ScanDetailComponent),
+    loadComponent: () =>
+      import('./scan-detail/scan-detail.component').then(m => m.ScanDetailComponent),
     canActivate: [authGuard],
     title: 'Résultats du scan — CyberScan',
   },
   {
     path: 'url-scanner',
-    loadComponent: () => import('./url-scanner/url-scanner.component').then(m => m.UrlScannerComponent),
+    loadComponent: () =>
+      import('./url-scanner/url-scanner.component').then(m => m.UrlScannerComponent),
     canActivate: [authGuard],
     title: 'Scanner URL suspecte — CyberScan',
   },
@@ -34,7 +36,8 @@ export const CYBERSCAN_ROUTES: Routes = [
   },
   {
     path: 'site/:id',
-    loadComponent: () => import('./site-detail/site-detail.component').then(m => m.SiteDetailComponent),
+    loadComponent: () =>
+      import('./site-detail/site-detail.component').then(m => m.SiteDetailComponent),
     canActivate: [authGuard],
     title: 'Page site — CyberScan',
   },
@@ -52,25 +55,33 @@ export const CYBERSCAN_ROUTES: Routes = [
   },
   {
     path: 'consultant',
-    loadComponent: () => import('./consultant-dashboard/consultant-dashboard.component').then(m => m.ConsultantDashboardComponent),
+    loadComponent: () =>
+      import('./consultant-dashboard/consultant-dashboard.component').then(
+        m => m.ConsultantDashboardComponent
+      ),
     canActivate: [rssiGuard],
     title: 'RSSI Externalisé — CyberScan',
   },
   {
     path: 'consultant/profile',
-    loadComponent: () => import('./consultant-profile/consultant-profile.component').then(m => m.ConsultantProfileComponent),
+    loadComponent: () =>
+      import('./consultant-profile/consultant-profile.component').then(
+        m => m.ConsultantProfileComponent
+      ),
     canActivate: [rssiGuard],
     title: 'Mon profil consultant — CyberScan',
   },
   {
     path: 'consultant/clients/:id',
-    loadComponent: () => import('./client-detail/client-detail.component').then(m => m.ClientDetailComponent),
+    loadComponent: () =>
+      import('./client-detail/client-detail.component').then(m => m.ClientDetailComponent),
     canActivate: [rssiGuard],
     title: 'Détail client — CyberScan',
   },
   {
     path: 'sensibilisation',
-    loadComponent: () => import('./sensibilisation/sensibilisation.component').then(m => m.SensibilisationComponent),
+    loadComponent: () =>
+      import('./sensibilisation/sensibilisation.component').then(m => m.SensibilisationComponent),
     canActivate: [authGuard],
     title: 'Sensibilisation — CyberScan',
   },
@@ -88,31 +99,40 @@ export const CYBERSCAN_ROUTES: Routes = [
   },
   {
     path: 'darkweb-dossier',
-    loadComponent: () => import('./darkweb-dossier/darkweb-dossier.component').then(m => m.DarkwebDossierComponent),
+    loadComponent: () =>
+      import('./darkweb-dossier/darkweb-dossier.component').then(m => m.DarkwebDossierComponent),
     canActivate: [authGuard],
     title: 'Dark Web Dossier B2B — CyberScan',
   },
   {
     path: 'darkweb-dossier/new',
-    loadComponent: () => import('./darkweb-dossier-new/darkweb-dossier-new.component').then(m => m.DarkwebDossierNewComponent),
+    loadComponent: () =>
+      import('./darkweb-dossier-new/darkweb-dossier-new.component').then(
+        m => m.DarkwebDossierNewComponent
+      ),
     canActivate: [authGuard],
     title: 'Nouveau dossier dark web — CyberScan',
   },
   {
     path: 'darkweb-dossier/:id',
-    loadComponent: () => import('./darkweb-dossier-detail/darkweb-dossier-detail.component').then(m => m.DarkwebDossierDetailComponent),
+    loadComponent: () =>
+      import('./darkweb-dossier-detail/darkweb-dossier-detail.component').then(
+        m => m.DarkwebDossierDetailComponent
+      ),
     canActivate: [authGuard],
     title: 'Résultats dossier dark web — CyberScan',
   },
   {
     path: 'onboarding',
-    loadComponent: () => import('./onboarding/onboarding.component').then(m => m.OnboardingComponent),
+    loadComponent: () =>
+      import('./onboarding/onboarding.component').then(m => m.OnboardingComponent),
     canActivate: [authGuard],
     title: 'Démarrage — CyberScan',
   },
   {
     path: 'success',
-    loadComponent: () => import('./success/success.component').then(m => m.CheckoutSuccessComponent),
+    loadComponent: () =>
+      import('./success/success.component').then(m => m.CheckoutSuccessComponent),
     canActivate: [authGuard],
     title: 'Abonnement activé — CyberScan',
   },
@@ -130,12 +150,14 @@ export const CYBERSCAN_ROUTES: Routes = [
   },
   {
     path: 'ressources',
-    loadComponent: () => import('./ressources/ressources.component').then(m => m.RessourcesComponent),
+    loadComponent: () =>
+      import('./ressources/ressources.component').then(m => m.RessourcesComponent),
     title: 'Ressources — CyberScan',
   },
   {
     path: 'bonnes-pratiques',
-    loadComponent: () => import('./bonnes-pratiques/bonnes-pratiques.component').then(m => m.BonnesPratiquesComponent),
+    loadComponent: () =>
+      import('./bonnes-pratiques/bonnes-pratiques.component').then(m => m.BonnesPratiquesComponent),
     title: 'Bonnes pratiques — CyberScan',
   },
   {
@@ -145,17 +167,22 @@ export const CYBERSCAN_ROUTES: Routes = [
   },
   {
     path: 'politique-confidentialite',
-    loadComponent: () => import('./politique-confidentialite/politique-confidentialite.component').then(m => m.PolitiqueConfidentialiteComponent),
+    loadComponent: () =>
+      import('./politique-confidentialite/politique-confidentialite.component').then(
+        m => m.PolitiqueConfidentialiteComponent
+      ),
     title: 'Politique de confidentialité — CyberScan',
   },
   {
     path: 'mentions-legales',
-    loadComponent: () => import('./mentions-legales/mentions-legales.component').then(m => m.MentionsLegalesComponent),
+    loadComponent: () =>
+      import('./mentions-legales/mentions-legales.component').then(m => m.MentionsLegalesComponent),
     title: 'Mentions légales — CyberScan',
   },
   {
     path: 'demo-result/:token',
-    loadComponent: () => import('./demo-result/demo-result.component').then(m => m.DemoResultComponent),
+    loadComponent: () =>
+      import('./demo-result/demo-result.component').then(m => m.DemoResultComponent),
     title: 'Résultat demo — CyberScan',
   },
   {
@@ -164,23 +191,31 @@ export const CYBERSCAN_ROUTES: Routes = [
   },
   {
     path: 'subdomains/:id',
-    loadComponent: () => import('./subdomains/subdomains.component').then(m => m.SubdomainsComponent),
+    loadComponent: () =>
+      import('./subdomains/subdomains.component').then(m => m.SubdomainsComponent),
     canActivate: [authGuard],
     title: 'Sous-domaines — CyberScan',
   },
   {
     path: 'admin/newsletter',
-    loadComponent: () => import('./newsletter-admin/newsletter-admin.component').then(m => m.NewsletterAdminComponent),
+    loadComponent: () =>
+      import('./newsletter-admin/newsletter-admin.component').then(m => m.NewsletterAdminComponent),
     title: 'Admin Newsletter — CyberScan',
   },
   {
     path: 'newsletter/confirm',
-    loadComponent: () => import('./newsletter-confirm/newsletter-confirm.component').then(m => m.NewsletterConfirmComponent),
+    loadComponent: () =>
+      import('./newsletter-confirm/newsletter-confirm.component').then(
+        m => m.NewsletterConfirmComponent
+      ),
     title: 'Confirmation newsletter — CyberScan',
   },
   {
     path: 'newsletter/unsubscribe',
-    loadComponent: () => import('./newsletter-unsubscribe/newsletter-unsubscribe.component').then(m => m.NewsletterUnsubscribeComponent),
+    loadComponent: () =>
+      import('./newsletter-unsubscribe/newsletter-unsubscribe.component').then(
+        m => m.NewsletterUnsubscribeComponent
+      ),
     title: 'Désabonnement newsletter — CyberScan',
   },
   {
@@ -195,36 +230,50 @@ export const CYBERSCAN_ROUTES: Routes = [
   },
   {
     path: 'phishing/campaigns',
-    loadComponent: () => import('./phishing-campaigns/phishing-campaigns.component').then(m => m.PhishingCampaignsComponent),
+    loadComponent: () =>
+      import('./phishing-campaigns/phishing-campaigns.component').then(
+        m => m.PhishingCampaignsComponent
+      ),
     canActivate: [authGuard],
     title: 'Mes campagnes phishing — CyberScan',
   },
   {
     path: 'phishing/new',
-    loadComponent: () => import('./phishing-campaign-creator/phishing-campaign-creator.component').then(m => m.PhishingCampaignCreatorComponent),
+    loadComponent: () =>
+      import('./phishing-campaign-creator/phishing-campaign-creator.component').then(
+        m => m.PhishingCampaignCreatorComponent
+      ),
     canActivate: [authGuard],
     title: 'Nouvelle campagne phishing — CyberScan',
   },
   {
     path: 'phishing/campaigns/:id',
-    loadComponent: () => import('./phishing-campaign-detail/phishing-campaign-detail.component').then(m => m.PhishingCampaignDetailComponent),
+    loadComponent: () =>
+      import('./phishing-campaign-detail/phishing-campaign-detail.component').then(
+        m => m.PhishingCampaignDetailComponent
+      ),
     canActivate: [authGuard],
     title: 'Résultats campagne — CyberScan',
   },
   {
     path: 'phishing/campaigns/:id/edit',
-    loadComponent: () => import('./phishing-campaign-edit/phishing-campaign-edit.component').then(m => m.PhishingCampaignEditComponent),
+    loadComponent: () =>
+      import('./phishing-campaign-edit/phishing-campaign-edit.component').then(
+        m => m.PhishingCampaignEditComponent
+      ),
     canActivate: [authGuard],
     title: 'Configurer campagne — CyberScan',
   },
   {
     path: 'scan-gratuit',
-    loadComponent: () => import('./scan-gratuit/scan-gratuit.component').then(m => m.ScanGratuitComponent),
+    loadComponent: () =>
+      import('./scan-gratuit/scan-gratuit.component').then(m => m.ScanGratuitComponent),
     title: 'Scan de sécurité gratuit — Audit en 90 secondes | CyberScan',
   },
   {
     path: 'api',
-    loadComponent: () => import('./api-landing/api-landing.component').then(m => m.ApiLandingComponent),
+    loadComponent: () =>
+      import('./api-landing/api-landing.component').then(m => m.ApiLandingComponent),
     title: 'API CyberScan — Automatisez vos audits de sécurité',
   },
   {
@@ -234,12 +283,14 @@ export const CYBERSCAN_ROUTES: Routes = [
   },
   {
     path: 'collab/accept/:token',
-    loadComponent: () => import('./collab-accept/collab-accept.component').then(m => m.CollabAcceptComponent),
-    title: 'Accepter l\'invitation — CyberScan',
+    loadComponent: () =>
+      import('./collab-accept/collab-accept.component').then(m => m.CollabAcceptComponent),
+    title: "Accepter l'invitation — CyberScan",
   },
   {
     path: 'cout-cyberattaque',
-    loadComponent: () => import('./cost-calculator/cost-calculator.component').then(m => m.CostCalculatorComponent),
+    loadComponent: () =>
+      import('./cost-calculator/cost-calculator.component').then(m => m.CostCalculatorComponent),
     title: 'Calculateur coût cyberattaque PME — CyberScan',
   },
   {
@@ -259,12 +310,14 @@ export const CYBERSCAN_ROUTES: Routes = [
   },
   {
     path: 'devis/:token/accepter',
-    loadComponent: () => import('./quote-action/quote-action.component').then(m => m.QuoteActionComponent),
+    loadComponent: () =>
+      import('./quote-action/quote-action.component').then(m => m.QuoteActionComponent),
     title: 'Acceptation du devis — CyberScan',
   },
   {
     path: 'devis/:token/refuser',
-    loadComponent: () => import('./quote-action/quote-action.component').then(m => m.QuoteActionComponent),
+    loadComponent: () =>
+      import('./quote-action/quote-action.component').then(m => m.QuoteActionComponent),
     title: 'Refus du devis — CyberScan',
   },
   {
@@ -279,7 +332,8 @@ export const CYBERSCAN_ROUTES: Routes = [
   },
   {
     path: 'admin/ba61c5a60113/agenda',
-    loadComponent: () => import('./booking-admin/booking-admin.component').then(m => m.BookingAdminComponent),
+    loadComponent: () =>
+      import('./booking-admin/booking-admin.component').then(m => m.BookingAdminComponent),
     title: 'Admin — Agenda | CyberScan',
   },
   {
@@ -289,37 +343,46 @@ export const CYBERSCAN_ROUTES: Routes = [
       {
         path: '',
         pathMatch: 'full',
-        loadComponent: () => import('./admin/dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent),
-        title: 'Admin — Vue d\'ensemble | CyberScan',
+        loadComponent: () =>
+          import('./admin/dashboard/admin-dashboard.component').then(
+            m => m.AdminDashboardComponent
+          ),
+        title: "Admin — Vue d'ensemble | CyberScan",
       },
       {
         path: 'contacts',
-        loadComponent: () => import('./admin/contacts/admin-contacts.component').then(m => m.AdminContactsComponent),
+        loadComponent: () =>
+          import('./admin/contacts/admin-contacts.component').then(m => m.AdminContactsComponent),
         title: 'Admin — Contacts | CyberScan',
       },
       {
         path: 'blog',
-        loadComponent: () => import('./admin/blog/admin-blog.component').then(m => m.AdminBlogComponent),
+        loadComponent: () =>
+          import('./admin/blog/admin-blog.component').then(m => m.AdminBlogComponent),
         title: 'Admin — Blog | CyberScan',
       },
       {
         path: 'users',
-        loadComponent: () => import('./admin/users/admin-users.component').then(m => m.AdminUsersComponent),
+        loadComponent: () =>
+          import('./admin/users/admin-users.component').then(m => m.AdminUsersComponent),
         title: 'Admin — Utilisateurs | CyberScan',
       },
       {
         path: 'scans',
-        loadComponent: () => import('./admin/scans/admin-scans.component').then(m => m.AdminScansComponent),
+        loadComponent: () =>
+          import('./admin/scans/admin-scans.component').then(m => m.AdminScansComponent),
         title: 'Admin — Scans | CyberScan',
       },
       {
         path: 'invoices',
-        loadComponent: () => import('./admin/invoices/admin-invoices.component').then(m => m.AdminInvoicesComponent),
+        loadComponent: () =>
+          import('./admin/invoices/admin-invoices.component').then(m => m.AdminInvoicesComponent),
         title: 'Admin — Factures | CyberScan',
       },
       {
         path: 'quotes',
-        loadComponent: () => import('./admin/quotes/admin-quotes.component').then(m => m.AdminQuotesComponent),
+        loadComponent: () =>
+          import('./admin/quotes/admin-quotes.component').then(m => m.AdminQuotesComponent),
         title: 'Admin — Devis | CyberScan',
       },
     ],

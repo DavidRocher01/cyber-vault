@@ -128,7 +128,7 @@ describe('UserService', () => {
 
   // ── exportMyData ─────────────────────────────────────────────────────────────
 
-  it('exportMyData() retourne l\'URL sans appel HTTP', () => {
+  it("exportMyData() retourne l'URL sans appel HTTP", () => {
     expect(service.exportMyData()).toBe(`${API}/users/me/export`);
     expect(http.get).not.toHaveBeenCalled();
   });
@@ -138,7 +138,9 @@ describe('UserService', () => {
   it('deleteAccount() envoie DELETE /api/v1/users/me avec le mot de passe', () => {
     http.delete.mockReturnValue(of(null));
     service.deleteAccount('mypassword').subscribe();
-    expect(http.delete).toHaveBeenCalledWith(`${API}/users/me`, { body: { password: 'mypassword' } });
+    expect(http.delete).toHaveBeenCalledWith(`${API}/users/me`, {
+      body: { password: 'mypassword' },
+    });
   });
 
   // ── getNotificationPreferences ───────────────────────────────────────────────
@@ -149,7 +151,12 @@ describe('UserService', () => {
   });
 
   it('getNotificationPreferences() retourne les préférences', () => {
-    const prefs = { notif_scan_done: true, notif_scan_critical: true, notif_url_scan_done: false, notif_code_scan_done: true };
+    const prefs = {
+      notif_scan_done: true,
+      notif_scan_critical: true,
+      notif_url_scan_done: false,
+      notif_code_scan_done: true,
+    };
     http.get.mockReturnValue(of(prefs));
     let result: any;
     service.getNotificationPreferences().subscribe(r => (result = r));
@@ -159,14 +166,24 @@ describe('UserService', () => {
   // ── updateNotificationPreferences ────────────────────────────────────────────
 
   it('updateNotificationPreferences() envoie PUT /api/v1/users/me/notification-preferences', () => {
-    const prefs = { notif_scan_done: false, notif_scan_critical: true, notif_url_scan_done: false, notif_code_scan_done: true };
+    const prefs = {
+      notif_scan_done: false,
+      notif_scan_critical: true,
+      notif_url_scan_done: false,
+      notif_code_scan_done: true,
+    };
     http.put.mockReturnValue(of(prefs));
     service.updateNotificationPreferences(prefs).subscribe();
     expect(http.put).toHaveBeenCalledWith(`${API}/users/me/notification-preferences`, prefs);
   });
 
   it('updateNotificationPreferences() retourne les préférences mises à jour', () => {
-    const prefs = { notif_scan_done: false, notif_scan_critical: false, notif_url_scan_done: true, notif_code_scan_done: true };
+    const prefs = {
+      notif_scan_done: false,
+      notif_scan_critical: false,
+      notif_url_scan_done: true,
+      notif_code_scan_done: true,
+    };
     http.put.mockReturnValue(of(prefs));
     let result: any;
     service.updateNotificationPreferences(prefs).subscribe(r => (result = r));

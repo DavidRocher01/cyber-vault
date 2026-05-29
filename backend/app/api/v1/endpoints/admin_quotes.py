@@ -4,6 +4,7 @@ POST /admin/quotes          — create a quote and email it to the client
 GET  /admin/quotes          — list all quotes
 GET  /admin/quotes/{id}/pdf — download PDF
 """
+
 import secrets
 from datetime import date
 
@@ -24,7 +25,9 @@ router = APIRouter(prefix="/admin/quotes", tags=["admin"])
 
 
 def _require_admin(x_admin_key: str = Header(default="")) -> None:
-    if not settings.ADMIN_API_KEY or not secrets.compare_digest(x_admin_key, settings.ADMIN_API_KEY):
+    if not settings.ADMIN_API_KEY or not secrets.compare_digest(
+        x_admin_key, settings.ADMIN_API_KEY
+    ):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès refusé")
 
 
@@ -86,19 +89,19 @@ class QuoteOut(BaseModel):
 
 def _serialize(q: Quote) -> dict:
     return {
-        "id":             q.id,
-        "quote_number":   q.quote_number,
-        "client_name":    q.client_name,
-        "client_email":   q.client_email,
+        "id": q.id,
+        "quote_number": q.quote_number,
+        "client_name": q.client_name,
+        "client_email": q.client_email,
         "client_address": q.client_address,
-        "subject":        q.subject,
-        "items":          q.items,
-        "total_cents":    q.total_cents,
-        "total_eur":      q.total_cents / 100,
-        "validity_days":  q.validity_days,
-        "status":         q.status,
-        "issue_date":     q.issue_date.isoformat(),
-        "created_at":     q.created_at.isoformat(),
+        "subject": q.subject,
+        "items": q.items,
+        "total_cents": q.total_cents,
+        "total_eur": q.total_cents / 100,
+        "validity_days": q.validity_days,
+        "status": q.status,
+        "issue_date": q.issue_date.isoformat(),
+        "created_at": q.created_at.isoformat(),
     }
 
 
@@ -136,9 +139,7 @@ async def admin_create_quote(
 
 @router.get("", dependencies=[Depends(_require_admin)])
 async def admin_list_quotes(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(Quote).order_by(Quote.created_at.desc())
-    )
+    result = await db.execute(select(Quote).order_by(Quote.created_at.desc()))
     return [_serialize(q) for q in result.scalars().all()]
 
 

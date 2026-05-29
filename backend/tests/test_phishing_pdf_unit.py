@@ -1,19 +1,18 @@
 """Unit tests — phishing_report_pdf.py."""
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
-import pytest
-
+from app.models.phishing import PhishingCampaign, PhishingTarget
 from app.services.phishing_report_pdf import (
+    _get_recommendations,
     _risk_color,
     _risk_label,
-    _get_recommendations,
     generate_phishing_report,
 )
-from app.models.phishing import PhishingCampaign, PhishingTarget
-
 
 # ── helpers ────────────────────────────────────────────────────────────────────
+
 
 def _campaign(
     name="Test Campaign",
@@ -37,13 +36,20 @@ def _campaign(
     c.status = status
     c.plan_tier = plan_tier
     c.scenario_keys = scenario_keys
-    c.finished_at = finished_at or datetime(2026, 5, 1, 12, 0, tzinfo=timezone.utc)
-    c.started_at = datetime(2026, 4, 1, 12, 0, tzinfo=timezone.utc)
+    c.finished_at = finished_at or datetime(2026, 5, 1, 12, 0, tzinfo=UTC)
+    c.started_at = datetime(2026, 4, 1, 12, 0, tzinfo=UTC)
     return c
 
 
-def _target(email="user@example.com", first_name="Alice", department="IT",
-            status="clicked", scenario_key=None, clicked_at=None, email_sent_at=None) -> MagicMock:
+def _target(
+    email="user@example.com",
+    first_name="Alice",
+    department="IT",
+    status="clicked",
+    scenario_key=None,
+    clicked_at=None,
+    email_sent_at=None,
+) -> MagicMock:
     t = MagicMock(spec=PhishingTarget)
     t.email = email
     t.first_name = first_name
@@ -58,35 +64,42 @@ def _target(email="user@example.com", first_name="Alice", department="IT",
 
 # ── _risk_color ────────────────────────────────────────────────────────────────
 
+
 def test_risk_color_high():
     from reportlab.lib import colors
+
     color = _risk_color(0.35)
     assert color == colors.HexColor("#ef4444")
 
 
 def test_risk_color_medium():
     from reportlab.lib import colors
+
     color = _risk_color(0.20)
     assert color == colors.HexColor("#eab308")
 
 
 def test_risk_color_low():
     from reportlab.lib import colors
+
     color = _risk_color(0.05)
     assert color == colors.HexColor("#22c55e")
 
 
 def test_risk_color_boundary_30():
     from reportlab.lib import colors
+
     assert _risk_color(0.30) == colors.HexColor("#ef4444")
 
 
 def test_risk_color_boundary_15():
     from reportlab.lib import colors
+
     assert _risk_color(0.15) == colors.HexColor("#eab308")
 
 
 # ── _risk_label ────────────────────────────────────────────────────────────────
+
 
 def test_risk_label_high():
     assert _risk_label(0.30) == "ÉLEVÉ"
@@ -104,6 +117,7 @@ def test_risk_label_low():
 
 
 # ── _get_recommendations ───────────────────────────────────────────────────────
+
 
 def test_recommendations_high_click_rate():
     recs = _get_recommendations(0.35, 0.05)
@@ -128,6 +142,7 @@ def test_recommendations_both_high():
 
 # ── generate_phishing_report — smoke tests ────────────────────────────────────
 
+
 def test_generate_report_returns_pdf():
     camp = _campaign()
     targets = [
@@ -142,7 +157,13 @@ def test_generate_report_returns_pdf():
 
 
 def test_generate_report_empty_targets():
-    camp = _campaign(targets_count=0, emails_sent=0, opened_count=0, clicked_count=0, submitted_count=0)
+    camp = _campaign(
+        targets_count=0,
+        emails_sent=0,
+        opened_count=0,
+        clicked_count=0,
+        submitted_count=0,
+    )
     pdf = generate_phishing_report(camp, [])
     assert pdf[:4] == b"%PDF"
 
@@ -164,9 +185,12 @@ def test_generate_report_all_submitted():
 def test_generate_report_many_targets():
     camp = _campaign(emails_sent=200, opened_count=80, clicked_count=30, submitted_count=5)
     targets = [
-        _target(f"user{i}@corp.fr", f"User{i}",
-                ["IT", "Finance", "RH", "Direction"][i % 4],
-                ["pending", "opened", "clicked", "submitted"][i % 4])
+        _target(
+            f"user{i}@corp.fr",
+            f"User{i}",
+            ["IT", "Finance", "RH", "Direction"][i % 4],
+            ["pending", "opened", "clicked", "submitted"][i % 4],
+        )
         for i in range(50)
     ]
     pdf = generate_phishing_report(camp, targets)

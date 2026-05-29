@@ -7,7 +7,9 @@ Create Date: 2026-04-17
 Persistent key/value store for app-level config (e.g. newsletter_edition counter).
 Replaces in-memory global _newsletter_edition in scheduler.py which reset on restart.
 """
+
 import sqlalchemy as sa
+
 from alembic import op
 
 revision = "e8f9a0b1c2d3"

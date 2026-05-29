@@ -16,9 +16,14 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
   standalone: true,
   selector: 'app-darkweb-dossier-new',
   imports: [
-    RouterLink, ReactiveFormsModule,
-    MatButtonModule, MatFormFieldModule, MatIconModule,
-    MatInputModule, MatProgressSpinnerModule, MatSnackBarModule,
+    RouterLink,
+    ReactiveFormsModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
     NavButtonsComponent,
   ],
   templateUrl: './darkweb-dossier-new.component.html',
@@ -30,7 +35,11 @@ export class DarkwebDossierNewComponent {
   private title = inject(Title);
 
   form = new FormGroup({
-    company_name: new FormControl('', [Validators.required, Validators.minLength(2), Validators.maxLength(200)]),
+    company_name: new FormControl('', [
+      Validators.required,
+      Validators.minLength(2),
+      Validators.maxLength(200),
+    ]),
     domain: new FormControl('', [
       Validators.required,
       Validators.pattern(/^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/),
@@ -66,9 +75,12 @@ export class DarkwebDossierNewComponent {
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = e => {
       const text = (e.target?.result as string) || '';
-      const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const lines = text
+        .split(/\r?\n/)
+        .map(l => l.trim())
+        .filter(Boolean);
       const emails = lines
         .flatMap(l => l.split(','))
         .map(v => v.trim().toLowerCase().replace(/^"|"$/g, ''))
@@ -91,12 +103,12 @@ export class DarkwebDossierNewComponent {
     const { company_name, domain } = this.form.value;
     this.submitting.set(true);
     this.service.create(company_name!, domain!, this.csvFile()!).subscribe({
-      next: (d) => {
+      next: d => {
         this.submitting.set(false);
         this.snack.open('Dossier créé — analyse en cours', 'OK', { duration: 4000 });
         this.router.navigate(['/cyberscan/darkweb-dossier', d.id]);
       },
-      error: (err) => {
+      error: err => {
         this.submitting.set(false);
         const msg = err?.error?.detail || 'Erreur lors de la création du dossier';
         this.snack.open(msg, 'Fermer', { duration: 5000 });

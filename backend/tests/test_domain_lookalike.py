@@ -3,17 +3,16 @@ Tests unitaires pour domain_lookalike.py.
 Aucune dépendance BD / réseau — pur Python.
 """
 
-import pytest
 from app.services.domain_lookalike import (
-    _parse_domain,
     _is_valid_domain,
+    _parse_domain,
     generate_lookalikes,
 )
-
 
 # ---------------------------------------------------------------------------
 # _parse_domain
 # ---------------------------------------------------------------------------
+
 
 class TestParseDomain:
     def test_simple_com(self):
@@ -54,6 +53,7 @@ class TestParseDomain:
 # _is_valid_domain
 # ---------------------------------------------------------------------------
 
+
 class TestIsValidDomain:
     def test_valid_alphanum(self):
         assert _is_valid_domain("example") is True
@@ -82,6 +82,7 @@ class TestIsValidDomain:
 # ---------------------------------------------------------------------------
 # generate_lookalikes
 # ---------------------------------------------------------------------------
+
 
 class TestGenerateLookalikes:
     def test_returns_list(self):
@@ -117,8 +118,15 @@ class TestGenerateLookalikes:
 
     def test_each_item_has_required_keys(self):
         result = generate_lookalikes("acme.com", max_results=5)
-        required = {"domain", "technique", "realism_score", "requires_purchase",
-                    "purchase_url", "setup_instructions", "note"}
+        required = {
+            "domain",
+            "technique",
+            "realism_score",
+            "requires_purchase",
+            "purchase_url",
+            "setup_instructions",
+            "note",
+        }
         for item in result:
             assert required.issubset(item.keys())
 

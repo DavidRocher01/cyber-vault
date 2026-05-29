@@ -22,32 +22,41 @@ import { EasterEggService } from '../../../shared/easter-eggs/easter-egg.service
 import { AuthModalComponent } from './components/auth-modal/auth-modal.component';
 import { DemoScanComponent } from './components/demo-scan/demo-scan.component';
 import {
-  FEATURES, TESTIMONIALS, FAQS, AUDIT_OFFERS,
-  NEWSLETTER_AVATARS, NEWSLETTER_ITEMS, COMPARISON_ROWS,
-  TRUST_ITEMS, ARCH_STEPS, COMPLIANCE_ITEMS,
-  HOW_IT_WORKS, USE_CASES, CYBER_STATS,
+  FEATURES,
+  TESTIMONIALS,
+  FAQS,
+  AUDIT_OFFERS,
+  NEWSLETTER_AVATARS,
+  NEWSLETTER_ITEMS,
+  COMPARISON_ROWS,
+  TRUST_ITEMS,
+  ARCH_STEPS,
+  COMPLIANCE_ITEMS,
+  HOW_IT_WORKS,
+  USE_CASES,
+  CYBER_STATS,
 } from './landing.data';
 
 @Component({
-    standalone: true,
-    selector: 'app-cyberscan-landing',
-    imports: [
-        CommonModule,
-        NgClass,
-        RouterLink,
-        MatButtonModule,
-        MatCardModule,
-        MatIconModule,
-        MatProgressSpinnerModule,
-        GlobeComponent,
-        MatFormFieldModule,
-        MatInputModule,
-        ReactiveFormsModule,
-        AuthModalComponent,
-        DemoScanComponent,
-    ],
-    templateUrl: './landing.component.html',
-    styleUrl: './landing.component.css'
+  standalone: true,
+  selector: 'app-cyberscan-landing',
+  imports: [
+    CommonModule,
+    NgClass,
+    RouterLink,
+    MatButtonModule,
+    MatCardModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    GlobeComponent,
+    MatFormFieldModule,
+    MatInputModule,
+    ReactiveFormsModule,
+    AuthModalComponent,
+    DemoScanComponent,
+  ],
+  templateUrl: './landing.component.html',
+  styleUrl: './landing.component.css',
 })
 export class LandingComponent implements OnInit, AfterViewInit {
   @ViewChild(AuthModalComponent) authModal!: AuthModalComponent;
@@ -79,56 +88,109 @@ export class LandingComponent implements OnInit, AfterViewInit {
   isRssiConsultant = signal(false);
 
   // Static data from landing.data.ts
-  readonly features        = FEATURES;
-  readonly testimonials    = TESTIMONIALS;
-  readonly faqs            = FAQS;
-  readonly auditOffers     = AUDIT_OFFERS;
+  readonly features = FEATURES;
+  readonly testimonials = TESTIMONIALS;
+  readonly faqs = FAQS;
+  readonly auditOffers = AUDIT_OFFERS;
   readonly newsletterAvatars = NEWSLETTER_AVATARS;
-  readonly newsletterItems   = NEWSLETTER_ITEMS;
-  readonly comparisonRows    = COMPARISON_ROWS;
-  readonly trustItems        = TRUST_ITEMS;
-  readonly archSteps         = ARCH_STEPS;
-  readonly complianceItems   = COMPLIANCE_ITEMS;
-  readonly howItWorks        = HOW_IT_WORKS;
-  readonly useCases          = USE_CASES;
-  readonly cyberStats        = CYBER_STATS;
+  readonly newsletterItems = NEWSLETTER_ITEMS;
+  readonly comparisonRows = COMPARISON_ROWS;
+  readonly trustItems = TRUST_ITEMS;
+  readonly archSteps = ARCH_STEPS;
+  readonly complianceItems = COMPLIANCE_ITEMS;
+  readonly howItWorks = HOW_IT_WORKS;
+  readonly useCases = USE_CASES;
+  readonly cyberStats = CYBER_STATS;
 
   counters = [
     { label: 'sites scannés', icon: 'language', target: 500, current: signal(0), suffix: '+' },
-    { label: 'vulnérabilités détectées', icon: 'bug_report', target: 12000, current: signal(0), suffix: '+' },
+    {
+      label: 'vulnérabilités détectées',
+      icon: 'bug_report',
+      target: 12000,
+      current: signal(0),
+      suffix: '+',
+    },
     { label: 'disponibilité', icon: 'verified', target: 99, current: signal(0), suffix: '%' },
   ];
 
   // Newsletter
-  newsletterSchedule: { actu_title: string; actu_url: string; actu_source: string; reflex: string }[] = [
-    { actu_title: 'L\'IA accélère les cyberattaques : une faille exploitée en seulement 72 minutes', actu_url: 'https://www.lemondeinformatique.fr/actualites/lire-l-ia-accelere-la-vitesse-des-cyberattaques-99405.html', actu_source: 'Le Monde Informatique', reflex: 'Réduire le délai de détection grâce à un EDR/SIEM' },
-    { actu_title: 'Piratage du fichier SIA : 41 000 détenteurs d\'armes exposés en France', actu_url: 'https://korben.info/fuite-sia-armes-ministere-interieur.html', actu_source: 'Korben', reflex: 'Activer la double authentification sur tous vos comptes' },
-    { actu_title: 'Axios compromis : l\'impact d\'une intrusion nord-coréenne sur la chaîne logistique', actu_url: 'https://www.lemagit.fr/actualites/366641121/Axios-compromis-limpact-dune-intrusion-nord-coreenne-sur-la-chaine-logisitique', actu_source: 'LeMagIT', reflex: 'Auditer ses dépendances open source avant mise en prod' },
-    { actu_title: 'Europa.eu cyberattaquée par ShinyHunters : Bruxelles minimise l\'impact', actu_url: 'https://www.zataz.com/cyber-actualites-zataz-de-la-semaine-du-30-mars-au-4-avril-2026/', actu_source: 'ZATAZ', reflex: 'Ne jamais minimiser une alerte de sécurité — toujours investiguer' },
-    { actu_title: 'Exposition de 16 milliards d\'identifiants et mots de passe : que faire ?', actu_url: 'https://www.cnil.fr/fr/exposition-de-16-milliards-didentifiants-et-des-mots-de-passe-que-faire', actu_source: 'CNIL', reflex: 'Vérifier ses comptes sur haveibeenpwned.com et changer ses mots de passe' },
-    { actu_title: '17Cyber : le nouveau réflexe officiel pour signaler une cyberattaque en France', actu_url: 'https://www.gendarmerie.interieur.gouv.fr/gendinfo/actualites/2026/17cyber-le-reflexe-cyber-pour-tous', actu_source: 'Gendarmerie nationale', reflex: 'Signaler toute cyberattaque sur 17cyber.gouv.fr' },
+  newsletterSchedule: {
+    actu_title: string;
+    actu_url: string;
+    actu_source: string;
+    reflex: string;
+  }[] = [
+    {
+      actu_title: "L'IA accélère les cyberattaques : une faille exploitée en seulement 72 minutes",
+      actu_url:
+        'https://www.lemondeinformatique.fr/actualites/lire-l-ia-accelere-la-vitesse-des-cyberattaques-99405.html',
+      actu_source: 'Le Monde Informatique',
+      reflex: 'Réduire le délai de détection grâce à un EDR/SIEM',
+    },
+    {
+      actu_title: "Piratage du fichier SIA : 41 000 détenteurs d'armes exposés en France",
+      actu_url: 'https://korben.info/fuite-sia-armes-ministere-interieur.html',
+      actu_source: 'Korben',
+      reflex: 'Activer la double authentification sur tous vos comptes',
+    },
+    {
+      actu_title:
+        "Axios compromis : l'impact d'une intrusion nord-coréenne sur la chaîne logistique",
+      actu_url:
+        'https://www.lemagit.fr/actualites/366641121/Axios-compromis-limpact-dune-intrusion-nord-coreenne-sur-la-chaine-logisitique',
+      actu_source: 'LeMagIT',
+      reflex: 'Auditer ses dépendances open source avant mise en prod',
+    },
+    {
+      actu_title: "Europa.eu cyberattaquée par ShinyHunters : Bruxelles minimise l'impact",
+      actu_url:
+        'https://www.zataz.com/cyber-actualites-zataz-de-la-semaine-du-30-mars-au-4-avril-2026/',
+      actu_source: 'ZATAZ',
+      reflex: 'Ne jamais minimiser une alerte de sécurité — toujours investiguer',
+    },
+    {
+      actu_title: "Exposition de 16 milliards d'identifiants et mots de passe : que faire ?",
+      actu_url:
+        'https://www.cnil.fr/fr/exposition-de-16-milliards-didentifiants-et-des-mots-de-passe-que-faire',
+      actu_source: 'CNIL',
+      reflex: 'Vérifier ses comptes sur haveibeenpwned.com et changer ses mots de passe',
+    },
+    {
+      actu_title: '17Cyber : le nouveau réflexe officiel pour signaler une cyberattaque en France',
+      actu_url:
+        'https://www.gendarmerie.interieur.gouv.fr/gendinfo/actualites/2026/17cyber-le-reflexe-cyber-pour-tous',
+      actu_source: 'Gendarmerie nationale',
+      reflex: 'Signaler toute cyberattaque sur 17cyber.gouv.fr',
+    },
   ];
 
   newsletterForm = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
   });
   newsletterLoading = false;
-  newsletterSent    = false;
+  newsletterSent = false;
   newsletterError: string | null = null;
 
   subscribeNewsletter() {
     if (this.newsletterForm.invalid) return;
     this.newsletterLoading = true;
     this.newsletterError = null;
-    this.http.post(`${environment.apiUrl}/newsletter/subscribe`, this.newsletterForm.getRawValue()).subscribe({
-      next: () => { this.newsletterSent = true; this.newsletterLoading = false; },
-      error: err => {
-        this.newsletterError = err.status === 409
-          ? 'Vous êtes déjà abonné(e) et actif(ve) !'
-          : 'Une erreur est survenue. Réessayez.';
-        this.newsletterLoading = false;
-      },
-    });
+    this.http
+      .post(`${environment.apiUrl}/newsletter/subscribe`, this.newsletterForm.getRawValue())
+      .subscribe({
+        next: () => {
+          this.newsletterSent = true;
+          this.newsletterLoading = false;
+        },
+        error: err => {
+          this.newsletterError =
+            err.status === 409
+              ? 'Vous êtes déjà abonné(e) et actif(ve) !'
+              : 'Une erreur est survenue. Réessayez.';
+          this.newsletterLoading = false;
+        },
+      });
   }
 
   private _setCanonical(url: string): void {
@@ -143,26 +205,55 @@ export class LandingComponent implements OnInit, AfterViewInit {
 
   ngOnInit() {
     this.titleService.setTitle('CyberScan — Audit de sécurité web automatisé');
-    this.meta.updateTag({ name: 'description', content: 'Auditez la sécurité de vos sites web : SSL, headers HTTP, ports ouverts. Rapports PDF automatiques et alertes en temps réel.' });
-    this.meta.updateTag({ property: 'og:title', content: 'CyberScan — Audit de sécurité web automatisé' });
-    this.meta.updateTag({ property: 'og:description', content: 'Auditez la sécurité de vos sites web : SSL, headers HTTP, ports ouverts. Rapports PDF automatiques et alertes en temps réel.' });
+    this.meta.updateTag({
+      name: 'description',
+      content:
+        'Auditez la sécurité de vos sites web : SSL, headers HTTP, ports ouverts. Rapports PDF automatiques et alertes en temps réel.',
+    });
+    this.meta.updateTag({
+      property: 'og:title',
+      content: 'CyberScan — Audit de sécurité web automatisé',
+    });
+    this.meta.updateTag({
+      property: 'og:description',
+      content:
+        'Auditez la sécurité de vos sites web : SSL, headers HTTP, ports ouverts. Rapports PDF automatiques et alertes en temps réel.',
+    });
     this.meta.updateTag({ property: 'og:url', content: 'https://cyberscanapp.com/cyberscan' });
     this.meta.updateTag({ property: 'og:type', content: 'website' });
     this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
-    this.meta.updateTag({ name: 'twitter:title', content: 'CyberScan — Audit de sécurité web automatisé' });
-    this.meta.updateTag({ name: 'twitter:description', content: 'Auditez la sécurité de vos sites : SSL, headers HTTP, ports ouverts. Rapports PDF inclus.' });
+    this.meta.updateTag({
+      name: 'twitter:title',
+      content: 'CyberScan — Audit de sécurité web automatisé',
+    });
+    this.meta.updateTag({
+      name: 'twitter:description',
+      content:
+        'Auditez la sécurité de vos sites : SSL, headers HTTP, ports ouverts. Rapports PDF inclus.',
+    });
     this._setCanonical('https://cyberscanapp.com/cyberscan');
     this.themeService.apply();
     this.cyberscan.getPlans().subscribe({
-      next: plans => { this.plans = plans; this.loading = false; },
-      error: () => { this.loading = false; },
+      next: plans => {
+        this.plans = plans;
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+      },
     });
-    this.http.get<{ actu_title: string; actu_url: string; actu_source: string; reflex: string }[]>(
-      `${environment.apiUrl}/newsletter/schedule`
-    ).subscribe({
-      next: items => { this.newsletterSchedule = items; },
-      error: () => { /* keep hardcoded fallback */ },
-    });
+    this.http
+      .get<
+        { actu_title: string; actu_url: string; actu_source: string; reflex: string }[]
+      >(`${environment.apiUrl}/newsletter/schedule`)
+      .subscribe({
+        next: items => {
+          this.newsletterSchedule = items;
+        },
+        error: () => {
+          /* keep hardcoded fallback */
+        },
+      });
     if (this.auth.isAuthenticated()) {
       this.http.get<{ is_rssi_consultant: boolean }>('/api/v1/users/me').subscribe({
         next: u => this.isRssiConsultant.set(u.is_rssi_consultant),
@@ -218,8 +309,12 @@ export class LandingComponent implements OnInit, AfterViewInit {
     }
     this.checkoutLoading = plan.id;
     this.cyberscan.createCheckout(plan.id).subscribe({
-      next: res => { window.location.href = res.checkout_url; },
-      error: () => { this.checkoutLoading = null; },
+      next: res => {
+        window.location.href = res.checkout_url;
+      },
+      error: () => {
+        this.checkoutLoading = null;
+      },
     });
   }
 

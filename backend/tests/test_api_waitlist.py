@@ -2,6 +2,7 @@
 Integration tests — /api/v1/api-waitlist
 Covers: POST (201 new entry, 409 duplicate), GET /count.
 """
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -13,6 +14,7 @@ _PAYLOAD = {"email": "dev@example.com", "role": "msp", "company": "Acme"}
 
 
 # ── POST /api-waitlist ─────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_join_waitlist_returns_201_with_count():
@@ -40,6 +42,7 @@ async def test_join_waitlist_count_increments():
 
 
 # ── GET /api-waitlist/count ────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_get_count_empty_returns_zero():

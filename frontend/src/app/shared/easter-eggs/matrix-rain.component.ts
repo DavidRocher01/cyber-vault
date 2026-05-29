@@ -1,7 +1,18 @@
-import { Component, Input, OnChanges, OnDestroy, ElementRef, ViewChild, AfterViewInit, ChangeDetectionStrategy, SimpleChanges } from '@angular/core';
+import {
+  Component,
+  Input,
+  OnChanges,
+  OnDestroy,
+  ElementRef,
+  ViewChild,
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  SimpleChanges,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-const CHARS = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF<>/\\|{}[]';
+const CHARS =
+  'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF<>/\\|{}[]';
 
 @Component({
   selector: 'app-matrix-rain',
@@ -14,19 +25,33 @@ const CHARS = 'アイウエオカキクケコサシスセソタチツテトナ�
       <div class="matrix-hint">[ cliquer pour fermer ]</div>
     </div>
   `,
-  styles: [`
-    .matrix-overlay {
-      position: fixed; inset: 0; z-index: 99998;
-      background: #000; cursor: pointer;
-    }
-    canvas { display: block; width: 100%; height: 100%; }
-    .matrix-hint {
-      position: absolute; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
-      font-family: 'JetBrains Mono', monospace;
-      color: rgba(0,255,70,0.5); font-size: 0.75rem; letter-spacing: 0.12em;
-      pointer-events: none;
-    }
-  `],
+  styles: [
+    `
+      .matrix-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 99998;
+        background: #000;
+        cursor: pointer;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      .matrix-hint {
+        position: absolute;
+        bottom: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: 'JetBrains Mono', monospace;
+        color: rgba(0, 255, 70, 0.5);
+        font-size: 0.75rem;
+        letter-spacing: 0.12em;
+        pointer-events: none;
+      }
+    `,
+  ],
 })
 export class MatrixRainComponent implements OnChanges, AfterViewInit, OnDestroy {
   @Input() visible = false;
@@ -65,7 +90,7 @@ export class MatrixRainComponent implements OnChanges, AfterViewInit, OnDestroy 
     canvas.height = window.innerHeight;
 
     const cols = Math.floor(canvas.width / 16);
-    this.drops = Array.from({ length: cols }, () => Math.random() * -canvas.height / 16);
+    this.drops = Array.from({ length: cols }, () => (Math.random() * -canvas.height) / 16);
 
     const ctx = canvas.getContext('2d')!;
 

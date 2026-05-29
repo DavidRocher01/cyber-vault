@@ -10,19 +10,26 @@ import pytest
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas as rl_canvas
 
-from app.services.pdf_brand import (
-    CYAN, GRAY, GREEN, RED, YELLOW, WHITE,
-    DOC_COLOR, SITE_EMAIL,
-    cat_score, score_color,
-    draw_compliance_cover, draw_page, draw_url_scan_cover,
-    get_styles, section_rule,
-)
 from app.services.iso27001_pdf import generate_iso27001_pdf
 from app.services.nis2_pdf import generate_nis2_pdf
+from app.services.pdf_brand import (
+    DOC_COLOR,
+    GREEN,
+    RED,
+    SITE_EMAIL,
+    YELLOW,
+    cat_score,
+    draw_compliance_cover,
+    draw_page,
+    draw_url_scan_cover,
+    get_styles,
+    score_color,
+    section_rule,
+)
 from app.services.url_scan_pdf import generate_url_scan_pdf
 
-
 # ─── Fixtures ─────────────────────────────────────────────────────────────────
+
 
 def _minimal_canvas():
     """Return a (canvas, doc_stub) pair writing to an in-memory buffer."""
@@ -43,7 +50,11 @@ def _iso_categories():
             "label": "Contexte & Gouvernance",
             "items": [
                 {"id": "a1", "label": "Politique SMSI", "desc": "Politique documentée"},
-                {"id": "a2", "label": "Objectifs sécurité", "desc": "Objectifs définis"},
+                {
+                    "id": "a2",
+                    "label": "Objectifs sécurité",
+                    "desc": "Objectifs définis",
+                },
                 {"id": "a3", "label": "Périmètre", "desc": "Périmètre délimité"},
             ],
         },
@@ -51,8 +62,16 @@ def _iso_categories():
             "id": "cat_b",
             "label": "Gestion des risques",
             "items": [
-                {"id": "b1", "label": "Analyse des risques", "desc": "Méthode formelle"},
-                {"id": "b2", "label": "Traitement des risques", "desc": "Plan de traitement"},
+                {
+                    "id": "b1",
+                    "label": "Analyse des risques",
+                    "desc": "Méthode formelle",
+                },
+                {
+                    "id": "b2",
+                    "label": "Traitement des risques",
+                    "desc": "Plan de traitement",
+                },
             ],
         },
     ]
@@ -66,8 +85,16 @@ def _nis2_categories():
             "items": [
                 {"id": "g1", "label": "Politique NIS2", "desc": "Politique appliquée"},
                 {"id": "g2", "label": "Responsabilités", "desc": "Rôles définis"},
-                {"id": "g3", "label": "Supervision dirigeants", "desc": "Organe dirigeant impliqué"},
-                {"id": "g4", "label": "Formation sécurité", "desc": "Formations réalisées"},
+                {
+                    "id": "g3",
+                    "label": "Supervision dirigeants",
+                    "desc": "Organe dirigeant impliqué",
+                },
+                {
+                    "id": "g4",
+                    "label": "Formation sécurité",
+                    "desc": "Formations réalisées",
+                },
             ],
         },
         {
@@ -75,13 +102,18 @@ def _nis2_categories():
             "label": "Gestion des risques",
             "items": [
                 {"id": "r1", "label": "Analyse risques", "desc": "Processus formalisé"},
-                {"id": "r2", "label": "Traitement risques", "desc": "Plans de traitement"},
+                {
+                    "id": "r2",
+                    "label": "Traitement risques",
+                    "desc": "Plans de traitement",
+                },
             ],
         },
     ]
 
 
 # ─── pdf_brand helpers ────────────────────────────────────────────────────────
+
 
 def test_score_color_green():
     assert score_color(80) == GREEN
@@ -148,6 +180,7 @@ def test_site_email_format():
 
 def test_section_rule_returns_hrflowable():
     from reportlab.platypus import HRFlowable
+
     rule = section_rule(400, "nis2")
     assert isinstance(rule, HRFlowable)
 
@@ -165,6 +198,7 @@ def test_get_styles_fallback_doc_type():
 
 # ─── draw_page (canvas smoke test) ────────────────────────────────────────────
 
+
 @pytest.mark.parametrize("doc_type", ["nis2", "iso27001", "url", "scan"])
 def test_draw_page_does_not_raise(doc_type):
     c, doc = _minimal_canvas()
@@ -174,15 +208,22 @@ def test_draw_page_does_not_raise(doc_type):
 
 # ─── draw_compliance_cover ────────────────────────────────────────────────────
 
+
 def test_draw_compliance_cover_score_zero():
     c, doc = _minimal_canvas()
     draw_compliance_cover(
-        c, doc,
+        c,
+        doc,
         doc_type="nis2",
         title_line1="Rapport de conformite",
         title_line2="Directive NIS2",
-        score=0, score_label="Non conforme",
-        total=10, compliant=0, partial=0, nc=10, na=0,
+        score=0,
+        score_label="Non conforme",
+        total=10,
+        compliant=0,
+        partial=0,
+        nc=10,
+        na=0,
         date_str="15/04/2026 à 10:00",
         domain_scores=[("Gouvernance", 0), ("Risques", 0)],
     )
@@ -192,12 +233,18 @@ def test_draw_compliance_cover_score_zero():
 def test_draw_compliance_cover_score_full():
     c, doc = _minimal_canvas()
     draw_compliance_cover(
-        c, doc,
+        c,
+        doc,
         doc_type="iso27001",
         title_line1="Rapport de conformite",
         title_line2="ISO/IEC 27001:2022",
-        score=100, score_label="Conforme",
-        total=38, compliant=38, partial=0, nc=0, na=0,
+        score=100,
+        score_label="Conforme",
+        total=38,
+        compliant=38,
+        partial=0,
+        nc=0,
+        na=0,
         date_str="15/04/2026 à 10:00",
         domain_scores=[("Dom A", 100), ("Dom B", 80), ("Dom C", 55), ("Dom D", 30)],
     )
@@ -208,12 +255,18 @@ def test_draw_compliance_cover_many_domains():
     c, doc = _minimal_canvas()
     domain_scores = [(f"Domaine {i}", i * 10) for i in range(10)]
     draw_compliance_cover(
-        c, doc,
+        c,
+        doc,
         doc_type="nis2",
         title_line1="Rapport",
         title_line2="NIS2",
-        score=45, score_label="En cours",
-        total=34, compliant=5, partial=8, nc=21, na=0,
+        score=45,
+        score_label="En cours",
+        total=34,
+        compliant=5,
+        partial=8,
+        nc=21,
+        na=0,
         date_str="15/04/2026",
         domain_scores=domain_scores,
     )
@@ -223,12 +276,18 @@ def test_draw_compliance_cover_many_domains():
 def test_draw_compliance_cover_empty_domains():
     c, doc = _minimal_canvas()
     draw_compliance_cover(
-        c, doc,
+        c,
+        doc,
         doc_type="iso27001",
         title_line1="Rapport",
         title_line2="ISO",
-        score=50, score_label="En cours",
-        total=5, compliant=2, partial=1, nc=2, na=0,
+        score=50,
+        score_label="En cours",
+        total=5,
+        compliant=2,
+        partial=1,
+        nc=2,
+        na=0,
         date_str="15/04/2026",
         domain_scores=[],
     )
@@ -238,12 +297,18 @@ def test_draw_compliance_cover_empty_domains():
 def test_draw_compliance_cover_with_na():
     c, doc = _minimal_canvas()
     draw_compliance_cover(
-        c, doc,
+        c,
+        doc,
         doc_type="nis2",
         title_line1="Rapport",
         title_line2="NIS2",
-        score=60, score_label="En cours",
-        total=20, compliant=8, partial=4, nc=4, na=4,
+        score=60,
+        score_label="En cours",
+        total=20,
+        compliant=8,
+        partial=4,
+        nc=4,
+        na=4,
         date_str="15/04/2026",
         domain_scores=[("Cat A", 80), ("Cat B", 40)],
     )
@@ -252,10 +317,12 @@ def test_draw_compliance_cover_with_na():
 
 # ─── draw_url_scan_cover ──────────────────────────────────────────────────────
 
+
 def test_draw_url_scan_cover_safe():
     c, doc = _minimal_canvas()
     draw_url_scan_cover(
-        c, doc,
+        c,
+        doc,
         url="https://example.com/path?q=1",
         verdict_label="SÛR",
         verdict_color_hex="#4ade80",
@@ -271,7 +338,8 @@ def test_draw_url_scan_cover_safe():
 def test_draw_url_scan_cover_malicious():
     c, doc = _minimal_canvas()
     draw_url_scan_cover(
-        c, doc,
+        c,
+        doc,
         url="http://malicious-site.ru/payload",
         verdict_label="MALVEILLANT",
         verdict_color_hex="#f87171",
@@ -288,7 +356,8 @@ def test_draw_url_scan_cover_long_url():
     c, doc = _minimal_canvas()
     long_url = "https://example.com/" + "a" * 120
     draw_url_scan_cover(
-        c, doc,
+        c,
+        doc,
         url=long_url,
         verdict_label="SUSPECT",
         verdict_color_hex="#facc15",
@@ -302,6 +371,7 @@ def test_draw_url_scan_cover_long_url():
 
 
 # ─── generate_nis2_pdf ────────────────────────────────────────────────────────
+
 
 def test_generate_nis2_pdf_returns_pdf_bytes():
     cats = _nis2_categories()
@@ -320,10 +390,16 @@ def test_generate_nis2_pdf_all_compliant():
 
 def test_generate_nis2_pdf_mixed_statuses():
     cats = _nis2_categories()
-    statuses = ["compliant", "partial", "non_compliant", "na",
-                "compliant", "non_compliant"]
+    statuses = [
+        "compliant",
+        "partial",
+        "non_compliant",
+        "na",
+        "compliant",
+        "non_compliant",
+    ]
     all_ids = [it["id"] for cat in cats for it in cat["items"]]
-    items = {i: s for i, s in zip(all_ids, statuses)}
+    items = {i: s for i, s in zip(all_ids, statuses, strict=False)}
     result = generate_nis2_pdf(cats, items, 50, datetime.now(), "user@example.com")
     assert result[:4] == b"%PDF"
 
@@ -337,8 +413,11 @@ def test_generate_nis2_pdf_no_updated_at():
 
 def test_generate_nis2_pdf_many_categories():
     cats = [
-        {"id": f"cat{i}", "label": f"Catégorie {i}",
-         "items": [{"id": f"c{i}_{j}", "label": f"Item {j}", "desc": "Desc"} for j in range(4)]}
+        {
+            "id": f"cat{i}",
+            "label": f"Catégorie {i}",
+            "items": [{"id": f"c{i}_{j}", "label": f"Item {j}", "desc": "Desc"} for j in range(4)],
+        }
         for i in range(8)
     ]
     items = {it["id"]: "partial" for cat in cats for it in cat["items"]}
@@ -347,6 +426,7 @@ def test_generate_nis2_pdf_many_categories():
 
 
 # ─── generate_iso27001_pdf ────────────────────────────────────────────────────
+
 
 def test_generate_iso27001_pdf_returns_pdf_bytes():
     cats = _iso_categories()
@@ -381,19 +461,26 @@ def test_generate_iso27001_pdf_no_updated_at():
 
 def test_generate_iso27001_pdf_ten_domains():
     cats = [
-        {"id": f"d{i}", "label": f"Domaine {'A' * min(i+1, 26)}", "items": [
-            {"id": f"d{i}_1", "label": "Control 1", "desc": "Desc"},
-            {"id": f"d{i}_2", "label": "Control 2", "desc": "Desc"},
-        ]}
+        {
+            "id": f"d{i}",
+            "label": f"Domaine {'A' * min(i+1, 26)}",
+            "items": [
+                {"id": f"d{i}_1", "label": "Control 1", "desc": "Desc"},
+                {"id": f"d{i}_2", "label": "Control 2", "desc": "Desc"},
+            ],
+        }
         for i in range(10)
     ]
-    items = {it["id"]: "compliant" if i % 3 == 0 else "non_compliant"
-             for i, (cat, it) in enumerate((cat, it) for cat in cats for it in cat["items"])}
+    items = {
+        it["id"]: "compliant" if i % 3 == 0 else "non_compliant"
+        for i, (cat, it) in enumerate((cat, it) for cat in cats for it in cat["items"])
+    }
     result = generate_iso27001_pdf(cats, items, 33, datetime.now(), "x@x.com")
     assert result[:4] == b"%PDF"
 
 
 # ─── generate_url_scan_pdf ────────────────────────────────────────────────────
+
 
 def _url_scan_data(**overrides):
     base = {
@@ -467,8 +554,10 @@ def test_generate_url_scan_pdf_no_created_at():
 
 
 def test_generate_url_scan_pdf_many_findings():
-    findings = [{"severity": s, "detail": f"Finding {i}"}
-                for i, s in enumerate(["critical", "high", "medium", "low"] * 5)]
+    findings = [
+        {"severity": s, "detail": f"Finding {i}"}
+        for i, s in enumerate(["critical", "high", "medium", "low"] * 5)
+    ]
     data = _url_scan_data(verdict="malicious", findings=findings, threat_score=90)
     result = generate_url_scan_pdf(data)
     assert result[:4] == b"%PDF"

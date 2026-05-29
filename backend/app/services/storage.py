@@ -1,4 +1,5 @@
 """File storage — S3 in prod, local filesystem fallback in dev."""
+
 from __future__ import annotations
 
 import uuid
@@ -18,7 +19,18 @@ _ALLOWED_MIME_TYPES = {
     "image/png",
     "image/jpeg",
 }
-_ALLOWED_EXTENSIONS = {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".odt", ".ods", ".png", ".jpg", ".jpeg"}
+_ALLOWED_EXTENSIONS = {
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".xls",
+    ".xlsx",
+    ".odt",
+    ".ods",
+    ".png",
+    ".jpg",
+    ".jpeg",
+}
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
 
 
@@ -26,7 +38,9 @@ def validate_upload(filename: str, content_type: str, size: int) -> None:
     """Raise ValueError with a user-facing message if the file is invalid."""
     ext = Path(filename).suffix.lower()
     if ext not in _ALLOWED_EXTENSIONS:
-        raise ValueError(f"Extension non autorisée. Formats acceptés : {', '.join(sorted(_ALLOWED_EXTENSIONS))}")
+        raise ValueError(
+            f"Extension non autorisée. Formats acceptés : {', '.join(sorted(_ALLOWED_EXTENSIONS))}"
+        )
     if content_type not in _ALLOWED_MIME_TYPES:
         raise ValueError("Type de fichier non autorisé.")
     if size > MAX_UPLOAD_BYTES:
@@ -55,6 +69,7 @@ def get_download_url(key: str, expires: int = 3600) -> str:
 
 # ── S3 backend ─────────────────────────────────────────────────────────────────
 
+
 def _upload_s3(content: bytes, original_name: str, user_id: int, client_id: int) -> str:
     import boto3  # lazy import — only needed when S3 is configured
 
@@ -82,6 +97,7 @@ def _presign_s3(key: str, expires: int) -> str:
 
 # ── Local filesystem backend ───────────────────────────────────────────────────
 
+
 def _upload_local(content: bytes, original_name: str, user_id: int, client_id: int) -> str:
     dest_dir = _LOCAL_UPLOAD_DIR / str(user_id) / str(client_id)
     dest_dir.mkdir(parents=True, exist_ok=True)
@@ -89,4 +105,6 @@ def _upload_local(content: bytes, original_name: str, user_id: int, client_id: i
     filename = f"{uuid.uuid4().hex}_{safe}"
     path = dest_dir / filename
     path.write_bytes(content)
-    return str(Path("uploads") / "rssi" / str(user_id) / str(client_id) / filename).replace("\\", "/")
+    return str(Path("uploads") / "rssi" / str(user_id) / str(client_id) / filename).replace(
+        "\\", "/"
+    )

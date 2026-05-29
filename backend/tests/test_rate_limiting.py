@@ -3,10 +3,11 @@ Integration tests — rate limiting
 Covers: newsletter/subscribe 5/minute, url-scans 10/minute.
 """
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from httpx import ASGITransport, AsyncClient
-from unittest.mock import patch, AsyncMock
 from fastapi import HTTPException
+from httpx import ASGITransport, AsyncClient
 
 from app.main import app
 
@@ -25,6 +26,7 @@ def _raise_rate_limit(*args, **kwargs):
 
 
 # ── Newsletter subscribe ───────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_newsletter_subscribe_normal_returns_201():
@@ -56,6 +58,7 @@ async def test_newsletter_subscribe_rate_limited_returns_429():
 
 # ── URL scans ─────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_url_scan_normal_returns_202():
     """A single url-scan call succeeds (rate limit not yet hit)."""
@@ -77,5 +80,7 @@ async def test_url_scan_rate_limited_returns_429():
                 "app.api.v1.endpoints.url_scans.limiter._check_request_limit",
                 side_effect=_raise_rate_limit,
             ):
-                r = await c.post(f"{BASE}/url-scans", json={"url": "https://example.com"}, headers=h)
+                r = await c.post(
+                    f"{BASE}/url-scans", json={"url": "https://example.com"}, headers=h
+                )
     assert r.status_code == 429

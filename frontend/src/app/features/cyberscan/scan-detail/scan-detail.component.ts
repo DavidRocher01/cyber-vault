@@ -9,29 +9,44 @@ import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 import { CyberscanService, Scan } from '../services/cyberscan.service';
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
 import { RadarChartComponent } from '../../../shared/radar-chart/radar-chart.component';
-import { computeScore, getGrade, getScoreColor, getCategoryScores, RADAR_CATEGORIES } from '../../../shared/score-utils';
+import {
+  computeScore,
+  getGrade,
+  getScoreColor,
+  getCategoryScores,
+  RADAR_CATEGORIES,
+} from '../../../shared/score-utils';
 import { Finding, getFindings } from '../../../shared/scan-findings';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 const PRO_MODULE_DESCRIPTIONS: Record<string, string> = {
-  tech:               'Technologies et versions exposées dans vos en-têtes HTTP',
-  tls:                'Audit complet : protocoles TLS faibles, suites de chiffrement, HSTS',
-  takeover:           'Sous-domaines susceptibles d\'être repris par un attaquant',
-  threat_intel:       'Croisement avec les bases CVE, Shodan et threat feeds actifs',
-  http_methods:       'Méthodes PUT / DELETE / TRACE actives sur votre serveur',
-  open_redirect:      'Paramètres de redirection exploitables dans des campagnes de phishing',
-  clickjacking:       'Absence de X-Frame-Options / CSP frame-ancestors',
-  directory_listing:  'Arborescence serveur listable publiquement',
-  robots:             'Chemins d\'administration révélés dans robots.txt',
-  jwt:                'Tokens JWT mal signés exposés sur vos pages publiques',
+  tech: 'Technologies et versions exposées dans vos en-têtes HTTP',
+  tls: 'Audit complet : protocoles TLS faibles, suites de chiffrement, HSTS',
+  takeover: "Sous-domaines susceptibles d'être repris par un attaquant",
+  threat_intel: 'Croisement avec les bases CVE, Shodan et threat feeds actifs',
+  http_methods: 'Méthodes PUT / DELETE / TRACE actives sur votre serveur',
+  open_redirect: 'Paramètres de redirection exploitables dans des campagnes de phishing',
+  clickjacking: 'Absence de X-Frame-Options / CSP frame-ancestors',
+  directory_listing: 'Arborescence serveur listable publiquement',
+  robots: "Chemins d'administration révélés dans robots.txt",
+  jwt: 'Tokens JWT mal signés exposés sur vos pages publiques',
 };
 
 @Component({
-    standalone: true,
-    selector: 'app-scan-detail',
-    imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule, MatProgressSpinnerModule, ScoreGaugeComponent, RadarChartComponent, NavButtonsComponent],
-    templateUrl: './scan-detail.component.html',
-    styleUrl: './scan-detail.component.css'
+  standalone: true,
+  selector: 'app-scan-detail',
+  imports: [
+    CommonModule,
+    RouterLink,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    ScoreGaugeComponent,
+    RadarChartComponent,
+    NavButtonsComponent,
+  ],
+  templateUrl: './scan-detail.component.html',
+  styleUrl: './scan-detail.component.css',
 })
 export class ScanDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
@@ -72,7 +87,7 @@ export class ScanDetailComponent implements OnInit {
   startPolling(id: number) {
     pollWithBackoff(
       () => this.cyberscan.getScan(id),
-      s => s.status !== 'pending' && s.status !== 'running',
+      s => s.status !== 'pending' && s.status !== 'running'
     ).subscribe(scan => this.scan.set(scan));
   }
 
@@ -135,49 +150,69 @@ export class ScanDetailComponent implements OnInit {
       const parsed = JSON.parse(results);
       const scripts = parsed?._meta?.remediation_scripts ?? {};
       const meta: Record<string, { label: string; icon: string }> = {
-        ufw:                   { label: 'Pare-feu UFW',              icon: 'security' },
-        ssh:                   { label: 'Durcissement SSH',           icon: 'terminal' },
-        robots:                { label: 'robots.txt',                 icon: 'smart_toy' },
-        nginx_waf:             { label: 'WAF / Rate-limiting Nginx',  icon: 'shield' },
-        fastapi:               { label: 'Middleware FastAPI',         icon: 'code' },
-        upgrade:               { label: 'Mises à jour dépendances',   icon: 'system_update' },
-        nginx_ssl:             { label: 'SSL/TLS Nginx',              icon: 'lock' },
-        fastapi_cors:          { label: 'CORS FastAPI',               icon: 'swap_horiz' },
-        nginx_cors:            { label: 'CORS Nginx',                 icon: 'swap_horiz' },
-        fastapi_cookie:        { label: 'Cookies sécurisés FastAPI',  icon: 'cookie' },
-        nginx_methods:         { label: 'Méthodes HTTP Nginx',        icon: 'http' },
-        nginx_clickjacking:    { label: 'Anti-clickjacking Nginx',    icon: 'web_asset_off' },
-        fastapi_clickjacking:  { label: 'Anti-clickjacking FastAPI',  icon: 'web_asset_off' },
-        nginx_dirlist:         { label: 'Directory listing Nginx',    icon: 'folder_off' },
-        fastapi_open_redirect: { label: 'Open redirect FastAPI',      icon: 'link_off' },
-        dns_email:             { label: 'SPF / DKIM / DMARC',         icon: 'email' },
+        ufw: { label: 'Pare-feu UFW', icon: 'security' },
+        ssh: { label: 'Durcissement SSH', icon: 'terminal' },
+        robots: { label: 'robots.txt', icon: 'smart_toy' },
+        nginx_waf: { label: 'WAF / Rate-limiting Nginx', icon: 'shield' },
+        fastapi: { label: 'Middleware FastAPI', icon: 'code' },
+        upgrade: { label: 'Mises à jour dépendances', icon: 'system_update' },
+        nginx_ssl: { label: 'SSL/TLS Nginx', icon: 'lock' },
+        fastapi_cors: { label: 'CORS FastAPI', icon: 'swap_horiz' },
+        nginx_cors: { label: 'CORS Nginx', icon: 'swap_horiz' },
+        fastapi_cookie: { label: 'Cookies sécurisés FastAPI', icon: 'cookie' },
+        nginx_methods: { label: 'Méthodes HTTP Nginx', icon: 'http' },
+        nginx_clickjacking: { label: 'Anti-clickjacking Nginx', icon: 'web_asset_off' },
+        fastapi_clickjacking: { label: 'Anti-clickjacking FastAPI', icon: 'web_asset_off' },
+        nginx_dirlist: { label: 'Directory listing Nginx', icon: 'folder_off' },
+        fastapi_open_redirect: { label: 'Open redirect FastAPI', icon: 'link_off' },
+        dns_email: { label: 'SPF / DKIM / DMARC', icon: 'email' },
       };
-      return Object.keys(scripts).filter(k => meta[k]).map(k => ({ key: k, ...meta[k] }));
-    } catch { return []; }
+      return Object.keys(scripts)
+        .filter(k => meta[k])
+        .map(k => ({ key: k, ...meta[k] }));
+    } catch {
+      return [];
+    }
   }
 
   get findings(): Finding[] {
     return getFindings(this.scan()?.results_json ?? null);
   }
 
-  get score(): number | null { return computeScore(this.scan()?.results_json ?? null); }
-  get grade(): string { return this.score !== null ? getGrade(this.score) : '—'; }
-  get scoreColor(): string { return this.score !== null ? getScoreColor(this.score) : '#6b7280'; }
-  get radarScores(): number[] { return getCategoryScores(this.scan()?.results_json ?? null); }
-  get radarLabels(): string[] { return RADAR_CATEGORIES.map(c => c.label); }
+  get score(): number | null {
+    return computeScore(this.scan()?.results_json ?? null);
+  }
+  get grade(): string {
+    return this.score !== null ? getGrade(this.score) : '—';
+  }
+  get scoreColor(): string {
+    return this.score !== null ? getScoreColor(this.score) : '#6b7280';
+  }
+  get radarScores(): number[] {
+    return getCategoryScores(this.scan()?.results_json ?? null);
+  }
+  get radarLabels(): string[] {
+    return RADAR_CATEGORIES.map(c => c.label);
+  }
 
   get scannedDomain(): string | null {
     const r = this.scan()?.results_json;
     if (!r) return null;
-    try { return (JSON.parse(r)?._meta?.url as string) ?? null; }
-    catch { return null; }
+    try {
+      return (JSON.parse(r)?._meta?.url as string) ?? null;
+    } catch {
+      return null;
+    }
   }
 
   get scanTier(): number {
     const r = this.scan()?.results_json;
     if (!r) return 2;
-    try { return (JSON.parse(r)?._meta?.tier as number) ?? 2; }
-    catch { return 2; }
+    try {
+      return (JSON.parse(r)?._meta?.tier as number) ?? 2;
+    } catch {
+      return 2;
+    }
   }
 
   get lockedFindings(): Finding[] {
@@ -189,48 +224,66 @@ export class ScanDetailComponent implements OnInit {
   }
 
   // ── CTA Audit Flash — classes dynamiques ──────────────────────────────────
-  private get _ctaStatus(): string { return this.scan()?.overall_status ?? ''; }
+  private get _ctaStatus(): string {
+    return this.scan()?.overall_status ?? '';
+  }
 
   get ctaWrapperClass(): string {
-    const base = 'rounded-xl border p-6 mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-5';
+    const base =
+      'rounded-xl border p-6 mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-5';
     switch (this._ctaStatus) {
-      case 'CRITICAL': return `${base} border-red-500/40 bg-red-950/30`;
-      case 'WARNING':  return `${base} border-yellow-500/30 bg-yellow-950/20`;
-      default:         return `${base} border-cyan-500/20 bg-gray-800/60`;
+      case 'CRITICAL':
+        return `${base} border-red-500/40 bg-red-950/30`;
+      case 'WARNING':
+        return `${base} border-yellow-500/30 bg-yellow-950/20`;
+      default:
+        return `${base} border-cyan-500/20 bg-gray-800/60`;
     }
   }
 
   get ctaIconWrapperClass(): string {
     const base = 'w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0';
     switch (this._ctaStatus) {
-      case 'CRITICAL': return `${base} bg-red-500/20`;
-      case 'WARNING':  return `${base} bg-yellow-500/15`;
-      default:         return `${base} bg-cyan-500/15`;
+      case 'CRITICAL':
+        return `${base} bg-red-500/20`;
+      case 'WARNING':
+        return `${base} bg-yellow-500/15`;
+      default:
+        return `${base} bg-cyan-500/15`;
     }
   }
 
   get ctaIconClass(): string {
     const base = '!text-[1.5rem] !w-[1.5rem] !h-[1.5rem]';
     switch (this._ctaStatus) {
-      case 'CRITICAL': return `${base} text-red-400`;
-      case 'WARNING':  return `${base} text-yellow-400`;
-      default:         return `${base} text-cyan-400`;
+      case 'CRITICAL':
+        return `${base} text-red-400`;
+      case 'WARNING':
+        return `${base} text-yellow-400`;
+      default:
+        return `${base} text-cyan-400`;
     }
   }
 
   get ctaButtonClass(): string {
     switch (this._ctaStatus) {
-      case 'CRITICAL': return '!bg-red-500 !text-white flex-shrink-0';
-      case 'WARNING':  return '!bg-yellow-500 !text-gray-900 flex-shrink-0';
-      default:         return '!bg-cyan-500 !text-gray-900 flex-shrink-0';
+      case 'CRITICAL':
+        return '!bg-red-500 !text-white flex-shrink-0';
+      case 'WARNING':
+        return '!bg-yellow-500 !text-gray-900 flex-shrink-0';
+      default:
+        return '!bg-cyan-500 !text-gray-900 flex-shrink-0';
     }
   }
 
   get ctaTitle(): string {
     switch (this._ctaStatus) {
-      case 'CRITICAL': return 'Des vulnérabilités critiques ont été détectées — un expert peut vous aider';
-      case 'WARNING':  return 'Des points d\'attention méritent un regard humain';
-      default:         return 'Faites valider ces résultats par un expert';
+      case 'CRITICAL':
+        return 'Des vulnérabilités critiques ont été détectées — un expert peut vous aider';
+      case 'WARNING':
+        return "Des points d'attention méritent un regard humain";
+      default:
+        return 'Faites valider ces résultats par un expert';
     }
   }
 
@@ -252,31 +305,46 @@ export class ScanDetailComponent implements OnInit {
 
   statusColor(status: string | null): string {
     switch (status) {
-      case 'OK':       return 'text-green-400 bg-green-400/10 border-green-600';
-      case 'WARNING':  return 'text-yellow-400 bg-yellow-400/10 border-yellow-600';
-      case 'CRITICAL': return 'text-red-400 bg-red-400/10 border-red-600';
-      default:         return 'text-gray-400 bg-gray-400/10 border-gray-600';
+      case 'OK':
+        return 'text-green-400 bg-green-400/10 border-green-600';
+      case 'WARNING':
+        return 'text-yellow-400 bg-yellow-400/10 border-yellow-600';
+      case 'CRITICAL':
+        return 'text-red-400 bg-red-400/10 border-red-600';
+      default:
+        return 'text-gray-400 bg-gray-400/10 border-gray-600';
     }
   }
 
   statusIcon(status: string | null): string {
     switch (status) {
-      case 'OK':       return 'verified_user';
-      case 'WARNING':  return 'warning';
-      case 'CRITICAL': return 'gpp_bad';
-      case 'done':     return 'check_circle';
-      case 'pending':  return 'schedule';
-      case 'running':  return 'sync';
-      case 'error':    return 'cancel';
-      default:         return 'help_outline';
+      case 'OK':
+        return 'verified_user';
+      case 'WARNING':
+        return 'warning';
+      case 'CRITICAL':
+        return 'gpp_bad';
+      case 'done':
+        return 'check_circle';
+      case 'pending':
+        return 'schedule';
+      case 'running':
+        return 'sync';
+      case 'error':
+        return 'cancel';
+      default:
+        return 'help_outline';
     }
   }
 
   formatDate(d: string | null): string {
     if (!d) return '—';
     return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit', month: 'long', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   }
 }

@@ -1,5 +1,5 @@
 """Unit tests — app.core.utils"""
-import pytest
+
 from app.core.utils import safe_json_load
 
 

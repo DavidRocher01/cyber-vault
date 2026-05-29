@@ -17,7 +17,10 @@ function initAOS(): () => Promise<void> {
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes, withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' })),
+    provideRouter(
+      routes,
+      withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' })
+    ),
     provideAnimationsAsync(),
     provideHttpClient(withInterceptors([authInterceptor])),
     provideHotToastConfig({ position: 'bottom-center', duration: 3000 }),

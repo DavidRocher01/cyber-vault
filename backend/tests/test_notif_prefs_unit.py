@@ -13,8 +13,8 @@ from app.api.v1.endpoints.users import update_notification_preferences
 from app.models.user import User
 from app.schemas.user import NotificationPreferencesIn
 
-
 # ─── helpers ─────────────────────────────────────────────────────────────────
+
 
 def _mock_user(**kwargs) -> MagicMock:
     defaults = dict(
@@ -51,6 +51,7 @@ def _prefs(**kwargs) -> NotificationPreferencesIn:
 
 
 # ─── update_notification_preferences ────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_update_persists_notif_ssl_expiry_true():
@@ -139,6 +140,7 @@ async def test_update_does_not_commit_before_setting_fields():
 
 # ─── schema ───────────────────────────────────────────────────────────────────
 
+
 def test_notification_preferences_in_requires_ssl_expiry():
     """NotificationPreferencesIn must include notif_ssl_expiry."""
     prefs = NotificationPreferencesIn(
@@ -154,6 +156,7 @@ def test_notification_preferences_in_requires_ssl_expiry():
 def test_notification_preferences_in_rejects_missing_ssl_expiry():
     """Omitting notif_ssl_expiry must raise a validation error."""
     from pydantic import ValidationError
+
     with pytest.raises(ValidationError):
         NotificationPreferencesIn(
             notif_scan_done=True,

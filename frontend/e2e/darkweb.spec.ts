@@ -151,4 +151,3 @@ test.describe('Dark Web Dossier — formulaire nouveau dossier', () => {
     await expect(cancelLink).toHaveAttribute('href', /\/cyberscan\/darkweb-dossier$/);
   });
 });
-

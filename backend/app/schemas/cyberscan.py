@@ -1,8 +1,9 @@
 from datetime import datetime
+
 from pydantic import BaseModel
 
-
 # --- Plans ---
+
 
 class PlanOut(BaseModel):
     id: int
@@ -17,6 +18,7 @@ class PlanOut(BaseModel):
 
 
 # --- Subscriptions ---
+
 
 class SubscriptionOut(BaseModel):
     id: int
@@ -38,6 +40,7 @@ class CheckoutSessionOut(BaseModel):
 
 # --- Sites ---
 
+
 class SiteCreate(BaseModel):
     url: str
     name: str
@@ -56,6 +59,7 @@ class SiteOut(BaseModel):
 
 
 # --- Scans ---
+
 
 class ScanOut(BaseModel):
     id: int
@@ -86,6 +90,7 @@ class PaginatedScans(BaseModel):
 
 
 # --- Code Scans ---
+
 
 class CodeScanCreate(BaseModel):
     repo_url: str

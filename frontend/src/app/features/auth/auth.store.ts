@@ -23,9 +23,15 @@ export class AuthStore extends ComponentStore<AuthState> {
   constructor(
     private authService: AuthService,
     private router: Router,
-    private route: ActivatedRoute,
+    private route: ActivatedRoute
   ) {
-    super({ loading: false, error: null, requires2fa: false, pendingEmail: null, pendingPassword: null });
+    super({
+      loading: false,
+      error: null,
+      requires2fa: false,
+      pendingEmail: null,
+      pendingPassword: null,
+    });
   }
 
   private get returnUrl(): string {
@@ -39,9 +45,14 @@ export class AuthStore extends ComponentStore<AuthState> {
         this.patchState({ loading: true, error: null });
         return this.authService.login(email, password).pipe(
           tapResponse(
-            (res) => {
+            res => {
               if ('requires_2fa' in res) {
-                this.patchState({ loading: false, requires2fa: true, pendingEmail: email, pendingPassword: password });
+                this.patchState({
+                  loading: false,
+                  requires2fa: true,
+                  pendingEmail: email,
+                  pendingPassword: password,
+                });
               } else {
                 this.patchState({ loading: false, requires2fa: false });
                 this.router.navigateByUrl(this.returnUrl);
@@ -50,7 +61,7 @@ export class AuthStore extends ComponentStore<AuthState> {
             (err: any) => {
               const msg = err.error?.detail ?? 'Erreur de connexion';
               this.patchState({ loading: false, error: msg });
-                          }
+            }
           )
         );
       })
@@ -66,13 +77,18 @@ export class AuthStore extends ComponentStore<AuthState> {
         return this.authService.login(pendingEmail, pendingPassword, totpCode).pipe(
           tapResponse(
             () => {
-              this.patchState({ loading: false, requires2fa: false, pendingEmail: null, pendingPassword: null });
+              this.patchState({
+                loading: false,
+                requires2fa: false,
+                pendingEmail: null,
+                pendingPassword: null,
+              });
               this.router.navigateByUrl(this.returnUrl);
             },
             (err: any) => {
               const msg = err.error?.detail ?? 'Code invalide';
               this.patchState({ loading: false, error: msg });
-                          }
+            }
           )
         );
       })

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import Boolean, DateTime, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -8,6 +8,7 @@ from app.core.database import Base
 
 class BreachCatalogEntry(Base):
     """Local cache of HIBP public breach catalog (synced weekly, no API key needed)."""
+
     __tablename__ = "breach_catalog"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -24,5 +25,7 @@ class BreachCatalogEntry(Base):
     is_fabricated: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_spam_list: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        nullable=False,
     )

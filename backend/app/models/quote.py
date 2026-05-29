@@ -1,6 +1,6 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, JSON, String, Text
+from sqlalchemy import JSON, Date, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -8,9 +8,7 @@ from app.core.database import Base
 
 class Quote(Base):
     __tablename__ = "quotes"
-    __table_args__ = (
-        Index("ix_quotes_year_seq", "quote_year", "quote_seq"),
-    )
+    __table_args__ = (Index("ix_quotes_year_seq", "quote_year", "quote_seq"),)
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     quote_number: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, index=True)
@@ -36,11 +34,13 @@ class Quote(Base):
 
     issue_date: Mapped[date] = mapped_column(Date, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
 
     # Client acceptance flow
-    acceptance_token: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True, index=True)
+    acceptance_token: Mapped[str | None] = mapped_column(
+        String(64), unique=True, nullable=True, index=True
+    )
     accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     rejected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

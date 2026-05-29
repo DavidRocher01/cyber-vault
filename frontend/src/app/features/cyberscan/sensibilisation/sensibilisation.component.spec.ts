@@ -11,7 +11,14 @@ type ModuleUiState = {
 };
 
 function defaultState(overrides: Partial<ModuleUiState> = {}): ModuleUiState {
-  return { open: false, selected: null, quizState: 'idle', result: null, submitting: false, ...overrides };
+  return {
+    open: false,
+    selected: null,
+    quizState: 'idle',
+    result: null,
+    submitting: false,
+    ...overrides,
+  };
 }
 
 function make(): SensibilisationComponent {
@@ -23,14 +30,17 @@ function make(): SensibilisationComponent {
   return comp;
 }
 
-function makeWithModule(id: string, stateOverrides: Partial<ModuleUiState> = {}): SensibilisationComponent {
+function makeWithModule(
+  id: string,
+  stateOverrides: Partial<ModuleUiState> = {}
+): SensibilisationComponent {
   const comp = make();
   (comp as any).uiState.set({ [id]: defaultState(stateOverrides) });
   return comp;
 }
 
 describe('SensibilisationComponent — getState()', () => {
-  it('retourne l\'état par défaut si id inconnu', () => {
+  it("retourne l'état par défaut si id inconnu", () => {
     const state = make().getState('unknown');
     expect(state.open).toBe(false);
     expect(state.selected).toBeNull();
@@ -38,7 +48,7 @@ describe('SensibilisationComponent — getState()', () => {
     expect(state.result).toBeNull();
     expect(state.submitting).toBe(false);
   });
-  it('retourne l\'état du module si défini', () => {
+  it("retourne l'état du module si défini", () => {
     const comp = makeWithModule('mod1', { open: true });
     expect(comp.getState('mod1').open).toBe(true);
   });
@@ -77,7 +87,7 @@ describe('SensibilisationComponent — selectChoice()', () => {
     comp.selectChoice('mod1', 'choice_b');
     expect(comp.getState('mod1').selected).toBe('choice_b');
   });
-  it('ne modifie pas l\'état si quizState = answered', () => {
+  it("ne modifie pas l'état si quizState = answered", () => {
     const comp = makeWithModule('mod1', { quizState: 'answered', selected: 'choice_a' });
     comp.selectChoice('mod1', 'choice_b');
     expect(comp.getState('mod1').selected).toBe('choice_a');
@@ -96,7 +106,9 @@ describe('SensibilisationComponent — resetQuiz()', () => {
     expect(comp.getState('mod1').quizState).toBe('idle');
   });
   it('vide le résultat', () => {
-    const comp = makeWithModule('mod1', { result: { correct: true, explanation: 'OK', correct_answer: 'a' } });
+    const comp = makeWithModule('mod1', {
+      result: { correct: true, explanation: 'OK', correct_answer: 'a' },
+    });
     comp.resetQuiz('mod1');
     expect(comp.getState('mod1').result).toBeNull();
   });

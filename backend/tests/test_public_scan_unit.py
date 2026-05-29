@@ -6,18 +6,17 @@ Covers: run_public_scan() orchestrator, PublicScanOut.from_orm_obj(),
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import HTTPException
 
+from app.models.public_scan import PublicScan
 from app.schemas.public_scan import PublicScanOut
 from app.services.public_scan_service import run_public_scan
-from app.models.public_scan import PublicScan
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _make_scan(**kwargs) -> MagicMock:
     defaults = dict(
@@ -28,7 +27,7 @@ def _make_scan(**kwargs) -> MagicMock:
         overall_status=None,
         results_json=None,
         error_message=None,
-        created_at=datetime(2025, 1, 1, tzinfo=timezone.utc),
+        created_at=datetime(2025, 1, 1, tzinfo=UTC),
         started_at=None,
         finished_at=None,
     )
@@ -49,6 +48,7 @@ def _mock_db(scan=None) -> AsyncMock:
 
 
 # ── PublicScanOut.from_orm_obj() ───────────────────────────────────────────────
+
 
 class TestPublicScanOutSchema:
     def test_pending_scan(self):
@@ -74,8 +74,8 @@ class TestPublicScanOutSchema:
         assert out.error_message == "Timeout"
 
     def test_timestamps_preserved(self):
-        started = datetime(2025, 6, 1, 12, 0, tzinfo=timezone.utc)
-        finished = datetime(2025, 6, 1, 12, 1, tzinfo=timezone.utc)
+        started = datetime(2025, 6, 1, 12, 0, tzinfo=UTC)
+        finished = datetime(2025, 6, 1, 12, 1, tzinfo=UTC)
         scan = _make_scan(started_at=started, finished_at=finished)
         out = PublicScanOut.from_orm_obj(scan)
         assert out.started_at == started
@@ -83,6 +83,7 @@ class TestPublicScanOutSchema:
 
 
 # ── run_public_scan() ──────────────────────────────────────────────────────────
+
 
 class TestRunPublicScan:
     @pytest.mark.asyncio
@@ -101,7 +102,10 @@ class TestRunPublicScan:
             "overall": "OK",
         }
 
-        with patch("app.services.public_scan_service._run_demo_scan_sync", return_value=fake_outcome):
+        with patch(
+            "app.services.public_scan_service._run_demo_scan_sync",
+            return_value=fake_outcome,
+        ):
             await run_public_scan(1, db)
 
         assert scan.status == "done"
@@ -136,7 +140,10 @@ class TestRunPublicScan:
             statuses.append(scan.status)
             return {"results": {}, "overall": "OK"}
 
-        with patch("app.services.public_scan_service._run_demo_scan_sync", side_effect=capture_sync):
+        with patch(
+            "app.services.public_scan_service._run_demo_scan_sync",
+            side_effect=capture_sync,
+        ):
             await run_public_scan(1, db)
 
         assert statuses[0] == "running"
@@ -151,7 +158,10 @@ class TestRunPublicScan:
             called_with.append(url)
             return {"results": {}, "overall": "OK"}
 
-        with patch("app.services.public_scan_service._run_demo_scan_sync", side_effect=capture_sync):
+        with patch(
+            "app.services.public_scan_service._run_demo_scan_sync",
+            side_effect=capture_sync,
+        ):
             await run_public_scan(1, db)
 
         assert called_with[0] == "https://example.com"
@@ -180,8 +190,10 @@ class TestRunPublicScan:
             started_ats.append(scan.started_at)
             return {"results": {}, "overall": "OK"}
 
-        with patch("app.services.public_scan_service._run_demo_scan_sync", side_effect=capture_sync):
+        with patch(
+            "app.services.public_scan_service._run_demo_scan_sync",
+            side_effect=capture_sync,
+        ):
             await run_public_scan(1, db)
 
         assert started_ats[0] is not None
-

@@ -19,12 +19,14 @@ function resolveReturnUrl(queryParamValue: string | null): string {
 }
 
 describe('AuthStore — returnUrl resolution', () => {
-  it('utilise returnUrl si c\'est une route /cyberscan/dashboard', () => {
+  it("utilise returnUrl si c'est une route /cyberscan/dashboard", () => {
     expect(resolveReturnUrl('/cyberscan/dashboard')).toBe('/cyberscan/dashboard');
   });
 
   it('préserve les sous-chemins /cyberscan/ avec query params', () => {
-    expect(resolveReturnUrl('/cyberscan/dashboard?tab=scans')).toBe('/cyberscan/dashboard?tab=scans');
+    expect(resolveReturnUrl('/cyberscan/dashboard?tab=scans')).toBe(
+      '/cyberscan/dashboard?tab=scans'
+    );
   });
 
   it('redirige vers /cyberscan (landing) quand returnUrl est null', () => {

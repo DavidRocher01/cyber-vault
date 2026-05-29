@@ -1,23 +1,26 @@
 <app-nav-buttons />
 
 <div class="min-h-screen bg-gray-950 text-gray-100">
-
   @if (loading()) {
     <div class="flex justify-center items-center min-h-screen">
       <mat-spinner [diameter]="48" />
     </div>
   } @else {
-
     <!-- INTRO -->
     @if (step() === 'intro') {
       <div class="max-w-2xl mx-auto px-6 py-16 text-center">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/15 border border-orange-700/40 text-orange-300 text-xs font-semibold mb-6">
+        <div
+          class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/15 border border-orange-700/40 text-orange-300 text-xs font-semibold mb-6"
+        >
           <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">calculate</mat-icon>
           Outil gratuit — 2 minutes
         </div>
         <h1 class="text-4xl font-bold mb-4">
-          Combien coûterait une<br>
-          <span class="bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">cyberattaque</span> pour vous ?
+          Combien coûterait une<br />
+          <span class="bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent"
+            >cyberattaque</span
+          >
+          pour vous ?
         </h1>
         <p class="text-gray-400 mb-8 text-lg">
           5 questions pour estimer l'impact financier d'un incident cyber sur votre organisation.
@@ -36,9 +39,13 @@
             <div class="text-xs text-gray-500">Estimation €</div>
           </div>
         </div>
-        <button type="button" mat-flat-button color="warn"
-                class="!px-8 !py-3 !text-base !font-semibold"
-                (click)="step.set('wizard')">
+        <button
+          type="button"
+          mat-flat-button
+          color="warn"
+          class="!px-8 !py-3 !text-base !font-semibold"
+          (click)="step.set('wizard')"
+        >
           <mat-icon class="mr-2">play_arrow</mat-icon>
           Calculer mon exposition
         </button>
@@ -48,15 +55,17 @@
     <!-- WIZARD -->
     @if (step() === 'wizard') {
       <div class="max-w-2xl mx-auto px-6 py-10">
-
         <!-- Progress -->
         <div class="flex items-center gap-3 mb-8">
           <div class="flex-1 bg-gray-800 rounded-full h-2">
-            <div class="h-2 rounded-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-500"
-                 [style.width.%]="progress">
-            </div>
+            <div
+              class="h-2 rounded-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-500"
+              [style.width.%]="progress"
+            ></div>
           </div>
-          <span class="text-xs text-gray-500 shrink-0">{{ currentIndex() + 1 }} / {{ questions().length }}</span>
+          <span class="text-xs text-gray-500 shrink-0"
+            >{{ currentIndex() + 1 }} / {{ questions().length }}</span
+          >
         </div>
 
         @if (currentQuestion) {
@@ -65,12 +74,16 @@
 
             <div class="flex flex-col gap-3">
               @for (opt of currentQuestion.options; track opt.id) {
-                <button type="button"
-                        class="text-left px-4 py-3 rounded-xl border transition-all text-sm"
-                        [ngClass]="answers()[currentQuestion.key] === opt.id
-                          ? 'border-orange-500 bg-orange-900/30 text-white'
-                          : 'border-gray-700 bg-gray-800/40 text-gray-300 hover:border-gray-500 hover:bg-gray-800'"
-                        (click)="selectAnswer(currentQuestion.key, opt.id)">
+                <button
+                  type="button"
+                  class="text-left px-4 py-3 rounded-xl border transition-all text-sm"
+                  [ngClass]="
+                    answers()[currentQuestion.key] === opt.id
+                      ? 'border-orange-500 bg-orange-900/30 text-white'
+                      : 'border-gray-700 bg-gray-800/40 text-gray-300 hover:border-gray-500 hover:bg-gray-800'
+                  "
+                  (click)="selectAnswer(currentQuestion.key, opt.id)"
+                >
                   {{ opt.text }}
                 </button>
               }
@@ -78,27 +91,37 @@
           </div>
 
           <div class="flex gap-3">
-            <button type="button" mat-stroked-button
-                    [disabled]="currentIndex() === 0"
-                    (click)="prev()"
-                    class="!border-gray-700 !text-gray-400">
+            <button
+              type="button"
+              mat-stroked-button
+              [disabled]="currentIndex() === 0"
+              (click)="prev()"
+              class="!border-gray-700 !text-gray-400"
+            >
               <mat-icon>chevron_left</mat-icon>
               Précédent
             </button>
 
             @if (currentIndex() < questions().length - 1) {
-              <button type="button" mat-flat-button color="warn"
-                      [disabled]="!answers()[currentQuestion.key]"
-                      (click)="next()"
-                      class="flex-1">
+              <button
+                type="button"
+                mat-flat-button
+                color="warn"
+                [disabled]="!answers()[currentQuestion.key]"
+                (click)="next()"
+                class="flex-1"
+              >
                 Suivant
                 <mat-icon>chevron_right</mat-icon>
               </button>
             } @else {
-              <button type="button" mat-flat-button
-                      [disabled]="!allAnswered"
-                      (click)="finishWizard()"
-                      class="flex-1 !bg-green-700 !text-white disabled:!opacity-40">
+              <button
+                type="button"
+                mat-flat-button
+                [disabled]="!allAnswered"
+                (click)="finishWizard()"
+                class="flex-1 !bg-green-700 !text-white disabled:!opacity-40"
+              >
                 <mat-icon>calculate</mat-icon>
                 Calculer
               </button>
@@ -112,29 +135,45 @@
     @if (step() === 'email') {
       <div class="max-w-lg mx-auto px-6 py-16 text-center">
         <div class="bg-gray-900 border border-gray-800 rounded-2xl p-8">
-          <mat-icon class="text-orange-400 !text-[3rem] !w-[3rem] !h-[3rem] mb-4">calculate</mat-icon>
+          <mat-icon class="text-orange-400 !text-[3rem] !w-[3rem] !h-[3rem] mb-4"
+            >calculate</mat-icon
+          >
           <h2 class="text-2xl font-bold mb-2">Recevoir l'estimation</h2>
           <p class="text-gray-400 text-sm mb-6">
-            Entrez votre email pour recevoir l'analyse complète avec les recommandations personnalisées.
-            Vous pouvez aussi voir les résultats directement.
+            Entrez votre email pour recevoir l'analyse complète avec les recommandations
+            personnalisées. Vous pouvez aussi voir les résultats directement.
           </p>
 
           <form [formGroup]="emailForm" (ngSubmit)="submit()" class="flex flex-col gap-4 text-left">
             <div>
               <label class="block text-xs font-medium text-gray-400 mb-1">Email (optionnel)</label>
-              <input type="email" formControlName="email" placeholder="vous@example.com"
-                     class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:ring-2 focus:ring-orange-500" />
+              <input
+                type="email"
+                formControlName="email"
+                placeholder="vous@example.com"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:ring-2 focus:ring-orange-500"
+              />
             </div>
             <div>
-              <label class="block text-xs font-medium text-gray-400 mb-1">Entreprise (optionnel)</label>
-              <input type="text" formControlName="company" placeholder="Acme Corp"
-                     class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:ring-2 focus:ring-orange-500" />
+              <label class="block text-xs font-medium text-gray-400 mb-1"
+                >Entreprise (optionnel)</label
+              >
+              <input
+                type="text"
+                formControlName="company"
+                placeholder="Acme Corp"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:ring-2 focus:ring-orange-500"
+              />
             </div>
 
             <div class="flex gap-3 pt-2">
-              <button type="submit" mat-flat-button color="warn"
-                      [disabled]="submitting()"
-                      class="flex-1">
+              <button
+                type="submit"
+                mat-flat-button
+                color="warn"
+                [disabled]="submitting()"
+                class="flex-1"
+              >
                 @if (submitting()) {
                   <mat-spinner [diameter]="18" class="inline-block mr-2" />
                 } @else {
@@ -142,10 +181,13 @@
                 }
                 Voir mon estimation
               </button>
-              <button type="button" mat-stroked-button
-                      [disabled]="submitting()"
-                      (click)="skipEmail()"
-                      class="!border-gray-600 !text-gray-400">
+              <button
+                type="button"
+                mat-stroked-button
+                [disabled]="submitting()"
+                (click)="skipEmail()"
+                class="!border-gray-600 !text-gray-400"
+              >
                 Passer
               </button>
             </div>
@@ -157,15 +199,22 @@
     <!-- RESULT -->
     @if (step() === 'result' && result()) {
       <div class="max-w-2xl mx-auto px-6 py-10">
-
         <!-- Main cost card -->
-        <div class="bg-gradient-to-br from-red-950/60 to-orange-950/40 border border-red-700/40 rounded-2xl p-8 mb-6 text-center">
-          <p class="text-xs text-gray-400 uppercase tracking-wider mb-2">Estimation du coût d'une cyberattaque</p>
-          <div class="text-5xl font-black text-red-300 mb-1">{{ formatEur(result()!.estimated_eur) }}</div>
+        <div
+          class="bg-gradient-to-br from-red-950/60 to-orange-950/40 border border-red-700/40 rounded-2xl p-8 mb-6 text-center"
+        >
+          <p class="text-xs text-gray-400 uppercase tracking-wider mb-2">
+            Estimation du coût d'une cyberattaque
+          </p>
+          <div class="text-5xl font-black text-red-300 mb-1">
+            {{ formatEur(result()!.estimated_eur) }}
+          </div>
           <div class="text-sm text-gray-400 mb-4">
             Fourchette : {{ formatEur(result()!.low_eur) }} – {{ formatEur(result()!.high_eur) }}
           </div>
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-900/40 border border-red-700/40 text-red-300 text-xs">
+          <div
+            class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-900/40 border border-red-700/40 text-red-300 text-xs"
+          >
             <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">warning</mat-icon>
             Facteur de risque : ×{{ result()!.multiplier }}
           </div>
@@ -179,13 +228,16 @@
               <div>
                 <div class="flex justify-between text-sm mb-1">
                   <span class="text-gray-300">{{ item.label }}</span>
-                  <span class="text-gray-400 font-mono text-xs">{{ formatEur(item.eur) }} ({{ item.pct }}%)</span>
+                  <span class="text-gray-400 font-mono text-xs"
+                    >{{ formatEur(item.eur) }} ({{ item.pct }}%)</span
+                  >
                 </div>
                 <div class="bg-gray-800 rounded-full h-2">
-                  <div class="h-2 rounded-full transition-all duration-700"
-                       [ngClass]="breakdownColor(item.pct)"
-                       [style.width.%]="item.pct">
-                  </div>
+                  <div
+                    class="h-2 rounded-full transition-all duration-700"
+                    [ngClass]="breakdownColor(item.pct)"
+                    [style.width.%]="item.pct"
+                  ></div>
                 </div>
               </div>
             }
@@ -200,34 +252,51 @@
           </div>
           <ul class="text-sm text-gray-300 flex flex-col gap-2">
             <li class="flex items-start gap-2">
-              <mat-icon class="text-green-400 !text-[1rem] !w-[1rem] !h-[1rem] mt-0.5 shrink-0">check_circle</mat-icon>
+              <mat-icon class="text-green-400 !text-[1rem] !w-[1rem] !h-[1rem] mt-0.5 shrink-0"
+                >check_circle</mat-icon
+              >
               Réalisez un audit de sécurité pour identifier vos vulnérabilités concrètes
             </li>
             <li class="flex items-start gap-2">
-              <mat-icon class="text-green-400 !text-[1rem] !w-[1rem] !h-[1rem] mt-0.5 shrink-0">check_circle</mat-icon>
+              <mat-icon class="text-green-400 !text-[1rem] !w-[1rem] !h-[1rem] mt-0.5 shrink-0"
+                >check_circle</mat-icon
+              >
               Mettez en place des sauvegardes 3-2-1 testées régulièrement
             </li>
             <li class="flex items-start gap-2">
-              <mat-icon class="text-green-400 !text-[1rem] !w-[1rem] !h-[1rem] mt-0.5 shrink-0">check_circle</mat-icon>
+              <mat-icon class="text-green-400 !text-[1rem] !w-[1rem] !h-[1rem] mt-0.5 shrink-0"
+                >check_circle</mat-icon
+              >
               Formez vos équipes à reconnaître les tentatives de phishing
             </li>
             <li class="flex items-start gap-2">
-              <mat-icon class="text-green-400 !text-[1rem] !w-[1rem] !h-[1rem] mt-0.5 shrink-0">check_circle</mat-icon>
+              <mat-icon class="text-green-400 !text-[1rem] !w-[1rem] !h-[1rem] mt-0.5 shrink-0"
+                >check_circle</mat-icon
+              >
               Envisagez une cyberassurance adaptée à votre secteur
             </li>
           </ul>
         </div>
 
         <!-- CTA -->
-        <div class="bg-gradient-to-r from-orange-900/40 to-red-900/40 border border-orange-700/40 rounded-2xl p-6 text-center mb-6">
+        <div
+          class="bg-gradient-to-r from-orange-900/40 to-red-900/40 border border-orange-700/40 rounded-2xl p-6 text-center mb-6"
+        >
           <h3 class="font-bold mb-2">Commencer à vous protéger</h3>
-          <p class="text-sm text-gray-400 mb-4">Lancez un scan gratuit de votre site web pour identifier vos premières vulnérabilités en 90 secondes.</p>
+          <p class="text-sm text-gray-400 mb-4">
+            Lancez un scan gratuit de votre site web pour identifier vos premières vulnérabilités en
+            90 secondes.
+          </p>
           <div class="flex gap-3 justify-center flex-wrap">
             <a routerLink="/cyberscan/scan-gratuit" mat-flat-button color="warn">
               <mat-icon class="mr-2">security</mat-icon>
               Scan gratuit
             </a>
-            <a routerLink="/cyberscan/contact" mat-stroked-button class="!border-orange-600 !text-orange-300">
+            <a
+              routerLink="/cyberscan/contact"
+              mat-stroked-button
+              class="!border-orange-600 !text-orange-300"
+            >
               <mat-icon class="mr-2">calendar_today</mat-icon>
               Réserver un audit
             </a>
@@ -235,8 +304,12 @@
         </div>
 
         <div class="text-center">
-          <button type="button" mat-stroked-button (click)="restart()"
-                  class="!border-gray-700 !text-gray-500 text-sm">
+          <button
+            type="button"
+            mat-stroked-button
+            (click)="restart()"
+            class="!border-gray-700 !text-gray-500 text-sm"
+          >
             <mat-icon>refresh</mat-icon>
             Recommencer
           </button>
@@ -248,6 +321,5 @@
         </p>
       </div>
     }
-
   }
 </div>

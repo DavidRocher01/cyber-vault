@@ -46,11 +46,14 @@ export class ContactComponent implements OnInit {
     this.titleService.setTitle('Contact — Réserver un audit cybersécurité | CyberScan');
     this.meta.updateTag({
       name: 'description',
-      content: 'Contactez David Rocher pour un audit cybersécurité PME. Réponse sous 4 h, devis sous 24 h.',
+      content:
+        'Contactez David Rocher pour un audit cybersécurité PME. Réponse sous 4 h, devis sous 24 h.',
     });
   }
 
-  get f() { return this.form.controls; }
+  get f() {
+    return this.form.controls;
+  }
 
   get messageLength(): number {
     return (this.f['message'].value as string)?.length ?? 0;
@@ -61,10 +64,14 @@ export class ContactComponent implements OnInit {
     this.status = 'sending';
     const { rgpd, ...payload } = this.form.value;
     this.http.post<{ message: string }>('/api/v1/contact', payload).subscribe({
-      next: () => { this.status = 'sent'; },
-      error: (err) => {
+      next: () => {
+        this.status = 'sent';
+      },
+      error: err => {
         this.status = 'error';
-        this.errorMessage = err?.error?.detail ?? 'Une erreur est survenue. Réessayez ou écrivez directement à rocherdavid@ymail.com.';
+        this.errorMessage =
+          err?.error?.detail ??
+          'Une erreur est survenue. Réessayez ou écrivez directement à rocherdavid@ymail.com.';
       },
     });
   }

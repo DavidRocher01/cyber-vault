@@ -22,10 +22,7 @@ async def list_items(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(VaultItem)
-        .where(VaultItem.owner_id == current_user.id)
-        .offset(skip)
-        .limit(limit)
+        select(VaultItem).where(VaultItem.owner_id == current_user.id).offset(skip).limit(limit)
     )
     return result.scalars().all()
 
