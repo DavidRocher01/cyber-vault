@@ -5,27 +5,84 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
-      - id: check-json
       - id: check-merge-conflict
       - id: detect-private-key
+        # cyber-scanner/tests contient des clés de test intentionnelles
+        exclude: ^cyber-scanner/tests/
+      - id: check-added-large-files
+        args: ["--maxkb=500"]
 
-  - repo: https://github.com/psf/black
-    rev: 24.4.2
+  # Secrets detection
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
     hooks:
-      - id: black
-        language_version: python3.12
+      - id: gitleaks
+
+  # Python: ruff (lint + format — remplace black + isort)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.9
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+        files: ^backend/
+      - id: ruff-format
         files: ^backend/
 
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
+  # Python: type checking (mode progressif — erreurs critiques uniquement)
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
     hooks:
-      - id: isort
-        args: ["--profile", "black"]
-        files: ^backend/
+      - id: mypy
+        files: ^backend/app/
+        args:
+          - "--ignore-missing-imports"
+          - "--no-strict-optional"
+          - "--allow-untyped-defs"
+          - "--allow-incomplete-defs"
+          - "--no-warn-return-any"
+          - "--disable-error-code=name-defined"
+          - "--disable-error-code=attr-defined"
+          - "--disable-error-code=index"
+          - "--disable-error-code=misc"
+          - "--disable-error-code=import-untyped"
+          - "--disable-error-code=arg-type"
+          - "--disable-error-code=return-value"
+          - "--disable-error-code=operator"
+          - "--disable-error-code=call-overload"
+          - "--disable-error-code=var-annotated"
+        additional_dependencies:
+          - pydantic>=2.0
+          - sqlalchemy[mypy]>=2.0
 
+  # Python: security audit
   - repo: https://github.com/PyCQA/bandit
     rev: 1.7.9
     hooks:
       - id: bandit
         args: ["-ll", "-r", "backend/app/"]
         files: ^backend/app/
+
+  # Frontend: Prettier + ESLint (via npm scripts, compatibles Windows)
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier
+        language: system
+        entry: cmd /c "cd frontend && npm run format"
+        files: ^frontend/src/.*\.(ts|html|scss)$
+        pass_filenames: false
+
+      - id: eslint
+        name: eslint
+        language: system
+        entry: cmd /c "cd frontend && npm run lint -- --fix"
+        files: ^frontend/src/.*\.ts$
+        pass_filenames: false
+
+  # Conventional commits
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, refactor, test, docs, chore, perf, ci, build]

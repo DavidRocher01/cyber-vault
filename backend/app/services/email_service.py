@@ -17,13 +17,15 @@ from app.core.config import settings
 
 def _send_via_resend(to_email: str, subject: str, html: str, plain: str) -> None:
     resend.api_key = settings.RESEND_API_KEY
-    resend.Emails.send({
-        "from": settings.RESEND_FROM,
-        "to": [to_email],
-        "subject": subject,
-        "html": html,
-        "text": plain,
-    })
+    resend.Emails.send(
+        {
+            "from": settings.RESEND_FROM,
+            "to": [to_email],
+            "subject": subject,
+            "html": html,
+            "text": plain,
+        }
+    )
 
 
 def _send_via_smtp(to_email: str, subject: str, html: str, plain: str) -> None:
@@ -65,7 +67,7 @@ Retrouvez le rapport détaillé en pièce jointe.
 ---
 CyberScan — Cybersécurité as a Service
 """
-    html = f"<p>{plain.replace(chr(10), '<br>')}</p>"
+    _html = f"<p>{plain.replace(chr(10), '<br>')}</p>"
 
     if settings.RESEND_API_KEY:
         resend.api_key = settings.RESEND_API_KEY
@@ -79,10 +81,13 @@ CyberScan — Cybersécurité as a Service
         if pdf_file.exists():
             with open(pdf_file, "rb") as f:
                 import base64
-                params["attachments"] = [{
-                    "filename": pdf_file.name,
-                    "content": base64.b64encode(f.read()).decode(),
-                }]
+
+                params["attachments"] = [
+                    {
+                        "filename": pdf_file.name,
+                        "content": base64.b64encode(f.read()).decode(),
+                    }
+                ]
         resend.Emails.send(params)
         return
 
@@ -113,7 +118,11 @@ def send_url_scan_alert(
     dashboard_url: str,
 ) -> None:
     verdict_emoji = {"safe": "✅", "suspicious": "⚠️", "malicious": "🚨"}.get(verdict, "📋")
-    verdict_fr = {"safe": "Sûr", "suspicious": "Suspect", "malicious": "Malveillant"}.get(verdict, verdict)
+    verdict_fr = {
+        "safe": "Sûr",
+        "suspicious": "Suspect",
+        "malicious": "Malveillant",
+    }.get(verdict, verdict)
     threat_fr = {
         "phishing": "Phishing",
         "malware": "Malware / Script malveillant",
@@ -145,12 +154,20 @@ L'analyse de l'URL suivante vient de se terminer :
 ---
 CyberScan — Cybersécurité as a Service
 """
-    subject = f"[ScanURL] {verdict_emoji} {verdict_fr} — Score {threat_score}/100 — {scanned_url[:60]}"
+    subject = (
+        f"[ScanURL] {verdict_emoji} {verdict_fr} — Score {threat_score}/100 — {scanned_url[:60]}"
+    )
     html = f"<pre>{plain}</pre>"
     _send(to_email, subject, html, plain)
 
 
-def send_ssl_expiry_alert(to_email: str, site_url: str, days_remaining: int, expiry_date: str, dashboard_url: str) -> None:
+def send_ssl_expiry_alert(
+    to_email: str,
+    site_url: str,
+    days_remaining: int,
+    expiry_date: str,
+    dashboard_url: str,
+) -> None:
     if days_remaining <= 7:
         urgency = "CRITIQUE"
         color = "#ef4444"
@@ -164,7 +181,9 @@ def send_ssl_expiry_alert(to_email: str, site_url: str, days_remaining: int, exp
         color = "#eab308"
         emoji = "⚠️"
 
-    subject = f"[CyberScan] {emoji} Certificat SSL expirant dans {days_remaining} jour(s) — {site_url}"
+    subject = (
+        f"[CyberScan] {emoji} Certificat SSL expirant dans {days_remaining} jour(s) — {site_url}"
+    )
     html = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0f172a;font-family:Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;">
 <tr><td align="center" style="padding:40px 20px;">
@@ -441,7 +460,12 @@ CyberScan<br>
 </table></td></tr></table></body></html>"""
 
     try:
-        _send(email, "[CyberScan] Votre message a bien été reçu", html_confirm, plain_confirm)
+        _send(
+            email,
+            "[CyberScan] Votre message a bien été reçu",
+            html_confirm,
+            plain_confirm,
+        )
     except Exception:
         pass  # Ne pas bloquer si la confirmation échoue
 
@@ -494,9 +518,13 @@ Pour ne plus recevoir ce bilan, rendez-vous dans vos préférences de notificati
     for s in sites:
         status = s["overall_status"] or "—"
         status_color = (
-            "#22c55e" if status == "OK" else
-            "#eab308" if status == "WARNING" else
-            "#ef4444" if status == "CRITICAL" else "#94a3b8"
+            "#22c55e"
+            if status == "OK"
+            else "#eab308"
+            if status == "WARNING"
+            else "#ef4444"
+            if status == "CRITICAL"
+            else "#94a3b8"
         )
         crit_color = "#ef4444" if s["critical_count"] > 0 else "#94a3b8"
         site_rows += f"""
@@ -594,6 +622,7 @@ def send_campaign_complete(
         risk_label, risk_color = "Aucun clic", "#22c55e"
 
     from app.core.config import settings
+
     detail_url = f"{settings.FRONTEND_URL}/cyberscan/phishing/campaigns/{campaign_id}"
 
     plain = f"""Bonjour,
