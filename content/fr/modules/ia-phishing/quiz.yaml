@@ -1,0 +1,137 @@
+questions:
+  - id: ia_01
+    type: true_false
+    weight: 1
+    text: "La présence de fautes d'orthographe est un indicateur fiable pour détecter un email de phishing en 2024."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Les outils d'IA génèrent des emails parfaitement rédigés dans n'importe quelle langue. L'absence de fautes ne garantit plus rien — vérifiez l'adresse expéditeur et la demande elle-même."
+
+  - id: ia_02
+    type: single_choice
+    weight: 1
+    text: "Vous recevez un appel vocal de ce qui semble être votre PDG vous demandant un virement urgent. Sa voix semble parfaitement authentique. Que faites-vous ?"
+    answers:
+      - id: a
+        text: "Exécuter le virement — la voix est celle du PDG"
+        correct: false
+      - id: b
+        text: "Raccrocher et rappeler le PDG sur son numéro connu depuis votre répertoire"
+        correct: true
+      - id: c
+        text: "Demander un email de confirmation"
+        correct: false
+      - id: d
+        text: "Demander le code de la société pour vérifier"
+        correct: false
+    explanation: "Les outils de clonage vocal recréent une voix à partir de quelques secondes d'audio public. Raccrochez et rappelez sur un numéro que vous avez vous-même dans votre répertoire."
+
+  - id: ia_03
+    type: single_choice
+    weight: 1
+    text: "Qu'est-ce que le 'vishing' ?"
+    answers:
+      - id: a
+        text: "Un phishing ciblant spécifiquement les cadres dirigeants"
+        correct: false
+      - id: b
+        text: "Un phishing réalisé via un appel téléphonique ou vocal"
+        correct: true
+      - id: c
+        text: "Un virus envoyé par email"
+        correct: false
+      - id: d
+        text: "Un phishing en vidéo conférence"
+        correct: false
+    explanation: "Vishing = Voice phishing. Les attaquants utilisent des appels téléphoniques, souvent avec des voix clonées par IA, pour manipuler leurs cibles."
+
+  - id: ia_04
+    type: multiple_choice
+    weight: 2
+    text: "Quels éléments restent fiables pour détecter une attaque même avec l'IA ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Le domaine expéditeur de l'email"
+        correct: true
+      - id: b
+        text: "La qualité linguistique du texte"
+        correct: false
+      - id: c
+        text: "La demande elle-même (virement non planifié, contournement de procédure)"
+        correct: true
+      - id: d
+        text: "La vérification via un canal indépendant (rappel sur numéro connu)"
+        correct: true
+      - id: e
+        text: "Le logo dans l'email"
+        correct: false
+    explanation: "Le domaine expéditeur, la nature de la demande, et la vérification indépendante restent fiables. La qualité du texte et les logos peuvent être parfaitement copiés par l'IA."
+
+  - id: ia_05
+    type: true_false
+    weight: 1
+    text: "Un deepfake vidéo en temps réel lors d'un appel visio est impossible à réaliser avec les technologies actuelles."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Des outils de remplacement de visage en temps réel existent et sont accessibles. En 2024, une fraude à 25 millions de dollars a utilisé cette technique. Qualité variable mais suffisante dans certaines conditions."
+
+  - id: ia_06
+    type: single_choice
+    weight: 1
+    text: "Vous participez à un appel vidéo avec plusieurs collègues pour approuver un virement urgent. Vous remarquez que les lèvres d'un participant sont légèrement décalées de sa voix. Que faites-vous ?"
+    answers:
+      - id: a
+        text: "Ignorer — c'est probablement un problème de connexion"
+        correct: false
+      - id: b
+        text: "Raccrocher, rappeler les participants sur leurs numéros habituels pour confirmer"
+        correct: true
+      - id: c
+        text: "Continuer mais demander une confirmation par email"
+        correct: false
+      - id: d
+        text: "Approuver le virement mais en notifiant l'IT après"
+        correct: false
+    explanation: "Le décalage audio/vidéo peut indiquer un deepfake en temps réel. Raccrochez et rappelez chaque participant séparément sur leurs numéros habituels pour confirmer leur identité."
+
+  - id: ia_07
+    type: single_choice
+    weight: 1
+    text: "L'IA permet à un attaquant d'analyser vos publications LinkedIn pour personnaliser son phishing. Quelle information donne-t-elle le plus d'avantage à l'attaquant ?"
+    answers:
+      - id: a
+        text: "Votre photo de profil"
+        correct: false
+      - id: b
+        text: "Vos projets en cours, votre responsable direct, vos collègues nommés"
+        correct: true
+      - id: c
+        text: "Votre historique de formation"
+        correct: false
+      - id: d
+        text: "Vos recommandations"
+        correct: false
+    explanation: "Vos projets en cours et les noms de vos collègues permettent de construire un email qui semble venir de l'intérieur. Soyez prudent avec les informations professionnelles que vous publiez en ligne."
+
+  - id: ia_08
+    type: true_false
+    weight: 1
+    text: "Établir un mot de code secret avec ses collègues pour les demandes urgentes est une bonne pratique de sécurité face au vishing."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: true
+      - id: b
+        text: "Faux"
+        correct: false
+    explanation: "Un mot de code personnel (une question dont seule la vraie personne connaît la réponse) permet de vérifier l'identité d'un appelant même si sa voix semble authentique."

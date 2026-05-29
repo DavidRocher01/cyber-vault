@@ -112,3 +112,57 @@ questions:
         text: "Changer uniquement votre mot de passe email"
         correct: false
     explanation: "En cas de clic suspect, signalez immédiatement. Un signalement rapide limite les dégâts. Ne gérez pas seul."
+
+  - id: ph_07
+    type: single_choice
+    weight: 1
+    text: "Un email de 'Microsoft Support' vous informe que votre compte sera désactivé sauf si vous vous connectez via le lien fourni. Le lien pointe vers 'microsoft-support-verification.com'. Que faites-vous ?"
+    answers:
+      - id: a
+        text: "Cliquer rapidement pour éviter la désactivation"
+        correct: false
+      - id: b
+        text: "Ouvrir un nouvel onglet et aller directement sur microsoft.com"
+        correct: true
+      - id: c
+        text: "Répondre à l'email pour demander une explication"
+        correct: false
+      - id: d
+        text: "Appeler le numéro de téléphone fourni dans l'email"
+        correct: false
+    explanation: "Le domaine 'microsoft-support-verification.com' n'appartient pas à Microsoft. Allez toujours directement sur le site officiel en tapant l'adresse vous-même."
+
+  - id: ph_08
+    type: true_false
+    weight: 1
+    text: "Un email sans faute d'orthographe avec un logo parfait ne peut pas être du phishing."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Les outils d'IA permettent aujourd'hui de générer des emails de phishing parfaits, sans faute, dans n'importe quelle langue. La qualité visuelle ne garantit plus rien."
+
+  - id: ph_09
+    type: multiple_choice
+    weight: 2
+    text: "Vous recevez un email suspect qui cite votre nom et votre poste exactement. Quelles sources ont pu être utilisées par l'attaquant ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "LinkedIn"
+        correct: true
+      - id: b
+        text: "Le site web de votre entreprise"
+        correct: true
+      - id: c
+        text: "Un répertoire interne que l'attaquant a exfiltré"
+        correct: true
+      - id: d
+        text: "Un don de voyance"
+        correct: false
+      - id: e
+        text: "Des données achetées après une fuite précédente"
+        correct: true
+    explanation: "Les attaquants ciblés (spear phishing) font des recherches sur leurs cibles avant d'envoyer. LinkedIn, sites web, fuites passées — tout est utilisé pour personnaliser l'attaque."

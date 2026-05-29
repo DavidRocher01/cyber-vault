@@ -2,11 +2,12 @@ slug: nis2-essentiel
 title: "NIS2 Essentiel — Sensibilisation Cyber"
 description: >
   Parcours de sensibilisation cybersécurité conforme NIS2 Article 21.
-  12 modules couvrant les réflexes essentiels pour protéger votre organisation.
+  15 modules couvrant les réflexes essentiels pour protéger votre organisation —
+  dont 3 modules sur les menaces modernes : IA générative, Shadow IT, ingénierie sociale.
   Attestation vérifiable délivrée à la complétion.
 language: fr
-version: "1.0"
-estimated_duration_minutes: 34
+version: "2.0"
+estimated_duration_minutes: 62
 passing_score: 60
 certificate_validity_months: 12
 is_active: true
@@ -24,3 +25,6 @@ modules:
   - usb-inconnu
   - mobile-pro
   - rgpd-essentiel
+  - ia-phishing
+  - shadow-it
+  - ingenerie-sociale

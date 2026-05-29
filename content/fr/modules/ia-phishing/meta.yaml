@@ -1,0 +1,10 @@
+title: "IA générative et nouvelles formes de phishing"
+description: "Comment l'intelligence artificielle transforme les attaques — deepfakes audio, emails sans fautes, vishing ciblé."
+content_type: mixed
+estimated_duration_minutes: 5
+xp_points: 15
+has_quiz: true
+quiz_max_attempts: 3
+quiz_cooldown_minutes: 15
+quiz_passing_score: 60
+is_active: true

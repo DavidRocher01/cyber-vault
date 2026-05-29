@@ -90,3 +90,54 @@ questions:
         text: "Transférer le SMS à un ami"
         correct: false
     explanation: "Le smishing (phishing par SMS) suit les mêmes patterns que le phishing email. Même réflexe : ne pas cliquer sur des liens non sollicités."
+
+  - id: mob_06
+    type: single_choice
+    weight: 1
+    text: "Votre entreprise demande d'installer un profil MDM sur votre téléphone personnel (BYOD). À quoi ce profil a-t-il accès ?"
+    answers:
+      - id: a
+        text: "À toutes vos données personnelles (photos, messages)"
+        correct: false
+      - id: b
+        text: "Uniquement aux données et applications professionnelles"
+        correct: true
+      - id: c
+        text: "À la localisation GPS permanente"
+        correct: false
+      - id: d
+        text: "Aux appels téléphoniques personnels"
+        correct: false
+    explanation: "Les profils MDM modernes (iOS et Android) créent une séparation entre espace professionnel et personnel. L'IT gère uniquement l'espace professionnel — vos données personnelles restent privées."
+
+  - id: mob_07
+    type: true_false
+    weight: 1
+    text: "Désactiver le Bluetooth quand vous ne l'utilisez pas améliore la sécurité de votre téléphone."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: true
+      - id: b
+        text: "Faux"
+        correct: false
+    explanation: "Le Bluetooth activé en permanence expose à des attaques de proximité (BlueSnarfing). Le désactiver hors usage réduit la surface d'attaque."
+
+  - id: mob_08
+    type: single_choice
+    weight: 1
+    text: "Quelle est la condition préalable pour pouvoir effacer votre téléphone à distance en cas de perte ?"
+    answers:
+      - id: a
+        text: "Avoir un abonnement premium"
+        correct: false
+      - id: b
+        text: "Avoir activé 'Localiser mon iPhone' ou 'Find My Device' avant la perte"
+        correct: true
+      - id: c
+        text: "Appeler votre opérateur"
+        correct: false
+      - id: d
+        text: "Avoir une sauvegarde récente"
+        correct: false
+    explanation: "Les fonctions de localisation et d'effacement à distance doivent être activées avant l'incident. Si elles ne sont pas configurées, vous ne pouvez plus rien faire après la perte."

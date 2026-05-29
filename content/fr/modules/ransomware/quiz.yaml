@@ -84,3 +84,57 @@ questions:
         text: "Faux"
         correct: false
     explanation: "Cette attente permet aux attaquants de cartographier le réseau, voler des données, et s'assurer que les sauvegardes récentes contiendront aussi des fichiers infectés."
+
+  - id: rsm_06
+    type: single_choice
+    weight: 1
+    text: "Qu'est-ce que la 'double extorsion' dans le contexte d'un ransomware ?"
+    answers:
+      - id: a
+        text: "Demander deux fois la même rançon"
+        correct: false
+      - id: b
+        text: "Chiffrer les données ET menacer de les publier si la rançon n'est pas payée"
+        correct: true
+      - id: c
+        text: "Cibler deux entreprises simultanément"
+        correct: false
+      - id: d
+        text: "Chiffrer à la fois les postes et les serveurs"
+        correct: false
+    explanation: "Les groupes ransomware modernes exfiltrent les données avant de les chiffrer. Même avec une bonne sauvegarde, la menace de publication des données sensibles reste."
+
+  - id: rsm_07
+    type: true_false
+    weight: 1
+    text: "Un ordinateur infecté par un ransomware doit être redémarré immédiatement pour stopper le chiffrement."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Déconnectez du réseau (pour stopper la propagation) mais ne redémarrez pas sans accord IT. Le redémarrage peut déclencher d'autres phases d'attaque et détruire des traces forensiques utiles."
+
+  - id: rsm_08
+    type: multiple_choice
+    weight: 2
+    text: "Quelles actions au quotidien réduisent le risque d'une infection ransomware ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Ne pas cliquer sur des pièces jointes inattendues"
+        correct: true
+      - id: b
+        text: "Activer la MFA sur le VPN et les accès distants"
+        correct: true
+      - id: c
+        text: "Utiliser un antivirus et le maintenir à jour"
+        correct: true
+      - id: d
+        text: "Conserver des mots de passe simples pour accéder rapidement"
+        correct: false
+      - id: e
+        text: "Signaler tout comportement bizarre de sa machine"
+        correct: true
+    explanation: "Chaque bonne pratique (vigilance phishing, MFA, antivirus, signalement) réduit un vecteur d'entrée. Les mots de passe faibles sur le VPN sont précisément ce que les attaquants exploitent."

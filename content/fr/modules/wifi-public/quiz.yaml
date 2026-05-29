@@ -90,3 +90,54 @@ questions:
         text: "Désactiver le pare-feu"
         correct: false
     explanation: "Les données mobiles (4G/5G) sont beaucoup plus sécurisées que le Wi-Fi public car vous avez une connexion directe chiffrée avec votre opérateur."
+
+  - id: wifi_06
+    type: single_choice
+    weight: 1
+    text: "Vous êtes en hôtel et voyez deux réseaux Wi-Fi : 'Hotel_Ibis_Guest' et 'Hotel_ibis_Free'. Lequel choisissez-vous ?"
+    answers:
+      - id: a
+        text: "Hotel_ibis_Free, il est gratuit"
+        correct: false
+      - id: b
+        text: "Hotel_Ibis_Guest, mais vous activez votre VPN dans tous les cas"
+        correct: true
+      - id: c
+        text: "L'un ou l'autre — ils sont identiques"
+        correct: false
+      - id: d
+        text: "Ni l'un ni l'autre, vous refusez tout Wi-Fi d'hôtel"
+        correct: false
+    explanation: "La différence de casse ('ibis' vs 'Ibis') peut indiquer un Evil Twin. Vérifiez le nom exact à la réception, et activez toujours le VPN quel que soit le réseau choisi."
+
+  - id: wifi_07
+    type: true_false
+    weight: 1
+    text: "Votre téléphone se connecte automatiquement aux réseaux Wi-Fi mémorisés — c'est sans risque."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Un attaquant peut créer un réseau avec le même nom que votre café habituel. Votre téléphone s'y connecte automatiquement. Désactivez la reconnexion automatique hors de votre domicile."
+
+  - id: wifi_08
+    type: single_choice
+    weight: 1
+    text: "Un collègue vous dit 'le VPN ralentit ma connexion, je ne l'utilise que pour les choses vraiment sensibles'. Quelle est la bonne pratique ?"
+    answers:
+      - id: a
+        text: "C'est raisonnable, faire pareil"
+        correct: false
+      - id: b
+        text: "Activer le VPN systématiquement sur tout réseau public, sans exception"
+        correct: true
+      - id: c
+        text: "N'utiliser le VPN que pour les accès au serveur de fichiers"
+        correct: false
+      - id: d
+        text: "Demander à l'IT de le désactiver"
+        correct: false
+    explanation: "Le VPN doit être activé sur tout réseau public sans exception. Si les performances sont un problème, signalez-le à l'IT pour qu'il soit optimisé — ne contournez pas la sécurité."

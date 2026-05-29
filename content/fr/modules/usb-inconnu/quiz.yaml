@@ -71,3 +71,76 @@ questions:
         text: "Faux"
         correct: true
     explanation: "Si votre poste personnel se connecte au réseau de l'entreprise (VPN, email...), un malware peut se propager vers l'infrastructure professionnelle."
+
+  - id: usb_05
+    type: single_choice
+    weight: 1
+    text: "Un visiteur externe vous demande de brancher sa clé USB sur votre ordinateur pour imprimer un document. Que faites-vous ?"
+    answers:
+      - id: a
+        text: "Accepter — c'est un service rapide"
+        correct: false
+      - id: b
+        text: "Refuser et proposer une alternative (email, cloud, poste isolé validé par l'IT)"
+        correct: true
+      - id: c
+        text: "Brancher mais lancer un scan antivirus avant"
+        correct: false
+      - id: d
+        text: "Accepter si la clé semble neuve"
+        correct: false
+    explanation: "Refusez toujours — proposez une alternative (envoi par email, lien cloud, ou poste de travail isolé désigné par l'IT). Un malware peut contourner les antivirus."
+
+  - id: usb_06
+    type: true_false
+    weight: 1
+    text: "Un câble USB de charge reçu lors d'un salon professionnel peut être utilisé sans risque."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Des câbles USB contenant des microcontrôleurs malveillants (comme le 'O.MG cable') sont physiquement indiscernables des câbles normaux. Utilisez uniquement du matériel provenant de sources approuvées."
+
+  - id: usb_07
+    type: single_choice
+    weight: 1
+    text: "Pourquoi les attaquants déposent-ils des clés USB dans les parkings d'entreprise ?"
+    answers:
+      - id: a
+        text: "Parce qu'ils oublient leur matériel"
+        correct: false
+      - id: b
+        text: "Parce que la curiosité humaine pousse les employés à les brancher"
+        correct: true
+      - id: c
+        text: "Parce que les parkings sont moins surveillés"
+        correct: false
+      - id: d
+        text: "Pour tester la sécurité de l'entreprise"
+        correct: false
+    explanation: "L'étude de l'Université de l'Illinois a montré que 45% des clés trouvées sont branchées par curiosité ou pour retrouver le propriétaire. Les attaquants exploitent cette tendance naturelle."
+
+  - id: usb_08
+    type: multiple_choice
+    weight: 2
+    text: "Quels sont les objets qui peuvent être utilisés comme vecteur d'attaque USB ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Clé USB d'apparence normale"
+        correct: true
+      - id: b
+        text: "Câble de charge USB"
+        correct: true
+      - id: c
+        text: "Chargeur USB mural"
+        correct: true
+      - id: d
+        text: "Écouteurs sans fil Bluetooth"
+        correct: false
+      - id: e
+        text: "Hub USB multi-ports"
+        correct: true
+    explanation: "Clés, câbles, chargeurs et hubs peuvent tous contenir de l'électronique malveillante. Les écouteurs Bluetooth n'utilisent pas de port USB et sont hors de ce périmètre."

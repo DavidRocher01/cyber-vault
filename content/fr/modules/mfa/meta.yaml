@@ -1,7 +1,7 @@
 title: "Pourquoi et comment activer la MFA partout"
 description: "L'authentification multi-facteur bloque 99% des attaques automatisées."
 content_type: mixed
-estimated_duration_minutes: 3
+estimated_duration_minutes: 5
 xp_points: 10
 has_quiz: true
 quiz_max_attempts: 3

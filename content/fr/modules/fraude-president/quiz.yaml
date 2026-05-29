@@ -90,3 +90,54 @@ questions:
         text: "Il travaille peut-être dans votre entreprise"
         correct: false
     explanation: "Les informations publiques (organigramme, LinkedIn, communiqués de presse) suffisent pour paraître crédible. La connaissance de détails internes ne garantit pas l'identité."
+
+  - id: fp_06
+    type: single_choice
+    weight: 1
+    text: "Vous avez exécuté un virement et réalisez 30 minutes plus tard que c'était une fraude. Que faites-vous en premier ?"
+    answers:
+      - id: a
+        text: "Attendre pour voir si la banque le détecte"
+        correct: false
+      - id: b
+        text: "Appeler immédiatement votre banque pour tenter un recall du virement"
+        correct: true
+      - id: c
+        text: "Appeler la police"
+        correct: false
+      - id: d
+        text: "Prévenir votre responsable uniquement"
+        correct: false
+    explanation: "Appelez votre banque immédiatement — les premières minutes sont critiques pour un recall (rappel de virement). Ensuite alertez votre responsable et l'IT en parallèle."
+
+  - id: fp_07
+    type: true_false
+    weight: 1
+    text: "La fraude au président ne cible que les grandes entreprises."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Les PME sont aussi ciblées — parfois davantage car elles ont moins de procédures de validation formelles. En France, 40% des victimes sont des PME de moins de 50 personnes."
+
+  - id: fp_08
+    type: single_choice
+    weight: 1
+    text: "Votre protocole habituel exige deux validations pour les virements. Le 'PDG' insiste pour n'en faire qu'une car 'c'est urgent et confidentiel'. Que faites-vous ?"
+    answers:
+      - id: a
+        text: "Accepter la dérogation pour satisfaire la direction"
+        correct: false
+      - id: b
+        text: "Refuser et appliquer le processus standard — appeler le PDG sur son numéro connu pour confirmer"
+        correct: true
+      - id: c
+        text: "Demander à votre responsable direct par email"
+        correct: false
+      - id: d
+        text: "Exécuter le virement mais en le notant comme exceptionnel"
+        correct: false
+    explanation: "Les procédures financières ne souffrent aucune dérogation, quelle que soit la pression exercée. Une dérogation demandée est précisément le signal d'alarme d'une fraude."

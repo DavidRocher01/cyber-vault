@@ -1,48 +1,82 @@
 # Les risques du Wi-Fi public
 
-Le Wi-Fi gratuit du café, de l'hôtel ou de l'aéroport est pratique — mais c'est aussi un terrain de chasse pour les attaquants. Voici ce qui se passe vraiment sur ces réseaux.
+> **Un attaquant peut monter un faux point d'accès Wi-Fi en moins de 5 minutes avec du matériel grand public.** Ce que vous envoyez sur ce réseau lui appartient.
+
+## 🎯 Ce que vous apprendrez
+
+- Comprendre ce qu'un attaquant voit réellement sur un Wi-Fi public
+- Appliquer les règles de base pour travailler en déplacement en sécurité
+- Savoir quand utiliser un VPN et pourquoi
 
 ---
 
-## Ce que peut faire un attaquant sur un réseau Wi-Fi public
+## Scénario réel
 
-**Attaque "Man in the Middle" (MITM)** : l'attaquant se positionne entre vous et Internet. Il peut voir, modifier ou voler vos communications non chiffrées.
+*Lors d'une conférence professionnelle, un consultant se connecte au Wi-Fi "Conference_Guest". Il consulte ses emails, accède au CRM client, envoie un devis. Ce qu'il ne sait pas : "Conference_Guest" est un faux réseau créé par un chercheur en sécurité présent dans la salle, pour démontrer la vulnérabilité. En 20 minutes, le chercheur a capturé 3 sessions authentifiées, dont une sur un outil de gestion de projet contenant des données clients.*
 
-**Faux point d'accès (Evil Twin)** : il crée un réseau Wi-Fi avec un nom similaire au vrai (`Café_Free` au lieu de `Cafe_Free`). Vous vous connectez à lui sans le savoir.
+Cet exercice de démonstration est réalisé régulièrement dans des événements de sécurité — et les vrais attaquants font pareil, sans prévenir.
 
-**Sniffing** : sur les réseaux non chiffrés, il peut capturer tout le trafic réseau qui passe.
+---
+
+## Ce qu'un attaquant peut faire sur un Wi-Fi public
+
+**Attaque Man-in-the-Middle (MITM)**
+L'attaquant se positionne entre vous et Internet. Il voit, peut modifier, et peut enregistrer tout votre trafic non chiffré.
+
+**Evil Twin (faux point d'accès)**
+Il crée un réseau avec un nom identique ou très proche du réseau légitime. Votre téléphone ou ordinateur se connecte automatiquement s'il reconnaît le nom. Vous n'êtes jamais sur le bon réseau.
+
+**Session hijacking**
+Même sur HTTPS, certains cookies de session peuvent être volés si la connexion n'est pas parfaitement configurée — permettant à l'attaquant de prendre le contrôle de vos comptes sans connaître votre mot de passe.
 
 ---
 
 ## Ce que vous risquez concrètement
 
-- Vol de cookies de session → accès à vos comptes sans mot de passe
-- Interception d'identifiants sur des sites sans HTTPS
-- Injection de malware dans vos téléchargements
-- Capture d'emails ou de documents sensibles
+- Accès à vos emails professionnels et documents partagés
+- Vol de session sur vos outils métier (CRM, ERP, intranet)
+- Interception de documents envoyés ou reçus
+- Installation de malware via injection dans des téléchargements
 
 ---
 
 ## Les règles à respecter
 
-**Utilisez toujours un VPN** sur les réseaux publics. Le VPN chiffre tout votre trafic — même si quelqu'un intercepte les données, il ne peut rien lire.
+**VPN obligatoire sur tout réseau public**
+Le VPN chiffre tout votre trafic dans un tunnel sécurisé. Même si quelqu'un intercepte vos données, il ne voit qu'un flux chiffré inutilisable. Si votre entreprise fournit un VPN, utilisez-le systématiquement en déplacement.
 
-**Vérifiez le HTTPS** : l'icône cadenas dans la barre d'adresse signifie que la connexion est chiffrée entre vous et le site.
+**Vérifiez le HTTPS**
+Le cadenas dans la barre d'adresse signifie que la connexion entre votre navigateur et le site est chiffrée. En 2024, la quasi-totalité des sites professionnels utilisent HTTPS — mais cela ne protège pas contre un faux point d'accès.
 
-**Désactivez le partage automatique** : sur Windows, macOS, iOS, assurez-vous d'être en mode "Réseau public" (pas "Réseau domestique").
+**Désactivez la connexion automatique**
+Sur votre téléphone et ordinateur, désactivez la reconnexion automatique aux réseaux connus. Un attaquant peut créer un réseau avec le même nom que votre café habituel.
 
-**Ne faites pas de transactions sensibles** : évitez la banque, la comptabilité, l'accès aux systèmes d'entreprise sans VPN.
-
----
-
-## La règle simple
-
-> **Wi-Fi public = VPN obligatoire.**
-
-Si vous n'avez pas de VPN, utilisez votre données mobiles (4G/5G) — c'est beaucoup plus sûr.
+**Données mobiles plutôt que Wi-Fi public**
+En l'absence de VPN, votre connexion 4G/5G est nettement plus sûre qu'un Wi-Fi public. Pour les tâches sensibles, préférez votre partage de connexion mobile.
 
 ---
 
-## Cas particulier : le Wi-Fi "entreprise"
+## Ce qu'il ne faut jamais faire sur un Wi-Fi public sans VPN
 
-Les réseaux Wi-Fi d'entreprise correctement sécurisés (WPA2-Enterprise avec certificat) sont fiables. Mais en déplacement, votre réseau hôtel ou conférence reste public — traitez-le comme tel.
+- ❌ Accéder à votre messagerie professionnelle
+- ❌ Vous connecter au VPN ou aux outils internes
+- ❌ Effectuer des opérations bancaires ou financières
+- ❌ Transmettre des données clients ou confidentielles
+- ❌ Laisser votre téléphone se connecter automatiquement
+
+---
+
+## Configuration rapide à faire maintenant
+
+1. Installez et activez le VPN fourni par votre entreprise
+2. Désactivez la reconnexion automatique aux Wi-Fi publics sur vos appareils
+3. Activez le mode "Réseau public" ou "Réseau non approuvé" lors de connexions hors bureau
+
+---
+
+## À retenir
+
+- **Wi-Fi public = réseau ennemi** — traitez-le comme tel
+- **VPN obligatoire** dès que vous quittez votre réseau d'entreprise
+- Sans VPN, utilisez votre 4G/5G pour les tâches sensibles
+- Désactivez la connexion automatique aux réseaux connus

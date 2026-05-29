@@ -81,3 +81,57 @@ questions:
         text: "Les imprimer en double"
         correct: false
     explanation: "Le cloud d'entreprise assure la synchronisation automatique et la conservation de versions historiques — conforme à la règle 3-2-1."
+
+  - id: bck_06
+    type: single_choice
+    weight: 1
+    text: "Vous restaurez une sauvegarde après un incident et découvrez que tous les fichiers sont corrompus. Quel enseignement tirer ?"
+    answers:
+      - id: a
+        text: "Les sauvegardes ne fonctionnent jamais"
+        correct: false
+      - id: b
+        text: "Les sauvegardes doivent être testées régulièrement avec une vraie restauration"
+        correct: true
+      - id: c
+        text: "Il faut sauvegarder plus souvent"
+        correct: false
+      - id: d
+        text: "C'est inévitable avec les ransomwares"
+        correct: false
+    explanation: "Une sauvegarde non testée est une fausse sécurité. La corruption silencieuse, les sauvegardes incomplètes ou les configurations cassées ne se détectent qu'en testant la restauration."
+
+  - id: bck_07
+    type: multiple_choice
+    weight: 2
+    text: "Lesquels de ces scénarios sont couverts par une sauvegarde hors site ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Incendie détruisant les locaux"
+        correct: true
+      - id: b
+        text: "Ransomware chiffrant tout le réseau local"
+        correct: true
+      - id: c
+        text: "Faille dans le logiciel de sauvegarde lui-même"
+        correct: false
+      - id: d
+        text: "Vol du matériel informatique"
+        correct: true
+      - id: e
+        text: "Erreur humaine supprimant des fichiers"
+        correct: true
+    explanation: "Une copie hors site résiste aux sinistres physiques (incendie, vol) et aux ransomwares qui chiffrent le réseau local. Elle ne protège pas contre les failles du système de sauvegarde lui-même."
+
+  - id: bck_08
+    type: true_false
+    weight: 1
+    text: "Conserver uniquement la dernière version d'une sauvegarde est suffisant pour se protéger d'un ransomware."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Les ransomwares attendent plusieurs semaines avant de frapper. La dernière version de sauvegarde contiendra probablement déjà des fichiers chiffrés. Il faut conserver un historique d'au moins 30 jours."

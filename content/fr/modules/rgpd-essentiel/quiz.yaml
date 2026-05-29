@@ -90,3 +90,57 @@ questions:
         text: "Effacer les données après 1 an"
         correct: false
     explanation: "La minimisation signifie ne collecter que ce dont on a réellement besoin. Collecter 'au cas où' est contraire au RGPD."
+
+  - id: rgpd_06
+    type: single_choice
+    weight: 1
+    text: "Vous recevez un email d'un client demandant à accéder à toutes les données que vous détenez sur lui. Dans quel délai maximum devez-vous répondre ?"
+    answers:
+      - id: a
+        text: "72 heures"
+        correct: false
+      - id: b
+        text: "1 mois"
+        correct: true
+      - id: c
+        text: "6 mois"
+        correct: false
+      - id: d
+        text: "Aucun délai obligatoire"
+        correct: false
+    explanation: "Le RGPD impose de répondre aux demandes d'accès dans un délai d'un mois. Ce délai peut être étendu à 3 mois pour les demandes complexes, avec information du demandeur."
+
+  - id: rgpd_07
+    type: true_false
+    weight: 1
+    text: "Une liste d'entreprises avec leurs adresses est une donnée personnelle au sens du RGPD."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Les personnes morales (entreprises) ne sont pas protégées par le RGPD. Seules les données permettant d'identifier des personnes physiques sont concernées — y compris les emails nominatifs de contacts dans ces entreprises."
+
+  - id: rgpd_08
+    type: multiple_choice
+    weight: 2
+    text: "Lesquelles de ces situations constituent une violation de données à signaler à votre DPO ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Email contenant des données clients envoyé à la mauvaise personne"
+        correct: true
+      - id: b
+        text: "Ordinateur contenant des données RH volé au bureau"
+        correct: true
+      - id: c
+        text: "Document interne envoyé à un collègue par erreur"
+        correct: false
+      - id: d
+        text: "Accès non autorisé à une base de données clients détecté"
+        correct: true
+      - id: e
+        text: "Impression d'un document confidentiel laissée sur l'imprimante"
+        correct: true
+    explanation: "Toute situation où des données personnelles sont exposées à des personnes non autorisées doit être signalée au DPO. Cela inclut les erreurs d'envoi, les vols, les accès non autorisés et les documents laissés accessibles."

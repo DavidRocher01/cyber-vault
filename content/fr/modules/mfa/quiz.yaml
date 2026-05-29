@@ -90,3 +90,73 @@ questions:
         text: "Question secrète"
         correct: false
     explanation: "La clé physique est la plus sécurisée car elle résiste aux attaques de phishing — impossible à intercepter à distance."
+
+  - id: mfa_06
+    type: true_false
+    weight: 1
+    text: "Recevoir un code MFA par SMS est aussi sécurisé qu'une application TOTP."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Les SMS peuvent être interceptés via une attaque SIM swap (l'attaquant transfère votre numéro chez un opérateur complice). Les applications TOTP génèrent le code localement sur votre appareil."
+
+  - id: mfa_07
+    type: single_choice
+    weight: 1
+    text: "Vous perdez votre téléphone sur lequel est installée votre application MFA. Comment retrouver accès à vos comptes ?"
+    answers:
+      - id: a
+        text: "Il est impossible de récupérer l'accès"
+        correct: false
+      - id: b
+        text: "Utiliser les codes de récupération que vous avez conservés lors de l'activation"
+        correct: true
+      - id: c
+        text: "Désactiver la MFA temporairement depuis un autre ordinateur"
+        correct: false
+      - id: d
+        text: "Appeler le support en fournissant votre nom et date de naissance"
+        correct: false
+    explanation: "Les codes de récupération (backup codes) fournis lors de l'activation sont précisément conçus pour ce cas. Conservez-les hors ligne dans un endroit sûr."
+
+  - id: mfa_08
+    type: single_choice
+    weight: 1
+    text: "Pourquoi l'email professionnel est-il le compte le plus important à protéger avec la MFA ?"
+    answers:
+      - id: a
+        text: "Parce qu'il contient vos emails personnels"
+        correct: false
+      - id: b
+        text: "Parce que qui contrôle votre email peut réinitialiser tous vos autres mots de passe"
+        correct: true
+      - id: c
+        text: "Parce que c'est obligatoire légalement"
+        correct: false
+      - id: d
+        text: "Parce que l'email est le service le plus utilisé"
+        correct: false
+    explanation: "La plupart des services envoient les liens de réinitialisation par email. Compromettre votre email donne accès à tous vos autres comptes en cascade."
+
+  - id: mfa_09
+    type: multiple_choice
+    weight: 2
+    text: "Quelles situations indiquent qu'une attaque par fatigue MFA est peut-être en cours ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Vous recevez une notification push sans avoir essayé de vous connecter"
+        correct: true
+      - id: b
+        text: "Vous recevez plusieurs notifications push à la suite"
+        correct: true
+      - id: c
+        text: "Quelqu'un vous appelle en prétendant être l'IT et vous demande d'approuver"
+        correct: true
+      - id: d
+        text: "Vous recevez une notification après vous être connecté vous-même"
+        correct: false
+    explanation: "Notifications non initiées, rafales de demandes, et appel téléphonique accompagnateur sont les trois signes d'une attaque MFA fatigue. Refusez toujours, changez le mot de passe, alertez."

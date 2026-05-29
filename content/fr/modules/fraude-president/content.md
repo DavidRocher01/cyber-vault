@@ -1,57 +1,89 @@
 # Fraude au président : détecter et refuser
 
-La fraude au président (ou FOVI — Faux Ordre de Virement) est l'une des arnaques les plus coûteuses pour les entreprises. Elle cible spécifiquement les personnes qui ont accès aux finances.
+> **Entre 2010 et 2023, les entreprises françaises ont perdu plus de 3 milliards d'euros à cause de la fraude au virement.** (Banque de France) La fraude au président représente à elle seule des dizaines de millions chaque année.
+
+## 🎯 Ce que vous apprendrez
+
+- Comprendre précisément comment une fraude au président se construit
+- Identifier les signaux d'alarme, même quand tout semble authentique
+- Appliquer le protocole de vérification qui empêche le virement
 
 ---
 
-## Comment ça fonctionne
+## Scénario réel
 
-L'attaquant se fait passer pour un dirigeant (PDG, DG, directeur financier) et demande en urgence un virement confidentiel. Il utilise :
+*Une comptable reçoit un email de "Marc Fontaine, PDG" : "Bonjour, je suis en réunion confidentielle avec nos avocats. Nous finalisons une acquisition. J'ai besoin d'un virement de 87 000 € sur ce RIB d'ici 16h — absolument confidentiel, ne parlez de ça à personne, pas même au DAF." L'adresse email est `marc.fontaine@notre-groupe-sas.com` au lieu de `marc.fontaine@notre-groupe.com`. La comptable a failli exécuter le virement. Elle a finalement rappelé le PDG sur son numéro habituel — qui n'était au courant de rien.*
 
-- Un **email usurpé** avec un domaine très proche : `jean.dupont@entreprise-sas.com` au lieu de `jean.dupont@entreprise.com`
-- Une **pression temporelle** : "Je suis en réunion, ne me dérangez pas, faites le virement maintenant"
-- La **confidentialité** : "Ne parlez de ça à personne, c'est une acquisition confidentielle"
-- Des **informations réelles** (glânées sur LinkedIn, le site web de l'entreprise) pour paraître crédible
+Ce scénario se reproduit des dizaines de fois par semaine en France. Certaines entreprises ont tout perdu.
 
 ---
 
-## Les signaux d'alarme
+## Comment l'attaquant prépare son attaque
 
-Soyez en alerte maximale si vous recevez une demande qui combine plusieurs de ces éléments :
+**Avant de vous contacter**, l'attaquant a fait ses recherches :
 
-- ✅ Demande de virement non planifiée
-- ✅ Urgence inhabituelle ("aujourd'hui absolument")
-- ✅ Demande de confidentialité ("ne dites rien aux collègues")
-- ✅ Canal inhabituel (email au lieu d'un appel, ou numéro de téléphone inconnu)
-- ✅ Montant inhabituel
+- Il a consulté LinkedIn pour connaître votre nom, poste, et celui du PDG
+- Il a lu le site web de l'entreprise pour connaître la structure et le jargon interne
+- Il a analysé les annonces légales pour connaître les acquisitions passées
+- Il a parfois surveillé vos emails pendant des semaines après avoir compromis un compte
 
-**Chacun de ces points seul peut être normal. Plusieurs ensemble = fraude quasi-certaine.**
-
----
-
-## Le protocole à suivre
-
-**1. Stopper la pression** — Aucune urgence légitime ne justifie de court-circuiter les procédures financières.
-
-**2. Rappeler sur un numéro connu** — N'utilisez pas le numéro dans l'email ou le message. Cherchez vous-même le numéro officiel du dirigeant et appelez-le.
-
-**3. Appliquer les procédures habituelles** — Tout virement doit suivre le processus standard de validation, même si le "dirigeant" insiste.
-
-**4. Alerter** — Même si vous n'avez pas exécuté le virement, signalez l'tentative à votre responsable et à l'IT.
+L'email qu'il vous envoie semble donc parfaitement légitime : ton correct, contexte plausible, vocabulaire de votre secteur.
 
 ---
 
-## Ce que font les entreprises bien protégées
+## Les 5 signaux d'alarme
 
-- Double signature obligatoire pour tout virement au-dessus d'un seuil
-- Procédure de rappel téléphonique systématique
-- Formation régulière des équipes comptables et financières
-- Liste noire des IBAN à valider en interne
+Soyez en alerte maximale si une demande de virement combine plusieurs de ces éléments :
+
+**1. Urgence** — "avant 16h", "aujourd'hui absolument", "je suis en réunion"
+
+**2. Confidentialité** — "ne parlez de ça à personne", "même pas au DAF", "affaire sensible"
+
+**3. Canal inhabituel** — un email au lieu d'un appel direct, ou un numéro inconnu
+
+**4. Montant hors norme** — supérieur à vos virements habituels
+
+**5. RIB inconnu** — un bénéficiaire que vous n'avez jamais utilisé
+
+Chacun de ces points seul peut être normal. **Deux ou plus ensemble = fraude quasi-certaine.**
+
+---
+
+## Le protocole de vérification en 3 étapes
+
+Appliquez-le **systématiquement**, sans exception, quelle que soit la pression :
+
+**Étape 1 : Stopper la pression**
+Aucune urgence ne justifie de contourner les procédures. Répondez : "Je dois vérifier selon notre procédure standard avant tout virement."
+
+**Étape 2 : Rappeler sur un numéro connu**
+N'utilisez pas le numéro dans l'email ou le message reçu. Cherchez vous-même le numéro officiel du dirigeant (annuaire interne, téléphone personnel connu) et appelez-le directement.
+
+**Étape 3 : Appliquer les procédures habituelles**
+Tout virement suit le processus standard de validation, toujours. Si le "dirigeant" insiste pour contourner : c'est une fraude.
+
+---
+
+## Ce que les entreprises bien protégées font
+
+- Double validation obligatoire pour tout virement au-dessus d'un seuil
+- Rappel téléphonique systématique pour tout nouveau bénéficiaire
+- Liste blanche d'IBAN autorisés avec processus de validation formelle
+- Formation régulière des équipes comptables et financières sur ces attaques
+
+---
+
+## Si vous recevez une telle demande
+
+Même si vous n'avez pas exécuté le virement, **signalez l'tentative** à votre responsable et à votre IT. L'email frauduleux permet d'analyser la menace et d'alerter vos collègues.
+
+Si vous avez exécuté le virement : appelez votre banque **immédiatement** pour tenter un recall. Chaque minute compte.
 
 ---
 
 ## À retenir
 
-> **Aucun dirigeant légitime ne vous demandera de contourner les procédures.**
-
-Si ça arrive — c'est une fraude, ou une erreur. Dans les deux cas : arrêtez, vérifiez, signalez.
+- **Aucun dirigeant légitime ne demande de contourner les procédures**
+- **Rappeler sur un numéro connu** — jamais sur le numéro fourni dans le message
+- La confidentialité demandée est précisément ce qui permet la fraude
+- Signaler une tentative protège l'entreprise entière

@@ -71,3 +71,76 @@ questions:
         text: "Copier-coller l'URL dans un email"
         correct: false
     explanation: "Le survol (hover) révèle l'URL réelle, indépendamment du texte ou du logo affiché sur le lien."
+
+  - id: sac_05
+    type: single_choice
+    weight: 1
+    text: "Vous recevez une notification d'alerte de 'GitHub Security' sur votre activité de compte. Comment vérifiez-vous si c'est légitime ?"
+    answers:
+      - id: a
+        text: "Cliquer sur le lien dans l'email pour voir la page d'alerte"
+        correct: false
+      - id: b
+        text: "Ouvrir github.com directement dans votre navigateur et consulter les paramètres de sécurité"
+        correct: true
+      - id: c
+        text: "Répondre à l'email pour demander une vérification"
+        correct: false
+      - id: d
+        text: "Ignorer — GitHub n'envoie pas d'alertes"
+        correct: false
+    explanation: "Pour vérifier une alerte de sécurité, allez toujours sur le service en tapant l'adresse directement. Si l'alerte est réelle, elle sera visible depuis votre compte."
+
+  - id: sac_06
+    type: true_false
+    weight: 1
+    text: "Si un email vient d'un collègue dont vous connaissez l'adresse, il ne peut pas être dangereux."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Un compte de collègue compromis peut envoyer des emails malveillants. De plus, l'adresse d'expéditeur peut être usurpée. Vérifiez le contenu même pour les emails de personnes connues."
+
+  - id: sac_07
+    type: multiple_choice
+    weight: 2
+    text: "Lesquelles de ces situations devraient déclencher une vérification approfondie avant d'agir ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Un email demandant une action urgente que vous n'aviez pas initiée"
+        correct: true
+      - id: b
+        text: "Une pièce jointe PDF reçue sans contexte"
+        correct: true
+      - id: c
+        text: "Un email de newsletter à laquelle vous êtes abonné"
+        correct: false
+      - id: d
+        text: "Un lien demandant vos identifiants pour 'confirmer votre identité'"
+        correct: true
+      - id: e
+        text: "Une demande de virement en dehors des procédures habituelles"
+        correct: true
+    explanation: "Actions non initiées, pièces jointes sans contexte, demandes d'identifiants et virements hors procédure sont tous des signaux nécessitant une vérification."
+
+  - id: sac_08
+    type: single_choice
+    weight: 1
+    text: "Vous signalez un email suspect à votre IT. On vous informe que c'était un test de sensibilisation interne. Quelle est la bonne réaction ?"
+    answers:
+      - id: a
+        text: "Vous sentir mal pour avoir signalé quelque chose d'inoffensif"
+        correct: false
+      - id: b
+        text: "Être satisfait — vous avez appliqué exactement le bon réflexe"
+        correct: true
+      - id: c
+        text: "Se plaindre que ce genre de test est inutile"
+        correct: false
+      - id: d
+        text: "Promettre de ne plus signaler pour éviter la honte"
+        correct: false
+    explanation: "Signaler un faux positif est la bonne action — un signalement inutile ne coûte rien. Ne pas signaler une vraie menace peut coûter énormément. Le réflexe de signalement est précieux."

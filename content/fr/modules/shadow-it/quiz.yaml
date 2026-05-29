@@ -1,0 +1,146 @@
+questions:
+  - id: sit_01
+    type: single_choice
+    weight: 1
+    text: "Qu'est-ce que le Shadow IT ?"
+    answers:
+      - id: a
+        text: "Un département IT secret"
+        correct: false
+      - id: b
+        text: "L'utilisation d'outils ou services informatiques sans approbation de l'IT"
+        correct: true
+      - id: c
+        text: "Un logiciel malveillant"
+        correct: false
+      - id: d
+        text: "Le travail informatique réalisé en dehors des heures de bureau"
+        correct: false
+    explanation: "Le Shadow IT désigne tout outil, application ou service utilisé sans l'accord de l'équipe IT — souvent par commodité, sans intention malveillante."
+
+  - id: sit_02
+    type: multiple_choice
+    weight: 2
+    text: "Lesquelles de ces pratiques constituent du Shadow IT ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Envoyer des documents clients via votre Gmail personnel"
+        correct: true
+      - id: b
+        text: "Utiliser SharePoint approuvé par l'IT pour partager des fichiers"
+        correct: false
+      - id: c
+        text: "Stocker des fichiers de travail sur votre Dropbox personnel"
+        correct: true
+      - id: d
+        text: "Coller un contrat confidentiel dans ChatGPT d'un compte personnel"
+        correct: true
+      - id: e
+        text: "Utiliser Microsoft Teams configuré par l'IT"
+        correct: false
+    explanation: "Tout outil personnel non approuvé (Gmail perso, Dropbox perso, IA non approuvée) constitue du Shadow IT. Les outils approuvés et configurés par l'IT ne le sont pas."
+
+  - id: sit_03
+    type: true_false
+    weight: 1
+    text: "Utiliser une IA générative avec des données confidentielles de l'entreprise depuis un compte personnel est sans risque si l'IA dit ne pas utiliser les données pour l'entraînement."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Même sans entraînement, les données ont quitté le périmètre de l'entreprise et sont traitées sur des serveurs externes sans DPA signé. Utilisez uniquement les instances IA approuvées par votre IT."
+
+  - id: sit_04
+    type: single_choice
+    weight: 1
+    text: "Vous avez besoin de transférer un fichier de 2 Go à un client mais l'outil officiel est trop lent. Que faites-vous ?"
+    answers:
+      - id: a
+        text: "Utiliser WeTransfer ou un service personnel en attendant"
+        correct: false
+      - id: b
+        text: "Signaler le problème à l'IT et demander une solution approuvée"
+        correct: true
+      - id: c
+        text: "Envoyer via votre email personnel"
+        correct: false
+      - id: d
+        text: "Découper le fichier en plusieurs emails"
+        correct: false
+    explanation: "Signalez le besoin à l'IT — il existe des solutions approuvées (SharePoint avec lien, OneDrive partagé, solutions de transfert sécurisé). Le contournement temporaire peut avoir des conséquences permanentes."
+
+  - id: sit_05
+    type: single_choice
+    weight: 1
+    text: "Un employé quitte l'entreprise. Il avait géré des données clients dans son Trello personnel. Quel risque cela crée-t-il ?"
+    answers:
+      - id: a
+        text: "Aucun risque car Trello est connu"
+        correct: false
+      - id: b
+        text: "L'entreprise ne peut pas révoquer ses accès ni récupérer les données"
+        correct: true
+      - id: c
+        text: "Un risque uniquement si l'employé est malveillant"
+        correct: false
+      - id: d
+        text: "Un risque temporaire seulement"
+        correct: false
+    explanation: "L'IT ne peut pas révoquer un accès qu'il ne connaît pas. Les données clients restent dans un compte personnel sur lequel l'entreprise n'a aucun contrôle."
+
+  - id: sit_06
+    type: true_false
+    weight: 1
+    text: "Si un outil non approuvé est utilisé depuis des années sans problème, c'est qu'il est sûr."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "L'absence de problème visible ne signifie pas l'absence de risque. Des données peuvent avoir été exposées sans que vous le sachiez. Le Shadow IT non détecté est le plus dangereux."
+
+  - id: sit_07
+    type: single_choice
+    weight: 1
+    text: "Quel est le principal moteur du Shadow IT selon les études ?"
+    answers:
+      - id: a
+        text: "La malveillance des employés"
+        correct: false
+      - id: b
+        text: "La recherche de productivité et les outils officiels inadaptés"
+        correct: true
+      - id: c
+        text: "Le manque de formation à la sécurité"
+        correct: false
+      - id: d
+        text: "Le coût des outils officiels"
+        correct: false
+    explanation: "80% du Shadow IT résulte d'employés cherchant à être plus efficaces avec des outils qu'ils maîtrisent mieux. La solution n'est pas la répression mais l'amélioration des outils officiels."
+
+  - id: sit_08
+    type: multiple_choice
+    weight: 2
+    text: "Quelles conséquences le Shadow IT peut-il avoir ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Violation RGPD si des données personnelles sortent du périmètre"
+        correct: true
+      - id: b
+        text: "Perte de contrôle sur les données de l'entreprise"
+        correct: true
+      - id: c
+        text: "Surface d'attaque élargie pour les cybercriminels"
+        correct: true
+      - id: d
+        text: "Amélioration automatique de la productivité"
+        correct: false
+      - id: e
+        text: "Difficultés pour révoquer les accès lors des départs"
+        correct: true
+    explanation: "Le Shadow IT entraîne des risques RGPD, une perte de contrôle des données, une surface d'attaque plus large, et des problèmes de gestion des accès. La productivité à court terme est souvent contrebalancée par ces risques."
