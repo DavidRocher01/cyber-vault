@@ -28,6 +28,7 @@ describe('VerifyCertificateComponent — états des signaux', () => {
   it('cert peut recevoir des données valides', () => {
     const comp = make();
     const fakeCert: CertificateVerification = {
+      valid: true,
       public_id: 'CERT-123',
       learner_name: 'Alice',
       program_title: 'NIS2 Fondamentaux',

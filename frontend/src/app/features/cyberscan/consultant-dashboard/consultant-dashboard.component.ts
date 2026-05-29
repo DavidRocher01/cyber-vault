@@ -74,7 +74,7 @@ export class ConsultantDashboardComponent implements OnInit {
   focusedClientId = signal<number | null>(null);
   focusedClientName = signal<string | null>(null);
 
-  activeTab = signal<'dashboard' | 'clients'>('dashboard');
+  activeTab = signal<'dashboard' | 'clients' | 'awareness'>('dashboard');
 
   readonly formulas = [
     { value: 'essentiel', label: 'Essentiel' },

@@ -689,6 +689,65 @@ CyberScan — Simulation de phishing
     _send(to_email, subject, html, plain)
 
 
+def send_awareness_magic_link(
+    to_email: str,
+    first_name: str | None,
+    org_name: str,
+    login_url: str,
+    token_ttl_minutes: int = 30,
+) -> None:
+    greeting = f"Bonjour{' ' + first_name if first_name else ''},"
+    subject = f"[CyberScan] Votre lien de connexion — {org_name}"
+    plain = f"""{greeting}
+
+Vous avez été invité(e) à rejoindre la plateforme de sensibilisation NIS2 de {org_name}.
+
+Cliquez sur le lien ci-dessous pour accéder à votre espace de formation (valable {token_ttl_minutes} minutes) :
+
+{login_url}
+
+Ce lien est personnel et à usage unique. Si vous n'avez pas demandé cet accès, ignorez cet email.
+
+---
+CyberScan — Sensibilisation NIS2
+"""
+    html = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#030712;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#030712;">
+<tr><td align="center" style="padding:40px 20px;">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#111827;border-radius:12px;border:1px solid #1f2937;">
+  <tr><td style="background:linear-gradient(135deg,#0e7490,#1d4ed8);padding:32px 40px;border-radius:12px 12px 0 0;text-align:center;">
+    <p style="margin:0 0 6px;color:#a5f3fc;font-size:12px;font-weight:800;letter-spacing:2px;">SENSIBILISATION NIS2</p>
+    <h1 style="margin:0;color:#fff;font-size:22px;">Votre lien de connexion</h1>
+  </td></tr>
+  <tr><td style="padding:32px 40px;">
+    <p style="color:#9ca3af;font-size:15px;line-height:1.7;margin:0 0 8px;">{greeting}</p>
+    <p style="color:#9ca3af;font-size:15px;line-height:1.7;margin:0 0 24px;">
+      Vous avez été invité(e) à rejoindre la plateforme de formation cybersécurité de
+      <strong style="color:#f9fafb;">{org_name}</strong>.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+      <tr><td align="center">
+        <a href="{login_url}" style="display:inline-block;background:#0891b2;color:#fff;text-decoration:none;
+        padding:14px 36px;border-radius:8px;font-weight:700;font-size:15px;">
+          Accéder à ma formation
+        </a>
+      </td></tr>
+    </table>
+    <div style="background:#1f2937;border-radius:8px;padding:14px 18px;margin-bottom:20px;">
+      <p style="margin:0;color:#6b7280;font-size:12px;word-break:break-all;">{login_url}</p>
+    </div>
+    <p style="color:#6b7280;font-size:12px;line-height:1.6;margin:0;">
+      Ce lien est personnel, à usage unique et expire dans <strong style="color:#9ca3af;">{token_ttl_minutes} minutes</strong>.<br>
+      Si vous n'avez pas demandé cet accès, ignorez cet email.
+    </p>
+  </td></tr>
+  <tr><td style="padding:20px 40px;border-top:1px solid #1f2937;text-align:center;">
+    <p style="margin:0;color:#4b5563;font-size:12px;">CyberScan — Sensibilisation NIS2</p>
+  </td></tr>
+</table></td></tr></table></body></html>"""
+    _send(to_email, subject, html, plain)
+
+
 def send_password_reset(to_email: str, reset_url: str) -> None:
     plain = f"""Bonjour,
 

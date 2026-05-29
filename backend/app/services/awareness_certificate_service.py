@@ -13,6 +13,7 @@ Sécurité :
   - verification_token : opaque (32 bytes urlsafe) — dans l'URL QR code
   - signature_hash : SHA-256(frozen_data_json + SECRET_KEY) — anti-falsification
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -30,8 +31,8 @@ from app.models.awareness_enrollment import AwarenessEnrollment
 from app.models.awareness_learner import AwarenessLearner
 from app.models.awareness_program import AwarenessProgram
 
-
 # ── ID & signature ─────────────────────────────────────────────────────────────
+
 
 def _generate_public_id() -> str:
     """CERT-YYYY-XXXXXX (6 uppercase hex chars)."""
@@ -56,6 +57,7 @@ def verify_signature(frozen_data: str, signature: str) -> bool:
 
 # ── Issue certificate ──────────────────────────────────────────────────────────
 
+
 async def issue_certificate(
     db: AsyncSession,
     enrollment: AwarenessEnrollment,
@@ -66,19 +68,21 @@ async def issue_certificate(
     """
     existing = (
         await db.execute(
-            select(AwarenessCertificate).where(
-                AwarenessCertificate.enrollment_id == enrollment.id
-            )
+            select(AwarenessCertificate).where(AwarenessCertificate.enrollment_id == enrollment.id)
         )
     ).scalar_one_or_none()
     if existing:
         return existing
 
     learner = (
-        await db.execute(select(AwarenessLearner).where(AwarenessLearner.id == enrollment.learner_id))
+        await db.execute(
+            select(AwarenessLearner).where(AwarenessLearner.id == enrollment.learner_id)
+        )
     ).scalar_one()
     program = (
-        await db.execute(select(AwarenessProgram).where(AwarenessProgram.id == enrollment.program_id))
+        await db.execute(
+            select(AwarenessProgram).where(AwarenessProgram.id == enrollment.program_id)
+        )
     ).scalar_one()
 
     # Frozen snapshot — immutable after issuance
@@ -86,7 +90,8 @@ async def issue_certificate(
         "enrollment_id": enrollment.id,
         "learner_id": learner.id,
         "learner_email": learner.email,
-        "learner_name": f"{learner.first_name or ''} {learner.last_name or ''}".strip() or learner.email,
+        "learner_name": f"{learner.first_name or ''} {learner.last_name or ''}".strip()
+        or learner.email,
         "program_id": program.id,
         "program_title": program.title,
         "program_version": program.version,
@@ -128,6 +133,7 @@ async def issue_certificate(
 
 
 # ── Verification ───────────────────────────────────────────────────────────────
+
 
 async def verify_certificate(
     db: AsyncSession,
@@ -173,6 +179,7 @@ async def verify_certificate(
 
 # ── PDF generation ─────────────────────────────────────────────────────────────
 
+
 def generate_certificate_pdf(cert: AwarenessCertificate, frozen: dict) -> bytes:
     """Generate attestation PDF with reportlab + QR code."""
     import io
@@ -183,7 +190,7 @@ def generate_certificate_pdf(cert: AwarenessCertificate, frozen: dict) -> bytes:
     from reportlab.lib.units import mm
     from reportlab.platypus import SimpleDocTemplate, Spacer, Table, TableStyle
 
-    from app.services.pdf_brand import CYAN, DARK_BG, GRAY, WHITE, get_styles
+    from app.services.pdf_brand import CYAN, GRAY, WHITE
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -194,7 +201,6 @@ def generate_certificate_pdf(cert: AwarenessCertificate, frozen: dict) -> bytes:
         topMargin=20 * mm,
         bottomMargin=20 * mm,
     )
-    styles = get_styles()
     story = []
 
     # ── QR code ────────────────────────────────────────────────────────────────
@@ -207,21 +213,33 @@ def generate_certificate_pdf(cert: AwarenessCertificate, frozen: dict) -> bytes:
     qr.save(qr_io, format="PNG")
     qr_io.seek(0)
 
-    from reportlab.platypus import Image, Paragraph
     from reportlab.lib.styles import ParagraphStyle
+    from reportlab.platypus import Image, Paragraph
 
     _navy = colors.HexColor("#0f172a")
     _cyan = CYAN
     _gray = GRAY
     _white = WHITE
 
-    h1 = ParagraphStyle("cert_h1", fontSize=26, textColor=_cyan, fontName="Helvetica-Bold",
-                         alignment=1, spaceAfter=4)
+    h1 = ParagraphStyle(
+        "cert_h1",
+        fontSize=26,
+        textColor=_cyan,
+        fontName="Helvetica-Bold",
+        alignment=1,
+        spaceAfter=4,
+    )
     sub = ParagraphStyle("cert_sub", fontSize=11, textColor=_gray, alignment=1, spaceAfter=16)
     body = ParagraphStyle("cert_body", fontSize=10, textColor=_white, leading=16, spaceAfter=4)
     label = ParagraphStyle("cert_label", fontSize=8, textColor=_gray, alignment=1)
-    big_name = ParagraphStyle("cert_name", fontSize=20, textColor=_white, fontName="Helvetica-Bold",
-                               alignment=1, spaceAfter=8)
+    big_name = ParagraphStyle(
+        "cert_name",
+        fontSize=20,
+        textColor=_white,
+        fontName="Helvetica-Bold",
+        alignment=1,
+        spaceAfter=8,
+    )
 
     story.append(Spacer(1, 8 * mm))
     story.append(Paragraph("ATTESTATION DE FORMATION", h1))
@@ -233,7 +251,7 @@ def generate_certificate_pdf(cert: AwarenessCertificate, frozen: dict) -> bytes:
     story.append(Paragraph(learner_name or "—", big_name))
     story.append(Spacer(1, 4 * mm))
 
-    story.append(Paragraph(f"pour avoir complété le programme", body))
+    story.append(Paragraph("pour avoir complété le programme", body))
     story.append(Paragraph(f"<b>{frozen.get('program_title', '')}</b>", body))
     story.append(Spacer(1, 6 * mm))
 
@@ -247,33 +265,46 @@ def generate_certificate_pdf(cert: AwarenessCertificate, frozen: dict) -> bytes:
         ["Score de complétion", f"{frozen.get('completion_pct', 0):.0f}%"],
     ]
     t = Table(data, colWidths=[60 * mm, 100 * mm])
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#1e293b")),
-        ("BACKGROUND", (1, 0), (1, -1), colors.HexColor("#0f172a")),
-        ("TEXTCOLOR", (0, 0), (-1, -1), _white),
-        ("FONTSIZE", (0, 0), (-1, -1), 9),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#334155")),
-    ]))
+    t.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#1e293b")),
+                ("BACKGROUND", (1, 0), (1, -1), colors.HexColor("#0f172a")),
+                ("TEXTCOLOR", (0, 0), (-1, -1), _white),
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#334155")),
+            ]
+        )
+    )
     story.append(t)
     story.append(Spacer(1, 8 * mm))
 
     # QR code + verification note
     qr_img = Image(qr_io, width=30 * mm, height=30 * mm)
     qr_table = Table(
-        [[qr_img, Paragraph(
-            f"Vérifiez l'authenticité de cette attestation en scannant le QR code "
-            f"ou en visitant :<br/><i>{verify_url[:80]}</i>",
-            ParagraphStyle("verify", fontSize=7, textColor=_gray, leading=10),
-        )]],
+        [
+            [
+                qr_img,
+                Paragraph(
+                    f"Vérifiez l'authenticité de cette attestation en scannant le QR code "
+                    f"ou en visitant :<br/><i>{verify_url[:80]}</i>",
+                    ParagraphStyle("verify", fontSize=7, textColor=_gray, leading=10),
+                ),
+            ]
+        ],
         colWidths=[35 * mm, 115 * mm],
     )
-    qr_table.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 4),
-    ]))
+    qr_table.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ]
+        )
+    )
     story.append(qr_table)
 
     doc.build(story)
@@ -282,12 +313,14 @@ def generate_certificate_pdf(cert: AwarenessCertificate, frozen: dict) -> bytes:
 
 # ── S3 upload ──────────────────────────────────────────────────────────────────
 
+
 async def _upload_to_s3(public_id: str, pdf_bytes: bytes) -> str | None:
     """Upload PDF to S3 if configured. Returns S3 key or None."""
     if not settings.S3_BUCKET_NAME:
         return None
     try:
         import boto3
+
         s3 = boto3.client("s3", region_name=settings.AWS_REGION)
         key = f"awareness/certificates/{public_id}.pdf"
         s3.put_object(
