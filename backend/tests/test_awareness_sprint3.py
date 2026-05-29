@@ -47,12 +47,9 @@ async def _setup_learner(admin_email: str, learner_email: str) -> dict:
             json={"email": learner_email},
             headers=admin_h,
         )
-        token = (
-            await c.post(
-                f"{BASE}/awareness/auth/magic-link",
-                json={"email": learner_email, "organization_id": org_id},
-            )
-        ).json()["token"]
+        from awareness_helpers import get_awareness_magic_token
+
+        token = await get_awareness_magic_token(learner_email, org_id)
         session = (await c.get(f"{BASE}/awareness/auth/verify", params={"token": token})).json()
     return {"Authorization": f"Bearer {session['access_token']}"}
 

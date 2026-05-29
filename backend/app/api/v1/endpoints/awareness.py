@@ -473,9 +473,9 @@ async def list_programs_admin(
             .scalars()
             .all()
         )
-        prog_out = AwarenessProgramOut.model_validate(prog)
-        prog_out.modules = [AwarenessModuleOut.model_validate(m) for m in mods]
-        out.append(prog_out)
+        prog_dict = {k: v for k, v in prog.__dict__.items() if not k.startswith("_")}
+        prog_dict["modules"] = [AwarenessModuleOut.model_validate(m) for m in mods]
+        out.append(AwarenessProgramOut.model_validate(prog_dict))
     return out
 
 
@@ -500,9 +500,9 @@ async def list_programs(
             .scalars()
             .all()
         )
-        prog_out = AwarenessProgramOut.model_validate(prog)
-        prog_out.modules = [AwarenessModuleOut.model_validate(m) for m in mods]
-        out.append(prog_out)
+        prog_dict = {k: v for k, v in prog.__dict__.items() if not k.startswith("_")}
+        prog_dict["modules"] = [AwarenessModuleOut.model_validate(m) for m in mods]
+        out.append(AwarenessProgramOut.model_validate(prog_dict))
     return out
 
 
@@ -532,9 +532,9 @@ async def get_program(
         .scalars()
         .all()
     )
-    prog_out = AwarenessProgramOut.model_validate(prog)
-    prog_out.modules = [AwarenessModuleOut.model_validate(m) for m in mods]
-    return prog_out
+    prog_dict = {k: v for k, v in prog.__dict__.items() if not k.startswith("_")}
+    prog_dict["modules"] = [AwarenessModuleOut.model_validate(m) for m in mods]
+    return AwarenessProgramOut.model_validate(prog_dict)
 
 
 # ── Enrollments ────────────────────────────────────────────────────────────────
@@ -677,8 +677,9 @@ async def learner_dashboard(
             )
         )
 
-    prog_out = AwarenessProgramOut.model_validate(prog)
-    prog_out.modules = [AwarenessModuleOut.model_validate(m) for m in mods]
+    prog_dict = {k: v for k, v in prog.__dict__.items() if not k.startswith("_")}
+    prog_dict["modules"] = [AwarenessModuleOut.model_validate(m) for m in mods]
+    prog_out = AwarenessProgramOut.model_validate(prog_dict)
 
     return LearnerDashboard(
         enrollment=AwarenessEnrollmentOut.model_validate(enrollment),

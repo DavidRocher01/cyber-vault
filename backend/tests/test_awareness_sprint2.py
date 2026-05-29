@@ -186,7 +186,7 @@ async def test_list_learners_active_only_by_default():
         )
         r = await c.get(f"{BASE}/awareness/organizations/{org_id}/learners", headers=h)
     assert r.status_code == 200
-    assert all(l["is_active"] for l in r.json())
+    assert all(lr["is_active"] for lr in r.json())
 
 
 @pytest.mark.asyncio
@@ -325,7 +325,7 @@ async def test_magic_link_request_returns_202():
             json={"email": "frank@acme.com", "organization_id": org_id},
         )
     assert r.status_code == 202
-    assert "token" in r.json()
+    assert "message" in r.json()
 
 
 @pytest.mark.asyncio
@@ -352,12 +352,9 @@ async def test_magic_link_verify_returns_session():
             json={"email": "grace@acme.com", "first_name": "Grace"},
             headers=h,
         )
-        token = (
-            await c.post(
-                f"{BASE}/awareness/auth/magic-link",
-                json={"email": "grace@acme.com", "organization_id": org_id},
-            )
-        ).json()["token"]
+        from awareness_helpers import get_awareness_magic_token
+
+        token = await get_awareness_magic_token("grace@acme.com", org_id)
         r = await c.get(f"{BASE}/awareness/auth/verify", params={"token": token})
     assert r.status_code == 200
     body = r.json()
@@ -379,12 +376,9 @@ async def test_magic_link_verify_token_single_use():
             json={"email": "henry@acme.com"},
             headers=h,
         )
-        token = (
-            await c.post(
-                f"{BASE}/awareness/auth/magic-link",
-                json={"email": "henry@acme.com", "organization_id": org_id},
-            )
-        ).json()["token"]
+        from awareness_helpers import get_awareness_magic_token
+
+        token = await get_awareness_magic_token("henry@acme.com", org_id)
         await c.get(f"{BASE}/awareness/auth/verify", params={"token": token})
         r2 = await c.get(f"{BASE}/awareness/auth/verify", params={"token": token})
     assert r2.status_code == 401

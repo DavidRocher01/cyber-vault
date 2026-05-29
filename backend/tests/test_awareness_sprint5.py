@@ -10,9 +10,10 @@ Couvre :
   - Endpoint /verify-certificate/{id} : 200 valide, 404 invalide
   - Endpoint GET /awareness/enrollments/{id}/certificate : 404 sans cert
 """
+
 import json
 from datetime import UTC, datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -23,8 +24,8 @@ from app.services.awareness_certificate_service import (
     verify_signature,
 )
 
-
 # ── Unit tests ─────────────────────────────────────────────────────────────────
+
 
 def test_public_id_format():
     pid = _generate_public_id()
@@ -74,18 +75,21 @@ def test_verify_signature_wrong_hash():
 
 # ── PDF generation ─────────────────────────────────────────────────────────────
 
+
 def _mock_cert():
     cert = MagicMock()
     cert.public_id = "CERT-2026-ABCDEF"
     cert.verification_token = "tok123"
     cert.issued_at = datetime.now(UTC)
     cert.expires_at = datetime.now(UTC) + timedelta(days=365)
-    cert.frozen_data_json = json.dumps({
-        "learner_name": "Alice Dupont",
-        "program_title": "NIS2 Essentiel",
-        "program_version": "1.0",
-        "completion_pct": 100.0,
-    })
+    cert.frozen_data_json = json.dumps(
+        {
+            "learner_name": "Alice Dupont",
+            "program_title": "NIS2 Essentiel",
+            "program_version": "1.0",
+            "completion_pct": 100.0,
+        }
+    )
     return cert
 
 
@@ -114,10 +118,13 @@ def test_generate_certificate_pdf_no_expiry():
 
 # ── Integration tests (HTTP) ───────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_verify_certificate_endpoint_invalid_token():
     from httpx import ASGITransport, AsyncClient
+
     from app.main import app
+
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get("/api/v1/verify-certificate/CERT-2026-INVALID?token=badtoken123456")
     assert r.status_code == 404
@@ -127,12 +134,19 @@ async def test_verify_certificate_endpoint_invalid_token():
 async def test_get_certificate_endpoint_not_found():
     """Enrollment sans certificat → 404."""
     from httpx import ASGITransport, AsyncClient
+
     from app.main import app
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         # Register user + get org + create learner + get magic link
-        await c.post("/api/v1/auth/register", json={"email": "cert_admin@test.com", "password": "StrongPass123!"})
-        r = await c.post("/api/v1/auth/login", json={"email": "cert_admin@test.com", "password": "StrongPass123!"})
+        await c.post(
+            "/api/v1/auth/register",
+            json={"email": "cert_admin@test.com", "password": "StrongPass123!"},
+        )
+        r = await c.post(
+            "/api/v1/auth/login",
+            json={"email": "cert_admin@test.com", "password": "StrongPass123!"},
+        )
         admin_h = {"Authorization": f"Bearer {r.json()['access_token']}"}
 
         org_id = (
@@ -143,15 +157,10 @@ async def test_get_certificate_endpoint_not_found():
             json={"email": "cert_learner@test.com"},
             headers=admin_h,
         )
-        token = (
-            await c.post(
-                "/api/v1/awareness/auth/magic-link",
-                json={"email": "cert_learner@test.com", "organization_id": org_id},
-            )
-        ).json()["token"]
-        session = (
-            await c.get("/api/v1/awareness/auth/verify", params={"token": token})
-        ).json()
+        from awareness_helpers import get_awareness_magic_token
+
+        token = await get_awareness_magic_token("cert_learner@test.com", org_id)
+        session = (await c.get("/api/v1/awareness/auth/verify", params={"token": token})).json()
         learner_h = {"Authorization": f"Bearer {session['access_token']}"}
 
         r = await c.get("/api/v1/awareness/enrollments/9999/certificate", headers=learner_h)
@@ -161,11 +170,18 @@ async def test_get_certificate_endpoint_not_found():
 @pytest.mark.asyncio
 async def test_download_certificate_endpoint_not_found():
     from httpx import ASGITransport, AsyncClient
+
     from app.main import app
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        await c.post("/api/v1/auth/register", json={"email": "dl_cert_admin@test.com", "password": "StrongPass123!"})
-        r = await c.post("/api/v1/auth/login", json={"email": "dl_cert_admin@test.com", "password": "StrongPass123!"})
+        await c.post(
+            "/api/v1/auth/register",
+            json={"email": "dl_cert_admin@test.com", "password": "StrongPass123!"},
+        )
+        r = await c.post(
+            "/api/v1/auth/login",
+            json={"email": "dl_cert_admin@test.com", "password": "StrongPass123!"},
+        )
         admin_h = {"Authorization": f"Bearer {r.json()['access_token']}"}
 
         org_id = (
@@ -176,16 +192,13 @@ async def test_download_certificate_endpoint_not_found():
             json={"email": "dl_learner@test.com"},
             headers=admin_h,
         )
-        token = (
-            await c.post(
-                "/api/v1/awareness/auth/magic-link",
-                json={"email": "dl_learner@test.com", "organization_id": org_id},
-            )
-        ).json()["token"]
-        session = (
-            await c.get("/api/v1/awareness/auth/verify", params={"token": token})
-        ).json()
+        from awareness_helpers import get_awareness_magic_token
+
+        token = await get_awareness_magic_token("dl_learner@test.com", org_id)
+        session = (await c.get("/api/v1/awareness/auth/verify", params={"token": token})).json()
         learner_h = {"Authorization": f"Bearer {session['access_token']}"}
 
-        r = await c.get("/api/v1/awareness/enrollments/9999/certificate/download", headers=learner_h)
+        r = await c.get(
+            "/api/v1/awareness/enrollments/9999/certificate/download", headers=learner_h
+        )
     assert r.status_code == 404

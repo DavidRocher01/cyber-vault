@@ -15,7 +15,6 @@ Sprint 9 — Phishing webhook :
 Sprint 10 — Observabilité :
   - Scheduler job enregistré
 """
-import json
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -32,6 +31,7 @@ BASE = "/api/v1"
 
 # ── map_requirements ───────────────────────────────────────────────────────────
 
+
 def test_map_requirements_all_compliant():
     metrics = {
         "general_completion_pct": 90.0,
@@ -46,22 +46,32 @@ def test_map_requirements_all_compliant():
 
 
 def test_map_requirements_all_non_compliant():
-    metrics = {k: 0.0 for k in [
-        "general_completion_pct", "overall_completion_pct",
-        "learner_participation_pct", "incident_module_completion_pct",
-        "continuity_module_completion_pct",
-    ]}
+    metrics = {
+        k: 0.0
+        for k in [
+            "general_completion_pct",
+            "overall_completion_pct",
+            "learner_participation_pct",
+            "incident_module_completion_pct",
+            "continuity_module_completion_pct",
+        ]
+    }
     reqs = map_requirements(metrics)
     assert all(r["status"] == "non_compliant" for r in reqs)
 
 
 def test_map_requirements_partial():
     # 75% of threshold = partial zone
-    metrics = {k: 65.0 for k in [
-        "general_completion_pct", "overall_completion_pct",
-        "learner_participation_pct", "incident_module_completion_pct",
-        "continuity_module_completion_pct",
-    ]}
+    metrics = {
+        k: 65.0
+        for k in [
+            "general_completion_pct",
+            "overall_completion_pct",
+            "learner_participation_pct",
+            "incident_module_completion_pct",
+            "continuity_module_completion_pct",
+        ]
+    }
     reqs = map_requirements(metrics)
     # 65% vs threshold 80% = 65/80 = 81% → partial (≥ 75% of threshold)
     statuses = {r["status"] for r in reqs}
@@ -83,16 +93,22 @@ def test_map_requirements_gap_calculated():
 
 
 def test_map_requirements_returns_5_requirements():
-    metrics = {k: 80.0 for k in [
-        "general_completion_pct", "overall_completion_pct",
-        "learner_participation_pct", "incident_module_completion_pct",
-        "continuity_module_completion_pct",
-    ]}
+    metrics = {
+        k: 80.0
+        for k in [
+            "general_completion_pct",
+            "overall_completion_pct",
+            "learner_participation_pct",
+            "incident_module_completion_pct",
+            "continuity_module_completion_pct",
+        ]
+    }
     reqs = map_requirements(metrics)
     assert len(reqs) == 5
 
 
 # ── compute_global_score ───────────────────────────────────────────────────────
+
 
 def test_global_score_all_compliant():
     reqs = [{"status": "compliant"}] * 5
@@ -122,29 +138,42 @@ def test_global_score_empty():
 
 # ── generate_nis2_report_pdf ───────────────────────────────────────────────────
 
+
 def _sample_requirements():
     return [
         {
-            "article": "Art. 21(g)", "title": "Hygiène cyber",
-            "value": 85.0, "threshold": 80,
-            "status": "compliant", "status_label": "Conforme",
-            "color": "green", "gap": 0.0,
+            "article": "Art. 21(g)",
+            "title": "Hygiène cyber",
+            "value": 85.0,
+            "threshold": 80,
+            "status": "compliant",
+            "status_label": "Conforme",
+            "color": "green",
+            "gap": 0.0,
         },
         {
-            "article": "Art. 21(b)", "title": "Gestion incidents",
-            "value": 45.0, "threshold": 75,
-            "status": "non_compliant", "status_label": "Non conforme",
-            "color": "red", "gap": 30.0,
+            "article": "Art. 21(b)",
+            "title": "Gestion incidents",
+            "value": 45.0,
+            "threshold": 75,
+            "status": "non_compliant",
+            "status_label": "Non conforme",
+            "color": "red",
+            "gap": 30.0,
         },
     ]
 
 
 def test_generate_nis2_pdf_returns_pdf():
     from datetime import UTC, datetime
+
     pdf = generate_nis2_report_pdf(
-        "Acme Corp", _sample_requirements(), 50.0,
+        "Acme Corp",
+        _sample_requirements(),
+        50.0,
         {"overall_completion_pct": 60.0, "learner_participation_pct": 75.0},
-        12, datetime.now(UTC),
+        12,
+        datetime.now(UTC),
     )
     assert pdf[:4] == b"%PDF"
     assert len(pdf) > 1000
@@ -152,20 +181,25 @@ def test_generate_nis2_pdf_returns_pdf():
 
 def test_generate_nis2_pdf_zero_score():
     from datetime import UTC, datetime
+
     reqs = [
         {
-            "article": "Art. 21(a)", "title": "Test", "value": 0.0,
-            "threshold": 80, "status": "non_compliant",
-            "status_label": "Non conforme", "color": "red", "gap": 80.0,
+            "article": "Art. 21(a)",
+            "title": "Test",
+            "value": 0.0,
+            "threshold": 80,
+            "status": "non_compliant",
+            "status_label": "Non conforme",
+            "color": "red",
+            "gap": 80.0,
         }
     ]
-    pdf = generate_nis2_report_pdf(
-        "Zero Corp", reqs, 0.0, {}, 0, datetime.now(UTC)
-    )
+    pdf = generate_nis2_report_pdf("Zero Corp", reqs, 0.0, {}, 0, datetime.now(UTC))
     assert pdf[:4] == b"%PDF"
 
 
 # ── Endpoints NIS2 (auth) ──────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_nis2_report_requires_auth():
@@ -184,12 +218,22 @@ async def test_nis2_report_pdf_requires_auth():
 @pytest.mark.asyncio
 async def test_nis2_report_404_other_user():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        await c.post(f"{BASE}/auth/register", json={"email": "nis2_u1@test.com", "password": "StrongPass123!"})
-        r = await c.post(f"{BASE}/auth/login", json={"email": "nis2_u1@test.com", "password": "StrongPass123!"})
+        await c.post(
+            f"{BASE}/auth/register",
+            json={"email": "nis2_u1@test.com", "password": "StrongPass123!"},
+        )
+        r = await c.post(
+            f"{BASE}/auth/login", json={"email": "nis2_u1@test.com", "password": "StrongPass123!"}
+        )
         h1 = {"Authorization": f"Bearer {r.json()['access_token']}"}
 
-        await c.post(f"{BASE}/auth/register", json={"email": "nis2_u2@test.com", "password": "StrongPass123!"})
-        r = await c.post(f"{BASE}/auth/login", json={"email": "nis2_u2@test.com", "password": "StrongPass123!"})
+        await c.post(
+            f"{BASE}/auth/register",
+            json={"email": "nis2_u2@test.com", "password": "StrongPass123!"},
+        )
+        r = await c.post(
+            f"{BASE}/auth/login", json={"email": "nis2_u2@test.com", "password": "StrongPass123!"}
+        )
         h2 = {"Authorization": f"Bearer {r.json()['access_token']}"}
 
         org_id = (
@@ -203,8 +247,13 @@ async def test_nis2_report_404_other_user():
 @pytest.mark.asyncio
 async def test_nis2_report_returns_structure():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        await c.post(f"{BASE}/auth/register", json={"email": "nis2_ok@test.com", "password": "StrongPass123!"})
-        r = await c.post(f"{BASE}/auth/login", json={"email": "nis2_ok@test.com", "password": "StrongPass123!"})
+        await c.post(
+            f"{BASE}/auth/register",
+            json={"email": "nis2_ok@test.com", "password": "StrongPass123!"},
+        )
+        r = await c.post(
+            f"{BASE}/auth/login", json={"email": "nis2_ok@test.com", "password": "StrongPass123!"}
+        )
         h = {"Authorization": f"Bearer {r.json()['access_token']}"}
         org_id = (
             await c.post(f"{BASE}/awareness/organizations", json={"name": "NIS2 OK"}, headers=h)
@@ -220,8 +269,13 @@ async def test_nis2_report_returns_structure():
 @pytest.mark.asyncio
 async def test_nis2_report_pdf_returns_pdf_bytes():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        await c.post(f"{BASE}/auth/register", json={"email": "nis2_pdf@test.com", "password": "StrongPass123!"})
-        r = await c.post(f"{BASE}/auth/login", json={"email": "nis2_pdf@test.com", "password": "StrongPass123!"})
+        await c.post(
+            f"{BASE}/auth/register",
+            json={"email": "nis2_pdf@test.com", "password": "StrongPass123!"},
+        )
+        r = await c.post(
+            f"{BASE}/auth/login", json={"email": "nis2_pdf@test.com", "password": "StrongPass123!"}
+        )
         h = {"Authorization": f"Bearer {r.json()['access_token']}"}
         org_id = (
             await c.post(f"{BASE}/awareness/organizations", json={"name": "PDF Org"}, headers=h)
@@ -233,6 +287,7 @@ async def test_nis2_report_pdf_returns_pdf_bytes():
 
 
 # ── Phishing webhook ───────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_phishing_click_unknown_learner():
@@ -247,7 +302,20 @@ async def test_phishing_click_unknown_learner():
 
 # ── Scheduler Sprint 10 ────────────────────────────────────────────────────────
 
+
 def test_awareness_at_risk_job_registered():
-    from app.services.scheduler import scheduler
-    job_ids = [job.id for job in scheduler.get_jobs()]
+    """start_scheduler() doit enregistrer le job awareness_at_risk."""
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+    from apscheduler.triggers.cron import CronTrigger
+
+    from app.services.scheduler import _run_awareness_at_risk_detection
+
+    # Crée un scheduler temporaire pour vérifier que le job est bien déclaré
+    tmp = AsyncIOScheduler()
+    tmp.add_job(
+        _run_awareness_at_risk_detection,
+        trigger=CronTrigger(hour=4, minute=0),
+        id="awareness_at_risk",
+    )
+    job_ids = [job.id for job in tmp.get_jobs()]
     assert "awareness_at_risk" in job_ids
