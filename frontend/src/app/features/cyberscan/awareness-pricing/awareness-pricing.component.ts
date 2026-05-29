@@ -149,7 +149,11 @@ const PLANS: AwarenessPlan[] = [
                   <span class="text-gray-500 text-sm"> / {{ plan.period }}</span>
                 </div>
                 <p class="text-gray-400 text-xs">
-                  {{ plan.maxLearners ? 'Jusqu'à ' + plan.maxLearners + ' learners' : 'Learners illimités' }}
+                  {{
+                    plan.maxLearners
+                      ? "Jusqu'à " + plan.maxLearners + ' learners'
+                      : 'Learners illimités'
+                  }}
                 </p>
               </div>
 
