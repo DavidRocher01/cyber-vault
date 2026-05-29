@@ -694,16 +694,16 @@ export class AwarenessModuleComponent implements OnInit, OnDestroy {
       completed: 'bg-green-500/20 text-green-400',
       in_progress: 'bg-blue-500/20 text-blue-400',
       failed: 'bg-red-500/20 text-red-400',
-      not_started: 'bg-slate-700 text-slate-500',
+      not_started: 'bg-gray-800 text-gray-500',
     };
-    return m[status] ?? 'bg-slate-700 text-slate-500';
+    return m[status] ?? 'bg-gray-800 text-gray-500';
   }
 
   moduleCardClass(status: string): string {
-    if (status === 'not_started') return 'border-slate-700/50 opacity-60';
+    if (status === 'not_started') return 'border-gray-700/50 opacity-60';
     if (status === 'in_progress') return 'border-blue-500/40';
     if (status === 'completed') return 'border-green-500/40';
-    return 'border-slate-700';
+    return 'border-gray-700';
   }
 
   private startHeartbeat(moduleId: number) {
