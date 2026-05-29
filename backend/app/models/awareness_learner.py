@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -10,6 +10,7 @@ class AwarenessLearner(Base):
     """Employee of a client organisation — authenticates via magic link."""
 
     __tablename__ = "awareness_learners"
+    __table_args__ = (Index("ix_awareness_learners_org_active", "organization_id", "is_active"),)
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     organization_id: Mapped[int] = mapped_column(

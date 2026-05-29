@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -285,13 +285,12 @@ class Nis2SaveIn(BaseModel):
 
 
 class Nis2Out(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     items: dict[str, str]
     score: int
     updated_at: datetime | None
     categories: list  # static definition returned for convenience
-
-    class Config:
-        from_attributes = True
 
 
 # ---------------------------------------------------------------------------

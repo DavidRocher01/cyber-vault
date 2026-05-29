@@ -7,7 +7,10 @@ Sprint 3 — Programmes, inscriptions, progression (start/heartbeat/complete), d
 
 from __future__ import annotations
 
+from collections import defaultdict
+
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
@@ -127,21 +130,24 @@ async def list_organizations(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[AwarenessOrganizationStats]:
-    result = await db.execute(
-        select(AwarenessOrganization).where(AwarenessOrganization.owner_user_id == current_user.id)
-    )
-    orgs = result.scalars().all()
+    rows = (
+        await db.execute(
+            select(
+                AwarenessOrganization,
+                func.count(AwarenessLearner.id).label("learner_count"),
+            )
+            .outerjoin(
+                AwarenessLearner,
+                (AwarenessLearner.organization_id == AwarenessOrganization.id)
+                & (AwarenessLearner.is_active == True),
+            )
+            .where(AwarenessOrganization.owner_user_id == current_user.id)
+            .group_by(AwarenessOrganization.id)
+        )
+    ).all()
 
     out = []
-    for org in orgs:
-        learner_count = (
-            await db.execute(
-                select(func.count(AwarenessLearner.id)).where(
-                    AwarenessLearner.organization_id == org.id,
-                    AwarenessLearner.is_active == True,
-                )
-            )
-        ).scalar_one()
+    for org, learner_count in rows:
         stats = AwarenessOrganizationStats.model_validate(org)
         stats.learner_count = learner_count
         out.append(stats)
@@ -154,15 +160,27 @@ async def get_organization(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> AwarenessOrganizationStats:
-    org = await _get_org_or_404(org_id, current_user, db)
-    learner_count = (
+    row = (
         await db.execute(
-            select(func.count(AwarenessLearner.id)).where(
-                AwarenessLearner.organization_id == org.id,
-                AwarenessLearner.is_active == True,
+            select(
+                AwarenessOrganization,
+                func.count(AwarenessLearner.id).label("learner_count"),
             )
+            .outerjoin(
+                AwarenessLearner,
+                (AwarenessLearner.organization_id == AwarenessOrganization.id)
+                & (AwarenessLearner.is_active == True),
+            )
+            .where(
+                AwarenessOrganization.id == org_id,
+                AwarenessOrganization.owner_user_id == current_user.id,
+            )
+            .group_by(AwarenessOrganization.id)
         )
-    ).scalar_one()
+    ).one_or_none()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Organisation introuvable.")
+    org, learner_count = row
     stats = AwarenessOrganizationStats.model_validate(org)
     stats.learner_count = learner_count
     return stats
@@ -253,8 +271,8 @@ async def create_learner(
                 org_name=org.name,
                 login_url=login_url,
             )
-    except Exception:
-        pass  # Email failure must not block learner creation
+    except Exception as e:
+        logger.warning(f"Envoi email magic-link échoué pour {payload.email}: {e}")
 
     return AwarenessLearnerOut.model_validate(learner)
 
@@ -353,8 +371,8 @@ async def enroll_all_learners(
                     org_name=org.name,
                     login_url=login_url,
                 )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Envoi email magic-link échoué pour {learner.email}: {e}")
 
     await db.commit()
     return {"enrolled": enrolled, "skipped": skipped, "total": len(learners)}
@@ -417,8 +435,8 @@ async def request_magic_link(
             org_name=org_name,
             login_url=login_url,
         )
-    except Exception:
-        pass  # Ne pas bloquer si l'envoi échoue
+    except Exception as e:
+        logger.warning(f"Envoi magic-link échoué pour {learner.email}: {e}")
 
     return {"message": "Si l'email existe, un lien de connexion vous a été envoyé."}
 
@@ -452,31 +470,52 @@ async def verify_magic_link_token(
 # ── Programmes (public pour les learners authentifiés) ─────────────────────────
 
 
+async def _build_programs_out(programs: list, db: AsyncSession) -> list[AwarenessProgramOut]:
+    """Charge tous les modules actifs en une seule requête et construit les AwarenessProgramOut."""
+    if not programs:
+        return []
+    program_ids = [p.id for p in programs]
+    all_mods = (
+        (
+            await db.execute(
+                select(AwarenessModule)
+                .where(
+                    AwarenessModule.program_id.in_(program_ids),
+                    AwarenessModule.is_active == True,
+                )
+                .order_by(AwarenessModule.program_id, AwarenessModule.position)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    mods_by_program: dict[int, list] = defaultdict(list)
+    for mod in all_mods:
+        mods_by_program[mod.program_id].append(mod)
+
+    out = []
+    for prog in programs:
+        prog_dict = {k: v for k, v in prog.__dict__.items() if not k.startswith("_")}
+        prog_dict["modules"] = [
+            AwarenessModuleOut.model_validate(m) for m in mods_by_program[prog.id]
+        ]
+        out.append(AwarenessProgramOut.model_validate(prog_dict))
+    return out
+
+
 @router.get("/admin/programs", response_model=list[AwarenessProgramOut])
 async def list_programs_admin(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[AwarenessProgramOut]:
     """Liste les programmes actifs (accès consultant authentifié)."""
-    result = await db.execute(select(AwarenessProgram).where(AwarenessProgram.is_active == True))
-    programs = result.scalars().all()
-    out = []
-    for prog in programs:
-        mods = (
-            (
-                await db.execute(
-                    select(AwarenessModule)
-                    .where(AwarenessModule.program_id == prog.id, AwarenessModule.is_active == True)
-                    .order_by(AwarenessModule.position)
-                )
-            )
-            .scalars()
-            .all()
-        )
-        prog_dict = {k: v for k, v in prog.__dict__.items() if not k.startswith("_")}
-        prog_dict["modules"] = [AwarenessModuleOut.model_validate(m) for m in mods]
-        out.append(AwarenessProgramOut.model_validate(prog_dict))
-    return out
+    programs = (
+        (await db.execute(select(AwarenessProgram).where(AwarenessProgram.is_active == True)))
+        .scalars()
+        .all()
+    )
+    return await _build_programs_out(programs, db)
 
 
 @router.get("/programs", response_model=list[AwarenessProgramOut])
@@ -485,25 +524,12 @@ async def list_programs(
     db: AsyncSession = Depends(get_db),
 ) -> list[AwarenessProgramOut]:
     """Liste les programmes actifs disponibles pour un learner."""
-    result = await db.execute(select(AwarenessProgram).where(AwarenessProgram.is_active == True))
-    programs = result.scalars().all()
-    out = []
-    for prog in programs:
-        mods = (
-            (
-                await db.execute(
-                    select(AwarenessModule)
-                    .where(AwarenessModule.program_id == prog.id, AwarenessModule.is_active == True)
-                    .order_by(AwarenessModule.position)
-                )
-            )
-            .scalars()
-            .all()
-        )
-        prog_dict = {k: v for k, v in prog.__dict__.items() if not k.startswith("_")}
-        prog_dict["modules"] = [AwarenessModuleOut.model_validate(m) for m in mods]
-        out.append(AwarenessProgramOut.model_validate(prog_dict))
-    return out
+    programs = (
+        (await db.execute(select(AwarenessProgram).where(AwarenessProgram.is_active == True)))
+        .scalars()
+        .all()
+    )
+    return await _build_programs_out(programs, db)
 
 
 @router.get("/programs/{program_id}", response_model=AwarenessProgramOut)
@@ -521,20 +547,8 @@ async def get_program(
     ).scalar_one_or_none()
     if prog is None:
         raise HTTPException(status_code=404, detail="Programme introuvable.")
-    mods = (
-        (
-            await db.execute(
-                select(AwarenessModule)
-                .where(AwarenessModule.program_id == prog.id, AwarenessModule.is_active == True)
-                .order_by(AwarenessModule.position)
-            )
-        )
-        .scalars()
-        .all()
-    )
-    prog_dict = {k: v for k, v in prog.__dict__.items() if not k.startswith("_")}
-    prog_dict["modules"] = [AwarenessModuleOut.model_validate(m) for m in mods]
-    return AwarenessProgramOut.model_validate(prog_dict)
+    result = await _build_programs_out([prog], db)
+    return result[0]
 
 
 # ── Enrollments ────────────────────────────────────────────────────────────────

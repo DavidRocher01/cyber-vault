@@ -3,10 +3,12 @@ Stripe webhook handler.
 Listens for subscription lifecycle events and updates DB accordingly.
 """
 
+import asyncio
 from datetime import UTC, datetime
 
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request
+from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,7 +32,8 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     except stripe.SignatureVerificationError:
         raise HTTPException(status_code=400, detail="Invalid Stripe signature")
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning(f"Stripe webhook payload invalide: {type(e).__name__}")
+        raise HTTPException(status_code=400, detail="Invalid payload")
 
     event_id = event["id"]
     existing = await db.execute(
@@ -86,8 +89,8 @@ async def _handle_checkout_completed(session: dict, db: AsyncSession) -> None:
     if not customer_id or not subscription_id:
         return
 
-    # Retrieve full subscription to get price_id and period
-    stripe_sub = stripe.Subscription.retrieve(subscription_id)
+    # Retrieve full subscription to get price_id and period (async-safe)
+    stripe_sub = await asyncio.to_thread(stripe.Subscription.retrieve, subscription_id)
     price_id = stripe_sub["items"]["data"][0]["price"]["id"]
 
     # Find matching plan

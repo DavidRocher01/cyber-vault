@@ -17,9 +17,24 @@
       </p>
     </div>
 
+    <!-- States -->
+    @if (loading()) {
+      <div class="flex justify-center py-20"><mat-spinner diameter="40" /></div>
+    } @else if (error()) {
+      <div class="rounded-xl border border-red-800/40 bg-red-900/10 p-8 text-center text-red-400">
+        <mat-icon class="!text-[2rem] !w-[2rem] !h-[2rem] mb-2">error_outline</mat-icon>
+        <p class="text-sm">Impossible de charger les articles. Réessayez plus tard.</p>
+      </div>
+    } @else if (articles().length === 0) {
+      <div class="rounded-xl border border-gray-700 bg-gray-900/40 p-12 text-center text-gray-500">
+        <mat-icon class="!text-[3rem] !w-[3rem] !h-[3rem] mb-3">article</mat-icon>
+        <p>Aucun article disponible pour le moment.</p>
+      </div>
+    }
+
     <!-- Articles list -->
     <div class="space-y-5">
-      @for (article of (articles$ | async) ?? []; track article.slug) {
+      @for (article of articles(); track article.slug) {
         <a
           [routerLink]="['/cyberscan/blog', article.slug]"
           class="block bg-gray-800/50 border border-gray-700 rounded-2xl p-6 hover:border-cyan-700 transition-all group"

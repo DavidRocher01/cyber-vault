@@ -14,6 +14,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from fastapi import HTTPException
+from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -272,8 +273,8 @@ async def complete_module(
                     org_name=org.name,
                     certificate_url=certificate_url,
                 )
-        except Exception:
-            pass  # Email failure must not block completion
+        except Exception as e:
+            logger.warning(f"Envoi email complétion échoué pour {learner.email}: {e}")
 
     return enrollment
 

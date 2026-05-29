@@ -1,15 +1,15 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { CommonModule } from '@angular/common';
 import { Title, Meta } from '@angular/platform-browser';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { BlogService, BlogArticle } from './blog.service';
 
 @Component({
   standalone: true,
   selector: 'app-blog-article',
-  imports: [RouterLink, CommonModule, MatIconModule, NavButtonsComponent],
+  imports: [RouterLink, MatIconModule, MatProgressSpinnerModule, NavButtonsComponent],
   templateUrl: './blog-article.component.html',
 })
 export class BlogArticleComponent implements OnInit {
@@ -19,21 +19,29 @@ export class BlogArticleComponent implements OnInit {
   private meta = inject(Meta);
   private blog = inject(BlogService);
 
-  article: BlogArticle | null = null;
+  article = signal<BlogArticle | null>(null);
+  loading = signal(true);
 
   ngOnInit() {
     const slug = this.route.snapshot.paramMap.get('slug') ?? '';
-    this.blog.getBySlug(slug).subscribe(found => {
-      if (!found) {
+    this.blog.getBySlug(slug).subscribe({
+      next: found => {
+        this.loading.set(false);
+        if (!found) {
+          this.router.navigate(['/cyberscan/blog']);
+          return;
+        }
+        this.article.set(found);
+        this.titleService.setTitle(`${found.title} | CyberScan Blog`);
+        this.meta.updateTag({ name: 'description', content: found.description });
+        this.meta.updateTag({ property: 'og:title', content: found.title });
+        this.meta.updateTag({ property: 'og:description', content: found.description });
+        this.meta.updateTag({ name: 'robots', content: 'index, follow' });
+      },
+      error: () => {
+        this.loading.set(false);
         this.router.navigate(['/cyberscan/blog']);
-        return;
-      }
-      this.article = found;
-      this.titleService.setTitle(`${found.title} | CyberScan Blog`);
-      this.meta.updateTag({ name: 'description', content: found.description });
-      this.meta.updateTag({ property: 'og:title', content: found.title });
-      this.meta.updateTag({ property: 'og:description', content: found.description });
-      this.meta.updateTag({ name: 'robots', content: 'index, follow' });
+      },
     });
   }
 

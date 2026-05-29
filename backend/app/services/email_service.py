@@ -11,6 +11,7 @@ from email.mime.text import MIMEText
 from pathlib import Path
 
 import resend
+from loguru import logger
 
 from app.core.config import settings
 
@@ -466,8 +467,8 @@ CyberScan<br>
             html_confirm,
             plain_confirm,
         )
-    except Exception:
-        pass  # Ne pas bloquer si la confirmation échoue
+    except Exception as e:
+        logger.warning(f"Envoi email confirmation contact échoué: {e}")
 
 
 def send_monthly_digest(
