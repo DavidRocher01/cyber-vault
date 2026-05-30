@@ -10,11 +10,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
 import app.models  # noqa: F401 — register all models with Base.metadata
-
 from app.__version__ import __version__
 from app.api.v1.router import api_router
 from app.core.config import settings
-from app.core.database import get_db
+from app.core.database import AsyncSessionLocal, get_db
 from app.core.limiter import limiter
 from app.core.logging import setup_logging
 from app.services.scheduler import start_scheduler, stop_scheduler
@@ -50,7 +49,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "frame-ancestors 'none'"
         )
         if settings.APP_ENV == "production":
-            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains; preload"
+            )
         return response
 
 
@@ -59,15 +60,44 @@ async def _seed_plans() -> None:
     stripe_price_id is intentionally excluded — set it via admin or migration
     to avoid overwriting live Stripe IDs on restart.
     """
-    from app.core.database import AsyncSessionLocal
-    from app.models.plan import Plan
     from sqlalchemy import select
 
+    from app.core.database import AsyncSessionLocal
+    from app.models.plan import Plan
+
     PLANS = [
-        {"name": "free",     "display_name": "Gratuit",  "price_eur": 0,    "max_sites": 1,  "scan_interval_days": 0,  "tier_level": 1},
-        {"name": "starter",  "display_name": "Starter",  "price_eur": 990,  "max_sites": 1,  "scan_interval_days": 30, "tier_level": 2},
-        {"name": "pro",      "display_name": "Pro",       "price_eur": 3990, "max_sites": 3,  "scan_interval_days": 7,  "tier_level": 3},
-        {"name": "business", "display_name": "Business",  "price_eur": 4990, "max_sites": 10, "scan_interval_days": 1,  "tier_level": 4},
+        {
+            "name": "free",
+            "display_name": "Gratuit",
+            "price_eur": 0,
+            "max_sites": 1,
+            "scan_interval_days": 0,
+            "tier_level": 1,
+        },
+        {
+            "name": "starter",
+            "display_name": "Starter",
+            "price_eur": 990,
+            "max_sites": 1,
+            "scan_interval_days": 30,
+            "tier_level": 2,
+        },
+        {
+            "name": "pro",
+            "display_name": "Pro",
+            "price_eur": 3990,
+            "max_sites": 3,
+            "scan_interval_days": 7,
+            "tier_level": 3,
+        },
+        {
+            "name": "business",
+            "display_name": "Business",
+            "price_eur": 4990,
+            "max_sites": 10,
+            "scan_interval_days": 1,
+            "tier_level": 4,
+        },
     ]
     async with AsyncSessionLocal() as db:
         for plan_data in PLANS:
@@ -78,10 +108,53 @@ async def _seed_plans() -> None:
     logger.info("Plans seeded")
 
 
+async def _seed_awareness_badges() -> None:
+    """Seed / upsert the 20 awareness badge definitions (idempotent)."""
+    from app.services.awareness_gamification import seed_badges
+
+    async with AsyncSessionLocal() as db:
+        count = await seed_badges(db)
+    if count:
+        logger.info(f"Awareness badges seeded: {count} created")
+
+
+async def _import_awareness_content() -> None:
+    """Import NIS2 awareness content from content/fr/ if no programs exist yet (idempotent)."""
+    from pathlib import Path
+
+    from sqlalchemy import func, select
+
+    from app.core.database import AsyncSessionLocal
+    from app.models.awareness_program import AwarenessProgram
+    from app.services.awareness_content_importer import import_from_directory
+
+    content_dir = Path(__file__).parent.parent.parent / "content" / "fr"
+    if not content_dir.exists():
+        logger.warning(f"Awareness content directory not found: {content_dir}")
+        return
+
+    async with AsyncSessionLocal() as db:
+        count = (await db.execute(select(func.count(AwarenessProgram.id)))).scalar_one()
+        if count > 0:
+            logger.debug(f"Awareness content already imported ({count} programme(s)) — skipping")
+            return
+        try:
+            summary = await import_from_directory(db, content_dir)
+            logger.info(
+                f"Awareness content imported: {summary['programs']} programmes, "
+                f"{summary['modules']} modules"
+            )
+            if summary.get("errors"):
+                for e in summary["errors"]:
+                    logger.warning(f"Awareness content import error: {e}")
+        except Exception as exc:
+            logger.error(f"Awareness content auto-import failed: {exc}")
+
+
 app = FastAPI(
     title=settings.APP_NAME,
     version=__version__,
-    on_startup=[_seed_plans, start_scheduler],
+    on_startup=[_seed_plans, _seed_awareness_badges, _import_awareness_content, start_scheduler],
     on_shutdown=[stop_scheduler],
 )
 
@@ -102,7 +175,9 @@ app.include_router(api_router)
 # Local file upload serving (dev only — in prod files go to S3)
 if not settings.S3_BUCKET_NAME:
     from pathlib import Path
+
     from fastapi.staticfiles import StaticFiles
+
     _upload_dir = Path("uploads")
     _upload_dir.mkdir(exist_ok=True)
     app.mount("/uploads", StaticFiles(directory=str(_upload_dir)), name="uploads")
@@ -111,6 +186,7 @@ if not settings.S3_BUCKET_NAME:
 @app.get("/sitemap.xml", include_in_schema=False)
 async def sitemap(db: AsyncSession = Depends(get_db)):
     from sqlalchemy import select
+
     from app.models.blog_post import BlogPost  # noqa: F401
 
     base = "https://cyberscanapp.com"
@@ -149,12 +225,14 @@ async def sitemap(db: AsyncSession = Depends(get_db)):
 </urlset>"""
 
     from fastapi.responses import Response as FastAPIResponse
+
     return FastAPIResponse(content=xml, media_type="application/xml")
 
 
 @app.get("/robots.txt", include_in_schema=False)
 async def robots():
     from fastapi.responses import PlainTextResponse
+
     return PlainTextResponse(
         "User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /cyberscan/admin\n"
         "Sitemap: https://cyberscanapp.com/sitemap.xml\n"

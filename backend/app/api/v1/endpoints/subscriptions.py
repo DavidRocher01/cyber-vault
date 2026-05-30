@@ -1,18 +1,18 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models.user import User
 from app.models.plan import Plan
 from app.models.subscription import Subscription
+from app.models.user import User
 from app.schemas.cyberscan import CheckoutSessionOut, SubscriptionOut
 from app.services import stripe_service
-from app.core.config import settings
 
 ADDON_EXTRA_SITES_COUNT = settings.ADDON_EXTRA_SITES_COUNT
 ADDON_EXTRA_SITES_PRICE_EUR = settings.ADDON_EXTRA_SITES_PRICE_EUR
@@ -54,22 +54,24 @@ async def create_checkout(
             select(Subscription).where(Subscription.user_id == current_user.id)
         )
         existing = result.scalar_one_or_none()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if existing:
             existing.plan_id = plan.id
             existing.status = "active"
             existing.current_period_start = now
             existing.current_period_end = now + timedelta(days=max(plan.scan_interval_days * 2, 30))
         else:
-            db.add(Subscription(
-                user_id=current_user.id,
-                plan_id=plan.id,
-                stripe_customer_id="dev_customer",
-                stripe_subscription_id="dev_subscription",
-                status="active",
-                current_period_start=now,
-                current_period_end=now + timedelta(days=max(plan.scan_interval_days * 2, 30)),
-            ))
+            db.add(
+                Subscription(
+                    user_id=current_user.id,
+                    plan_id=plan.id,
+                    stripe_customer_id="dev_customer",
+                    stripe_subscription_id="dev_subscription",
+                    status="active",
+                    current_period_start=now,
+                    current_period_end=now + timedelta(days=max(plan.scan_interval_days * 2, 30)),
+                )
+            )
         await db.commit()
         return {"checkout_url": f"{FRONTEND_URL}/cyberscan/success"}
 
@@ -79,22 +81,24 @@ async def create_checkout(
             select(Subscription).where(Subscription.user_id == current_user.id)
         )
         existing = result.scalar_one_or_none()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if existing:
             existing.plan_id = plan.id
             existing.status = "active"
             existing.current_period_start = now
             existing.current_period_end = now + timedelta(days=365 * 10)
         else:
-            db.add(Subscription(
-                user_id=current_user.id,
-                plan_id=plan.id,
-                stripe_customer_id=None,
-                stripe_subscription_id=None,
-                status="active",
-                current_period_start=now,
-                current_period_end=now + timedelta(days=365 * 10),
-            ))
+            db.add(
+                Subscription(
+                    user_id=current_user.id,
+                    plan_id=plan.id,
+                    stripe_customer_id=None,
+                    stripe_subscription_id=None,
+                    status="active",
+                    current_period_start=now,
+                    current_period_end=now + timedelta(days=365 * 10),
+                )
+            )
         await db.commit()
         return {"checkout_url": f"{FRONTEND_URL}/cyberscan/dashboard"}
 
@@ -102,9 +106,7 @@ async def create_checkout(
     if not plan.stripe_price_id:
         raise HTTPException(status_code=400, detail="Plan not configured in Stripe yet")
 
-    result = await db.execute(
-        select(Subscription).where(Subscription.user_id == current_user.id)
-    )
+    result = await db.execute(select(Subscription).where(Subscription.user_id == current_user.id))
     existing = result.scalar_one_or_none()
     if existing and existing.stripe_customer_id:
         customer_id = existing.stripe_customer_id
@@ -153,7 +155,9 @@ async def get_extra_sites_info(
 ):
     """Return current extra-sites count and add-on pricing."""
     result = await db.execute(
-        select(Subscription).where(Subscription.user_id == current_user.id, Subscription.status == "active")
+        select(Subscription).where(
+            Subscription.user_id == current_user.id, Subscription.status == "active"
+        )
     )
     sub = result.scalar_one_or_none()
     return {
@@ -170,7 +174,9 @@ async def purchase_extra_sites(
 ):
     """Purchase an extra-sites pack (+5 site slots)."""
     result = await db.execute(
-        select(Subscription).where(Subscription.user_id == current_user.id, Subscription.status == "active")
+        select(Subscription).where(
+            Subscription.user_id == current_user.id, Subscription.status == "active"
+        )
     )
     sub = result.scalar_one_or_none()
     if not sub:

@@ -35,12 +35,15 @@ describe('InvoicesComponent — formatDate()', () => {
 });
 
 describe('InvoicesComponent — typeLabel()', () => {
-  it('Abonnement pour subscription', () => expect(make().typeLabel('subscription')).toBe('Abonnement'));
+  it('Abonnement pour subscription', () =>
+    expect(make().typeLabel('subscription')).toBe('Abonnement'));
   it('Audit pour tout autre type', () => expect(make().typeLabel('one_time')).toBe('Audit'));
   it('Audit pour type inconnu', () => expect(make().typeLabel('other')).toBe('Audit'));
 });
 
 describe('InvoicesComponent — typeClass()', () => {
-  it('contient blue pour subscription', () => expect(make().typeClass('subscription')).toContain('blue'));
-  it('contient purple pour tout autre type', () => expect(make().typeClass('one_time')).toContain('purple'));
+  it('contient blue pour subscription', () =>
+    expect(make().typeClass('subscription')).toContain('blue'));
+  it('contient purple pour tout autre type', () =>
+    expect(make().typeClass('one_time')).toContain('purple'));
 });

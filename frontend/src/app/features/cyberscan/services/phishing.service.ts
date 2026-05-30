@@ -6,7 +6,15 @@ import { environment } from '../../../../environments/environment';
 export interface PhishingCampaign {
   id: number;
   name: string;
-  status: 'draft' | 'pending_verification' | 'ready' | 'scheduled' | 'active' | 'sending' | 'completed' | 'cancelled';
+  status:
+    | 'draft'
+    | 'pending_verification'
+    | 'ready'
+    | 'scheduled'
+    | 'active'
+    | 'sending'
+    | 'completed'
+    | 'cancelled';
   plan_tier: string;
   domain: string | null;
   domain_verified: boolean;
@@ -105,14 +113,17 @@ export class PhishingService {
     return this.http.post<PhishingCampaign>(`${this.base}/campaigns`, { name, plan_tier });
   }
 
-  updateCampaign(id: number, patch: Partial<{
-    name: string;
-    domain: string;
-    lookalike_domain: string;
-    scenario_keys: string[];
-    cgu_accepted: boolean;
-    scheduled_at: string;
-  }>): Observable<PhishingCampaign> {
+  updateCampaign(
+    id: number,
+    patch: Partial<{
+      name: string;
+      domain: string;
+      lookalike_domain: string;
+      scenario_keys: string[];
+      cgu_accepted: boolean;
+      scheduled_at: string;
+    }>
+  ): Observable<PhishingCampaign> {
     return this.http.patch<PhishingCampaign>(`${this.base}/campaigns/${id}`, patch);
   }
 
@@ -129,14 +140,19 @@ export class PhishingService {
   }
 
   launchCampaign(id: number): Observable<{ status: string; campaign_id: number }> {
-    return this.http.post<{ status: string; campaign_id: number }>(`${this.base}/campaigns/${id}/launch`, {});
+    return this.http.post<{ status: string; campaign_id: number }>(
+      `${this.base}/campaigns/${id}/launch`,
+      {}
+    );
   }
 
   requestDomainVerify(domain: string): Observable<DomainVerifyResult> {
     return this.http.post<DomainVerifyResult>(`${this.base}/domain-verify`, { domain });
   }
 
-  checkDomainVerify(domain: string): Observable<{ domain: string; verified: boolean; verified_at: string | null }> {
+  checkDomainVerify(
+    domain: string
+  ): Observable<{ domain: string; verified: boolean; verified_at: string | null }> {
     return this.http.post<{ domain: string; verified: boolean; verified_at: string | null }>(
       `${this.base}/domain-verify/check`,
       { domain }

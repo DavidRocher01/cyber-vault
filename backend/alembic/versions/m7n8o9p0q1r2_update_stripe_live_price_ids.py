@@ -6,19 +6,19 @@ Create Date: 2026-04-22
 
 Overwrites test price IDs with live price IDs created on 2026-04-22.
 """
-from typing import Union
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "m7n8o9p0q1r2"
-down_revision: Union[str, None] = "l6m7n8o9p0q1"
+down_revision: str | None = "l6m7n8o9p0q1"
 branch_labels = None
 depends_on = None
 
 LIVE_PRICE_IDS = {
-    "starter":  "price_1TOzSg1kFVtkWldS7qBgnmh6",
-    "pro":      "price_1TOzSk1kFVtkWldSj1Z5U49V",
+    "starter": "price_1TOzSg1kFVtkWldS7qBgnmh6",
+    "pro": "price_1TOzSk1kFVtkWldSj1Z5U49V",
     "business": "price_1TOzSk1kFVtkWldS4RJ2u8pf",
 }
 

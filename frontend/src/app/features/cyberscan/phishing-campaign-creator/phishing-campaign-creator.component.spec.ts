@@ -1,10 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { signal } from '@angular/core';
-import { PhishingCampaignCreatorComponent, PLAN_OPTIONS, STEPS, STEP_LABELS } from './phishing-campaign-creator.component';
+import {
+  PhishingCampaignCreatorComponent,
+  PLAN_OPTIONS,
+  STEPS,
+  STEP_LABELS,
+} from './phishing-campaign-creator.component';
 import { LOOKALIKE_TECHNIQUE_LABELS } from '../services/phishing.service';
 
 function make(): PhishingCampaignCreatorComponent {
-  const comp = Object.create(PhishingCampaignCreatorComponent.prototype) as PhishingCampaignCreatorComponent;
+  const comp = Object.create(
+    PhishingCampaignCreatorComponent.prototype
+  ) as PhishingCampaignCreatorComponent;
   (comp as any).currentStep = signal('plan');
   (comp as any).selectedPlan = signal('standard');
   (comp as any).selectedScenarios = signal(new Set<string>());
@@ -32,9 +39,12 @@ describe('STEPS & STEP_LABELS', () => {
 
 describe('PLAN_OPTIONS', () => {
   it('contient 3 plans', () => expect(PLAN_OPTIONS).toHaveLength(3));
-  it('standard est highlight', () => expect(PLAN_OPTIONS.find(p => p.id === 'standard')?.highlight).toBe(true));
-  it('express a maxTargets 50', () => expect(PLAN_OPTIONS.find(p => p.id === 'express')?.maxTargets).toBe(50));
-  it('premium a maxTargets 500', () => expect(PLAN_OPTIONS.find(p => p.id === 'premium')?.maxTargets).toBe(500));
+  it('standard est highlight', () =>
+    expect(PLAN_OPTIONS.find(p => p.id === 'standard')?.highlight).toBe(true));
+  it('express a maxTargets 50', () =>
+    expect(PLAN_OPTIONS.find(p => p.id === 'express')?.maxTargets).toBe(50));
+  it('premium a maxTargets 500', () =>
+    expect(PLAN_OPTIONS.find(p => p.id === 'premium')?.maxTargets).toBe(500));
 });
 
 describe('PhishingCampaignCreatorComponent — stepIndex', () => {
@@ -75,7 +85,7 @@ describe('PhishingCampaignCreatorComponent — goTo()', () => {
     expect(c.currentStep()).toBe('plan');
   });
 
-  it('peut naviguer vers l\'étape courante (no-op)', () => {
+  it("peut naviguer vers l'étape courante (no-op)", () => {
     const c = make();
     c.goTo('plan');
     expect(c.currentStep()).toBe('plan');
@@ -83,7 +93,7 @@ describe('PhishingCampaignCreatorComponent — goTo()', () => {
 });
 
 describe('PhishingCampaignCreatorComponent — next() / prev()', () => {
-  it('next() avance d\'une étape', () => {
+  it("next() avance d'une étape", () => {
     const c = make();
     c.next();
     expect(c.currentStep()).toBe('info');
@@ -96,7 +106,7 @@ describe('PhishingCampaignCreatorComponent — next() / prev()', () => {
     expect(c.currentStep()).toBe('review');
   });
 
-  it('prev() recule d\'une étape', () => {
+  it("prev() recule d'une étape", () => {
     const c = make();
     (c as any).currentStep.set('info');
     c.prev();
@@ -110,16 +120,21 @@ describe('PhishingCampaignCreatorComponent — next() / prev()', () => {
   });
 });
 
-
 describe('LOOKALIKE_TECHNIQUE_LABELS', () => {
   it('contient un label pour sim_subdomain', () => {
     expect(LOOKALIKE_TECHNIQUE_LABELS['sim_subdomain']).toBeTruthy();
   });
   it('contient un label pour chaque technique', () => {
     const techniques = [
-      'sim_subdomain', 'combosquatting_prepend', 'combosquatting_append',
-      'tld_swap', 'typo_missing_char', 'typo_double_char',
-      'typo_char_swap', 'typo_homoglyph', 'subdomain_trick',
+      'sim_subdomain',
+      'combosquatting_prepend',
+      'combosquatting_append',
+      'tld_swap',
+      'typo_missing_char',
+      'typo_double_char',
+      'typo_char_swap',
+      'typo_homoglyph',
+      'subdomain_trick',
     ] as const;
     for (const t of techniques) {
       expect(LOOKALIKE_TECHNIQUE_LABELS[t]).toBeTruthy();

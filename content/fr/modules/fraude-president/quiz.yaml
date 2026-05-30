@@ -1,0 +1,143 @@
+questions:
+  - id: fp_01
+    type: single_choice
+    weight: 1
+    text: "Vous recevez un email du PDG vous demandant un virement urgent et confidentiel. Quelle est votre première action ?"
+    answers:
+      - id: a
+        text: "Exécuter le virement — le PDG doit avoir une bonne raison"
+        correct: false
+      - id: b
+        text: "Rappeler le PDG sur son numéro officiel connu, pas celui dans l'email"
+        correct: true
+      - id: c
+        text: "Répondre à l'email pour demander confirmation"
+        correct: false
+      - id: d
+        text: "En parler à un collègue de confiance"
+        correct: false
+    explanation: "Toujours vérifier via un canal indépendant (appel sur numéro connu). L'email peut être usurpé — une réponse email ne confirme rien."
+
+  - id: fp_02
+    type: multiple_choice
+    weight: 2
+    text: "Quels sont les signaux d'alarme typiques d'une fraude au président ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Urgence inhabituellement forte"
+        correct: true
+      - id: b
+        text: "Demande de confidentialité absolue"
+        correct: true
+      - id: c
+        text: "Virement dans le cadre d'un processus habituel"
+        correct: false
+      - id: d
+        text: "Montant inhabituel"
+        correct: true
+      - id: e
+        text: "Demande par le canal habituel avec validation en double"
+        correct: false
+    explanation: "Urgence + confidentialité + montant inhabituel + canal non standard = fraude quasi-certaine."
+
+  - id: fp_03
+    type: true_false
+    weight: 1
+    text: "Un dirigeant légitime peut demander de court-circuiter les procédures financières en cas d'urgence réelle."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Aucune urgence légitime ne justifie de contourner les procédures. C'est précisément ce que les fraudeurs invoquent."
+
+  - id: fp_04
+    type: single_choice
+    weight: 1
+    text: "Vous avez reçu une tentative de fraude au président mais vous n'avez pas fait le virement. Que faites-vous ?"
+    answers:
+      - id: a
+        text: "Ne rien faire, le danger est écarté"
+        correct: false
+      - id: b
+        text: "Supprimer l'email et oublier l'incident"
+        correct: false
+      - id: c
+        text: "Signaler la tentative à votre responsable et à l'IT"
+        correct: true
+      - id: d
+        text: "Répondre à l'attaquant pour l'avertir"
+        correct: false
+    explanation: "Même une tentative échouée doit être signalée. Cela permet d'alerter les autres, d'analyser la tentative et de renforcer les défenses."
+
+  - id: fp_05
+    type: single_choice
+    weight: 1
+    text: "L'attaquant vous appelle en se faisant passer pour le DG avec un numéro inconnu. Il a l'air de connaître votre entreprise. Comment a-t-il ces informations ?"
+    answers:
+      - id: a
+        text: "C'est forcément le vrai DG"
+        correct: false
+      - id: b
+        text: "Il a obtenu ces informations via LinkedIn, le site web, des communications publiques"
+        correct: true
+      - id: c
+        text: "Il a accès à vos emails"
+        correct: false
+      - id: d
+        text: "Il travaille peut-être dans votre entreprise"
+        correct: false
+    explanation: "Les informations publiques (organigramme, LinkedIn, communiqués de presse) suffisent pour paraître crédible. La connaissance de détails internes ne garantit pas l'identité."
+
+  - id: fp_06
+    type: single_choice
+    weight: 1
+    text: "Vous avez exécuté un virement et réalisez 30 minutes plus tard que c'était une fraude. Que faites-vous en premier ?"
+    answers:
+      - id: a
+        text: "Attendre pour voir si la banque le détecte"
+        correct: false
+      - id: b
+        text: "Appeler immédiatement votre banque pour tenter un recall du virement"
+        correct: true
+      - id: c
+        text: "Appeler la police"
+        correct: false
+      - id: d
+        text: "Prévenir votre responsable uniquement"
+        correct: false
+    explanation: "Appelez votre banque immédiatement — les premières minutes sont critiques pour un recall (rappel de virement). Ensuite alertez votre responsable et l'IT en parallèle."
+
+  - id: fp_07
+    type: true_false
+    weight: 1
+    text: "La fraude au président ne cible que les grandes entreprises."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Les PME sont aussi ciblées — parfois davantage car elles ont moins de procédures de validation formelles. En France, 40% des victimes sont des PME de moins de 50 personnes."
+
+  - id: fp_08
+    type: single_choice
+    weight: 1
+    text: "Votre protocole habituel exige deux validations pour les virements. Le 'PDG' insiste pour n'en faire qu'une car 'c'est urgent et confidentiel'. Que faites-vous ?"
+    answers:
+      - id: a
+        text: "Accepter la dérogation pour satisfaire la direction"
+        correct: false
+      - id: b
+        text: "Refuser et appliquer le processus standard — appeler le PDG sur son numéro connu pour confirmer"
+        correct: true
+      - id: c
+        text: "Demander à votre responsable direct par email"
+        correct: false
+      - id: d
+        text: "Exécuter le virement mais en le notant comme exceptionnel"
+        correct: false
+    explanation: "Les procédures financières ne souffrent aucune dérogation, quelle que soit la pression exercée. Une dérogation demandée est précisément le signal d'alarme d'une fraude."

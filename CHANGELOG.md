@@ -9,10 +9,53 @@ versionnage conforme à [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+---
+
+## [1.0.0] — 2026-05-29
+
 ### Ajouté
-- **Infrastructure qualité** : `CLAUDE.md` (instructions Claude Code), `SECURITY.md` (modèle STRIDE, mesures, conformité), `Makefile` (commandes standardisées), ADRs (`docs/adr/`)
-- **Pre-commit** : ruff remplace black+isort, ajout gitleaks (détection secrets), mypy (typage strict), ESLint/Prettier frontend, conventional commits enforced
-- **Script qualité PDF** : `scripts/generate_quality_report.py` — couverture, complexité cyclomatique, audit sécurité, statistiques Git et code
+
+#### Module Sensibilisation NIS2 (e-learning B2B — 11 sprints)
+- **Data model** : 12 entités SQLAlchemy — `AwarenessOrganization`, `AwarenessLearner`, `AwarenessProgram`, `AwarenessModule`, `AwarenessEnrollment`, `AwarenessProgress`, `AwarenessQuizAttempt`, `AwarenessCertificate`, `AwarenessBadge`, `AwarenessLearnerBadge`
+- **Contenu** : 17 modules NIS2 Article 21 complets (markdown + quiz YAML), importeur idempotent `ContentImporter`, validation YAML en CI
+- **Organisations et learners** : CRUD multi-tenant, import CSV en masse, quota learners configurable, anonymisation RGPD
+- **Authentification learner** : magic-link JWT sans mot de passe, email d'invitation automatique
+- **Progression** : state machine `not_started → in_progress → completed`, heartbeat vidéo (position de reprise), calcul `completion_pct`
+- **Moteur de quiz** : pool de questions YAML, tirage aléatoire par seed, 3 tentatives max, cooldown configurable, scoring pondéré, validation anti-triche
+- **Attestations PDF** : génération automatique à 100 % de complétion, QR code de vérification, signature SHA-256 infalsifiable, validité 12 mois, page de vérification publique
+- **Gamification** : points XP par module, 20 badges (bronze/silver/gold/platinum), niveaux (1–10), leaderboard par organisation
+- **Dashboards multi-rôles** : consultant (KPIs globaux, at-risk learners, funnel d'engagement), admin organisation (progression par programme), learner (modules + badges + niveau)
+- **Rapport PDF NIS2 Article 21** : export conformité avec taux de complétion, certificats émis, learners à risque
+- **Pricing page** : 4 plans (Starter 49€ / Pro 99€ / Plus 199€ / Premium 399€), tableau comparatif fonctionnalités
+- **Frontend Angular** : portail learner (`/awareness/login`, `/awareness`, `/awareness/module/:id`), admin sensibilisation (`/cyberscan/awareness`), détail organisation, page tarifs, guard `awarenessLearnerGuard`
+- **Suite de tests** : 1787 tests backend (92 % couverture), 1778 tests frontend — 100 % verts
+
+#### Intégration sur la plateforme
+- **Landing page** : section dédiée Sensibilisation NIS2 (features, CTA, prix dès 49€/mois), bouton « Formation NIS2 » dans la navbar, CTA final et footer
+- **Formulaire contact** : option « Formation NIS2 — Sensibilisation équipes » dans le type de prestation
+- **UX page admin** : état vide engageant avec 3 étapes d'onboarding, chips contexte (17 modules, attestations, suivi), barre de résumé (orgs, learners, complétion moyenne)
+
+### Modifié
+- Angular 19 → 20 (core + CLI + Angular Material + CDK)
+- `phishing_service.py` 1 550 lignes scindé en `phishing_service.py` (611 L, logique métier) + `phishing_templates.py` (950 L, templates HTML purs)
+
+### Corrigé
+- **SQLAlchemy lazy load** : `AwarenessProgramOut.model_validate(prog)` déclenchait un accès async hors contexte (`MissingGreenlet`) — remplacé par construction depuis `prog.__dict__`
+- **N+1 queries** : `list_organizations` et `get_organization` — boucle de COUNT remplacée par JOIN + GROUP BY (O(n) → O(1) requête)
+- **N+1 modules** : `list_programs_admin` / `list_programs` — boucle par programme remplacée par requête `IN()` unique + groupement mémoire
+- **Webhook Stripe** : appel bloquant `stripe.Subscription.retrieve()` dans contexte async — wrappé dans `asyncio.to_thread()`
+- **Webhook Stripe** : exception générique exposant les détails internes — remplacée par log du type sans exposition
+- **5× `except Exception: pass`** : emails magic-link, complétion, contact — remplacés par `logger.warning(...)`
+- **`class Config` Pydantic V2 déprécié** : migré vers `ConfigDict` sur `Iso27001Out` et `Nis2Out`
+- **Import `AsyncSessionLocal` manquant** dans `app/main.py` (plantait le démarrage en dev)
+- **Apostrophe cassée** dans le texte `maxLearners` de la page tarifs awareness
+- **Blog** : page liste — spinner de chargement, état vide et erreur ajoutés (conversion signal) ; page article — spinner + redirect on error
+- **Index DB composite** `(organization_id, is_active)` ajouté sur `awareness_learners` + migration Alembic
+
+### Infrastructure qualité
+- **`CLAUDE.md`** : instructions Claude Code, `SECURITY.md` (modèle STRIDE), `Makefile`, ADRs (`docs/adr/`)
+- **Pre-commit** : ruff remplace black+isort, gitleaks (détection secrets), mypy, ESLint/Prettier, conventional commits
+- **Script qualité PDF** : `scripts/generate_quality_report.py` — couverture, complexité cyclomatique, audit sécurité, stats Git
 
 ---
 

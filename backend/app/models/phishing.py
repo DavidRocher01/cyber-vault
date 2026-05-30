@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -10,7 +10,9 @@ class PhishingCampaign(Base):
     __tablename__ = "phishing_campaigns"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     # draft | pending_verification | ready | active | completed | cancelled
@@ -43,10 +45,14 @@ class PhishingCampaign(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
     )
 
     targets: Mapped[list["PhishingTarget"]] = relationship(
@@ -59,7 +65,9 @@ class PhishingTarget(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     campaign_id: Mapped[int] = mapped_column(
-        ForeignKey("phishing_campaigns.id", ondelete="CASCADE"), nullable=False, index=True
+        ForeignKey("phishing_campaigns.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
 
     email: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -68,7 +76,9 @@ class PhishingTarget(Base):
     department: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     # UUID used in tracking URLs — assigned when email is sent
-    tracking_id: Mapped[str | None] = mapped_column(String(36), nullable=True, unique=True, index=True)
+    tracking_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, unique=True, index=True
+    )
 
     # Scenario sent to this target — assigned at send time
     scenario_key: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -83,7 +93,9 @@ class PhishingTarget(Base):
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
     )
 
     campaign: Mapped["PhishingCampaign"] = relationship(back_populates="targets")
@@ -103,6 +115,8 @@ class PhishingDomainVerification(Base):
     verified: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
     )
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

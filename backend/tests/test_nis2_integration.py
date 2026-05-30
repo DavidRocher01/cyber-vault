@@ -18,10 +18,8 @@ BASE = "/api/v1"
 
 
 async def _headers(client: AsyncClient, email: str) -> dict:
-    await client.post(f"{BASE}/auth/register",
-                      json={"email": email, "password": "StrongPass123!"})
-    r = await client.post(f"{BASE}/auth/login",
-                          json={"email": email, "password": "StrongPass123!"})
+    await client.post(f"{BASE}/auth/register", json={"email": email, "password": "StrongPass123!"})
+    r = await client.post(f"{BASE}/auth/login", json={"email": email, "password": "StrongPass123!"})
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
@@ -31,6 +29,7 @@ async def _all_ids(client: AsyncClient, headers: dict) -> list[str]:
 
 
 # ── Score après reset (items vide) ────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_empty_items_map_gives_score_0():
@@ -47,14 +46,17 @@ async def test_reset_then_set_two_compliant_gives_low_score():
     """2 conformes + 32 non_compliant (défaut) → score ~ 6%, pas 100%."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "nis2_reset2@test.com")
-        r = await c.put(f"{BASE}/nis2/me",
-                        json={"items": {"rssi": "compliant", "policy": "compliant"}},
-                        headers=h)
+        r = await c.put(
+            f"{BASE}/nis2/me",
+            json={"items": {"rssi": "compliant", "policy": "compliant"}},
+            headers=h,
+        )
     score = r.json()["score"]
     assert score < 20, f"Score attendu < 20 (2 conformes / 34), got {score}"
 
 
 # ── Sauvegarde des 34 items (_fullItems) ──────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_save_full_34_items_persists_all():
@@ -76,8 +78,11 @@ async def test_save_full_34_items_score_is_50_when_all_partial():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "nis2_full2@test.com")
         ids = await _all_ids(c, h)
-        await c.put(f"{BASE}/nis2/me",
-                    json={"items": {id_: "partial" for id_ in ids}}, headers=h)
+        await c.put(
+            f"{BASE}/nis2/me",
+            json={"items": {id_: "partial" for id_ in ids}},
+            headers=h,
+        )
         r = await c.get(f"{BASE}/nis2/me", headers=h)
     assert r.json()["score"] == 50
 
@@ -89,11 +94,13 @@ async def test_save_full_map_then_overwrite_partial():
         h = await _headers(c, "nis2_overwrite@test.com")
         ids = await _all_ids(c, h)
         # 1ère save : tout compliant
-        await c.put(f"{BASE}/nis2/me",
-                    json={"items": {id_: "compliant" for id_ in ids}}, headers=h)
+        await c.put(
+            f"{BASE}/nis2/me",
+            json={"items": {id_: "compliant" for id_ in ids}},
+            headers=h,
+        )
         # 2ème save : seulement rssi=non_compliant (reset partiel)
-        await c.put(f"{BASE}/nis2/me",
-                    json={"items": {"rssi": "non_compliant"}}, headers=h)
+        await c.put(f"{BASE}/nis2/me", json={"items": {"rssi": "non_compliant"}}, headers=h)
         r = await c.get(f"{BASE}/nis2/me", headers=h)
     body = r.json()
     assert body["items"]["rssi"] == "non_compliant"
@@ -102,6 +109,7 @@ async def test_save_full_map_then_overwrite_partial():
 
 
 # ── Cohérence score PDF / API ─────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_pdf_generated_after_save_is_non_empty():
@@ -123,8 +131,7 @@ async def test_pdf_with_all_na_items_is_valid():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "nis2_pdfna@test.com")
         ids = await _all_ids(c, h)
-        await c.put(f"{BASE}/nis2/me",
-                    json={"items": {id_: "na" for id_ in ids}}, headers=h)
+        await c.put(f"{BASE}/nis2/me", json={"items": {id_: "na" for id_ in ids}}, headers=h)
         r = await c.get(f"{BASE}/nis2/me/pdf", headers=h)
     assert r.status_code == 200
     assert r.content[:4] == b"%PDF"
@@ -142,14 +149,14 @@ async def test_pdf_with_empty_assessment_is_valid():
 
 # ── Validation des statuts ────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_all_valid_statuses_accepted():
     """Tous les statuts valides (compliant, partial, non_compliant, na) → 200."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "nis2_valid@test.com")
         for status in ("compliant", "partial", "non_compliant", "na"):
-            r = await c.put(f"{BASE}/nis2/me",
-                            json={"items": {"rssi": status}}, headers=h)
+            r = await c.put(f"{BASE}/nis2/me", json={"items": {"rssi": status}}, headers=h)
             assert r.status_code == 200, f"Statut '{status}' devrait être accepté"
 
 
@@ -157,8 +164,11 @@ async def test_all_valid_statuses_accepted():
 async def test_unknown_item_id_rejected():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "nis2_badid2@test.com")
-        r = await c.put(f"{BASE}/nis2/me",
-                        json={"items": {"does_not_exist": "compliant"}}, headers=h)
+        r = await c.put(
+            f"{BASE}/nis2/me",
+            json={"items": {"does_not_exist": "compliant"}},
+            headers=h,
+        )
     assert r.status_code == 422
 
 
@@ -166,12 +176,12 @@ async def test_unknown_item_id_rejected():
 async def test_invalid_status_value_rejected():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "nis2_badval@test.com")
-        r = await c.put(f"{BASE}/nis2/me",
-                        json={"items": {"rssi": "maybe"}}, headers=h)
+        r = await c.put(f"{BASE}/nis2/me", json={"items": {"rssi": "maybe"}}, headers=h)
     assert r.status_code == 422
 
 
 # ── updated_at ────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_updated_at_set_on_save():
@@ -190,6 +200,7 @@ async def test_updated_at_set_on_save():
 async def test_updated_at_changes_on_second_save():
     """updated_at est différent entre deux sauvegardes successives."""
     import asyncio
+
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "nis2_date2@test.com")
         r1 = await c.put(f"{BASE}/nis2/me", json={"items": {"rssi": "compliant"}}, headers=h)
@@ -199,6 +210,7 @@ async def test_updated_at_changes_on_second_save():
 
 
 # ── Catégories retournées ─────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_categories_always_returned_in_get():
@@ -216,6 +228,5 @@ async def test_categories_always_returned_in_put():
     """PUT /nis2/me retourne aussi les catégories dans la réponse."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "nis2_catput@test.com")
-        r = await c.put(f"{BASE}/nis2/me",
-                        json={"items": {"rssi": "compliant"}}, headers=h)
+        r = await c.put(f"{BASE}/nis2/me", json={"items": {"rssi": "compliant"}}, headers=h)
     assert len(r.json()["categories"]) == 10

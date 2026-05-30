@@ -20,7 +20,7 @@ describe('AdminAuthService — constructor', () => {
     expect(svc.adminKey()).toBe('');
   });
 
-  it('restaure l\'état depuis sessionStorage si une clé est présente', () => {
+  it("restaure l'état depuis sessionStorage si une clé est présente", () => {
     const svc = make('my-saved-key');
     expect(svc.authenticated()).toBe(true);
     expect(svc.adminKey()).toBe('my-saved-key');
@@ -87,7 +87,7 @@ describe('AdminAuthService — verify()', () => {
     svc.verify('my-key');
     expect(httpMock.get).toHaveBeenCalledWith(
       '/api/v1/admin/stats',
-      expect.objectContaining({ headers: expect.anything() }),
+      expect.objectContaining({ headers: expect.anything() })
     );
   });
 });

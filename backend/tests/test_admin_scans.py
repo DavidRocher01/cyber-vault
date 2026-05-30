@@ -2,9 +2,11 @@
 Integration tests — /api/v1/admin/scans
 Covers: auth guard, empty list, list with data, required fields, limit param.
 """
+
+from datetime import UTC, datetime
+from unittest.mock import MagicMock, patch
+
 import pytest
-from datetime import datetime, timezone
-from unittest.mock import patch, MagicMock
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
@@ -19,20 +21,24 @@ def _admin_settings():
     return patch("app.core.deps.settings", mock)
 
 
-async def _seed_scan(target_url: str, status: str = "completed", overall_status: str | None = "safe") -> None:
+async def _seed_scan(
+    target_url: str, status: str = "completed", overall_status: str | None = "safe"
+) -> None:
     import app.core.database as _db
+
     async with _db.AsyncSessionLocal() as db:
         scan = PublicScan(
             target_url=target_url,
             status=status,
             overall_status=overall_status,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         db.add(scan)
         await db.commit()
 
 
 # ── Auth guard ─────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_admin_scans_no_key_returns_403():
@@ -51,6 +57,7 @@ async def test_admin_scans_wrong_key_returns_403():
 
 
 # ── List scans ─────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_admin_scans_valid_key_returns_200():
@@ -89,7 +96,15 @@ async def test_admin_scans_response_has_required_fields():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             r = await c.get(f"{BASE}/admin/scans", headers={"x-admin-key": "test-secret-key"})
     scan = r.json()[0]
-    for key in ("id", "target_url", "status", "overall_status", "created_at", "finished_at", "error_message"):
+    for key in (
+        "id",
+        "target_url",
+        "status",
+        "overall_status",
+        "created_at",
+        "finished_at",
+        "error_message",
+    ):
         assert key in scan, f"Missing key: {key}"
 
 
@@ -110,7 +125,10 @@ async def test_admin_scans_limit_parameter():
         await _seed_scan(f"https://site{i}.com")
     with _admin_settings():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/admin/scans?limit=3", headers={"x-admin-key": "test-secret-key"})
+            r = await c.get(
+                f"{BASE}/admin/scans?limit=3",
+                headers={"x-admin-key": "test-secret-key"},
+            )
     assert r.status_code == 200
     assert len(r.json()) == 3
 

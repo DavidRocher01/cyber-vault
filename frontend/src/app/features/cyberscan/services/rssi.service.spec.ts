@@ -4,7 +4,9 @@ import { RssiService } from './rssi.service';
 
 const API = '/api/v1/rssi';
 
-function makeService(httpOverrides: Partial<{ get: any; post: any; delete: any; put: any; patch: any }> = {}) {
+function makeService(
+  httpOverrides: Partial<{ get: any; post: any; delete: any; put: any; patch: any }> = {}
+) {
   const http = {
     get: vi.fn().mockReturnValue(of({})),
     post: vi.fn().mockReturnValue(of({})),
@@ -74,7 +76,9 @@ describe('RssiService — createVisit()', () => {
   it('appelle POST /rssi/clients/:id/visits', () => {
     const { service, http } = makeService();
     service.createVisit(10, { scheduled_date: '2025-06-01' }).subscribe();
-    expect(http.post).toHaveBeenCalledWith(`${API}/clients/10/visits`, { scheduled_date: '2025-06-01' });
+    expect(http.post).toHaveBeenCalledWith(`${API}/clients/10/visits`, {
+      scheduled_date: '2025-06-01',
+    });
   });
 });
 
@@ -106,7 +110,9 @@ describe('RssiService — getActions()', () => {
   it('appelle GET avec status_filter', () => {
     const { service, http } = makeService();
     service.getActions(2, 'open').subscribe();
-    expect(http.get).toHaveBeenCalledWith(`${API}/clients/2/actions`, { params: { status_filter: 'open' } });
+    expect(http.get).toHaveBeenCalledWith(`${API}/clients/2/actions`, {
+      params: { status_filter: 'open' },
+    });
   });
 });
 
@@ -164,13 +170,17 @@ describe('RssiService — getUpcomingEvents()', () => {
   it('appelle GET avec days_ahead=14 par défaut', () => {
     const { service, http } = makeService();
     service.getUpcomingEvents().subscribe();
-    expect(http.get).toHaveBeenCalledWith(`${API}/dashboard/upcoming-events`, { params: { days_ahead: 14 } });
+    expect(http.get).toHaveBeenCalledWith(`${API}/dashboard/upcoming-events`, {
+      params: { days_ahead: 14 },
+    });
   });
 
   it('appelle GET avec days_ahead=30', () => {
     const { service, http } = makeService();
     service.getUpcomingEvents(30).subscribe();
-    expect(http.get).toHaveBeenCalledWith(`${API}/dashboard/upcoming-events`, { params: { days_ahead: 30 } });
+    expect(http.get).toHaveBeenCalledWith(`${API}/dashboard/upcoming-events`, {
+      params: { days_ahead: 30 },
+    });
   });
 });
 
@@ -248,7 +258,10 @@ describe('RssiService — createDeliverable()', () => {
   it('appelle POST /rssi/clients/:id/deliverables', () => {
     const { service, http } = makeService();
     service.createDeliverable(6, { title: 'Rapport Q1', delivered_at: '2025-03-31' }).subscribe();
-    expect(http.post).toHaveBeenCalledWith(`${API}/clients/6/deliverables`, { title: 'Rapport Q1', delivered_at: '2025-03-31' });
+    expect(http.post).toHaveBeenCalledWith(`${API}/clients/6/deliverables`, {
+      title: 'Rapport Q1',
+      delivered_at: '2025-03-31',
+    });
   });
 });
 
@@ -256,7 +269,9 @@ describe('RssiService — updateDeliverable()', () => {
   it('appelle PUT /rssi/clients/:id/deliverables/:did', () => {
     const { service, http } = makeService();
     service.updateDeliverable(6, 13, { title: 'Rapport Q1 v2' }).subscribe();
-    expect(http.put).toHaveBeenCalledWith(`${API}/clients/6/deliverables/13`, { title: 'Rapport Q1 v2' });
+    expect(http.put).toHaveBeenCalledWith(`${API}/clients/6/deliverables/13`, {
+      title: 'Rapport Q1 v2',
+    });
   });
 });
 
@@ -282,7 +297,9 @@ describe('RssiService — exportActionsCsv()', () => {
   it('appelle GET /rssi/clients/:id/actions/export avec responseType blob', () => {
     const { service, http } = makeService();
     service.exportActionsCsv(8).subscribe();
-    expect(http.get).toHaveBeenCalledWith(`${API}/clients/8/actions/export`, { responseType: 'blob' });
+    expect(http.get).toHaveBeenCalledWith(`${API}/clients/8/actions/export`, {
+      responseType: 'blob',
+    });
   });
 });
 
@@ -290,7 +307,9 @@ describe('RssiService — logActivity()', () => {
   it('appelle POST /rssi/clients/:id/activity', () => {
     const { service, http } = makeService();
     service.logActivity(3, { action_type: 'view_client' }).subscribe();
-    expect(http.post).toHaveBeenCalledWith(`${API}/clients/3/activity`, { action_type: 'view_client' });
+    expect(http.post).toHaveBeenCalledWith(`${API}/clients/3/activity`, {
+      action_type: 'view_client',
+    });
   });
 });
 

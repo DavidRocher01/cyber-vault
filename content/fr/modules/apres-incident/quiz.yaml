@@ -1,0 +1,137 @@
+questions:
+  - id: ai_01
+    type: single_choice
+    weight: 1
+    text: "Vous venez de cliquer sur un lien suspect. Quelle est votre première action ?"
+    answers:
+      - id: a
+        text: "Redémarrer l'ordinateur pour nettoyer d'éventuels malwares"
+        correct: false
+      - id: b
+        text: "Ne rien saisir, déconnecter du réseau, appeler l'IT immédiatement"
+        correct: true
+      - id: c
+        text: "Attendre de voir si quelque chose d'anormal se passe"
+        correct: false
+      - id: d
+        text: "Scanner avec l'antivirus et ne rien dire"
+        correct: false
+    explanation: "Ne pas saisir d'infos, déconnecter (stoppe les communications malveillantes) et appeler l'IT. Ne pas redémarrer sans conseil IT."
+
+  - id: ai_02
+    type: true_false
+    weight: 1
+    text: "Redémarrer immédiatement son ordinateur après avoir cliqué sur un lien suspect est la meilleure chose à faire."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Un redémarrage peut effacer des traces utiles pour l'analyse forensique. Contactez l'IT avant toute action."
+
+  - id: ai_03
+    type: single_choice
+    weight: 1
+    text: "Vous avez saisi votre mot de passe email sur un site qui s'avère frauduleux. Quelle est la priorité absolue ?"
+    answers:
+      - id: a
+        text: "Changer tous vos mots de passe réseau social"
+        correct: false
+      - id: b
+        text: "Changer immédiatement le mot de passe email sur le vrai service"
+        correct: true
+      - id: c
+        text: "Signaler à la police"
+        correct: false
+      - id: d
+        text: "Formater l'ordinateur"
+        correct: false
+    explanation: "L'email est la clé de voûte — qui le contrôle peut réinitialiser tous vos autres mots de passe. C'est la priorité absolue."
+
+  - id: ai_04
+    type: multiple_choice
+    weight: 2
+    text: "Quelles actions NE PAS faire après un incident ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Attendre que ça se passe tout seul"
+        correct: true
+      - id: b
+        text: "Appeler l'IT immédiatement"
+        correct: false
+      - id: c
+        text: "Supprimer les emails suspects comme preuves"
+        correct: true
+      - id: d
+        text: "Essayer de régler seul sans informer personne"
+        correct: true
+      - id: e
+        text: "Signaler à son responsable"
+        correct: false
+    explanation: "Attendre, supprimer des preuves et gérer seul sont les trois erreurs à éviter. Signaler rapidement est toujours la bonne décision."
+
+  - id: ai_05
+    type: true_false
+    weight: 1
+    text: "Signaler un incident de sécurité vous expose à des sanctions disciplinaires."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Signaler un incident est responsable et attendu. Ce qui peut être problématique, c'est de cacher un incident. Les équipes IT sont là pour aider."
+
+  - id: ai_06
+    type: single_choice
+    weight: 1
+    text: "Après avoir fourni vos identifiants sur un site frauduleux, vous changez votre mot de passe. Quelle vérification supplémentaire est essentielle ?"
+    answers:
+      - id: a
+        text: "Vérifier que personne n'a ajouté une règle de transfert automatique sur votre messagerie"
+        correct: true
+      - id: b
+        text: "Changer votre fond d'écran"
+        correct: false
+      - id: c
+        text: "Désactiver votre compte email pendant 24h"
+        correct: false
+      - id: d
+        text: "Scanner votre téléphone avec un antivirus"
+        correct: false
+    explanation: "Les attaquants créent souvent des règles de transfert d'email pour continuer à recevoir vos messages même après que vous avez changé le mot de passe. Vérifiez les paramètres de votre messagerie."
+
+  - id: ai_07
+    type: true_false
+    weight: 1
+    text: "Si vous avez cliqué sur un lien suspect mais n'avez rien saisi, il n'y a aucun risque."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Certains sites malveillants exploitent des failles du navigateur pour installer du code sans aucune action de l'utilisateur (drive-by download). Signalez quand même le clic à votre IT."
+
+  - id: ai_08
+    type: single_choice
+    weight: 1
+    text: "Votre entreprise a subi une fuite de données suite à votre incident. Qui doit en être informé dans les 72h selon le RGPD ?"
+    answers:
+      - id: a
+        text: "Personne — les fuites sont confidentielles"
+        correct: false
+      - id: b
+        text: "La CNIL si la violation présente un risque pour des personnes physiques"
+        correct: true
+      - id: c
+        text: "Uniquement les personnes concernées par la fuite"
+        correct: false
+      - id: d
+        text: "La presse"
+        correct: false
+    explanation: "Le RGPD impose de notifier la CNIL dans les 72h si la violation présente un risque pour les droits et libertés des personnes. Cette obligation commence dès que l'entreprise a connaissance de la violation."

@@ -5,19 +5,19 @@ Couvre la fonction _compute_score() et les constantes NIS2_CATEGORIES.
 Ces tests sont rapides et ne nécessitent pas de client HTTP.
 """
 
-import pytest
-
 from app.api.v1.endpoints.nis2 import (
     ALL_ITEM_IDS,
     NIS2_CATEGORIES,
 )
 from app.services.assessment_service import compute_assessment_score
 
+
 def _compute_score(items):
     return compute_assessment_score(items, ALL_ITEM_IDS)
 
 
 # ── Structure des données ─────────────────────────────────────────────────────
+
 
 class TestNis2Structure:
     def test_34_items_total(self):
@@ -59,6 +59,7 @@ class TestNis2Structure:
 
 
 # ── _compute_score() ──────────────────────────────────────────────────────────
+
 
 class TestComputeScore:
     def test_empty_items_gives_0(self):

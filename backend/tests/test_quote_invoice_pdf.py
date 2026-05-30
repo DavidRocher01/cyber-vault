@@ -1,13 +1,28 @@
 """Unit tests — quote_pdf and invoice_pdf generators."""
+
 from datetime import date
 
-import pytest
-
-from app.services.quote_pdf import _fmt as quote_fmt, _date as quote_date, generate_quote_pdf
-from app.services.invoice_pdf import _fmt as invoice_fmt, _date as invoice_date, generate_invoice_pdf
-
+from app.services.invoice_pdf import (
+    _date as invoice_date,
+)
+from app.services.invoice_pdf import (
+    _fmt as invoice_fmt,
+)
+from app.services.invoice_pdf import (
+    generate_invoice_pdf,
+)
+from app.services.quote_pdf import (
+    _date as quote_date,
+)
+from app.services.quote_pdf import (
+    _fmt as quote_fmt,
+)
+from app.services.quote_pdf import (
+    generate_quote_pdf,
+)
 
 # ── _fmt ──────────────────────────────────────────────────────────────────────
+
 
 def test_quote_fmt_zero():
     assert quote_fmt(0) == "0.00 €"
@@ -33,6 +48,7 @@ def test_invoice_fmt_round_euros():
 
 # ── _date ─────────────────────────────────────────────────────────────────────
 
+
 def test_quote_date_january():
     d = date(2026, 1, 15)
     assert "janvier" in quote_date(d)
@@ -45,18 +61,31 @@ def test_quote_date_december():
 
 
 def test_invoice_date_all_months():
-    months_fr = ["janvier", "février", "mars", "avril", "mai", "juin",
-                 "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
+    months_fr = [
+        "janvier",
+        "février",
+        "mars",
+        "avril",
+        "mai",
+        "juin",
+        "juillet",
+        "août",
+        "septembre",
+        "octobre",
+        "novembre",
+        "décembre",
+    ]
     for i, name in enumerate(months_fr, 1):
         assert name in invoice_date(date(2026, i, 1))
 
 
 # ── generate_quote_pdf ────────────────────────────────────────────────────────
 
+
 def _quote_items():
     return [
         {"description": "Audit de sécurité", "quantity": 1, "unit_price_cents": 120000},
-        {"description": "Rapport PDF",        "quantity": 1, "unit_price_cents": 30000},
+        {"description": "Rapport PDF", "quantity": 1, "unit_price_cents": 30000},
     ]
 
 
@@ -141,6 +170,7 @@ def test_generate_quote_pdf_non_standard_validity():
 
 
 # ── generate_invoice_pdf ───────────────────────────────────────────────────────
+
 
 def test_generate_invoice_pdf_returns_pdf():
     pdf = generate_invoice_pdf(

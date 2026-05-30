@@ -20,6 +20,7 @@ async def _headers(client: AsyncClient, email: str) -> dict:
 
 # ── GET /nis2/me ─────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_get_assessment_empty_returns_default():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -53,11 +54,18 @@ async def test_get_assessment_categories_have_items():
 
 # ── PUT /nis2/me ─────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_save_assessment_returns_score():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "nis2_save1@test.com")
-        payload = {"items": {"rssi": "compliant", "policy": "partial", "mgmt_training": "non_compliant"}}
+        payload = {
+            "items": {
+                "rssi": "compliant",
+                "policy": "partial",
+                "mgmt_training": "non_compliant",
+            }
+        }
         r = await c.put(f"{BASE}/nis2/me", json=payload, headers=h)
     assert r.status_code == 200
     body = r.json()
@@ -72,11 +80,7 @@ async def test_save_assessment_score_100_when_all_compliant():
         h = await _headers(c, "nis2_score100@test.com")
         # Get all item IDs from the categories
         r_get = await c.get(f"{BASE}/nis2/me", headers=h)
-        all_ids = [
-            item["id"]
-            for cat in r_get.json()["categories"]
-            for item in cat["items"]
-        ]
+        all_ids = [item["id"] for cat in r_get.json()["categories"] for item in cat["items"]]
         payload = {"items": {item_id: "compliant" for item_id in all_ids}}
         r = await c.put(f"{BASE}/nis2/me", json=payload, headers=h)
     assert r.status_code == 200
@@ -88,11 +92,7 @@ async def test_save_assessment_score_0_when_all_non_compliant():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "nis2_score0@test.com")
         r_get = await c.get(f"{BASE}/nis2/me", headers=h)
-        all_ids = [
-            item["id"]
-            for cat in r_get.json()["categories"]
-            for item in cat["items"]
-        ]
+        all_ids = [item["id"] for cat in r_get.json()["categories"] for item in cat["items"]]
         payload = {"items": {item_id: "non_compliant" for item_id in all_ids}}
         r = await c.put(f"{BASE}/nis2/me", json=payload, headers=h)
     assert r.status_code == 200
@@ -105,11 +105,7 @@ async def test_save_assessment_na_excluded_from_score():
         h = await _headers(c, "nis2_na@test.com")
         # All NA → score should be 0 (no scorable items)
         r_get = await c.get(f"{BASE}/nis2/me", headers=h)
-        all_ids = [
-            item["id"]
-            for cat in r_get.json()["categories"]
-            for item in cat["items"]
-        ]
+        all_ids = [item["id"] for cat in r_get.json()["categories"] for item in cat["items"]]
         payload = {"items": {item_id: "na" for item_id in all_ids}}
         r = await c.put(f"{BASE}/nis2/me", json=payload, headers=h)
     assert r.status_code == 200
@@ -131,7 +127,11 @@ async def test_save_assessment_update_overwrites():
 async def test_save_assessment_invalid_item_id_returns_422():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "nis2_badid@test.com")
-        r = await c.put(f"{BASE}/nis2/me", json={"items": {"unknown_item_xyz": "compliant"}}, headers=h)
+        r = await c.put(
+            f"{BASE}/nis2/me",
+            json={"items": {"unknown_item_xyz": "compliant"}},
+            headers=h,
+        )
     assert r.status_code == 422
 
 
@@ -170,6 +170,7 @@ async def test_save_assessment_isolation_between_users():
 
 # ── GET /nis2/me/pdf ─────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_export_pdf_returns_pdf_content_type():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -177,7 +178,9 @@ async def test_export_pdf_returns_pdf_content_type():
         r = await c.get(f"{BASE}/nis2/me/pdf", headers=h)
     assert r.status_code == 200
     assert r.headers["content-type"] == "application/pdf"
-    assert r.headers["content-disposition"] == 'attachment; filename="cyberscan_nis2_conformite.pdf"'
+    assert (
+        r.headers["content-disposition"] == 'attachment; filename="cyberscan_nis2_conformite.pdf"'
+    )
 
 
 @pytest.mark.asyncio

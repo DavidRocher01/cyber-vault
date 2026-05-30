@@ -120,5 +120,3 @@ C'est le point le plus important : on ne voit pas les prix.
         Action : Augmentez la luminosité de ce gris. Même si c'est du texte secondaire, il doit rester lisible pour des raisons légales et de confiance.
 
     Liens manquants : Il manque les liens classiques (Mentions légales, CGU, Contact). Même s'ils sont discrets, ils sont rassurants pour un service de sécurité.
-
-

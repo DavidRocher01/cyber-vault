@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { R00tComponent } from './r00t.component';
 
-interface Line { type: 'cmd' | 'out' | 'err'; text: string; }
+interface Line {
+  type: 'cmd' | 'out' | 'err';
+  text: string;
+}
 
 function makeInstance(): R00tComponent {
   const routerMock = { navigate: vi.fn() };
@@ -25,7 +28,9 @@ function linesOfType(comp: R00tComponent, type: 'out' | 'err'): string[] {
 describe('R00tComponent — execute() commands', () => {
   let comp: R00tComponent;
 
-  beforeEach(() => { comp = makeInstance(); });
+  beforeEach(() => {
+    comp = makeInstance();
+  });
 
   it('help — outputs "Available commands:" header', () => {
     (comp as any).execute('help');
@@ -72,7 +77,10 @@ describe('R00tComponent — execute() commands', () => {
   });
 
   it('clear — empties lines array', () => {
-    comp.lines = [{ type: 'out', text: 'hello' }, { type: 'cmd', text: 'ls' }];
+    comp.lines = [
+      { type: 'out', text: 'hello' },
+      { type: 'cmd', text: 'ls' },
+    ];
     (comp as any).execute('clear');
     expect(comp.lines).toHaveLength(0);
   });
@@ -92,7 +100,9 @@ describe('R00tComponent — execute() commands', () => {
 describe('R00tComponent — catFile()', () => {
   let comp: R00tComponent;
 
-  beforeEach(() => { comp = makeInstance(); });
+  beforeEach(() => {
+    comp = makeInstance();
+  });
 
   it('no argument — outputs "missing operand" error', () => {
     (comp as any).catFile(undefined);
@@ -140,7 +150,9 @@ describe('R00tComponent — catFile()', () => {
 describe('R00tComponent — history navigation', () => {
   let comp: R00tComponent;
 
-  beforeEach(() => { comp = makeInstance(); });
+  beforeEach(() => {
+    comp = makeInstance();
+  });
 
   it('historyPrev does nothing when history is empty', () => {
     comp.historyPrev();
@@ -180,7 +192,9 @@ describe('R00tComponent — history navigation', () => {
 describe('R00tComponent — autocomplete()', () => {
   let comp: R00tComponent;
 
-  beforeEach(() => { comp = makeInstance(); });
+  beforeEach(() => {
+    comp = makeInstance();
+  });
 
   it('completes a partial command', () => {
     comp.currentInput = 'wh';
@@ -210,7 +224,9 @@ describe('R00tComponent — submit()', () => {
     (comp as any).scrollBottom = vi.fn();
   });
 
-  afterEach(() => { vi.useRealTimers(); });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it('ignores empty input', () => {
     comp.currentInput = '   ';

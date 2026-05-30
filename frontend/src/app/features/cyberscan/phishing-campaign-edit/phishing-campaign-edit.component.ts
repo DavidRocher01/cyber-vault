@@ -14,15 +14,25 @@ import { PhishingService, PhishingCampaign } from '../services/phishing.service'
 import { PHISHING_SCENARIOS } from '../phishing/phishing.component';
 
 const MAX_SCENARIOS_BY_PLAN: Record<string, number> = {
-  express: 2, standard: 5, premium: 10, quarterly: 3, monthly: 7,
+  express: 2,
+  standard: 5,
+  premium: 10,
+  quarterly: 3,
+  monthly: 7,
 };
 
 @Component({
   standalone: true,
   selector: 'app-phishing-campaign-edit',
   imports: [
-    CommonModule, RouterLink, ReactiveFormsModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule, MatCheckboxModule,
+    CommonModule,
+    RouterLink,
+    ReactiveFormsModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+    MatCheckboxModule,
     NavButtonsComponent,
   ],
   templateUrl: './phishing-campaign-edit.component.html',
@@ -61,7 +71,12 @@ export class PhishingCampaignEditComponent implements OnInit {
     this.phishingService.getCampaign(this.campaignId).subscribe({
       next: c => {
         // Redirect away if campaign is already running or done
-        if (c.status === 'active' || c.status === 'completed' || c.status === 'sending' || c.status === 'cancelled') {
+        if (
+          c.status === 'active' ||
+          c.status === 'completed' ||
+          c.status === 'sending' ||
+          c.status === 'cancelled'
+        ) {
           this.router.navigate(['/cyberscan/phishing/campaigns', this.campaignId]);
           return;
         }
@@ -70,7 +85,11 @@ export class PhishingCampaignEditComponent implements OnInit {
         const scheduledLocal = c.scheduled_at
           ? new Date(c.scheduled_at).toISOString().slice(0, 16)
           : '';
-        this.form.patchValue({ name: c.name, cgu_accepted: c.cgu_accepted, scheduled_at: scheduledLocal });
+        this.form.patchValue({
+          name: c.name,
+          cgu_accepted: c.cgu_accepted,
+          scheduled_at: scheduledLocal,
+        });
         this.selectedScenarios.set(new Set(c.scenario_keys));
         this.loading.set(false);
       },
@@ -93,7 +112,9 @@ export class PhishingCampaignEditComponent implements OnInit {
     } else if (set.size < this.maxScenarios) {
       set.add(id);
     } else {
-      this.snack.open(`Maximum ${this.maxScenarios} scénario(s) pour ce plan`, 'OK', { duration: 3000 });
+      this.snack.open(`Maximum ${this.maxScenarios} scénario(s) pour ce plan`, 'OK', {
+        duration: 3000,
+      });
     }
     this.selectedScenarios.set(set);
   }
@@ -104,12 +125,14 @@ export class PhishingCampaignEditComponent implements OnInit {
 
   get canLaunch(): boolean {
     const c = this.campaign();
-    return !!c &&
+    return (
+      !!c &&
       (c.status === 'draft' || c.status === 'ready' || c.status === 'scheduled') &&
       this.selectedScenarios().size > 0 &&
       c.targets_count > 0 &&
-      (this.form.get('cgu_accepted')?.value === true) &&
-      (this.form.get('name')?.valid === true);
+      this.form.get('cgu_accepted')?.value === true &&
+      this.form.get('name')?.valid === true
+    );
   }
 
   get isScheduled(): boolean {
@@ -134,52 +157,62 @@ export class PhishingCampaignEditComponent implements OnInit {
   save() {
     if (this.form.get('name')?.invalid) return;
     this.saving.set(true);
-    this.phishingService.updateCampaign(this.campaignId, {
-      name: this.form.value.name!,
-      scenario_keys: Array.from(this.selectedScenarios()),
-      cgu_accepted: this.form.value.cgu_accepted ?? false,
-      scheduled_at: this.scheduledAtIso,
-    }).subscribe({
-      next: c => {
-        this.campaign.set(c);
-        this.saving.set(false);
-        this.snack.open('Campagne enregistrée', 'OK', { duration: 3000 });
-      },
-      error: err => {
-        this.saving.set(false);
-        this.snack.open(err.error?.detail || 'Erreur lors de la sauvegarde', 'Fermer', { duration: 4000 });
-      },
-    });
+    this.phishingService
+      .updateCampaign(this.campaignId, {
+        name: this.form.value.name!,
+        scenario_keys: Array.from(this.selectedScenarios()),
+        cgu_accepted: this.form.value.cgu_accepted ?? false,
+        scheduled_at: this.scheduledAtIso,
+      })
+      .subscribe({
+        next: c => {
+          this.campaign.set(c);
+          this.saving.set(false);
+          this.snack.open('Campagne enregistrée', 'OK', { duration: 3000 });
+        },
+        error: err => {
+          this.saving.set(false);
+          this.snack.open(err.error?.detail || 'Erreur lors de la sauvegarde', 'Fermer', {
+            duration: 4000,
+          });
+        },
+      });
   }
 
   launch() {
     this.launching.set(true);
     // Save first, then launch
-    this.phishingService.updateCampaign(this.campaignId, {
-      name: this.form.value.name!,
-      scenario_keys: Array.from(this.selectedScenarios()),
-      cgu_accepted: true,
-      scheduled_at: this.scheduledAtIso,
-    }).subscribe({
-      next: () => {
-        this.phishingService.launchCampaign(this.campaignId).subscribe({
-          next: () => {
-            this.launching.set(false);
-            const msg = this.isScheduled ? 'Envoi planifié !' : 'Campagne lancée !';
-            this.snack.open(msg, 'Voir', { duration: 5000 });
-            this.router.navigate(['/cyberscan/phishing/campaigns', this.campaignId]);
-          },
-          error: err => {
-            this.launching.set(false);
-            this.snack.open(err.error?.detail || 'Erreur au lancement', 'Fermer', { duration: 4000 });
-          },
-        });
-      },
-      error: err => {
-        this.launching.set(false);
-        this.snack.open(err.error?.detail || 'Erreur lors de la sauvegarde', 'Fermer', { duration: 4000 });
-      },
-    });
+    this.phishingService
+      .updateCampaign(this.campaignId, {
+        name: this.form.value.name!,
+        scenario_keys: Array.from(this.selectedScenarios()),
+        cgu_accepted: true,
+        scheduled_at: this.scheduledAtIso,
+      })
+      .subscribe({
+        next: () => {
+          this.phishingService.launchCampaign(this.campaignId).subscribe({
+            next: () => {
+              this.launching.set(false);
+              const msg = this.isScheduled ? 'Envoi planifié !' : 'Campagne lancée !';
+              this.snack.open(msg, 'Voir', { duration: 5000 });
+              this.router.navigate(['/cyberscan/phishing/campaigns', this.campaignId]);
+            },
+            error: err => {
+              this.launching.set(false);
+              this.snack.open(err.error?.detail || 'Erreur au lancement', 'Fermer', {
+                duration: 4000,
+              });
+            },
+          });
+        },
+        error: err => {
+          this.launching.set(false);
+          this.snack.open(err.error?.detail || 'Erreur lors de la sauvegarde', 'Fermer', {
+            duration: 4000,
+          });
+        },
+      });
   }
 
   onFileChange(event: Event) {
@@ -194,32 +227,42 @@ export class PhishingCampaignEditComponent implements OnInit {
       },
       error: err => {
         this.uploadingTargets.set(false);
-        this.snack.open(err.error?.detail || 'Erreur lors de l\'import', 'Fermer', { duration: 4000 });
+        this.snack.open(err.error?.detail || "Erreur lors de l'import", 'Fermer', {
+          duration: 4000,
+        });
       },
     });
   }
 
   statusLabel(status: string): string {
     const m: Record<string, string> = {
-      draft: 'Brouillon', pending_verification: 'Vérification',
-      ready: 'Prête', scheduled: 'Planifiée',
+      draft: 'Brouillon',
+      pending_verification: 'Vérification',
+      ready: 'Prête',
+      scheduled: 'Planifiée',
     };
     return m[status] ?? status;
   }
 
   statusColor(status: string): string {
     switch (status) {
-      case 'ready':     return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
-      case 'scheduled': return 'text-purple-400 bg-purple-500/10 border-purple-500/30';
-      default:          return 'text-gray-400 bg-gray-500/10 border-gray-500/30';
+      case 'ready':
+        return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
+      case 'scheduled':
+        return 'text-purple-400 bg-purple-500/10 border-purple-500/30';
+      default:
+        return 'text-gray-400 bg-gray-500/10 border-gray-500/30';
     }
   }
 
   difficultyColor(d: string): string {
     switch (d) {
-      case 'Difficile': return 'text-red-400';
-      case 'Moyen':     return 'text-yellow-400';
-      default:          return 'text-green-400';
+      case 'Difficile':
+        return 'text-red-400';
+      case 'Moyen':
+        return 'text-yellow-400';
+      default:
+        return 'text-green-400';
     }
   }
 }

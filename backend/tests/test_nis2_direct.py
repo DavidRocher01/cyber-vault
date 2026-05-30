@@ -3,6 +3,7 @@ Direct unit tests for nis2 endpoint bodies not covered by integration tests.
 """
 
 import json
+from datetime import UTC
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -36,12 +37,12 @@ async def test_get_assessment_no_existing_record_returns_defaults():
 @pytest.mark.asyncio
 async def test_get_assessment_with_existing_record():
     """When assessment exists, returns its data."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     assessment = MagicMock()
     assessment.items_json = json.dumps({"rssi": "compliant"})
     assessment.score = 42
-    assessment.updated_at = datetime(2024, 6, 1, tzinfo=timezone.utc)
+    assessment.updated_at = datetime(2024, 6, 1, tzinfo=UTC)
 
     db = AsyncMock()
     r = MagicMock()

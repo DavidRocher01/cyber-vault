@@ -3,6 +3,9 @@ Tests — /sitemap.xml and /robots.txt
 Covers: content-type, presence of static URLs, blog posts in sitemap,
         robots.txt disallow rules.
 """
+
+from datetime import UTC
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -11,10 +14,11 @@ from app.main import app
 
 
 async def _seed_blog_post(slug: str, published: bool = True) -> None:
-    from datetime import datetime, timezone
+    from datetime import datetime
+
     from app.models.blog_post import BlogPost
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     async with db_mod.AsyncSessionLocal() as session:
         post = BlogPost(
             slug=slug,
@@ -34,6 +38,7 @@ async def _seed_blog_post(slug: str, published: bool = True) -> None:
 
 
 # ── robots.txt ────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_robots_returns_200():
@@ -74,6 +79,7 @@ async def test_robots_contains_sitemap_link():
 
 # ── sitemap.xml ───────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_sitemap_returns_200():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -91,6 +97,7 @@ async def test_sitemap_content_type_is_xml():
 @pytest.mark.asyncio
 async def test_sitemap_is_valid_xml():
     import xml.etree.ElementTree as ET
+
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get("/sitemap.xml")
     tree = ET.fromstring(r.text)

@@ -21,7 +21,7 @@ describe('DemoResultComponent — targetUrl', () => {
   it('retourne chaîne vide si scan null', () => {
     expect(make().targetUrl).toBe('');
   });
-  it('retourne l\'URL depuis _meta', () => {
+  it("retourne l'URL depuis _meta", () => {
     const comp = withScan({ _meta: { url: 'example.com' } });
     expect(comp.targetUrl).toBe('example.com');
   });
@@ -127,8 +127,10 @@ describe('DemoResultComponent — moduleIcon()', () => {
 
 describe('DemoResultComponent — moduleColor()', () => {
   it('text-green-400 pour OK', () => expect(make().moduleColor('OK')).toBe('text-green-400'));
-  it('text-yellow-400 pour WARNING', () => expect(make().moduleColor('WARNING')).toBe('text-yellow-400'));
-  it('text-red-400 pour CRITICAL', () => expect(make().moduleColor('CRITICAL')).toBe('text-red-400'));
+  it('text-yellow-400 pour WARNING', () =>
+    expect(make().moduleColor('WARNING')).toBe('text-yellow-400'));
+  it('text-red-400 pour CRITICAL', () =>
+    expect(make().moduleColor('CRITICAL')).toBe('text-red-400'));
   it('text-gray-500 par défaut', () => expect(make().moduleColor(null)).toBe('text-gray-500'));
   it('text-gray-500 pour inconnu', () => expect(make().moduleColor('OTHER')).toBe('text-gray-500'));
 });

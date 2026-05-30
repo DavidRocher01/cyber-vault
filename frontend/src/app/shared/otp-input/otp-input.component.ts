@@ -1,11 +1,21 @@
-import { Component, EventEmitter, Input, Output, QueryList, ViewChildren, ElementRef, OnChanges, SimpleChanges } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  QueryList,
+  ViewChildren,
+  ElementRef,
+  OnChanges,
+  SimpleChanges,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
-    standalone: true,
-    selector: 'app-otp-input',
-    imports: [CommonModule],
-    template: `
+  standalone: true,
+  selector: 'app-otp-input',
+  imports: [CommonModule],
+  template: `
     <div class="flex gap-2 justify-center">
       @for (i of indices; track i) {
         <input
@@ -28,15 +38,17 @@ import { CommonModule } from '@angular/common';
       }
     </div>
   `,
-    styles: [`
-    input:focus {
-      border-color: #22d3ee !important;
-      box-shadow: 0 0 0 3px rgba(34,211,238,.15);
-    }
-    .shadow-otp-active {
-      box-shadow: 0 0 0 1px rgba(34,211,238,.2);
-    }
-  `]
+  styles: [
+    `
+      input:focus {
+        border-color: #22d3ee !important;
+        box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15);
+      }
+      .shadow-otp-active {
+        box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.2);
+      }
+    `,
+  ],
 })
 export class OtpInputComponent implements OnChanges {
   /** Set to true to clear and refocus the component */
@@ -86,7 +98,9 @@ export class OtpInputComponent implements OnChanges {
   onPaste(event: ClipboardEvent) {
     event.preventDefault();
     const text = (event.clipboardData?.getData('text') ?? '').replace(/\D/g, '').slice(0, 6);
-    this.digits = Array(6).fill('').map((_, i) => text[i] ?? '');
+    this.digits = Array(6)
+      .fill('')
+      .map((_, i) => text[i] ?? '');
     const nextEmpty = this.digits.findIndex(d => !d);
     this.focusAt(nextEmpty === -1 ? 5 : nextEmpty);
     this.emit();

@@ -10,7 +10,7 @@ _PRIVATE_NETWORKS = [
     ipaddress.ip_network("192.168.0.0/16"),
     ipaddress.ip_network("127.0.0.0/8"),
     ipaddress.ip_network("169.254.0.0/16"),  # AWS IMDS + link-local
-    ipaddress.ip_network("100.64.0.0/10"),   # Carrier-grade NAT
+    ipaddress.ip_network("100.64.0.0/10"),  # Carrier-grade NAT
     ipaddress.ip_network("::1/128"),
     ipaddress.ip_network("fc00::/7"),
     ipaddress.ip_network("fe80::/10"),

@@ -4,10 +4,11 @@ Covers: trigger (202), frequency enforcement (429), list (pagination),
         get by ID, auth isolation, CSV export, PDF 404.
 """
 
-import pytest
-from datetime import datetime, timedelta, timezone
-from httpx import ASGITransport, AsyncClient
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from httpx import ASGITransport, AsyncClient
 
 from app.main import app
 
@@ -21,15 +22,25 @@ async def _headers(client: AsyncClient, email: str) -> dict:
 
 
 async def _site(client: AsyncClient, headers: dict, url: str = "https://example.com") -> int:
-    with patch("app.api.v1.endpoints.sites.get_effective_max_sites", new=AsyncMock(return_value=5)):
+    with patch(
+        "app.api.v1.endpoints.sites.get_effective_max_sites",
+        new=AsyncMock(return_value=5),
+    ):
         r = await client.post(f"{BASE}/sites", json={"url": url, "name": "Test"}, headers=headers)
     return r.json()["id"]
 
 
 @pytest.mark.asyncio
 async def test_trigger_scan_returns_202():
-    with patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock), \
-         patch("app.api.v1.endpoints.scans.get_active_plan", new=AsyncMock(return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990))):
+    with (
+        patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock),
+        patch(
+            "app.api.v1.endpoints.scans.get_active_plan",
+            new=AsyncMock(
+                return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990)
+            ),
+        ),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "scan1@test.com")
             site_id = await _site(c, h)
@@ -48,8 +59,15 @@ async def test_trigger_scan_unknown_site_returns_404():
 
 @pytest.mark.asyncio
 async def test_trigger_scan_other_user_site_returns_404():
-    with patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock), \
-         patch("app.api.v1.endpoints.scans.get_active_plan", new=AsyncMock(return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990))):
+    with (
+        patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock),
+        patch(
+            "app.api.v1.endpoints.scans.get_active_plan",
+            new=AsyncMock(
+                return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990)
+            ),
+        ),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h1 = await _headers(c, "owner3@test.com")
             site_id = await _site(c, h1)
@@ -62,8 +80,15 @@ async def test_trigger_scan_other_user_site_returns_404():
 @pytest.mark.asyncio
 async def test_scan_frequency_enforcement_429():
     """Second scan within the interval window must return 429."""
-    with patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock), \
-         patch("app.api.v1.endpoints.scans.get_active_plan", new=AsyncMock(return_value=MagicMock(scan_interval_days=30, max_sites=1, price_eur=990))):
+    with (
+        patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock),
+        patch(
+            "app.api.v1.endpoints.scans.get_active_plan",
+            new=AsyncMock(
+                return_value=MagicMock(scan_interval_days=30, max_sites=1, price_eur=990)
+            ),
+        ),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "freq@test.com")
             site_id = await _site(c, h)
@@ -73,14 +98,16 @@ async def test_scan_frequency_enforcement_429():
             scan_id = scan_r.json()["scan_id"]
 
             # Manually set it to "done" via DB (patch the query result)
+            from sqlalchemy import select
+
             from app.core.database import AsyncSessionLocal
             from app.models.scan import Scan
-            from sqlalchemy import select
+
             async with AsyncSessionLocal() as db:
                 result = await db.execute(select(Scan).where(Scan.id == scan_id))
                 scan = result.scalar_one()
                 scan.status = "done"
-                scan.finished_at = datetime.now(timezone.utc)
+                scan.finished_at = datetime.now(UTC)
                 await db.commit()
 
             # Second trigger — should be blocked (interval_days=30 default, 0 days elapsed)
@@ -103,8 +130,15 @@ async def test_list_scans_empty():
 
 @pytest.mark.asyncio
 async def test_list_scans_after_trigger():
-    with patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock), \
-         patch("app.api.v1.endpoints.scans.get_active_plan", new=AsyncMock(return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990))):
+    with (
+        patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock),
+        patch(
+            "app.api.v1.endpoints.scans.get_active_plan",
+            new=AsyncMock(
+                return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990)
+            ),
+        ),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "list2@test.com")
             site_id = await _site(c, h)
@@ -117,8 +151,15 @@ async def test_list_scans_after_trigger():
 
 @pytest.mark.asyncio
 async def test_list_scans_pagination():
-    with patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock), \
-         patch("app.api.v1.endpoints.scans.get_active_plan", new=AsyncMock(return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990))):
+    with (
+        patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock),
+        patch(
+            "app.api.v1.endpoints.scans.get_active_plan",
+            new=AsyncMock(
+                return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990)
+            ),
+        ),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "page@test.com")
             site_id = await _site(c, h)
@@ -133,8 +174,15 @@ async def test_list_scans_pagination():
 
 @pytest.mark.asyncio
 async def test_get_scan_returns_correct_scan():
-    with patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock), \
-         patch("app.api.v1.endpoints.scans.get_active_plan", new=AsyncMock(return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990))):
+    with (
+        patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock),
+        patch(
+            "app.api.v1.endpoints.scans.get_active_plan",
+            new=AsyncMock(
+                return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990)
+            ),
+        ),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "get1@test.com")
             site_id = await _site(c, h)
@@ -148,8 +196,15 @@ async def test_get_scan_returns_correct_scan():
 
 @pytest.mark.asyncio
 async def test_get_scan_other_user_returns_404():
-    with patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock), \
-         patch("app.api.v1.endpoints.scans.get_active_plan", new=AsyncMock(return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990))):
+    with (
+        patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock),
+        patch(
+            "app.api.v1.endpoints.scans.get_active_plan",
+            new=AsyncMock(
+                return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990)
+            ),
+        ),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h1 = await _headers(c, "owner4@test.com")
             site_id = await _site(c, h1)
@@ -163,8 +218,15 @@ async def test_get_scan_other_user_returns_404():
 
 @pytest.mark.asyncio
 async def test_pdf_not_ready_returns_404():
-    with patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock), \
-         patch("app.api.v1.endpoints.scans.get_active_plan", new=AsyncMock(return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990))):
+    with (
+        patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock),
+        patch(
+            "app.api.v1.endpoints.scans.get_active_plan",
+            new=AsyncMock(
+                return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990)
+            ),
+        ),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "pdf@test.com")
             site_id = await _site(c, h)

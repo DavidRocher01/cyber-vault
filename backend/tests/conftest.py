@@ -22,6 +22,7 @@ BASE = "/api/v1"
 
 # ── Session-scoped PostgreSQL container + DDL ──────────────────────────────────
 
+
 @pytest.fixture(scope="session")
 def pg_container():
     with PostgresContainer("postgres:16-alpine") as pg:
@@ -38,6 +39,7 @@ def pg_url(pg_container):
 @pytest.fixture(scope="session", autouse=True)
 def _pg_schema(pg_url):
     """Create all tables once (sync wrapper around asyncio.run so it's loop-neutral)."""
+
     async def _run():
         engine = create_async_engine(pg_url, echo=False)
         async with engine.begin() as conn:
@@ -46,6 +48,7 @@ def _pg_schema(pg_url):
 
     asyncio.run(_run())
     yield
+
     # Teardown: drop all tables
     async def _cleanup():
         engine = create_async_engine(pg_url, echo=False)
@@ -57,6 +60,7 @@ def _pg_schema(pg_url):
 
 
 # ── Per-test isolation ─────────────────────────────────────────────────────────
+
 
 # Pre-build the TRUNCATE statement once — all table names are stable across tests.
 def _truncate_sql() -> str:
@@ -73,9 +77,7 @@ async def setup_db(pg_url):
     async with engine.begin() as conn:
         await conn.execute(text(_truncate_sql()))
 
-    AsyncTestSession = async_sessionmaker(
-        engine, class_=AsyncSession, expire_on_commit=False
-    )
+    AsyncTestSession = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async def override_get_db():
         async with AsyncTestSession() as session:
@@ -89,6 +91,7 @@ async def setup_db(pg_url):
 
     # Patch module-level AsyncSessionLocal so background tasks use the test DB
     import app.core.database as _db_module
+
     original_session_local = _db_module.AsyncSessionLocal
     _db_module.AsyncSessionLocal = AsyncTestSession
 
@@ -100,10 +103,31 @@ async def setup_db(pg_url):
         await engine.dispose()
     finally:
         from app.core.limiter import limiter
+
         limiter._storage.reset()
 
 
+# ── Awareness test helper ─────────────────────────────────────────────────────
+
+
+async def get_awareness_magic_token(learner_email: str, org_id: int) -> str:
+    """
+    Bypass the magic-link endpoint (which no longer returns the token for security)
+    and call issue_magic_link() directly to get the raw token for test use.
+    """
+    import app.core.database as _db_module
+    from app.services.awareness_magic_link import issue_magic_link
+
+    async with _db_module.AsyncSessionLocal() as db:
+        result = await issue_magic_link(db, learner_email, org_id)
+        if result is None:
+            raise ValueError(f"Learner {learner_email} not found in org {org_id}")
+        _, raw_token = result
+        return raw_token
+
+
 # ── Shared fixtures ────────────────────────────────────────────────────────────
+
 
 @pytest_asyncio.fixture
 async def db_session(pg_url):
@@ -131,14 +155,20 @@ async def http_client():
 @pytest_asyncio.fixture
 async def auth_client(http_client: AsyncClient):
     """http_client pre-authenticated as user@test.com."""
-    await http_client.post(f"{BASE}/auth/register", json={
-        "email": "user@test.com",
-        "password": "StrongPass123!",
-    })
-    r = await http_client.post(f"{BASE}/auth/login", json={
-        "email": "user@test.com",
-        "password": "StrongPass123!",
-    })
+    await http_client.post(
+        f"{BASE}/auth/register",
+        json={
+            "email": "user@test.com",
+            "password": "StrongPass123!",
+        },
+    )
+    r = await http_client.post(
+        f"{BASE}/auth/login",
+        json={
+            "email": "user@test.com",
+            "password": "StrongPass123!",
+        },
+    )
     http_client.headers["Authorization"] = f"Bearer {r.json()['access_token']}"
     return http_client
 
@@ -152,7 +182,5 @@ async def register_and_login(
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
-async def create_plan_and_subscription(
-    client: AsyncClient, headers: dict, tier: int = 2
-) -> None:
+async def create_plan_and_subscription(client: AsyncClient, headers: dict, tier: int = 2) -> None:
     pass

@@ -1,7 +1,7 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +12,7 @@ from app.models.rssi_client import RssiClient
 from app.models.scan import Scan
 from app.models.site import Site
 from app.models.user import User
+
 from ._shared import _get_client_or_404
 
 router = APIRouter()
@@ -19,10 +20,11 @@ router = APIRouter()
 STATUS_ORDER = {"CRITICAL": 0, "WARNING": 1, "OK": 2}
 
 ClientFormula = Literal["essentiel", "premium", "excellence"]
-ClientStatus  = Literal["active", "inactive", "churned"]
+ClientStatus = Literal["active", "inactive", "churned"]
 
 
 # ── Schemas ────────────────────────────────────────────────────────────────────
+
 
 class RssiClientCreate(BaseModel):
     name: str
@@ -95,7 +97,10 @@ class UnlinkedSiteOut(BaseModel):
 
 # ── Aggregation helpers ────────────────────────────────────────────────────────
 
-def _build_client_out(c: RssiClient, sites_count: int, worst: str | None, last_scan_at: datetime | None) -> RssiClientOut:
+
+def _build_client_out(
+    c: RssiClient, sites_count: int, worst: str | None, last_scan_at: datetime | None
+) -> RssiClientOut:
     return RssiClientOut(
         id=c.id,
         name=c.name,
@@ -168,6 +173,7 @@ async def _compute_aggregates(
 
 
 # ── Client CRUD ────────────────────────────────────────────────────────────────
+
 
 @router.get("/clients", response_model=list[RssiClientOut])
 async def list_clients(
@@ -255,7 +261,7 @@ async def update_client(
     if payload.pennylane_customer_id is not None:
         client.pennylane_customer_id = payload.pennylane_customer_id
 
-    client.updated_at = datetime.now(timezone.utc)
+    client.updated_at = datetime.now(UTC)
     await db.commit()
     await db.refresh(client)
     return _build_client_out(client, 0, None, None)
@@ -269,9 +275,7 @@ async def delete_client(
 ):
     client = await _get_client_or_404(client_id, current_user.id, db)
 
-    sites_result = await db.execute(
-        select(Site).where(Site.rssi_client_id == client_id)
-    )
+    sites_result = await db.execute(select(Site).where(Site.rssi_client_id == client_id))
     for site in sites_result.scalars().all():
         site.rssi_client_id = None
 
@@ -280,6 +284,7 @@ async def delete_client(
 
 
 # ── Sites for RSSI client ──────────────────────────────────────────────────────
+
 
 @router.get("/clients/{client_id}/sites", response_model=list[RssiSiteOut])
 async def list_client_sites(
@@ -291,11 +296,13 @@ async def list_client_sites(
     await _get_client_or_404(client_id, current_user.id, db)
 
     sites_result = await db.execute(
-        select(Site).where(
+        select(Site)
+        .where(
             Site.user_id == current_user.id,
             Site.rssi_client_id == client_id,
             Site.is_active == True,  # noqa: E712
-        ).order_by(Site.created_at.desc())
+        )
+        .order_by(Site.created_at.desc())
     )
     sites = sites_result.scalars().all()
 
@@ -332,11 +339,13 @@ async def list_unlinked_sites(
 ):
     """Active sites of this consultant that are not linked to any RSSI client."""
     result = await db.execute(
-        select(Site).where(
+        select(Site)
+        .where(
             Site.user_id == current_user.id,
             Site.is_active == True,  # noqa: E712
             Site.rssi_client_id.is_(None),
-        ).order_by(Site.name)
+        )
+        .order_by(Site.name)
     )
     return result.scalars().all()
 
@@ -352,7 +361,9 @@ async def link_site_to_client(
     await _get_client_or_404(client_id, current_user.id, db)
 
     site_result = await db.execute(
-        select(Site).where(Site.id == site_id, Site.user_id == current_user.id, Site.is_active == True)  # noqa: E712
+        select(Site).where(
+            Site.id == site_id, Site.user_id == current_user.id, Site.is_active == True
+        )  # noqa: E712
     )
     site = site_result.scalar_one_or_none()
     if not site:
@@ -365,13 +376,18 @@ async def link_site_to_client(
     await db.refresh(site)
 
     scan_result = await db.execute(
-        select(Scan).where(Scan.site_id == site_id, Scan.status == "done")
-        .order_by(Scan.finished_at.desc()).limit(1)
+        select(Scan)
+        .where(Scan.site_id == site_id, Scan.status == "done")
+        .order_by(Scan.finished_at.desc())
+        .limit(1)
     )
     latest_scan = scan_result.scalar_one_or_none()
 
     return RssiSiteOut(
-        id=site.id, url=site.url, name=site.name, is_active=site.is_active,
+        id=site.id,
+        url=site.url,
+        name=site.name,
+        is_active=site.is_active,
         created_at=site.created_at,
         latest_scan_status=latest_scan.overall_status if latest_scan else None,
         last_scan_at=latest_scan.finished_at if latest_scan else None,

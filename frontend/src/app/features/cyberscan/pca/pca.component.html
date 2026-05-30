@@ -2,23 +2,27 @@
 
 <div class="min-h-screen bg-gray-950 text-gray-100 p-4 md:p-8">
   <div class="max-w-3xl mx-auto">
-
     <!-- Header -->
     <div class="mb-8">
       <div class="flex items-center gap-3 mb-1">
-        <span class="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+        <span
+          class="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent"
+        >
           PCA Light
         </span>
-        <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-600/40">
+        <span
+          class="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-600/40"
+        >
           WIZARD
         </span>
       </div>
-      <p class="text-gray-400 text-sm">Générez votre Plan de Continuité d'Activité en 4 étapes — téléchargement PDF immédiat</p>
+      <p class="text-gray-400 text-sm">
+        Générez votre Plan de Continuité d'Activité en 4 étapes — téléchargement PDF immédiat
+      </p>
     </div>
 
     <!-- Stepper -->
     <mat-stepper orientation="vertical" linear #stepper class="bg-transparent">
-
       <!-- Step 1: Company info -->
       <mat-step [stepControl]="companyForm" label="Informations entreprise">
         <form [formGroup]="companyForm" class="flex flex-col gap-4 py-4">
@@ -37,7 +41,12 @@
             </mat-form-field>
             <mat-form-field appearance="outline" class="w-full">
               <mat-label>Email</mat-label>
-              <input matInput formControlName="email" type="email" placeholder="pca@entreprise.fr" />
+              <input
+                matInput
+                formControlName="email"
+                type="email"
+                placeholder="pca@entreprise.fr"
+              />
             </mat-form-field>
             <mat-form-field appearance="outline" class="w-full md:col-span-2">
               <mat-label>Téléphone</mat-label>
@@ -45,7 +54,13 @@
             </mat-form-field>
           </div>
           <div>
-            <button type="button" mat-flat-button color="primary" matStepperNext [disabled]="companyForm.invalid">
+            <button
+              type="button"
+              mat-flat-button
+              color="primary"
+              matStepperNext
+              [disabled]="companyForm.invalid"
+            >
               Suivant <mat-icon>arrow_forward</mat-icon>
             </button>
           </div>
@@ -55,7 +70,9 @@
       <!-- Step 2: Critical systems -->
       <mat-step label="Systèmes critiques">
         <form [formGroup]="systemsForm" class="flex flex-col gap-4 py-4">
-          <p class="text-sm text-gray-400">Listez les systèmes essentiels à votre activité et définissez vos RTO/RPO.</p>
+          <p class="text-sm text-gray-400">
+            Listez les systèmes essentiels à votre activité et définissez vos RTO/RPO.
+          </p>
 
           @for (ctrl of systems.controls; track $index; let i = $index) {
             <div class="bg-gray-900 border border-gray-700 rounded-xl p-4" [formGroup]="$any(ctrl)">
@@ -74,7 +91,11 @@
                 </mat-form-field>
                 <mat-form-field appearance="outline" class="w-full col-span-2">
                   <mat-label>Description</mat-label>
-                  <input matInput formControlName="description" placeholder="Gestion des stocks, facturation..." />
+                  <input
+                    matInput
+                    formControlName="description"
+                    placeholder="Gestion des stocks, facturation..."
+                  />
                 </mat-form-field>
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>RTO (heures)</mat-label>
@@ -95,7 +116,12 @@
           }
 
           <div>
-            <button type="button" mat-stroked-button (click)="addSystem()" [disabled]="systems.length >= 8">
+            <button
+              type="button"
+              mat-stroked-button
+              (click)="addSystem()"
+              [disabled]="systems.length >= 8"
+            >
               <mat-icon>add</mat-icon> Ajouter un système
             </button>
           </div>
@@ -146,7 +172,12 @@
           }
 
           <div>
-            <button type="button" mat-stroked-button (click)="addMember()" [disabled]="members.length >= 8">
+            <button
+              type="button"
+              mat-stroked-button
+              (click)="addMember()"
+              [disabled]="members.length >= 8"
+            >
               <mat-icon>add</mat-icon> Ajouter un membre
             </button>
           </div>
@@ -165,26 +196,42 @@
         <form [formGroup]="commForm" class="flex flex-col gap-4 py-4">
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>Plan de communication (optionnel)</mat-label>
-            <textarea matInput formControlName="communication_plan" rows="4"
-                      placeholder="Ex : Informer les clients sous 24h, contacter les fournisseurs clés, communication interne via Slack...">
+            <textarea
+              matInput
+              formControlName="communication_plan"
+              rows="4"
+              placeholder="Ex : Informer les clients sous 24h, contacter les fournisseurs clés, communication interne via Slack..."
+            >
             </textarea>
           </mat-form-field>
 
           <!-- Summary before generation -->
-          <div class="bg-gray-900 border border-emerald-700/40 rounded-xl p-4 text-sm text-gray-300">
+          <div
+            class="bg-gray-900 border border-emerald-700/40 rounded-xl p-4 text-sm text-gray-300"
+          >
             <div class="font-semibold text-emerald-400 mb-2">Récapitulatif</div>
             <div class="flex flex-col gap-1">
-              <div><span class="text-gray-500">Entreprise :</span> {{ companyForm.value.name }}</div>
-              <div><span class="text-gray-500">Systèmes critiques :</span> {{ systems.length }}</div>
-              <div><span class="text-gray-500">Équipe de réponse :</span> {{ members.length }} membres</div>
+              <div>
+                <span class="text-gray-500">Entreprise :</span> {{ companyForm.value.name }}
+              </div>
+              <div>
+                <span class="text-gray-500">Systèmes critiques :</span> {{ systems.length }}
+              </div>
+              <div>
+                <span class="text-gray-500">Équipe de réponse :</span> {{ members.length }} membres
+              </div>
             </div>
           </div>
 
           <div class="flex gap-3">
             <button type="button" mat-stroked-button matStepperPrevious>Retour</button>
-            <button type="button" mat-flat-button color="primary"
-                    [disabled]="companyForm.invalid || generating()"
-                    (click)="generate()">
+            <button
+              type="button"
+              mat-flat-button
+              color="primary"
+              [disabled]="companyForm.invalid || generating()"
+              (click)="generate()"
+            >
               @if (generating()) {
                 <mat-spinner [diameter]="18" class="inline-block mr-2" />
               } @else {
@@ -195,8 +242,6 @@
           </div>
         </form>
       </mat-step>
-
     </mat-stepper>
-
   </div>
 </div>

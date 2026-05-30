@@ -14,8 +14,8 @@ class SlotOut(BaseModel):
 
 
 class SlotIn(BaseModel):
-    date: str    # YYYY-MM-DD
-    time: str    # HH:MM
+    date: str  # YYYY-MM-DD
+    time: str  # HH:MM
     duration_minutes: int = 30
     label: str = "Appel découverte"
 
@@ -23,6 +23,7 @@ class SlotIn(BaseModel):
     @classmethod
     def valid_date(cls, v: str) -> str:
         import re
+
         if not re.match(r"^\d{4}-\d{2}-\d{2}$", v):
             raise ValueError("Format YYYY-MM-DD requis")
         return v
@@ -31,6 +32,7 @@ class SlotIn(BaseModel):
     @classmethod
     def valid_time(cls, v: str) -> str:
         import re
+
         if not re.match(r"^\d{2}:\d{2}$", v):
             raise ValueError("Format HH:MM requis")
         return v

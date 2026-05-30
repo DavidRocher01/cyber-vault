@@ -1,4 +1,4 @@
-Page dédiées par client 
+Page dédiées par client
 
 - historisation des diagnostiques
 
@@ -19,7 +19,7 @@ Le protocole MCP permet à Claude de se connecter à des services tiers sans que
 
     Si le client utilise GitHub Issues : C'est encore plus simple, car Claude Code possède une intégration native. Il peut scanner le repo, détecter une faille, et ouvrir automatiquement une Issue avec le label security.
 
-    Installer autant de MCP que possible pour gérer 100% des cas	
+    Installer autant de MCP que possible pour gérer 100% des cas
 
 2. Le workflow "Zéro Friction"
 
@@ -31,7 +31,7 @@ Voici le schéma type d'une intervention sur le projet d'un client :
 
     La Validation Client : Le client reçoit une notification. Dans le ticket, Claude a déjà pré-rédigé la solution.
 
-    Le client reçoit une estimation de la sévérité de la faille et du temps de correction	
+    Le client reçoit une estimation de la sévérité de la faille et du temps de correction
 
     Le bouton "Corriger" : Si le client donne son accord (ou si vous le faites pour lui), vous tapez claude fix issue #123. Claude applique le patch, vérifie avec Pytest et Vitest, et pousse le code.
 
@@ -51,6 +51,4 @@ Pour une micro-entreprise, il y a deux manières de gérer les accès :
 
     Sécurité : En utilisant des outils comme Snyk ou GitHub Advanced Security couplés à Claude, vous offrez une prestation de "DevSecOps" de haut niveau, normalement réservée aux grandes agences.
 
-5. Une fois les corrections faites, le client peut relancer le scan et générer un nouveau PDF 
-
-
+5. Une fois les corrections faites, le client peut relancer le scan et générer un nouveau PDF

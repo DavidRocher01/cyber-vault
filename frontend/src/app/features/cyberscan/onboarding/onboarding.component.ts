@@ -11,14 +11,19 @@ import { Title } from '@angular/platform-browser';
 import { CyberscanService, Plan } from '../services/cyberscan.service';
 
 @Component({
-    standalone: true,
-    selector: 'app-onboarding',
-    imports: [
-        CommonModule, ReactiveFormsModule, RouterLink,
-        MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
-    ],
-    templateUrl: './onboarding.component.html',
-    styleUrl: './onboarding.component.css'
+  standalone: true,
+  selector: 'app-onboarding',
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+  ],
+  templateUrl: './onboarding.component.html',
+  styleUrl: './onboarding.component.css',
 })
 export class OnboardingComponent implements OnInit {
   private cyberscan = inject(CyberscanService);
@@ -41,7 +46,7 @@ export class OnboardingComponent implements OnInit {
   readonly steps = [
     { n: 1, label: 'Votre plan' },
     { n: 2, label: 'Premier site' },
-    { n: 3, label: 'C\'est parti !' },
+    { n: 3, label: "C'est parti !" },
   ];
 
   ngOnInit() {
@@ -50,7 +55,9 @@ export class OnboardingComponent implements OnInit {
     // If user already has a subscription (e.g. coming back from Stripe success),
     // skip step 1 and go directly to step 2 (add first site).
     this.cyberscan.getMySubscription(true).subscribe({
-      next: sub => { if (sub) this.currentStep.set(2); },
+      next: sub => {
+        if (sub) this.currentStep.set(2);
+      },
     });
   }
 
@@ -70,7 +77,9 @@ export class OnboardingComponent implements OnInit {
             } else if (parsed.hostname === 'checkout.stripe.com') {
               window.location.href = url;
             }
-          } catch { /* URL invalide ignorée */ }
+          } catch {
+            /* URL invalide ignorée */
+          }
         }
       },
       error: () => this.checkoutLoading.set(false),
@@ -87,7 +96,8 @@ export class OnboardingComponent implements OnInit {
         this.addingSite.set(false);
         this.currentStep.set(3);
         this.cyberscan.triggerScan(site.id).subscribe({
-          error: () => this.snack.open('Erreur lors du lancement du scan', 'Fermer', { duration: 4000 }),
+          error: () =>
+            this.snack.open('Erreur lors du lancement du scan', 'Fermer', { duration: 4000 }),
         });
       },
       error: err => {
@@ -115,7 +125,9 @@ export class OnboardingComponent implements OnInit {
 
   planFeatures(plan: Plan): string[] {
     const features: string[] = [];
-    features.push(`${plan.max_sites} site${plan.max_sites > 1 ? 's' : ''} surveillé${plan.max_sites > 1 ? 's' : ''}`);
+    features.push(
+      `${plan.max_sites} site${plan.max_sites > 1 ? 's' : ''} surveillé${plan.max_sites > 1 ? 's' : ''}`
+    );
     features.push(`Scan tous les ${plan.scan_interval_days} jours`);
     if (plan.scan_interval_days <= 7) features.push('Alertes email immédiates');
     if (plan.scan_interval_days <= 14) features.push('Rapports PDF inclus');

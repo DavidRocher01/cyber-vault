@@ -176,12 +176,12 @@ Synthèse
 
 1. La répartition intelligente du budget (Estimation 2026)
 Poste de dépense	Service AWS	Coût estimé	Pourquoi ce choix ?
-Base de données	RDS PostgreSQL (t4g.micro)	
-Backend API	App Runner (ou Fargate)	
-Analyseur	AWS Lambda	
-Sécurité/Secrets	KMS + Secrets Manager	
-Stockage	S3 + CloudWatch	
-Réseau	Route 53 + CloudFront	
+Base de données	RDS PostgreSQL (t4g.micro)
+Backend API	App Runner (ou Fargate)
+Analyseur	AWS Lambda
+Sécurité/Secrets	KMS + Secrets Manager
+Stockage	S3 + CloudWatch
+Réseau	Route 53 + CloudFront
 
 
 Total : ~50 € / mois.

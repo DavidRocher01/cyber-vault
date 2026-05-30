@@ -1,7 +1,7 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,13 +10,14 @@ from app.core.database import get_db
 from app.core.deps import get_rssi_consultant
 from app.models.rssi_visit import RssiVisit
 from app.models.user import User
+
 from ._shared import _get_client_or_404
 
 router = APIRouter()
 
-VisitType     = Literal["monthly", "quarterly", "annual", "urgent"]
+VisitType = Literal["monthly", "quarterly", "annual", "urgent"]
 VisitLocation = Literal["onsite", "remote"]
-VisitStatus   = Literal["planned", "completed", "cancelled", "postponed"]
+VisitStatus = Literal["planned", "completed", "cancelled", "postponed"]
 
 
 class RssiVisitCreate(BaseModel):
@@ -120,7 +121,7 @@ async def update_visit(
     if payload.duration_hours is not None:
         visit.duration_hours = payload.duration_hours
 
-    visit.updated_at = datetime.now(timezone.utc)
+    visit.updated_at = datetime.now(UTC)
     await db.commit()
     await db.refresh(visit)
     return visit

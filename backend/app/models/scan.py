@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -18,13 +18,17 @@ class Scan(Base):
 
     # pending | running | done | failed
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending", index=True)
-    overall_status: Mapped[str | None] = mapped_column(String(20), nullable=True)  # OK|WARNING|CRITICAL
+    overall_status: Mapped[str | None] = mapped_column(
+        String(20), nullable=True
+    )  # OK|WARNING|CRITICAL
 
     pdf_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
     results_json: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON stringified
     error_message: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

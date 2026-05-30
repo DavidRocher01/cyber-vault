@@ -27,7 +27,9 @@ describe('NotFoundComponent — initial state', () => {
 describe('NotFoundComponent — termSubmit()', () => {
   let comp: NotFoundComponent;
 
-  beforeEach(() => { comp = makeInstance(); });
+  beforeEach(() => {
+    comp = makeInstance();
+  });
 
   it('ignores empty input', () => {
     const before = comp.termLines.length;

@@ -3,22 +3,23 @@ URL Scan endpoints — trigger and consult suspicious URL analyses.
 """
 
 import json
+from datetime import UTC
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 
 from app.core.crud import get_user_resource
-from app.core.database import get_db, AsyncSessionLocal
+from app.core.database import AsyncSessionLocal, get_db
 from app.core.deps import get_current_user
-from app.core.pagination import paginate
-from app.models.user import User
-from app.models.url_scan import UrlScan
-from app.schemas.url_scan import UrlScanCreate, UrlScanOut, PaginatedUrlScans
-from app.services.url_scan_service import run_url_scan
 from app.core.limiter import limiter
+from app.core.pagination import paginate
 from app.core.ssrf import assert_no_ssrf
+from app.models.url_scan import UrlScan
+from app.models.user import User
+from app.schemas.url_scan import PaginatedUrlScans, UrlScanCreate, UrlScanOut
+from app.services.url_scan_service import run_url_scan
 
 router = APIRouter(prefix="/url-scans", tags=["url-scans"])
 
@@ -39,12 +40,13 @@ async def trigger_url_scan(
 ):
     """Submit a URL for suspicious content analysis."""
     assert_no_ssrf(payload.url)
-    from datetime import datetime, timezone
+    from datetime import datetime
+
     url_scan = UrlScan(
         user_id=current_user.id,
         url=payload.url,
         status="pending",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     db.add(url_scan)
     await db.commit()
@@ -64,7 +66,9 @@ async def list_url_scans(
     """List all URL scans for the authenticated user."""
     return await paginate(
         db,
-        base_query=select(UrlScan).where(UrlScan.user_id == current_user.id).order_by(UrlScan.created_at.desc()),
+        base_query=select(UrlScan)
+        .where(UrlScan.user_id == current_user.id)
+        .order_by(UrlScan.created_at.desc()),
         count_query=select(func.count()).where(UrlScan.user_id == current_user.id),
         page=page,
         per_page=per_page,
@@ -101,6 +105,7 @@ async def download_url_scan_pdf(
     results["created_at"] = scan.created_at
 
     from app.services.url_scan_pdf import generate_url_scan_pdf
+
     pdf_bytes = generate_url_scan_pdf(results)
 
     return StreamingResponse(

@@ -39,7 +39,8 @@ describe('AdminQuotesComponent — statusLabel()', () => {
 
 describe('AdminQuotesComponent — statusClasses()', () => {
   it('contient blue pour sent', () => expect(make().statusClasses('sent')).toContain('blue'));
-  it('contient green pour accepted', () => expect(make().statusClasses('accepted')).toContain('green'));
+  it('contient green pour accepted', () =>
+    expect(make().statusClasses('accepted')).toContain('green'));
   it('contient red pour rejected', () => expect(make().statusClasses('rejected')).toContain('red'));
   it('contient gray pour expired', () => expect(make().statusClasses('expired')).toContain('gray'));
   it('fallback gray pour inconnu', () => expect(make().statusClasses('other')).toContain('gray'));

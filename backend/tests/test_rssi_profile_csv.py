@@ -1,4 +1,5 @@
 """Tests for P6 (consultant profile) and P7 (CSV export)."""
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -9,14 +10,19 @@ BASE = "/api/v1"
 
 
 async def _auth(http_client: AsyncClient, email: str) -> dict:
-    await http_client.post(f"{BASE}/auth/register", json={"email": email, "password": "StrongPass123!"})
-    r = await http_client.post(f"{BASE}/auth/login", json={"email": email, "password": "StrongPass123!"})
+    await http_client.post(
+        f"{BASE}/auth/register", json={"email": email, "password": "StrongPass123!"}
+    )
+    r = await http_client.post(
+        f"{BASE}/auth/login", json={"email": email, "password": "StrongPass123!"}
+    )
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
 async def _auth_consultant(http_client: AsyncClient, email: str) -> dict:
     """Register, login, and mark user as RSSI consultant."""
     import app.core.database as _db_mod
+
     headers = await _auth(http_client, email)
     async with _db_mod.AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.email == email))
@@ -32,14 +38,24 @@ async def _create_client(http_client: AsyncClient, headers: dict, name: str = "A
     return r.json()
 
 
-async def _create_action(http_client: AsyncClient, headers: dict, client_id: int, title: str, priority: str = "medium") -> dict:
-    r = await http_client.post(f"{BASE}/rssi/clients/{client_id}/actions",
-                               json={"title": title, "priority": priority}, headers=headers)
+async def _create_action(
+    http_client: AsyncClient,
+    headers: dict,
+    client_id: int,
+    title: str,
+    priority: str = "medium",
+) -> dict:
+    r = await http_client.post(
+        f"{BASE}/rssi/clients/{client_id}/actions",
+        json={"title": title, "priority": priority},
+        headers=headers,
+    )
     assert r.status_code == 201, r.text
     return r.json()
 
 
 # ── P6 — Consultant profile ────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_profile_get_requires_auth(http_client: AsyncClient):
@@ -76,9 +92,15 @@ async def test_profile_initial_values_are_null(http_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_profile_patch_all_fields(http_client: AsyncClient):
     h = await _auth_consultant(http_client, "profile_patch@test.com")
-    r = await http_client.patch(f"{BASE}/rssi/profile",
-                                json={"display_name": "Jean Dupont", "company_name": "CyberConseil", "phone": "+33600000000"},
-                                headers=h)
+    r = await http_client.patch(
+        f"{BASE}/rssi/profile",
+        json={
+            "display_name": "Jean Dupont",
+            "company_name": "CyberConseil",
+            "phone": "+33600000000",
+        },
+        headers=h,
+    )
     assert r.status_code == 200
     data = r.json()
     assert data["display_name"] == "Jean Dupont"
@@ -113,6 +135,7 @@ async def test_profile_get_returns_email(http_client: AsyncClient):
 
 
 # ── P7 — CSV export ────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_csv_export_requires_auth(http_client: AsyncClient):

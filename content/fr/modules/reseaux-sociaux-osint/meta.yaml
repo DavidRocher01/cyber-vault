@@ -1,0 +1,10 @@
+title: "Réseaux sociaux et OSINT : ce que vous exposez sans le savoir"
+description: "Comment les attaquants exploitent LinkedIn, Twitter et les données publiques pour construire des attaques ciblées — et comment limiter votre exposition."
+content_type: mixed
+estimated_duration_minutes: 5
+xp_points: 10
+has_quiz: true
+quiz_max_attempts: 3
+quiz_cooldown_minutes: 15
+quiz_passing_score: 60
+is_active: true

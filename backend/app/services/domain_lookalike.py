@@ -12,11 +12,10 @@ any domain purchase (uses our existing PHISHING_BASE_URL).
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Literal
 
 from app.core.config import settings
-
 
 # ---------------------------------------------------------------------------
 # Data model
@@ -39,7 +38,7 @@ Technique = Literal[
 class LookalikeDomain:
     domain: str
     technique: Technique
-    realism_score: int          # 1-10 (10 = most realistic)
+    realism_score: int  # 1-10 (10 = most realistic)
     requires_purchase: bool
     purchase_url: str = ""
     setup_instructions: str = ""
@@ -62,14 +61,31 @@ class LookalikeDomain:
 # ---------------------------------------------------------------------------
 
 _PREPEND_KEYWORDS = [
-    "login", "secure", "connexion", "portail", "espace",
-    "mon", "auth", "sign-in", "acces", "acceder",
+    "login",
+    "secure",
+    "connexion",
+    "portail",
+    "espace",
+    "mon",
+    "auth",
+    "sign-in",
+    "acces",
+    "acceder",
 ]
 
 _APPEND_KEYWORDS = [
-    "rh", "paie", "support", "portail", "login",
-    "secure", "connexion", "espace", "acces", "service",
-    "client", "pro",
+    "rh",
+    "paie",
+    "support",
+    "portail",
+    "login",
+    "secure",
+    "connexion",
+    "espace",
+    "acces",
+    "service",
+    "client",
+    "pro",
 ]
 
 _ALT_TLDS = [".net", ".co", ".org", ".fr", ".eu", ".io", ".online", ".site"]
@@ -81,25 +97,44 @@ _HOMOGLYPHS: dict[str, list[str]] = {
     "i": ["í", "ì"],
     "o": ["ô", "ö"],
     # ASCII look-alikes (no Unicode needed, more practical)
-    "rn": ["m"],      # "rn" looks like "m"
-    "vv": ["w"],      # "vv" looks like "w"
-    "cl": ["d"],      # "cl" looks like "d"
+    "rn": ["m"],  # "rn" looks like "m"
+    "vv": ["w"],  # "vv" looks like "w"
+    "cl": ["d"],  # "cl" looks like "d"
 }
 
 # Keyboard adjacency (AZERTY — common mistype substitutions)
 _KEYBOARD_ADJACENT: dict[str, str] = {
-    "a": "z", "z": "a", "e": "r", "r": "e",
-    "t": "r", "y": "u", "u": "y", "i": "o",
-    "o": "i", "p": "o", "s": "d", "d": "s",
-    "f": "g", "g": "f", "h": "j", "j": "h",
-    "k": "l", "l": "k", "m": "n", "n": "m",
-    "b": "v", "v": "b", "c": "x", "x": "c",
+    "a": "z",
+    "z": "a",
+    "e": "r",
+    "r": "e",
+    "t": "r",
+    "y": "u",
+    "u": "y",
+    "i": "o",
+    "o": "i",
+    "p": "o",
+    "s": "d",
+    "d": "s",
+    "f": "g",
+    "g": "f",
+    "h": "j",
+    "j": "h",
+    "k": "l",
+    "l": "k",
+    "m": "n",
+    "n": "m",
+    "b": "v",
+    "v": "b",
+    "c": "x",
+    "x": "c",
 }
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _parse_domain(domain: str) -> tuple[str, str]:
     """Return (name, tld) for 'example.com' → ('example', '.com')."""
@@ -146,12 +181,13 @@ def _dedup(candidates: list[LookalikeDomain]) -> list[LookalikeDomain]:
 
 
 def _is_valid_domain(name: str) -> bool:
-    return bool(name) and bool(re.match(r'^[a-z0-9][a-z0-9-]*[a-z0-9]$', name))
+    return bool(name) and bool(re.match(r"^[a-z0-9][a-z0-9-]*[a-z0-9]$", name))
 
 
 # ---------------------------------------------------------------------------
 # Generators
 # ---------------------------------------------------------------------------
+
 
 def _sim_subdomain(name: str, tld: str) -> LookalikeDomain:
     base = settings.PHISHING_BASE_URL.rstrip("/")
@@ -171,20 +207,28 @@ def _combosquatting(name: str, tld: str) -> list[LookalikeDomain]:
     results = []
     for kw in _PREPEND_KEYWORDS[:5]:
         d = f"{kw}-{name}{tld}"
-        results.append(LookalikeDomain(
-            domain=d, technique="combosquatting_prepend",
-            realism_score=9, requires_purchase=True,
-            purchase_url=_purchase_url(d),
-            setup_instructions=_setup_instructions(d),
-        ))
+        results.append(
+            LookalikeDomain(
+                domain=d,
+                technique="combosquatting_prepend",
+                realism_score=9,
+                requires_purchase=True,
+                purchase_url=_purchase_url(d),
+                setup_instructions=_setup_instructions(d),
+            )
+        )
     for kw in _APPEND_KEYWORDS[:5]:
         d = f"{name}-{kw}{tld}"
-        results.append(LookalikeDomain(
-            domain=d, technique="combosquatting_append",
-            realism_score=8, requires_purchase=True,
-            purchase_url=_purchase_url(d),
-            setup_instructions=_setup_instructions(d),
-        ))
+        results.append(
+            LookalikeDomain(
+                domain=d,
+                technique="combosquatting_append",
+                realism_score=8,
+                requires_purchase=True,
+                purchase_url=_purchase_url(d),
+                setup_instructions=_setup_instructions(d),
+            )
+        )
     return results
 
 
@@ -194,28 +238,36 @@ def _tld_swap(name: str, tld: str) -> list[LookalikeDomain]:
         if alt == tld:
             continue
         d = f"{name}{alt}"
-        results.append(LookalikeDomain(
-            domain=d, technique="tld_swap",
-            realism_score=7, requires_purchase=True,
-            purchase_url=_purchase_url(d),
-            setup_instructions=_setup_instructions(d),
-        ))
+        results.append(
+            LookalikeDomain(
+                domain=d,
+                technique="tld_swap",
+                realism_score=7,
+                requires_purchase=True,
+                purchase_url=_purchase_url(d),
+                setup_instructions=_setup_instructions(d),
+            )
+        )
     return results
 
 
 def _typo_missing(name: str, tld: str) -> list[LookalikeDomain]:
     results = []
     for i in range(len(name)):
-        variant = name[:i] + name[i+1:]
+        variant = name[:i] + name[i + 1 :]
         if len(variant) < 3 or not _is_valid_domain(variant):
             continue
         d = f"{variant}{tld}"
-        results.append(LookalikeDomain(
-            domain=d, technique="typo_missing_char",
-            realism_score=6, requires_purchase=True,
-            purchase_url=_purchase_url(d),
-            setup_instructions=_setup_instructions(d),
-        ))
+        results.append(
+            LookalikeDomain(
+                domain=d,
+                technique="typo_missing_char",
+                realism_score=6,
+                requires_purchase=True,
+                purchase_url=_purchase_url(d),
+                setup_instructions=_setup_instructions(d),
+            )
+        )
     return results[:4]
 
 
@@ -226,28 +278,36 @@ def _typo_double(name: str, tld: str) -> list[LookalikeDomain]:
         if not _is_valid_domain(variant):
             continue
         d = f"{variant}{tld}"
-        results.append(LookalikeDomain(
-            domain=d, technique="typo_double_char",
-            realism_score=5, requires_purchase=True,
-            purchase_url=_purchase_url(d),
-            setup_instructions=_setup_instructions(d),
-        ))
+        results.append(
+            LookalikeDomain(
+                domain=d,
+                technique="typo_double_char",
+                realism_score=5,
+                requires_purchase=True,
+                purchase_url=_purchase_url(d),
+                setup_instructions=_setup_instructions(d),
+            )
+        )
     return results[:4]
 
 
 def _typo_swap(name: str, tld: str) -> list[LookalikeDomain]:
     results = []
     for i in range(len(name) - 1):
-        variant = name[:i] + name[i+1] + name[i] + name[i+2:]
+        variant = name[:i] + name[i + 1] + name[i] + name[i + 2 :]
         if variant == name or not _is_valid_domain(variant):
             continue
         d = f"{variant}{tld}"
-        results.append(LookalikeDomain(
-            domain=d, technique="typo_char_swap",
-            realism_score=6, requires_purchase=True,
-            purchase_url=_purchase_url(d),
-            setup_instructions=_setup_instructions(d),
-        ))
+        results.append(
+            LookalikeDomain(
+                domain=d,
+                technique="typo_char_swap",
+                realism_score=6,
+                requires_purchase=True,
+                purchase_url=_purchase_url(d),
+                setup_instructions=_setup_instructions(d),
+            )
+        )
     return results[:4]
 
 
@@ -255,41 +315,54 @@ def _typo_keyboard(name: str, tld: str) -> list[LookalikeDomain]:
     results = []
     for i, ch in enumerate(name):
         if ch in _KEYBOARD_ADJACENT:
-            variant = name[:i] + _KEYBOARD_ADJACENT[ch] + name[i+1:]
+            variant = name[:i] + _KEYBOARD_ADJACENT[ch] + name[i + 1 :]
             if variant == name or not _is_valid_domain(variant):
                 continue
             d = f"{variant}{tld}"
-            results.append(LookalikeDomain(
-                domain=d, technique="typo_char_swap",
-                realism_score=5, requires_purchase=True,
-                purchase_url=_purchase_url(d),
-                setup_instructions=_setup_instructions(d),
-            ))
+            results.append(
+                LookalikeDomain(
+                    domain=d,
+                    technique="typo_char_swap",
+                    realism_score=5,
+                    requires_purchase=True,
+                    purchase_url=_purchase_url(d),
+                    setup_instructions=_setup_instructions(d),
+                )
+            )
     return results[:3]
 
 
 def _subdomain_trick(name: str, tld: str) -> list[LookalikeDomain]:
     """e.g. 'example.com.login-secure.fr' — looks like a subdomain of the real site."""
     results = []
-    lures = ["login-secure.fr", "espace-client.fr", "portail-rh.com", "connexion-secure.net"]
+    lures = [
+        "login-secure.fr",
+        "espace-client.fr",
+        "portail-rh.com",
+        "connexion-secure.net",
+    ]
     for lure in lures:
         d = f"{name}{tld}.{lure}"
-        results.append(LookalikeDomain(
-            domain=d, technique="subdomain_trick",
-            realism_score=9, requires_purchase=True,
-            purchase_url=_purchase_url(lure),
-            setup_instructions=(
-                f"Achetez '{lure}', puis créez un CNAME:\n"
-                f"  {name}{tld}.{lure} → votre API"
-            ),
-            note="Très réaliste : l'URL commence par le vrai domaine de l'entreprise.",
-        ))
+        results.append(
+            LookalikeDomain(
+                domain=d,
+                technique="subdomain_trick",
+                realism_score=9,
+                requires_purchase=True,
+                purchase_url=_purchase_url(lure),
+                setup_instructions=(
+                    f"Achetez '{lure}', puis créez un CNAME:\n" f"  {name}{tld}.{lure} → votre API"
+                ),
+                note="Très réaliste : l'URL commence par le vrai domaine de l'entreprise.",
+            )
+        )
     return results
 
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def generate_lookalikes(target_domain: str, max_results: int = 30) -> list[dict]:
     """
@@ -317,4 +390,4 @@ def generate_lookalikes(target_domain: str, max_results: int = 30) -> list[dict]
 
     # sim_subdomain is always included first (free, no purchase needed)
     # and does not consume a slot from the paid-domain results
-    return [sim.to_dict()] + [c.to_dict() for c in candidates[:max_results - 1]]
+    return [sim.to_dict()] + [c.to_dict() for c in candidates[: max_results - 1]]

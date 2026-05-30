@@ -13,9 +13,13 @@ import { CyberscanService } from '../../../services/cyberscan.service';
   template: `
     <section class="px-6 py-14 -mt-6 relative z-20">
       <div class="max-w-2xl mx-auto">
-        <div class="rounded-2xl border border-cyan-500/25 bg-gray-800/80 backdrop-blur-sm p-8 shadow-2xl shadow-cyan-900/20">
+        <div
+          class="rounded-2xl border border-cyan-500/25 bg-gray-800/80 backdrop-blur-sm p-8 shadow-2xl shadow-cyan-900/20"
+        >
           <div class="text-center mb-6">
-            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 text-xs font-semibold border border-cyan-700/40 mb-3">
+            <span
+              class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 text-xs font-semibold border border-cyan-700/40 mb-3"
+            >
               <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
               Scan gratuit — sans compte
             </span>
@@ -24,18 +28,22 @@ import { CyberscanService } from '../../../services/cyberscan.service';
           </div>
 
           <div class="flex gap-2">
-            <input type="url"
-                   placeholder="https://monsite.com"
-                   [value]="demoUrl()"
-                   (input)="demoUrl.set($any($event.target).value)"
-                   (keydown.enter)="submit()"
-                   class="flex-1 bg-gray-900/80 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500
-                          focus:outline-none focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/60 transition-all" />
-            <button type="button"
-                    (click)="submit()"
-                    [disabled]="demoLoading() || !demoUrl()"
-                    class="flex items-center gap-2 px-5 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold transition-all
-                           disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0">
+            <input
+              type="url"
+              placeholder="https://monsite.com"
+              [value]="demoUrl()"
+              (input)="demoUrl.set($any($event.target).value)"
+              (keydown.enter)="submit()"
+              class="flex-1 bg-gray-900/80 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500
+                          focus:outline-none focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/60 transition-all"
+            />
+            <button
+              type="button"
+              (click)="submit()"
+              [disabled]="demoLoading() || !demoUrl()"
+              class="flex items-center gap-2 px-5 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold transition-all
+                           disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+            >
               @if (demoLoading()) {
                 <mat-spinner diameter="16" color="warn"></mat-spinner>
               } @else {
@@ -64,9 +72,9 @@ export class DemoScanComponent {
   private cyberscan = inject(CyberscanService);
   private router = inject(Router);
 
-  demoUrl     = signal('');
+  demoUrl = signal('');
   demoLoading = signal(false);
-  demoError   = signal<string | null>(null);
+  demoError = signal<string | null>(null);
 
   submit() {
     let url = this.demoUrl().trim();

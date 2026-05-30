@@ -24,7 +24,9 @@ describe('VaultService', () => {
 
   it('create() appelle POST sur /vault/ avec le payload', () => {
     const payload = { title: 'GitHub', password_encrypted: 'enc123' };
-    httpMock.post.mockReturnValue(of({ id: 1, ...payload, username: null, url: null, notes: null }));
+    httpMock.post.mockReturnValue(
+      of({ id: 1, ...payload, username: null, url: null, notes: null })
+    );
     service.create(payload).subscribe();
     expect(httpMock.post).toHaveBeenCalledWith(expect.stringContaining('/vault/'), payload);
   });

@@ -10,7 +10,11 @@ export class CryptoService {
     return !!this.key;
   }
 
-  async deriveKey(masterPassword: string, email: string, iterations = CryptoService.ITERATIONS): Promise<void> {
+  async deriveKey(
+    masterPassword: string,
+    email: string,
+    iterations = CryptoService.ITERATIONS
+  ): Promise<void> {
     const enc = new TextEncoder();
     const keyMaterial = await crypto.subtle.importKey(
       'raw',
@@ -32,7 +36,11 @@ export class CryptoService {
     if (!this.key) throw new Error('Clé de chiffrement non initialisée');
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const enc = new TextEncoder();
-    const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, this.key, enc.encode(plaintext));
+    const ciphertext = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      this.key,
+      enc.encode(plaintext)
+    );
     const combined = new Uint8Array(iv.byteLength + ciphertext.byteLength);
     combined.set(iv, 0);
     combined.set(new Uint8Array(ciphertext), iv.byteLength);
@@ -50,8 +58,11 @@ export class CryptoService {
 
   /** Returns null instead of throwing — useful for migration canary checks. */
   async tryDecrypt(encryptedBase64: string): Promise<string | null> {
-    try { return await this.decrypt(encryptedBase64); }
-    catch { return null; }
+    try {
+      return await this.decrypt(encryptedBase64);
+    } catch {
+      return null;
+    }
   }
 
   clearKey(): void {

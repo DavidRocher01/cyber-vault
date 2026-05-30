@@ -1,12 +1,14 @@
 <div class="p-6 space-y-5">
-
   <div class="flex items-center justify-between">
     <div>
       <h1 class="text-xl font-bold text-white">Factures</h1>
       <p class="text-gray-500 text-sm mt-0.5">Abonnements (auto) + Audits (manuel)</p>
     </div>
-    <button type="button" (click)="showForm.set(!showForm())"
-            class="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium transition-all">
+    <button
+      type="button"
+      (click)="showForm.set(!showForm())"
+      class="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium transition-all"
+    >
       <mat-icon class="text-base">add</mat-icon>
       Nouvelle facture audit
     </button>
@@ -17,25 +19,38 @@
     <div class="bg-gray-800/50 border border-gray-700 rounded-2xl p-6 space-y-4">
       <h2 class="text-white font-semibold">Nouvelle facture — Audit</h2>
       <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
-
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
-            <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Nom du client *</label>
-            <input formControlName="client_name" type="text" placeholder="Dupont Jean"
-                   class="w-full bg-gray-900 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition-colors"
-                   [class.border-gray-600]="!ctrl('client_name').invalid || !ctrl('client_name').touched"
-                   [class.border-red-500]="ctrl('client_name').invalid && ctrl('client_name').touched"
-                   [class.focus:border-cyan-500]="!ctrl('client_name').invalid" />
+            <label class="text-xs text-gray-400 font-medium uppercase tracking-wider"
+              >Nom du client *</label
+            >
+            <input
+              formControlName="client_name"
+              type="text"
+              placeholder="Dupont Jean"
+              class="w-full bg-gray-900 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition-colors"
+              [class.border-gray-600]="!ctrl('client_name').invalid || !ctrl('client_name').touched"
+              [class.border-red-500]="ctrl('client_name').invalid && ctrl('client_name').touched"
+              [class.focus:border-cyan-500]="!ctrl('client_name').invalid"
+            />
             @if (ctrl('client_name').invalid && ctrl('client_name').touched) {
               <p class="text-red-400 text-xs">Nom requis</p>
             }
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Email du client *</label>
-            <input formControlName="client_email" type="email" placeholder="jean@exemple.com"
-                   class="w-full bg-gray-900 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition-colors"
-                   [class.border-gray-600]="!ctrl('client_email').invalid || !ctrl('client_email').touched"
-                   [class.border-red-500]="ctrl('client_email').invalid && ctrl('client_email').touched" />
+            <label class="text-xs text-gray-400 font-medium uppercase tracking-wider"
+              >Email du client *</label
+            >
+            <input
+              formControlName="client_email"
+              type="email"
+              placeholder="jean@exemple.com"
+              class="w-full bg-gray-900 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition-colors"
+              [class.border-gray-600]="
+                !ctrl('client_email').invalid || !ctrl('client_email').touched
+              "
+              [class.border-red-500]="ctrl('client_email').invalid && ctrl('client_email').touched"
+            />
             @if (ctrl('client_email').invalid && ctrl('client_email').touched) {
               <p class="text-red-400 text-xs">Email valide requis (ex: jean&#64;exemple.com)</p>
             }
@@ -43,17 +58,29 @@
         </div>
 
         <div class="flex flex-col gap-1">
-          <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Adresse (optionnel)</label>
-          <textarea formControlName="client_address" rows="2" placeholder="12 rue de la Paix, 75001 Paris"
-                    class="w-full bg-gray-900 border border-gray-600 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-cyan-500 transition-colors resize-none"></textarea>
+          <label class="text-xs text-gray-400 font-medium uppercase tracking-wider"
+            >Adresse (optionnel)</label
+          >
+          <textarea
+            formControlName="client_address"
+            rows="2"
+            placeholder="12 rue de la Paix, 75001 Paris"
+            class="w-full bg-gray-900 border border-gray-600 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-cyan-500 transition-colors resize-none"
+          ></textarea>
         </div>
 
         <div class="flex flex-col gap-1">
-          <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Description *</label>
-          <input formControlName="description" type="text" placeholder="Audit cybersécurité Flash — exemple.com"
-                 class="w-full bg-gray-900 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition-colors"
-                 [class.border-gray-600]="!ctrl('description').invalid || !ctrl('description').touched"
-                 [class.border-red-500]="ctrl('description').invalid && ctrl('description').touched" />
+          <label class="text-xs text-gray-400 font-medium uppercase tracking-wider"
+            >Description *</label
+          >
+          <input
+            formControlName="description"
+            type="text"
+            placeholder="Audit cybersécurité Flash — exemple.com"
+            class="w-full bg-gray-900 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition-colors"
+            [class.border-gray-600]="!ctrl('description').invalid || !ctrl('description').touched"
+            [class.border-red-500]="ctrl('description').invalid && ctrl('description').touched"
+          />
           @if (ctrl('description').invalid && ctrl('description').touched) {
             <p class="text-red-400 text-xs">Description requise</p>
           }
@@ -61,47 +88,74 @@
 
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
-            <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Montant TTC (€) *</label>
-            <input formControlName="amount_eur" type="number" step="0.01" min="0.01" placeholder="290.00"
-                   class="w-full bg-gray-900 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition-colors"
-                   [class.border-gray-600]="!ctrl('amount_eur').invalid || !ctrl('amount_eur').touched"
-                   [class.border-red-500]="ctrl('amount_eur').invalid && ctrl('amount_eur').touched" />
+            <label class="text-xs text-gray-400 font-medium uppercase tracking-wider"
+              >Montant TTC (€) *</label
+            >
+            <input
+              formControlName="amount_eur"
+              type="number"
+              step="0.01"
+              min="0.01"
+              placeholder="290.00"
+              class="w-full bg-gray-900 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition-colors"
+              [class.border-gray-600]="!ctrl('amount_eur').invalid || !ctrl('amount_eur').touched"
+              [class.border-red-500]="ctrl('amount_eur').invalid && ctrl('amount_eur').touched"
+            />
             @if (ctrl('amount_eur').invalid && ctrl('amount_eur').touched) {
               <p class="text-red-400 text-xs">Montant requis (ex: 290.00)</p>
             }
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Date d'émission (optionnel)</label>
-            <input formControlName="issue_date" type="date" title="Date d'émission"
-                   class="w-full bg-gray-900 border border-gray-600 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-cyan-500 transition-colors" />
+            <label class="text-xs text-gray-400 font-medium uppercase tracking-wider"
+              >Date d'émission (optionnel)</label
+            >
+            <input
+              formControlName="issue_date"
+              type="date"
+              title="Date d'émission"
+              class="w-full bg-gray-900 border border-gray-600 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-cyan-500 transition-colors"
+            />
           </div>
         </div>
 
         <div class="flex flex-col gap-1">
-          <label class="text-xs text-gray-400 font-medium uppercase tracking-wider">Email compte utilisateur (optionnel — lier au dashboard client)</label>
-          <input formControlName="user_email" type="email" placeholder="jean@exemple.com"
-                 class="w-full bg-gray-900 border border-gray-600 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-cyan-500 transition-colors" />
+          <label class="text-xs text-gray-400 font-medium uppercase tracking-wider"
+            >Email compte utilisateur (optionnel — lier au dashboard client)</label
+          >
+          <input
+            formControlName="user_email"
+            type="email"
+            placeholder="jean@exemple.com"
+            class="w-full bg-gray-900 border border-gray-600 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-cyan-500 transition-colors"
+          />
         </div>
 
         <!-- Résumé erreurs si tentative de submit avec form invalide -->
         @if (form.invalid && submitAttempted()) {
-          <div class="bg-red-900/30 border border-red-700 rounded-xl px-4 py-3 text-red-300 text-sm">
+          <div
+            class="bg-red-900/30 border border-red-700 rounded-xl px-4 py-3 text-red-300 text-sm"
+          >
             Certains champs sont invalides. Vérifiez les champs en rouge ci-dessus.
           </div>
         }
 
         <div class="flex justify-end gap-3 pt-2">
-          <button type="button" (click)="showForm.set(false)"
-                  class="px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 text-sm transition-colors">
+          <button
+            type="button"
+            (click)="showForm.set(false)"
+            class="px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 text-sm transition-colors"
+          >
             Annuler
           </button>
-          <button type="submit"
-                  class="flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium transition-all"
-                  [class.bg-cyan-600]="form.valid && !creating()"
-                  [class.hover:bg-cyan-500]="form.valid && !creating()"
-                  [class.bg-gray-600]="form.invalid"
-                  [class.cursor-not-allowed]="form.invalid"
-                  [class.opacity-60]="form.invalid || creating()">
+          <button
+            type="submit"
+            class="flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium transition-all"
+            [class.bg-cyan-600]="form.valid && !creating()"
+            [class.hover:bg-cyan-500]="form.valid && !creating()"
+            [class.bg-gray-600]="form.invalid"
+            [class.cursor-not-allowed]="form.invalid"
+            [class.opacity-60]="form.invalid || creating()"
+          >
             @if (creating()) {
               <mat-spinner diameter="16" />
             }
@@ -116,19 +170,31 @@
   @if (loading()) {
     <p class="text-gray-500 text-sm">Chargement...</p>
   } @else if (invoices().length === 0) {
-    <div class="bg-gray-800/30 border border-gray-800 rounded-2xl p-10 text-center text-gray-500 text-sm">
+    <div
+      class="bg-gray-800/30 border border-gray-800 rounded-2xl p-10 text-center text-gray-500 text-sm"
+    >
       Aucune facture pour l'instant.
     </div>
   } @else {
     <div class="space-y-2">
       @for (inv of invoices(); track inv.id) {
-        <div class="bg-gray-800/50 border border-gray-700 rounded-xl px-5 py-3 flex items-center gap-4">
-          <div class="font-mono text-cyan-400 text-sm font-medium w-36 shrink-0">{{ inv.invoice_number }}</div>
+        <div
+          class="bg-gray-800/50 border border-gray-700 rounded-xl px-5 py-3 flex items-center gap-4"
+        >
+          <div class="font-mono text-cyan-400 text-sm font-medium w-36 shrink-0">
+            {{ inv.invoice_number }}
+          </div>
           <div class="text-gray-400 text-sm w-24 shrink-0">{{ formatDate(inv.issue_date) }}</div>
           <div class="shrink-0">
-            <span class="px-2 py-0.5 rounded-full text-xs border"
-                  [class.bg-blue-900]="inv.type === 'subscription'" [class.text-blue-300]="inv.type === 'subscription'" [class.border-blue-700]="inv.type === 'subscription'"
-                  [class.bg-purple-900]="inv.type === 'audit'" [class.text-purple-300]="inv.type === 'audit'" [class.border-purple-700]="inv.type === 'audit'">
+            <span
+              class="px-2 py-0.5 rounded-full text-xs border"
+              [class.bg-blue-900]="inv.type === 'subscription'"
+              [class.text-blue-300]="inv.type === 'subscription'"
+              [class.border-blue-700]="inv.type === 'subscription'"
+              [class.bg-purple-900]="inv.type === 'audit'"
+              [class.text-purple-300]="inv.type === 'audit'"
+              [class.border-purple-700]="inv.type === 'audit'"
+            >
               {{ inv.type === 'subscription' ? 'Abonnement' : 'Audit' }}
             </span>
           </div>
@@ -136,9 +202,15 @@
             <p class="text-white text-sm font-medium truncate">{{ inv.client_name }}</p>
             <p class="text-gray-500 text-xs">{{ inv.client_email }}</p>
           </div>
-          <div class="text-white font-semibold text-sm shrink-0">{{ formatAmount(inv.amount_cents) }} TTC</div>
-          <button type="button" (click)="download(inv)" [disabled]="downloading() === inv.id"
-                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 text-xs transition-colors disabled:opacity-50 shrink-0">
+          <div class="text-white font-semibold text-sm shrink-0">
+            {{ formatAmount(inv.amount_cents) }} TTC
+          </div>
+          <button
+            type="button"
+            (click)="download(inv)"
+            [disabled]="downloading() === inv.id"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 text-xs transition-colors disabled:opacity-50 shrink-0"
+          >
             @if (downloading() === inv.id) {
               <mat-spinner diameter="14" />
             } @else {
@@ -150,5 +222,4 @@
       }
     </div>
   }
-
 </div>

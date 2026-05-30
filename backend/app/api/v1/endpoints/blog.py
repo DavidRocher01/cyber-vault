@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -17,18 +17,31 @@ router = APIRouter(prefix="/blog", tags=["blog"])
 def _to_out(p: BlogPost) -> BlogPostOut:
     tags = safe_json_load(p.tags, [])
     return BlogPostOut(
-        id=p.id, slug=p.slug, title=p.title, description=p.description,
-        date=p.date, readTime=p.read_time, category=p.category,
-        tags=tags, isPublished=p.is_published,
+        id=p.id,
+        slug=p.slug,
+        title=p.title,
+        description=p.description,
+        date=p.date,
+        readTime=p.read_time,
+        category=p.category,
+        tags=tags,
+        isPublished=p.is_published,
     )
 
 
 def _to_detail(p: BlogPost) -> BlogPostDetailOut:
     tags = safe_json_load(p.tags, [])
     return BlogPostDetailOut(
-        id=p.id, slug=p.slug, title=p.title, description=p.description,
-        date=p.date, readTime=p.read_time, category=p.category,
-        tags=tags, isPublished=p.is_published, htmlContent=p.html_content,
+        id=p.id,
+        slug=p.slug,
+        title=p.title,
+        description=p.description,
+        date=p.date,
+        readTime=p.read_time,
+        category=p.category,
+        tags=tags,
+        isPublished=p.is_published,
+        htmlContent=p.html_content,
     )
 
 
@@ -53,13 +66,21 @@ async def get_article(slug: str, db: AsyncSession = Depends(get_db)):
     return _to_detail(post)
 
 
-@router.get("/admin/articles", response_model=list[BlogPostOut], dependencies=[Depends(require_admin)])
+@router.get(
+    "/admin/articles",
+    response_model=list[BlogPostOut],
+    dependencies=[Depends(require_admin)],
+)
 async def admin_list_articles(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(BlogPost).order_by(BlogPost.date.desc()))
     return [_to_out(p) for p in result.scalars().all()]
 
 
-@router.get("/admin/articles/{slug}", response_model=BlogPostDetailOut, dependencies=[Depends(require_admin)])
+@router.get(
+    "/admin/articles/{slug}",
+    response_model=BlogPostDetailOut,
+    dependencies=[Depends(require_admin)],
+)
 async def admin_get_article(slug: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(BlogPost).where(BlogPost.slug == slug))
     post = result.scalar_one_or_none()
@@ -75,7 +96,7 @@ async def admin_get_article(slug: str, db: AsyncSession = Depends(get_db)):
     dependencies=[Depends(require_admin)],
 )
 async def create_article(payload: BlogPostIn, db: AsyncSession = Depends(get_db)):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     post = BlogPost(
         slug=payload.slug,
         title=payload.title,
@@ -113,7 +134,7 @@ async def update_article(slug: str, payload: BlogPostIn, db: AsyncSession = Depe
     post.tags = json.dumps(payload.tags)
     post.html_content = payload.htmlContent
     post.is_published = payload.isPublished
-    post.updated_at = datetime.now(timezone.utc)
+    post.updated_at = datetime.now(UTC)
     await db.commit()
     return _to_detail(post)
 

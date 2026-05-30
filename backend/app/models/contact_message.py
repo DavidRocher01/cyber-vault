@@ -16,5 +16,7 @@ class ContactMessage(Base):
     need_type: Mapped[str] = mapped_column(String(50), nullable=False)
     site_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     message: Mapped[str] = mapped_column(Text, nullable=False)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="new")  # new | handled | archived
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="new"
+    )  # new | handled | archived
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

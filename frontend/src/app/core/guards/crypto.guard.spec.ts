@@ -15,9 +15,7 @@ function run(hasKey: boolean, url = '/vault') {
     ],
   });
 
-  const result = runInInjectionContext(injector, () =>
-    cryptoGuard({} as any, { url } as any)
-  );
+  const result = runInInjectionContext(injector, () => cryptoGuard({} as any, { url } as any));
 
   return { result, createUrlTreeMock };
 }

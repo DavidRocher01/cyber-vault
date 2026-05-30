@@ -54,6 +54,10 @@ jobs:
         run: pip-audit --ignore-vuln GHSA-jr27-m4p2-rc6r --ignore-vuln GHSA-f96h-pmfr-66vw --ignore-vuln GHSA-2c2j-9gv5-cj73 --ignore-vuln PYSEC-2026-161
         working-directory: backend
 
+      - name: Validate awareness content (YAML + Markdown)
+        run: python scripts/validate_awareness_content.py
+        working-directory: backend
+
       - name: Alembic migrations check
         env:
           SECRET_KEY: ci-test-secret-key

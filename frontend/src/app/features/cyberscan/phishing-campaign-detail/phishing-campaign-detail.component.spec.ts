@@ -6,7 +6,9 @@ import type { PhishingCampaign } from '../services/phishing.service';
 import { PHISHING_SCENARIOS } from '../phishing/phishing.component';
 
 function make(): PhishingCampaignDetailComponent {
-  const comp = Object.create(PhishingCampaignDetailComponent.prototype) as PhishingCampaignDetailComponent;
+  const comp = Object.create(
+    PhishingCampaignDetailComponent.prototype
+  ) as PhishingCampaignDetailComponent;
   (comp as any).campaign = signal<PhishingCampaign | null>(null);
   (comp as any).loading = signal(false);
   (comp as any).downloadingPdf = signal(false);
@@ -16,12 +18,25 @@ function make(): PhishingCampaignDetailComponent {
 
 function campaign(overrides: Partial<PhishingCampaign> = {}): PhishingCampaign {
   return {
-    id: 1, name: 'Test', status: 'active', plan_tier: 'standard',
-    domain: null, domain_verified: false, lookalike_domain: null, scenario_keys: [],
-    targets_count: 100, emails_sent: 80, opened_count: 40,
-    clicked_count: 20, submitted_count: 5, click_rate: 0.25,
-    cgu_accepted: true, scheduled_at: null, started_at: null,
-    finished_at: null, created_at: '2024-01-01T00:00:00Z',
+    id: 1,
+    name: 'Test',
+    status: 'active',
+    plan_tier: 'standard',
+    domain: null,
+    domain_verified: false,
+    lookalike_domain: null,
+    scenario_keys: [],
+    targets_count: 100,
+    emails_sent: 80,
+    opened_count: 40,
+    clicked_count: 20,
+    submitted_count: 5,
+    click_rate: 0.25,
+    cgu_accepted: true,
+    scheduled_at: null,
+    started_at: null,
+    finished_at: null,
+    created_at: '2024-01-01T00:00:00Z',
     ...overrides,
   };
 }
@@ -33,7 +48,7 @@ describe('PhishingCampaignDetailComponent — openRate()', () => {
   it('retourne 0 si aucun email envoyé', () => {
     expect(make().openRate(campaign({ emails_sent: 0 }))).toBe(0);
   });
-  it('arrondit à l\'entier', () => {
+  it("arrondit à l'entier", () => {
     expect(make().openRate(campaign({ opened_count: 1, emails_sent: 3 }))).toBe(33);
   });
 });
@@ -57,7 +72,7 @@ describe('PhishingCampaignDetailComponent — submitRate()', () => {
 });
 
 describe('PhishingCampaignDetailComponent — sendProgress()', () => {
-  it('calcule la progression d\'envoi', () => {
+  it("calcule la progression d'envoi", () => {
     expect(make().sendProgress(campaign({ emails_sent: 40, targets_count: 100 }))).toBe(40);
   });
   it('retourne 0 si aucune cible', () => {
@@ -118,7 +133,8 @@ describe('PhishingCampaignDetailComponent — statusColor()', () => {
   it('gray pour draft', () => expect(make().statusColor('draft')).toContain('gray'));
   it('blue pour ready', () => expect(make().statusColor('ready')).toContain('blue'));
   it('red pour cancelled', () => expect(make().statusColor('cancelled')).toContain('red'));
-  it('yellow par défaut', () => expect(make().statusColor('pending_verification')).toContain('yellow'));
+  it('yellow par défaut', () =>
+    expect(make().statusColor('pending_verification')).toContain('yellow'));
 });
 
 describe('PhishingCampaignDetailComponent — targetStatusLabel()', () => {
@@ -143,8 +159,10 @@ describe('PhishingCampaignDetailComponent — targetStatusColor()', () => {
   it('red pour submitted', () => expect(make().targetStatusColor('submitted')).toContain('red'));
   it('orange pour clicked', () => expect(make().targetStatusColor('clicked')).toContain('orange'));
   it('yellow pour opened', () => expect(make().targetStatusColor('opened')).toContain('yellow'));
-  it('blue pour email_sent', () => expect(make().targetStatusColor('email_sent')).toContain('blue'));
-  it('gray par défaut (pending)', () => expect(make().targetStatusColor('pending')).toContain('gray'));
+  it('blue pour email_sent', () =>
+    expect(make().targetStatusColor('email_sent')).toContain('blue'));
+  it('gray par défaut (pending)', () =>
+    expect(make().targetStatusColor('pending')).toContain('gray'));
 });
 
 describe('PhishingCampaignDetailComponent — scenarioName()', () => {
@@ -180,18 +198,20 @@ function makeForPolling(status: string) {
   const base = campaign({ status: status as PhishingCampaign['status'] });
   const getCampaign = vi.fn().mockReturnValue(of(base));
 
-  const comp = Object.create(PhishingCampaignDetailComponent.prototype) as PhishingCampaignDetailComponent;
-  (comp as any).campaign       = signal<PhishingCampaign | null>(base);
-  (comp as any).loading        = signal(false);
+  const comp = Object.create(
+    PhishingCampaignDetailComponent.prototype
+  ) as PhishingCampaignDetailComponent;
+  (comp as any).campaign = signal<PhishingCampaign | null>(base);
+  (comp as any).loading = signal(false);
   (comp as any).downloadingPdf = signal(false);
-  (comp as any).scenarios      = PHISHING_SCENARIOS;
-  (comp as any).campaignId     = 1;
+  (comp as any).scenarios = PHISHING_SCENARIOS;
+  (comp as any).campaignId = 1;
   // Minimal DI stubs — no injection context required
-  (comp as any).destroyRef     = { onDestroy: vi.fn() };
-  (comp as any).route          = { snapshot: { paramMap: { get: () => '1' } } };
-  (comp as any).router         = { navigate: vi.fn() };
-  (comp as any).snack          = { open: vi.fn() };
-  (comp as any).title          = { setTitle: vi.fn() };
+  (comp as any).destroyRef = { onDestroy: vi.fn() };
+  (comp as any).route = { snapshot: { paramMap: { get: () => '1' } } };
+  (comp as any).router = { navigate: vi.fn() };
+  (comp as any).snack = { open: vi.fn() };
+  (comp as any).title = { setTitle: vi.fn() };
   (comp as any).phishingService = { getCampaign };
 
   return { comp, getCampaign };

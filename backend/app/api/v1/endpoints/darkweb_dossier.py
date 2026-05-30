@@ -9,11 +9,21 @@ Routes:
   GET    /darkweb-dossier/{id}/pdf     — download PDF report
   POST   /darkweb-dossier/catalog/sync — sync HIBP breach catalog (admin)
 """
+
 import csv
 import io
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+    status,
+)
 from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -38,6 +48,7 @@ _MAX_DOSSIERS_PER_USER = 20
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
+
 
 class TargetOut(BaseModel):
     id: int
@@ -89,6 +100,7 @@ class DossierListItem(BaseModel):
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _parse_emails_csv(content: bytes) -> list[str]:
     """Extract emails from a CSV file (first column or any column named 'email')."""
@@ -150,6 +162,7 @@ def _to_dossier_out(d: DarkwebDossier) -> DossierOut:
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+
 
 @router.post("", response_model=DossierOut, status_code=status.HTTP_201_CREATED)
 async def create_dossier(
@@ -331,8 +344,11 @@ async def rescan_dossier(
         DarkwebDossierTarget.__table__.update()
         .where(DarkwebDossierTarget.dossier_id == dossier_id)
         .values(
-            status="pending", check_status="pending",
-            total_breaches=0, breach_sources_json=None, checked_at=None,
+            status="pending",
+            check_status="pending",
+            total_breaches=0,
+            breach_sources_json=None,
+            checked_at=None,
         )
     )
     dossier.status = "pending"
@@ -389,6 +405,7 @@ async def toggle_monitor(
 ):
     """Enable or disable monthly monitoring for a dossier."""
     from datetime import timedelta
+
     result = await db.execute(
         select(DarkwebDossier).where(
             DarkwebDossier.id == dossier_id,
@@ -401,8 +418,11 @@ async def toggle_monitor(
 
     dossier.monitor_active = not dossier.monitor_active
     if dossier.monitor_active:
-        dossier.next_monitor_at = datetime.now(timezone.utc) + timedelta(days=30)
+        dossier.next_monitor_at = datetime.now(UTC) + timedelta(days=30)
     else:
         dossier.next_monitor_at = None
     await db.commit()
-    return {"monitor_active": dossier.monitor_active, "next_monitor_at": dossier.next_monitor_at}
+    return {
+        "monitor_active": dossier.monitor_active,
+        "next_monitor_at": dossier.next_monitor_at,
+    }

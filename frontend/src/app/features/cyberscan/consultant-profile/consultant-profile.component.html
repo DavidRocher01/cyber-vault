@@ -2,16 +2,20 @@
   <app-nav-buttons />
 
   <div class="max-w-lg mx-auto px-4 py-10">
-
     <!-- Header -->
     <div class="flex items-center gap-3 mb-8">
-      <button type="button" (click)="back()"
-              class="text-gray-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5">
+      <button
+        type="button"
+        (click)="back()"
+        class="text-gray-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5"
+      >
         <mat-icon>arrow_back</mat-icon>
       </button>
       <div>
         <h1 class="text-2xl font-bold tracking-tight">Mon profil consultant</h1>
-        <p class="text-sm text-gray-500 mt-0.5">Informations affichées dans vos rapports PDF clients</p>
+        <p class="text-sm text-gray-500 mt-0.5">
+          Informations affichées dans vos rapports PDF clients
+        </p>
       </div>
     </div>
 
@@ -22,10 +26,11 @@
       </div>
     } @else {
       <form [formGroup]="form" (ngSubmit)="save()" class="flex flex-col gap-5">
-
         <!-- Avatar + identity preview -->
         <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex items-center gap-4">
-          <div class="w-14 h-14 rounded-xl bg-cyan-500/15 border border-cyan-700/30 flex items-center justify-center flex-shrink-0">
+          <div
+            class="w-14 h-14 rounded-xl bg-cyan-500/15 border border-cyan-700/30 flex items-center justify-center flex-shrink-0"
+          >
             @if (form.value.display_name) {
               <span class="text-cyan-300 text-lg font-bold uppercase">
                 {{ displayInitials }}
@@ -46,7 +51,9 @@
             }
           </div>
           <div class="ml-auto flex-shrink-0">
-            <span class="text-[10px] px-2 py-1 rounded-full bg-cyan-500/10 text-cyan-500 border border-cyan-700/30 uppercase tracking-widest font-medium">
+            <span
+              class="text-[10px] px-2 py-1 rounded-full bg-cyan-500/10 text-cyan-500 border border-cyan-700/30 uppercase tracking-widest font-medium"
+            >
               Consultant
             </span>
           </div>
@@ -58,34 +65,53 @@
 
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>Nom affiché</mat-label>
-            <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">badge</mat-icon>
+            <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]"
+              >badge</mat-icon
+            >
             <input matInput formControlName="display_name" placeholder="Ex : David Rocher" />
             <mat-hint>Prénom et nom complet, tel qu'il apparaît sur les rapports</mat-hint>
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>Société</mat-label>
-            <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">business</mat-icon>
+            <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]"
+              >business</mat-icon
+            >
             <input matInput formControlName="company_name" placeholder="Ex : CyberScan SAS" />
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>Téléphone</mat-label>
-            <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">phone</mat-icon>
+            <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]"
+              >phone</mat-icon
+            >
             <input matInput formControlName="phone" placeholder="Ex : +33 6 12 34 56 78" />
           </mat-form-field>
         </div>
 
         <!-- PDF context hint -->
-        <div class="flex items-start gap-3 px-4 py-3 rounded-xl border border-gray-800 bg-gray-900/50 text-xs text-gray-500">
-          <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] text-gray-600 flex-shrink-0 mt-0.5">picture_as_pdf</mat-icon>
-          <span>Ces informations apparaissent dans l'en-tête de chaque rapport PDF généré pour vos clients.</span>
+        <div
+          class="flex items-start gap-3 px-4 py-3 rounded-xl border border-gray-800 bg-gray-900/50 text-xs text-gray-500"
+        >
+          <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] text-gray-600 flex-shrink-0 mt-0.5"
+            >picture_as_pdf</mat-icon
+          >
+          <span
+            >Ces informations apparaissent dans l'en-tête de chaque rapport PDF généré pour vos
+            clients.</span
+          >
         </div>
 
         <!-- Save button -->
-        <button mat-flat-button type="submit" [disabled]="saving()"
-                class="!rounded-xl !py-3 !text-sm !font-semibold transition-all"
-                [class]="saved() ? '!bg-emerald-600 hover:!bg-emerald-500' : '!bg-cyan-600 hover:!bg-cyan-500'">
+        <button
+          mat-flat-button
+          type="submit"
+          [disabled]="saving()"
+          class="!rounded-xl !py-3 !text-sm !font-semibold transition-all"
+          [class]="
+            saved() ? '!bg-emerald-600 hover:!bg-emerald-500' : '!bg-cyan-600 hover:!bg-cyan-500'
+          "
+        >
           @if (saving()) {
             <ng-container>
               <mat-icon class="animate-spin !text-base !w-4 !h-4 mr-1.5">autorenew</mat-icon>
@@ -103,7 +129,6 @@
             </ng-container>
           }
         </button>
-
       </form>
     }
   </div>

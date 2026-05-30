@@ -6,31 +6,46 @@ import { NewsletterAdminComponent } from './newsletter-admin.component';
 
 const STATS = { total: 10, active: 8, pending_confirmation: 2 };
 const ARTICLES = [
-  { position: 1, actu_title: 'Titre 1', actu_url: 'https://a.com', actu_source: 'Source A', reflex: 'Note 1', image_url: null },
-  { position: 2, actu_title: 'Titre 2', actu_url: 'https://b.com', actu_source: 'Source B', reflex: 'Note 2', image_url: null },
+  {
+    position: 1,
+    actu_title: 'Titre 1',
+    actu_url: 'https://a.com',
+    actu_source: 'Source A',
+    reflex: 'Note 1',
+    image_url: null,
+  },
+  {
+    position: 2,
+    actu_title: 'Titre 2',
+    actu_url: 'https://b.com',
+    actu_source: 'Source B',
+    reflex: 'Note 2',
+    image_url: null,
+  },
 ];
 
 function make() {
   const comp = Object.create(NewsletterAdminComponent.prototype) as NewsletterAdminComponent;
-  (comp as any).apiKeySet      = signal(false);
-  (comp as any).keyError       = signal(false);
-  (comp as any).stats          = signal(null);
-  (comp as any).sending        = signal(false);
+  (comp as any).apiKeySet = signal(false);
+  (comp as any).keyError = signal(false);
+  (comp as any).stats = signal(null);
+  (comp as any).sending = signal(false);
   (comp as any).savingSchedule = signal(false);
-  (comp as any).saveOk         = signal(false);
-  (comp as any).sendResult     = signal(null);
-  (comp as any).keyInput       = '';
-  (comp as any).editionNumber  = 1;
+  (comp as any).saveOk = signal(false);
+  (comp as any).sendResult = signal(null);
+  (comp as any).keyInput = '';
+  (comp as any).editionNumber = 1;
   const fb = new FormBuilder();
   (comp as any).fb = fb;
-  const slot = (pos: number) => fb.group({
-    position:    [pos],
-    actu_source: ['x'],
-    actu_title:  ['x'],
-    actu_url:    ['x'],
-    reflex:      ['x'],
-    image_url:   [null],
-  });
+  const slot = (pos: number) =>
+    fb.group({
+      position: [pos],
+      actu_source: ['x'],
+      actu_title: ['x'],
+      actu_url: ['x'],
+      reflex: ['x'],
+      image_url: [null],
+    });
   (comp as any).scheduleForm = fb.group({
     articles: fb.array(Array.from({ length: 6 }, (_, i) => slot(i + 1))),
   });
@@ -42,7 +57,7 @@ describe('NewsletterAdminComponent — submitKey()', () => {
     const comp = make();
     (comp as any).keyInput = 'valid';
     (comp as any).http = {
-      get: vi.fn((url: string) => url.includes('stats') ? of(STATS) : of([])),
+      get: vi.fn((url: string) => (url.includes('stats') ? of(STATS) : of([]))),
     };
     comp.submitKey();
     expect(comp.apiKeySet()).toBe(true);
@@ -104,7 +119,11 @@ describe('NewsletterAdminComponent — saveSchedule()', () => {
 describe('NewsletterAdminComponent — sendFromSchedule()', () => {
   it('envoie et affiche le message de succès', () => {
     const comp = make();
-    (comp as any).http = { post: vi.fn().mockReturnValue(of({ sent: 8, message: 'Édition #001 envoyée à 8 abonné(s).' })) };
+    (comp as any).http = {
+      post: vi
+        .fn()
+        .mockReturnValue(of({ sent: 8, message: 'Édition #001 envoyée à 8 abonné(s).' })),
+    };
     comp.sendFromSchedule();
     expect(comp.sendResult()?.ok).toBe(true);
   });

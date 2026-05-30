@@ -1,5 +1,5 @@
-import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
-import { CommonModule, DOCUMENT } from '@angular/common';
+import { Component, inject, OnInit, OnDestroy, signal, DOCUMENT } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { Title, Meta } from '@angular/platform-browser';
 import { MatButtonModule } from '@angular/material/button';
@@ -25,7 +25,15 @@ interface ModuleResult {
 @Component({
   standalone: true,
   selector: 'app-demo-result',
-  imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule, MatProgressSpinnerModule, ScoreGaugeComponent, NavButtonsComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    ScoreGaugeComponent,
+    NavButtonsComponent,
+  ],
   templateUrl: './demo-result.component.html',
 })
 export class DemoResultComponent implements OnInit, OnDestroy {
@@ -47,30 +55,44 @@ export class DemoResultComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     const token = this.route.snapshot.paramMap.get('token');
-    if (!token) { this.router.navigate(['/cyberscan']); return; }
+    if (!token) {
+      this.router.navigate(['/cyberscan']);
+      return;
+    }
 
-    this.pollSub = interval(3000).pipe(
-      switchMap(() => this.cyberscan.getPublicScan(token)),
-      takeWhile(s => s.status === 'pending' || s.status === 'running', true),
-    ).subscribe({
+    this.pollSub = interval(3000)
+      .pipe(
+        switchMap(() => this.cyberscan.getPublicScan(token)),
+        takeWhile(s => s.status === 'pending' || s.status === 'running', true)
+      )
+      .subscribe({
+        next: s => {
+          this.scan.set(s);
+          this.loading.set(false);
+          this._updateMeta(s);
+        },
+        error: () => {
+          this.error.set('Scan introuvable ou expiré.');
+          this.loading.set(false);
+        },
+      });
+
+    this.cyberscan.getPublicScan(token).subscribe({
       next: s => {
         this.scan.set(s);
         this.loading.set(false);
         this._updateMeta(s);
       },
       error: () => {
-        this.error.set('Scan introuvable ou expiré.');
+        this.error.set('Scan introuvable.');
         this.loading.set(false);
       },
     });
-
-    this.cyberscan.getPublicScan(token).subscribe({
-      next: s => { this.scan.set(s); this.loading.set(false); this._updateMeta(s); },
-      error: () => { this.error.set('Scan introuvable.'); this.loading.set(false); },
-    });
   }
 
-  ngOnDestroy() { this.pollSub?.unsubscribe(); }
+  ngOnDestroy() {
+    this.pollSub?.unsubscribe();
+  }
 
   openCheckout() {
     if (!this.auth.isAuthenticated()) {
@@ -80,14 +102,23 @@ export class DemoResultComponent implements OnInit, OnDestroy {
     this.checkoutLoading = true;
     this.cyberscan.getPlans().subscribe({
       next: plans => {
-        if (!plans.length) { this.checkoutLoading = false; return; }
-        const starter = plans.reduce((a, b) => a.price_eur < b.price_eur ? a : b);
+        if (!plans.length) {
+          this.checkoutLoading = false;
+          return;
+        }
+        const starter = plans.reduce((a, b) => (a.price_eur < b.price_eur ? a : b));
         this.cyberscan.createCheckout(starter.id).subscribe({
-          next: res => { window.location.href = res.checkout_url; },
-          error: () => { this.checkoutLoading = false; },
+          next: res => {
+            window.location.href = res.checkout_url;
+          },
+          error: () => {
+            this.checkoutLoading = false;
+          },
         });
       },
-      error: () => { this.checkoutLoading = false; },
+      error: () => {
+        this.checkoutLoading = false;
+      },
     });
   }
 
@@ -95,9 +126,10 @@ export class DemoResultComponent implements OnInit, OnDestroy {
     if (s.status !== 'done') return;
     const url = this.targetUrl;
     const sc = this.score;
-    const title = sc !== null
-      ? `Rapport de sécurité ${url} — Score ${sc}/100 | CyberScan`
-      : `Rapport de sécurité ${url} | CyberScan`;
+    const title =
+      sc !== null
+        ? `Rapport de sécurité ${url} — Score ${sc}/100 | CyberScan`
+        : `Rapport de sécurité ${url} | CyberScan`;
     this.titleService.setTitle(title);
     this.metaService.updateTag({ property: 'og:title', content: title });
     this.metaService.updateTag({
@@ -117,16 +149,26 @@ export class DemoResultComponent implements OnInit, OnDestroy {
   get targetUrl(): string {
     const json = this.scan()?.results_json;
     if (!json) return '';
-    try { return JSON.parse(json)?._meta?.url ?? ''; } catch { return ''; }
+    try {
+      return JSON.parse(json)?._meta?.url ?? '';
+    } catch {
+      return '';
+    }
   }
 
   get shareUrl(): string {
     return this.document.defaultView?.location.href ?? '';
   }
 
-  get score(): number | null { return computeScore(this.scan()?.results_json ?? null); }
-  getGrade(s: number) { return getGrade(s); }
-  getScoreColor(s: number) { return getScoreColor(s); }
+  get score(): number | null {
+    return computeScore(this.scan()?.results_json ?? null);
+  }
+  getGrade(s: number) {
+    return getGrade(s);
+  }
+  getScoreColor(s: number) {
+    return getScoreColor(s);
+  }
 
   get isRunning(): boolean {
     const s = this.scan()?.status;
@@ -139,34 +181,74 @@ export class DemoResultComponent implements OnInit, OnDestroy {
     try {
       const r = JSON.parse(json);
       return [
-        { key: 'ssl',     label: 'Certificat SSL',       icon: 'lock',       status: r.ssl?.status,    detail: r.ssl?.grade ? `Grade ${r.ssl.grade}` : undefined },
-        { key: 'headers', label: 'Headers HTTP',          icon: 'http',       status: r.headers?.status, detail: r.headers?.missing_count ? `${r.headers.missing_count} manquants` : undefined },
-        { key: 'cookies', label: 'Cookies',               icon: 'cookie',     status: r.cookies?.status },
-        { key: 'cors',    label: 'CORS',                  icon: 'swap_horiz', status: r.cors?.status },
-        { key: 'email',   label: 'SPF / DKIM / DMARC',   icon: 'email',      status: r.email?.status },
-        { key: 'cms',     label: 'CMS détecté',           icon: 'web',        status: r.cms?.status,    detail: r.cms?.cms_detected || undefined },
-        { key: 'waf',     label: 'Pare-feu (WAF)',        icon: 'security',   status: r.waf?.status,    detail: r.waf?.waf_detected || undefined },
-        { key: 'ip',      label: 'Réputation IP',         icon: 'gps_fixed',  status: r.ip?.status },
-        { key: 'dns',     label: 'DNS / Sous-domaines',   icon: 'dns',        status: r.dns?.status,    detail: r.dns?.total_found ? `${r.dns.total_found} trouvés` : undefined },
+        {
+          key: 'ssl',
+          label: 'Certificat SSL',
+          icon: 'lock',
+          status: r.ssl?.status,
+          detail: r.ssl?.grade ? `Grade ${r.ssl.grade}` : undefined,
+        },
+        {
+          key: 'headers',
+          label: 'Headers HTTP',
+          icon: 'http',
+          status: r.headers?.status,
+          detail: r.headers?.missing_count ? `${r.headers.missing_count} manquants` : undefined,
+        },
+        { key: 'cookies', label: 'Cookies', icon: 'cookie', status: r.cookies?.status },
+        { key: 'cors', label: 'CORS', icon: 'swap_horiz', status: r.cors?.status },
+        { key: 'email', label: 'SPF / DKIM / DMARC', icon: 'email', status: r.email?.status },
+        {
+          key: 'cms',
+          label: 'CMS détecté',
+          icon: 'web',
+          status: r.cms?.status,
+          detail: r.cms?.cms_detected || undefined,
+        },
+        {
+          key: 'waf',
+          label: 'Pare-feu (WAF)',
+          icon: 'security',
+          status: r.waf?.status,
+          detail: r.waf?.waf_detected || undefined,
+        },
+        { key: 'ip', label: 'Réputation IP', icon: 'gps_fixed', status: r.ip?.status },
+        {
+          key: 'dns',
+          label: 'DNS / Sous-domaines',
+          icon: 'dns',
+          status: r.dns?.status,
+          detail: r.dns?.total_found ? `${r.dns.total_found} trouvés` : undefined,
+        },
       ];
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   }
 
   moduleIcon(status: string | null): string {
     switch (status) {
-      case 'OK': return 'check_circle';
-      case 'WARNING': return 'warning';
-      case 'CRITICAL': return 'cancel';
-      default: return 'help_outline';
+      case 'OK':
+        return 'check_circle';
+      case 'WARNING':
+        return 'warning';
+      case 'CRITICAL':
+        return 'cancel';
+      default:
+        return 'help_outline';
     }
   }
 
   moduleColor(status: string | null): string {
     switch (status) {
-      case 'OK': return 'text-green-400';
-      case 'WARNING': return 'text-yellow-400';
-      case 'CRITICAL': return 'text-red-400';
-      default: return 'text-gray-500';
+      case 'OK':
+        return 'text-green-400';
+      case 'WARNING':
+        return 'text-yellow-400';
+      case 'CRITICAL':
+        return 'text-red-400';
+      default:
+        return 'text-gray-500';
     }
   }
 }

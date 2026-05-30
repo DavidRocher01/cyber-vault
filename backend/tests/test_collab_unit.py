@@ -1,12 +1,14 @@
 """Unit tests — Feature #16: Mode audit collaboratif."""
-import pytest
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_user(uid=1, email="owner@example.com"):
     u = MagicMock()
@@ -24,7 +26,14 @@ def _make_site(site_id=10, user_id=1, url="https://acme.com", name="Acme"):
     return s
 
 
-def _make_collab(collab_id=1, site_id=10, email="guest@example.com", role="viewer", status="pending", token="tok"):
+def _make_collab(
+    collab_id=1,
+    site_id=10,
+    email="guest@example.com",
+    role="viewer",
+    status="pending",
+    token="tok",
+):
     c = MagicMock()
     c.id = collab_id
     c.site_id = site_id
@@ -33,7 +42,7 @@ def _make_collab(collab_id=1, site_id=10, email="guest@example.com", role="viewe
     c.role = role
     c.status = status
     c.invite_token = token
-    c.invited_at = datetime.now(timezone.utc)
+    c.invited_at = datetime.now(UTC)
     c.accepted_at = None
     return c
 
@@ -66,9 +75,11 @@ def _make_db(site=None, collab=None, collabs=None):
 # list_collaborators
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_list_collaborators_owner_only():
     from app.api.v1.endpoints.collab import list_collaborators
+
     collabs = [_make_collab(), _make_collab(collab_id=2, email="b@x.com")]
     site = _make_site()
 
@@ -84,8 +95,9 @@ async def test_list_collaborators_owner_only():
 
 @pytest.mark.asyncio
 async def test_list_collaborators_wrong_owner_raises_404():
-    from app.api.v1.endpoints.collab import list_collaborators
     from fastapi import HTTPException
+
+    from app.api.v1.endpoints.collab import list_collaborators
 
     db = AsyncMock()
     r = MagicMock()
@@ -101,10 +113,10 @@ async def test_list_collaborators_wrong_owner_raises_404():
 # invite_collaborator
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_invite_creates_collab():
-    from app.api.v1.endpoints.collab import invite_collaborator, InviteIn
-    from unittest.mock import patch
+    from app.api.v1.endpoints.collab import InviteIn, invite_collaborator
 
     site = _make_site()
     collab = _make_collab()
@@ -116,22 +128,30 @@ async def test_invite_creates_collab():
     db.execute = AsyncMock(side_effect=iter(results))
     db.add = MagicMock()
     db.commit = AsyncMock()
-    db.refresh = AsyncMock(side_effect=lambda obj: setattr(obj, 'id', 1) or setattr(obj, 'status', 'pending'))
+    db.refresh = AsyncMock(
+        side_effect=lambda obj: setattr(obj, "id", 1) or setattr(obj, "status", "pending")
+    )
 
     bg = MagicMock()
     bg.add_task = MagicMock()
 
     payload = InviteIn(email="guest@example.com", role="auditor")
-    await invite_collaborator(site_id=10, payload=payload, background_tasks=bg,
-                              current_user=_make_user(), db=db)
+    await invite_collaborator(
+        site_id=10,
+        payload=payload,
+        background_tasks=bg,
+        current_user=_make_user(),
+        db=db,
+    )
     db.add.assert_called_once()
     db.commit.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_invite_duplicate_raises_409():
-    from app.api.v1.endpoints.collab import invite_collaborator, InviteIn
     from fastapi import HTTPException
+
+    from app.api.v1.endpoints.collab import InviteIn, invite_collaborator
 
     site = _make_site()
     existing = _make_collab()
@@ -145,8 +165,13 @@ async def test_invite_duplicate_raises_409():
     bg = MagicMock()
     payload = InviteIn(email="guest@example.com", role="viewer")
     with pytest.raises(HTTPException) as exc:
-        await invite_collaborator(site_id=10, payload=payload, background_tasks=bg,
-                                  current_user=_make_user(), db=db)
+        await invite_collaborator(
+            site_id=10,
+            payload=payload,
+            background_tasks=bg,
+            current_user=_make_user(),
+            db=db,
+        )
     assert exc.value.status_code == 409
 
 
@@ -154,9 +179,10 @@ async def test_invite_duplicate_raises_409():
 # update_collaborator_role
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_update_role():
-    from app.api.v1.endpoints.collab import update_collaborator_role, RoleUpdateIn
+    from app.api.v1.endpoints.collab import RoleUpdateIn, update_collaborator_role
 
     site = _make_site()
     collab = _make_collab(role="viewer")
@@ -170,14 +196,16 @@ async def test_update_role():
     db.refresh = AsyncMock()
 
     payload = RoleUpdateIn(role="manager")
-    await update_collaborator_role(site_id=10, collab_id=1, payload=payload,
-                                   current_user=_make_user(), db=db)
+    await update_collaborator_role(
+        site_id=10, collab_id=1, payload=payload, current_user=_make_user(), db=db
+    )
     assert collab.role == "manager"
 
 
 # ---------------------------------------------------------------------------
 # remove_collaborator
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_remove_collaborator():
@@ -203,6 +231,7 @@ async def test_remove_collaborator():
 # accept_invite
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_accept_invite_pending():
     from app.api.v1.endpoints.collab import accept_invite
@@ -225,7 +254,7 @@ async def test_accept_invite_already_accepted():
     from app.api.v1.endpoints.collab import accept_invite
 
     collab = _make_collab(status="accepted")
-    collab.accepted_at = datetime.now(timezone.utc)
+    collab.accepted_at = datetime.now(UTC)
     db = AsyncMock()
     r = MagicMock()
     r.scalar_one_or_none.return_value = collab
@@ -238,8 +267,9 @@ async def test_accept_invite_already_accepted():
 
 @pytest.mark.asyncio
 async def test_accept_invite_invalid_token():
-    from app.api.v1.endpoints.collab import accept_invite
     from fastapi import HTTPException
+
+    from app.api.v1.endpoints.collab import accept_invite
 
     db = AsyncMock()
     r = MagicMock()
@@ -254,6 +284,7 @@ async def test_accept_invite_invalid_token():
 # ---------------------------------------------------------------------------
 # my_invitations
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_my_invitations():

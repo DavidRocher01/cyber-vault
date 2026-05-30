@@ -50,7 +50,7 @@ C'est une connexion de serveur à serveur via Internet.
 
 
 
-&#x20;   
+&#x20;
 
 &#x20;   Sécurité : Pour rassurer les ETI, tu peux signer tes Webhooks cryptographiquement pour qu'ils soient sûrs que l'alerte vient bien de toi et pas d'un imposteur.
 
@@ -118,7 +118,7 @@ Puisque ton architecture utilise FastAPI et Angular, tu peux créer des "Connect
 
 
 
-Côté client : 
+Côté client :
 
 
 
@@ -138,7 +138,7 @@ Si le client ne veut vraiment rien configurer à l'extérieur, tu centralises to
 
 
 
-&#x20;   L'astuce "Sans effort" : Tu ajoutes une option "Notification Browser". Dès qu'un scan (lancé via API par leur système) détecte un danger, une notification Windows/Mac apparaît sur l'écran du responsable, même si le navigateur est réduit. Tout reste sur le tableau de bord. 
+&#x20;   L'astuce "Sans effort" : Tu ajoutes une option "Notification Browser". Dès qu'un scan (lancé via API par leur système) détecte un danger, une notification Windows/Mac apparaît sur l'écran du responsable, même si le navigateur est réduit. Tout reste sur le tableau de bord.
 
 
 
@@ -162,11 +162,11 @@ Beaucoup de PME gèrent leurs alertes de sécurité sur leurs outils de communic
 
 
 
-**Comment les résultats du scan atterrisse au bon endroit de son slack/teams…?** 
+**Comment les résultats du scan atterrisse au bon endroit de son slack/teams…?**
 
 
 
-Solution 3: une alerte email automatique 
+Solution 3: une alerte email automatique
 
 
 
@@ -266,7 +266,7 @@ Une fois l'analyse terminée, le "Dispatcher" de FastAPI entre en scène.
 
 
 
-&#x20;  Il envoie le rapport détaillé.	
+&#x20;  Il envoie le rapport détaillé.
 
 
 
@@ -505,28 +505,3 @@ Résumé de l'expérience client :
 
 
 C'est ce flux "Alerte -> Preuve -> Décision" qui rend ton outil indispensable pour une ETI.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

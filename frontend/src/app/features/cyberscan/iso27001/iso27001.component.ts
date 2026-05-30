@@ -26,14 +26,18 @@ export interface Iso27001Category {
 }
 
 @Component({
-    standalone: true,
-    selector: 'app-iso27001',
-    imports: [
-        CommonModule, RouterLink,
-        MatIconModule, MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule,
-        NavButtonsComponent,
-    ],
-    templateUrl: './iso27001.component.html'
+  standalone: true,
+  selector: 'app-iso27001',
+  imports: [
+    CommonModule,
+    RouterLink,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+    MatTooltipModule,
+    NavButtonsComponent,
+  ],
+  templateUrl: './iso27001.component.html',
 })
 export class Iso27001Component implements OnInit {
   private cyberscan = inject(CyberscanService);
@@ -55,7 +59,10 @@ export class Iso27001Component implements OnInit {
 
   ngOnInit() {
     this.titleService.setTitle('Conformité ISO 27001:2022 — CyberScan');
-    this.meta.updateTag({ name: 'description', content: 'Évaluez votre niveau de conformité à la norme ISO/IEC 27001:2022 avec CyberScan.' });
+    this.meta.updateTag({
+      name: 'description',
+      content: 'Évaluez votre niveau de conformité à la norme ISO/IEC 27001:2022 avec CyberScan.',
+    });
     this.cyberscan.getIso27001Assessment().subscribe({
       next: data => {
         this.categories.set(data.categories ?? []);
@@ -91,9 +98,12 @@ export class Iso27001Component implements OnInit {
   recalcScore() {
     const allIds = this.categories().flatMap(cat => cat.items.map(i => i.id));
     const vals = allIds.map(id => this.getStatus(id)).filter(v => v !== 'na');
-    if (!vals.length) { this.score.set(0); return; }
+    if (!vals.length) {
+      this.score.set(0);
+      return;
+    }
     const pts = vals.reduce((s, v) => s + (v === 'compliant' ? 2 : v === 'partial' ? 1 : 0), 0);
-    this.score.set(Math.round(pts / (vals.length * 2) * 100));
+    this.score.set(Math.round((pts / (vals.length * 2)) * 100));
   }
 
   resetAll() {
@@ -152,36 +162,48 @@ export class Iso27001Component implements OnInit {
       },
       error: () => {
         this.exporting.set(false);
-        this.snack.open('Erreur lors de l\'export PDF', 'Fermer', { duration: 4000 });
+        this.snack.open("Erreur lors de l'export PDF", 'Fermer', { duration: 4000 });
       },
     });
   }
 
   statusLabel(s: string): string {
     const map: Record<string, string> = {
-      compliant: 'Conforme', partial: 'Partiel',
-      non_compliant: 'Non conforme', na: 'N/A',
+      compliant: 'Conforme',
+      partial: 'Partiel',
+      non_compliant: 'Non conforme',
+      na: 'N/A',
     };
     return map[s] ?? s;
   }
 
   statusIcon(s: string): string {
-    const map: Record<string, string> = { compliant: 'check_circle', partial: 'pending', non_compliant: 'cancel', na: 'remove_circle_outline' };
+    const map: Record<string, string> = {
+      compliant: 'check_circle',
+      partial: 'pending',
+      non_compliant: 'cancel',
+      na: 'remove_circle_outline',
+    };
     return map[s] ?? 'help_outline';
   }
 
   statusClass(s: string): string {
     const map: Record<string, string> = {
-      compliant:     'text-green-400 bg-green-400/10 border-green-700',
-      partial:       'text-yellow-400 bg-yellow-400/10 border-yellow-700',
+      compliant: 'text-green-400 bg-green-400/10 border-green-700',
+      partial: 'text-yellow-400 bg-yellow-400/10 border-yellow-700',
       non_compliant: 'text-red-400 bg-red-400/10 border-red-700',
-      na:            'text-gray-400 bg-gray-700/30 border-gray-600',
+      na: 'text-gray-400 bg-gray-700/30 border-gray-600',
     };
     return map[s] ?? 'text-gray-400 bg-gray-700/30 border-gray-600';
   }
 
   statusColor(s: string): string {
-    const map: Record<string, string> = { compliant: '#4ade80', partial: '#facc15', non_compliant: '#f87171', na: '#6b7280' };
+    const map: Record<string, string> = {
+      compliant: '#4ade80',
+      partial: '#facc15',
+      non_compliant: '#f87171',
+      na: '#6b7280',
+    };
     return map[s] ?? '#6b7280';
   }
 
@@ -197,12 +219,17 @@ export class Iso27001Component implements OnInit {
     return 'Non conforme';
   }
 
-  catCompliance(cat: Iso27001Category): { compliant: number; partial: number; nc: number; total: number } {
+  catCompliance(cat: Iso27001Category): {
+    compliant: number;
+    partial: number;
+    nc: number;
+    total: number;
+  } {
     return {
       compliant: cat.items.filter(i => this.getStatus(i.id) === 'compliant').length,
-      partial:   cat.items.filter(i => this.getStatus(i.id) === 'partial').length,
-      nc:        cat.items.filter(i => this.getStatus(i.id) === 'non_compliant').length,
-      total:     cat.items.length,
+      partial: cat.items.filter(i => this.getStatus(i.id) === 'partial').length,
+      nc: cat.items.filter(i => this.getStatus(i.id) === 'non_compliant').length,
+      total: cat.items.length,
     };
   }
 
@@ -213,35 +240,36 @@ export class Iso27001Component implements OnInit {
       const v = this.getStatus(i.id);
       return s + (v === 'compliant' ? 2 : v === 'partial' ? 1 : 0);
     }, 0);
-    return Math.round(pts / (scorable.length * 2) * 100);
+    return Math.round((pts / (scorable.length * 2)) * 100);
   }
 
   formatDate(d: string | null): string {
     if (!d) return '—';
     return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit', month: 'long', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   }
 
-  readonly totalItems = computed(() =>
-    this.categories().reduce((s, c) => s + c.items.length, 0)
-  );
+  readonly totalItems = computed(() => this.categories().reduce((s, c) => s + c.items.length, 0));
 
   private readonly allItemIds = computed(() =>
     this.categories().flatMap(cat => cat.items.map(i => i.id))
   );
 
-  readonly compliantCount = computed(() =>
-    this.allItemIds().filter(id => this.getStatus(id) === 'compliant').length
+  readonly compliantCount = computed(
+    () => this.allItemIds().filter(id => this.getStatus(id) === 'compliant').length
   );
-  readonly partialCount = computed(() =>
-    this.allItemIds().filter(id => this.getStatus(id) === 'partial').length
+  readonly partialCount = computed(
+    () => this.allItemIds().filter(id => this.getStatus(id) === 'partial').length
   );
-  readonly ncCount = computed(() =>
-    this.allItemIds().filter(id => this.getStatus(id) === 'non_compliant').length
+  readonly ncCount = computed(
+    () => this.allItemIds().filter(id => this.getStatus(id) === 'non_compliant').length
   );
-  readonly naCount = computed(() =>
-    this.allItemIds().filter(id => this.getStatus(id) === 'na').length
+  readonly naCount = computed(
+    () => this.allItemIds().filter(id => this.getStatus(id) === 'na').length
   );
 }

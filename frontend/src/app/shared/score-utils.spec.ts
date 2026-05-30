@@ -2,7 +2,14 @@
  * Tests des utilitaires de score — fonctions pures, 0 dépendance Angular.
  */
 import { describe, it, expect } from 'vitest';
-import { moduleScore, computeScore, getGrade, getScoreColor, getCategoryScores, RADAR_CATEGORIES } from './score-utils';
+import {
+  moduleScore,
+  computeScore,
+  getGrade,
+  getScoreColor,
+  getCategoryScores,
+  RADAR_CATEGORIES,
+} from './score-utils';
 
 describe('moduleScore()', () => {
   it('retourne 100 pour OK', () => expect(moduleScore('OK')).toBe(100));
@@ -17,7 +24,7 @@ describe('computeScore()', () => {
   it('retourne null si resultsJson est null', () => expect(computeScore(null)).toBeNull());
   it('retourne null si resultsJson est vide', () => expect(computeScore('')).toBeNull());
   it('retourne null si le JSON est invalide', () => expect(computeScore('not-json')).toBeNull());
-  it('retourne null si aucun module connu n\'a de statut', () => {
+  it("retourne null si aucun module connu n'a de statut", () => {
     expect(computeScore(JSON.stringify({ unknown_module: { status: 'OK' } }))).toBeNull();
   });
 
@@ -39,14 +46,14 @@ describe('computeScore()', () => {
   it('ignore les modules sans statut valide dans la moyenne', () => {
     const json = JSON.stringify({
       ssl: { status: 'OK' },
-      headers: {},  // empty → skipped
+      headers: {}, // empty → skipped
     });
     expect(computeScore(json)).toBe(100);
   });
 
   it('calcule un score mixte', () => {
     const json = JSON.stringify({
-      ssl: { status: 'OK' },     // weight 3, score 100
+      ssl: { status: 'OK' }, // weight 3, score 100
       headers: { status: 'CRITICAL' }, // weight 3, score 0
     });
     const score = computeScore(json);

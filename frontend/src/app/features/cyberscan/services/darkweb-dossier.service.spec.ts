@@ -4,7 +4,9 @@ import { DarkwebDossierService } from './darkweb-dossier.service';
 
 const API = '/api/v1/darkweb-dossier';
 
-function makeService(httpOverrides: Partial<{ get: any; post: any; delete: any; patch: any }> = {}) {
+function makeService(
+  httpOverrides: Partial<{ get: any; post: any; delete: any; patch: any }> = {}
+) {
   const http = {
     get: vi.fn().mockReturnValue(of({})),
     post: vi.fn().mockReturnValue(of({})),
@@ -63,12 +65,12 @@ describe('DarkwebDossierService — syncCatalog()', () => {
 // ── getPdfUrl ─────────────────────────────────────────────────────────────────
 
 describe('DarkwebDossierService — getPdfUrl()', () => {
-  it('retourne l\'URL correcte', () => {
+  it("retourne l'URL correcte", () => {
     const { service } = makeService();
     expect(service.getPdfUrl(42)).toBe(`${API}/42/pdf`);
   });
 
-  it('fonctionne pour l\'id 1', () => {
+  it("fonctionne pour l'id 1", () => {
     const { service } = makeService();
     expect(service.getPdfUrl(1)).toContain('/1/pdf');
   });
@@ -89,7 +91,16 @@ describe('DarkwebDossierService — parseBreachSources()', () => {
 
   it('parse correctement un tableau valide', () => {
     const { service } = makeService();
-    const json = JSON.stringify([{ name: 'LinkedIn', domain: 'linkedin.com', breach_date: '2021-06-22', pwn_count: 700000000, data_classes: ['Emails'], is_sensitive: false }]);
+    const json = JSON.stringify([
+      {
+        name: 'LinkedIn',
+        domain: 'linkedin.com',
+        breach_date: '2021-06-22',
+        pwn_count: 700000000,
+        data_classes: ['Emails'],
+        is_sensitive: false,
+      },
+    ]);
     const result = service.parseBreachSources(json);
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('LinkedIn');
@@ -117,7 +128,10 @@ describe('DarkwebDossierService — parseTopSources()', () => {
 
   it('parse correctement les sources', () => {
     const { service } = makeService();
-    const json = JSON.stringify([{ name: 'LinkedIn', count: 4 }, { name: 'Adobe', count: 2 }]);
+    const json = JSON.stringify([
+      { name: 'LinkedIn', count: 4 },
+      { name: 'Adobe', count: 2 },
+    ]);
     const result = service.parseTopSources(json);
     expect(result).toHaveLength(2);
     expect(result[0].name).toBe('LinkedIn');
@@ -165,12 +179,12 @@ describe('DarkwebDossierService — toggleMonitor()', () => {
 // ── getCsvUrl ─────────────────────────────────────────────────────────────────
 
 describe('DarkwebDossierService — getCsvUrl()', () => {
-  it('retourne l\'URL correcte', () => {
+  it("retourne l'URL correcte", () => {
     const { service } = makeService();
     expect(service.getCsvUrl(7)).toBe(`${API}/7/csv`);
   });
 
-  it('fonctionne pour l\'id 1', () => {
+  it("fonctionne pour l'id 1", () => {
     const { service } = makeService();
     expect(service.getCsvUrl(1)).toContain('/1/csv');
   });
@@ -186,7 +200,16 @@ describe('DarkwebDossierService — buildBreachTimeline()', () => {
 
   it('retourne [] pour des targets sans breaches', () => {
     const { service } = makeService();
-    const targets = [{ id: 1, email: 'a@co.fr', status: 'clean' as const, total_breaches: 0, breach_sources_json: '[]', checked_at: null }];
+    const targets = [
+      {
+        id: 1,
+        email: 'a@co.fr',
+        status: 'clean' as const,
+        total_breaches: 0,
+        breach_sources_json: '[]',
+        checked_at: null,
+      },
+    ];
     expect(service.buildBreachTimeline(targets)).toEqual([]);
   });
 
@@ -197,7 +220,16 @@ describe('DarkwebDossierService — buildBreachTimeline()', () => {
       { name: 'Adobe', breach_date: '2021-10-04' },
       { name: 'Dropbox', breach_date: '2012-07-01' },
     ]);
-    const targets = [{ id: 1, email: 'a@co.fr', status: 'exposed' as const, total_breaches: 3, breach_sources_json: sources, checked_at: null }];
+    const targets = [
+      {
+        id: 1,
+        email: 'a@co.fr',
+        status: 'exposed' as const,
+        total_breaches: 3,
+        breach_sources_json: sources,
+        checked_at: null,
+      },
+    ];
     const timeline = service.buildBreachTimeline(targets);
     expect(timeline.find(t => t.year === 2021)?.count).toBe(2);
     expect(timeline.find(t => t.year === 2012)?.count).toBe(1);
@@ -209,7 +241,16 @@ describe('DarkwebDossierService — buildBreachTimeline()', () => {
       { name: 'B', breach_date: '2020-01-01' },
       { name: 'A', breach_date: '2015-05-05' },
     ]);
-    const targets = [{ id: 1, email: 'a@co.fr', status: 'exposed' as const, total_breaches: 2, breach_sources_json: sources, checked_at: null }];
+    const targets = [
+      {
+        id: 1,
+        email: 'a@co.fr',
+        status: 'exposed' as const,
+        total_breaches: 2,
+        breach_sources_json: sources,
+        checked_at: null,
+      },
+    ];
     const timeline = service.buildBreachTimeline(targets);
     expect(timeline[0].year).toBeLessThan(timeline[1].year);
   });
@@ -220,7 +261,16 @@ describe('DarkwebDossierService — buildBreachTimeline()', () => {
       { name: 'Old', breach_date: '1999-01-01' },
       { name: 'New', breach_date: '2022-03-10' },
     ]);
-    const targets = [{ id: 1, email: 'a@co.fr', status: 'exposed' as const, total_breaches: 2, breach_sources_json: sources, checked_at: null }];
+    const targets = [
+      {
+        id: 1,
+        email: 'a@co.fr',
+        status: 'exposed' as const,
+        total_breaches: 2,
+        breach_sources_json: sources,
+        checked_at: null,
+      },
+    ];
     const timeline = service.buildBreachTimeline(targets);
     expect(timeline.every(t => t.year >= 2000)).toBe(true);
     expect(timeline).toHaveLength(1);
@@ -231,8 +281,22 @@ describe('DarkwebDossierService — buildBreachTimeline()', () => {
     const s1 = JSON.stringify([{ name: 'A', breach_date: '2022-01-01' }]);
     const s2 = JSON.stringify([{ name: 'B', breach_date: '2022-06-15' }]);
     const targets = [
-      { id: 1, email: 'a@co.fr', status: 'exposed' as const, total_breaches: 1, breach_sources_json: s1, checked_at: null },
-      { id: 2, email: 'b@co.fr', status: 'exposed' as const, total_breaches: 1, breach_sources_json: s2, checked_at: null },
+      {
+        id: 1,
+        email: 'a@co.fr',
+        status: 'exposed' as const,
+        total_breaches: 1,
+        breach_sources_json: s1,
+        checked_at: null,
+      },
+      {
+        id: 2,
+        email: 'b@co.fr',
+        status: 'exposed' as const,
+        total_breaches: 1,
+        breach_sources_json: s2,
+        checked_at: null,
+      },
     ];
     const timeline = service.buildBreachTimeline(targets);
     expect(timeline.find(t => t.year === 2022)?.count).toBe(2);

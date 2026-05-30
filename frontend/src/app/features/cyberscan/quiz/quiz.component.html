@@ -1,26 +1,29 @@
 <app-nav-buttons />
 
 <div class="min-h-screen bg-gray-950 text-gray-100">
-
   @if (loading()) {
     <div class="flex justify-center items-center min-h-screen">
       <mat-spinner [diameter]="48" />
     </div>
   } @else {
-
     <!-- INTRO -->
     @if (step() === 'intro') {
       <div class="max-w-2xl mx-auto px-6 py-16 text-center">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/15 border border-purple-700/40 text-purple-300 text-xs font-semibold mb-6">
+        <div
+          class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/15 border border-purple-700/40 text-purple-300 text-xs font-semibold mb-6"
+        >
           <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">quiz</mat-icon>
           Quiz gratuit — 5 minutes
         </div>
         <h1 class="text-4xl font-bold mb-4">
-          Évaluez votre maturité<br>
-          <span class="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">NIS2 &amp; ISO 27001</span>
+          Évaluez votre maturité<br />
+          <span class="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent"
+            >NIS2 &amp; ISO 27001</span
+          >
         </h1>
         <p class="text-gray-400 mb-8 text-lg">
-          10 questions pour mesurer votre niveau de cybersécurité et identifier vos axes d'amélioration prioritaires.
+          10 questions pour mesurer votre niveau de cybersécurité et identifier vos axes
+          d'amélioration prioritaires.
         </p>
         <div class="grid grid-cols-3 gap-4 mb-10">
           <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
@@ -36,9 +39,13 @@
             <div class="text-xs text-gray-500">Niveaux</div>
           </div>
         </div>
-        <button type="button" mat-flat-button color="primary"
-                class="!px-8 !py-3 !text-base !font-semibold"
-                (click)="step.set('quiz')">
+        <button
+          type="button"
+          mat-flat-button
+          color="primary"
+          class="!px-8 !py-3 !text-base !font-semibold"
+          (click)="step.set('quiz')"
+        >
           <mat-icon class="mr-2">play_arrow</mat-icon>
           Commencer le quiz
         </button>
@@ -48,28 +55,34 @@
     <!-- QUIZ -->
     @if (step() === 'quiz') {
       <div class="max-w-2xl mx-auto px-6 py-10">
-
         <!-- Progress bar -->
         <div class="flex items-center gap-3 mb-8">
           <div class="flex-1 bg-gray-800 rounded-full h-2">
-            <div class="h-2 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 transition-all duration-500"
-                 [style.width.%]="progress">
-            </div>
+            <div
+              class="h-2 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 transition-all duration-500"
+              [style.width.%]="progress"
+            ></div>
           </div>
-          <span class="text-xs text-gray-500 shrink-0">{{ currentIndex() + 1 }} / {{ questions().length }}</span>
+          <span class="text-xs text-gray-500 shrink-0"
+            >{{ currentIndex() + 1 }} / {{ questions().length }}</span
+          >
         </div>
 
         <!-- Dot navigator -->
         <div class="flex gap-1.5 mb-6 flex-wrap">
           @for (q of questions(); track q.id; let i = $index) {
-            <button type="button"
-                    class="w-6 h-6 rounded-full text-xs font-bold transition-all"
-                    [ngClass]="i === currentIndex()
-                      ? 'bg-purple-600 text-white'
-                      : answers()[q.id]
-                        ? 'bg-green-700/60 text-green-300 border border-green-600'
-                        : 'bg-gray-800 text-gray-500 border border-gray-700'"
-                    (click)="goToQuestion(i)">
+            <button
+              type="button"
+              class="w-6 h-6 rounded-full text-xs font-bold transition-all"
+              [ngClass]="
+                i === currentIndex()
+                  ? 'bg-purple-600 text-white'
+                  : answers()[q.id]
+                    ? 'bg-green-700/60 text-green-300 border border-green-600'
+                    : 'bg-gray-800 text-gray-500 border border-gray-700'
+              "
+              (click)="goToQuestion(i)"
+            >
               {{ i + 1 }}
             </button>
           }
@@ -85,12 +98,16 @@
 
             <div class="flex flex-col gap-3">
               @for (opt of currentQuestion.options; track opt.id) {
-                <button type="button"
-                        class="text-left px-4 py-3 rounded-xl border transition-all text-sm"
-                        [ngClass]="answers()[currentQuestion.id] === opt.id
-                          ? 'border-purple-500 bg-purple-900/30 text-white'
-                          : 'border-gray-700 bg-gray-800/40 text-gray-300 hover:border-gray-500 hover:bg-gray-800'"
-                        (click)="selectAnswer(currentQuestion.id, opt.id)">
+                <button
+                  type="button"
+                  class="text-left px-4 py-3 rounded-xl border transition-all text-sm"
+                  [ngClass]="
+                    answers()[currentQuestion.id] === opt.id
+                      ? 'border-purple-500 bg-purple-900/30 text-white'
+                      : 'border-gray-700 bg-gray-800/40 text-gray-300 hover:border-gray-500 hover:bg-gray-800'
+                  "
+                  (click)="selectAnswer(currentQuestion.id, opt.id)"
+                >
                   <span class="font-bold text-purple-400 mr-2">{{ opt.id.toUpperCase() }}.</span>
                   {{ opt.text }}
                 </button>
@@ -100,27 +117,37 @@
 
           <!-- Navigation -->
           <div class="flex gap-3">
-            <button type="button" mat-stroked-button
-                    [disabled]="currentIndex() === 0"
-                    (click)="prev()"
-                    class="!border-gray-700 !text-gray-400">
+            <button
+              type="button"
+              mat-stroked-button
+              [disabled]="currentIndex() === 0"
+              (click)="prev()"
+              class="!border-gray-700 !text-gray-400"
+            >
               <mat-icon>chevron_left</mat-icon>
               Précédent
             </button>
 
             @if (currentIndex() < questions().length - 1) {
-              <button type="button" mat-flat-button color="primary"
-                      [disabled]="!answers()[currentQuestion.id]"
-                      (click)="next()"
-                      class="flex-1">
+              <button
+                type="button"
+                mat-flat-button
+                color="primary"
+                [disabled]="!answers()[currentQuestion.id]"
+                (click)="next()"
+                class="flex-1"
+              >
                 Suivant
                 <mat-icon>chevron_right</mat-icon>
               </button>
             } @else {
-              <button type="button" mat-flat-button
-                      [disabled]="!allAnswered"
-                      (click)="finishQuiz()"
-                      class="flex-1 !bg-green-700 !text-white disabled:!opacity-40">
+              <button
+                type="button"
+                mat-flat-button
+                [disabled]="!allAnswered"
+                (click)="finishQuiz()"
+                class="flex-1 !bg-green-700 !text-white disabled:!opacity-40"
+              >
                 <mat-icon>check_circle</mat-icon>
                 Voir mes résultats
               </button>
@@ -137,26 +164,40 @@
           <mat-icon class="text-cyan-400 !text-[3rem] !w-[3rem] !h-[3rem] mb-4">email</mat-icon>
           <h2 class="text-2xl font-bold mb-2">Recevez votre rapport</h2>
           <p class="text-gray-400 text-sm mb-6">
-            Entrez votre email pour recevoir vos résultats détaillés et nos recommandations personnalisées.
-            Vous pouvez aussi continuer sans email.
+            Entrez votre email pour recevoir vos résultats détaillés et nos recommandations
+            personnalisées. Vous pouvez aussi continuer sans email.
           </p>
 
           <form [formGroup]="emailForm" (ngSubmit)="submit()" class="flex flex-col gap-4 text-left">
             <div>
               <label class="block text-xs font-medium text-gray-400 mb-1">Email (optionnel)</label>
-              <input type="email" formControlName="email" placeholder="vous@example.com"
-                     class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:ring-2 focus:ring-cyan-500" />
+              <input
+                type="email"
+                formControlName="email"
+                placeholder="vous@example.com"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:ring-2 focus:ring-cyan-500"
+              />
             </div>
             <div>
-              <label class="block text-xs font-medium text-gray-400 mb-1">Entreprise (optionnel)</label>
-              <input type="text" formControlName="company" placeholder="Acme Corp"
-                     class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:ring-2 focus:ring-cyan-500" />
+              <label class="block text-xs font-medium text-gray-400 mb-1"
+                >Entreprise (optionnel)</label
+              >
+              <input
+                type="text"
+                formControlName="company"
+                placeholder="Acme Corp"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:ring-2 focus:ring-cyan-500"
+              />
             </div>
 
             <div class="flex gap-3 pt-2">
-              <button type="submit" mat-flat-button color="primary"
-                      [disabled]="submitting()"
-                      class="flex-1">
+              <button
+                type="submit"
+                mat-flat-button
+                color="primary"
+                [disabled]="submitting()"
+                class="flex-1"
+              >
                 @if (submitting()) {
                   <mat-spinner [diameter]="18" class="inline-block mr-2" />
                 } @else {
@@ -164,10 +205,13 @@
                 }
                 Voir mes résultats
               </button>
-              <button type="button" mat-stroked-button
-                      [disabled]="submitting()"
-                      (click)="skipEmail()"
-                      class="!border-gray-600 !text-gray-400">
+              <button
+                type="button"
+                mat-stroked-button
+                [disabled]="submitting()"
+                (click)="skipEmail()"
+                class="!border-gray-600 !text-gray-400"
+              >
                 Passer
               </button>
             </div>
@@ -179,18 +223,23 @@
     <!-- RESULT -->
     @if (step() === 'result' && result()) {
       <div class="max-w-2xl mx-auto px-6 py-10">
-
         <!-- Score card -->
-        <div class="bg-gray-900 border rounded-2xl p-8 mb-6 text-center"
-             [style.border-color]="result()!.level.color + '66'">
+        <div
+          class="bg-gray-900 border rounded-2xl p-8 mb-6 text-center"
+          [style.border-color]="result()!.level.color + '66'"
+        >
           <div class="text-6xl font-black mb-2" [style.color]="result()!.level.color">
             {{ result()!.percentage }}%
           </div>
           <div class="text-xl font-bold mb-1" [style.color]="result()!.level.color">
             {{ result()!.level.label }}
           </div>
-          <p class="text-gray-400 text-sm max-w-md mx-auto mb-4">{{ result()!.level.description }}</p>
-          <div class="text-xs text-gray-600">Score : {{ result()!.score }} / {{ result()!.max_score }} points</div>
+          <p class="text-gray-400 text-sm max-w-md mx-auto mb-4">
+            {{ result()!.level.description }}
+          </p>
+          <div class="text-xs text-gray-600">
+            Score : {{ result()!.score }} / {{ result()!.max_score }} points
+          </div>
         </div>
 
         <!-- Category scores -->
@@ -204,10 +253,11 @@
                   <span class="text-gray-500 font-mono text-xs">{{ cat.score }}/{{ cat.max }}</span>
                 </div>
                 <div class="bg-gray-800 rounded-full h-2">
-                  <div class="h-2 rounded-full transition-all duration-700"
-                       [ngClass]="categoryColor(cat.percentage)"
-                       [style.width.%]="cat.percentage">
-                  </div>
+                  <div
+                    class="h-2 rounded-full transition-all duration-700"
+                    [ngClass]="categoryColor(cat.percentage)"
+                    [style.width.%]="cat.percentage"
+                  ></div>
                 </div>
               </div>
             }
@@ -223,7 +273,9 @@
           <ul class="flex flex-col gap-2">
             @for (rec of result()!.recommendations; track $index) {
               <li class="text-sm text-gray-300 flex items-start gap-2">
-                <mat-icon class="text-yellow-400 !text-[1rem] !w-[1rem] !h-[1rem] mt-0.5 shrink-0">arrow_right</mat-icon>
+                <mat-icon class="text-yellow-400 !text-[1rem] !w-[1rem] !h-[1rem] mt-0.5 shrink-0"
+                  >arrow_right</mat-icon
+                >
                 <span [innerHTML]="rec.replace('**', '<strong>').replace('**', '</strong>')"></span>
               </li>
             }
@@ -231,15 +283,24 @@
         </div>
 
         <!-- CTA -->
-        <div class="bg-gradient-to-r from-purple-900/40 to-cyan-900/40 border border-purple-700/40 rounded-2xl p-6 text-center mb-6">
+        <div
+          class="bg-gradient-to-r from-purple-900/40 to-cyan-900/40 border border-purple-700/40 rounded-2xl p-6 text-center mb-6"
+        >
           <h3 class="font-bold mb-2">Passez à l'action</h3>
-          <p class="text-sm text-gray-400 mb-4">Lancez un audit complet de votre infrastructure pour identifier toutes vos vulnérabilités.</p>
+          <p class="text-sm text-gray-400 mb-4">
+            Lancez un audit complet de votre infrastructure pour identifier toutes vos
+            vulnérabilités.
+          </p>
           <div class="flex gap-3 justify-center flex-wrap">
             <a routerLink="/cyberscan/scan-gratuit" mat-flat-button color="primary">
               <mat-icon class="mr-2">security</mat-icon>
               Scan gratuit
             </a>
-            <a routerLink="/cyberscan/contact" mat-stroked-button class="!border-purple-600 !text-purple-300">
+            <a
+              routerLink="/cyberscan/contact"
+              mat-stroked-button
+              class="!border-purple-600 !text-purple-300"
+            >
               <mat-icon class="mr-2">calendar_today</mat-icon>
               Réserver un audit
             </a>
@@ -247,15 +308,17 @@
         </div>
 
         <div class="text-center">
-          <button type="button" mat-stroked-button (click)="restart()"
-                  class="!border-gray-700 !text-gray-500 text-sm">
+          <button
+            type="button"
+            mat-stroked-button
+            (click)="restart()"
+            class="!border-gray-700 !text-gray-500 text-sm"
+          >
             <mat-icon>refresh</mat-icon>
             Recommencer le quiz
           </button>
         </div>
-
       </div>
     }
-
   }
 </div>

@@ -35,7 +35,7 @@ async function makeComponent(returnUrl?: string) {
 }
 
 describe('MasterPasswordComponent — soumission', () => {
-  it('appelle deriveKey avec le mot de passe et l\'email', async () => {
+  it("appelle deriveKey avec le mot de passe et l'email", async () => {
     const { component, cryptoMock } = await makeComponent();
     component.form.setValue({ masterPassword: 'MonMotDePasse1!' });
     await component.submit();

@@ -2,14 +2,38 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-export interface QuizOption { id: string; text: string; }
-export interface QuizQuestion { id: number; text: string; category: string; options: QuizOption[]; }
+export interface QuizOption {
+  id: string;
+  text: string;
+}
+export interface QuizQuestion {
+  id: number;
+  text: string;
+  category: string;
+  options: QuizOption[];
+}
 
-export interface QuizAnswer { question_id: number; answer_id: string; }
-export interface QuizSubmitPayload { answers: QuizAnswer[]; email?: string; company?: string; }
+export interface QuizAnswer {
+  question_id: number;
+  answer_id: string;
+}
+export interface QuizSubmitPayload {
+  answers: QuizAnswer[];
+  email?: string;
+  company?: string;
+}
 
-export interface CategoryScore { category: string; score: number; max: number; percentage: number; }
-export interface QuizLevel { label: string; color: string; description: string; }
+export interface CategoryScore {
+  category: string;
+  score: number;
+  max: number;
+  percentage: number;
+}
+export interface QuizLevel {
+  label: string;
+  color: string;
+  description: string;
+}
 export interface QuizResult {
   score: number;
   max_score: number;

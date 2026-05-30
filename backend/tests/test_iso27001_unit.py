@@ -5,20 +5,21 @@ Covers: structure validation, score computation, save/get logic.
 """
 
 import json
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime, timezone
 
 from app.api.v1.endpoints.iso27001 import (
     ALL_ITEM_IDS,
     ISO27001_CATEGORIES,
+    Iso27001SaveIn,
     get_assessment,
     save_assessment,
-    Iso27001SaveIn,
 )
-from app.services.assessment_service import compute_assessment_score
-from app.models.user import User
 from app.models.iso27001_assessment import Iso27001Assessment
+from app.models.user import User
+from app.services.assessment_service import compute_assessment_score
 
 
 def _compute_score(items):
@@ -26,6 +27,7 @@ def _compute_score(items):
 
 
 # ── Structure ─────────────────────────────────────────────────────────────────
+
 
 class TestIso27001Structure:
     def test_item_count(self):
@@ -74,6 +76,7 @@ class TestIso27001Structure:
 
 # ── Score computation ─────────────────────────────────────────────────────────
 
+
 class TestIso27001Score:
     def test_empty_gives_0(self):
         assert _compute_score({}) == 0
@@ -112,12 +115,15 @@ class TestIso27001Score:
 
 # ── get_assessment endpoint logic ─────────────────────────────────────────────
 
+
 class TestGetAssessment:
     @pytest.mark.asyncio
     async def test_no_assessment_returns_empty(self):
         user = MagicMock(spec=User, id=1)
         db = AsyncMock()
-        db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=None)))
+        db.execute = AsyncMock(
+            return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=None))
+        )
 
         result = await get_assessment(current_user=user, db=db)
 
@@ -132,10 +138,12 @@ class TestGetAssessment:
         assessment = MagicMock(spec=Iso27001Assessment)
         assessment.items_json = json.dumps({"mfa": "compliant"})
         assessment.score = 42
-        assessment.updated_at = datetime(2025, 1, 1, tzinfo=timezone.utc)
+        assessment.updated_at = datetime(2025, 1, 1, tzinfo=UTC)
 
         db = AsyncMock()
-        db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=assessment)))
+        db.execute = AsyncMock(
+            return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=assessment))
+        )
 
         result = await get_assessment(current_user=user, db=db)
 
@@ -146,10 +154,12 @@ class TestGetAssessment:
 
 # ── save_assessment endpoint logic ────────────────────────────────────────────
 
+
 class TestSaveAssessment:
     @pytest.mark.asyncio
     async def test_invalid_item_id_raises_422(self):
         from fastapi import HTTPException
+
         user = MagicMock(spec=User, id=1)
         db = AsyncMock()
         payload = Iso27001SaveIn(items={"nonexistent_id": "compliant"})
@@ -162,6 +172,7 @@ class TestSaveAssessment:
     @pytest.mark.asyncio
     async def test_invalid_status_raises_422(self):
         from fastapi import HTTPException
+
         user = MagicMock(spec=User, id=1)
         db = AsyncMock()
         payload = Iso27001SaveIn(items={"mfa": "invalid_status"})
@@ -175,7 +186,9 @@ class TestSaveAssessment:
     async def test_creates_new_assessment_when_none_exists(self):
         user = MagicMock(spec=User, id=1)
         db = AsyncMock()
-        db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=None)))
+        db.execute = AsyncMock(
+            return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=None))
+        )
         db.commit = AsyncMock()
         db.refresh = AsyncMock()
 
@@ -185,7 +198,9 @@ class TestSaveAssessment:
             created["obj"] = obj
 
         db.add = capture_add
-        db.refresh = AsyncMock(side_effect=lambda obj: setattr(obj, "updated_at", datetime.now(timezone.utc)))
+        db.refresh = AsyncMock(
+            side_effect=lambda obj: setattr(obj, "updated_at", datetime.now(UTC))
+        )
 
         payload = Iso27001SaveIn(items={"mfa": "compliant"})
         result = await save_assessment(payload=payload, current_user=user, db=db)
@@ -200,12 +215,16 @@ class TestSaveAssessment:
         assessment = MagicMock(spec=Iso27001Assessment)
         assessment.items_json = json.dumps({"tls": "partial"})
         assessment.score = 10
-        assessment.updated_at = datetime(2025, 1, 1, tzinfo=timezone.utc)
+        assessment.updated_at = datetime(2025, 1, 1, tzinfo=UTC)
 
         db = AsyncMock()
-        db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=assessment)))
+        db.execute = AsyncMock(
+            return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=assessment))
+        )
         db.commit = AsyncMock()
-        db.refresh = AsyncMock(side_effect=lambda obj: setattr(obj, "updated_at", datetime.now(timezone.utc)))
+        db.refresh = AsyncMock(
+            side_effect=lambda obj: setattr(obj, "updated_at", datetime.now(UTC))
+        )
 
         payload = Iso27001SaveIn(items={"mfa": "compliant", "tls": "compliant"})
         result = await save_assessment(payload=payload, current_user=user, db=db)
@@ -218,10 +237,14 @@ class TestSaveAssessment:
     async def test_empty_payload_saves_score_0(self):
         user = MagicMock(spec=User, id=1)
         db = AsyncMock()
-        db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=None)))
+        db.execute = AsyncMock(
+            return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=None))
+        )
         db.commit = AsyncMock()
         db.add = MagicMock()
-        db.refresh = AsyncMock(side_effect=lambda obj: setattr(obj, "updated_at", datetime.now(timezone.utc)))
+        db.refresh = AsyncMock(
+            side_effect=lambda obj: setattr(obj, "updated_at", datetime.now(UTC))
+        )
 
         payload = Iso27001SaveIn(items={})
         result = await save_assessment(payload=payload, current_user=user, db=db)

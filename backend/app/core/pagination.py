@@ -1,4 +1,3 @@
-from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -17,9 +16,7 @@ async def paginate(
     total_result = await db.execute(count_query)
     total: int = total_result.scalar_one()
 
-    items_result = await db.execute(
-        base_query.offset((page - 1) * per_page).limit(per_page)
-    )
+    items_result = await db.execute(base_query.offset((page - 1) * per_page).limit(per_page))
     items = items_result.scalars().all()
 
     return {

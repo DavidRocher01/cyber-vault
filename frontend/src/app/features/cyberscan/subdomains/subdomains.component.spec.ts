@@ -23,7 +23,7 @@ function makeResult(entries: SubdomainEntry[]): SubdomainResult {
 
 describe('SubdomainsComponent — formatDate()', () => {
   it('retourne — pour null', () => expect(make().formatDate(null)).toBe('—'));
-  it('contient l\'année pour une date valide', () => {
+  it("contient l'année pour une date valide", () => {
     expect(make().formatDate('2024-07-10T12:00:00Z')).toContain('2024');
   });
   it('contient le jour', () => {
@@ -34,10 +34,7 @@ describe('SubdomainsComponent — formatDate()', () => {
 describe('SubdomainsComponent — filtered getter', () => {
   it('retourne tout sans filtre', () => {
     const comp = make();
-    (comp as any).result.set(makeResult([
-      entry('api.example.com'),
-      entry('mail.example.com'),
-    ]));
+    (comp as any).result.set(makeResult([entry('api.example.com'), entry('mail.example.com')]));
     expect(comp.filtered.length).toBe(2);
   });
 
@@ -47,10 +44,7 @@ describe('SubdomainsComponent — filtered getter', () => {
 
   it('filtre par sous-domaine (insensible à la casse)', () => {
     const comp = make();
-    (comp as any).result.set(makeResult([
-      entry('api.example.com'),
-      entry('mail.example.com'),
-    ]));
+    (comp as any).result.set(makeResult([entry('api.example.com'), entry('mail.example.com')]));
     (comp as any).search.set('API');
     expect(comp.filtered.length).toBe(1);
     expect(comp.filtered[0].subdomain).toBe('api.example.com');
@@ -58,10 +52,9 @@ describe('SubdomainsComponent — filtered getter', () => {
 
   it('filtre par IP', () => {
     const comp = make();
-    (comp as any).result.set(makeResult([
-      entry('api.example.com', '10.0.0.1'),
-      entry('mail.example.com', '10.0.0.2'),
-    ]));
+    (comp as any).result.set(
+      makeResult([entry('api.example.com', '10.0.0.1'), entry('mail.example.com', '10.0.0.2')])
+    );
     (comp as any).search.set('10.0.0.1');
     expect(comp.filtered.length).toBe(1);
   });

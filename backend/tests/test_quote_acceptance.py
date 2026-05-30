@@ -3,8 +3,10 @@ Integration tests — /api/v1/quotes/{token}/accept|reject
 Covers: 404 for unknown token, accept flow, reject flow, idempotency (already),
         409 conflicts (accept a rejected quote and vice versa).
 """
-import pytest
+
 from datetime import date
+
+import pytest
 from httpx import ASGITransport, AsyncClient
 
 import app.core.database as db_mod
@@ -35,6 +37,7 @@ async def _seed_quote(token: str, status: str = "sent") -> None:
 
 # ── 404 ────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_accept_unknown_token_returns_404():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -50,6 +53,7 @@ async def test_reject_unknown_token_returns_404():
 
 
 # ── Happy path — accept ────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_accept_sent_quote_returns_accepted():
@@ -69,15 +73,17 @@ async def test_accept_sets_accepted_at_in_db():
         await c.post(f"{BASE}/quotes/tok-accept-2/accept")
 
     from sqlalchemy import select
+
     async with db_mod.AsyncSessionLocal() as session:
-        q = (await session.execute(
-            select(Quote).where(Quote.acceptance_token == "tok-accept-2")
-        )).scalar_one()
+        q = (
+            await session.execute(select(Quote).where(Quote.acceptance_token == "tok-accept-2"))
+        ).scalar_one()
     assert q.status == "accepted"
     assert q.accepted_at is not None
 
 
 # ── Happy path — reject ────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_reject_sent_quote_returns_rejected():
@@ -97,15 +103,17 @@ async def test_reject_sets_rejected_at_in_db():
         await c.post(f"{BASE}/quotes/tok-reject-2/reject")
 
     from sqlalchemy import select
+
     async with db_mod.AsyncSessionLocal() as session:
-        q = (await session.execute(
-            select(Quote).where(Quote.acceptance_token == "tok-reject-2")
-        )).scalar_one()
+        q = (
+            await session.execute(select(Quote).where(Quote.acceptance_token == "tok-reject-2"))
+        ).scalar_one()
     assert q.status == "rejected"
     assert q.rejected_at is not None
 
 
 # ── Idempotency ────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_accept_already_accepted_returns_already_true():
@@ -126,6 +134,7 @@ async def test_reject_already_rejected_returns_already_true():
 
 
 # ── 409 conflicts ──────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_accept_rejected_quote_returns_409():

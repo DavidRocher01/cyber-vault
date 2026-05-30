@@ -30,7 +30,7 @@ describe('BlogService — getAll()', () => {
     expect(result[1].slug).toBe('old');
   });
 
-  it('retourne le fallback trié si l\'API échoue', () => {
+  it("retourne le fallback trié si l'API échoue", () => {
     const { service } = makeService(() => throwError(() => new Error('network')));
     let result: any[] = [];
     service.getAll().subscribe(r => (result = r));
@@ -58,7 +58,14 @@ describe('BlogService — getAll()', () => {
 
 describe('BlogService — getBySlug()', () => {
   it('appelle GET /api/v1/blog/articles/{slug}', () => {
-    const article = { slug: 'my-article', title: 'Test', date: '2026-05-01', readTime: 5, tags: [], htmlContent: '<p/>' };
+    const article = {
+      slug: 'my-article',
+      title: 'Test',
+      date: '2026-05-01',
+      readTime: 5,
+      tags: [],
+      htmlContent: '<p/>',
+    };
     const { service, http } = makeService(() => of(article));
     let result: any;
     service.getBySlug('my-article').subscribe(r => (result = r));
@@ -66,14 +73,14 @@ describe('BlogService — getBySlug()', () => {
     expect(result?.slug).toBe('my-article');
   });
 
-  it('retourne le fallback si l\'API échoue et le slug existe', () => {
+  it("retourne le fallback si l'API échoue et le slug existe", () => {
     const { service } = makeService(() => throwError(() => new Error('fail')));
     let result: any;
     service.getBySlug('audit-cybersecurite-pme-prix-2026').subscribe(r => (result = r));
     expect(result?.slug).toBe('audit-cybersecurite-pme-prix-2026');
   });
 
-  it('retourne null si l\'API échoue et le slug est inconnu', () => {
+  it("retourne null si l'API échoue et le slug est inconnu", () => {
     const { service } = makeService(() => throwError(() => new Error('fail')));
     let result: any = 'not-set';
     service.getBySlug('slug-qui-nexiste-pas').subscribe(r => (result = r));

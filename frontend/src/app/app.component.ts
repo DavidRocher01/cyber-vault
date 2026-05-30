@@ -11,17 +11,23 @@ import { EasterEggService } from './shared/easter-eggs/easter-egg.service';
 const MIN_LOADER_MS = 1800;
 
 @Component({
-    standalone: true,
-    selector: 'app-root',
-    imports: [RouterOutlet, CookieBannerComponent, CyberLoaderComponent, MatrixRainComponent, CommonModule],
-    template: `
+  standalone: true,
+  selector: 'app-root',
+  imports: [
+    RouterOutlet,
+    CookieBannerComponent,
+    CyberLoaderComponent,
+    MatrixRainComponent,
+    CommonModule,
+  ],
+  template: `
     <app-cyber-loader [visible]="loading" product="CYBERSCAN" />
     @if (!loading) {
       <router-outlet />
       <app-cookie-banner />
       <app-matrix-rain [visible]="matrixVisible" />
     }
-  `
+  `,
 })
 export class AppComponent implements OnInit, OnDestroy {
   loading = true;
@@ -31,15 +37,17 @@ export class AppComponent implements OnInit, OnDestroy {
   private easterEgg = inject(EasterEggService);
   private sub!: Subscription;
 
-  constructor() { inject(NavHistoryService); }
+  constructor() {
+    inject(NavHistoryService);
+  }
 
   ngOnInit(): void {
     const elapsed = Date.now() - this.startTime;
-    setTimeout(() => this.loading = false, Math.max(0, MIN_LOADER_MS - elapsed));
+    setTimeout(() => (this.loading = false), Math.max(0, MIN_LOADER_MS - elapsed));
 
     this.sub = this.easterEgg.matrixTrigger$.subscribe(() => {
       this.matrixVisible = true;
-      setTimeout(() => this.matrixVisible = false, 6500);
+      setTimeout(() => (this.matrixVisible = false), 6500);
     });
   }
 

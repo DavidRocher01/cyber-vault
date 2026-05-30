@@ -2,24 +2,28 @@
 
 <div class="min-h-screen bg-gray-950 text-gray-100 p-4 md:p-8">
   <div class="max-w-2xl mx-auto">
-
     <!-- Header -->
     <div class="mb-8">
       <div class="flex items-center gap-3 mb-1">
-        <span class="text-3xl font-bold bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent">
+        <span
+          class="text-3xl font-bold bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent"
+        >
           Dark Web
         </span>
-        <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-500/20 text-red-300 border border-red-600/40">
+        <span
+          class="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-500/20 text-red-300 border border-red-600/40"
+        >
           SURVEILLANCE
         </span>
       </div>
-      <p class="text-gray-400 text-sm">Vérifiez si votre email apparaît dans des bases de données de fuites (via HaveIBeenPwned)</p>
+      <p class="text-gray-400 text-sm">
+        Vérifiez si votre email apparaît dans des bases de données de fuites (via HaveIBeenPwned)
+      </p>
     </div>
 
     @if (loading()) {
       <div class="flex justify-center py-24"><mat-spinner [diameter]="40" /></div>
     } @else {
-
       <!-- Status card -->
       @if (status(); as s) {
         <div class="rounded-xl border p-6 mb-6" [ngClass]="statusBg(s.status)">
@@ -73,7 +77,11 @@
                 <mat-expansion-panel class="bg-gray-900 border border-gray-800 mb-2">
                   <mat-expansion-panel-header>
                     <mat-panel-title class="flex items-center gap-2">
-                      <mat-icon class="text-red-400 text-sm" style="font-size:16px;height:16px;width:16px">warning</mat-icon>
+                      <mat-icon
+                        class="text-red-400 text-sm"
+                        style="font-size: 16px; height: 16px; width: 16px"
+                        >warning</mat-icon
+                      >
                       <span class="font-semibold text-white">{{ breach.name }}</span>
                       <span class="text-xs text-gray-400">{{ breach.domain }}</span>
                     </mat-panel-title>
@@ -113,16 +121,29 @@
 
         @if (s.status === 'not_checked') {
           <div class="text-center py-8">
-            <mat-icon class="text-6xl text-gray-600 mb-4" style="font-size:64px;height:64px;width:64px">search</mat-icon>
-            <p class="text-gray-400 mb-4">Cliquez sur "Vérifier maintenant" pour lancer la première vérification.</p>
-            <button type="button" mat-flat-button color="primary" (click)="runCheck()" [disabled]="checking()">
-              @if (checking()) { <mat-spinner [diameter]="18" class="inline-block mr-2" /> }
+            <mat-icon
+              class="text-6xl text-gray-600 mb-4"
+              style="font-size: 64px; height: 64px; width: 64px"
+              >search</mat-icon
+            >
+            <p class="text-gray-400 mb-4">
+              Cliquez sur "Vérifier maintenant" pour lancer la première vérification.
+            </p>
+            <button
+              type="button"
+              mat-flat-button
+              color="primary"
+              (click)="runCheck()"
+              [disabled]="checking()"
+            >
+              @if (checking()) {
+                <mat-spinner [diameter]="18" class="inline-block mr-2" />
+              }
               Lancer la vérification
             </button>
           </div>
         }
       }
     }
-
   </div>
 </div>

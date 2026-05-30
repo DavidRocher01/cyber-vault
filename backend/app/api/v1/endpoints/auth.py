@@ -1,6 +1,15 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, HTTPException, Request, Response, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Cookie,
+    Depends,
+    HTTPException,
+    Request,
+    Response,
+    status,
+)
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +29,14 @@ from app.core.security import (
 from app.models.password_reset_token import PasswordResetToken
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
-from app.schemas.user import AccessTokenOut, ForgotPasswordIn, ResetPasswordIn, UserCreate, UserLogin, UserOut
+from app.schemas.user import (
+    AccessTokenOut,
+    ForgotPasswordIn,
+    ResetPasswordIn,
+    UserCreate,
+    UserLogin,
+    UserOut,
+)
 from app.services.email_service import send_password_reset
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -61,7 +77,12 @@ async def register(request: Request, payload: UserCreate, db: AsyncSession = Dep
 
 @router.post("/login")
 @limiter.limit("10/minute")
-async def login(request: Request, response: Response, payload: UserLogin, db: AsyncSession = Depends(get_db)):
+async def login(
+    request: Request,
+    response: Response,
+    payload: UserLogin,
+    db: AsyncSession = Depends(get_db),
+):
     result = await db.execute(select(User).where(User.email == payload.email))
     user = result.scalar_one_or_none()
 
@@ -72,7 +93,7 @@ async def login(request: Request, response: Response, payload: UserLogin, db: As
     if not user:
         raise invalid_exc
 
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(UTC)
     locked_until = ensure_utc(user.locked_until)
     if locked_until and locked_until > now_utc:
         remaining = int((locked_until - now_utc).total_seconds() / 60) + 1
@@ -84,9 +105,7 @@ async def login(request: Request, response: Response, payload: UserLogin, db: As
     if not verify_password(payload.password, user.hashed_password):
         user.failed_login_attempts += 1
         if user.failed_login_attempts >= settings.MAX_LOGIN_ATTEMPTS:
-            user.locked_until = datetime.now(timezone.utc) + timedelta(
-                minutes=settings.LOCKOUT_MINUTES
-            )
+            user.locked_until = datetime.now(UTC) + timedelta(minutes=settings.LOCKOUT_MINUTES)
             logger.warning(
                 f"Account locked after {user.failed_login_attempts} attempts: user_id={user.id}"
             )
@@ -105,13 +124,16 @@ async def login(request: Request, response: Response, payload: UserLogin, db: As
             await db.commit()
             return {"requires_2fa": True}
         import pyotp
+
         totp = pyotp.TOTP(user.totp_secret)
         if not totp.verify(payload.totp_code, valid_window=1):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Code 2FA invalide")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Code 2FA invalide"
+            )
 
     access_token = create_access_token(subject=str(user.id))
     raw_refresh = create_refresh_token()
-    expires = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    expires = datetime.now(UTC) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     db.add(RefreshToken(user_id=user.id, token=hash_token(raw_refresh), expires_at=expires))
     await db.commit()
     _set_refresh_cookie(response, raw_refresh)
@@ -125,7 +147,9 @@ async def refresh(
     refresh_token: str | None = Cookie(default=None, alias=_COOKIE_NAME),
     db: AsyncSession = Depends(get_db),
 ):
-    invalid_exc = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+    invalid_exc = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+    )
     if not refresh_token:
         raise invalid_exc
     result = await db.execute(
@@ -133,14 +157,20 @@ async def refresh(
     )
     stored = result.scalar_one_or_none()
     expires_at = ensure_utc(stored.expires_at if stored else None)
-    if not stored or stored.revoked or (expires_at is not None and expires_at < datetime.now(timezone.utc)):
+    if not stored or stored.revoked or (expires_at is not None and expires_at < datetime.now(UTC)):
         raise invalid_exc
 
     stored.revoked = True
     new_access = create_access_token(subject=str(stored.user_id))
     new_raw_refresh = create_refresh_token()
-    new_expires = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    db.add(RefreshToken(user_id=stored.user_id, token=hash_token(new_raw_refresh), expires_at=new_expires))
+    new_expires = datetime.now(UTC) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    db.add(
+        RefreshToken(
+            user_id=stored.user_id,
+            token=hash_token(new_raw_refresh),
+            expires_at=new_expires,
+        )
+    )
     await db.commit()
     _set_refresh_cookie(response, new_raw_refresh)
     return AccessTokenOut(access_token=new_access)
@@ -179,7 +209,7 @@ async def forgot_password(
         return
 
     raw_token = create_refresh_token()
-    expires = datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
+    expires = datetime.now(UTC) + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
     db.add(PasswordResetToken(user_id=user.id, token=hash_token(raw_token), expires_at=expires))
     await db.commit()
 
@@ -201,7 +231,7 @@ async def reset_password(payload: ResetPasswordIn, db: AsyncSession = Depends(ge
     )
 
     expires_at = ensure_utc(stored.expires_at if stored else None)
-    if not stored or stored.used or (expires_at is not None and expires_at < datetime.now(timezone.utc)):
+    if not stored or stored.used or (expires_at is not None and expires_at < datetime.now(UTC)):
         raise invalid_exc
 
     user_result = await db.execute(select(User).where(User.id == stored.user_id))

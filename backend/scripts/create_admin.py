@@ -16,20 +16,21 @@ Run via ECS exec:
       --region eu-west-3 \
       --command "python scripts/create_admin.py you@example.com 'YourPassword123!'"
 """
+
 import asyncio
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 sys.path.insert(0, "/app")
 
 from app.core.config import settings
 from app.core.security import hash_password
-from app.models.user import User
 from app.models.plan import Plan
 from app.models.subscription import Subscription
+from app.models.user import User
 
 
 async def main(email: str, password: str) -> None:
@@ -78,7 +79,7 @@ async def main(email: str, password: str) -> None:
         )
         sub = result.scalar_one_or_none()
 
-        far_future = datetime.now(timezone.utc) + timedelta(days=36500)  # ~100 ans
+        far_future = datetime.now(UTC) + timedelta(days=36500)  # ~100 ans
 
         if sub:
             print(f"Abonnement existant (plan_id={sub.plan_id}) → upgrade vers '{plan.name}'...")
@@ -92,7 +93,7 @@ async def main(email: str, password: str) -> None:
                 stripe_customer_id="manual_admin",
                 stripe_subscription_id="manual_admin",
                 status="active",
-                current_period_start=datetime.now(timezone.utc),
+                current_period_start=datetime.now(UTC),
                 current_period_end=far_future,
             )
             db.add(sub)
@@ -106,8 +107,8 @@ async def main(email: str, password: str) -> None:
     print("=" * 50)
     print(f"  Email    : {email}")
     print(f"  Plan     : {plan.name} (tier {plan.tier_level}, {plan.max_sites} sites)")
-    print(f"  RSSI     : True")
-    print(f"  Expire   : ~2126")
+    print("  RSSI     : True")
+    print("  Expire   : ~2126")
     print("=" * 50)
 
 

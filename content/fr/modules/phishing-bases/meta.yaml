@@ -1,0 +1,10 @@
+title: "Reconnaître le phishing en 5 indices"
+description: "Apprenez à identifier les emails frauduleux avant de cliquer."
+content_type: mixed
+estimated_duration_minutes: 5
+xp_points: 10
+has_quiz: true
+quiz_max_attempts: 3
+quiz_cooldown_minutes: 15
+quiz_passing_score: 60
+is_active: true

@@ -1,4 +1,5 @@
 """Module sensibilisation employés — 5 mini-modules + progress tracking."""
+
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -24,14 +25,20 @@ MODULES: list[dict] = [
         "duration_min": 5,
         "description": "Apprenez à identifier les emails frauduleux et les tentatives d'hameçonnage.",
         "scenario": (
-            "Vous recevez cet email : \"Cher client, votre compte bancaire a été suspendu. "
-            "Cliquez ici pour le réactiver immédiatement : http://secure-bank-verify.ru/login\". "
+            'Vous recevez cet email : "Cher client, votre compte bancaire a été suspendu. '
+            'Cliquez ici pour le réactiver immédiatement : http://secure-bank-verify.ru/login". '
             "Que faites-vous ?"
         ),
         "choices": [
             {"id": "a", "text": "Je clique sur le lien pour vérifier mon compte."},
-            {"id": "b", "text": "Je supprime l'email et contacte ma banque via son site officiel."},
-            {"id": "c", "text": "Je transfère l'email à mes collègues pour les prévenir."},
+            {
+                "id": "b",
+                "text": "Je supprime l'email et contacte ma banque via son site officiel.",
+            },
+            {
+                "id": "c",
+                "text": "Je transfère l'email à mes collègues pour les prévenir.",
+            },
             {"id": "d", "text": "Je réponds à l'email pour signaler l'erreur."},
         ],
         "correct": "b",
@@ -79,10 +86,22 @@ MODULES: list[dict] = [
             "Que faites-vous ?"
         ),
         "choices": [
-            {"id": "a", "text": "Je me connecte au premier réseau disponible, le plus puissant."},
-            {"id": "b", "text": "Je demande au personnel le nom exact du réseau officiel, j'utilise un VPN."},
-            {"id": "c", "text": "Je reste sur le Wi-Fi public mais n'accède qu'aux emails."},
-            {"id": "d", "text": "Je désactive le Wi-Fi et utilise ma connexion 4G/5G mobile."},
+            {
+                "id": "a",
+                "text": "Je me connecte au premier réseau disponible, le plus puissant.",
+            },
+            {
+                "id": "b",
+                "text": "Je demande au personnel le nom exact du réseau officiel, j'utilise un VPN.",
+            },
+            {
+                "id": "c",
+                "text": "Je reste sur le Wi-Fi public mais n'accède qu'aux emails.",
+            },
+            {
+                "id": "d",
+                "text": "Je désactive le Wi-Fi et utilise ma connexion 4G/5G mobile.",
+            },
         ],
         "correct": "b",
         "explanation": (
@@ -104,10 +123,22 @@ MODULES: list[dict] = [
             "Que faites-vous ?"
         ),
         "choices": [
-            {"id": "a", "text": "Je la branche pour voir qui elle appartient et la rendre."},
-            {"id": "b", "text": "Je la branche sur un ordinateur personnel, pas professionnel."},
-            {"id": "c", "text": "Je la remets à la sécurité ou à la DSI sans la brancher."},
-            {"id": "d", "text": "Je la garde sans la brancher jusqu'à ce que quelqu'un la réclame."},
+            {
+                "id": "a",
+                "text": "Je la branche pour voir qui elle appartient et la rendre.",
+            },
+            {
+                "id": "b",
+                "text": "Je la branche sur un ordinateur personnel, pas professionnel.",
+            },
+            {
+                "id": "c",
+                "text": "Je la remets à la sécurité ou à la DSI sans la brancher.",
+            },
+            {
+                "id": "d",
+                "text": "Je la garde sans la brancher jusqu'à ce que quelqu'un la réclame.",
+            },
         ],
         "correct": "c",
         "explanation": (
@@ -129,8 +160,14 @@ MODULES: list[dict] = [
         ),
         "choices": [
             {"id": "a", "text": "Je donne le code car la personne semble officielle."},
-            {"id": "b", "text": "Je donne le code seulement s'ils connaissent mon nom."},
-            {"id": "c", "text": "Je raccroche et contacte le vrai support via les canaux officiels."},
+            {
+                "id": "b",
+                "text": "Je donne le code seulement s'ils connaissent mon nom.",
+            },
+            {
+                "id": "c",
+                "text": "Je raccroche et contacte le vrai support via les canaux officiels.",
+            },
             {"id": "d", "text": "Je demande à rappeler sur leur numéro."},
         ],
         "correct": "c",

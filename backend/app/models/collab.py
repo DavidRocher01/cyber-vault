@@ -1,5 +1,6 @@
 """Audit collaboratif — invitation d'un collaborateur sur un site."""
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
@@ -28,6 +29,6 @@ class SiteCollaborator(Base):
     invite_token: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
 
     invited_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
     accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

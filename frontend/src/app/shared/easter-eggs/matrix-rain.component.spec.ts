@@ -26,7 +26,9 @@ describe('MatrixRainComponent — ngOnChanges', () => {
     (comp as any).stop = stopSpy;
   });
 
-  afterEach(() => { vi.useRealTimers(); });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it('schedules start() via setTimeout when visible becomes true', () => {
     comp.visible = true;
@@ -101,7 +103,9 @@ describe('MatrixRainComponent — start/stop animation', () => {
     comp.canvasRef = { nativeElement: canvas } as any;
   });
 
-  afterEach(() => { vi.useRealTimers(); });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it('stop() cancels the RAF id and clears the autoClose timer', () => {
     const cancelSpy = vi.spyOn(global, 'cancelAnimationFrame').mockImplementation(() => {});

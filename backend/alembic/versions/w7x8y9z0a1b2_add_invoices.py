@@ -4,13 +4,13 @@ Revision ID: w7x8y9z0a1b2
 Revises: v6w7x8y9z0a1
 Create Date: 2026-05-19
 """
-from typing import Union
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "w7x8y9z0a1b2"
-down_revision: Union[str, None] = "v6w7x8y9z0a1"
+down_revision: str | None = "v6w7x8y9z0a1"
 branch_labels = None
 depends_on = None
 

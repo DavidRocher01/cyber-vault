@@ -5,6 +5,7 @@ GET  /admin/invoices        — list all invoices
 GET  /admin/invoices/{id}   — get invoice detail
 GET  /admin/invoices/{id}/pdf — download PDF
 """
+
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, status

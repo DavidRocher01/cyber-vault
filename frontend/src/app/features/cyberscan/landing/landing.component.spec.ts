@@ -43,37 +43,65 @@ describe('LandingComponent — formatPrice()', () => {
 describe('LandingComponent — getPlanFeatures()', () => {
   it('inclut max_sites dans les features', () => {
     const plan: any = { max_sites: 3, scan_interval_days: 7, tier_level: 2 };
-    expect(make().getPlanFeatures(plan).some(f => f.includes('3'))).toBe(true);
+    expect(
+      make()
+        .getPlanFeatures(plan)
+        .some(f => f.includes('3'))
+    ).toBe(true);
   });
 
   it('inclut scan_interval_days dans les features', () => {
     const plan: any = { max_sites: 1, scan_interval_days: 30, tier_level: 2 };
-    expect(make().getPlanFeatures(plan).some(f => f.includes('30'))).toBe(true);
+    expect(
+      make()
+        .getPlanFeatures(plan)
+        .some(f => f.includes('30'))
+    ).toBe(true);
   });
 
   it('inclut "Rapport PDF" dans toutes les features', () => {
     const plan: any = { max_sites: 1, scan_interval_days: 30, tier_level: 1 };
-    expect(make().getPlanFeatures(plan).some(f => f.includes('Rapport PDF'))).toBe(true);
+    expect(
+      make()
+        .getPlanFeatures(plan)
+        .some(f => f.includes('Rapport PDF'))
+    ).toBe(true);
   });
 
   it('ajoute les modules Tier 3 si tier_level >= 3', () => {
     const plan: any = { max_sites: 5, scan_interval_days: 7, tier_level: 3 };
-    expect(make().getPlanFeatures(plan).some(f => f.includes('Tier 3'))).toBe(true);
+    expect(
+      make()
+        .getPlanFeatures(plan)
+        .some(f => f.includes('Tier 3'))
+    ).toBe(true);
   });
 
   it("n'ajoute pas les modules Tier 3 si tier_level < 3", () => {
     const plan: any = { max_sites: 1, scan_interval_days: 30, tier_level: 2 };
-    expect(make().getPlanFeatures(plan).some(f => f.includes('Tier 3'))).toBe(false);
+    expect(
+      make()
+        .getPlanFeatures(plan)
+        .some(f => f.includes('Tier 3'))
+    ).toBe(false);
   });
 
   it('ajoute les modules Tier 4 si tier_level >= 4', () => {
     const plan: any = { max_sites: 10, scan_interval_days: 7, tier_level: 4 };
-    expect(make().getPlanFeatures(plan).some(f => f.includes('Tier 4'))).toBe(true);
+    expect(
+      make()
+        .getPlanFeatures(plan)
+        .some(f => f.includes('Tier 4'))
+    ).toBe(true);
   });
 
   it("n'ajoute pas les modules Tier 4 si tier_level < 4", () => {
     const plan: any = { max_sites: 5, scan_interval_days: 7, tier_level: 3 };
-    expect(make().getPlanFeatures(plan).some(f => f.includes('Tier 4'))).toBe(false);
+    expect(
+      make()
+        .getPlanFeatures(plan)
+        .some(f => f.includes('Tier 4'))
+    ).toBe(false);
   });
 
   it('retourne au moins 4 features pour un plan Tier 1', () => {
@@ -102,13 +130,13 @@ describe('LandingComponent — getPlanBadge()', () => {
   });
 });
 
-// ── features (9 modules) ──────────────────────────────────────────────────────
+// ── features (10 modules) ──────────────────────────────────────────────────────
 
-describe('LandingComponent — features array (9 modules)', () => {
-  it('contient exactement 9 features', () => {
+describe('LandingComponent — features array (10 modules)', () => {
+  it('contient exactement 10 features', () => {
     const featureBlock = src.match(/FEATURES\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const count = (featureBlock.match(/icon:/g) ?? []).length;
-    expect(count).toBe(9);
+    expect(count).toBe(10);
   });
 
   it('contient "Analyse SSL/TLS"', () => {
@@ -134,15 +162,19 @@ describe('LandingComponent — features array (9 modules)', () => {
   it('contient "Audit JWT"', () => {
     expect(src).toContain("'Audit JWT'");
   });
+
+  it('contient "Sensibilisation NIS2"', () => {
+    expect(src).toContain("'Sensibilisation NIS2'");
+  });
 });
 
 // ── testimonials (6) ──────────────────────────────────────────────────────────
 
-describe('LandingComponent — testimonials (6 témoignages)', () => {
-  it('contient exactement 6 témoignages', () => {
+describe('LandingComponent — testimonials (7 témoignages)', () => {
+  it('contient exactement 7 témoignages', () => {
     const block = src.match(/TESTIMONIALS\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const count = (block.match(/name:/g) ?? []).length;
-    expect(count).toBe(6);
+    expect(count).toBe(7);
   });
 
   it('contient Sophie M.', () => {
@@ -161,10 +193,14 @@ describe('LandingComponent — testimonials (6 témoignages)', () => {
     expect(src).toContain("'Antoine P.'");
   });
 
-  it('chaque témoignage a un avatar d\'une seule lettre majuscule', () => {
+  it('contient Isabelle K. (sensibilisation NIS2)', () => {
+    expect(src).toContain("'Isabelle K.'");
+  });
+
+  it("chaque témoignage a un avatar d'une seule lettre majuscule", () => {
     const block = src.match(/TESTIMONIALS\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const avatars = [...block.matchAll(/avatar:\s*'([A-Z])'/g)].map(m => m[1]);
-    expect(avatars.length).toBe(6);
+    expect(avatars.length).toBe(7);
     avatars.forEach(a => expect(a).toMatch(/^[A-Z]$/));
   });
 });
@@ -198,7 +234,7 @@ describe('LandingComponent — faqs (10 questions)', () => {
 // ── auditOffers (4 offres) ────────────────────────────────────────────────────
 
 describe('LandingComponent — auditOffers (4 offres)', () => {
-  it('contient exactement 4 offres d\'audit', () => {
+  it("contient exactement 4 offres d'audit", () => {
     const block = src.match(/AUDIT_OFFERS\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const count = (block.match(/name:/g) ?? []).length;
     expect(count).toBe(4);
@@ -214,7 +250,7 @@ describe('LandingComponent — auditOffers (4 offres)', () => {
     expect(src).toContain("'725 €'");
   });
 
-  it("contient l'offre \"Conformité NIS2 / RGPD\" à 890 €", () => {
+  it('contient l\'offre "Conformité NIS2 / RGPD" à 890 €', () => {
     expect(src).toContain("'Conformité NIS2 / RGPD'");
     expect(src).toContain("'890 €'");
   });
@@ -304,10 +340,10 @@ describe('LandingComponent — howItWorks (3 étapes)', () => {
   });
 
   it("l'étape 3 concerne le rapport PDF", () => {
-    expect(src).toContain("'Rapport PDF + plan d\\'action'");
+    expect(src).toContain("Rapport PDF + plan d'action");
   });
 
-  it('les numéros d\'étapes sont 01, 02, 03', () => {
+  it("les numéros d'étapes sont 01, 02, 03", () => {
     expect(src).toContain("'01'");
     expect(src).toContain("'02'");
     expect(src).toContain("'03'");
@@ -323,8 +359,8 @@ describe('LandingComponent — howItWorks (3 étapes)', () => {
 
 // ── useCases (4 profils) ──────────────────────────────────────────────────────
 
-describe('LandingComponent — useCases (4 cas d\'usage)', () => {
-  it('contient exactement 4 cas d\'usage', () => {
+describe("LandingComponent — useCases (4 cas d'usage)", () => {
+  it("contient exactement 4 cas d'usage", () => {
     const block = src.match(/USE_CASES\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const count = (block.match(/title:/g) ?? []).length;
     expect(count).toBe(4);
@@ -407,8 +443,11 @@ describe('LandingComponent — cyberStats (4 statistiques)', () => {
 
 // ── Non-régression comportement ───────────────────────────────────────────────
 
-const authModalSrc = readFileSync(resolve(__dirname, './components/auth-modal/auth-modal.component.ts'), 'utf-8');
-const landingSrc   = readFileSync(resolve(__dirname, './landing.component.ts'), 'utf-8');
+const authModalSrc = readFileSync(
+  resolve(__dirname, './components/auth-modal/auth-modal.component.ts'),
+  'utf-8'
+);
+const landingSrc = readFileSync(resolve(__dirname, './landing.component.ts'), 'utf-8');
 
 describe('LandingComponent — non-régression comportement', () => {
   it('[RÉGRESSION] login redirige vers /cyberscan (landing) et non /cyberscan/dashboard', () => {
@@ -438,12 +477,12 @@ describe('LandingComponent — non-régression comportement', () => {
     }
   });
 
-  it('[RÉGRESSION] le prix de l\'App-Check est 725 € (sans HT dans le code)', () => {
+  it("[RÉGRESSION] le prix de l'App-Check est 725 € (sans HT dans le code)", () => {
     expect(src).toContain("'725 €'");
     expect(src).not.toContain("'725 € HT'");
   });
 
-  it('[RÉGRESSION] l\'architecture affiche 21 modules', () => {
+  it("[RÉGRESSION] l'architecture affiche 21 modules", () => {
     expect(src).toContain("'21 modules'");
   });
 
@@ -451,7 +490,7 @@ describe('LandingComponent — non-régression comportement', () => {
     expect(landingSrc).toContain('cyberscanapp.com');
   });
 
-  it('[RÉGRESSION] l\'Enterprise est sur devis (pas un prix fixe)', () => {
+  it("[RÉGRESSION] l'Enterprise est sur devis (pas un prix fixe)", () => {
     expect(src).toContain("enterprise: 'Illimités'");
   });
 });

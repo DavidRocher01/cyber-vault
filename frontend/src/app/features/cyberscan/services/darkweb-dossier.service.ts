@@ -91,8 +91,13 @@ export class DarkwebDossierService {
     return this.http.post<DossierDetail>(`${API}/${id}/rescan`, {});
   }
 
-  toggleMonitor(id: number): Observable<{ monitor_active: boolean; next_monitor_at: string | null }> {
-    return this.http.patch<{ monitor_active: boolean; next_monitor_at: string | null }>(`${API}/${id}/monitor`, {});
+  toggleMonitor(
+    id: number
+  ): Observable<{ monitor_active: boolean; next_monitor_at: string | null }> {
+    return this.http.patch<{ monitor_active: boolean; next_monitor_at: string | null }>(
+      `${API}/${id}/monitor`,
+      {}
+    );
   }
 
   getCsvUrl(id: number): string {
@@ -109,12 +114,20 @@ export class DarkwebDossierService {
 
   parseBreachSources(json: string | null): BreachSource[] {
     if (!json) return [];
-    try { return JSON.parse(json); } catch { return []; }
+    try {
+      return JSON.parse(json);
+    } catch {
+      return [];
+    }
   }
 
   parseTopSources(json: string | null): { name: string; count: number }[] {
     if (!json) return [];
-    try { return JSON.parse(json); } catch { return []; }
+    try {
+      return JSON.parse(json);
+    } catch {
+      return [];
+    }
   }
 
   /** Group breaches by year from breach_date field. Returns [{year, count}] sorted asc. */

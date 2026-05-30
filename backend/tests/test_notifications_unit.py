@@ -8,10 +8,10 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.v1.endpoints.notifications import (
-    list_notifications,
-    mark_read,
-    mark_all_read,
     delete_notification,
+    list_notifications,
+    mark_all_read,
+    mark_read,
 )
 from app.models.notification import Notification
 from app.models.user import User
@@ -31,6 +31,7 @@ def _mock_notif(notif_id: int = 1, read: bool = False) -> MagicMock:
 
 
 # ─── list_notifications ───────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_list_notifications_empty():
@@ -81,6 +82,7 @@ async def test_list_notifications_with_items():
 
 # ─── mark_read ────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_mark_read_not_found_raises_404():
     db = AsyncMock()
@@ -110,6 +112,7 @@ async def test_mark_read_success():
 
 
 # ─── mark_all_read ────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_mark_all_read_no_unread():
@@ -141,6 +144,7 @@ async def test_mark_all_read_marks_notifications():
 
 
 # ─── delete_notification ──────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_delete_notification_not_found_raises_404():

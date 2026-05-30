@@ -10,22 +10,20 @@ export class NavHistoryService {
   private pos = signal(Math.max(0, this.stack.length - 1));
   private jumping = false;
 
-  readonly canGoBack    = computed(() => this.pos() > 0);
+  readonly canGoBack = computed(() => this.pos() > 0);
   readonly canGoForward = computed(() => this.pos() < this.stack.length - 1);
 
   constructor(private router: Router) {
-    this.router.events
-      .pipe(filter(e => e instanceof NavigationEnd))
-      .subscribe((e: any) => {
-        if (this.jumping) return;
-        const url = e.urlAfterRedirects as string;
-        if (this.stack[this.pos()] === url) return;
-        const newStack = this.stack.slice(0, this.pos() + 1);
-        newStack.push(url);
-        this.stack = newStack;
-        this.pos.set(newStack.length - 1);
-        this.saveStack();
-      });
+    this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe((e: any) => {
+      if (this.jumping) return;
+      const url = e.urlAfterRedirects as string;
+      if (this.stack[this.pos()] === url) return;
+      const newStack = this.stack.slice(0, this.pos() + 1);
+      newStack.push(url);
+      this.stack = newStack;
+      this.pos.set(newStack.length - 1);
+      this.saveStack();
+    });
   }
 
   back() {
@@ -54,7 +52,9 @@ export class NavHistoryService {
     try {
       const stored = sessionStorage.getItem(STORAGE_KEY);
       return stored ? JSON.parse(stored) : [];
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   }
 
   private saveStack(): void {

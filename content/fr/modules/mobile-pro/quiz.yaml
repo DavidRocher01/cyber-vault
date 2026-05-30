@@ -1,0 +1,143 @@
+questions:
+  - id: mob_01
+    type: single_choice
+    weight: 1
+    text: "Quel type de verrouillage d'écran est le moins sécurisé ?"
+    answers:
+      - id: a
+        text: "Code PIN à 6 chiffres"
+        correct: false
+      - id: b
+        text: "Empreinte digitale"
+        correct: false
+      - id: c
+        text: "Schéma de déverrouillage"
+        correct: true
+      - id: d
+        text: "Reconnaissance faciale"
+        correct: false
+    explanation: "Les schémas sont prévisibles, souvent visibles sur l'écran (traces), et plus faciles à deviner que les autres méthodes."
+
+  - id: mob_02
+    type: true_false
+    weight: 1
+    text: "Les mises à jour du téléphone peuvent être retardées sans risque majeur."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Les mises à jour corrigent des failles de sécurité critiques parfois activement exploitées. Retarder les mises à jour laisse votre téléphone vulnérable."
+
+  - id: mob_03
+    type: single_choice
+    weight: 1
+    text: "Votre téléphone professionnel est perdu. Quelle est la première action ?"
+    answers:
+      - id: a
+        text: "Attendre 24h avant d'agir"
+        correct: false
+      - id: b
+        text: "Localiser, verrouiller à distance et prévenir l'IT immédiatement"
+        correct: true
+      - id: c
+        text: "Changer vos mots de passe depuis un autre appareil uniquement"
+        correct: false
+      - id: d
+        text: "Acheter un nouveau téléphone"
+        correct: false
+    explanation: "Agissez dans les 30 premières minutes. Localiser, verrouiller, effacer à distance si nécessaire, et alerter l'IT."
+
+  - id: mob_04
+    type: multiple_choice
+    weight: 2
+    text: "Quelles permissions une application de lampe de poche devrait-elle demander ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Accès à la lampe torche"
+        correct: true
+      - id: b
+        text: "Accès aux contacts"
+        correct: false
+      - id: c
+        text: "Accès au microphone"
+        correct: false
+      - id: d
+        text: "Accès à la localisation"
+        correct: false
+      - id: e
+        text: "Accès aux photos"
+        correct: false
+    explanation: "Une lampe de poche n'a besoin que de l'accès à la torche. Toute autre permission doit éveiller votre méfiance."
+
+  - id: mob_05
+    type: single_choice
+    weight: 1
+    text: "Vous recevez un SMS d'un numéro inconnu avec un lien pour 'mettre à jour vos informations de livraison'. Que faites-vous ?"
+    answers:
+      - id: a
+        text: "Cliquer pour voir de quelle livraison il s'agit"
+        correct: false
+      - id: b
+        text: "Appliquer les mêmes réflexes qu'avec un email suspect — ne pas cliquer"
+        correct: true
+      - id: c
+        text: "Répondre au SMS pour demander des précisions"
+        correct: false
+      - id: d
+        text: "Transférer le SMS à un ami"
+        correct: false
+    explanation: "Le smishing (phishing par SMS) suit les mêmes patterns que le phishing email. Même réflexe : ne pas cliquer sur des liens non sollicités."
+
+  - id: mob_06
+    type: single_choice
+    weight: 1
+    text: "Votre entreprise demande d'installer un profil MDM sur votre téléphone personnel (BYOD). À quoi ce profil a-t-il accès ?"
+    answers:
+      - id: a
+        text: "À toutes vos données personnelles (photos, messages)"
+        correct: false
+      - id: b
+        text: "Uniquement aux données et applications professionnelles"
+        correct: true
+      - id: c
+        text: "À la localisation GPS permanente"
+        correct: false
+      - id: d
+        text: "Aux appels téléphoniques personnels"
+        correct: false
+    explanation: "Les profils MDM modernes (iOS et Android) créent une séparation entre espace professionnel et personnel. L'IT gère uniquement l'espace professionnel — vos données personnelles restent privées."
+
+  - id: mob_07
+    type: true_false
+    weight: 1
+    text: "Désactiver le Bluetooth quand vous ne l'utilisez pas améliore la sécurité de votre téléphone."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: true
+      - id: b
+        text: "Faux"
+        correct: false
+    explanation: "Le Bluetooth activé en permanence expose à des attaques de proximité (BlueSnarfing). Le désactiver hors usage réduit la surface d'attaque."
+
+  - id: mob_08
+    type: single_choice
+    weight: 1
+    text: "Quelle est la condition préalable pour pouvoir effacer votre téléphone à distance en cas de perte ?"
+    answers:
+      - id: a
+        text: "Avoir un abonnement premium"
+        correct: false
+      - id: b
+        text: "Avoir activé 'Localiser mon iPhone' ou 'Find My Device' avant la perte"
+        correct: true
+      - id: c
+        text: "Appeler votre opérateur"
+        correct: false
+      - id: d
+        text: "Avoir une sauvegarde récente"
+        correct: false
+    explanation: "Les fonctions de localisation et d'effacement à distance doivent être activées avant l'incident. Si elles ne sont pas configurées, vous ne pouvez plus rien faire après la perte."

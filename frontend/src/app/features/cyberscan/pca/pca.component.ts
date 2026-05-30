@@ -18,10 +18,17 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
   standalone: true,
   selector: 'app-pca',
   imports: [
-    CommonModule, ReactiveFormsModule,
-    MatButtonModule, MatCardModule, MatIconModule,
-    MatFormFieldModule, MatInputModule, MatProgressSpinnerModule,
-    MatSnackBarModule, MatStepperModule, NavButtonsComponent,
+    CommonModule,
+    ReactiveFormsModule,
+    MatButtonModule,
+    MatCardModule,
+    MatIconModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+    MatStepperModule,
+    NavButtonsComponent,
   ],
   templateUrl: './pca.component.html',
   styleUrl: './pca.component.css',
@@ -58,8 +65,12 @@ export class PcaComponent {
     this.title.setTitle('PCA Light — CyberScan');
   }
 
-  get systems(): FormArray { return this.systemsForm.get('systems') as FormArray; }
-  get members(): FormArray { return this.teamForm.get('members') as FormArray; }
+  get systems(): FormArray {
+    return this.systemsForm.get('systems') as FormArray;
+  }
+  get members(): FormArray {
+    return this.teamForm.get('members') as FormArray;
+  }
 
   private _newSystem() {
     return this.fb.nonNullable.group({
@@ -80,10 +91,18 @@ export class PcaComponent {
     });
   }
 
-  addSystem() { this.systems.push(this._newSystem()); }
-  removeSystem(i: number) { if (this.systems.length > 1) this.systems.removeAt(i); }
-  addMember() { this.members.push(this._newMember()); }
-  removeMember(i: number) { if (this.members.length > 1) this.members.removeAt(i); }
+  addSystem() {
+    this.systems.push(this._newSystem());
+  }
+  removeSystem(i: number) {
+    if (this.systems.length > 1) this.systems.removeAt(i);
+  }
+  addMember() {
+    this.members.push(this._newMember());
+  }
+  removeMember(i: number) {
+    if (this.members.length > 1) this.members.removeAt(i);
+  }
 
   generate() {
     if (this.companyForm.invalid) return;

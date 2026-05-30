@@ -1,22 +1,22 @@
 """
 Unit tests for extra-sites add-on feature.
 """
-from datetime import datetime, timezone
+
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.models.subscription import Subscription
-from app.models.plan import Plan
-from app.models.user import User
-from app.services.subscription_service import get_effective_max_sites
 from app.api.v1.endpoints.subscriptions import (
     get_extra_sites_info,
     purchase_extra_sites,
 )
-
+from app.models.plan import Plan
+from app.models.subscription import Subscription
+from app.models.user import User
+from app.services.subscription_service import get_effective_max_sites
 
 # ── helpers ────────────────────────────────────────────────────────────────────
+
 
 def _user(uid: int = 1) -> MagicMock:
     u = MagicMock(spec=User)
@@ -58,6 +58,7 @@ def _db_no_sub():
 
 # ── get_effective_max_sites ───────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_effective_max_sites_no_subscription():
     result = await get_effective_max_sites(_db_no_sub(), 1)
@@ -80,6 +81,7 @@ async def test_effective_max_sites_with_extras():
 
 # ── get_extra_sites_info ──────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_extra_sites_info_no_sub():
     result = await get_extra_sites_info(_user(), _db_no_sub())
@@ -96,9 +98,11 @@ async def test_extra_sites_info_with_extras():
 
 # ── purchase_extra_sites (dev mode) ──────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_purchase_extra_sites_no_subscription_raises():
     from fastapi import HTTPException
+
     with pytest.raises(HTTPException) as exc:
         await purchase_extra_sites(_user(), _db_no_sub())
     assert exc.value.status_code == 403
@@ -120,18 +124,34 @@ async def test_purchase_extra_sites_dev_mode_increments():
 
 # ── SubscriptionOut schema ────────────────────────────────────────────────────
 
+
 def test_subscription_out_extra_sites_default():
-    from app.schemas.cyberscan import SubscriptionOut, PlanOut
-    from datetime import datetime, timezone
-    plan = PlanOut(id=1, name="starter", display_name="Starter", price_eur=900,
-                   max_sites=3, scan_interval_days=30, tier_level=2)
+    from app.schemas.cyberscan import PlanOut, SubscriptionOut
+
+    plan = PlanOut(
+        id=1,
+        name="starter",
+        display_name="Starter",
+        price_eur=900,
+        max_sites=3,
+        scan_interval_days=30,
+        tier_level=2,
+    )
     sub = SubscriptionOut(id=1, status="active", current_period_end=None, plan=plan)
     assert sub.extra_sites == 0
 
 
 def test_subscription_out_effective_max_sites():
-    from app.schemas.cyberscan import SubscriptionOut, PlanOut
-    plan = PlanOut(id=1, name="starter", display_name="Starter", price_eur=900,
-                   max_sites=3, scan_interval_days=30, tier_level=2)
+    from app.schemas.cyberscan import PlanOut, SubscriptionOut
+
+    plan = PlanOut(
+        id=1,
+        name="starter",
+        display_name="Starter",
+        price_eur=900,
+        max_sites=3,
+        scan_interval_days=30,
+        tier_level=2,
+    )
     sub = SubscriptionOut(id=1, status="active", current_period_end=None, plan=plan, extra_sites=5)
     assert sub.effective_max_sites == 8

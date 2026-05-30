@@ -10,13 +10,13 @@ here so users receive a clean logout instead of a broken verification.
 
 Column size is reduced from 512 → 64 chars (HMAC-SHA256 hex is exactly 64).
 """
-from typing import Union
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "f0a1b2c3d4e5"
-down_revision: Union[str, None] = "e8f9a0b1c2d3"
+down_revision: str | None = "e8f9a0b1c2d3"
 branch_labels = None
 depends_on = None
 

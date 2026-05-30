@@ -4,22 +4,26 @@ Covers: double opt-in flow, confirm, unsubscribe redirects,
         admin stats/list/send-issue, auth guard, edge cases.
 """
 
-import pytest
 from contextlib import contextmanager
+from datetime import UTC
+from unittest.mock import DEFAULT, MagicMock, patch
+
+import pytest
 from httpx import ASGITransport, AsyncClient
-from unittest.mock import patch, MagicMock, DEFAULT
+from sqlalchemy import select
 
 from app.main import app
 from app.models.newsletter_subscriber import NewsletterSubscriber
-from sqlalchemy import select
 
 BASE = "/api/v1"
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
+
 async def _get_subscriber(email: str) -> NewsletterSubscriber | None:
     # Import at call time so conftest's fixture patch is applied
     import app.core.database as _db
+
     async with _db.AsyncSessionLocal() as db:
         result = await db.execute(
             select(NewsletterSubscriber).where(NewsletterSubscriber.email == email)
@@ -43,12 +47,15 @@ def _admin_settings():
     mock = MagicMock()
     mock.ADMIN_API_KEY = "test-secret-key"
     mock.FRONTEND_URL = "http://localhost:4200"
-    with patch("app.api.v1.endpoints.newsletter.settings", mock), \
-         patch("app.core.deps.settings", mock):
+    with (
+        patch("app.api.v1.endpoints.newsletter.settings", mock),
+        patch("app.core.deps.settings", mock),
+    ):
         yield
 
 
 # ── Subscribe ──────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_subscribe_new_returns_201_sends_confirmation():
@@ -88,7 +95,9 @@ async def test_subscribe_duplicate_active_returns_409():
             await c.post(f"{BASE}/newsletter/subscribe", json={"email": "dup409@test.com"})
 
     # Manually activate subscriber (simulate confirmed)
-    async with __import__('app.core.database', fromlist=['AsyncSessionLocal']).AsyncSessionLocal() as db:
+    async with __import__(
+        "app.core.database", fromlist=["AsyncSessionLocal"]
+    ).AsyncSessionLocal() as db:
         result = await db.execute(
             select(NewsletterSubscriber).where(NewsletterSubscriber.email == "dup409@test.com")
         )
@@ -117,6 +126,7 @@ async def test_subscribe_pending_resends_confirmation():
 
 # ── Confirm ────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_confirm_valid_token_activates_subscriber():
     with _no_email() as mocks_sub:
@@ -129,7 +139,9 @@ async def test_confirm_valid_token_activates_subscriber():
 
     with _no_email() as mocks:
         async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test", follow_redirects=False
+            transport=ASGITransport(app=app),
+            base_url="http://test",
+            follow_redirects=False,
         ) as c:
             r = await c.get(f"{BASE}/newsletter/confirm?token={token}")
 
@@ -155,6 +167,7 @@ async def test_confirm_invalid_token_redirects_invalid():
 
 # ── Unsubscribe ────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_unsubscribe_valid_token_deactivates_and_redirects():
     with _no_email():
@@ -162,7 +175,9 @@ async def test_unsubscribe_valid_token_deactivates_and_redirects():
             await c.post(f"{BASE}/newsletter/subscribe", json={"email": "unsub@test.com"})
 
     # Activate subscriber
-    async with __import__('app.core.database', fromlist=['AsyncSessionLocal']).AsyncSessionLocal() as db:
+    async with __import__(
+        "app.core.database", fromlist=["AsyncSessionLocal"]
+    ).AsyncSessionLocal() as db:
         result = await db.execute(
             select(NewsletterSubscriber).where(NewsletterSubscriber.email == "unsub@test.com")
         )
@@ -173,7 +188,9 @@ async def test_unsubscribe_valid_token_deactivates_and_redirects():
 
     with _no_email() as mocks:
         async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test", follow_redirects=False
+            transport=ASGITransport(app=app),
+            base_url="http://test",
+            follow_redirects=False,
         ) as c:
             r = await c.get(f"{BASE}/newsletter/unsubscribe?token={token}")
 
@@ -203,14 +220,17 @@ async def test_resubscribe_confirmed_unsubscribed():
             await c.post(f"{BASE}/newsletter/subscribe", json={"email": "resub@test.com"})
 
     # Simulate confirmed + then unsubscribed
-    async with __import__('app.core.database', fromlist=['AsyncSessionLocal']).AsyncSessionLocal() as db:
+    async with __import__(
+        "app.core.database", fromlist=["AsyncSessionLocal"]
+    ).AsyncSessionLocal() as db:
         result = await db.execute(
             select(NewsletterSubscriber).where(NewsletterSubscriber.email == "resub@test.com")
         )
         sub = result.scalar_one()
-        from datetime import datetime, timezone
+        from datetime import datetime
+
         sub.is_active = False
-        sub.confirmed_at = datetime.now(timezone.utc)
+        sub.confirmed_at = datetime.now(UTC)
         sub.confirmation_token = None
         await db.commit()
 
@@ -225,6 +245,7 @@ async def test_resubscribe_confirmed_unsubscribed():
 
 
 # ── Admin — auth guard ─────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_admin_stats_no_key_returns_403():
@@ -244,11 +265,15 @@ async def test_admin_stats_wrong_key_returns_403():
 
 # ── Admin — stats ──────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_admin_stats_valid_key_returns_counts():
     with _admin_settings():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/newsletter/admin/stats", headers={"x-admin-key": "test-secret-key"})
+            r = await c.get(
+                f"{BASE}/newsletter/admin/stats",
+                headers={"x-admin-key": "test-secret-key"},
+            )
     assert r.status_code == 200
     data = r.json()
     assert "total" in data
@@ -259,16 +284,21 @@ async def test_admin_stats_valid_key_returns_counts():
 
 # ── Admin — subscribers list ───────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_admin_subscribers_returns_list():
     with _admin_settings():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/newsletter/admin/subscribers", headers={"x-admin-key": "test-secret-key"})
+            r = await c.get(
+                f"{BASE}/newsletter/admin/subscribers",
+                headers={"x-admin-key": "test-secret-key"},
+            )
     assert r.status_code == 200
     assert isinstance(r.json(), list)
 
 
 # ── Admin — send issue ─────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_admin_send_issue_returns_sent_count():
@@ -300,9 +330,12 @@ async def test_admin_send_issue_returns_sent_count():
 async def test_admin_send_issue_no_key_returns_403():
     issue_payload = {
         "edition": 1,
-        "flash_title": "T", "flash_body": "T",
-        "reflex_title": "T", "reflex_body": "T",
-        "legal_title": "T", "legal_body": "T",
+        "flash_title": "T",
+        "flash_body": "T",
+        "reflex_title": "T",
+        "reflex_body": "T",
+        "legal_title": "T",
+        "legal_body": "T",
     }
     with _admin_settings():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -382,6 +415,7 @@ async def test_admin_update_schedule_duplicate_positions_returns_422():
 
 # ── Send from schedule ─────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_admin_send_from_schedule_no_items_returns_400():
     """Empty schedule → 400."""
@@ -427,6 +461,7 @@ async def test_admin_send_from_schedule_no_key_returns_403():
 
 # ── OG image ───────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_admin_og_image_no_key_returns_403():
     with _admin_settings():
@@ -439,7 +474,10 @@ async def test_admin_og_image_no_key_returns_403():
 async def test_admin_og_image_returns_null_on_exception():
     """SSRF block or network error → {"image_url": null}, not 500."""
     with _admin_settings():
-        with patch("app.api.v1.endpoints.newsletter.assert_no_ssrf", side_effect=Exception("blocked")):
+        with patch(
+            "app.api.v1.endpoints.newsletter.assert_no_ssrf",
+            side_effect=Exception("blocked"),
+        ):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
                 r = await c.get(
                     f"{BASE}/newsletter/admin/og-image?url=https://example.com",
@@ -453,6 +491,7 @@ async def test_admin_og_image_returns_null_on_exception():
 async def test_admin_og_image_returns_image_url_from_og_tag():
     """When page contains og:image, return the URL."""
     from unittest.mock import AsyncMock
+
     html = '<meta property="og:image" content="https://example.com/thumb.jpg" />'
 
     mock_resp = MagicMock()
@@ -469,8 +508,13 @@ async def test_admin_og_image_returns_image_url_from_og_tag():
 
     with _admin_settings():
         with patch("app.api.v1.endpoints.newsletter.assert_no_ssrf"):
-            with patch("app.api.v1.endpoints.newsletter.httpx.AsyncClient", return_value=mock_ctx):
-                async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            with patch(
+                "app.api.v1.endpoints.newsletter.httpx.AsyncClient",
+                return_value=mock_ctx,
+            ):
+                async with AsyncClient(
+                    transport=ASGITransport(app=app), base_url="http://test"
+                ) as c:
                     r = await c.get(
                         f"{BASE}/newsletter/admin/og-image?url=https://example.com",
                         headers={"x-admin-key": "test-secret-key"},
@@ -480,6 +524,7 @@ async def test_admin_og_image_returns_image_url_from_og_tag():
 
 
 # ── Newsletter content ─────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_admin_get_newsletter_content_returns_default():
@@ -524,8 +569,9 @@ async def test_admin_get_newsletter_content_reads_from_db():
     """When AppSetting row exists in DB, GET parses and returns it (unit-level mock)."""
     import json as _json
     from unittest.mock import AsyncMock
-    from app.models.app_setting import AppSetting
+
     from app.api.v1.endpoints.newsletter import get_newsletter_content
+    from app.models.app_setting import AppSetting
 
     content_data = {
         "flash_title": "Mocked Flash",
@@ -535,7 +581,9 @@ async def test_admin_get_newsletter_content_reads_from_db():
         "legal_title": "Mocked Legal",
         "legal_body": "Mocked legal body.",
     }
-    setting = AppSetting(key="newsletter_content", value_int=0, value_text=_json.dumps(content_data))
+    setting = AppSetting(
+        key="newsletter_content", value_int=0, value_text=_json.dumps(content_data)
+    )
 
     mock_db = MagicMock()
     mock_db.get = AsyncMock(return_value=setting)

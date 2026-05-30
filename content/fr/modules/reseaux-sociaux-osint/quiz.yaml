@@ -1,0 +1,146 @@
+questions:
+  - id: osint_01
+    type: single_choice
+    weight: 1
+    text: "Qu'est-ce que l'OSINT ?"
+    answers:
+      - id: a
+        text: "Un logiciel de surveillance réseau"
+        correct: false
+      - id: b
+        text: "La collecte de renseignements à partir de sources publiques légalement accessibles"
+        correct: true
+      - id: c
+        text: "Un type d'attaque par email"
+        correct: false
+      - id: d
+        text: "Une norme de sécurité informatique"
+        correct: false
+    explanation: "L'OSINT (Open Source INTelligence) utilise des informations publiques — réseaux sociaux, sites web, registres publics, presse — pour construire des profils détaillés. Légal et très utilisé par les attaquants."
+
+  - id: osint_02
+    type: multiple_choice
+    weight: 2
+    text: "Quelles informations LinkedIn révèle-t-il à un attaquant ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "L'organigramme partiel de l'entreprise"
+        correct: true
+      - id: b
+        text: "Vos projets en cours et technologies utilisées"
+        correct: true
+      - id: c
+        text: "Vos données bancaires"
+        correct: false
+      - id: d
+        text: "Les personnes clés (finance, IT, direction)"
+        correct: true
+      - id: e
+        text: "Votre réseau de confiance (collègues, fournisseurs)"
+        correct: true
+    explanation: "LinkedIn permet de reconstituer l'organigramme, d'identifier les cibles pour la fraude au président, de connaître la stack technologique et de trouver des noms pour personnaliser un phishing."
+
+  - id: osint_03
+    type: true_false
+    weight: 1
+    text: "Mentionner les technologies de votre entreprise dans votre profil LinkedIn ('Expert Azure AD, CrowdStrike') est sans conséquence."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Mentionner les technologies utilisées permet à un attaquant de cibler exactement les vulnérabilités de ces produits. Ce n'est pas une raison de ne pas l'indiquer, mais d'en être conscient."
+
+  - id: osint_04
+    type: single_choice
+    weight: 1
+    text: "Un développeur pousse du code sur un dépôt GitHub public avec une clé API en commentaire 'pour tester'. Quel est le risque ?"
+    answers:
+      - id: a
+        text: "Aucun risque si c'est juste pour tester"
+        correct: false
+      - id: b
+        text: "La clé peut être trouvée par des robots qui scannent GitHub en permanence et être exploitée en quelques minutes"
+        correct: true
+      - id: c
+        text: "Un risque seulement si le dépôt a beaucoup de stars"
+        correct: false
+      - id: d
+        text: "Un risque uniquement pour les clés de production"
+        correct: false
+    explanation: "Des robots (GitHub Dorking, Trufflehog) scannent GitHub en permanence à la recherche de secrets exposés. Une clé publiée même quelques secondes peut être trouvée et utilisée avant même que vous la supprimiez."
+
+  - id: osint_05
+    type: single_choice
+    weight: 1
+    text: "Votre entreprise publie une offre d'emploi pour un 'Administrateur Fortinet + VMware vSphere'. Qu'expose cette offre ?"
+    answers:
+      - id: a
+        text: "Rien de problématique"
+        correct: false
+      - id: b
+        text: "La stack technologique de l'entreprise, permettant de cibler les vulnérabilités Fortinet et vSphere"
+        correct: true
+      - id: c
+        text: "Uniquement que l'entreprise recrute"
+        correct: false
+      - id: d
+        text: "Les informations salariales"
+        correct: false
+    explanation: "Les offres d'emploi sont une source OSINT précieuse. Elles révèlent la stack exacte de l'entreprise. Des CVE critiques sur ces produits deviennent des cibles prioritaires pour un attaquant."
+
+  - id: osint_06
+    type: multiple_choice
+    weight: 2
+    text: "Quelles publications sur les réseaux sociaux personnels représentent un risque ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Photos depuis le bureau avec des informations visibles à l'écran"
+        correct: true
+      - id: b
+        text: "Annonce de vacances de 2 semaines avec dates précises"
+        correct: true
+      - id: c
+        text: "Photo de votre profil professionnel"
+        correct: false
+      - id: d
+        text: "Capture d'écran de votre terminal avec noms de domaines internes visibles"
+        correct: true
+      - id: e
+        text: "Article partagé sur la cybersécurité"
+        correct: false
+    explanation: "Photos révélant des données internes, annonces d'absence (signal pour les escrocs), et captures d'écran techniques sont des risques réels. Partager des articles de veille est en revanche une bonne pratique."
+
+  - id: osint_07
+    type: true_false
+    weight: 1
+    text: "Réduire son empreinte numérique implique de supprimer son profil LinkedIn et d'éviter toute présence en ligne."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "La visibilité numérique est nécessaire professionnellement. L'objectif est d'être conscient de ce qu'on expose et de limiter les informations sensibles (technologies internes, projets confidentiels) — pas de disparaître."
+
+  - id: osint_08
+    type: single_choice
+    weight: 1
+    text: "Un attaquant passe 3 jours à collecter de l'OSINT sur votre entreprise avant d'agir. Quelle est sa principale source d'information ?"
+    answers:
+      - id: a
+        text: "Des données achetées sur le dark web"
+        correct: false
+      - id: b
+        text: "Des sources publiques et gratuites : LinkedIn, site web, GitHub, presse"
+        correct: true
+      - id: c
+        text: "Des informations obtenues par hacking préalable"
+        correct: false
+      - id: d
+        text: "Des contacts dans l'entreprise"
+        correct: false
+    explanation: "L'OSINT utilise exclusivement des sources publiques et légales. LinkedIn, le site web, les offres d'emploi, les dépôts GitHub publics, et la presse professionnelle suffisent pour construire un dossier complet sur la plupart des entreprises."

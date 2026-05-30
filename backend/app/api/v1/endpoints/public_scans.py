@@ -3,9 +3,9 @@ Public scan endpoints — no authentication required.
 Rate limited to 3 scans/hour per IP to prevent abuse.
 """
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal, get_db
 from app.core.limiter import limiter
@@ -13,7 +13,6 @@ from app.core.ssrf import assert_no_ssrf
 from app.models.public_scan import PublicScan
 from app.schemas.public_scan import PublicScanCreate, PublicScanOut
 from app.services.public_scan_service import run_public_scan
-from fastapi import Depends
 
 router = APIRouter(prefix="/public-scans", tags=["public-scans"])
 
@@ -54,9 +53,7 @@ async def get_public_scan(
     token: str,
     db: AsyncSession = Depends(get_db),
 ) -> PublicScanOut:
-    result = await db.execute(
-        select(PublicScan).where(PublicScan.session_token == token)
-    )
+    result = await db.execute(select(PublicScan).where(PublicScan.session_token == token))
     scan = result.scalar_one_or_none()
     if not scan:
         raise HTTPException(status_code=404, detail="Scan introuvable")

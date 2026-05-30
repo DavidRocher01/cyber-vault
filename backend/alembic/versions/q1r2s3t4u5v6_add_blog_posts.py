@@ -4,15 +4,16 @@ Revision ID: q1r2s3t4u5v6
 Revises: p0q1r2s3t4u5
 Create Date: 2026-05-16
 """
-from typing import Union
+
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "q1r2s3t4u5v6"
-down_revision: Union[str, None] = "p0q1r2s3t4u5"
+down_revision: str | None = "p0q1r2s3t4u5"
 branch_labels = None
 depends_on = None
 
@@ -206,7 +207,7 @@ def upgrade() -> None:
     )
     op.create_index("ix_blog_posts_slug", "blog_posts", ["slug"])
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     conn = op.get_bind()
     conn.execute(
         sa.text(

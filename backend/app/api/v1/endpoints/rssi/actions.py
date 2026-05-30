@@ -1,9 +1,9 @@
 import csv
 import io
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -13,12 +13,13 @@ from app.core.database import get_db
 from app.core.deps import get_rssi_consultant
 from app.models.rssi_action import RssiAction
 from app.models.user import User
+
 from ._shared import _get_client_or_404
 
 router = APIRouter()
 
 ActionPriority = Literal["critical", "high", "medium", "low"]
-ActionStatus   = Literal["open", "in_progress", "done", "cancelled", "postponed"]
+ActionStatus = Literal["open", "in_progress", "done", "cancelled", "postponed"]
 ActionCategory = Literal["governance", "technical", "training", "compliance"]
 
 
@@ -132,7 +133,7 @@ async def update_action(
     if payload.status is not None:
         action.status = payload.status
         if payload.status == "done" and action.completed_at is None:
-            action.completed_at = datetime.now(timezone.utc)
+            action.completed_at = datetime.now(UTC)
     if payload.assigned_to is not None:
         action.assigned_to = payload.assigned_to
     if payload.due_date is not None:
@@ -140,7 +141,7 @@ async def update_action(
     if payload.completed_at is not None:
         action.completed_at = payload.completed_at
 
-    action.updated_at = datetime.now(timezone.utc)
+    action.updated_at = datetime.now(UTC)
     await db.commit()
     await db.refresh(action)
     return action
@@ -182,25 +183,52 @@ async def export_actions_csv(
 
     buf = io.StringIO()
     writer = csv.writer(buf, delimiter=";", quoting=csv.QUOTE_ALL)
-    writer.writerow(["Titre", "Catégorie", "Priorité", "Statut", "Responsable", "Échéance", "Terminée le", "Créée le"])
+    writer.writerow(
+        [
+            "Titre",
+            "Catégorie",
+            "Priorité",
+            "Statut",
+            "Responsable",
+            "Échéance",
+            "Terminée le",
+            "Créée le",
+        ]
+    )
 
-    _priority_fr = {"critical": "Critique", "high": "Haute", "medium": "Moyenne", "low": "Basse"}
-    _status_fr   = {"open": "Ouverte", "in_progress": "En cours", "done": "Terminée",
-                    "cancelled": "Annulée", "postponed": "Reportée"}
-    _category_fr = {"governance": "Gouvernance", "technical": "Technique",
-                    "training": "Formation", "compliance": "Conformité"}
+    _priority_fr = {
+        "critical": "Critique",
+        "high": "Haute",
+        "medium": "Moyenne",
+        "low": "Basse",
+    }
+    _status_fr = {
+        "open": "Ouverte",
+        "in_progress": "En cours",
+        "done": "Terminée",
+        "cancelled": "Annulée",
+        "postponed": "Reportée",
+    }
+    _category_fr = {
+        "governance": "Gouvernance",
+        "technical": "Technique",
+        "training": "Formation",
+        "compliance": "Conformité",
+    }
 
     for a in actions:
-        writer.writerow([
-            a.title,
-            _category_fr.get(a.category or "", a.category or ""),
-            _priority_fr.get(a.priority, a.priority),
-            _status_fr.get(a.status, a.status),
-            a.assigned_to or "",
-            str(a.due_date) if a.due_date else "",
-            str(a.completed_at.date()) if a.completed_at else "",
-            str(a.created_at.date()) if a.created_at else "",
-        ])
+        writer.writerow(
+            [
+                a.title,
+                _category_fr.get(a.category or "", a.category or ""),
+                _priority_fr.get(a.priority, a.priority),
+                _status_fr.get(a.status, a.status),
+                a.assigned_to or "",
+                str(a.due_date) if a.due_date else "",
+                str(a.completed_at.date()) if a.completed_at else "",
+                str(a.created_at.date()) if a.created_at else "",
+            ]
+        )
 
     csv_bytes = buf.getvalue().encode("utf-8-sig")
     return StreamingResponse(

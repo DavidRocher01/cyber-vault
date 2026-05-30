@@ -116,18 +116,14 @@ describe('OtpInputComponent — logique interne', () => {
   it('émet complete quand les 6 cases sont remplies', () => {
     const spy = vi.fn();
     comp.otpComplete.subscribe(spy);
-    ['1', '2', '3', '4', '5', '6'].forEach((d, i) =>
-      comp.onInput(makeInputEvent(d), i)
-    );
+    ['1', '2', '3', '4', '5', '6'].forEach((d, i) => comp.onInput(makeInputEvent(d), i));
     expect(spy).toHaveBeenCalledWith('123456');
   });
 
   it("n'émet pas complete avec seulement 5 cases", () => {
     const spy = vi.fn();
     comp.otpComplete.subscribe(spy);
-    ['1', '2', '3', '4', '5'].forEach((d, i) =>
-      comp.onInput(makeInputEvent(d), i)
-    );
+    ['1', '2', '3', '4', '5'].forEach((d, i) => comp.onInput(makeInputEvent(d), i));
     expect(spy).not.toHaveBeenCalled();
   });
 
@@ -226,6 +222,6 @@ describe('OtpInputComponent — logique interne', () => {
 
   it('code partiel si certains digits manquent', () => {
     comp.digits = ['1', '', '3', '', '', ''];
-    expect(comp.code).toBe('13');  // join('') — empty strings ignored in join
+    expect(comp.code).toBe('13'); // join('') — empty strings ignored in join
   });
 });

@@ -1,9 +1,20 @@
-import { Component, ElementRef, ViewChild, AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  ViewChild,
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
-interface Line { type: 'cmd' | 'out' | 'err'; text: string; }
+interface Line {
+  type: 'cmd' | 'out' | 'err';
+  text: string;
+}
 
 const BANNER = [
   '  ██████╗ ██████╗  ██████╗ ████████╗',
@@ -20,7 +31,14 @@ const BANNER = [
   '',
 ];
 
-const FILES = ['audit.log', 'config.yml', 'scan_results.json', 'vuln_db.sqlite', '.secrets', 'kernel.img'];
+const FILES = [
+  'audit.log',
+  'config.yml',
+  'scan_results.json',
+  'vuln_db.sqlite',
+  '.secrets',
+  'kernel.img',
+];
 const NMAP_LINES = [
   'Starting Nmap 7.95 ( https://nmap.org )',
   'Scanning cyberscanapp.com (10.64.0.1) ...',
@@ -53,69 +71,137 @@ const NMAP_LINES = [
         <div *ngFor="let l of lines" [ngClass]="'line line-' + l.type">{{ l.text }}</div>
         <div class="input-row">
           <span class="prompt">{{ prompt }}</span>
-          <input #input
-                 [(ngModel)]="currentInput"
-                 (keydown.enter)="submit()"
-                 (keydown.tab)="$event.preventDefault(); autocomplete()"
-                 (keydown.arrowup)="$event.preventDefault(); historyPrev()"
-                 (keydown.arrowdown)="$event.preventDefault(); historyNext()"
-                 autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-                 class="term-input" />
+          <input
+            #input
+            [(ngModel)]="currentInput"
+            (keydown.enter)="submit()"
+            (keydown.tab)="$event.preventDefault(); autocomplete()"
+            (keydown.arrowup)="$event.preventDefault(); historyPrev()"
+            (keydown.arrowdown)="$event.preventDefault(); historyNext()"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            class="term-input"
+          />
           <span class="caret"></span>
         </div>
       </div>
     </div>
   `,
-  styles: [`
-    :host {
-      --bg: #050a05;
-      --line: rgba(0,255,70,0.12);
-      --green: #00e645;
-      --green-dim: #006a20;
-      --green-muted: #004015;
-      --amber: #f5a623;
-      --red: #ff4444;
-      --mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
-      display: block; height: 100dvh; background: var(--bg);
-    }
-    .terminal-root {
-      display: flex; flex-direction: column; height: 100%;
-      font-family: var(--mono); font-size: 13px;
-      background: var(--bg); color: var(--green);
-    }
-    .terminal-topbar {
-      display: flex; align-items: center; gap: 12px;
-      padding: 10px 16px; background: #0a110a;
-      border-bottom: 1px solid var(--line);
-    }
-    .dots { display: flex; gap: 6px; }
-    .dot { width: 12px; height: 12px; border-radius: 50%; cursor: pointer; }
-    .dot.red { background: #ff5f57; }
-    .dot.yellow { background: #ffbd2e; }
-    .dot.green { background: #28ca41; }
-    .title { flex: 1; text-align: center; font-size: 11px; color: var(--green-dim); letter-spacing: 0.1em; }
-    .terminal-body {
-      flex: 1; overflow-y: auto; padding: 16px 20px;
-      scrollbar-width: thin; scrollbar-color: var(--green-muted) transparent;
-    }
-    .line { line-height: 1.6; white-space: pre; }
-    .line-cmd { color: var(--green); }
-    .line-out { color: #b0ffcc; }
-    .line-err { color: var(--red); }
-    .input-row { display: flex; align-items: center; margin-top: 4px; }
-    .prompt { color: var(--green); white-space: nowrap; }
-    .term-input {
-      flex: 1; background: transparent; border: none; outline: none;
-      color: var(--green); font-family: var(--mono); font-size: 13px;
-      caret-color: transparent; padding: 0 0 0 4px;
-    }
-    .caret {
-      display: inline-block; width: 0.55em; height: 1em;
-      background: var(--green); vertical-align: -0.12em;
-      animation: blink 1.05s steps(1) infinite;
-    }
-    @keyframes blink { 50% { opacity: 0; } }
-  `],
+  styles: [
+    `
+      :host {
+        --bg: #050a05;
+        --line: rgba(0, 255, 70, 0.12);
+        --green: #00e645;
+        --green-dim: #006a20;
+        --green-muted: #004015;
+        --amber: #f5a623;
+        --red: #ff4444;
+        --mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+        display: block;
+        height: 100dvh;
+        background: var(--bg);
+      }
+      .terminal-root {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        font-family: var(--mono);
+        font-size: 13px;
+        background: var(--bg);
+        color: var(--green);
+      }
+      .terminal-topbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px;
+        background: #0a110a;
+        border-bottom: 1px solid var(--line);
+      }
+      .dots {
+        display: flex;
+        gap: 6px;
+      }
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        cursor: pointer;
+      }
+      .dot.red {
+        background: #ff5f57;
+      }
+      .dot.yellow {
+        background: #ffbd2e;
+      }
+      .dot.green {
+        background: #28ca41;
+      }
+      .title {
+        flex: 1;
+        text-align: center;
+        font-size: 11px;
+        color: var(--green-dim);
+        letter-spacing: 0.1em;
+      }
+      .terminal-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px 20px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--green-muted) transparent;
+      }
+      .line {
+        line-height: 1.6;
+        white-space: pre;
+      }
+      .line-cmd {
+        color: var(--green);
+      }
+      .line-out {
+        color: #b0ffcc;
+      }
+      .line-err {
+        color: var(--red);
+      }
+      .input-row {
+        display: flex;
+        align-items: center;
+        margin-top: 4px;
+      }
+      .prompt {
+        color: var(--green);
+        white-space: nowrap;
+      }
+      .term-input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 13px;
+        caret-color: transparent;
+        padding: 0 0 0 4px;
+      }
+      .caret {
+        display: inline-block;
+        width: 0.55em;
+        height: 1em;
+        background: var(--green);
+        vertical-align: -0.12em;
+        animation: blink 1.05s steps(1) infinite;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+    `,
+  ],
 })
 export class R00tComponent implements AfterViewInit {
   @ViewChild('input') inputRef!: ElementRef<HTMLInputElement>;
@@ -141,7 +227,19 @@ export class R00tComponent implements AfterViewInit {
 
   autocomplete(): void {
     const partial = this.currentInput.trim();
-    const cmds = ['help', 'whoami', 'ls', 'cat', 'nmap', 'hack', 'clear', 'exit', 'uname', 'ps', 'date'];
+    const cmds = [
+      'help',
+      'whoami',
+      'ls',
+      'cat',
+      'nmap',
+      'hack',
+      'clear',
+      'exit',
+      'uname',
+      'ps',
+      'date',
+    ];
     const match = cmds.find(c => c.startsWith(partial) && c !== partial);
     if (match) this.currentInput = match;
   }
@@ -153,7 +251,11 @@ export class R00tComponent implements AfterViewInit {
   }
 
   historyNext(): void {
-    if (this.historyIdx <= 0) { this.historyIdx = -1; this.currentInput = ''; return; }
+    if (this.historyIdx <= 0) {
+      this.historyIdx = -1;
+      this.currentInput = '';
+      return;
+    }
     this.historyIdx--;
     this.currentInput = this.history[this.historyIdx];
   }
@@ -232,12 +334,21 @@ export class R00tComponent implements AfterViewInit {
     }
   }
 
-  private out(lines: string[]): void { lines.forEach(t => this.addLine('out', t)); }
-  private err(lines: string[]): void { lines.forEach(t => this.addLine('err', t)); }
-  private addLine(type: Line['type'], text: string): void { this.lines = [...this.lines, { type, text }]; }
+  private out(lines: string[]): void {
+    lines.forEach(t => this.addLine('out', t));
+  }
+  private err(lines: string[]): void {
+    lines.forEach(t => this.addLine('err', t));
+  }
+  private addLine(type: Line['type'], text: string): void {
+    this.lines = [...this.lines, { type, text }];
+  }
 
   private catFile(name: string): void {
-    if (!name) { this.err(['cat: missing operand']); return; }
+    if (!name) {
+      this.err(['cat: missing operand']);
+      return;
+    }
     if (name === '.secrets') {
       this.err([
         'cat: .secrets: Permission denied',
@@ -245,7 +356,10 @@ export class R00tComponent implements AfterViewInit {
       ]);
       return;
     }
-    if (!FILES.includes(name)) { this.err([`cat: ${name}: No such file or directory`]); return; }
+    if (!FILES.includes(name)) {
+      this.err([`cat: ${name}: No such file or directory`]);
+      return;
+    }
     if (name === 'audit.log') {
       this.out([
         '[2026-04-20 14:31:07] INFO  scan started — target: example.com',

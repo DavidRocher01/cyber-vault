@@ -14,8 +14,14 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Title } from '@angular/platform-browser';
 
 import {
-  RssiService, RssiClient, RssiVisit, RssiAction, ActivityLogEntry,
-  RssiDeliverable, RssiSite, UnlinkedSite,
+  RssiService,
+  RssiClient,
+  RssiVisit,
+  RssiAction,
+  ActivityLogEntry,
+  RssiDeliverable,
+  RssiSite,
+  UnlinkedSite,
 } from '../services/rssi.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
@@ -23,10 +29,18 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
   standalone: true,
   selector: 'app-client-detail',
   imports: [
-    CommonModule, ReactiveFormsModule, RouterLink,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule,
-    MatSnackBarModule, MatFormFieldModule, MatInputModule,
-    MatSelectModule, MatTooltipModule, NavButtonsComponent,
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatTooltipModule,
+    NavButtonsComponent,
   ],
   templateUrl: './client-detail.component.html',
 })
@@ -61,7 +75,9 @@ export class ClientDetailComponent implements OnInit {
   showAddAction = signal(false);
   showAddDeliverable = signal(false);
 
-  confirmDelete = signal<{ type: 'visit' | 'action' | 'deliverable' | 'site'; id: number } | null>(null);
+  confirmDelete = signal<{ type: 'visit' | 'action' | 'deliverable' | 'site'; id: number } | null>(
+    null
+  );
 
   actionsStatusFilter = signal<string>('all');
   actionsPriorityFilter = signal<string>('all');
@@ -256,7 +272,7 @@ export class ClientDetailComponent implements OnInit {
       },
       error: () => {
         this.exportingCsv.set(false);
-        this.snack.open('Erreur lors de l\'export CSV', 'Fermer', { duration: 4000 });
+        this.snack.open("Erreur lors de l'export CSV", 'Fermer', { duration: 4000 });
       },
     });
   }
@@ -290,28 +306,30 @@ export class ClientDetailComponent implements OnInit {
     if (this.infoForm.invalid) return;
     this.saving.set(true);
     const v = this.infoForm.getRawValue();
-    this.rssi.updateClient(this.clientId, {
-      name: v.name,
-      email: v.email || undefined,
-      description: v.description || undefined,
-      formula: (v.formula as any) || undefined,
-      monthly_amount: v.monthly_amount ?? undefined,
-      contract_renewal_at: v.contract_renewal_at || undefined,
-      status: (v.status as any) || undefined,
-      notion_workspace_url: v.notion_workspace_url || undefined,
-      pipedrive_deal_id: v.pipedrive_deal_id || undefined,
-      pennylane_customer_id: v.pennylane_customer_id || undefined,
-    }).subscribe({
-      next: updated => {
-        this.client.set(updated);
-        this.saving.set(false);
-        this.snack.open('Client mis à jour', 'OK', { duration: 3000 });
-      },
-      error: err => {
-        this.saving.set(false);
-        this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
-      },
-    });
+    this.rssi
+      .updateClient(this.clientId, {
+        name: v.name,
+        email: v.email || undefined,
+        description: v.description || undefined,
+        formula: (v.formula as any) || undefined,
+        monthly_amount: v.monthly_amount ?? undefined,
+        contract_renewal_at: v.contract_renewal_at || undefined,
+        status: (v.status as any) || undefined,
+        notion_workspace_url: v.notion_workspace_url || undefined,
+        pipedrive_deal_id: v.pipedrive_deal_id || undefined,
+        pennylane_customer_id: v.pennylane_customer_id || undefined,
+      })
+      .subscribe({
+        next: updated => {
+          this.client.set(updated);
+          this.saving.set(false);
+          this.snack.open('Client mis à jour', 'OK', { duration: 3000 });
+        },
+        error: err => {
+          this.saving.set(false);
+          this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
+        },
+      });
   }
 
   // ── Visits ────────────────────────────────────────────────────────────────
@@ -320,25 +338,29 @@ export class ClientDetailComponent implements OnInit {
     if (this.addVisitForm.invalid) return;
     this.saving.set(true);
     const v = this.addVisitForm.getRawValue();
-    this.rssi.createVisit(this.clientId, {
-      scheduled_date: v.scheduled_date,
-      visit_type: v.visit_type as any,
-      location: v.location as any,
-      notes: v.notes || undefined,
-    }).subscribe({
-      next: visit => {
-        this.visits.update(list => [visit, ...list]);
-        this.addVisitForm.reset({ visit_type: 'monthly', location: 'onsite' });
-        this.showAddVisit.set(false);
-        this.saving.set(false);
-        this.snack.open('Visite planifiée', 'OK', { duration: 3000 });
-        this.rssi.logActivity(this.clientId, { action_type: 'create_visit', resource_id: visit.id }).subscribe();
-      },
-      error: err => {
-        this.saving.set(false);
-        this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
-      },
-    });
+    this.rssi
+      .createVisit(this.clientId, {
+        scheduled_date: v.scheduled_date,
+        visit_type: v.visit_type as any,
+        location: v.location as any,
+        notes: v.notes || undefined,
+      })
+      .subscribe({
+        next: visit => {
+          this.visits.update(list => [visit, ...list]);
+          this.addVisitForm.reset({ visit_type: 'monthly', location: 'onsite' });
+          this.showAddVisit.set(false);
+          this.saving.set(false);
+          this.snack.open('Visite planifiée', 'OK', { duration: 3000 });
+          this.rssi
+            .logActivity(this.clientId, { action_type: 'create_visit', resource_id: visit.id })
+            .subscribe();
+        },
+        error: err => {
+          this.saving.set(false);
+          this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
+        },
+      });
   }
 
   startEditVisit(v: RssiVisit) {
@@ -357,23 +379,27 @@ export class ClientDetailComponent implements OnInit {
   saveVisit(visitId: number) {
     if (this.editVisitForm.invalid) return;
     const v = this.editVisitForm.getRawValue();
-    this.rssi.updateVisit(this.clientId, visitId, {
-      scheduled_date: v.scheduled_date,
-      visit_type: v.visit_type as any,
-      location: v.location as any,
-      status: v.status as any,
-      notes: v.notes || undefined,
-      actual_date: v.actual_date || undefined,
-      duration_hours: v.duration_hours ?? undefined,
-    }).subscribe({
-      next: updated => {
-        this.visits.update(list => list.map(x => x.id === visitId ? updated : x));
-        this.editingVisitId.set(null);
-        this.snack.open('Visite mise à jour', 'OK', { duration: 3000 });
-        this.rssi.logActivity(this.clientId, { action_type: 'update_visit', resource_id: visitId }).subscribe();
-      },
-      error: err => this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 }),
-    });
+    this.rssi
+      .updateVisit(this.clientId, visitId, {
+        scheduled_date: v.scheduled_date,
+        visit_type: v.visit_type as any,
+        location: v.location as any,
+        status: v.status as any,
+        notes: v.notes || undefined,
+        actual_date: v.actual_date || undefined,
+        duration_hours: v.duration_hours ?? undefined,
+      })
+      .subscribe({
+        next: updated => {
+          this.visits.update(list => list.map(x => (x.id === visitId ? updated : x)));
+          this.editingVisitId.set(null);
+          this.snack.open('Visite mise à jour', 'OK', { duration: 3000 });
+          this.rssi
+            .logActivity(this.clientId, { action_type: 'update_visit', resource_id: visitId })
+            .subscribe();
+        },
+        error: err => this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 }),
+      });
   }
 
   deleteVisit(visitId: number) {
@@ -396,27 +422,31 @@ export class ClientDetailComponent implements OnInit {
     if (this.addActionForm.invalid) return;
     this.saving.set(true);
     const v = this.addActionForm.getRawValue();
-    this.rssi.createAction(this.clientId, {
-      title: v.title,
-      description: v.description || undefined,
-      category: (v.category as any) || undefined,
-      priority: v.priority as any,
-      assigned_to: v.assigned_to || undefined,
-      due_date: v.due_date || undefined,
-    }).subscribe({
-      next: action => {
-        this.actions.update(list => [action, ...list]);
-        this.addActionForm.reset({ priority: 'medium' });
-        this.showAddAction.set(false);
-        this.saving.set(false);
-        this.snack.open('Action créée', 'OK', { duration: 3000 });
-        this.rssi.logActivity(this.clientId, { action_type: 'create_action', resource_id: action.id }).subscribe();
-      },
-      error: err => {
-        this.saving.set(false);
-        this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
-      },
-    });
+    this.rssi
+      .createAction(this.clientId, {
+        title: v.title,
+        description: v.description || undefined,
+        category: (v.category as any) || undefined,
+        priority: v.priority as any,
+        assigned_to: v.assigned_to || undefined,
+        due_date: v.due_date || undefined,
+      })
+      .subscribe({
+        next: action => {
+          this.actions.update(list => [action, ...list]);
+          this.addActionForm.reset({ priority: 'medium' });
+          this.showAddAction.set(false);
+          this.saving.set(false);
+          this.snack.open('Action créée', 'OK', { duration: 3000 });
+          this.rssi
+            .logActivity(this.clientId, { action_type: 'create_action', resource_id: action.id })
+            .subscribe();
+        },
+        error: err => {
+          this.saving.set(false);
+          this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
+        },
+      });
   }
 
   startEditAction(a: RssiAction) {
@@ -435,23 +465,27 @@ export class ClientDetailComponent implements OnInit {
   saveAction(actionId: number) {
     if (this.editActionForm.invalid) return;
     const v = this.editActionForm.getRawValue();
-    this.rssi.updateAction(this.clientId, actionId, {
-      title: v.title,
-      description: v.description || undefined,
-      category: (v.category as any) || undefined,
-      priority: v.priority as any,
-      status: v.status as any,
-      assigned_to: v.assigned_to || undefined,
-      due_date: v.due_date || undefined,
-    }).subscribe({
-      next: updated => {
-        this.actions.update(list => list.map(x => x.id === actionId ? updated : x));
-        this.editingActionId.set(null);
-        this.snack.open('Action mise à jour', 'OK', { duration: 3000 });
-        this.rssi.logActivity(this.clientId, { action_type: 'update_action', resource_id: actionId }).subscribe();
-      },
-      error: err => this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 }),
-    });
+    this.rssi
+      .updateAction(this.clientId, actionId, {
+        title: v.title,
+        description: v.description || undefined,
+        category: (v.category as any) || undefined,
+        priority: v.priority as any,
+        status: v.status as any,
+        assigned_to: v.assigned_to || undefined,
+        due_date: v.due_date || undefined,
+      })
+      .subscribe({
+        next: updated => {
+          this.actions.update(list => list.map(x => (x.id === actionId ? updated : x)));
+          this.editingActionId.set(null);
+          this.snack.open('Action mise à jour', 'OK', { duration: 3000 });
+          this.rssi
+            .logActivity(this.clientId, { action_type: 'update_action', resource_id: actionId })
+            .subscribe();
+        },
+        error: err => this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 }),
+      });
   }
 
   deleteAction(actionId: number) {
@@ -492,29 +526,37 @@ export class ClientDetailComponent implements OnInit {
       ? this.rssi.uploadDeliverableFile(this.clientId, file)
       : of(null);
 
-    upload$.pipe(
-      switchMap((uploaded: { key: string; filename: string } | null) => this.rssi.createDeliverable(this.clientId, {
-        title: v.title,
-        doc_type: v.doc_type as any,
-        delivered_at: v.delivered_at,
-        file_url: uploaded?.key ?? (v.file_url || undefined),
-        notes: v.notes || undefined,
-      }))
-    ).subscribe({
-      next: (d: RssiDeliverable) => {
-        this.deliverables.update(list => [d, ...list]);
-        this.addDeliverableForm.reset({ doc_type: 'compte_rendu' });
-        this.pendingAddFile.set(null);
-        this.showAddDeliverable.set(false);
-        this.saving.set(false);
-        this.snack.open('Livrable ajouté', 'OK', { duration: 3000 });
-        this.rssi.logActivity(this.clientId, { action_type: 'send_deliverable', resource_id: d.id }).subscribe();
-      },
-      error: (err: { error?: { detail?: string } }) => {
-        this.saving.set(false);
-        this.snack.open(err.error?.detail || 'Erreur lors de l\'upload', 'Fermer', { duration: 4000 });
-      },
-    });
+    upload$
+      .pipe(
+        switchMap((uploaded: { key: string; filename: string } | null) =>
+          this.rssi.createDeliverable(this.clientId, {
+            title: v.title,
+            doc_type: v.doc_type as any,
+            delivered_at: v.delivered_at,
+            file_url: uploaded?.key ?? (v.file_url || undefined),
+            notes: v.notes || undefined,
+          })
+        )
+      )
+      .subscribe({
+        next: (d: RssiDeliverable) => {
+          this.deliverables.update(list => [d, ...list]);
+          this.addDeliverableForm.reset({ doc_type: 'compte_rendu' });
+          this.pendingAddFile.set(null);
+          this.showAddDeliverable.set(false);
+          this.saving.set(false);
+          this.snack.open('Livrable ajouté', 'OK', { duration: 3000 });
+          this.rssi
+            .logActivity(this.clientId, { action_type: 'send_deliverable', resource_id: d.id })
+            .subscribe();
+        },
+        error: (err: { error?: { detail?: string } }) => {
+          this.saving.set(false);
+          this.snack.open(err.error?.detail || "Erreur lors de l'upload", 'Fermer', {
+            duration: 4000,
+          });
+        },
+      });
   }
 
   startEditDeliverable(d: RssiDeliverable) {
@@ -538,30 +580,35 @@ export class ClientDetailComponent implements OnInit {
       ? this.rssi.uploadDeliverableFile(this.clientId, file)
       : of(null);
 
-    upload$.pipe(
-      switchMap((uploaded: { key: string; filename: string } | null) => this.rssi.updateDeliverable(this.clientId, deliverableId, {
-        title: v.title,
-        doc_type: v.doc_type as any,
-        delivered_at: v.delivered_at,
-        file_url: uploaded?.key ?? (v.file_url || undefined),
-        notes: v.notes || undefined,
-      }))
-    ).subscribe({
-      next: (updated: RssiDeliverable) => {
-        this.deliverables.update(list => list.map(x => x.id === deliverableId ? updated : x));
-        this.editingDeliverableId.set(null);
-        this.pendingEditFile.set(null);
-        this.snack.open('Livrable mis à jour', 'OK', { duration: 3000 });
-      },
-      error: (err: { error?: { detail?: string } }) => this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 }),
-    });
+    upload$
+      .pipe(
+        switchMap((uploaded: { key: string; filename: string } | null) =>
+          this.rssi.updateDeliverable(this.clientId, deliverableId, {
+            title: v.title,
+            doc_type: v.doc_type as any,
+            delivered_at: v.delivered_at,
+            file_url: uploaded?.key ?? (v.file_url || undefined),
+            notes: v.notes || undefined,
+          })
+        )
+      )
+      .subscribe({
+        next: (updated: RssiDeliverable) => {
+          this.deliverables.update(list => list.map(x => (x.id === deliverableId ? updated : x)));
+          this.editingDeliverableId.set(null);
+          this.pendingEditFile.set(null);
+          this.snack.open('Livrable mis à jour', 'OK', { duration: 3000 });
+        },
+        error: (err: { error?: { detail?: string } }) =>
+          this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 }),
+      });
   }
 
   openDeliverableFile(deliverable: RssiDeliverable) {
     if (!deliverable.file_url) return;
     this.rssi.getDeliverableDownloadUrl(this.clientId, deliverable.id).subscribe({
       next: ({ url }) => window.open(url, '_blank', 'noopener'),
-      error: () => this.snack.open('Impossible d\'ouvrir le fichier', 'Fermer', { duration: 4000 }),
+      error: () => this.snack.open("Impossible d'ouvrir le fichier", 'Fermer', { duration: 4000 }),
     });
   }
 
@@ -581,94 +628,135 @@ export class ClientDetailComponent implements OnInit {
 
   docTypeLabel(t: string): string {
     const map: Record<string, string> = {
-      compte_rendu: 'Compte-rendu', rapport: 'Rapport',
-      recommandation: 'Recommandation', contrat: 'Contrat', autre: 'Autre',
+      compte_rendu: 'Compte-rendu',
+      rapport: 'Rapport',
+      recommandation: 'Recommandation',
+      contrat: 'Contrat',
+      autre: 'Autre',
     };
     return map[t] ?? t;
   }
 
   docTypeClass(t: string): string {
     switch (t) {
-      case 'compte_rendu': return 'text-blue-300 bg-blue-500/10 border-blue-600/30';
-      case 'rapport': return 'text-cyan-300 bg-cyan-500/10 border-cyan-600/30';
-      case 'recommandation': return 'text-purple-300 bg-purple-500/10 border-purple-600/30';
-      case 'contrat': return 'text-amber-300 bg-amber-500/10 border-amber-600/30';
-      default: return 'text-gray-400 bg-gray-700/20 border-gray-600/30';
+      case 'compte_rendu':
+        return 'text-blue-300 bg-blue-500/10 border-blue-600/30';
+      case 'rapport':
+        return 'text-cyan-300 bg-cyan-500/10 border-cyan-600/30';
+      case 'recommandation':
+        return 'text-purple-300 bg-purple-500/10 border-purple-600/30';
+      case 'contrat':
+        return 'text-amber-300 bg-amber-500/10 border-amber-600/30';
+      default:
+        return 'text-gray-400 bg-gray-700/20 border-gray-600/30';
     }
   }
 
   // ── Formatting helpers ────────────────────────────────────────────────────
 
   formulaLabel(f: string | null): string {
-    const map: Record<string, string> = { essentiel: 'Essentiel', premium: 'Premium', excellence: 'Excellence' };
+    const map: Record<string, string> = {
+      essentiel: 'Essentiel',
+      premium: 'Premium',
+      excellence: 'Excellence',
+    };
     return f ? (map[f] ?? f) : '—';
   }
 
   formulaClass(f: string | null): string {
     switch (f) {
-      case 'essentiel': return 'text-blue-300 bg-blue-500/10 border-blue-600/30';
-      case 'premium': return 'text-purple-300 bg-purple-500/10 border-purple-600/30';
-      case 'excellence': return 'text-amber-300 bg-amber-500/10 border-amber-600/30';
-      default: return 'text-gray-400 bg-gray-700/20 border-gray-600/30';
+      case 'essentiel':
+        return 'text-blue-300 bg-blue-500/10 border-blue-600/30';
+      case 'premium':
+        return 'text-purple-300 bg-purple-500/10 border-purple-600/30';
+      case 'excellence':
+        return 'text-amber-300 bg-amber-500/10 border-amber-600/30';
+      default:
+        return 'text-gray-400 bg-gray-700/20 border-gray-600/30';
     }
   }
 
   statusClass(status: string): string {
     switch (status) {
-      case 'active': return 'text-green-300';
-      case 'inactive': return 'text-yellow-300';
-      case 'churned': return 'text-red-300';
-      default: return 'text-gray-400';
+      case 'active':
+        return 'text-green-300';
+      case 'inactive':
+        return 'text-yellow-300';
+      case 'churned':
+        return 'text-red-300';
+      default:
+        return 'text-gray-400';
     }
   }
 
   priorityClass(p: string): string {
     switch (p) {
-      case 'critical': return 'text-red-400 bg-red-500/10 border-red-600/30';
-      case 'high': return 'text-orange-400 bg-orange-500/10 border-orange-600/30';
-      case 'medium': return 'text-yellow-400 bg-yellow-500/10 border-yellow-600/30';
-      default: return 'text-gray-400 bg-gray-700/20 border-gray-600/30';
+      case 'critical':
+        return 'text-red-400 bg-red-500/10 border-red-600/30';
+      case 'high':
+        return 'text-orange-400 bg-orange-500/10 border-orange-600/30';
+      case 'medium':
+        return 'text-yellow-400 bg-yellow-500/10 border-yellow-600/30';
+      default:
+        return 'text-gray-400 bg-gray-700/20 border-gray-600/30';
     }
   }
 
   actionStatusClass(s: string): string {
     switch (s) {
-      case 'done': return 'text-green-400 bg-green-500/10 border-green-600/30';
-      case 'in_progress': return 'text-blue-400 bg-blue-500/10 border-blue-600/30';
-      case 'cancelled': return 'text-gray-500 bg-gray-700/20 border-gray-600/30';
-      case 'postponed': return 'text-yellow-400 bg-yellow-500/10 border-yellow-600/30';
-      default: return 'text-white bg-gray-700/30 border-gray-600/40';
+      case 'done':
+        return 'text-green-400 bg-green-500/10 border-green-600/30';
+      case 'in_progress':
+        return 'text-blue-400 bg-blue-500/10 border-blue-600/30';
+      case 'cancelled':
+        return 'text-gray-500 bg-gray-700/20 border-gray-600/30';
+      case 'postponed':
+        return 'text-yellow-400 bg-yellow-500/10 border-yellow-600/30';
+      default:
+        return 'text-white bg-gray-700/30 border-gray-600/40';
     }
   }
 
   visitStatusClass(s: string): string {
     switch (s) {
-      case 'completed': return 'text-green-400';
-      case 'cancelled': return 'text-red-400';
-      case 'postponed': return 'text-yellow-400';
-      default: return 'text-blue-300';
+      case 'completed':
+        return 'text-green-400';
+      case 'cancelled':
+        return 'text-red-400';
+      case 'postponed':
+        return 'text-yellow-400';
+      default:
+        return 'text-blue-300';
     }
   }
 
   actionStatusLabel(s: string): string {
     const map: Record<string, string> = {
-      open: 'Ouverte', in_progress: 'En cours', done: 'Terminée',
-      cancelled: 'Annulée', postponed: 'Reportée',
+      open: 'Ouverte',
+      in_progress: 'En cours',
+      done: 'Terminée',
+      cancelled: 'Annulée',
+      postponed: 'Reportée',
     };
     return map[s] ?? s;
   }
 
   visitStatusLabel(s: string): string {
     const map: Record<string, string> = {
-      planned: 'Planifiée', completed: 'Complétée',
-      cancelled: 'Annulée', postponed: 'Reportée',
+      planned: 'Planifiée',
+      completed: 'Complétée',
+      cancelled: 'Annulée',
+      postponed: 'Reportée',
     };
     return map[s] ?? s;
   }
 
   visitTypeLabel(t: string): string {
     const map: Record<string, string> = {
-      monthly: 'Mensuelle', quarterly: 'Trimestrielle', annual: 'Annuelle', urgent: 'Urgente',
+      monthly: 'Mensuelle',
+      quarterly: 'Trimestrielle',
+      annual: 'Annuelle',
+      urgent: 'Urgente',
     };
     return map[t] ?? t;
   }
@@ -684,30 +772,41 @@ export class ClientDetailComponent implements OnInit {
       view_scans: 'Consultation des scans',
       view_findings: 'Consultation des findings',
       generate_report: 'Génération de rapport',
-      send_deliverable: 'Envoi d\'un livrable',
-      create_action: 'Création d\'une action',
-      update_action: 'Mise à jour d\'une action',
-      create_visit: 'Planification d\'une visite',
-      update_visit: 'Mise à jour d\'une visite',
+      send_deliverable: "Envoi d'un livrable",
+      create_action: "Création d'une action",
+      update_action: "Mise à jour d'une action",
+      create_visit: "Planification d'une visite",
+      update_visit: "Mise à jour d'une visite",
     };
     return map[type] ?? type;
   }
 
   formatDate(d: string | null): string {
     if (!d) return '—';
-    return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+    return new Date(d).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
   }
 
   formatDateTime(d: string): string {
     return new Date(d).toLocaleString('fr-FR', {
-      day: '2-digit', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   }
 
   formatAmount(amount: number | null): string {
     if (amount == null) return '—';
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount);
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'EUR',
+      maximumFractionDigits: 0,
+    }).format(amount);
   }
 
   readonly today = new Date().toISOString().slice(0, 10);
@@ -718,8 +817,8 @@ export class ClientDetailComponent implements OnInit {
 
   get overdueActionsCount(): number {
     const today = new Date().toISOString().slice(0, 10);
-    return this.actions().filter(a =>
-      (a.status === 'open' || a.status === 'in_progress') && a.due_date && a.due_date < today
+    return this.actions().filter(
+      a => (a.status === 'open' || a.status === 'in_progress') && a.due_date && a.due_date < today
     ).length;
   }
 
@@ -730,10 +829,18 @@ export class ClientDetailComponent implements OnInit {
     if (!cd) return;
     this.confirmDelete.set(null);
     switch (cd.type) {
-      case 'visit':       this._doDeleteVisit(cd.id); break;
-      case 'action':      this._doDeleteAction(cd.id); break;
-      case 'deliverable': this._doDeleteDeliverable(cd.id); break;
-      case 'site':        this._doUnlinkSite(cd.id); break;
+      case 'visit':
+        this._doDeleteVisit(cd.id);
+        break;
+      case 'action':
+        this._doDeleteAction(cd.id);
+        break;
+      case 'deliverable':
+        this._doDeleteDeliverable(cd.id);
+        break;
+      case 'site':
+        this._doUnlinkSite(cd.id);
+        break;
     }
   }
 
@@ -741,10 +848,14 @@ export class ClientDetailComponent implements OnInit {
     const cd = this.confirmDelete();
     if (!cd) return '';
     switch (cd.type) {
-      case 'visit':       return 'Supprimer cette visite ?';
-      case 'action':      return 'Supprimer cette action ?';
-      case 'deliverable': return 'Supprimer ce livrable ?';
-      case 'site':        return 'Délier ce site du client ?';
+      case 'visit':
+        return 'Supprimer cette visite ?';
+      case 'action':
+        return 'Supprimer cette action ?';
+      case 'deliverable':
+        return 'Supprimer ce livrable ?';
+      case 'site':
+        return 'Délier ce site du client ?';
     }
   }
 
@@ -783,7 +894,10 @@ export class ClientDetailComponent implements OnInit {
         const removed = this.sites().find(s => s.id === siteId);
         this.sites.update(list => list.filter(s => s.id !== siteId));
         if (removed) {
-          this.unlinkedSites.update(list => [...list, { id: removed.id, url: removed.url, name: removed.name }]);
+          this.unlinkedSites.update(list => [
+            ...list,
+            { id: removed.id, url: removed.url, name: removed.name },
+          ]);
         }
         this.snack.open('Site délié', 'OK', { duration: 3000 });
       },
@@ -793,10 +907,14 @@ export class ClientDetailComponent implements OnInit {
 
   scanStatusClass(s: 'OK' | 'WARNING' | 'CRITICAL' | null): string {
     switch (s) {
-      case 'OK': return 'text-green-400 bg-green-500/10 border-green-600/30';
-      case 'WARNING': return 'text-yellow-400 bg-yellow-500/10 border-yellow-600/30';
-      case 'CRITICAL': return 'text-red-400 bg-red-500/10 border-red-600/30';
-      default: return 'text-gray-500 bg-gray-700/20 border-gray-600/30';
+      case 'OK':
+        return 'text-green-400 bg-green-500/10 border-green-600/30';
+      case 'WARNING':
+        return 'text-yellow-400 bg-yellow-500/10 border-yellow-600/30';
+      case 'CRITICAL':
+        return 'text-red-400 bg-red-500/10 border-red-600/30';
+      default:
+        return 'text-gray-500 bg-gray-700/20 border-gray-600/30';
     }
   }
 

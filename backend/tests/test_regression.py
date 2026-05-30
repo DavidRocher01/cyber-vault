@@ -14,9 +14,10 @@ Catégories :
   - [API]     Contrats généraux (statuts HTTP, formats)
 """
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 from httpx import ASGITransport, AsyncClient
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.main import app
 
@@ -31,14 +32,16 @@ async def _headers(client: AsyncClient, email: str, password: str = "StrongPass1
 
 # ── [AUTH] Flux d'authentification ───────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_register_returns_201_with_user_data():
     """Régression : l'inscription doit retourner 201 + données utilisateur (id, email, is_active).
     Note : register ne retourne PAS de token — il faut appeler /login ensuite."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        r = await c.post(f"{BASE}/auth/register", json={
-            "email": "reg_regr@test.com", "password": "StrongPass123!"
-        })
+        r = await c.post(
+            f"{BASE}/auth/register",
+            json={"email": "reg_regr@test.com", "password": "StrongPass123!"},
+        )
     assert r.status_code == 201
     body = r.json()
     assert "id" in body
@@ -51,8 +54,14 @@ async def test_register_returns_201_with_user_data():
 async def test_login_returns_access_token():
     """Régression : le login standard doit retourner un access_token valide."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        await c.post(f"{BASE}/auth/register", json={"email": "login_regr@test.com", "password": "StrongPass123!"})
-        r = await c.post(f"{BASE}/auth/login", json={"email": "login_regr@test.com", "password": "StrongPass123!"})
+        await c.post(
+            f"{BASE}/auth/register",
+            json={"email": "login_regr@test.com", "password": "StrongPass123!"},
+        )
+        r = await c.post(
+            f"{BASE}/auth/login",
+            json={"email": "login_regr@test.com", "password": "StrongPass123!"},
+        )
     assert r.status_code == 200
     assert "access_token" in r.json()
 
@@ -61,8 +70,14 @@ async def test_login_returns_access_token():
 async def test_login_wrong_password_returns_401():
     """Régression : mauvais mot de passe → 401 (pas 200, pas 500)."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        await c.post(f"{BASE}/auth/register", json={"email": "badpwd@test.com", "password": "StrongPass123!"})
-        r = await c.post(f"{BASE}/auth/login", json={"email": "badpwd@test.com", "password": "WrongPass!"})
+        await c.post(
+            f"{BASE}/auth/register",
+            json={"email": "badpwd@test.com", "password": "StrongPass123!"},
+        )
+        r = await c.post(
+            f"{BASE}/auth/login",
+            json={"email": "badpwd@test.com", "password": "WrongPass!"},
+        )
     assert r.status_code == 401
 
 
@@ -71,15 +86,17 @@ async def test_protected_endpoint_without_token_returns_401():
     """Régression : tous les endpoints protégés renvoient 401 sans token (non authentifié)."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         endpoints = [
-            ("GET",  f"{BASE}/users/me"),
-            ("GET",  f"{BASE}/nis2/me"),
-            ("PUT",  f"{BASE}/nis2/me"),
-            ("GET",  f"{BASE}/url-scans"),
-            ("GET",  f"{BASE}/code-scans"),
+            ("GET", f"{BASE}/users/me"),
+            ("GET", f"{BASE}/nis2/me"),
+            ("PUT", f"{BASE}/nis2/me"),
+            ("GET", f"{BASE}/url-scans"),
+            ("GET", f"{BASE}/code-scans"),
         ]
         for method, url in endpoints:
             r = await c.request(method, url)
-            assert r.status_code == 401, f"{method} {url} devrait retourner 401, got {r.status_code}"
+            assert (
+                r.status_code == 401
+            ), f"{method} {url} devrait retourner 401, got {r.status_code}"
 
 
 @pytest.mark.asyncio
@@ -94,6 +111,7 @@ async def test_token_gives_access_to_user_me():
 
 # ── [NIS2] Module conformité ──────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_nis2_score_formula_compliant_2pts_partial_1pt():
     """Régression : compliant=2pts, partial=1pt, dénominateur=34 items total.
@@ -102,9 +120,11 @@ async def test_nis2_score_formula_compliant_2pts_partial_1pt():
     → score = 3 / (34*2) * 100 = round(4.41) = 4%"""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "nis2_formula@test.com")
-        r = await c.put(f"{BASE}/nis2/me", json={
-            "items": {"rssi": "compliant", "mgmt_training": "partial"}
-        }, headers=h)
+        r = await c.put(
+            f"{BASE}/nis2/me",
+            json={"items": {"rssi": "compliant", "mgmt_training": "partial"}},
+            headers=h,
+        )
     assert r.status_code == 200
     assert r.json()["score"] == 4
 
@@ -136,9 +156,11 @@ async def test_nis2_user_isolation_strict():
         # User A : tout conforme
         r_get = await c.get(f"{BASE}/nis2/me", headers=h_a)
         all_ids = [i["id"] for cat in r_get.json()["categories"] for i in cat["items"]]
-        await c.put(f"{BASE}/nis2/me",
-                    json={"items": {i: "compliant" for i in all_ids}},
-                    headers=h_a)
+        await c.put(
+            f"{BASE}/nis2/me",
+            json={"items": {i: "compliant" for i in all_ids}},
+            headers=h_a,
+        )
 
         # User B : rien sauvegardé → score doit être 0, pas 100
         r_b = await c.get(f"{BASE}/nis2/me", headers=h_b)
@@ -160,16 +182,29 @@ async def test_nis2_categories_count_never_changes():
 
 # ── [SCAN] Scans de sécurité ──────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_scan_trigger_returns_scan_id_in_body():
     """Régression : le déclenchement d'un scan doit retourner scan_id dans le body."""
     with patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "scan_regr@test.com")
-            with patch("app.api.v1.endpoints.sites.get_effective_max_sites", new=AsyncMock(return_value=5)):
-                site_r = await c.post(f"{BASE}/sites", json={"url": "https://example.com", "name": "Test"}, headers=h)
+            with patch(
+                "app.api.v1.endpoints.sites.get_effective_max_sites",
+                new=AsyncMock(return_value=5),
+            ):
+                site_r = await c.post(
+                    f"{BASE}/sites",
+                    json={"url": "https://example.com", "name": "Test"},
+                    headers=h,
+                )
             site_id = site_r.json()["id"]
-            with patch("app.api.v1.endpoints.scans.get_active_plan", new=AsyncMock(return_value=MagicMock(max_sites=5, scan_interval_days=30, price_eur=900))):
+            with patch(
+                "app.api.v1.endpoints.scans.get_active_plan",
+                new=AsyncMock(
+                    return_value=MagicMock(max_sites=5, scan_interval_days=30, price_eur=900)
+                ),
+            ):
                 r = await c.post(f"{BASE}/scans/trigger/{site_id}", headers=h)
     assert r.status_code == 202
     assert "scan_id" in r.json()
@@ -185,6 +220,7 @@ async def test_scan_unknown_site_returns_404_not_500():
 
 
 # ── [URLSCAN] Scanner URL ────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_url_scan_response_has_required_fields():
@@ -216,13 +252,16 @@ async def test_url_scan_pdf_requires_done_status():
     with patch("app.api.v1.endpoints.url_scans.run_url_scan", new_callable=AsyncMock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "urlpdf_regr@test.com")
-            r_scan = await c.post(f"{BASE}/url-scans", json={"url": "https://example.com"}, headers=h)
+            r_scan = await c.post(
+                f"{BASE}/url-scans", json={"url": "https://example.com"}, headers=h
+            )
             scan_id = r_scan.json()["id"]
             r_pdf = await c.get(f"{BASE}/url-scans/{scan_id}/pdf", headers=h)
     assert r_pdf.status_code == 404
 
 
 # ── [USER] Profil utilisateur ────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_user_me_response_has_required_fields():
@@ -244,13 +283,16 @@ async def test_user_delete_removes_access():
     password = "StrongPass123!"
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "del_regr@test.com", password)
-        r_del = await c.request("DELETE", f"{BASE}/users/me", headers=h, json={"password": password})
+        r_del = await c.request(
+            "DELETE", f"{BASE}/users/me", headers=h, json={"password": password}
+        )
         assert r_del.status_code == 204
         r = await c.get(f"{BASE}/users/me", headers=h)
     assert r.status_code in (401, 403, 404)
 
 
 # ── [API] Contrats généraux ──────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_health_endpoint_returns_200():

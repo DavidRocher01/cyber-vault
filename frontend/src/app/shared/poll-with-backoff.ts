@@ -14,7 +14,7 @@ export function pollWithBackoff<T>(
   fetcher: () => Observable<T>,
   isDone: (value: T) => boolean,
   initialMs = 3_000,
-  maxMs = 30_000,
+  maxMs = 30_000
 ): Observable<T> {
   // Emit tick index: 0, 1, 2, ...
   const ticks$ = new Observable<number>(observer => {
@@ -35,6 +35,6 @@ export function pollWithBackoff<T>(
 
   return ticks$.pipe(
     switchMap(() => fetcher()),
-    takeWhile(value => !isDone(value), true),
+    takeWhile(value => !isDone(value), true)
   );
 }

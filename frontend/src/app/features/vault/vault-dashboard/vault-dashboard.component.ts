@@ -25,69 +25,107 @@ export interface CategoryMeta {
 }
 
 @Component({
-    standalone: true,
-    selector: 'app-vault-dashboard',
-    imports: [
-        CommonModule, RouterLink, ReactiveFormsModule, FormsModule,
-        MatIconModule, MatTooltipModule, MatProgressSpinnerModule,
-    ],
-    providers: [VaultStore],
-    templateUrl: './vault-dashboard.component.html',
-    styles: [`
-    .vault-bg { background: #080d1a; min-height: 100vh; }
-    .vault-card {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.07);
-    }
-    .vault-card:hover { border-color: rgba(6,182,212,0.25); }
-    .vault-input {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 0.75rem;
-      color: white;
-      width: 100%;
-      padding: 0.75rem 1rem;
-      font-size: 0.875rem;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .vault-input:focus { border-color: #06b6d4; }
-    .vault-input-search { padding-left: 2.75rem; }
-    .vault-input::placeholder { color: #4b5563; }
-    .vault-btn-primary {
-      background: linear-gradient(135deg, #06b6d4, #0284c7);
-      color: white; border-radius: 0.75rem;
-      padding: 0.75rem 1.5rem; font-weight: 700; font-size: 0.875rem;
-      transition: all 0.2s;
-    }
-    .vault-btn-primary:hover:not(:disabled) {
-      background: linear-gradient(135deg, #22d3ee, #0ea5e9);
-      box-shadow: 0 0 20px rgba(6,182,212,0.3);
-    }
-    .vault-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-    /* Fix autofill jaune Chrome */
-    .vault-input:-webkit-autofill,
-    .vault-input:-webkit-autofill:hover,
-    .vault-input:-webkit-autofill:focus {
-      -webkit-box-shadow: 0 0 0px 1000px #0f1729 inset !important;
-      -webkit-text-fill-color: white !important;
-      caret-color: white;
-    }
-    /* Modal */
-    .vault-modal {
-      background: #0f1729;
-      border: 1px solid rgba(255,255,255,0.1);
-      box-shadow: 0 25px 60px rgba(0,0,0,0.6);
-    }
-    /* Strength bar */
-    .strength-bar { height: 3px; border-radius: 2px; transition: width 0.3s ease, background 0.3s ease; }
-    /* Modal animation */
-    @keyframes modal-in {
-      from { opacity: 0; transform: scale(0.96) translateY(-8px); }
-      to   { opacity: 1; transform: scale(1)    translateY(0);     }
-    }
-    .modal-animate { animation: modal-in 0.18s ease-out forwards; }
-  `]
+  standalone: true,
+  selector: 'app-vault-dashboard',
+  imports: [
+    CommonModule,
+    RouterLink,
+    ReactiveFormsModule,
+    FormsModule,
+    MatIconModule,
+    MatTooltipModule,
+    MatProgressSpinnerModule,
+  ],
+  providers: [VaultStore],
+  templateUrl: './vault-dashboard.component.html',
+  styles: [
+    `
+      .vault-bg {
+        background: #080d1a;
+        min-height: 100vh;
+      }
+      .vault-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+      }
+      .vault-card:hover {
+        border-color: rgba(6, 182, 212, 0.25);
+      }
+      .vault-input {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.75rem;
+        color: white;
+        width: 100%;
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      .vault-input:focus {
+        border-color: #06b6d4;
+      }
+      .vault-input-search {
+        padding-left: 2.75rem;
+      }
+      .vault-input::placeholder {
+        color: #4b5563;
+      }
+      .vault-btn-primary {
+        background: linear-gradient(135deg, #06b6d4, #0284c7);
+        color: white;
+        border-radius: 0.75rem;
+        padding: 0.75rem 1.5rem;
+        font-weight: 700;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+      }
+      .vault-btn-primary:hover:not(:disabled) {
+        background: linear-gradient(135deg, #22d3ee, #0ea5e9);
+        box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+      }
+      .vault-btn-primary:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      /* Fix autofill jaune Chrome */
+      .vault-input:-webkit-autofill,
+      .vault-input:-webkit-autofill:hover,
+      .vault-input:-webkit-autofill:focus {
+        -webkit-box-shadow: 0 0 0px 1000px #0f1729 inset !important;
+        -webkit-text-fill-color: white !important;
+        caret-color: white;
+      }
+      /* Modal */
+      .vault-modal {
+        background: #0f1729;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+      }
+      /* Strength bar */
+      .strength-bar {
+        height: 3px;
+        border-radius: 2px;
+        transition:
+          width 0.3s ease,
+          background 0.3s ease;
+      }
+      /* Modal animation */
+      @keyframes modal-in {
+        from {
+          opacity: 0;
+          transform: scale(0.96) translateY(-8px);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+      .modal-animate {
+        animation: modal-in 0.18s ease-out forwards;
+      }
+    `,
+  ],
 })
 export class VaultDashboardComponent implements OnInit {
   private store = inject(VaultStore);
@@ -100,19 +138,23 @@ export class VaultDashboardComponent implements OnInit {
   private fb = inject(FormBuilder);
 
   readonly loading = toSignal(this.store.loading$, { initialValue: false });
-  readonly error   = toSignal(this.store.error$,   { initialValue: null as string | null });
+  readonly error = toSignal(this.store.error$, { initialValue: null as string | null });
 
   readonly categories: CategoryMeta[] = [
-    { id: 'all',   label: 'Tout',        icon: 'grid_view' },
+    { id: 'all', label: 'Tout', icon: 'grid_view' },
     { id: 'login', label: 'Identifiants', icon: 'person' },
-    { id: 'card',  label: 'Cartes',       icon: 'credit_card' },
-    { id: 'note',  label: 'Notes',        icon: 'sticky_note_2' },
-    { id: 'wifi',  label: 'Wi-Fi',        icon: 'wifi' },
-    { id: 'other', label: 'Autre',        icon: 'more_horiz' },
+    { id: 'card', label: 'Cartes', icon: 'credit_card' },
+    { id: 'note', label: 'Notes', icon: 'sticky_note_2' },
+    { id: 'wifi', label: 'Wi-Fi', icon: 'wifi' },
+    { id: 'other', label: 'Autre', icon: 'more_horiz' },
   ];
 
   readonly categoryIcons: Record<string, string> = {
-    login: 'person', card: 'credit_card', note: 'sticky_note_2', wifi: 'wifi', other: 'more_horiz',
+    login: 'person',
+    card: 'credit_card',
+    note: 'sticky_note_2',
+    wifi: 'wifi',
+    other: 'more_horiz',
   };
 
   searchQuery = signal('');
@@ -125,7 +167,10 @@ export class VaultDashboardComponent implements OnInit {
     const q = this.searchQuery().toLowerCase();
     return this.allItems().filter(item => {
       const matchCat = cat === 'all' || item.category === cat;
-      const matchQ = !q || item.title.toLowerCase().includes(q) || (item.username ?? '').toLowerCase().includes(q);
+      const matchQ =
+        !q ||
+        item.title.toLowerCase().includes(q) ||
+        (item.username ?? '').toLowerCase().includes(q);
       return matchCat && matchQ;
     });
   });
@@ -140,15 +185,15 @@ export class VaultDashboardComponent implements OnInit {
     const pwd = this.form.controls.password_encrypted.value;
     if (!pwd) return { width: '0%', color: 'transparent', label: '' };
     let score = 0;
-    if (pwd.length >= 8)  score++;
+    if (pwd.length >= 8) score++;
     if (pwd.length >= 16) score++;
     if (/[A-Z]/.test(pwd)) score++;
     if (/[0-9]/.test(pwd)) score++;
     if (/[^A-Za-z0-9]/.test(pwd)) score++;
-    if (score <= 1) return { width: '20%',  color: '#ef4444', label: 'Faible' };
-    if (score <= 2) return { width: '40%',  color: '#f97316', label: 'Moyen' };
-    if (score <= 3) return { width: '65%',  color: '#eab308', label: 'Bon' };
-    if (score === 4) return { width: '85%',  color: '#22c55e', label: 'Fort' };
+    if (score <= 1) return { width: '20%', color: '#ef4444', label: 'Faible' };
+    if (score <= 2) return { width: '40%', color: '#f97316', label: 'Moyen' };
+    if (score <= 3) return { width: '65%', color: '#eab308', label: 'Bon' };
+    if (score === 4) return { width: '85%', color: '#22c55e', label: 'Fort' };
     return { width: '100%', color: '#06b6d4', label: 'Excellent' };
   }
 
@@ -204,7 +249,9 @@ export class VaultDashboardComponent implements OnInit {
     raw = raw.slice(0, 4);
     let formatted = raw;
     if (raw.length >= 2) {
-      const mm = Math.min(parseInt(raw.slice(0, 2), 10), 12).toString().padStart(2, '0');
+      const mm = Math.min(parseInt(raw.slice(0, 2), 10), 12)
+        .toString()
+        .padStart(2, '0');
       formatted = raw.length > 2 ? `${mm}/${raw.slice(2)}` : mm;
     }
 
@@ -223,9 +270,9 @@ export class VaultDashboardComponent implements OnInit {
 
   get cardErrors(): { number?: string; cvv?: string; expiry?: string } {
     const errors: { number?: string; cvv?: string; expiry?: string } = {};
-    const num   = (this.form.controls.cardNumber.value ?? '').replace(/\s/g, '');
-    const cvv   = this.form.controls.cardCvv.value ?? '';
-    const exp   = this.form.controls.cardExpiry.value ?? '';
+    const num = (this.form.controls.cardNumber.value ?? '').replace(/\s/g, '');
+    const cvv = this.form.controls.cardCvv.value ?? '';
+    const exp = this.form.controls.cardExpiry.value ?? '';
 
     // Numéro : 13–19 chiffres + Luhn
     if (num.length > 0) {
@@ -261,7 +308,10 @@ export class VaultDashboardComponent implements OnInit {
     let alt = false;
     for (let i = num.length - 1; i >= 0; i--) {
       let n = parseInt(num[i], 10);
-      if (alt) { n *= 2; if (n > 9) n -= 9; }
+      if (alt) {
+        n *= 2;
+        if (n > 9) n -= 9;
+      }
       sum += n;
       alt = !alt;
     }
@@ -293,14 +343,21 @@ export class VaultDashboardComponent implements OnInit {
   }
 
   get formTitle() {
-    return this.editingItem() ? 'Modifier l\'entrée' : 'Nouvelle entrée';
+    return this.editingItem() ? "Modifier l'entrée" : 'Nouvelle entrée';
   }
 
   openCreate() {
     this.editingItem.set(null);
     this.form.reset({
-      category: 'login', title: '', username: '', password_encrypted: '',
-      url: '', notes: '', cardNumber: '', cardCvv: '', cardExpiry: '',
+      category: 'login',
+      title: '',
+      username: '',
+      password_encrypted: '',
+      url: '',
+      notes: '',
+      cardNumber: '',
+      cardCvv: '',
+      cardExpiry: '',
     });
     this.showPasswordInForm.set(false);
     this.showForm.set(true);
@@ -345,7 +402,11 @@ export class VaultDashboardComponent implements OnInit {
     let secret = raw.password_encrypted;
     if (cat === 'card') {
       if (raw.cardNumber || raw.cardCvv || raw.cardExpiry) {
-        secret = JSON.stringify({ number: raw.cardNumber, cvv: raw.cardCvv, expiry: raw.cardExpiry });
+        secret = JSON.stringify({
+          number: raw.cardNumber,
+          cvv: raw.cardCvv,
+          expiry: raw.cardExpiry,
+        });
       }
     } else if (cat === 'note') {
       secret = '';
@@ -358,7 +419,13 @@ export class VaultDashboardComponent implements OnInit {
       if ((cat === 'login' || cat === 'wifi' || cat === 'other') && !secret) return;
     }
 
-    const base = { title: raw.title, username: raw.username, url: raw.url, notes: raw.notes, category: cat };
+    const base = {
+      title: raw.title,
+      username: raw.username,
+      url: raw.url,
+      notes: raw.notes,
+      category: cat,
+    };
 
     if (editing) {
       const payload: any = { id: editing.id, ...base };
@@ -394,33 +461,50 @@ export class VaultDashboardComponent implements OnInit {
   }
 
   async copyPassword(item: VaultItem) {
-    if (!item.password_encrypted) { this.toast.warning('Aucun secret à copier'); return; }
+    if (!item.password_encrypted) {
+      this.toast.warning('Aucun secret à copier');
+      return;
+    }
     try {
       const plain = await this.cryptoService.decrypt(item.password_encrypted);
       let textToCopy = plain;
       if (item.category === 'card') {
-        try { textToCopy = (JSON.parse(plain) as any).number ?? plain; } catch { /* use plain */ }
+        try {
+          textToCopy = (JSON.parse(plain) as any).number ?? plain;
+        } catch {
+          /* use plain */
+        }
       }
       this.clipboardService.copy(textToCopy);
       this.copiedId = item.id;
-      const msg = item.category === 'card'
-        ? 'Numéro de carte copié — presse-papiers effacé dans 30s'
-        : 'Mot de passe copié — presse-papiers effacé dans 30s';
+      const msg =
+        item.category === 'card'
+          ? 'Numéro de carte copié — presse-papiers effacé dans 30s'
+          : 'Mot de passe copié — presse-papiers effacé dans 30s';
       this.toast.success(msg);
-      setTimeout(() => { if (this.copiedId === item.id) this.copiedId = null; }, 2000);
+      setTimeout(() => {
+        if (this.copiedId === item.id) this.copiedId = null;
+      }, 2000);
     } catch {
       this.toast.error('Erreur de déchiffrement');
     }
   }
 
-  parseCardData(plain: string | null | undefined): { number: string; cvv: string; expiry: string } | null {
+  parseCardData(
+    plain: string | null | undefined
+  ): { number: string; cvv: string; expiry: string } | null {
     if (!plain) return null;
     try {
       const obj = JSON.parse(plain) as { number?: string; cvv?: string; expiry?: string };
-      if (obj.number !== undefined || obj.cvv !== undefined || obj.expiry !== undefined) return {
-        number: obj.number ?? '', cvv: obj.cvv ?? '', expiry: obj.expiry ?? '',
-      };
-    } catch { /* not JSON */ }
+      if (obj.number !== undefined || obj.cvv !== undefined || obj.expiry !== undefined)
+        return {
+          number: obj.number ?? '',
+          cvv: obj.cvv ?? '',
+          expiry: obj.expiry ?? '',
+        };
+    } catch {
+      /* not JSON */
+    }
     return null;
   }
 
@@ -441,34 +525,43 @@ export class VaultDashboardComponent implements OnInit {
 
   async exportVault() {
     combineLatest([this.store.items$, this.store.loading$])
-      .pipe(filter(([, loading]) => !loading), take(1), map(([items]) => items))
+      .pipe(
+        filter(([, loading]) => !loading),
+        take(1),
+        map(([items]) => items)
+      )
       .subscribe(async items => {
-      const exportedAt = new Date().toISOString();
-      const data = await Promise.all(items.map(async item => {
-        let password: string | null = null;
-        if (item.password_encrypted) {
-          try { password = await this.cryptoService.decrypt(item.password_encrypted); }
-          catch { password = null; }
-        }
-        return {
-          title: item.title,
-          username: item.username ?? null,
-          password: password,
-          url: item.url ?? null,
-          notes: item.notes ?? null,
-          category: item.category,
-          exported_at: exportedAt,
-        };
-      }));
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `cyber-vault-export-${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      this.toast.success('Export téléchargé');
-    });
+        const exportedAt = new Date().toISOString();
+        const data = await Promise.all(
+          items.map(async item => {
+            let password: string | null = null;
+            if (item.password_encrypted) {
+              try {
+                password = await this.cryptoService.decrypt(item.password_encrypted);
+              } catch {
+                password = null;
+              }
+            }
+            return {
+              title: item.title,
+              username: item.username ?? null,
+              password: password,
+              url: item.url ?? null,
+              notes: item.notes ?? null,
+              category: item.category,
+              exported_at: exportedAt,
+            };
+          })
+        );
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cyber-vault-export-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.toast.success('Export téléchargé');
+      });
   }
 
   logout() {

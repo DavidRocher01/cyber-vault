@@ -68,7 +68,7 @@ describe('CyberscanService', () => {
     expect(http.post).toHaveBeenCalledWith(`${API}/subscriptions/checkout/3`, {});
   });
 
-  it('createCheckout() retourne l\'url de checkout', () => {
+  it("createCheckout() retourne l'url de checkout", () => {
     http.post.mockReturnValue(of({ checkout_url: 'https://stripe.com/x' }));
     let result: any;
     service.createCheckout(5).subscribe(r => (result = r));
@@ -117,7 +117,7 @@ describe('CyberscanService', () => {
     expect(http.post).toHaveBeenCalledWith(`${API}/scans/trigger/5`, {});
   });
 
-  it('getSiteScans() construit l\'URL avec la pagination', () => {
+  it("getSiteScans() construit l'URL avec la pagination", () => {
     http.get.mockReturnValue(of({ items: [], total: 0, page: 2, per_page: 5, pages: 1 }));
     service.getSiteScans(10, 2, 5).subscribe();
     expect(http.get).toHaveBeenCalledWith(`${API}/scans/site/10?page=2&per_page=5`);
@@ -134,7 +134,7 @@ describe('CyberscanService', () => {
     expect(http.get).toHaveBeenCalledWith(`${API}/scans/42`);
   });
 
-  it('downloadPdf() retourne l\'URL sans appel HTTP', () => {
+  it("downloadPdf() retourne l'URL sans appel HTTP", () => {
     expect(service.downloadPdf(3)).toBe(`${API}/scans/3/pdf`);
     expect(http.get).not.toHaveBeenCalled();
   });
@@ -148,16 +148,15 @@ describe('CyberscanService', () => {
     );
   });
 
-
   // ── URL Scans ──────────────────────────────────────────────────────────────
 
-  it('triggerUrlScan() envoie POST /api/v1/url-scans avec l\'url', () => {
+  it("triggerUrlScan() envoie POST /api/v1/url-scans avec l'url", () => {
     http.post.mockReturnValue(of({}));
     service.triggerUrlScan('https://evil.com').subscribe();
     expect(http.post).toHaveBeenCalledWith(`${API}/url-scans`, { url: 'https://evil.com' });
   });
 
-  it('getUrlScans() construit l\'URL avec la pagination', () => {
+  it("getUrlScans() construit l'URL avec la pagination", () => {
     http.get.mockReturnValue(of({ items: [], total: 0, page: 3, per_page: 15, pages: 1 }));
     service.getUrlScans(3, 15).subscribe();
     expect(http.get).toHaveBeenCalledWith(`${API}/url-scans?page=3&per_page=15`);
@@ -198,7 +197,7 @@ describe('CyberscanService', () => {
     expect(body.github_token).toBeNull();
   });
 
-  it('getCodeScans() construit l\'URL avec la pagination', () => {
+  it("getCodeScans() construit l'URL avec la pagination", () => {
     http.get.mockReturnValue(of({ items: [], total: 0, page: 2, per_page: 10, pages: 1 }));
     service.getCodeScans(2, 10).subscribe();
     expect(http.get).toHaveBeenCalledWith(`${API}/code-scans?page=2&per_page=10`);
@@ -334,7 +333,7 @@ describe('CyberscanService', () => {
 
   // ── Cache — Plans ──────────────────────────────────────────────────────────
 
-  it('getPlans() ne fait qu\'un seul appel HTTP pour deux souscriptions', () => {
+  it("getPlans() ne fait qu'un seul appel HTTP pour deux souscriptions", () => {
     http.get.mockReturnValue(of([]));
     service.getPlans().subscribe();
     service.getPlans().subscribe();
@@ -353,7 +352,7 @@ describe('CyberscanService', () => {
 
   // ── Cache — Subscription ──────────────────────────────────────────────────
 
-  it('getMySubscription() ne fait qu\'un seul appel HTTP pour deux souscriptions', () => {
+  it("getMySubscription() ne fait qu'un seul appel HTTP pour deux souscriptions", () => {
     http.get.mockReturnValue(of(null));
     service.getMySubscription().subscribe();
     service.getMySubscription().subscribe();
@@ -375,7 +374,7 @@ describe('CyberscanService', () => {
     expect(http.get).toHaveBeenCalledTimes(2);
   });
 
-  it('invalidateSubscriptionCache() n\'effectue pas d\'appel HTTP en lui-même', () => {
+  it("invalidateSubscriptionCache() n'effectue pas d'appel HTTP en lui-même", () => {
     service.invalidateSubscriptionCache();
     expect(http.get).not.toHaveBeenCalled();
     expect(http.post).not.toHaveBeenCalled();

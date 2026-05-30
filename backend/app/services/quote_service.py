@@ -2,12 +2,13 @@
 Quote service — sequential numbering, creation, and email dispatch.
 Format: DEVIS-YYYY-NNNN (per-year sequence, zero-padded to 4 digits).
 """
+
 from __future__ import annotations
 
 import base64
 import os
 import secrets
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 import httpx
 from sqlalchemy import func, select
@@ -20,9 +21,7 @@ BASE_URL = os.getenv("APP_BASE_URL", "https://cyberscanapp.com")
 
 
 async def _next_seq(db: AsyncSession, year: int) -> int:
-    result = await db.execute(
-        select(func.max(Quote.quote_seq)).where(Quote.quote_year == year)
-    )
+    result = await db.execute(select(func.max(Quote.quote_seq)).where(Quote.quote_year == year))
     return (result.scalar() or 0) + 1
 
 
@@ -38,14 +37,11 @@ async def create_quote(
     validity_days: int = 30,
     issue_date: date | None = None,
 ) -> Quote:
-    today = issue_date or datetime.now(timezone.utc).date()
-    year  = today.year
-    seq   = await _next_seq(db, year)
+    today = issue_date or datetime.now(UTC).date()
+    year = today.year
+    seq = await _next_seq(db, year)
 
-    total_cents = sum(
-        item.get("quantity", 1) * item.get("unit_price_cents", 0)
-        for item in items
-    )
+    total_cents = sum(item.get("quantity", 1) * item.get("unit_price_cents", 0) for item in items)
 
     quote = Quote(
         quote_number=f"DEVIS-{year}-{seq:04d}",
@@ -115,7 +111,7 @@ async def send_quote_by_email(quote: Quote) -> None:
         'font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:15px">'
         "&#10003; Accepter le devis</a>"
         f'<a href="{reject_url}" style="display:inline-block;background:#e2e8f0;color:#64748b;'
-        'font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;'
+        "font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;"
         'font-size:15px;margin-left:12px">Refuser</a>'
         "</div>"
         '<p style="color:#64748b;font-size:13px">TVA non applicable, art. 293 B du CGI.</p>'
@@ -129,10 +125,12 @@ async def send_quote_by_email(quote: Quote) -> None:
         "to": [quote.client_email],
         "subject": f"Devis {quote.quote_number} — {quote.subject}",
         "html": html,
-        "attachments": [{
-            "filename": f"{quote.quote_number}.pdf",
-            "content":  pdf_b64,
-        }],
+        "attachments": [
+            {
+                "filename": f"{quote.quote_number}.pdf",
+                "content": pdf_b64,
+            }
+        ],
     }
 
     async with httpx.AsyncClient(timeout=15) as client:

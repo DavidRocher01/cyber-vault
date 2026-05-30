@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     # Set to https://sim.cyberscanapp.com in prod; https://api.cyberscanapp.com also works
     PHISHING_BASE_URL: str = "https://sim.cyberscanapp.com"
     # Sender identity in phishing emails (display name only — actual domain must be Resend-verified)
-    PHISHING_FROM_EMAIL: str = ""      # e.g. no-reply@cyberscanapp.com (Resend verified domain)
+    PHISHING_FROM_EMAIL: str = ""  # e.g. no-reply@cyberscanapp.com (Resend verified domain)
     PHISHING_FROM_NAME: str = "CyberScan Exercise"
     # Batch size: emails sent per scheduler tick (every 15 min) to avoid spam detection
     PHISHING_BATCH_SIZE: int = 20

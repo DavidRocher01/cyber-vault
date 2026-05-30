@@ -3,15 +3,14 @@ Tests for the monthly digest — email function + scheduler job.
 """
 
 import json
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch, call
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from app.services.email_service import send_monthly_digest
 
-
 # ── send_monthly_digest ────────────────────────────────────────────────────────
+
 
 def _sites(n=1, critical=0, warning=0, status="OK"):
     return [
@@ -35,7 +34,11 @@ def test_send_monthly_digest_calls_send(mock_send):
         dashboard_url="https://app.example.com/dashboard",
     )
     mock_send.assert_called_once()
-    subject, html, plain = mock_send.call_args[0][1], mock_send.call_args[0][2], mock_send.call_args[0][3]
+    subject, html, plain = (
+        mock_send.call_args[0][1],
+        mock_send.call_args[0][2],
+        mock_send.call_args[0][3],
+    )
     assert "Janvier 2026" in subject
 
 
@@ -77,7 +80,9 @@ def test_send_monthly_digest_critical_status_red_color(mock_send):
 
 @patch("app.services.email_service._send")
 def test_send_monthly_digest_dashboard_link_in_html(mock_send):
-    send_monthly_digest("u@e.com", "Mai 2026", _sites(), "https://app.example.com/cyberscan/dashboard")
+    send_monthly_digest(
+        "u@e.com", "Mai 2026", _sites(), "https://app.example.com/cyberscan/dashboard"
+    )
     html = mock_send.call_args[0][2]
     assert "https://app.example.com/cyberscan/dashboard" in html
 
@@ -100,7 +105,15 @@ def test_send_monthly_digest_multiple_sites(mock_send):
 
 @patch("app.services.email_service._send")
 def test_send_monthly_digest_zero_scans_handled(mock_send):
-    sites = [{"url": "https://s.com", "overall_status": None, "scans_count": 0, "critical_count": 0, "warning_count": 0}]
+    sites = [
+        {
+            "url": "https://s.com",
+            "overall_status": None,
+            "scans_count": 0,
+            "critical_count": 0,
+            "warning_count": 0,
+        }
+    ]
     send_monthly_digest("u@e.com", "Juillet 2026", sites, "http://dash")
     mock_send.assert_called_once()
     html = mock_send.call_args[0][2]
@@ -123,6 +136,7 @@ def test_send_monthly_digest_with_criticals_warning_summary(mock_send):
 
 # ── _send_monthly_digest_job (scheduler) ──────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_monthly_digest_job_no_active_subscriptions():
     """Job returns immediately without sending emails when no active subs."""
@@ -139,6 +153,7 @@ async def test_monthly_digest_job_no_active_subscriptions():
 
         with patch("app.services.scheduler.send_monthly_digest") as mock_send:
             from app.services.scheduler import _send_monthly_digest_job
+
             await _send_monthly_digest_job()
             mock_send.assert_not_called()
 
@@ -171,8 +186,11 @@ async def test_monthly_digest_job_sends_to_each_user():
         mock_ctx.__aexit__ = AsyncMock(return_value=False)
         mock_session.return_value = mock_ctx
 
-        with patch("app.services.scheduler.asyncio.to_thread", new_callable=AsyncMock) as mock_thread:
+        with patch(
+            "app.services.scheduler.asyncio.to_thread", new_callable=AsyncMock
+        ) as mock_thread:
             from app.services.scheduler import _send_monthly_digest_job
+
             await _send_monthly_digest_job()
             assert mock_thread.call_count == 1
 
@@ -183,8 +201,16 @@ async def test_monthly_digest_job_counts_scans_per_site():
     user1 = MagicMock(id=1, email="u@ex.com")
     site1 = MagicMock(id=10, user_id=1, url="https://a.com", is_active=True)
 
-    scan1 = MagicMock(site_id=10, overall_status="OK", results_json=json.dumps({"ssl": {"status": "OK"}}))
-    scan2 = MagicMock(site_id=10, overall_status="WARNING", results_json=json.dumps({"headers": {"status": "WARNING"}}))
+    scan1 = MagicMock(
+        site_id=10,
+        overall_status="OK",
+        results_json=json.dumps({"ssl": {"status": "OK"}}),
+    )
+    scan2 = MagicMock(
+        site_id=10,
+        overall_status="WARNING",
+        results_json=json.dumps({"headers": {"status": "WARNING"}}),
+    )
 
     db = AsyncMock()
     call_count = {"n": 0}
@@ -224,6 +250,7 @@ async def test_monthly_digest_job_counts_scans_per_site():
 
             with patch("app.services.scheduler.send_monthly_digest") as mock_send:
                 from app.services.scheduler import _send_monthly_digest_job
+
                 await _send_monthly_digest_job()
 
                 assert mock_send.called

@@ -15,7 +15,10 @@ router = APIRouter(prefix="/admin/users", tags=["admin"])
 async def list_users(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(User, Subscription, Plan)
-        .outerjoin(Subscription, (Subscription.user_id == User.id) & (Subscription.status == "active"))
+        .outerjoin(
+            Subscription,
+            (Subscription.user_id == User.id) & (Subscription.status == "active"),
+        )
         .outerjoin(Plan, Plan.id == Subscription.plan_id)
         .order_by(User.id.desc())
     )

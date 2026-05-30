@@ -1,0 +1,137 @@
+questions:
+  - id: bck_01
+    type: single_choice
+    weight: 1
+    text: "Que signifie la règle 3-2-1 ?"
+    answers:
+      - id: a
+        text: "3 disques durs, 2 serveurs, 1 mot de passe"
+        correct: false
+      - id: b
+        text: "3 copies des données, sur 2 supports différents, dont 1 hors site"
+        correct: true
+      - id: c
+        text: "Sauvegarder 3 fois par semaine, 2 fois par mois, 1 fois par an"
+        correct: false
+      - id: d
+        text: "3 employés responsables, 2 vérifications, 1 rapport"
+        correct: false
+    explanation: "La règle 3-2-1 : 3 copies, 2 supports (ex: disque + cloud), 1 hors site pour résister aux sinistres locaux."
+
+  - id: bck_02
+    type: true_false
+    weight: 1
+    text: "Avoir une sauvegarde sur le même réseau que le poste de travail suffit pour se protéger d'un ransomware."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Les ransomwares chiffrent souvent les lecteurs réseau connectés. Une copie hors ligne ou hors site est indispensable."
+
+  - id: bck_03
+    type: single_choice
+    weight: 1
+    text: "Pourquoi les ransomwares attendent-ils parfois plusieurs semaines avant de se déclencher ?"
+    answers:
+      - id: a
+        text: "Pour éviter d'être détectés par les antivirus"
+        correct: false
+      - id: b
+        text: "Pour que les sauvegardes récentes contiennent déjà des fichiers chiffrés"
+        correct: true
+      - id: c
+        text: "Pour infecter plus d'ordinateurs d'abord"
+        correct: false
+      - id: d
+        text: "Ils n'attendent jamais"
+        correct: false
+    explanation: "En attendant, les sauvegardes automatiques finissent par ne plus contenir que des fichiers chiffrés. D'où l'importance de conserver plusieurs versions dans le temps."
+
+  - id: bck_04
+    type: true_false
+    weight: 1
+    text: "Une sauvegarde n'a pas besoin d'être testée si elle s'effectue automatiquement."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Une sauvegarde non testée peut être corrompue, incomplète ou impossible à restaurer. Testez au moins une fois par an."
+
+  - id: bck_05
+    type: single_choice
+    weight: 1
+    text: "Que devriez-vous faire avec vos documents importants au travail ?"
+    answers:
+      - id: a
+        text: "Les stocker uniquement sur votre disque local pour plus de rapidité"
+        correct: false
+      - id: b
+        text: "Les synchroniser sur le cloud d'entreprise (SharePoint, OneDrive...)"
+        correct: true
+      - id: c
+        text: "Les envoyer par email à vous-même"
+        correct: false
+      - id: d
+        text: "Les imprimer en double"
+        correct: false
+    explanation: "Le cloud d'entreprise assure la synchronisation automatique et la conservation de versions historiques — conforme à la règle 3-2-1."
+
+  - id: bck_06
+    type: single_choice
+    weight: 1
+    text: "Vous restaurez une sauvegarde après un incident et découvrez que tous les fichiers sont corrompus. Quel enseignement tirer ?"
+    answers:
+      - id: a
+        text: "Les sauvegardes ne fonctionnent jamais"
+        correct: false
+      - id: b
+        text: "Les sauvegardes doivent être testées régulièrement avec une vraie restauration"
+        correct: true
+      - id: c
+        text: "Il faut sauvegarder plus souvent"
+        correct: false
+      - id: d
+        text: "C'est inévitable avec les ransomwares"
+        correct: false
+    explanation: "Une sauvegarde non testée est une fausse sécurité. La corruption silencieuse, les sauvegardes incomplètes ou les configurations cassées ne se détectent qu'en testant la restauration."
+
+  - id: bck_07
+    type: multiple_choice
+    weight: 2
+    text: "Lesquels de ces scénarios sont couverts par une sauvegarde hors site ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Incendie détruisant les locaux"
+        correct: true
+      - id: b
+        text: "Ransomware chiffrant tout le réseau local"
+        correct: true
+      - id: c
+        text: "Faille dans le logiciel de sauvegarde lui-même"
+        correct: false
+      - id: d
+        text: "Vol du matériel informatique"
+        correct: true
+      - id: e
+        text: "Erreur humaine supprimant des fichiers"
+        correct: true
+    explanation: "Une copie hors site résiste aux sinistres physiques (incendie, vol) et aux ransomwares qui chiffrent le réseau local. Elle ne protège pas contre les failles du système de sauvegarde lui-même."
+
+  - id: bck_08
+    type: true_false
+    weight: 1
+    text: "Conserver uniquement la dernière version d'une sauvegarde est suffisant pour se protéger d'un ransomware."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Les ransomwares attendent plusieurs semaines avant de frapper. La dernière version de sauvegarde contiendra probablement déjà des fichiers chiffrés. Il faut conserver un historique d'au moins 30 jours."

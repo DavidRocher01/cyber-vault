@@ -142,13 +142,15 @@ describe('FAQ_ITEMS', () => {
   });
 
   it('mentionne le RGPD ou les données', () => {
-    const allText = FAQ_ITEMS.map(f => f.answer).join(' ').toLowerCase();
+    const allText = FAQ_ITEMS.map(f => f.answer)
+      .join(' ')
+      .toLowerCase();
     expect(allText).toMatch(/rgpd|donn[eé]e/);
   });
 });
 
 describe('USE_CASES', () => {
-  it('contient 3 cas d\'usage', () => expect(USE_CASES).toHaveLength(3));
+  it("contient 3 cas d'usage", () => expect(USE_CASES).toHaveLength(3));
 
   it('chaque cas a icon, title, subtitle, description, result, color', () => {
     for (const uc of USE_CASES) {
@@ -162,23 +164,30 @@ describe('USE_CASES', () => {
   });
 
   it('inclut un cas NIS2', () => {
-    expect(USE_CASES.some(uc => uc.description.includes('NIS2') || uc.title.includes('NIS2'))).toBe(true);
+    expect(USE_CASES.some(uc => uc.description.includes('NIS2') || uc.title.includes('NIS2'))).toBe(
+      true
+    );
   });
 });
 
 // ── Component methods ─────────────────────────────────────────────────────────
 
 describe('PhishingComponent — difficultyColor()', () => {
-  it('retourne vert pour Facile', () => expect(make().difficultyColor('Facile')).toContain('green'));
-  it('retourne jaune pour Moyen', () => expect(make().difficultyColor('Moyen')).toContain('yellow'));
-  it('retourne rouge pour Difficile', () => expect(make().difficultyColor('Difficile')).toContain('red'));
-  it('retourne gris pour valeur inconnue', () => expect(make().difficultyColor('unknown')).toContain('gray'));
+  it('retourne vert pour Facile', () =>
+    expect(make().difficultyColor('Facile')).toContain('green'));
+  it('retourne jaune pour Moyen', () =>
+    expect(make().difficultyColor('Moyen')).toContain('yellow'));
+  it('retourne rouge pour Difficile', () =>
+    expect(make().difficultyColor('Difficile')).toContain('red'));
+  it('retourne gris pour valeur inconnue', () =>
+    expect(make().difficultyColor('unknown')).toContain('gray'));
 });
 
 describe('PhishingComponent — useCaseColor()', () => {
   it('retourne rouge pour red', () => expect(make().useCaseColor('red').border).toContain('red'));
   it('retourne bleu pour blue', () => expect(make().useCaseColor('blue').border).toContain('blue'));
-  it('retourne violet pour purple', () => expect(make().useCaseColor('purple').border).toContain('purple'));
+  it('retourne violet pour purple', () =>
+    expect(make().useCaseColor('purple').border).toContain('purple'));
   it('retourne un objet avec border, icon, badge', () => {
     const result = make().useCaseColor('red');
     expect(result).toHaveProperty('border');

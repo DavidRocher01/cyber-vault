@@ -8,7 +8,11 @@ const DOMAIN_PATTERN = /^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-
 function make(): DarkwebDossierNewComponent {
   const comp = Object.create(DarkwebDossierNewComponent.prototype) as DarkwebDossierNewComponent;
   comp.form = new FormGroup({
-    company_name: new FormControl('', [Validators.required, Validators.minLength(2), Validators.maxLength(200)]),
+    company_name: new FormControl('', [
+      Validators.required,
+      Validators.minLength(2),
+      Validators.maxLength(200),
+    ]),
     domain: new FormControl('', [Validators.required, Validators.pattern(DOMAIN_PATTERN)]),
   });
   (comp as any).csvFile = signal<File | null>(null);
@@ -150,7 +154,7 @@ describe('DarkwebDossierNewComponent — domain validation', () => {
     expect(comp.form.get('domain')!.valid).toBe(true);
   });
 
-  it('invalide pour TLD d\'un seul caractère', () => {
+  it("invalide pour TLD d'un seul caractère", () => {
     const comp = make();
     comp.form.get('domain')!.setValue('acme.f');
     expect(comp.form.get('domain')!.valid).toBe(false);
@@ -192,7 +196,7 @@ describe('DarkwebDossierNewComponent — onFileChange()', () => {
 // ── submit guard ──────────────────────────────────────────────────────────────
 
 describe('DarkwebDossierNewComponent — submit()', () => {
-  it('n\'appelle pas service.create si canSubmit est false', () => {
+  it("n'appelle pas service.create si canSubmit est false", () => {
     const comp = make();
     comp.submit();
     expect((comp as any).service.create).not.toHaveBeenCalled();

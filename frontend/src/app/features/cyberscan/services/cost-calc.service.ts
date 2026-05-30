@@ -2,11 +2,26 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-export interface CalcOption { id: string; text: string; }
-export interface CalcQuestion { id: number; text: string; key: string; options: CalcOption[]; }
-export interface CalcAnswer { key: string; option_id: string; }
+export interface CalcOption {
+  id: string;
+  text: string;
+}
+export interface CalcQuestion {
+  id: number;
+  text: string;
+  key: string;
+  options: CalcOption[];
+}
+export interface CalcAnswer {
+  key: string;
+  option_id: string;
+}
 
-export interface BreakdownItem { label: string; pct: number; eur: number; }
+export interface BreakdownItem {
+  label: string;
+  pct: number;
+  eur: number;
+}
 export interface CostResult {
   estimated_eur: number;
   low_eur: number;

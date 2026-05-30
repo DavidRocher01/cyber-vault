@@ -18,11 +18,11 @@ function makeService(httpOverrides: Partial<{ get: any; post: any; patch: any }>
 }
 
 describe('PhishingService — getPdfUrl()', () => {
-  it('retourne l\'URL correcte pour un id donné', () => {
+  it("retourne l'URL correcte pour un id donné", () => {
     const { service } = makeService();
     expect(service.getPdfUrl(42)).toBe(`${BASE}/campaigns/42/pdf`);
   });
-  it('fonctionne pour l\'id 1', () => {
+  it("fonctionne pour l'id 1", () => {
     const { service } = makeService();
     expect(service.getPdfUrl(1)).toContain('/campaigns/1/pdf');
   });
@@ -48,7 +48,10 @@ describe('PhishingService — createCampaign()', () => {
   it('appelle POST /phishing/campaigns avec name et plan_tier', () => {
     const { service, http } = makeService();
     service.createCampaign('Test', 'standard').subscribe();
-    expect(http.post).toHaveBeenCalledWith(`${BASE}/campaigns`, { name: 'Test', plan_tier: 'standard' });
+    expect(http.post).toHaveBeenCalledWith(`${BASE}/campaigns`, {
+      name: 'Test',
+      plan_tier: 'standard',
+    });
   });
 });
 
@@ -56,7 +59,10 @@ describe('PhishingService — updateCampaign()', () => {
   it('appelle PATCH /phishing/campaigns/:id avec le patch', () => {
     const { service, http } = makeService();
     service.updateCampaign(3, { name: 'Nouveau nom', cgu_accepted: true }).subscribe();
-    expect(http.patch).toHaveBeenCalledWith(`${BASE}/campaigns/3`, { name: 'Nouveau nom', cgu_accepted: true });
+    expect(http.patch).toHaveBeenCalledWith(`${BASE}/campaigns/3`, {
+      name: 'Nouveau nom',
+      cgu_accepted: true,
+    });
   });
   it('accepte un patch vide', () => {
     const { service, http } = makeService();
@@ -77,7 +83,9 @@ describe('PhishingService — getLookalikeDomains()', () => {
   it('appelle GET /phishing/lookalike-domains avec domain en param', () => {
     const { service, http } = makeService();
     service.getLookalikeDomains('acme.fr').subscribe();
-    expect(http.get).toHaveBeenCalledWith(`${BASE}/lookalike-domains`, { params: { domain: 'acme.fr' } });
+    expect(http.get).toHaveBeenCalledWith(`${BASE}/lookalike-domains`, {
+      params: { domain: 'acme.fr' },
+    });
   });
 });
 
@@ -86,10 +94,7 @@ describe('PhishingService — uploadTargets()', () => {
     const { service, http } = makeService();
     const file = new File(['a,b'], 'targets.csv', { type: 'text/csv' });
     service.uploadTargets(4, file).subscribe();
-    expect(http.post).toHaveBeenCalledWith(
-      `${BASE}/campaigns/4/targets`,
-      expect.any(FormData),
-    );
+    expect(http.post).toHaveBeenCalledWith(`${BASE}/campaigns/4/targets`, expect.any(FormData));
   });
 });
 

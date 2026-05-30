@@ -10,7 +10,17 @@ import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { LucideAngularModule, Eye, EyeOff, Copy, Trash2, Download, LogOut, Plus, Search } from 'lucide-angular';
+import {
+  LucideAngularModule,
+  Eye,
+  EyeOff,
+  Copy,
+  Trash2,
+  Download,
+  LogOut,
+  Plus,
+  Search,
+} from 'lucide-angular';
 import { VaultDashboardComponent } from './vault-dashboard.component';
 
 const meta: Meta<VaultDashboardComponent> = {
@@ -56,9 +66,7 @@ export const Default: Story = {
 export const WithForm: Story = {
   name: 'With Add-Entry Form Open',
   play: async ({ canvasElement }) => {
-    const button = canvasElement.querySelector<HTMLButtonElement>(
-      'button[mat-flat-button]'
-    );
+    const button = canvasElement.querySelector<HTMLButtonElement>('button[mat-flat-button]');
     button?.click();
   },
 };

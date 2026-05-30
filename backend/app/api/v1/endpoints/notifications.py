@@ -3,7 +3,7 @@ Notification endpoints — in-app notification center.
 """
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crud import get_user_resource
@@ -45,7 +45,9 @@ async def mark_read(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    notif = await get_user_resource(db, Notification, notification_id, current_user.id, "Notification introuvable")
+    notif = await get_user_resource(
+        db, Notification, notification_id, current_user.id, "Notification introuvable"
+    )
     notif.read = True
     await db.commit()
     return notif
@@ -73,6 +75,8 @@ async def delete_notification(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    notif = await get_user_resource(db, Notification, notification_id, current_user.id, "Notification introuvable")
+    notif = await get_user_resource(
+        db, Notification, notification_id, current_user.id, "Notification introuvable"
+    )
     await db.delete(notif)
     await db.commit()

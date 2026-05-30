@@ -12,12 +12,25 @@ function make(): PhishingCampaignsComponent {
 
 function campaign(overrides: Partial<PhishingCampaign> = {}): PhishingCampaign {
   return {
-    id: 1, name: 'Test', status: 'draft', plan_tier: 'standard',
-    domain: null, domain_verified: false, lookalike_domain: null, scenario_keys: [],
-    targets_count: 0, emails_sent: 0, opened_count: 0,
-    clicked_count: 0, submitted_count: 0, click_rate: 0,
-    cgu_accepted: false, scheduled_at: null, started_at: null,
-    finished_at: null, created_at: '2024-01-01T00:00:00Z',
+    id: 1,
+    name: 'Test',
+    status: 'draft',
+    plan_tier: 'standard',
+    domain: null,
+    domain_verified: false,
+    lookalike_domain: null,
+    scenario_keys: [],
+    targets_count: 0,
+    emails_sent: 0,
+    opened_count: 0,
+    clicked_count: 0,
+    submitted_count: 0,
+    click_rate: 0,
+    cgu_accepted: false,
+    scheduled_at: null,
+    started_at: null,
+    finished_at: null,
+    created_at: '2024-01-01T00:00:00Z',
     ...overrides,
   };
 }
@@ -25,23 +38,31 @@ function campaign(overrides: Partial<PhishingCampaign> = {}): PhishingCampaign {
 describe('PhishingCampaignsComponent — statusLabel()', () => {
   it('retourne Brouillon pour draft', () => expect(make().statusLabel('draft')).toBe('Brouillon'));
   it('retourne En cours pour active', () => expect(make().statusLabel('active')).toBe('En cours'));
-  it('retourne Envoi en cours pour sending', () => expect(make().statusLabel('sending')).toBe('Envoi en cours'));
-  it('retourne Terminée pour completed', () => expect(make().statusLabel('completed')).toBe('Terminée'));
+  it('retourne Envoi en cours pour sending', () =>
+    expect(make().statusLabel('sending')).toBe('Envoi en cours'));
+  it('retourne Terminée pour completed', () =>
+    expect(make().statusLabel('completed')).toBe('Terminée'));
   it('retourne Prête pour ready', () => expect(make().statusLabel('ready')).toBe('Prête'));
-  it('retourne Planifiée pour scheduled', () => expect(make().statusLabel('scheduled')).toBe('Planifiée'));
-  it('retourne Annulée pour cancelled', () => expect(make().statusLabel('cancelled')).toBe('Annulée'));
-  it('retourne la valeur brute pour un statut inconnu', () => expect(make().statusLabel('unknown')).toBe('unknown'));
+  it('retourne Planifiée pour scheduled', () =>
+    expect(make().statusLabel('scheduled')).toBe('Planifiée'));
+  it('retourne Annulée pour cancelled', () =>
+    expect(make().statusLabel('cancelled')).toBe('Annulée'));
+  it('retourne la valeur brute pour un statut inconnu', () =>
+    expect(make().statusLabel('unknown')).toBe('unknown'));
 });
 
 describe('PhishingCampaignsComponent — statusColor()', () => {
   it('contient cyan pour active', () => expect(make().statusColor('active')).toContain('cyan'));
   it('contient cyan pour sending', () => expect(make().statusColor('sending')).toContain('cyan'));
-  it('contient green pour completed', () => expect(make().statusColor('completed')).toContain('green'));
+  it('contient green pour completed', () =>
+    expect(make().statusColor('completed')).toContain('green'));
   it('contient gray pour draft', () => expect(make().statusColor('draft')).toContain('gray'));
   it('contient red pour cancelled', () => expect(make().statusColor('cancelled')).toContain('red'));
   it('contient blue pour ready', () => expect(make().statusColor('ready')).toContain('blue'));
-  it('contient purple pour scheduled', () => expect(make().statusColor('scheduled')).toContain('purple'));
-  it('contient yellow par défaut', () => expect(make().statusColor('pending_verification')).toContain('yellow'));
+  it('contient purple pour scheduled', () =>
+    expect(make().statusColor('scheduled')).toContain('purple'));
+  it('contient yellow par défaut', () =>
+    expect(make().statusColor('pending_verification')).toContain('yellow'));
 });
 
 describe('PhishingCampaignsComponent — trendData()', () => {
@@ -49,8 +70,15 @@ describe('PhishingCampaignsComponent — trendData()', () => {
     const comp = make();
     comp.campaigns.set([
       campaign({ id: 1, emails_sent: 0, status: 'draft' }),
-      campaign({ id: 2, emails_sent: 10, status: 'completed', click_rate: 0.2,
-                 opened_count: 6, submitted_count: 1, started_at: '2024-01-01T00:00:00Z' }),
+      campaign({
+        id: 2,
+        emails_sent: 10,
+        status: 'completed',
+        click_rate: 0.2,
+        opened_count: 6,
+        submitted_count: 1,
+        started_at: '2024-01-01T00:00:00Z',
+      }),
     ]);
     expect(comp.trendData.length).toBe(1);
     expect(comp.trendData[0].clickRate).toBe(20);
@@ -59,10 +87,22 @@ describe('PhishingCampaignsComponent — trendData()', () => {
   it('trie par started_at croissant', () => {
     const comp = make();
     comp.campaigns.set([
-      campaign({ id: 2, emails_sent: 5, click_rate: 0.2, opened_count: 2, submitted_count: 0,
-                 started_at: '2024-03-01T00:00:00Z' }),
-      campaign({ id: 1, emails_sent: 5, click_rate: 0.1, opened_count: 1, submitted_count: 0,
-                 started_at: '2024-01-01T00:00:00Z' }),
+      campaign({
+        id: 2,
+        emails_sent: 5,
+        click_rate: 0.2,
+        opened_count: 2,
+        submitted_count: 0,
+        started_at: '2024-03-01T00:00:00Z',
+      }),
+      campaign({
+        id: 1,
+        emails_sent: 5,
+        click_rate: 0.1,
+        opened_count: 1,
+        submitted_count: 0,
+        started_at: '2024-01-01T00:00:00Z',
+      }),
     ]);
     const trend = comp.trendData;
     expect(trend[0].clickRate).toBe(10);
@@ -72,8 +112,14 @@ describe('PhishingCampaignsComponent — trendData()', () => {
   it('tronque les noms > 12 caractères', () => {
     const comp = make();
     comp.campaigns.set([
-      campaign({ emails_sent: 1, opened_count: 0, submitted_count: 0, click_rate: 0,
-                 name: 'Campagne très longue Q4', started_at: '2024-01-01T00:00:00Z' }),
+      campaign({
+        emails_sent: 1,
+        opened_count: 0,
+        submitted_count: 0,
+        click_rate: 0,
+        name: 'Campagne très longue Q4',
+        started_at: '2024-01-01T00:00:00Z',
+      }),
     ]);
     expect(comp.trendData[0].label.endsWith('…')).toBe(true);
     expect(comp.trendData[0].label.length).toBeLessThanOrEqual(13);
@@ -117,7 +163,7 @@ describe('PhishingCampaignsComponent — trendDotX / trendDotY / trendXPct()', (
 
 describe('PhishingCampaignsComponent — clickRateLabel()', () => {
   it('retourne — pour un brouillon', () => {
-    expect(make().clickRateLabel(campaign({ status: 'draft', click_rate: 0.20 }))).toBe('—');
+    expect(make().clickRateLabel(campaign({ status: 'draft', click_rate: 0.2 }))).toBe('—');
   });
 
   it('retourne — si targets_count est 0', () => {
@@ -125,32 +171,48 @@ describe('PhishingCampaignsComponent — clickRateLabel()', () => {
   });
 
   it('retourne le pourcentage pour une campagne avec cibles', () => {
-    const result = make().clickRateLabel(campaign({
-      status: 'completed', targets_count: 100, click_rate: 0.25,
-    }));
+    const result = make().clickRateLabel(
+      campaign({
+        status: 'completed',
+        targets_count: 100,
+        click_rate: 0.25,
+      })
+    );
     expect(result).toBe('25 %');
   });
 
-  it('arrondit à l\'entier le plus proche', () => {
-    const result = make().clickRateLabel(campaign({
-      status: 'active', targets_count: 50, click_rate: 0.333,
-    }));
+  it("arrondit à l'entier le plus proche", () => {
+    const result = make().clickRateLabel(
+      campaign({
+        status: 'active',
+        targets_count: 50,
+        click_rate: 0.333,
+      })
+    );
     expect(result).toBe('33 %');
   });
 });
 
 describe('PhishingCampaignsComponent — clickRateColor()', () => {
   it('retourne rouge pour taux ≥ 30 %', () => {
-    expect(make().clickRateColor(campaign({ targets_count: 10, click_rate: 0.35, status: 'completed' }))).toContain('red');
+    expect(
+      make().clickRateColor(campaign({ targets_count: 10, click_rate: 0.35, status: 'completed' }))
+    ).toContain('red');
   });
   it('retourne jaune pour taux entre 15 % et 30 %', () => {
-    expect(make().clickRateColor(campaign({ targets_count: 10, click_rate: 0.20, status: 'completed' }))).toContain('yellow');
+    expect(
+      make().clickRateColor(campaign({ targets_count: 10, click_rate: 0.2, status: 'completed' }))
+    ).toContain('yellow');
   });
   it('retourne vert pour taux < 15 %', () => {
-    expect(make().clickRateColor(campaign({ targets_count: 10, click_rate: 0.10, status: 'completed' }))).toContain('green');
+    expect(
+      make().clickRateColor(campaign({ targets_count: 10, click_rate: 0.1, status: 'completed' }))
+    ).toContain('green');
   });
   it('retourne gris pour un brouillon', () => {
-    expect(make().clickRateColor(campaign({ status: 'draft', targets_count: 0 }))).toContain('gray');
+    expect(make().clickRateColor(campaign({ status: 'draft', targets_count: 0 }))).toContain(
+      'gray'
+    );
   });
 });
 

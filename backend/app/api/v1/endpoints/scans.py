@@ -1,22 +1,23 @@
 import csv
 import io
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 
-from app.core.database import get_db, AsyncSessionLocal
+from app.core.database import AsyncSessionLocal, get_db
 from app.core.deps import get_current_user
-from app.core.utils import safe_json_load
 from app.core.pagination import paginate
-from app.models.user import User
-from app.models.site import Site
-from app.models.scan import Scan
-from app.models.finding_status import FindingStatus
-from app.schemas.cyberscan import ScanOut, ScanTriggerOut, PaginatedScans
 from app.core.ssrf import assert_no_ssrf
+from app.core.utils import safe_json_load
+from app.models.finding_status import FindingStatus
+from app.models.scan import Scan
+from app.models.site import Site
+from app.models.user import User
+from app.schemas.cyberscan import PaginatedScans, ScanOut, ScanTriggerOut
 from app.services.scan_service import run_scan
 from app.services.subscription_service import get_active_plan
 
@@ -36,7 +37,9 @@ async def trigger_scan(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Site).where(Site.id == site_id, Site.user_id == current_user.id, Site.is_active == True)
+        select(Site).where(
+            Site.id == site_id, Site.user_id == current_user.id, Site.is_active == True
+        )
     )
     site = result.scalar_one_or_none()
     if not site:
@@ -58,13 +61,14 @@ async def trigger_scan(
         if total_result.scalar() >= 1:
             raise HTTPException(
                 status_code=403,
-                detail="Le plan gratuit inclut 1 scan unique. Passez à un plan payant pour continuer."
+                detail="Le plan gratuit inclut 1 scan unique. Passez à un plan payant pour continuer.",
             )
 
     # Enforce interval globally across all user sites to prevent bypass via delete+recreate
     if interval_days > 0:
         from datetime import timedelta
-        since = datetime.now(timezone.utc) - timedelta(days=interval_days)
+
+        since = datetime.now(UTC) - timedelta(days=interval_days)
         max_scans = plan.max_sites if plan else 1
         recent_result = await db.execute(
             select(func.count(Scan.id))
@@ -139,12 +143,17 @@ async def export_scans_csv(
         duration = ""
         if s.started_at and s.finished_at:
             duration = str(int((s.finished_at - s.started_at).total_seconds()))
-        writer.writerow([
-            s.id, site.url, s.status, s.overall_status or "",
-            s.created_at.strftime("%Y-%m-%d %H:%M") if s.created_at else "",
-            s.finished_at.strftime("%Y-%m-%d %H:%M") if s.finished_at else "",
-            duration,
-        ])
+        writer.writerow(
+            [
+                s.id,
+                site.url,
+                s.status,
+                s.overall_status or "",
+                s.created_at.strftime("%Y-%m-%d %H:%M") if s.created_at else "",
+                s.finished_at.strftime("%Y-%m-%d %H:%M") if s.finished_at else "",
+                duration,
+            ]
+        )
 
     output.seek(0)
     return StreamingResponse(
@@ -203,7 +212,11 @@ async def download_branded_pdf(
 ):
     """Generate a white-label management summary PDF using the user's brand profile."""
     from app.models.brand_profile import BrandProfile
-    from app.services.branded_scan_pdf import generate_branded_pdf, _extract_findings, _compute_score
+    from app.services.branded_scan_pdf import (
+        _compute_score,
+        _extract_findings,
+        generate_branded_pdf,
+    )
 
     scan_result = await db.execute(
         select(Scan)
@@ -231,7 +244,11 @@ async def download_branded_pdf(
 
     findings = _extract_findings(scan.results_json)
     score = _compute_score(findings, scan.overall_status)
-    scan_date = (scan.finished_at or scan.created_at).strftime("%d/%m/%Y") if (scan.finished_at or scan.created_at) else ""
+    scan_date = (
+        (scan.finished_at or scan.created_at).strftime("%d/%m/%Y")
+        if (scan.finished_at or scan.created_at)
+        else ""
+    )
 
     pdf_bytes = generate_branded_pdf(
         company_name=company_name,
@@ -255,22 +272,22 @@ async def download_branded_pdf(
 
 
 _REMEDIATION_META: dict[str, tuple[str, str]] = {
-    "ufw":                   ("ufw_setup.sh",                    "text/x-sh"),
-    "ssh":                   ("ssh_hardening.sh",                "text/x-sh"),
-    "robots":                ("robots.txt",                      "text/plain"),
-    "nginx_waf":             ("nginx_waf_ratelimit.conf",        "text/plain"),
-    "fastapi":               ("fastapi_security_middleware.py",  "text/x-python"),
-    "upgrade":               ("upgrade_deps.sh",                 "text/x-sh"),
-    "nginx_ssl":             ("nginx_ssl_hardening.conf",        "text/plain"),
-    "fastapi_cors":          ("fastapi_cors_fix.py",             "text/x-python"),
-    "nginx_cors":            ("nginx_cors_fix.conf",             "text/plain"),
-    "fastapi_cookie":        ("fastapi_cookie_security.py",      "text/x-python"),
-    "nginx_methods":         ("nginx_http_methods.conf",         "text/plain"),
-    "nginx_clickjacking":    ("nginx_clickjacking.conf",         "text/plain"),
-    "fastapi_clickjacking":  ("fastapi_clickjacking.py",         "text/x-python"),
-    "nginx_dirlist":         ("nginx_directory_listing.conf",    "text/plain"),
-    "fastapi_open_redirect": ("fastapi_open_redirect.py",        "text/x-python"),
-    "dns_email":             ("dns_email_security.txt",          "text/plain"),
+    "ufw": ("ufw_setup.sh", "text/x-sh"),
+    "ssh": ("ssh_hardening.sh", "text/x-sh"),
+    "robots": ("robots.txt", "text/plain"),
+    "nginx_waf": ("nginx_waf_ratelimit.conf", "text/plain"),
+    "fastapi": ("fastapi_security_middleware.py", "text/x-python"),
+    "upgrade": ("upgrade_deps.sh", "text/x-sh"),
+    "nginx_ssl": ("nginx_ssl_hardening.conf", "text/plain"),
+    "fastapi_cors": ("fastapi_cors_fix.py", "text/x-python"),
+    "nginx_cors": ("nginx_cors_fix.conf", "text/plain"),
+    "fastapi_cookie": ("fastapi_cookie_security.py", "text/x-python"),
+    "nginx_methods": ("nginx_http_methods.conf", "text/plain"),
+    "nginx_clickjacking": ("nginx_clickjacking.conf", "text/plain"),
+    "fastapi_clickjacking": ("fastapi_clickjacking.py", "text/x-python"),
+    "nginx_dirlist": ("nginx_directory_listing.conf", "text/plain"),
+    "fastapi_open_redirect": ("fastapi_open_redirect.py", "text/x-python"),
+    "dns_email": ("dns_email_security.txt", "text/plain"),
 }
 
 
@@ -306,7 +323,9 @@ async def download_remediation_script(
 
     # File missing on disk — regenerate on-the-fly from scan data stored in DB
     try:
-        import sys, tempfile
+        import sys
+        import tempfile
+
         if "/cyber-scanner" not in sys.path:
             sys.path.insert(0, "/cyber-scanner")
         from scanner.remediation import generate_remediation
@@ -335,7 +354,7 @@ async def download_remediation_script(
                 raise HTTPException(status_code=404, detail="Script non disponible pour ce scan")
 
             filename, media_type = _REMEDIATION_META[script_key]
-            with open(paths[script_key], "r", encoding="utf-8") as f:
+            with open(paths[script_key], encoding="utf-8") as f:
                 content = f.read()
 
         return StreamingResponse(
@@ -372,7 +391,12 @@ async def list_finding_statuses(
     await _get_owned_site(site_id, current_user, db)
     rows = await db.execute(select(FindingStatus).where(FindingStatus.site_id == site_id))
     return [
-        {"module_key": r.module_key, "status": r.status, "note": r.note, "updated_at": r.updated_at.isoformat()}
+        {
+            "module_key": r.module_key,
+            "status": r.status,
+            "note": r.note,
+            "updated_at": r.updated_at.isoformat(),
+        }
         for r in rows.scalars().all()
     ]
 
@@ -387,7 +411,10 @@ async def upsert_finding_status(
     db: AsyncSession = Depends(get_db),
 ):
     if status not in VALID_STATUSES:
-        raise HTTPException(status_code=422, detail=f"Statut invalide. Valeurs acceptées : {VALID_STATUSES}")
+        raise HTTPException(
+            status_code=422,
+            detail=f"Statut invalide. Valeurs acceptées : {VALID_STATUSES}",
+        )
 
     await _get_owned_site(site_id, current_user, db)
 
@@ -402,16 +429,21 @@ async def upsert_finding_status(
     if row:
         row.status = status
         row.note = note
-        row.updated_at = datetime.now(timezone.utc)
+        row.updated_at = datetime.now(UTC)
     else:
         row = FindingStatus(
             site_id=site_id,
             module_key=module_key,
             status=status,
             note=note,
-            updated_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(UTC),
         )
         db.add(row)
 
     await db.commit()
-    return {"module_key": row.module_key, "status": row.status, "note": row.note, "updated_at": row.updated_at.isoformat()}
+    return {
+        "module_key": row.module_key,
+        "status": row.status,
+        "note": row.note,
+        "updated_at": row.updated_at.isoformat(),
+    }

@@ -2,6 +2,7 @@
 Public maturity quiz — 10 questions on NIS2/ISO 27001 topics.
 No authentication required. Results are stored with optional email.
 """
+
 from typing import Any
 
 from fastapi import APIRouter
@@ -34,7 +35,10 @@ QUESTIONS: list[dict[str, Any]] = [
             {"id": "a", "text": "Non, pas de sauvegarde en place"},
             {"id": "b", "text": "Sauvegardes manuelles occasionnelles"},
             {"id": "c", "text": "Sauvegardes automatiques, non testées"},
-            {"id": "d", "text": "Sauvegardes automatiques testées et stockées hors site"},
+            {
+                "id": "d",
+                "text": "Sauvegardes automatiques testées et stockées hors site",
+            },
         ],
         "scores": {"a": 0, "b": 1, "c": 2, "d": 3},
     },
@@ -46,7 +50,10 @@ QUESTIONS: list[dict[str, Any]] = [
             {"id": "a", "text": "Non, tous les employés ont accès à tout"},
             {"id": "b", "text": "Quelques restrictions mais sans processus formel"},
             {"id": "c", "text": "Oui, des rôles sont définis mais pas tous appliqués"},
-            {"id": "d", "text": "Oui, revue régulière des accès et comptes désactivés à la sortie"},
+            {
+                "id": "d",
+                "text": "Oui, revue régulière des accès et comptes désactivés à la sortie",
+            },
         ],
         "scores": {"a": 0, "b": 1, "c": 2, "d": 3},
     },
@@ -56,9 +63,15 @@ QUESTIONS: list[dict[str, Any]] = [
         "category": "Réponse aux incidents",
         "options": [
             {"id": "a", "text": "Non, aucun plan n'existe"},
-            {"id": "b", "text": "Des contacts d'urgence existent mais pas de procédure"},
+            {
+                "id": "b",
+                "text": "Des contacts d'urgence existent mais pas de procédure",
+            },
             {"id": "c", "text": "Un plan existe mais n'a jamais été testé"},
-            {"id": "d", "text": "Plan testé, avec exercices réguliers et retours d'expérience"},
+            {
+                "id": "d",
+                "text": "Plan testé, avec exercices réguliers et retours d'expérience",
+            },
         ],
         "scores": {"a": 0, "b": 1, "c": 2, "d": 3},
     },
@@ -69,8 +82,14 @@ QUESTIONS: list[dict[str, Any]] = [
         "options": [
             {"id": "a", "text": "Non, aucune évaluation"},
             {"id": "b", "text": "Seulement pour les contrats critiques"},
-            {"id": "c", "text": "Questionnaires de sécurité envoyés aux principaux fournisseurs"},
-            {"id": "d", "text": "Audits formels, clauses contractuelles de sécurité et suivi continu"},
+            {
+                "id": "c",
+                "text": "Questionnaires de sécurité envoyés aux principaux fournisseurs",
+            },
+            {
+                "id": "d",
+                "text": "Audits formels, clauses contractuelles de sécurité et suivi continu",
+            },
         ],
         "scores": {"a": 0, "b": 1, "c": 2, "d": 3},
     },
@@ -82,7 +101,10 @@ QUESTIONS: list[dict[str, Any]] = [
             {"id": "a", "text": "Non, aucune formation"},
             {"id": "b", "text": "Un email de sensibilisation annuel"},
             {"id": "c", "text": "Formations régulières mais pas de tests de phishing"},
-            {"id": "d", "text": "Programme continu avec simulations de phishing et évaluations"},
+            {
+                "id": "d",
+                "text": "Programme continu avec simulations de phishing et évaluations",
+            },
         ],
         "scores": {"a": 0, "b": 1, "c": 2, "d": 3},
     },
@@ -94,7 +116,10 @@ QUESTIONS: list[dict[str, Any]] = [
             {"id": "a", "text": "Non, pas de chiffrement"},
             {"id": "b", "text": "HTTPS uniquement pour le web"},
             {"id": "c", "text": "Chiffrement partiel (certains systèmes seulement)"},
-            {"id": "d", "text": "Chiffrement de bout en bout et gestion des clés formalisée"},
+            {
+                "id": "d",
+                "text": "Chiffrement de bout en bout et gestion des clés formalisée",
+            },
         ],
         "scores": {"a": 0, "b": 1, "c": 2, "d": 3},
     },
@@ -106,7 +131,10 @@ QUESTIONS: list[dict[str, Any]] = [
             {"id": "a", "text": "Jamais"},
             {"id": "b", "text": "Seulement après un incident"},
             {"id": "c", "text": "Annuellement via un prestataire externe"},
-            {"id": "d", "text": "Tests réguliers (trimestriels ou continus) et Red Team"},
+            {
+                "id": "d",
+                "text": "Tests réguliers (trimestriels ou continus) et Red Team",
+            },
         ],
         "scores": {"a": 0, "b": 1, "c": 2, "d": 3},
     },
@@ -118,7 +146,10 @@ QUESTIONS: list[dict[str, Any]] = [
             {"id": "a", "text": "Non, pas de collecte de logs"},
             {"id": "b", "text": "Logs stockés mais rarement consultés"},
             {"id": "c", "text": "Alertes configurées mais pas de SOC dédié"},
-            {"id": "d", "text": "SIEM en place avec monitoring 24/7 et réponse automatisée"},
+            {
+                "id": "d",
+                "text": "SIEM en place avec monitoring 24/7 et réponse automatisée",
+            },
         ],
         "scores": {"a": 0, "b": 1, "c": 2, "d": 3},
     },
@@ -128,9 +159,15 @@ QUESTIONS: list[dict[str, Any]] = [
         "category": "Gestion des vulnérabilités",
         "options": [
             {"id": "a", "text": "Non, les mises à jour sont différées indéfiniment"},
-            {"id": "b", "text": "Mises à jour réalisées manuellement de façon irrégulière"},
+            {
+                "id": "b",
+                "text": "Mises à jour réalisées manuellement de façon irrégulière",
+            },
             {"id": "c", "text": "Processus de patch management mensuel"},
-            {"id": "d", "text": "Correctifs critiques sous 72h, processus automatisé et suivi"},
+            {
+                "id": "d",
+                "text": "Correctifs critiques sous 72h, processus automatisé et suivi",
+            },
         ],
         "scores": {"a": 0, "b": 1, "c": 2, "d": 3},
     },
@@ -142,17 +179,34 @@ MAX_SCORE = len(QUESTIONS) * 3  # 30
 def _compute_level(score: int) -> dict:
     pct = round(score / MAX_SCORE * 100)
     if pct >= 80:
-        return {"label": "Avancé", "color": "#4ade80", "description": "Votre maturité cyber est excellente. Maintenez le cap et envisagez une certification ISO 27001."}
+        return {
+            "label": "Avancé",
+            "color": "#4ade80",
+            "description": "Votre maturité cyber est excellente. Maintenez le cap et envisagez une certification ISO 27001.",
+        }
     if pct >= 60:
-        return {"label": "Intermédiaire", "color": "#facc15", "description": "Bonne base, mais plusieurs domaines nécessitent encore du travail pour atteindre la conformité NIS2."}
+        return {
+            "label": "Intermédiaire",
+            "color": "#facc15",
+            "description": "Bonne base, mais plusieurs domaines nécessitent encore du travail pour atteindre la conformité NIS2.",
+        }
     if pct >= 35:
-        return {"label": "Débutant", "color": "#fb923c", "description": "Des fondations existent mais de nombreux risques restent non couverts. Un plan d'action est recommandé."}
-    return {"label": "Insuffisant", "color": "#f87171", "description": "Votre organisation est exposée à des risques cyber significatifs. Des actions urgentes sont nécessaires."}
+        return {
+            "label": "Débutant",
+            "color": "#fb923c",
+            "description": "Des fondations existent mais de nombreux risques restent non couverts. Un plan d'action est recommandé.",
+        }
+    return {
+        "label": "Insuffisant",
+        "color": "#f87171",
+        "description": "Votre organisation est exposée à des risques cyber significatifs. Des actions urgentes sont nécessaires.",
+    }
 
 
 # ---------------------------------------------------------------------------
 # Schemas
 # ---------------------------------------------------------------------------
+
 
 class QuizAnswer(BaseModel):
     question_id: int
@@ -177,6 +231,7 @@ class QuizResult(BaseModel):
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.get("/questions")
 async def get_questions():

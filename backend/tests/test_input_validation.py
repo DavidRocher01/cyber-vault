@@ -14,9 +14,10 @@ Catégories :
   - [PAGES]  Validation des paramètres de pagination
 """
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from httpx import ASGITransport, AsyncClient
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.main import app
 
@@ -30,6 +31,7 @@ async def _headers(client: AsyncClient, email: str, password: str = "StrongPass1
 
 
 # ── [AUTH] Validation des champs d'inscription ────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_register_missing_email_returns_422():
@@ -63,7 +65,10 @@ async def test_register_empty_email_returns_422():
 async def test_register_password_too_short_returns_422():
     """Mot de passe < 8 caractères doit être rejeté."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        r = await c.post(f"{BASE}/auth/register", json={"email": "short@test.com", "password": "Ab1!"})
+        r = await c.post(
+            f"{BASE}/auth/register",
+            json={"email": "short@test.com", "password": "Ab1!"},
+        )
     assert r.status_code == 422
 
 
@@ -83,11 +88,15 @@ async def test_login_missing_password_returns_422():
 
 # ── [SITES] Validation des URLs ──────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_create_site_missing_url_returns_422():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "site_val1@test.com")
-        with patch("app.api.v1.endpoints.sites.get_effective_max_sites", new=AsyncMock(return_value=5)):
+        with patch(
+            "app.api.v1.endpoints.sites.get_effective_max_sites",
+            new=AsyncMock(return_value=5),
+        ):
             r = await c.post(f"{BASE}/sites", json={"name": "Mon site"}, headers=h)
     assert r.status_code == 422
 
@@ -96,7 +105,10 @@ async def test_create_site_missing_url_returns_422():
 async def test_create_site_missing_name_returns_422():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "site_val2@test.com")
-        with patch("app.api.v1.endpoints.sites.get_effective_max_sites", new=AsyncMock(return_value=5)):
+        with patch(
+            "app.api.v1.endpoints.sites.get_effective_max_sites",
+            new=AsyncMock(return_value=5),
+        ):
             r = await c.post(f"{BASE}/sites", json={"url": "https://example.com"}, headers=h)
     assert r.status_code == 422
 
@@ -106,8 +118,13 @@ async def test_create_site_no_protocol_autocorrected_to_https():
     """L'endpoint auto-corrige les URLs sans protocole → https:// est ajouté, 201 retourné."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "site_val3@test.com")
-        with patch("app.api.v1.endpoints.sites.get_effective_max_sites", new=AsyncMock(return_value=5)):
-            r = await c.post(f"{BASE}/sites", json={"url": "example.com", "name": "Test"}, headers=h)
+        with patch(
+            "app.api.v1.endpoints.sites.get_effective_max_sites",
+            new=AsyncMock(return_value=5),
+        ):
+            r = await c.post(
+                f"{BASE}/sites", json={"url": "example.com", "name": "Test"}, headers=h
+            )
     assert r.status_code == 201
     assert r.json()["url"] == "https://example.com"
 
@@ -116,12 +133,20 @@ async def test_create_site_no_protocol_autocorrected_to_https():
 async def test_create_site_ftp_url_returns_422():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "site_val4@test.com")
-        with patch("app.api.v1.endpoints.sites.get_effective_max_sites", new=AsyncMock(return_value=5)):
-            r = await c.post(f"{BASE}/sites", json={"url": "ftp://files.example.com", "name": "FTP"}, headers=h)
+        with patch(
+            "app.api.v1.endpoints.sites.get_effective_max_sites",
+            new=AsyncMock(return_value=5),
+        ):
+            r = await c.post(
+                f"{BASE}/sites",
+                json={"url": "ftp://files.example.com", "name": "FTP"},
+                headers=h,
+            )
     assert r.status_code == 422
 
 
 # ── [URLSCAN] Validation des URLs ────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_url_scan_missing_url_returns_422():
@@ -166,6 +191,7 @@ async def test_url_scan_valid_https_accepted():
 
 # ── [CODESCAN] Validation des repos ──────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_code_scan_missing_repo_url_returns_422():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -191,6 +217,7 @@ async def test_code_scan_empty_repo_url_returns_422():
 
 
 # ── [NIS2] Validation des statuts ────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_nis2_invalid_status_value_returns_422():
@@ -223,18 +250,23 @@ async def test_nis2_all_valid_statuses_accepted():
     Utilise des IDs d'items réels (niveau item, pas catégorie)."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "nis2v4@test.com")
-        r = await c.put(f"{BASE}/nis2/me", json={
-            "items": {
-                "rssi": "compliant",          # item réel — Gouvernance
-                "mgmt_training": "partial",   # item réel — Gouvernance
-                "incident_proc": "non_compliant",  # item réel — Incidents
-                "anssi_notif": "na",          # item réel — Incidents
-            }
-        }, headers=h)
+        r = await c.put(
+            f"{BASE}/nis2/me",
+            json={
+                "items": {
+                    "rssi": "compliant",  # item réel — Gouvernance
+                    "mgmt_training": "partial",  # item réel — Gouvernance
+                    "incident_proc": "non_compliant",  # item réel — Incidents
+                    "anssi_notif": "na",  # item réel — Incidents
+                }
+            },
+            headers=h,
+        )
     assert r.status_code == 200
 
 
 # ── [PAGES] Validation de la pagination ──────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_url_scans_negative_page_returns_422():

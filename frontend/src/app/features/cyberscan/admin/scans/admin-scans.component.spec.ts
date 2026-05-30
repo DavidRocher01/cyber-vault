@@ -3,9 +3,13 @@ import { signal, computed } from '@angular/core';
 import { AdminScansComponent } from './admin-scans.component';
 
 interface AdminScan {
-  id: number; target_url: string; status: string;
-  overall_status: string | null; created_at: string;
-  finished_at: string | null; error_message: string | null;
+  id: number;
+  target_url: string;
+  status: string;
+  overall_status: string | null;
+  created_at: string;
+  finished_at: string | null;
+  error_message: string | null;
 }
 
 function make(): AdminScansComponent {
@@ -17,18 +21,57 @@ function make(): AdminScansComponent {
     const f = (comp as any).filter();
     const all = (comp as any).scans();
     if (f === 'all') return all;
-    if (f === 'completed') return all.filter((s: AdminScan) => s.overall_status === 'safe' || s.overall_status === 'warning' || s.overall_status === 'danger');
-    if (f === 'failed') return all.filter((s: AdminScan) => s.status === 'failed' || s.error_message);
+    if (f === 'completed')
+      return all.filter(
+        (s: AdminScan) =>
+          s.overall_status === 'safe' ||
+          s.overall_status === 'warning' ||
+          s.overall_status === 'danger'
+      );
+    if (f === 'failed')
+      return all.filter((s: AdminScan) => s.status === 'failed' || s.error_message);
     return all.filter((s: AdminScan) => s.status === 'pending' || s.status === 'running');
   });
   return comp;
 }
 
 const SCANS: AdminScan[] = [
-  { id: 1, target_url: 'https://safe.com', status: 'completed', overall_status: 'safe', created_at: '2024-01-01T00:00:00Z', finished_at: '2024-01-01T00:01:00Z', error_message: null },
-  { id: 2, target_url: 'https://failed.com', status: 'failed', overall_status: null, created_at: '2024-01-02T00:00:00Z', finished_at: null, error_message: 'Timeout' },
-  { id: 3, target_url: 'https://running.com', status: 'running', overall_status: null, created_at: '2024-01-03T00:00:00Z', finished_at: null, error_message: null },
-  { id: 4, target_url: 'https://danger.com', status: 'completed', overall_status: 'danger', created_at: '2024-01-04T00:00:00Z', finished_at: '2024-01-04T00:02:00Z', error_message: null },
+  {
+    id: 1,
+    target_url: 'https://safe.com',
+    status: 'completed',
+    overall_status: 'safe',
+    created_at: '2024-01-01T00:00:00Z',
+    finished_at: '2024-01-01T00:01:00Z',
+    error_message: null,
+  },
+  {
+    id: 2,
+    target_url: 'https://failed.com',
+    status: 'failed',
+    overall_status: null,
+    created_at: '2024-01-02T00:00:00Z',
+    finished_at: null,
+    error_message: 'Timeout',
+  },
+  {
+    id: 3,
+    target_url: 'https://running.com',
+    status: 'running',
+    overall_status: null,
+    created_at: '2024-01-03T00:00:00Z',
+    finished_at: null,
+    error_message: null,
+  },
+  {
+    id: 4,
+    target_url: 'https://danger.com',
+    status: 'completed',
+    overall_status: 'danger',
+    created_at: '2024-01-04T00:00:00Z',
+    finished_at: '2024-01-04T00:02:00Z',
+    error_message: null,
+  },
 ];
 
 // ── statusColor ────────────────────────────────────────────────────────────────

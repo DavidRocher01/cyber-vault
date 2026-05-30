@@ -1,9 +1,17 @@
 import os
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    UploadFile,
+)
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +20,7 @@ from app.core.crud import get_user_resource
 from app.core.database import AsyncSessionLocal, get_db
 from app.core.deps import get_current_user
 from app.core.pagination import paginate
+from app.core.ssrf import assert_no_ssrf
 from app.models.code_scan import CodeScan
 from app.models.user import User
 from app.schemas.cyberscan import (
@@ -20,7 +29,6 @@ from app.schemas.cyberscan import (
     CodeScanTriggerOut,
     PaginatedCodeScans,
 )
-from app.core.ssrf import assert_no_ssrf
 from app.services.code_scan_service import run_code_scan, run_code_scan_zip
 
 router = APIRouter(prefix="/code-scans", tags=["code-scans"])
@@ -99,7 +107,7 @@ async def upload_code_scan(
         repo_url=f"upload:{file.filename}",
         repo_name=repo_name,
         status="pending",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     db.add(scan)
     try:
@@ -132,7 +140,10 @@ async def trigger_code_scan(
 
     host = parsed.hostname or ""
     if host not in _GIT_ALLOWED_HOSTS:
-        raise HTTPException(status_code=422, detail=f"Hôte non autorisé. Plateformes acceptées : {', '.join(sorted(_GIT_ALLOWED_HOSTS))}")
+        raise HTTPException(
+            status_code=422,
+            detail=f"Hôte non autorisé. Plateformes acceptées : {', '.join(sorted(_GIT_ALLOWED_HOSTS))}",
+        )
 
     assert_no_ssrf(body.repo_url)
     clone_url = _embed_token(body.repo_url, body.github_token)
@@ -142,7 +153,7 @@ async def trigger_code_scan(
         repo_url=body.repo_url,
         repo_name=_repo_name(body.repo_url),
         status="pending",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     db.add(scan)
     try:
@@ -168,8 +179,12 @@ async def list_code_scans(
 ):
     return await paginate(
         db,
-        base_query=select(CodeScan).where(CodeScan.user_id == current_user.id).order_by(CodeScan.created_at.desc()),
-        count_query=select(func.count()).select_from(CodeScan).where(CodeScan.user_id == current_user.id),
+        base_query=select(CodeScan)
+        .where(CodeScan.user_id == current_user.id)
+        .order_by(CodeScan.created_at.desc()),
+        count_query=select(func.count())
+        .select_from(CodeScan)
+        .where(CodeScan.user_id == current_user.id),
         page=page,
         per_page=per_page,
     )

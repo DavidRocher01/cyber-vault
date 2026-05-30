@@ -28,14 +28,23 @@ export class AdminScansComponent implements OnInit {
   filtered = computed(() => {
     const f = this.filter();
     if (f === 'all') return this.scans();
-    if (f === 'completed') return this.scans().filter(s => s.overall_status === 'safe' || s.overall_status === 'warning' || s.overall_status === 'danger');
+    if (f === 'completed')
+      return this.scans().filter(
+        s =>
+          s.overall_status === 'safe' ||
+          s.overall_status === 'warning' ||
+          s.overall_status === 'danger'
+      );
     if (f === 'failed') return this.scans().filter(s => s.status === 'failed' || s.error_message);
     return this.scans().filter(s => s.status === 'pending' || s.status === 'running');
   });
 
   ngOnInit() {
     this.http.get<AdminScan[]>('/api/v1/admin/scans', { headers: this.auth.headers() }).subscribe({
-      next: s => { this.scans.set(s); this.loading.set(false); },
+      next: s => {
+        this.scans.set(s);
+        this.loading.set(false);
+      },
       error: () => this.loading.set(false),
     });
   }
@@ -61,7 +70,13 @@ export class AdminScansComponent implements OnInit {
 
   formatDate(iso: string | null): string {
     if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return new Date(iso).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   }
 
   truncate(url: string, max = 50): string {

@@ -2,7 +2,6 @@
 
 <div class="min-h-screen bg-gray-950 text-white p-4 md:p-8">
   <div class="max-w-4xl mx-auto">
-
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
       <div>
@@ -21,7 +20,6 @@
     @if (loading()) {
       <div class="flex justify-center py-24"><mat-spinner [diameter]="40" /></div>
     } @else if (campaigns().length === 0) {
-
       <!-- Empty state -->
       <div class="rounded-2xl border border-gray-800 bg-gray-900 p-16 text-center">
         <mat-icon class="text-gray-600 !text-[4rem] !w-[4rem] !h-[4rem] mb-4">phishing</mat-icon>
@@ -29,19 +27,24 @@
         <p class="text-gray-500 mb-8 max-w-sm mx-auto">
           Créez votre première campagne de simulation pour mesurer la vigilance de vos équipes.
         </p>
-        <a routerLink="/cyberscan/phishing/new" mat-flat-button color="primary" class="!rounded-xl !px-8">
+        <a
+          routerLink="/cyberscan/phishing/new"
+          mat-flat-button
+          color="primary"
+          class="!rounded-xl !px-8"
+        >
           Démarrer une campagne
         </a>
       </div>
-
     } @else {
-
       <!-- Trend chart (2+ campaigns with data) -->
       @let trend = trendData;
       @if (trend.length >= 2) {
         <div class="rounded-xl border border-gray-800 bg-gray-900 p-5 mb-6">
           <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Évolution inter-campagnes</h2>
+            <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Évolution inter-campagnes
+            </h2>
             <div class="flex items-center gap-4 text-[0.65rem] text-gray-500">
               <span class="flex items-center gap-1.5">
                 <span class="w-3 h-px bg-yellow-400 inline-block rounded-full"></span>Ouvertures
@@ -58,31 +61,66 @@
           <!-- SVG chart (no text labels — distortion-safe) -->
           <svg viewBox="0 0 400 88" class="w-full h-20" preserveAspectRatio="none">
             <!-- Grid lines -->
-            <line x1="0" y1="4"  x2="400" y2="4"  stroke="#1f2937" stroke-width="0.5" />
-            <line x1="0" y1="44" x2="400" y2="44" stroke="#1f2937" stroke-width="0.5" stroke-dasharray="3,5" />
+            <line x1="0" y1="4" x2="400" y2="4" stroke="#1f2937" stroke-width="0.5" />
+            <line
+              x1="0"
+              y1="44"
+              x2="400"
+              y2="44"
+              stroke="#1f2937"
+              stroke-width="0.5"
+              stroke-dasharray="3,5"
+            />
             <line x1="0" y1="84" x2="400" y2="84" stroke="#374151" stroke-width="0.5" />
 
-            <polyline [attr.points]="trendPolyline('openRate', trend)"
-                      fill="none" stroke="#fbbf24" stroke-width="2"
-                      stroke-linejoin="round" stroke-linecap="round" />
-            <polyline [attr.points]="trendPolyline('clickRate', trend)"
-                      fill="none" stroke="#fb923c" stroke-width="2"
-                      stroke-linejoin="round" stroke-linecap="round" />
-            <polyline [attr.points]="trendPolyline('submitRate', trend)"
-                      fill="none" stroke="#ef4444" stroke-width="2"
-                      stroke-linejoin="round" stroke-linecap="round" />
+            <polyline
+              [attr.points]="trendPolyline('openRate', trend)"
+              fill="none"
+              stroke="#fbbf24"
+              stroke-width="2"
+              stroke-linejoin="round"
+              stroke-linecap="round"
+            />
+            <polyline
+              [attr.points]="trendPolyline('clickRate', trend)"
+              fill="none"
+              stroke="#fb923c"
+              stroke-width="2"
+              stroke-linejoin="round"
+              stroke-linecap="round"
+            />
+            <polyline
+              [attr.points]="trendPolyline('submitRate', trend)"
+              fill="none"
+              stroke="#ef4444"
+              stroke-width="2"
+              stroke-linejoin="round"
+              stroke-linecap="round"
+            />
 
             @for (d of trend; track d.label; let i = $index) {
-              <circle [attr.cx]="trendDotX(i, trend.length)" [attr.cy]="trendDotY(d.openRate)"
-                      r="3" fill="#fbbf24">
+              <circle
+                [attr.cx]="trendDotX(i, trend.length)"
+                [attr.cy]="trendDotY(d.openRate)"
+                r="3"
+                fill="#fbbf24"
+              >
                 <title>{{ d.label }} · Ouvertures : {{ d.openRate }}%</title>
               </circle>
-              <circle [attr.cx]="trendDotX(i, trend.length)" [attr.cy]="trendDotY(d.clickRate)"
-                      r="3" fill="#fb923c">
+              <circle
+                [attr.cx]="trendDotX(i, trend.length)"
+                [attr.cy]="trendDotY(d.clickRate)"
+                r="3"
+                fill="#fb923c"
+              >
                 <title>{{ d.label }} · Clics : {{ d.clickRate }}%</title>
               </circle>
-              <circle [attr.cx]="trendDotX(i, trend.length)" [attr.cy]="trendDotY(d.submitRate)"
-                      r="3" fill="#ef4444">
+              <circle
+                [attr.cx]="trendDotX(i, trend.length)"
+                [attr.cy]="trendDotY(d.submitRate)"
+                r="3"
+                fill="#ef4444"
+              >
                 <title>{{ d.label }} · Identifiants : {{ d.submitRate }}%</title>
               </circle>
             }
@@ -91,18 +129,32 @@
           <!-- X-axis labels (HTML, no SVG text distortion) -->
           <div class="relative h-4 mt-0.5 overflow-hidden">
             @for (d of trend; track d.label; let i = $index) {
-              <span class="absolute text-[0.6rem] text-gray-600 -translate-x-1/2 truncate max-w-16 inline-block text-center"
-                    [style.left.%]="trendXPct(i, trend.length)">
+              <span
+                class="absolute text-[0.6rem] text-gray-600 -translate-x-1/2 truncate max-w-16 inline-block text-center"
+                [style.left.%]="trendXPct(i, trend.length)"
+              >
                 {{ d.label }}
               </span>
             }
           </div>
 
           <div class="flex items-center justify-between mt-2 text-[0.65rem] text-gray-600">
-            <span>{{ trend.length }} campagnes · du {{ trend[0].date }} au {{ trend[trend.length - 1].date }}</span>
-            <span>Dernière — clics :
-              <span class="font-semibold"
-                    [class]="trend[trend.length-1].clickRate >= 30 ? 'text-red-400' : trend[trend.length-1].clickRate >= 15 ? 'text-yellow-400' : 'text-green-400'">
+            <span
+              >{{ trend.length }} campagnes · du {{ trend[0].date }} au
+              {{ trend[trend.length - 1].date }}</span
+            >
+            <span
+              >Dernière — clics :
+              <span
+                class="font-semibold"
+                [class]="
+                  trend[trend.length - 1].clickRate >= 30
+                    ? 'text-red-400'
+                    : trend[trend.length - 1].clickRate >= 15
+                      ? 'text-yellow-400'
+                      : 'text-green-400'
+                "
+              >
                 {{ trend[trend.length - 1].clickRate }}%
               </span>
             </span>
@@ -113,25 +165,32 @@
       <!-- Campaigns list -->
       <div class="flex flex-col gap-4">
         @for (c of campaigns(); track c.id) {
-          <div class="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden hover:border-gray-700 transition-colors">
-
+          <div
+            class="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden hover:border-gray-700 transition-colors"
+          >
             <div class="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
               <!-- Left: icon + name -->
               <div class="flex items-center gap-3 flex-1 min-w-0">
-                <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                <div
+                  class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center flex-shrink-0"
+                >
                   <mat-icon class="text-cyan-400 !text-[1.2rem]">phishing</mat-icon>
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2 flex-wrap">
                     <span class="font-semibold text-white truncate">{{ c.name }}</span>
-                    <span class="text-[0.7rem] font-semibold px-2 py-0.5 rounded-full border"
-                          [class]="statusColor(c.status)">
+                    <span
+                      class="text-[0.7rem] font-semibold px-2 py-0.5 rounded-full border"
+                      [class]="statusColor(c.status)"
+                    >
                       {{ statusLabel(c.status) }}
                     </span>
                   </div>
                   <div class="text-xs text-gray-500 mt-0.5">
                     {{ c.plan_tier | titlecase }} · {{ formatDate(c.created_at) }}
-                    @if (c.domain) { · {{ c.domain }} }
+                    @if (c.domain) {
+                      · {{ c.domain }}
+                    }
                   </div>
                 </div>
               </div>
@@ -143,7 +202,9 @@
                   <div class="text-[0.65rem] text-gray-500 uppercase tracking-wider">Cibles</div>
                 </div>
                 <div>
-                  <div class="text-lg font-bold" [class]="clickRateColor(c)">{{ clickRateLabel(c) }}</div>
+                  <div class="text-lg font-bold" [class]="clickRateColor(c)">
+                    {{ clickRateLabel(c) }}
+                  </div>
                   <div class="text-[0.65rem] text-gray-500 uppercase tracking-wider">Taux clic</div>
                 </div>
                 <div>
@@ -154,18 +215,28 @@
 
               <!-- Actions -->
               <div class="flex items-center gap-2 flex-shrink-0">
-                @if (c.status === 'draft' || c.status === 'pending_verification' || c.status === 'ready' || c.status === 'scheduled') {
-                  <a [routerLink]="['/cyberscan/phishing/campaigns', c.id, 'edit']"
-                     mat-stroked-button
-                     class="!text-sm !border-gray-700 !text-gray-300 !rounded-lg">
+                @if (
+                  c.status === 'draft' ||
+                  c.status === 'pending_verification' ||
+                  c.status === 'ready' ||
+                  c.status === 'scheduled'
+                ) {
+                  <a
+                    [routerLink]="['/cyberscan/phishing/campaigns', c.id, 'edit']"
+                    mat-stroked-button
+                    class="!text-sm !border-gray-700 !text-gray-300 !rounded-lg"
+                  >
                     <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] mr-1">edit</mat-icon>
                     Configurer
                   </a>
                 }
                 @if (c.status === 'active' || c.status === 'sending' || c.status === 'completed') {
-                  <a [routerLink]="['/cyberscan/phishing/campaigns', c.id]"
-                     mat-flat-button color="primary"
-                     class="!text-sm !rounded-lg">
+                  <a
+                    [routerLink]="['/cyberscan/phishing/campaigns', c.id]"
+                    mat-flat-button
+                    color="primary"
+                    class="!text-sm !rounded-lg"
+                  >
                     <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] mr-1">bar_chart</mat-icon>
                     Résultats
                   </a>
@@ -181,17 +252,16 @@
                   <span>{{ c.opened_count }} ouvertures · {{ c.clicked_count }} clics</span>
                 </div>
                 <div class="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                  <div class="h-full bg-cyan-500 rounded-full transition-all"
-                       [style.width.%]="(c.emails_sent / c.targets_count) * 100"></div>
+                  <div
+                    class="h-full bg-cyan-500 rounded-full transition-all"
+                    [style.width.%]="(c.emails_sent / c.targets_count) * 100"
+                  ></div>
                 </div>
               </div>
             }
-
           </div>
         }
       </div>
-
     }
-
   </div>
 </div>

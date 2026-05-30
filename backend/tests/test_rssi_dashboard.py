@@ -2,8 +2,10 @@
 Integration tests — /api/v1/rssi/dashboard (Sprint 2)
 Covers: overview, clients-summary, alerts, upcoming-events, suggestions, auth guards.
 """
-import pytest
+
 from datetime import date, timedelta
+
+import pytest
 from httpx import AsyncClient
 
 BASE = "/api/v1"
@@ -11,16 +13,24 @@ BASE = "/api/v1"
 
 # ── helpers ────────────────────────────────────────────────────────────────────
 
+
 async def _auth(http_client: AsyncClient, email: str) -> dict:
-    await http_client.post(f"{BASE}/auth/register", json={"email": email, "password": "StrongPass123!"})
-    r = await http_client.post(f"{BASE}/auth/login", json={"email": email, "password": "StrongPass123!"})
+    await http_client.post(
+        f"{BASE}/auth/register", json={"email": email, "password": "StrongPass123!"}
+    )
+    r = await http_client.post(
+        f"{BASE}/auth/login", json={"email": email, "password": "StrongPass123!"}
+    )
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
+
 
 async def _auth_consultant(http_client, email: str) -> dict:
     """Register, login, and promote user to RSSI consultant for tests."""
-    import app.core.database as _db_mod
     from sqlalchemy import select
+
+    import app.core.database as _db_mod
     from app.models.user import User
+
     headers = await _auth(http_client, email)
     async with _db_mod.AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.email == email))
@@ -30,29 +40,47 @@ async def _auth_consultant(http_client, email: str) -> dict:
     return headers
 
 
-
-
-async def _create_client(http_client: AsyncClient, headers: dict, name: str = "Acme", **kwargs) -> dict:
-    r = await http_client.post(f"{BASE}/rssi/clients", json={"name": name, **kwargs}, headers=headers)
+async def _create_client(
+    http_client: AsyncClient, headers: dict, name: str = "Acme", **kwargs
+) -> dict:
+    r = await http_client.post(
+        f"{BASE}/rssi/clients", json={"name": name, **kwargs}, headers=headers
+    )
     assert r.status_code == 201, r.text
     return r.json()
 
 
 async def _create_action(http_client: AsyncClient, headers: dict, client_id: int, **kwargs) -> dict:
     payload = {"title": "Test action", "priority": "medium", **kwargs}
-    r = await http_client.post(f"{BASE}/rssi/clients/{client_id}/actions", json=payload, headers=headers)
+    r = await http_client.post(
+        f"{BASE}/rssi/clients/{client_id}/actions", json=payload, headers=headers
+    )
     assert r.status_code == 201, r.text
     return r.json()
 
 
-async def _create_visit(http_client: AsyncClient, headers: dict, client_id: int, scheduled_date: str, **kwargs) -> dict:
-    payload = {"scheduled_date": scheduled_date, "visit_type": "monthly", "location": "onsite", **kwargs}
-    r = await http_client.post(f"{BASE}/rssi/clients/{client_id}/visits", json=payload, headers=headers)
+async def _create_visit(
+    http_client: AsyncClient,
+    headers: dict,
+    client_id: int,
+    scheduled_date: str,
+    **kwargs,
+) -> dict:
+    payload = {
+        "scheduled_date": scheduled_date,
+        "visit_type": "monthly",
+        "location": "onsite",
+        **kwargs,
+    }
+    r = await http_client.post(
+        f"{BASE}/rssi/clients/{client_id}/visits", json=payload, headers=headers
+    )
     assert r.status_code == 201, r.text
     return r.json()
 
 
 # ── Auth guards ────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_dashboard_overview_requires_auth(http_client: AsyncClient):
@@ -80,6 +108,7 @@ async def test_dashboard_events_requires_auth(http_client: AsyncClient):
 
 # ── Overview ──────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_overview_empty_returns_zeros(http_client: AsyncClient):
     h = await _auth_consultant(http_client, "dash_ov1@test.com")
@@ -101,7 +130,9 @@ async def test_overview_counts_active_clients_and_mrr(http_client: AsyncClient):
     await _create_client(http_client, h, "Client B", monthly_amount=1500, formula="essentiel")
     c_churned = await _create_client(http_client, h, "Client C", monthly_amount=3000)
     # Mark one as churned — should not count
-    await http_client.put(f"{BASE}/rssi/clients/{c_churned['id']}", json={"status": "churned"}, headers=h)
+    await http_client.put(
+        f"{BASE}/rssi/clients/{c_churned['id']}", json={"status": "churned"}, headers=h
+    )
 
     r = await http_client.get(f"{BASE}/rssi/dashboard/overview", headers=h)
     body = r.json()
@@ -117,9 +148,9 @@ async def test_overview_counts_open_and_overdue_actions(http_client: AsyncClient
     yesterday = (date.today() - timedelta(days=1)).isoformat()
     next_week = (date.today() + timedelta(days=7)).isoformat()
 
-    await _create_action(http_client, h, c["id"], due_date=yesterday)   # overdue
-    await _create_action(http_client, h, c["id"], due_date=next_week)    # open, not overdue
-    await _create_action(http_client, h, c["id"])                        # open, no due_date
+    await _create_action(http_client, h, c["id"], due_date=yesterday)  # overdue
+    await _create_action(http_client, h, c["id"], due_date=next_week)  # open, not overdue
+    await _create_action(http_client, h, c["id"])  # open, no due_date
 
     r = await http_client.get(f"{BASE}/rssi/dashboard/overview", headers=h)
     body = r.json()
@@ -141,6 +172,7 @@ async def test_overview_renewal_upcoming(http_client: AsyncClient):
 
 
 # ── Clients summary ───────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_clients_summary_returns_all_clients(http_client: AsyncClient):
@@ -183,12 +215,18 @@ async def test_clients_summary_includes_next_visit(http_client: AsyncClient):
 
 # ── Alerts ────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_alerts_empty_when_no_issues(http_client: AsyncClient):
     h = await _auth_consultant(http_client, "dash_al1@test.com")
     c = await _create_client(http_client, h, "Healthy Corp")
     # Action with future due date — no overdue
-    await _create_action(http_client, h, c["id"], due_date=(date.today() + timedelta(days=30)).isoformat())
+    await _create_action(
+        http_client,
+        h,
+        c["id"],
+        due_date=(date.today() + timedelta(days=30)).isoformat(),
+    )
 
     r = await http_client.get(f"{BASE}/rssi/dashboard/alerts", headers=h)
     assert r.status_code == 200
@@ -221,6 +259,7 @@ async def test_alerts_detects_renewal_upcoming(http_client: AsyncClient):
 
 
 # ── Upcoming events ───────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_upcoming_events_returns_planned_visits(http_client: AsyncClient):
@@ -259,6 +298,7 @@ async def test_upcoming_events_excludes_past_and_distant(http_client: AsyncClien
 
 
 # ── Suggestions ───────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_suggestions_empty_for_new_user(http_client: AsyncClient):
@@ -299,6 +339,7 @@ async def test_suggestions_isolation_between_users(http_client: AsyncClient):
 
 
 # ── Coverage gaps: branches not yet covered ───────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_upcoming_events_empty_when_no_clients(http_client: AsyncClient):
@@ -342,7 +383,9 @@ async def test_alerts_no_recent_visit_premium_old_visit(http_client: AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_alerts_no_recent_visit_essentiel_client_ignored(http_client: AsyncClient):
+async def test_alerts_no_recent_visit_essentiel_client_ignored(
+    http_client: AsyncClient,
+):
     """Essentiel clients are NOT checked for visit frequency."""
     h = await _auth_consultant(http_client, "dash_al6@test.com")
     await _create_client(http_client, h, "Essentiel Corp", formula="essentiel")
@@ -357,8 +400,13 @@ async def test_suggestions_upsell_opportunity(http_client: AsyncClient):
     """Essentiel client with 180+ days contract and zero overdue → upsell suggestion."""
     h = await _auth_consultant(http_client, "dash_sg4@test.com")
     old_start = (date.today() - timedelta(days=200)).isoformat()
-    await _create_client(http_client, h, "Stable Essentiel", formula="essentiel",
-                         contract_start_date=old_start)
+    await _create_client(
+        http_client,
+        h,
+        "Stable Essentiel",
+        formula="essentiel",
+        contract_start_date=old_start,
+    )
 
     r = await http_client.get(f"{BASE}/rssi/dashboard/suggestions", headers=h)
     upsell = [s for s in r.json() if s["type"] == "upsell_opportunity"]
@@ -371,8 +419,13 @@ async def test_suggestions_no_upsell_when_overdue(http_client: AsyncClient):
     """Upsell rule must NOT fire when the client has overdue actions."""
     h = await _auth_consultant(http_client, "dash_sg5@test.com")
     old_start = (date.today() - timedelta(days=200)).isoformat()
-    c = await _create_client(http_client, h, "Busy Essentiel", formula="essentiel",
-                             contract_start_date=old_start)
+    c = await _create_client(
+        http_client,
+        h,
+        "Busy Essentiel",
+        formula="essentiel",
+        contract_start_date=old_start,
+    )
     overdue = (date.today() - timedelta(days=5)).isoformat()
     await _create_action(http_client, h, c["id"], due_date=overdue)
 
@@ -382,7 +435,9 @@ async def test_suggestions_no_upsell_when_overdue(http_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_suggestions_engagement_alert_for_premium_no_visit(http_client: AsyncClient):
+async def test_suggestions_engagement_alert_for_premium_no_visit(
+    http_client: AsyncClient,
+):
     """Premium client with no visits at all → engagement_alert suggestion."""
     h = await _auth_consultant(http_client, "dash_sg6@test.com")
     await _create_client(http_client, h, "Ghosted Premium", formula="premium")
@@ -420,7 +475,9 @@ async def test_suggestions_no_renewal_outside_window(http_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_suggestions_no_engagement_alert_when_recent_visit(http_client: AsyncClient):
+async def test_suggestions_no_engagement_alert_when_recent_visit(
+    http_client: AsyncClient,
+):
     """Premium client with a recent completed visit (< 35 days) → no engagement_alert."""
     h = await _auth_consultant(http_client, "dash_sg9@test.com")
     c = await _create_client(http_client, h, "Active Premium", formula="premium")

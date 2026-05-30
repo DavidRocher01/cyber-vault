@@ -2,8 +2,10 @@
 Integration tests — /api/v1/rssi (Sprint 1)
 Covers: client CRUD (enhanced schema), visits CRUD, actions CRUD, auth guards.
 """
+
+from datetime import UTC, datetime
+
 import pytest
-from datetime import date, datetime, timezone
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,15 +15,21 @@ BASE = "/api/v1"
 
 # ── helpers ────────────────────────────────────────────────────────────────────
 
+
 async def _register_and_login(http_client: AsyncClient, email: str) -> dict:
-    await http_client.post(f"{BASE}/auth/register", json={"email": email, "password": "StrongPass123!"})
-    r = await http_client.post(f"{BASE}/auth/login", json={"email": email, "password": "StrongPass123!"})
+    await http_client.post(
+        f"{BASE}/auth/register", json={"email": email, "password": "StrongPass123!"}
+    )
+    r = await http_client.post(
+        f"{BASE}/auth/login", json={"email": email, "password": "StrongPass123!"}
+    )
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
 async def _register_and_login_consultant(http_client: AsyncClient, email: str) -> dict:
     import app.core.database as _db_mod
     from app.models.user import User
+
     headers = await _register_and_login(http_client, email)
     async with _db_mod.AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.email == email))
@@ -31,7 +39,9 @@ async def _register_and_login_consultant(http_client: AsyncClient, email: str) -
     return headers
 
 
-async def _create_client(http_client: AsyncClient, headers: dict, name: str = "Acme", **kwargs) -> dict:
+async def _create_client(
+    http_client: AsyncClient, headers: dict, name: str = "Acme", **kwargs
+) -> dict:
     payload = {"name": name, **kwargs}
     r = await http_client.post(f"{BASE}/rssi/clients", json=payload, headers=headers)
     assert r.status_code == 201, r.text
@@ -40,6 +50,7 @@ async def _create_client(http_client: AsyncClient, headers: dict, name: str = "A
 
 # ── Auth guard ─────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_list_clients_no_auth_returns_401(http_client: AsyncClient):
     r = await http_client.get(f"{BASE}/rssi/clients")
@@ -47,6 +58,7 @@ async def test_list_clients_no_auth_returns_401(http_client: AsyncClient):
 
 
 # ── Client CRUD ────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_create_client_basic(http_client: AsyncClient):
@@ -62,7 +74,8 @@ async def test_create_client_basic(http_client: AsyncClient):
 async def test_create_client_full_schema(http_client: AsyncClient):
     headers = await _register_and_login_consultant(http_client, "rssi2@test.com")
     client = await _create_client(
-        http_client, headers,
+        http_client,
+        headers,
         name="Corp SA",
         formula="premium",
         monthly_amount=3200.0,
@@ -157,6 +170,7 @@ async def test_cannot_access_other_user_client(http_client: AsyncClient):
 
 # ── Visits CRUD ────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_create_visit(http_client: AsyncClient):
     headers = await _register_and_login_consultant(http_client, "rssi11@test.com")
@@ -165,7 +179,11 @@ async def test_create_visit(http_client: AsyncClient):
 
     r = await http_client.post(
         f"{BASE}/rssi/clients/{cid}/visits",
-        json={"scheduled_date": "2026-06-15", "visit_type": "monthly", "location": "onsite"},
+        json={
+            "scheduled_date": "2026-06-15",
+            "visit_type": "monthly",
+            "location": "onsite",
+        },
         headers=headers,
     )
     assert r.status_code == 201
@@ -202,14 +220,22 @@ async def test_update_visit_to_completed(http_client: AsyncClient):
 
     r = await http_client.post(
         f"{BASE}/rssi/clients/{cid}/visits",
-        json={"scheduled_date": "2026-06-15", "visit_type": "monthly", "location": "onsite"},
+        json={
+            "scheduled_date": "2026-06-15",
+            "visit_type": "monthly",
+            "location": "onsite",
+        },
         headers=headers,
     )
     vid = r.json()["id"]
 
     r2 = await http_client.put(
         f"{BASE}/rssi/clients/{cid}/visits/{vid}",
-        json={"status": "completed", "actual_date": "2026-06-15", "duration_hours": 3.5},
+        json={
+            "status": "completed",
+            "actual_date": "2026-06-15",
+            "duration_hours": 3.5,
+        },
         headers=headers,
     )
     assert r2.status_code == 200
@@ -223,7 +249,11 @@ async def test_create_visit_invalid_type_returns_422(http_client: AsyncClient):
     client = await _create_client(http_client, headers)
     r = await http_client.post(
         f"{BASE}/rssi/clients/{client['id']}/visits",
-        json={"scheduled_date": "2026-06-15", "visit_type": "surprise", "location": "onsite"},
+        json={
+            "scheduled_date": "2026-06-15",
+            "visit_type": "surprise",
+            "location": "onsite",
+        },
         headers=headers,
     )
     assert r.status_code == 422
@@ -237,7 +267,11 @@ async def test_delete_visit(http_client: AsyncClient):
 
     r = await http_client.post(
         f"{BASE}/rssi/clients/{cid}/visits",
-        json={"scheduled_date": "2026-06-15", "visit_type": "monthly", "location": "onsite"},
+        json={
+            "scheduled_date": "2026-06-15",
+            "visit_type": "monthly",
+            "location": "onsite",
+        },
         headers=headers,
     )
     vid = r.json()["id"]
@@ -250,6 +284,7 @@ async def test_delete_visit(http_client: AsyncClient):
 
 
 # ── Actions CRUD ───────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_create_action(http_client: AsyncClient):
@@ -409,12 +444,15 @@ async def test_action_not_accessible_from_other_client(http_client: AsyncClient)
 
 # ── get_rssi_consultant dependency ────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_get_rssi_consultant_raises_for_normal_user(http_client: AsyncClient):
     """get_rssi_consultant should 403 if is_rssi_consultant=False."""
-    from app.core.deps import get_rssi_consultant
     from unittest.mock import MagicMock
+
     from fastapi import HTTPException
+
+    from app.core.deps import get_rssi_consultant
     from app.models.user import User
 
     user = MagicMock(spec=User)
@@ -427,8 +465,9 @@ async def test_get_rssi_consultant_raises_for_normal_user(http_client: AsyncClie
 
 @pytest.mark.asyncio
 async def test_get_rssi_consultant_passes_for_rssi_user(http_client: AsyncClient):
-    from app.core.deps import get_rssi_consultant
     from unittest.mock import MagicMock
+
+    from app.core.deps import get_rssi_consultant
     from app.models.user import User
 
     user = MagicMock(spec=User)
@@ -440,13 +479,14 @@ async def test_get_rssi_consultant_passes_for_rssi_user(http_client: AsyncClient
 
 # ── list_clients — site/scan aggregation ──────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_list_clients_aggregates_site_and_scan_status(
     http_client: AsyncClient, db_session: AsyncSession
 ):
     """Covers the site/scan join branches in list_clients (lines 221, 226-233, 242-244)."""
-    from app.models.site import Site
     from app.models.scan import Scan
+    from app.models.site import Site
     from app.models.user import User
 
     headers = await _register_and_login_consultant(http_client, "rssi_sites@test.com")
@@ -456,13 +496,22 @@ async def test_list_clients_aggregates_site_and_scan_status(
     user_row = await db_session.execute(select(User).where(User.email == "rssi_sites@test.com"))
     user = user_row.scalar_one()
 
-    site = Site(user_id=user.id, url="https://siteco.example.com", name="SiteCo Site",
-                rssi_client_id=client["id"], is_active=True)
+    site = Site(
+        user_id=user.id,
+        url="https://siteco.example.com",
+        name="SiteCo Site",
+        rssi_client_id=client["id"],
+        is_active=True,
+    )
     db_session.add(site)
     await db_session.flush()
 
-    scan = Scan(site_id=site.id, status="done", overall_status="WARNING",
-                finished_at=datetime.now(timezone.utc))
+    scan = Scan(
+        site_id=site.id,
+        status="done",
+        overall_status="WARNING",
+        finished_at=datetime.now(UTC),
+    )
     db_session.add(scan)
     await db_session.commit()
 
@@ -477,10 +526,13 @@ async def test_list_clients_aggregates_site_and_scan_status(
 
 # ── GET /clients/{id} ─────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_get_client_returns_own_client(http_client: AsyncClient):
     headers = await _register_and_login_consultant(http_client, "rssi_getone@test.com")
-    client = await _create_client(http_client, headers, "GetMe", formula="premium", monthly_amount=1500.0)
+    client = await _create_client(
+        http_client, headers, "GetMe", formula="premium", monthly_amount=1500.0
+    )
     r = await http_client.get(f"{BASE}/rssi/clients/{client['id']}", headers=headers)
     assert r.status_code == 200
     data = r.json()
@@ -512,6 +564,7 @@ async def test_get_client_requires_auth(http_client: AsyncClient):
 
 
 # ── update_client — remaining branches ────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_update_client_invalid_formula_returns_422(http_client: AsyncClient):
@@ -559,13 +612,18 @@ async def test_update_client_all_optional_fields(http_client: AsyncClient):
 
 # ── Visits — remaining branches ───────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_create_visit_invalid_location_returns_422(http_client: AsyncClient):
     headers = await _register_and_login_consultant(http_client, "rssi_visit_loc@test.com")
     client = await _create_client(http_client, headers)
     r = await http_client.post(
         f"{BASE}/rssi/clients/{client['id']}/visits",
-        json={"scheduled_date": "2026-06-15", "visit_type": "monthly", "location": "helicopter"},
+        json={
+            "scheduled_date": "2026-06-15",
+            "visit_type": "monthly",
+            "location": "helicopter",
+        },
         headers=headers,
     )
     assert r.status_code == 422
@@ -589,7 +647,11 @@ async def test_update_visit_invalid_status_returns_422(http_client: AsyncClient)
     client = await _create_client(http_client, headers)
     r_v = await http_client.post(
         f"{BASE}/rssi/clients/{client['id']}/visits",
-        json={"scheduled_date": "2026-06-15", "visit_type": "monthly", "location": "onsite"},
+        json={
+            "scheduled_date": "2026-06-15",
+            "visit_type": "monthly",
+            "location": "onsite",
+        },
         headers=headers,
     )
     vid = r_v.json()["id"]
@@ -607,7 +669,11 @@ async def test_update_visit_invalid_type_returns_422(http_client: AsyncClient):
     client = await _create_client(http_client, headers)
     r_v = await http_client.post(
         f"{BASE}/rssi/clients/{client['id']}/visits",
-        json={"scheduled_date": "2026-06-15", "visit_type": "monthly", "location": "onsite"},
+        json={
+            "scheduled_date": "2026-06-15",
+            "visit_type": "monthly",
+            "location": "onsite",
+        },
         headers=headers,
     )
     vid = r_v.json()["id"]
@@ -627,7 +693,11 @@ async def test_update_visit_partial_fields(http_client: AsyncClient):
     cid = client["id"]
     r_v = await http_client.post(
         f"{BASE}/rssi/clients/{cid}/visits",
-        json={"scheduled_date": "2026-06-15", "visit_type": "monthly", "location": "onsite"},
+        json={
+            "scheduled_date": "2026-06-15",
+            "visit_type": "monthly",
+            "location": "onsite",
+        },
         headers=headers,
     )
     vid = r_v.json()["id"]
@@ -662,6 +732,7 @@ async def test_delete_visit_not_found_returns_404(http_client: AsyncClient):
 
 
 # ── Actions — remaining branches ──────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_create_action_empty_title_returns_422(http_client: AsyncClient):

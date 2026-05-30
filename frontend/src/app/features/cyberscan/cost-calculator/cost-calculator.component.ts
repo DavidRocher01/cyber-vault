@@ -15,8 +15,13 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
   standalone: true,
   selector: 'app-cost-calculator',
   imports: [
-    CommonModule, ReactiveFormsModule, RouterLink,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
     NavButtonsComponent,
   ],
   templateUrl: './cost-calculator.component.html',
@@ -56,7 +61,10 @@ export class CostCalculatorComponent implements OnInit {
   ngOnInit() {
     this.title.setTitle('Calculateur coût cyberattaque — PME | CyberScan');
     this.calcService.getQuestions().subscribe({
-      next: qs => { this.questions.set(qs); this.loading.set(false); },
+      next: qs => {
+        this.questions.set(qs);
+        this.loading.set(false);
+      },
       error: () => this.loading.set(false),
     });
   }
@@ -84,7 +92,10 @@ export class CostCalculatorComponent implements OnInit {
   submit() {
     this.submitting.set(true);
     const { email, company } = this.emailForm.getRawValue();
-    const answerList = Object.entries(this.answers()).map(([key, option_id]) => ({ key, option_id }));
+    const answerList = Object.entries(this.answers()).map(([key, option_id]) => ({
+      key,
+      option_id,
+    }));
     this.calcService.estimate(answerList, email || undefined, company || undefined).subscribe({
       next: r => {
         this.result.set(r);
@@ -112,7 +123,11 @@ export class CostCalculatorComponent implements OnInit {
   }
 
   formatEur(n: number): string {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'EUR',
+      maximumFractionDigits: 0,
+    }).format(n);
   }
 
   breakdownColor(pct: number): string {

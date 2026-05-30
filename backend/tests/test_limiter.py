@@ -3,16 +3,15 @@ Unit tests — app.core.limiter._get_real_ip
 
 Verifies correct IP extraction for all proxy configurations and spoofing scenarios.
 """
-from unittest.mock import MagicMock, patch
 
-import pytest
-from starlette.datastructures import Headers
+from unittest.mock import patch
+
 from starlette.requests import Request
 
 from app.core.limiter import _get_real_ip, _is_public_ip
 
-
 # ── _is_public_ip ─────────────────────────────────────────────────────────────
+
 
 class TestIsPublicIp:
     def test_public_ipv4(self):
@@ -45,6 +44,7 @@ class TestIsPublicIp:
 
 # ── _get_real_ip helpers ───────────────────────────────────────────────────────
 
+
 def _make_request(xff: str | None, client_host: str = "10.0.1.100") -> Request:
     """Build a minimal fake Request with the given X-Forwarded-For header."""
     scope = {
@@ -61,6 +61,7 @@ def _make_request(xff: str | None, client_host: str = "10.0.1.100") -> Request:
 
 
 # ── _get_real_ip — no proxy (TRUSTED_PROXY_COUNT=0) ──────────────────────────
+
 
 class TestGetRealIpNoproxy:
     def test_no_xff_uses_client_host(self):
@@ -80,6 +81,7 @@ class TestGetRealIpNoproxy:
 
 
 # ── _get_real_ip — one proxy / ALB only (TRUSTED_PROXY_COUNT=1) ───────────────
+
 
 class TestGetRealIpOneProxy:
     def test_xff_with_one_proxy(self):
@@ -108,6 +110,7 @@ class TestGetRealIpOneProxy:
 
 
 # ── _get_real_ip — two proxies / CloudFront + ALB (TRUSTED_PROXY_COUNT=2) ─────
+
 
 class TestGetRealIpTwoProxies:
     def test_cloudfront_alb_chain(self):
@@ -151,6 +154,7 @@ class TestGetRealIpTwoProxies:
 
 
 # ── _get_real_ip — edge cases ─────────────────────────────────────────────────
+
 
 class TestGetRealIpEdgeCases:
     def test_empty_xff(self):

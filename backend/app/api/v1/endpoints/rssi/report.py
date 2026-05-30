@@ -9,6 +9,7 @@ from app.models.rssi_action import RssiAction
 from app.models.rssi_deliverable import RssiDeliverable
 from app.models.rssi_visit import RssiVisit
 from app.models.user import User
+
 from ._shared import _get_client_or_404
 
 router = APIRouter()
@@ -42,59 +43,63 @@ async def get_client_report(
     )
 
     client_dict = {
-        "name":                  client.name,
-        "email":                 client.email,
-        "description":           client.description,
-        "formula":               client.formula,
-        "monthly_amount":        float(client.monthly_amount) if client.monthly_amount else None,
-        "contract_renewal_at":   str(client.contract_renewal_at) if client.contract_renewal_at else None,
-        "status":                client.status,
-        "notion_workspace_url":  client.notion_workspace_url,
-        "pipedrive_deal_id":     client.pipedrive_deal_id,
+        "name": client.name,
+        "email": client.email,
+        "description": client.description,
+        "formula": client.formula,
+        "monthly_amount": float(client.monthly_amount) if client.monthly_amount else None,
+        "contract_renewal_at": str(client.contract_renewal_at)
+        if client.contract_renewal_at
+        else None,
+        "status": client.status,
+        "notion_workspace_url": client.notion_workspace_url,
+        "pipedrive_deal_id": client.pipedrive_deal_id,
         "pennylane_customer_id": client.pennylane_customer_id,
     }
     actions_list = [
         {
-            "title":       a.title,
-            "priority":    a.priority,
-            "status":      a.status,
-            "due_date":    str(a.due_date) if a.due_date else None,
+            "title": a.title,
+            "priority": a.priority,
+            "status": a.status,
+            "due_date": str(a.due_date) if a.due_date else None,
             "assigned_to": a.assigned_to,
-            "category":    a.category,
+            "category": a.category,
         }
         for a in actions_result.scalars().all()
     ]
     visits_list = [
         {
             "scheduled_date": str(v.scheduled_date),
-            "visit_type":     v.visit_type,
-            "location":       v.location,
-            "status":         v.status,
+            "visit_type": v.visit_type,
+            "location": v.location,
+            "status": v.status,
             "duration_hours": float(v.duration_hours) if v.duration_hours else None,
-            "actual_date":    str(v.actual_date) if v.actual_date else None,
+            "actual_date": str(v.actual_date) if v.actual_date else None,
         }
         for v in visits_result.scalars().all()
     ]
     deliverables_list = [
         {
-            "title":        d.title,
-            "doc_type":     d.doc_type,
+            "title": d.title,
+            "doc_type": d.doc_type,
             "delivered_at": str(d.delivered_at),
-            "file_url":     d.file_url,
-            "notes":        d.notes,
+            "file_url": d.file_url,
+            "notes": d.notes,
         }
         for d in deliverables_result.scalars().all()
     ]
 
     consultant_dict = {
-        "email":        current_user.email,
+        "email": current_user.email,
         "display_name": current_user.display_name,
         "company_name": current_user.company_name,
-        "phone":        current_user.phone,
+        "phone": current_user.phone,
     }
-    pdf_bytes = generate_rssi_report(client_dict, actions_list, visits_list, deliverables_list, consultant_dict)
+    pdf_bytes = generate_rssi_report(
+        client_dict, actions_list, visits_list, deliverables_list, consultant_dict
+    )
     safe_name = client.name.replace(" ", "_").replace("/", "-").lower()
-    filename  = f"rapport_rssi_{safe_name}.pdf"
+    filename = f"rapport_rssi_{safe_name}.pdf"
 
     return StreamingResponse(
         iter([pdf_bytes]),

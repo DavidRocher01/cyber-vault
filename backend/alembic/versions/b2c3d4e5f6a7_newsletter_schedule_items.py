@@ -5,18 +5,19 @@ Revises: c1d2e3f4a5b6
 Create Date: 2026-04-08 18:00:00.000000
 
 """
-from typing import Union
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "d2e3f4a5b6c7"
-down_revision: Union[str, None] = "c1d2e3f4a5b6"
+down_revision: str | None = "c1d2e3f4a5b6"
 branch_labels = None
 depends_on = None
 
-_NOW = datetime.now(timezone.utc)
+_NOW = datetime.now(UTC)
 
 _SEED = [
     {

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Generate a combined HTML preview of all 13 phishing email templates."""
+
 import os
 import re
 import sys
@@ -24,19 +25,19 @@ from app.services.phishing_service import (  # noqa: E402
 )
 
 TEMPLATES = [
-    ("CEO Fraud — Virement urgent",           "ceo-fraud",         _tpl_ceo_fraud),
-    ("Microsoft 365 — Connexion suspecte",    "o365-credentials",  _tpl_o365),
-    ("Facture impayée — Relance comptabilité","fake-invoice",       _tpl_fake_invoice),
-    ("Alerte bancaire — Transaction suspecte","bank-phishing",      _tpl_bank),
-    ("Colis non livré — Réexpédition",        "parcel-tracking",   _tpl_parcel),
-    ("DSI — Renouvellement mot de passe",     "it-password",       _tpl_it_password),
-    ("RH — Carte cadeau gagnée",              "prize",             _tpl_prize),
-    ("Signature électronique requise",        "invoice-pdf",       _tpl_invoice_pdf),
-    ("Vulnérabilité VPN critique",            "vpn-update",        _tpl_vpn_update),
-    ("Document RH confidentiel",              "hr-document",       _tpl_hr_document),
-    ("Notification Microsoft Teams",          "teams-message",     _tpl_teams),
-    ("Partage de document SharePoint",        "sharepoint-share",  _tpl_sharepoint),
-    ("Ticket Helpdesk DSI — Haute priorité",  "it-ticket",         _tpl_it_ticket),
+    ("CEO Fraud — Virement urgent", "ceo-fraud", _tpl_ceo_fraud),
+    ("Microsoft 365 — Connexion suspecte", "o365-credentials", _tpl_o365),
+    ("Facture impayée — Relance comptabilité", "fake-invoice", _tpl_fake_invoice),
+    ("Alerte bancaire — Transaction suspecte", "bank-phishing", _tpl_bank),
+    ("Colis non livré — Réexpédition", "parcel-tracking", _tpl_parcel),
+    ("DSI — Renouvellement mot de passe", "it-password", _tpl_it_password),
+    ("RH — Carte cadeau gagnée", "prize", _tpl_prize),
+    ("Signature électronique requise", "invoice-pdf", _tpl_invoice_pdf),
+    ("Vulnérabilité VPN critique", "vpn-update", _tpl_vpn_update),
+    ("Document RH confidentiel", "hr-document", _tpl_hr_document),
+    ("Notification Microsoft Teams", "teams-message", _tpl_teams),
+    ("Partage de document SharePoint", "sharepoint-share", _tpl_sharepoint),
+    ("Ticket Helpdesk DSI — Haute priorité", "it-ticket", _tpl_it_ticket),
 ]
 
 
@@ -75,7 +76,8 @@ def main() -> None:
   <div class="email-wrapper">{body}</div>
 </div>""")
 
-    document = """\
+    document = (
+        """\
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -114,11 +116,15 @@ def main() -> None:
 </style>
 </head>
 <body>
-""" + "\n".join(pages) + "\n</body>\n</html>"
+"""
+        + "\n".join(pages)
+        + "\n</body>\n</html>"
+    )
 
     out = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "..", "phishing_templates_preview.html",
+        "..",
+        "phishing_templates_preview.html",
     )
     out = os.path.normpath(out)
     with open(out, "w", encoding="utf-8") as f:

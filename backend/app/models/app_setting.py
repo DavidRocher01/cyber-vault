@@ -6,6 +6,7 @@ from app.core.database import Base
 
 class AppSetting(Base):
     """Key/value store for app-level config persisted across restarts."""
+
     __tablename__ = "app_settings"
 
     key: Mapped[str] = mapped_column(String(128), primary_key=True)

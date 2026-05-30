@@ -1,6 +1,14 @@
 from pydantic import BaseModel, EmailStr, field_validator
 
-NEED_TYPES = {"audit-flash", "audit-app", "pentest", "abonnement", "autre"}
+NEED_TYPES = {
+    "audit-flash",
+    "audit-app",
+    "pentest",
+    "simulation-phishing",
+    "abonnement",
+    "sensibilisation-nis2",
+    "autre",
+}
 
 
 class ContactIn(BaseModel):

@@ -5,13 +5,13 @@ Revises: b3c4d5e6f7a8
 Create Date: 2026-04-14 12:00:00.000000
 
 """
-from typing import Union
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "c4d5e6f7a8b9"
-down_revision: Union[str, None] = "b3c4d5e6f7a8"
+down_revision: str | None = "b3c4d5e6f7a8"
 branch_labels = None
 depends_on = None
 
@@ -29,7 +29,12 @@ def upgrade() -> None:
         sa.UniqueConstraint("user_id", name="uq_iso27001_assessments_user_id"),
     )
     op.create_index("ix_iso27001_assessments_id", "iso27001_assessments", ["id"], unique=False)
-    op.create_index("ix_iso27001_assessments_user_id", "iso27001_assessments", ["user_id"], unique=True)
+    op.create_index(
+        "ix_iso27001_assessments_user_id",
+        "iso27001_assessments",
+        ["user_id"],
+        unique=True,
+    )
 
 
 def downgrade() -> None:

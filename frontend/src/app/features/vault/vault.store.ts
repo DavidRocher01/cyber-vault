@@ -6,7 +6,9 @@ import { from, switchMap, concatMap, map, tap } from 'rxjs';
 import { VaultItem, VaultItemCreate, VaultService } from '../../core/services/vault.service';
 import { CryptoService } from '../../core/services/crypto.service';
 
-interface VaultItemUpdate extends Partial<VaultItemCreate> { id: number; }
+interface VaultItemUpdate extends Partial<VaultItemCreate> {
+  id: number;
+}
 
 interface VaultState {
   items: VaultItem[];
@@ -20,7 +22,10 @@ export class VaultStore extends ComponentStore<VaultState> {
   readonly loading$ = this.select(s => s.loading);
   readonly error$ = this.select(s => s.error);
 
-  constructor(private vaultService: VaultService, private cryptoService: CryptoService) {
+  constructor(
+    private vaultService: VaultService,
+    private cryptoService: CryptoService
+  ) {
     super({ items: [], loading: false, error: null });
   }
 
@@ -31,7 +36,11 @@ export class VaultStore extends ComponentStore<VaultState> {
         this.vaultService.getAll().pipe(
           tapResponse(
             items => this.patchState({ items, loading: false }),
-            (err: any) => this.patchState({ loading: false, error: err.error?.detail ?? 'Erreur de chargement' })
+            (err: any) =>
+              this.patchState({
+                loading: false,
+                error: err.error?.detail ?? 'Erreur de chargement',
+              })
           )
         )
       )
@@ -60,14 +69,17 @@ export class VaultStore extends ComponentStore<VaultState> {
     payload$.pipe(
       concatMap(({ id, password_encrypted, ...rest }) => {
         const encrypt$ = password_encrypted
-          ? from(this.cryptoService.encrypt(password_encrypted)).pipe(map(e => ({ password_encrypted: e })))
+          ? from(this.cryptoService.encrypt(password_encrypted)).pipe(
+              map(e => ({ password_encrypted: e }))
+            )
           : from(Promise.resolve({}));
         return encrypt$.pipe(map(extra => ({ id, ...rest, ...extra })));
       }),
       concatMap(({ id, ...payload }) =>
         this.vaultService.update(id, payload).pipe(
           tapResponse(
-            updated => this.patchState(s => ({ items: s.items.map(i => i.id === id ? updated : i) })),
+            updated =>
+              this.patchState(s => ({ items: s.items.map(i => (i.id === id ? updated : i)) })),
             (err: any) => this.patchState({ error: err.error?.detail ?? 'Erreur de modification' })
           )
         )

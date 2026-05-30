@@ -1,6 +1,5 @@
 <div class="min-h-screen bg-gray-950 flex items-center justify-center px-4">
   <div class="w-full max-w-md text-center space-y-6">
-
     <!-- Logo -->
     <div class="flex items-center justify-center gap-2 mb-8">
       <span class="text-white font-bold text-xl">CyberScan</span>
@@ -10,7 +9,9 @@
     <!-- Loading -->
     @if (state() === 'loading') {
       <div class="bg-gray-800/50 border border-gray-700 rounded-2xl p-10 space-y-4">
-        <div class="w-12 h-12 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <div
+          class="w-12 h-12 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto"
+        ></div>
         <p class="text-gray-400">Traitement en cours…</p>
       </div>
     }
@@ -18,7 +19,9 @@
     <!-- Accepted -->
     @if (state() === 'accepted') {
       <div class="bg-green-900/20 border border-green-700 rounded-2xl p-10 space-y-4">
-        <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
+        <div
+          class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto"
+        >
           <mat-icon class="text-green-400 !text-4xl !w-10 !h-10">check_circle</mat-icon>
         </div>
         <h1 class="text-white font-bold text-xl">Devis accepté !</h1>
@@ -41,8 +44,10 @@
           Votre refus pour le devis <strong class="text-white">{{ quoteNumber() }}</strong>
           a été enregistré. N'hésitez pas à me contacter si vous souhaitez en discuter.
         </p>
-        <a routerLink="/cyberscan/contact"
-           class="inline-block mt-2 px-5 py-2.5 rounded-xl bg-gray-700 text-gray-300 hover:bg-gray-600 text-sm transition-colors">
+        <a
+          routerLink="/cyberscan/contact"
+          class="inline-block mt-2 px-5 py-2.5 rounded-xl bg-gray-700 text-gray-300 hover:bg-gray-600 text-sm transition-colors"
+        >
           Nous contacter
         </a>
       </div>
@@ -65,12 +70,13 @@
         <mat-icon class="text-red-400 !text-5xl !w-12 !h-12 mx-auto block">error_outline</mat-icon>
         <h1 class="text-white font-bold text-xl">Erreur</h1>
         <p class="text-gray-400 text-sm">{{ errorMsg() }}</p>
-        <a routerLink="/cyberscan/contact"
-           class="inline-block mt-2 px-5 py-2.5 rounded-xl bg-gray-700 text-gray-300 hover:bg-gray-600 text-sm transition-colors">
+        <a
+          routerLink="/cyberscan/contact"
+          class="inline-block mt-2 px-5 py-2.5 rounded-xl bg-gray-700 text-gray-300 hover:bg-gray-600 text-sm transition-colors"
+        >
           Contacter le support
         </a>
       </div>
     }
-
   </div>
 </div>

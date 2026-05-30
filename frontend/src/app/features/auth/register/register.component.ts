@@ -1,6 +1,12 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AbstractControl, ReactiveFormsModule, FormBuilder, ValidationErrors, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  ReactiveFormsModule,
+  FormBuilder,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -19,14 +25,20 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
 }
 
 @Component({
-    standalone: true,
-    selector: 'app-register',
-    imports: [
-        CommonModule, ReactiveFormsModule, RouterLink,
-        MatCardModule, MatFormFieldModule, MatInputModule,
-        MatButtonModule, MatIconModule, MatProgressSpinnerModule,
-    ],
-    templateUrl: './register.component.html'
+  standalone: true,
+  selector: 'app-register',
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+  ],
+  templateUrl: './register.component.html',
 })
 export class RegisterComponent {
   private fb = inject(FormBuilder);
@@ -39,11 +51,14 @@ export class RegisterComponent {
     return url?.startsWith('/cyberscan/') ? url : null;
   }
 
-  form = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]],
-    confirmPassword: ['', Validators.required],
-  }, { validators: passwordMatchValidator });
+  form = this.fb.nonNullable.group(
+    {
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(8)]],
+      confirmPassword: ['', Validators.required],
+    },
+    { validators: passwordMatchValidator }
+  );
 
   error: string | null = null;
   loading = false;
@@ -78,11 +93,15 @@ export class RegisterComponent {
     if (this.form.invalid) return;
     this.loading = true;
     const { email, password } = this.form.getRawValue();
-    this.authService.register(email, password).pipe(
-      switchMap(() => this.authService.login(email, password))
-    ).subscribe({
-      next: () => this.router.navigateByUrl(this.returnUrl || '/cyberscan/onboarding'),
-      error: err => { this.error = err.error?.detail ?? 'Erreur inscription'; this.loading = false; },
-    });
+    this.authService
+      .register(email, password)
+      .pipe(switchMap(() => this.authService.login(email, password)))
+      .subscribe({
+        next: () => this.router.navigateByUrl(this.returnUrl || '/cyberscan/onboarding'),
+        error: err => {
+          this.error = err.error?.detail ?? 'Erreur inscription';
+          this.loading = false;
+        },
+      });
   }
 }

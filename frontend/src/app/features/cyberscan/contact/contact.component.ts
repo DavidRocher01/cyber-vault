@@ -11,6 +11,10 @@ export const NEED_OPTIONS = [
   { value: 'audit-app', label: 'Audit App-Check — 725 € HT (SaaS, e-commerce)' },
   { value: 'pentest', label: 'Pentest léger — 1 900 € HT (données sensibles)' },
   { value: 'simulation-phishing', label: 'Simulation de phishing — à partir de 800 € HT' },
+  {
+    value: 'sensibilisation-nis2',
+    label: 'Formation NIS2 — Sensibilisation équipes (dès 49 €/mois)',
+  },
   { value: 'abonnement', label: 'Abonnement surveillance continue (~99–499 €/mois)' },
   { value: 'autre', label: 'Autre / Demande de devis' },
 ];
@@ -46,11 +50,14 @@ export class ContactComponent implements OnInit {
     this.titleService.setTitle('Contact — Réserver un audit cybersécurité | CyberScan');
     this.meta.updateTag({
       name: 'description',
-      content: 'Contactez David Rocher pour un audit cybersécurité PME. Réponse sous 4 h, devis sous 24 h.',
+      content:
+        'Contactez David Rocher pour un audit cybersécurité PME. Réponse sous 4 h, devis sous 24 h.',
     });
   }
 
-  get f() { return this.form.controls; }
+  get f() {
+    return this.form.controls;
+  }
 
   get messageLength(): number {
     return (this.f['message'].value as string)?.length ?? 0;
@@ -61,10 +68,14 @@ export class ContactComponent implements OnInit {
     this.status = 'sending';
     const { rgpd, ...payload } = this.form.value;
     this.http.post<{ message: string }>('/api/v1/contact', payload).subscribe({
-      next: () => { this.status = 'sent'; },
-      error: (err) => {
+      next: () => {
+        this.status = 'sent';
+      },
+      error: err => {
         this.status = 'error';
-        this.errorMessage = err?.error?.detail ?? 'Une erreur est survenue. Réessayez ou écrivez directement à rocherdavid@ymail.com.';
+        this.errorMessage =
+          err?.error?.detail ??
+          'Une erreur est survenue. Réessayez ou écrivez directement à rocherdavid@ymail.com.';
       },
     });
   }

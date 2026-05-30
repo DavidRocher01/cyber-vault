@@ -14,6 +14,7 @@ class UserLogin(BaseModel):
 
 class LoginOut(BaseModel):
     """Returned when 2FA is required before issuing tokens."""
+
     requires_2fa: bool = True
 
 
@@ -70,8 +71,8 @@ class ResetPasswordIn(BaseModel):
 
 
 class TwoFactorSetupOut(BaseModel):
-    qr_code_b64: str   # base64 PNG
-    secret: str        # manual entry fallback
+    qr_code_b64: str  # base64 PNG
+    secret: str  # manual entry fallback
 
 
 class TwoFactorSetupIn(BaseModel):
@@ -79,9 +80,9 @@ class TwoFactorSetupIn(BaseModel):
 
 
 class TwoFactorVerifyIn(BaseModel):
-    code: str          # 6-digit TOTP code
+    code: str  # 6-digit TOTP code
 
 
 class TwoFactorDisableIn(BaseModel):
     password: str
-    code: str          # TOTP code required to disable
+    code: str  # TOTP code required to disable

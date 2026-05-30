@@ -4,16 +4,43 @@
   @if (loading()) {
     <p class="text-gray-500 text-sm">Chargement...</p>
   } @else if (stats()) {
-
     <!-- KPI cards -->
     <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
-      @for (kpi of [
-        { label: 'Utilisateurs', value: stats()!.users_total, icon: 'people', color: 'text-cyan-400' },
-        { label: 'Abonnements actifs', value: stats()!.active_subscriptions, icon: 'workspace_premium', color: 'text-emerald-400' },
-        { label: 'Abonnés newsletter', value: stats()!.newsletter_subscribers, icon: 'mail', color: 'text-purple-400' },
-        { label: 'RDV ce mois', value: stats()!.bookings_this_month, icon: 'calendar_month', color: 'text-orange-400' },
-        { label: 'Contacts non lus', value: stats()!.new_contacts, icon: 'mark_unread_chat_alt', color: 'text-red-400' }
-      ]; track kpi.label) {
+      @for (
+        kpi of [
+          {
+            label: 'Utilisateurs',
+            value: stats()!.users_total,
+            icon: 'people',
+            color: 'text-cyan-400',
+          },
+          {
+            label: 'Abonnements actifs',
+            value: stats()!.active_subscriptions,
+            icon: 'workspace_premium',
+            color: 'text-emerald-400',
+          },
+          {
+            label: 'Abonnés newsletter',
+            value: stats()!.newsletter_subscribers,
+            icon: 'mail',
+            color: 'text-purple-400',
+          },
+          {
+            label: 'RDV ce mois',
+            value: stats()!.bookings_this_month,
+            icon: 'calendar_month',
+            color: 'text-orange-400',
+          },
+          {
+            label: 'Contacts non lus',
+            value: stats()!.new_contacts,
+            icon: 'mark_unread_chat_alt',
+            color: 'text-red-400',
+          },
+        ];
+        track kpi.label
+      ) {
         <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-4">
           <div class="flex items-center gap-2 mb-1">
             <mat-icon class="text-base !h-4 !w-4" [class]="kpi.color">{{ kpi.icon }}</mat-icon>
@@ -26,7 +53,6 @@
 
     <!-- Graphiques -->
     <div class="grid md:grid-cols-2 gap-6">
-
       <!-- Activité hebdo -->
       <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-5">
         <h2 class="text-white font-semibold text-sm mb-1">Activité — 8 dernières semaines</h2>
@@ -42,12 +68,16 @@
           @for (w of stats()!.weekly_activity; track w.label) {
             <div class="flex-1 flex flex-col items-center gap-0.5 h-full justify-end">
               <div class="w-full flex gap-0.5 items-end h-full">
-                <div class="flex-1 bg-cyan-500/80 rounded-t-sm transition-all min-h-[2px]"
-                     [style.height.%]="barHeight(w.users, maxWeekValue())"
-                     [title]="w.users + ' utilisateurs'"></div>
-                <div class="flex-1 bg-purple-500/80 rounded-t-sm transition-all min-h-[2px]"
-                     [style.height.%]="barHeight(w.scans, maxWeekValue())"
-                     [title]="w.scans + ' scans'"></div>
+                <div
+                  class="flex-1 bg-cyan-500/80 rounded-t-sm transition-all min-h-[2px]"
+                  [style.height.%]="barHeight(w.users, maxWeekValue())"
+                  [title]="w.users + ' utilisateurs'"
+                ></div>
+                <div
+                  class="flex-1 bg-purple-500/80 rounded-t-sm transition-all min-h-[2px]"
+                  [style.height.%]="barHeight(w.scans, maxWeekValue())"
+                  [title]="w.scans + ' scans'"
+                ></div>
               </div>
               <span class="text-gray-600 text-[10px] w-full text-center mt-1">{{ w.label }}</span>
             </div>
@@ -66,9 +96,11 @@
         <div class="flex items-end gap-2 h-28">
           @for (m of stats()!.revenue_per_month; track m.label) {
             <div class="flex-1 flex flex-col items-center gap-0.5 h-full justify-end">
-              <div class="w-full bg-emerald-500/80 rounded-t-sm transition-all min-h-[2px]"
-                   [style.height.%]="barHeight(m.cents, maxRevenue())"
-                   [title]="formatEur(m.cents)"></div>
+              <div
+                class="w-full bg-emerald-500/80 rounded-t-sm transition-all min-h-[2px]"
+                [style.height.%]="barHeight(m.cents, maxRevenue())"
+                [title]="formatEur(m.cents)"
+              ></div>
               <span class="text-gray-600 text-[10px] w-full text-center mt-1">{{ m.label }}</span>
             </div>
           }
@@ -77,12 +109,10 @@
           Total 6 mois : <strong class="text-white">{{ formatEur(totalRevenue()) }}</strong>
         </p>
       </div>
-
     </div>
 
     <!-- Activité récente -->
     <div class="grid md:grid-cols-2 gap-6">
-
       <!-- Derniers contacts -->
       <div class="bg-gray-800/50 border border-gray-700 rounded-xl p-5">
         <div class="flex items-center justify-between mb-4">
@@ -90,7 +120,11 @@
             <mat-icon class="text-cyan-400 text-base">mail_outline</mat-icon>
             Derniers contacts
           </h2>
-          <a routerLink="/cyberscan/admin/contacts" class="text-cyan-400 text-xs hover:text-cyan-300">Voir tout →</a>
+          <a
+            routerLink="/cyberscan/admin/contacts"
+            class="text-cyan-400 text-xs hover:text-cyan-300"
+            >Voir tout →</a
+          >
         </div>
         @if (stats()!.recent_contacts.length === 0) {
           <p class="text-gray-500 text-sm">Aucun contact.</p>
@@ -100,13 +134,22 @@
               <div class="flex items-center justify-between p-2.5 rounded-lg bg-gray-900/50">
                 <div>
                   <p class="text-white text-xs font-medium">{{ c.name }}</p>
-                  <p class="text-gray-500 text-xs">{{ needLabel(c.need_type) }} · {{ formatDate(c.created_at) }}</p>
+                  <p class="text-gray-500 text-xs">
+                    {{ needLabel(c.need_type) }} · {{ formatDate(c.created_at) }}
+                  </p>
                 </div>
-                <span class="text-xs px-2 py-0.5 rounded-full"
-                      [class.bg-red-900]="c.status === 'new'" [class.text-red-300]="c.status === 'new'"
-                      [class.bg-emerald-900]="c.status === 'handled'" [class.text-emerald-300]="c.status === 'handled'"
-                      [class.bg-gray-700]="c.status === 'archived'" [class.text-gray-400]="c.status === 'archived'">
-                  {{ c.status === 'new' ? 'Nouveau' : c.status === 'handled' ? 'Traité' : 'Archivé' }}
+                <span
+                  class="text-xs px-2 py-0.5 rounded-full"
+                  [class.bg-red-900]="c.status === 'new'"
+                  [class.text-red-300]="c.status === 'new'"
+                  [class.bg-emerald-900]="c.status === 'handled'"
+                  [class.text-emerald-300]="c.status === 'handled'"
+                  [class.bg-gray-700]="c.status === 'archived'"
+                  [class.text-gray-400]="c.status === 'archived'"
+                >
+                  {{
+                    c.status === 'new' ? 'Nouveau' : c.status === 'handled' ? 'Traité' : 'Archivé'
+                  }}
                 </span>
               </div>
             }
@@ -121,7 +164,11 @@
             <mat-icon class="text-orange-400 text-base">calendar_month</mat-icon>
             Derniers rendez-vous
           </h2>
-          <a routerLink="/cyberscan/admin/ba61c5a60113/agenda" class="text-cyan-400 text-xs hover:text-cyan-300">Voir tout →</a>
+          <a
+            routerLink="/cyberscan/admin/ba61c5a60113/agenda"
+            class="text-cyan-400 text-xs hover:text-cyan-300"
+            >Voir tout →</a
+          >
         </div>
         @if (stats()!.recent_bookings.length === 0) {
           <p class="text-gray-500 text-sm">Aucun rendez-vous.</p>
@@ -130,13 +177,14 @@
             @for (b of stats()!.recent_bookings; track b.id) {
               <div class="p-2.5 rounded-lg bg-gray-900/50">
                 <p class="text-white text-xs font-medium">{{ b.name }}</p>
-                <p class="text-gray-500 text-xs">{{ b.date }} à {{ b.time }} · {{ formatDate(b.created_at) }}</p>
+                <p class="text-gray-500 text-xs">
+                  {{ b.date }} à {{ b.time }} · {{ formatDate(b.created_at) }}
+                </p>
               </div>
             }
           </div>
         }
       </div>
-
     </div>
   }
 </div>

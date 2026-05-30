@@ -152,10 +152,16 @@ export interface DashboardSuggestion {
 }
 
 export type ActivityActionType =
-  | 'view_client' | 'view_sites' | 'view_scans' | 'view_findings'
-  | 'generate_report' | 'send_deliverable'
-  | 'create_action' | 'update_action'
-  | 'create_visit' | 'update_visit';
+  | 'view_client'
+  | 'view_sites'
+  | 'view_scans'
+  | 'view_findings'
+  | 'generate_report'
+  | 'send_deliverable'
+  | 'create_action'
+  | 'update_action'
+  | 'create_visit'
+  | 'update_visit';
 
 export interface RssiSite {
   id: number;
@@ -173,7 +179,12 @@ export interface UnlinkedSite {
   name: string;
 }
 
-export type DeliverableDocType = 'compte_rendu' | 'rapport' | 'recommandation' | 'contrat' | 'autre';
+export type DeliverableDocType =
+  | 'compte_rendu'
+  | 'rapport'
+  | 'recommandation'
+  | 'contrat'
+  | 'autre';
 
 export interface RssiDeliverable {
   id: number;
@@ -367,8 +378,15 @@ export class RssiService {
     return this.http.post<RssiDeliverable>(`${API}/clients/${clientId}/deliverables`, data);
   }
 
-  updateDeliverable(clientId: number, deliverableId: number, data: RssiDeliverableUpdate): Observable<RssiDeliverable> {
-    return this.http.put<RssiDeliverable>(`${API}/clients/${clientId}/deliverables/${deliverableId}`, data);
+  updateDeliverable(
+    clientId: number,
+    deliverableId: number,
+    data: RssiDeliverableUpdate
+  ): Observable<RssiDeliverable> {
+    return this.http.put<RssiDeliverable>(
+      `${API}/clients/${clientId}/deliverables/${deliverableId}`,
+      data
+    );
   }
 
   deleteDeliverable(clientId: number, deliverableId: number): Observable<void> {
@@ -393,11 +411,15 @@ export class RssiService {
 
   // ── File upload / download (P8) ─────────────────────────────────────────────
 
-  uploadDeliverableFile(clientId: number, file: File): Observable<{ key: string; filename: string }> {
+  uploadDeliverableFile(
+    clientId: number,
+    file: File
+  ): Observable<{ key: string; filename: string }> {
     const form = new FormData();
     form.append('file', file);
     return this.http.post<{ key: string; filename: string }>(
-      `${API}/clients/${clientId}/deliverables/upload`, form
+      `${API}/clients/${clientId}/deliverables/upload`,
+      form
     );
   }
 

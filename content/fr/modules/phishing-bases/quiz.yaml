@@ -1,0 +1,168 @@
+# Quiz — Reconnaître le phishing en 5 indices
+# Format: pool de questions (5 affichées au hasard par tentative)
+
+questions:
+  - id: ph_01
+    type: single_choice
+    weight: 1
+    text: "Vous recevez un email de 'support@arnazon.com'. Quelle est la bonne réaction ?"
+    answers:
+      - id: a
+        text: "Cliquer sur le lien car Amazon est une entreprise de confiance"
+        correct: false
+      - id: b
+        text: "Vérifier l'adresse complète — 'arnazon' n'est pas Amazon"
+        correct: true
+      - id: c
+        text: "Répondre pour demander confirmation"
+        correct: false
+      - id: d
+        text: "Ignorer sans signaler"
+        correct: false
+    explanation: "L'adresse 'arnazon.com' usurpe 'amazon.com' avec un caractère modifié. Toujours vérifier l'adresse complète."
+
+  - id: ph_02
+    type: single_choice
+    weight: 1
+    text: "Un email indique 'Votre compte sera bloqué dans 2 heures'. Comment réagissez-vous ?"
+    answers:
+      - id: a
+        text: "Cliquer rapidement sur le lien pour éviter le blocage"
+        correct: false
+      - id: b
+        text: "Ralentir — l'urgence est une technique de manipulation"
+        correct: true
+      - id: c
+        text: "Transmettre l'email à un collègue pour avis"
+        correct: false
+      - id: d
+        text: "Appeler le service client du numéro dans l'email"
+        correct: false
+    explanation: "La pression temporelle est une manipulation classique. Plus un email est urgent, plus il faut prendre le temps de vérifier."
+
+  - id: ph_03
+    type: single_choice
+    weight: 1
+    text: "Comment vérifier un lien avant de cliquer ?"
+    answers:
+      - id: a
+        text: "Lire le texte affiché du lien"
+        correct: false
+      - id: b
+        text: "Survoler le lien avec la souris pour voir l'URL réelle"
+        correct: true
+      - id: c
+        text: "Cliquer et voir où ça mène"
+        correct: false
+      - id: d
+        text: "Demander à l'expéditeur si le lien est sûr par email"
+        correct: false
+    explanation: "Le survol (hover) révèle l'URL réelle en bas du navigateur, indépendamment du texte affiché."
+
+  - id: ph_04
+    type: multiple_choice
+    weight: 2
+    text: "Quels sont les éléments qui doivent vous alerter dans un email ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Une demande de mot de passe par email"
+        correct: true
+      - id: b
+        text: "Un logo de votre entreprise dans l'email"
+        correct: false
+      - id: c
+        text: "Des fautes d'orthographe inhabituelles"
+        correct: true
+      - id: d
+        text: "Une demande de virement urgent non planifié"
+        correct: true
+      - id: e
+        text: "Un email provenant d'un collègue connu"
+        correct: false
+    explanation: "Demande de mot de passe, fautes et virements urgents sont des signaux d'alarme. Un logo ou un nom connu peuvent être usurpés."
+
+  - id: ph_05
+    type: true_false
+    weight: 1
+    text: "Si je reconnais le nom de l'expéditeur, l'email est forcément légitime."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Le nom affiché peut être falsifié. Vérifiez toujours l'adresse email complète."
+
+  - id: ph_06
+    type: single_choice
+    weight: 1
+    text: "Que faire si vous avez cliqué sur un lien suspect ?"
+    answers:
+      - id: a
+        text: "Ne rien faire, probablement sans conséquence"
+        correct: false
+      - id: b
+        text: "Fermer l'onglet et oublier l'incident"
+        correct: false
+      - id: c
+        text: "Signaler immédiatement à votre responsable IT et déconnecter si nécessaire"
+        correct: true
+      - id: d
+        text: "Changer uniquement votre mot de passe email"
+        correct: false
+    explanation: "En cas de clic suspect, signalez immédiatement. Un signalement rapide limite les dégâts. Ne gérez pas seul."
+
+  - id: ph_07
+    type: single_choice
+    weight: 1
+    text: "Un email de 'Microsoft Support' vous informe que votre compte sera désactivé sauf si vous vous connectez via le lien fourni. Le lien pointe vers 'microsoft-support-verification.com'. Que faites-vous ?"
+    answers:
+      - id: a
+        text: "Cliquer rapidement pour éviter la désactivation"
+        correct: false
+      - id: b
+        text: "Ouvrir un nouvel onglet et aller directement sur microsoft.com"
+        correct: true
+      - id: c
+        text: "Répondre à l'email pour demander une explication"
+        correct: false
+      - id: d
+        text: "Appeler le numéro de téléphone fourni dans l'email"
+        correct: false
+    explanation: "Le domaine 'microsoft-support-verification.com' n'appartient pas à Microsoft. Allez toujours directement sur le site officiel en tapant l'adresse vous-même."
+
+  - id: ph_08
+    type: true_false
+    weight: 1
+    text: "Un email sans faute d'orthographe avec un logo parfait ne peut pas être du phishing."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Les outils d'IA permettent aujourd'hui de générer des emails de phishing parfaits, sans faute, dans n'importe quelle langue. La qualité visuelle ne garantit plus rien."
+
+  - id: ph_09
+    type: multiple_choice
+    weight: 2
+    text: "Vous recevez un email suspect qui cite votre nom et votre poste exactement. Quelles sources ont pu être utilisées par l'attaquant ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "LinkedIn"
+        correct: true
+      - id: b
+        text: "Le site web de votre entreprise"
+        correct: true
+      - id: c
+        text: "Un répertoire interne que l'attaquant a exfiltré"
+        correct: true
+      - id: d
+        text: "Un don de voyance"
+        correct: false
+      - id: e
+        text: "Des données achetées après une fuite précédente"
+        correct: true
+    explanation: "Les attaquants ciblés (spear phishing) font des recherches sur leurs cibles avant d'envoyer. LinkedIn, sites web, fuites passées — tout est utilisé pour personnaliser l'attaque."

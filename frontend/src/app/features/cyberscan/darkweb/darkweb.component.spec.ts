@@ -12,8 +12,10 @@ function make(): DarkwebComponent {
 
 describe('DarkwebComponent — statusColor()', () => {
   it('text-green-400 pour OK', () => expect(make().statusColor('OK')).toBe('text-green-400'));
-  it('text-yellow-400 pour WARNING', () => expect(make().statusColor('WARNING')).toBe('text-yellow-400'));
-  it('text-red-400 pour CRITICAL', () => expect(make().statusColor('CRITICAL')).toBe('text-red-400'));
+  it('text-yellow-400 pour WARNING', () =>
+    expect(make().statusColor('WARNING')).toBe('text-yellow-400'));
+  it('text-red-400 pour CRITICAL', () =>
+    expect(make().statusColor('CRITICAL')).toBe('text-red-400'));
   it('text-gray-400 par défaut', () => expect(make().statusColor('unknown')).toBe('text-gray-400'));
 });
 
@@ -34,14 +36,16 @@ describe('DarkwebComponent — statusIcon()', () => {
 describe('DarkwebComponent — statusLabel()', () => {
   it('Aucune fuite pour OK', () => expect(make().statusLabel('OK')).toContain('fuite'));
   it('Fuite(s) pour WARNING', () => expect(make().statusLabel('WARNING')).toContain('Fuite'));
-  it('Fuites multiples pour CRITICAL', () => expect(make().statusLabel('CRITICAL')).toContain('multiple'));
-  it('Non vérifié pour not_checked', () => expect(make().statusLabel('not_checked')).toBe('Non vérifié'));
+  it('Fuites multiples pour CRITICAL', () =>
+    expect(make().statusLabel('CRITICAL')).toContain('multiple'));
+  it('Non vérifié pour not_checked', () =>
+    expect(make().statusLabel('not_checked')).toBe('Non vérifié'));
   it('Indisponible par défaut', () => expect(make().statusLabel('other')).toBe('Indisponible'));
 });
 
 describe('DarkwebComponent — formatDate()', () => {
   it('retourne — pour null', () => expect(make().formatDate(null)).toBe('—'));
-  it('contient l\'année pour une date valide', () => {
+  it("contient l'année pour une date valide", () => {
     const result = make().formatDate('2024-06-15T10:00:00Z');
     expect(result).toContain('2024');
   });

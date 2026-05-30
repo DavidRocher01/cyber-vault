@@ -22,8 +22,8 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import update
 
-from app.main import app
 import app.core.database as _db_module
+from app.main import app
 from app.models.user import User
 
 BASE = "/api/v1"
@@ -31,6 +31,7 @@ PWD = "StrongPass123!"
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
+
 
 async def _register_login(client: AsyncClient, email: str) -> dict:
     """Register user and return auth headers."""
@@ -56,6 +57,7 @@ async def _setup_and_enable_2fa(client: AsyncClient, headers: dict) -> str:
 
 
 # ── Setup endpoint ────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_setup_2fa_returns_qr_and_secret():
@@ -90,6 +92,7 @@ async def test_setup_2fa_does_not_enable_totp_yet():
 
 
 # ── Enable endpoint ───────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_enable_2fa_with_valid_code():
@@ -127,6 +130,7 @@ async def test_enable_2fa_without_setup_returns_400():
 
 
 # ── Login flow with 2FA ───────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_login_with_2fa_enabled_no_code_returns_requires_2fa():
@@ -184,6 +188,7 @@ async def test_login_without_2fa_returns_tokens_normally():
 
 
 # ── Disable endpoint ──────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_disable_2fa_with_valid_credentials():
@@ -271,6 +276,7 @@ async def test_disable_2fa_not_enabled_returns_400():
 
 # ── Edge case : totp_enabled=True but totp_secret=None ───────────────────────
 
+
 @pytest.mark.asyncio
 async def test_login_totp_enabled_without_secret_logs_in_and_repairs():
     """Inconsistent state (enabled=True, secret=None) must not block login.
@@ -282,9 +288,7 @@ async def test_login_totp_enabled_without_secret_logs_in_and_repairs():
         # Force inconsistent state directly in DB (use runtime-patched session)
         async with _db_module.AsyncSessionLocal() as db:
             await db.execute(
-                update(User)
-                .where(User.email == email)
-                .values(totp_enabled=True, totp_secret=None)
+                update(User).where(User.email == email).values(totp_enabled=True, totp_secret=None)
             )
             await db.commit()
 
@@ -306,9 +310,7 @@ async def test_login_totp_enabled_without_secret_resets_flag():
 
         async with _db_module.AsyncSessionLocal() as db:
             await db.execute(
-                update(User)
-                .where(User.email == email)
-                .values(totp_enabled=True, totp_secret=None)
+                update(User).where(User.email == email).values(totp_enabled=True, totp_secret=None)
             )
             await db.commit()
 
@@ -323,6 +325,7 @@ async def test_login_totp_enabled_without_secret_resets_flag():
 
 
 # ── /users/me reflects totp_enabled ──────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_users_me_totp_enabled_field_false_by_default():

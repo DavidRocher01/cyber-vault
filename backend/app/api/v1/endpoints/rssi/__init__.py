@@ -1,16 +1,18 @@
 from fastapi import APIRouter
 
-from .activity import router as activity_router
 from .actions import router as actions_router
+from .activity import router as activity_router
+from .clients import (
+    RssiClientCreate,
+    RssiClientOut,
+    RssiClientUpdate,
+    create_client,
+    delete_client,
+    list_clients,
+    update_client,
+)
 from .clients import (
     router as clients_router,
-    RssiClientCreate,
-    RssiClientUpdate,
-    RssiClientOut,
-    list_clients,
-    create_client,
-    update_client,
-    delete_client,
 )
 from .dashboard import router as dashboard_router
 from .deliverables import router as deliverables_router

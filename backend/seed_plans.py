@@ -5,52 +5,53 @@ Update stripe_price_id after creating prices in Stripe dashboard.
 """
 
 import asyncio
-from app.core.database import AsyncSessionLocal
-from app.models.plan import Plan
-import app.models.subscription  # noqa: F401 — force relationship resolution
-import app.models.site           # noqa: F401
-import app.models.scan           # noqa: F401
-import app.models.user           # noqa: F401
-import app.models.code_scan      # noqa: F401
+
 from sqlalchemy import select
 
+import app.models.code_scan  # noqa: F401
+import app.models.scan  # noqa: F401
+import app.models.site  # noqa: F401
+import app.models.subscription  # noqa: F401 — force relationship resolution
+import app.models.user  # noqa: F401
+from app.core.database import AsyncSessionLocal
+from app.models.plan import Plan
 
 PLANS = [
     {
-        "name":               "free",
-        "display_name":       "Gratuit",
-        "price_eur":          0,           # 0,00 €
-        "max_sites":          1,
-        "scan_interval_days": 0,           # scan manuel uniquement
-        "tier_level":         1,
-        "stripe_price_id":    "",
+        "name": "free",
+        "display_name": "Gratuit",
+        "price_eur": 0,  # 0,00 €
+        "max_sites": 1,
+        "scan_interval_days": 0,  # scan manuel uniquement
+        "tier_level": 1,
+        "stripe_price_id": "",
     },
     {
-        "name":               "starter",
-        "display_name":       "Starter",
-        "price_eur":          990,         # 9,90 €
-        "max_sites":          1,
+        "name": "starter",
+        "display_name": "Starter",
+        "price_eur": 990,  # 9,90 €
+        "max_sites": 1,
         "scan_interval_days": 30,
-        "tier_level":         2,
-        "stripe_price_id":    "price_1TOzSg1kFVtkWldS7qBgnmh6",
+        "tier_level": 2,
+        "stripe_price_id": "price_1TOzSg1kFVtkWldS7qBgnmh6",
     },
     {
-        "name":               "pro",
-        "display_name":       "Pro",
-        "price_eur":          3990,        # 39,90 €
-        "max_sites":          3,
+        "name": "pro",
+        "display_name": "Pro",
+        "price_eur": 3990,  # 39,90 €
+        "max_sites": 3,
         "scan_interval_days": 7,
-        "tier_level":         3,
-        "stripe_price_id":    "price_1TOzSk1kFVtkWldSj1Z5U49V",
+        "tier_level": 3,
+        "stripe_price_id": "price_1TOzSk1kFVtkWldSj1Z5U49V",
     },
     {
-        "name":               "business",
-        "display_name":       "Business",
-        "price_eur":          4990,        # 49,90 €
-        "max_sites":          10,
+        "name": "business",
+        "display_name": "Business",
+        "price_eur": 4990,  # 49,90 €
+        "max_sites": 10,
         "scan_interval_days": 1,
-        "tier_level":         4,
-        "stripe_price_id":    "price_1TOzSk1kFVtkWldS4RJ2u8pf",
+        "tier_level": 4,
+        "stripe_price_id": "price_1TOzSk1kFVtkWldS4RJ2u8pf",
     },
 ]
 
@@ -67,10 +68,15 @@ async def seed():
                     existing.max_sites = plan_data["max_sites"]
                     existing.scan_interval_days = plan_data["scan_interval_days"]
                     changed = True
-                if plan_data["stripe_price_id"] and existing.stripe_price_id != plan_data["stripe_price_id"]:
+                if (
+                    plan_data["stripe_price_id"]
+                    and existing.stripe_price_id != plan_data["stripe_price_id"]
+                ):
                     existing.stripe_price_id = plan_data["stripe_price_id"]
                     changed = True
-                print(f"Plan '{plan_data['name']}' {'mis à jour' if changed else 'déjà à jour — ignoré'}")
+                print(
+                    f"Plan '{plan_data['name']}' {'mis à jour' if changed else 'déjà à jour — ignoré'}"
+                )
                 continue
             plan = Plan(**plan_data)
             db.add(plan)

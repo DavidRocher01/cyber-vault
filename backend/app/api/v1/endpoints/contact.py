@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from pydantic import BaseModel
@@ -6,7 +6,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.constants import NEED_LABELS
 from app.core.database import get_db
 from app.core.deps import require_admin
 from app.core.limiter import limiter
@@ -47,7 +46,7 @@ async def submit_contact(
         site_url=payload.site_url,
         message=payload.message,
         status="new",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     db.add(msg)
     await db.commit()
@@ -64,18 +63,28 @@ async def submit_contact(
     return {"message": "Votre message a bien été envoyé. Je vous répondrai sous 4 h."}
 
 
-@router.get("/admin/messages", response_model=list[ContactMessageOut],
-            dependencies=[Depends(require_admin)])
+@router.get(
+    "/admin/messages",
+    response_model=list[ContactMessageOut],
+    dependencies=[Depends(require_admin)],
+)
 async def admin_list_messages(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(ContactMessage).order_by(ContactMessage.created_at.desc())
-    )
+    result = await db.execute(select(ContactMessage).order_by(ContactMessage.created_at.desc()))
     msgs = result.scalars().all()
-    return [ContactMessageOut(
-        id=m.id, name=m.name, email=m.email, phone=m.phone,
-        need_type=m.need_type, site_url=m.site_url, message=m.message,
-        status=m.status, created_at=m.created_at.isoformat(),
-    ) for m in msgs]
+    return [
+        ContactMessageOut(
+            id=m.id,
+            name=m.name,
+            email=m.email,
+            phone=m.phone,
+            need_type=m.need_type,
+            site_url=m.site_url,
+            message=m.message,
+            status=m.status,
+            created_at=m.created_at.isoformat(),
+        )
+        for m in msgs
+    ]
 
 
 @router.patch("/admin/messages/{msg_id}/status", dependencies=[Depends(require_admin)])

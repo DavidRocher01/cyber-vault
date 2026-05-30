@@ -5,14 +5,13 @@ Covers: _validate_url, _analyze_url (mocked httpx), verdict/scoring logic,
 """
 
 import socket
+from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 import httpx
-
-from unittest.mock import AsyncMock, MagicMock, patch, call
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.url_scan_service import _validate_url, _analyze_url, run_url_scan
+from app.services.url_scan_service import _analyze_url, _validate_url, run_url_scan
 
 # Fake DNS response that returns a public IP — used to keep tests hermetic
 _PUBLIC_DNS = [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("93.184.216.34", 0))]
@@ -20,10 +19,11 @@ _PUBLIC_DNS = [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("93.184.216.34", 0))
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+
 def _mock_client(final_url: str, html: str, history_urls: list[str] | None = None):
     """Return a patched httpx.AsyncClient that yields a fake response."""
     history = []
-    for h_url in (history_urls or []):
+    for h_url in history_urls or []:
         h = MagicMock()
         h.url = httpx.URL(h_url)
         history.append(h)
@@ -43,6 +43,7 @@ def _mock_client(final_url: str, html: str, history_urls: list[str] | None = Non
 
 
 # ── _validate_url ─────────────────────────────────────────────────────────────
+
 
 class TestValidateUrl:
     def test_https_ok(self):
@@ -106,19 +107,22 @@ class TestValidateUrl:
                 _validate_url("https://evil.rebind.com")
 
     def test_unresolvable_host_rejected(self):
-        with patch("app.services.url_scan_service.socket.getaddrinfo", side_effect=socket.gaierror):
+        with patch(
+            "app.services.url_scan_service.socket.getaddrinfo",
+            side_effect=socket.gaierror,
+        ):
             with pytest.raises(ValueError, match="résoudre"):
                 _validate_url("https://this-does-not-exist.invalid")
 
 
 # ── _analyze_url ─────────────────────────────────────────────────────────────
 
+
 class TestAnalyzeUrl:
     @pytest.fixture(autouse=True)
     def skip_url_validation(self, monkeypatch):
         """_analyze_url tests focus on content analysis — bypass SSRF validation."""
         monkeypatch.setattr("app.services.url_scan_service._validate_url", lambda url: None)
-
 
     @pytest.mark.asyncio
     async def test_clean_page_is_safe(self):
@@ -194,7 +198,11 @@ class TestAnalyzeUrl:
         ctx = _mock_client(
             final_url="https://example.com/end",
             html="<html></html>",
-            history_urls=["https://example.com/1", "https://example.com/2", "https://example.com/3"],
+            history_urls=[
+                "https://example.com/1",
+                "https://example.com/2",
+                "https://example.com/3",
+            ],
         )
         with patch("app.services.url_scan_service.httpx.AsyncClient", return_value=ctx):
             result = await _analyze_url("https://example.com")
@@ -222,6 +230,7 @@ class TestAnalyzeUrl:
         ok_ctx = _mock_client("https://bad-cert.com", "<html></html>")
 
         call_count = 0
+
         def side_effect(**kwargs):
             nonlocal call_count
             call_count += 1
@@ -267,7 +276,11 @@ class TestAnalyzeUrl:
         ctx = _mock_client(
             final_url="https://phishing.tk/page",
             html=html,
-            history_urls=["https://original.com", "https://step2.ru", "https://step3.cn"],
+            history_urls=[
+                "https://original.com",
+                "https://step2.ru",
+                "https://step3.cn",
+            ],
         )
         with patch("app.services.url_scan_service.httpx.AsyncClient", return_value=ctx):
             result = await _analyze_url("https://original.com")
@@ -328,8 +341,6 @@ class TestAnalyzeUrl:
         # suspicious_tld (.xyz) + phishing_keyword
         assert "suspicious_tld" in types or "phishing_keyword" in types
 
-
-
     @pytest.mark.asyncio
     async def test_ssl_retry_also_fails_continues_with_empty_html(self):
         """When the SSL retry (verify=False) also raises, the scan continues with
@@ -363,6 +374,7 @@ class TestAnalyzeUrl:
 
 # ── SSRF redirect detection (real _validate_url needed) ───────────────────────
 
+
 class TestAnalyzeUrlSsrf:
     @pytest.mark.asyncio
     async def test_redirect_to_internal_ip_adds_ssrf_finding(self):
@@ -374,7 +386,10 @@ class TestAnalyzeUrlSsrf:
         )
         with patch("app.services.url_scan_service.httpx.AsyncClient", return_value=ctx):
             # Mock DNS for the initial URL; the redirect target is a literal private IP (no DNS needed)
-            with patch("app.services.url_scan_service.socket.getaddrinfo", return_value=_PUBLIC_DNS):
+            with patch(
+                "app.services.url_scan_service.socket.getaddrinfo",
+                return_value=_PUBLIC_DNS,
+            ):
                 result = await _analyze_url("https://legit.com/click")
         types = [f["type"] for f in result["findings"]]
         assert "ssrf_redirect" in types
@@ -384,8 +399,8 @@ class TestAnalyzeUrlSsrf:
 
 # ── run_url_scan (background task) ────────────────────────────────────────────
 
-class TestRunUrlScan:
 
+class TestRunUrlScan:
     def _make_db(self, url_scan_obj):
         """Return a minimal async mock DB session."""
         db = AsyncMock(spec=AsyncSession)
@@ -429,9 +444,17 @@ class TestRunUrlScan:
             "final_url": "https://example.com",
         }
 
-        with patch("app.services.url_scan_service._analyze_url", new=AsyncMock(return_value=analysis)), \
-             patch("app.services.url_scan_service.select"), \
-             patch("app.services.email_service.send_url_scan_alert", side_effect=Exception("smtp")):
+        with (
+            patch(
+                "app.services.url_scan_service._analyze_url",
+                new=AsyncMock(return_value=analysis),
+            ),
+            patch("app.services.url_scan_service.select"),
+            patch(
+                "app.services.email_service.send_url_scan_alert",
+                side_effect=Exception("smtp"),
+            ),
+        ):
             await run_url_scan(1, db)
 
         assert url_scan.status == "done"
@@ -447,9 +470,13 @@ class TestRunUrlScan:
 
         db = self._make_db(url_scan)
 
-        with patch("app.services.url_scan_service._analyze_url",
-                   new=AsyncMock(side_effect=ValueError("réseau indisponible"))), \
-             patch("app.services.url_scan_service.select"):
+        with (
+            patch(
+                "app.services.url_scan_service._analyze_url",
+                new=AsyncMock(side_effect=ValueError("réseau indisponible")),
+            ),
+            patch("app.services.url_scan_service.select"),
+        ):
             await run_url_scan(1, db)
 
         assert url_scan.status == "error"

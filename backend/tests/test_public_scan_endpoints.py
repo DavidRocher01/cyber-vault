@@ -6,20 +6,20 @@ Covers: get_public_scan(), create_public_scan() underlying logic,
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import BackgroundTasks, HTTPException, Request
 from httpx import ASGITransport, AsyncClient
 
-from app.api.v1.endpoints.public_scans import get_public_scan, create_public_scan
+from app.api.v1.endpoints.public_scans import get_public_scan
 from app.main import app
 from app.models.public_scan import PublicScan
 from app.schemas.public_scan import PublicScanCreate
 
-
 # ── helpers ────────────────────────────────────────────────────────────────────
+
 
 def _mock_scan(token="abc123", status="done", url="https://example.com", overall="OK"):
     s = MagicMock(spec=PublicScan)
@@ -30,7 +30,7 @@ def _mock_scan(token="abc123", status="done", url="https://example.com", overall
     s.overall_status = overall
     s.results_json = json.dumps({"_meta": {"url": url}})
     s.error_message = None
-    s.created_at = datetime(2025, 1, 1, tzinfo=timezone.utc)
+    s.created_at = datetime(2025, 1, 1, tzinfo=UTC)
     s.started_at = None
     s.finished_at = None
     return s
@@ -47,7 +47,7 @@ def _db_execute(val):
     async def _refresh(obj):
         obj.session_token = "newtoken"
         obj.status = "pending"
-        obj.created_at = datetime(2025, 1, 1, tzinfo=timezone.utc)
+        obj.created_at = datetime(2025, 1, 1, tzinfo=UTC)
         obj.overall_status = None
         obj.results_json = None
         obj.error_message = None
@@ -68,6 +68,7 @@ def _mock_request(ip="127.0.0.1"):
 
 
 # ── get_public_scan ────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_get_public_scan_found():
@@ -110,6 +111,7 @@ async def test_get_public_scan_failed_returns_error_message():
 
 # ── create_public_scan ─────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_create_public_scan_ssrf_localhost_raises_422():
     db = _db_execute(None)
@@ -121,6 +123,7 @@ async def test_create_public_scan_ssrf_localhost_raises_422():
         with patch("app.api.v1.endpoints.public_scans.limiter.limit", return_value=lambda f: f):
             # Call the unwrapped inner logic directly
             from app.core.ssrf import assert_no_ssrf
+
             assert_no_ssrf(payload.url)  # should raise
     assert exc.value.status_code == 422
 
@@ -128,6 +131,7 @@ async def test_create_public_scan_ssrf_localhost_raises_422():
 @pytest.mark.asyncio
 async def test_create_public_scan_ssrf_private_ip_raises_422():
     from app.core.ssrf import assert_no_ssrf
+
     with pytest.raises(HTTPException) as exc:
         assert_no_ssrf("http://192.168.1.1/")
     assert exc.value.status_code in (422, 400)
@@ -154,7 +158,6 @@ async def test_create_public_scan_url_normalization_adds_https():
     with patch("app.api.v1.endpoints.public_scans.assert_no_ssrf"):
         with patch("app.api.v1.endpoints.public_scans._run_background"):
             # We call the inner function logic directly (bypassing limiter decorator)
-            from app.api.v1.endpoints import public_scans as ps_module
             url = payload.url.strip()
             if not url.startswith(("http://", "https://")):
                 url = f"https://{url}"
@@ -184,8 +187,10 @@ async def test_create_public_scan_valid_url_stores_correct_url():
 
 # ── schema round-trip ──────────────────────────────────────────────────────────
 
+
 def test_public_scan_out_from_orm_fields():
     from app.schemas.public_scan import PublicScanOut
+
     scan = _mock_scan(token="tok1", status="done", overall="WARNING")
     out = PublicScanOut.from_orm_obj(scan)
     assert out.token == "tok1"
@@ -196,6 +201,7 @@ def test_public_scan_out_from_orm_fields():
 
 def test_public_scan_out_error_message_preserved():
     from app.schemas.public_scan import PublicScanOut
+
     scan = _mock_scan(status="failed")
     scan.error_message = "timeout after 30s"
     scan.overall_status = None
@@ -205,6 +211,7 @@ def test_public_scan_out_error_message_preserved():
 
 
 # ── HTTP integration: POST /public-scans ──────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_http_create_public_scan_returns_202():
