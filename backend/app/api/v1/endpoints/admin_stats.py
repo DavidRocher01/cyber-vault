@@ -1,6 +1,8 @@
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from fastapi import APIRouter, Depends
+from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -123,18 +125,29 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
         select(Invoice.created_at, Invoice.amount_cents).where(Invoice.created_at >= six_months_ago)
     )
 
+    # Build 6 distinct month buckets by decrementing calendar months (no timedelta ambiguity)
+    month_order: list[str] = []
     month_buckets: dict[str, int] = {}
     for i in range(5, -1, -1):
-        ref = now - timedelta(days=30 * i)
-        month_buckets[ref.strftime("%b")] = 0
+        month = now.month - i
+        year = now.year
+        while month <= 0:
+            month += 12
+            year -= 1
+        key = f"{year}-{month:02d}"
+        month_order.append(key)
+        month_buckets[key] = 0
 
     for ts, cents in invoices_rows.all():
         if ts:
-            label = (ts if ts.tzinfo else ts.replace(tzinfo=UTC)).strftime("%b")
-            if label in month_buckets:
-                month_buckets[label] = month_buckets.get(label, 0) + cents
+            key = (ts if ts.tzinfo else ts.replace(tzinfo=UTC)).strftime("%Y-%m")
+            if key in month_buckets:
+                month_buckets[key] += cents
 
-    revenue_per_month = [{"label": k, "cents": v} for k, v in month_buckets.items()]
+    revenue_per_month = [
+        {"label": datetime.strptime(k, "%Y-%m").strftime("%b"), "cents": month_buckets[k]}
+        for k in month_order
+    ]
 
     return {
         "users_total": users_total,
@@ -147,3 +160,30 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
         "weekly_activity": week_buckets,
         "revenue_per_month": revenue_per_month,
     }
+
+
+@router.post("/awareness/sync-content", dependencies=[Depends(require_admin)])
+async def sync_awareness_content():
+    """Reimporte le contenu NIS2 depuis les fichiers YAML/Markdown (idempotent)."""
+    from app.core.database import AsyncSessionLocal
+    from app.services.awareness_content_importer import import_from_directory
+
+    content_dir = Path(__file__).parents[4] / "content" / "fr"
+    if not content_dir.exists():
+        return {"error": f"Dossier contenu introuvable : {content_dir}"}
+
+    async with AsyncSessionLocal() as db:
+        try:
+            summary = await import_from_directory(db, content_dir)
+            logger.info(
+                f"Admin sync: {summary['programs']} programmes, {summary['modules']} modules"
+            )
+            return {
+                "status": "ok",
+                "programs": summary["programs"],
+                "modules": summary["modules"],
+                "errors": summary.get("errors", []),
+            }
+        except Exception as exc:
+            logger.error(f"Admin sync failed: {exc}")
+            return {"error": str(exc)}

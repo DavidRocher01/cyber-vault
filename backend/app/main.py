@@ -122,10 +122,7 @@ async def _import_awareness_content() -> None:
     """Import NIS2 awareness content from content/fr/ if no programs exist yet (idempotent)."""
     from pathlib import Path
 
-    from sqlalchemy import func, select
-
     from app.core.database import AsyncSessionLocal
-    from app.models.awareness_program import AwarenessProgram
     from app.services.awareness_content_importer import import_from_directory
 
     content_dir = Path(__file__).parent.parent.parent / "content" / "fr"
@@ -134,14 +131,10 @@ async def _import_awareness_content() -> None:
         return
 
     async with AsyncSessionLocal() as db:
-        count = (await db.execute(select(func.count(AwarenessProgram.id)))).scalar_one()
-        if count > 0:
-            logger.debug(f"Awareness content already imported ({count} programme(s)) — skipping")
-            return
         try:
             summary = await import_from_directory(db, content_dir)
             logger.info(
-                f"Awareness content imported: {summary['programs']} programmes, "
+                f"Awareness content synced: {summary['programs']} programmes, "
                 f"{summary['modules']} modules"
             )
             if summary.get("errors"):
