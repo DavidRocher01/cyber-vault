@@ -4,8 +4,6 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -30,8 +28,6 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
     FormsModule,
     MatButtonModule,
     MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
@@ -121,35 +117,51 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
                 <h3 class="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">
                   Ajouter manuellement
                 </h3>
-                <div class="flex gap-3 flex-wrap">
-                  <mat-form-field appearance="outline" class="flex-1 min-w-48">
-                    <mat-label>Email</mat-label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                  <div class="sm:col-span-1">
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5">
+                      Email <span class="text-red-400">*</span>
+                    </label>
                     <input
-                      matInput
-                      [(ngModel)]="newEmail"
                       type="email"
+                      [(ngModel)]="newEmail"
                       placeholder="alice@entreprise.com"
+                      class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 transition-colors"
                     />
-                  </mat-form-field>
-                  <mat-form-field appearance="outline" class="w-40">
-                    <mat-label>Prénom</mat-label>
-                    <input matInput [(ngModel)]="newFirstName" />
-                  </mat-form-field>
-                  <mat-form-field appearance="outline" class="w-40">
-                    <mat-label>Département</mat-label>
-                    <input matInput [(ngModel)]="newDept" />
-                  </mat-form-field>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5">Prénom</label>
+                    <input
+                      type="text"
+                      [(ngModel)]="newFirstName"
+                      placeholder="Alice"
+                      class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5"
+                      >Département</label
+                    >
+                    <input
+                      type="text"
+                      [(ngModel)]="newDept"
+                      placeholder="IT, RH, Direction…"
+                      class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 transition-colors"
+                    />
+                  </div>
                 </div>
                 <button
                   mat-flat-button
                   class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white !text-sm"
                   (click)="addLearner()"
-                  [disabled]="addingLearner()"
+                  [disabled]="addingLearner() || !newEmail.trim()"
                 >
                   @if (addingLearner()) {
                     <mat-spinner diameter="14" />
+                  } @else {
+                    <mat-icon class="!text-[1rem]">person_add</mat-icon>
                   }
-                  <mat-icon>person_add</mat-icon> Ajouter
+                  Ajouter
                 </button>
               </div>
 
