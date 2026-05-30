@@ -1,0 +1,10 @@
+title: "Étude de cas : 3 millions perdus en 10 minutes"
+description: "Une grande entreprise perd 3 millions d'euros suite à une fraude au virement. Analyse du scénario, des signaux ignorés et des protections qui auraient pu l'éviter."
+content_type: mixed
+estimated_duration_minutes: 5
+xp_points: 15
+has_quiz: true
+quiz_max_attempts: 3
+quiz_cooldown_minutes: 15
+quiz_passing_score: 60
+is_active: true

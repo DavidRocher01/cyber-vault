@@ -1,0 +1,10 @@
+title: "Continuité d'activité : votre rôle en cas de crise cyber"
+description: "Quand une cyberattaque paralyse l'organisation, chacun a un rôle à jouer. Connaître le plan de continuité peut faire la différence entre une reprise en heures ou en semaines."
+content_type: mixed
+estimated_duration_minutes: 5
+xp_points: 15
+has_quiz: true
+quiz_max_attempts: 3
+quiz_cooldown_minutes: 15
+quiz_passing_score: 60
+is_active: true

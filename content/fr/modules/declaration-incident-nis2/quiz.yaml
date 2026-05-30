@@ -1,0 +1,143 @@
+questions:
+  - id: di_01
+    type: single_choice
+    weight: 1
+    text: "Quel est le délai NIS2 pour une alerte précoce suite à un incident significatif ?"
+    answers:
+      - id: a
+        text: "6 heures"
+        correct: false
+      - id: b
+        text: "24 heures"
+        correct: true
+      - id: c
+        text: "72 heures"
+        correct: false
+      - id: d
+        text: "1 semaine"
+        correct: false
+    explanation: "NIS2 impose une alerte précoce dans les 24 heures suivant la détection d'un incident significatif. Cette alerte n'a pas besoin d'être complète — c'est une notification initiale indiquant la nature présumée de l'incident et s'il est en cours ou contenu."
+
+  - id: di_02
+    type: single_choice
+    weight: 1
+    text: "Que doit contenir la notification à 72 heures ?"
+    answers:
+      - id: a
+        text: "Une alerte succincte avec juste la date et l'heure"
+        correct: false
+      - id: b
+        text: "La description détaillée : systèmes affectés, données, mesures prises, impact"
+        correct: true
+      - id: c
+        text: "Le rapport final complet avec analyse de cause racine"
+        correct: false
+      - id: d
+        text: "La liste de toutes les personnes impliquées dans l'incident"
+        correct: false
+    explanation: "La notification à 72h est bien plus détaillée que l'alerte à 24h : elle doit inclure la description de l'incident, les systèmes et données affectés, le nombre d'utilisateurs impactés, les mesures de remédiation déjà prises et l'impact opérationnel estimé."
+
+  - id: di_03
+    type: true_false
+    weight: 1
+    text: "Si vous n'avez pas encore identifié la cause d'un incident, il vaut mieux attendre avant de déclarer à l'ANSSI."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Non. L'alerte précoce à 24h ne nécessite pas d'avoir toutes les réponses. Elle doit être transmise dès que vous suspectez un incident significatif. Attendre l'analyse complète peut vous faire dépasser le délai légal et entraîner une sanction."
+
+  - id: di_04
+    type: multiple_choice
+    weight: 2
+    text: "À qui devez-vous notifier en cas d'incident impliquant des données personnelles ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "L'ANSSI ou CERT-FR"
+        correct: true
+      - id: b
+        text: "La CNIL (délai RGPD : 72h également)"
+        correct: true
+      - id: c
+        text: "Votre assureur cyber si votre contrat le prévoit"
+        correct: true
+      - id: d
+        text: "La presse et les médias pour la transparence"
+        correct: false
+      - id: e
+        text: "L'Autorité Bancaire Européenne (uniquement secteur financier)"
+        correct: false
+    explanation: "En cas de violation de données personnelles, vous devez notifier à la fois l'ANSSI/CERT-FR (obligation NIS2) et la CNIL (obligation RGPD), dans un délai de 72h. Si vous avez une assurance cyber, vérifiez aussi vos obligations contractuelles vis-à-vis de votre assureur."
+
+  - id: di_05
+    type: single_choice
+    weight: 1
+    text: "Quelle est la première action à faire quand vous détectez un incident ?"
+    answers:
+      - id: a
+        text: "Éteindre toutes les machines pour stopper la propagation"
+        correct: false
+      - id: b
+        text: "Tenter de supprimer vous-même le malware"
+        correct: false
+      - id: c
+        text: "Signaler immédiatement à votre responsable et à l'IT, sans rien modifier"
+        correct: true
+      - id: d
+        text: "Prévenir les clients potentiellement affectés"
+        correct: false
+    explanation: "La priorité absolue est de signaler à l'IT sans rien modifier. Éteindre les machines peut détruire des preuves (logs en mémoire) et compliquer l'analyse. Tenter de supprimer le malware peut aggraver la situation. Les communications vers l'extérieur sont gérées par la direction, pas par les employés."
+
+  - id: di_06
+    type: single_choice
+    weight: 2
+    text: "Quelle est l'amende maximale NIS2 pour une entité essentielle (énergie, santé, eau) ?"
+    answers:
+      - id: a
+        text: "500 000 euros"
+        correct: false
+      - id: b
+        text: "2 millions d'euros"
+        correct: false
+      - id: c
+        text: "10 millions d'euros ou 2 % du CA mondial"
+        correct: true
+      - id: d
+        text: "100 millions d'euros"
+        correct: false
+    explanation: "NIS2 prévoit des amendes allant jusqu'à 10 millions d'euros ou 2 % du chiffre d'affaires mondial pour les entités essentielles. Pour les entités importantes, c'est 7 millions d'euros ou 1,4 % du CA. Ces amendes s'appliquent notamment en cas de déclaration tardive ou incomplète."
+
+  - id: di_07
+    type: true_false
+    weight: 1
+    text: "Le rapport final NIS2 doit être soumis dans les 30 jours suivant la résolution de l'incident."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: true
+      - id: b
+        text: "Faux"
+        correct: false
+    explanation: "Oui. Le rapport final doit être soumis dans le mois (environ 30 jours) suivant la résolution de l'incident. Il doit couvrir l'analyse de cause racine, la chronologie complète, les mesures correctives implémentées et le plan pour éviter la récurrence."
+
+  - id: di_08
+    type: single_choice
+    weight: 1
+    text: "Que devez-vous absolument éviter pendant un incident cyber ?"
+    answers:
+      - id: a
+        text: "Documenter ce que vous avez observé"
+        correct: false
+      - id: b
+        text: "Contacter votre responsable"
+        correct: false
+      - id: c
+        text: "Publier des informations sur les réseaux sociaux"
+        correct: true
+      - id: d
+        text: "Déconnecter votre machine du réseau si l'IT vous le demande"
+        correct: false
+    explanation: "Publier sur les réseaux sociaux pendant un incident est dangereux : vous pourriez divulguer des informations sensibles sur la nature de l'attaque, alerter les attaquants que vous les avez détectés, créer une panique auprès de clients ou partenaires, et aggraver l'impact médiatique avant que la direction ait pu communiquer officiellement."

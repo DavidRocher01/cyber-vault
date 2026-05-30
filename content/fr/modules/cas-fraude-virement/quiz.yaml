@@ -1,0 +1,143 @@
+questions:
+  - id: fv_01
+    type: single_choice
+    weight: 1
+    text: "Comment les attaquants ont-ils pu envoyer un email depuis l'adresse réelle du DAF ?"
+    answers:
+      - id: a
+        text: "Ils ont usurpé l'adresse email (spoofing)"
+        correct: false
+      - id: b
+        text: "Ils avaient compromis la boîte email du DAF via un phishing antérieur"
+        correct: true
+      - id: c
+        text: "Ils ont piraté le serveur de messagerie de l'entreprise"
+        correct: false
+      - id: d
+        text: "Ils ont créé une adresse email identique avec un caractère différent"
+        correct: false
+    explanation: "Les attaquants avaient compromis la boîte email du DAF un mois plus tôt via un phishing ciblé. Ils l'utilisaient pour surveiller les communications et attendre le bon moment. L'email provenait réellement du compte du DAF — c'est pourquoi il passait tous les filtres antispam et que la signature était identique."
+
+  - id: fv_02
+    type: multiple_choice
+    weight: 2
+    text: "Quels signaux d'alerte auraient dû alerter Isabelle ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "La demande de confidentialité ('n'en parlez à personne')"
+        correct: true
+      - id: b
+        text: "L'urgence artificielle ('avant ce soir 17h')"
+        correct: true
+      - id: c
+        text: "Le fait que le DAF soit en déplacement"
+        correct: false
+      - id: d
+        text: "Un montant inhabituellement élevé (2,98 millions)"
+        correct: true
+      - id: e
+        text: "L'absence de procédure habituelle pour ce type de virement"
+        correct: true
+    explanation: "Plusieurs signaux auraient dû déclencher une vérification renforcée : la demande de confidentialité totale (jamais normal dans une vraie procédure), l'urgence artificielle, le montant exceptionnel, et l'absence de procédure habituelle. La règle : plus une demande est urgente et confidentielle, plus elle mérite une vérification rigoureuse."
+
+  - id: fv_03
+    type: single_choice
+    weight: 1
+    text: "Quel aurait été le moyen le plus efficace de déjouer cette fraude ?"
+    answers:
+      - id: a
+        text: "Vérifier que l'IBAN est bien français"
+        correct: false
+      - id: b
+        text: "Appeler le DAF sur son numéro connu pour confirmation vocale"
+        correct: true
+      - id: c
+        text: "Envoyer un email de confirmation au DAF"
+        correct: false
+      - id: d
+        text: "Attendre 24h avant d'effectuer tout virement exceptionnel"
+        correct: false
+    explanation: "La confirmation vocale sur un numéro connu (pas sur un numéro donné dans l'email) aurait immédiatement révélé la fraude. Un IBAN français n'est pas une garantie — les fraudeurs ouvrent des comptes légitimes pour recevoir les fonds et les transférer immédiatement. Un email de confirmation aurait aussi été vu par les attaquants."
+
+  - id: fv_04
+    type: true_false
+    weight: 1
+    text: "Si un supérieur vous demande de faire un virement urgent en secret, c'est probablement légitime car il a ses raisons."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "NON. 'Urgent + confidentiel' est la combinaison caractéristique de la fraude au virement. Aucune procédure légitime ne vous demandera de contourner vos processus de validation internes et de ne pas en parler à vos collègues. Si vous vous retrouvez dans cette situation, votre procédure doit être de vérifier vocalement sur un numéro connu, et d'en parler à votre responsable si vous ne pouvez pas joindre le demandeur."
+
+  - id: fv_05
+    type: single_choice
+    weight: 2
+    text: "Combien d'argent a été récupéré sur les 2,98 millions virés ?"
+    answers:
+      - id: a
+        text: "La totalité — la banque a pu rappeler les fonds"
+        correct: false
+      - id: b
+        text: "La moitié — environ 1,5 million"
+        correct: false
+      - id: c
+        text: "Moins de 200 000 € après 18 mois de procédures"
+        correct: true
+      - id: d
+        text: "Rien — les fonds sont irrécupérables dans tous les cas"
+        correct: false
+    explanation: "Moins de 200 000 € sur 2,98 millions ont pu être récupérés, après 18 mois de procédures judiciaires complexes. Les fonds ont transité en quelques minutes vers plusieurs pays avant d'atteindre une juridiction hors de portée des autorités françaises. C'est pourquoi la prévention est la seule vraie protection."
+
+  - id: fv_06
+    type: single_choice
+    weight: 1
+    text: "Un fournisseur vous communique un nouveau RIB par email pour les prochains virements. Que faites-vous ?"
+    answers:
+      - id: a
+        text: "Enregistrer le nouveau RIB et l'utiliser pour le prochain virement"
+        correct: false
+      - id: b
+        text: "Répondre à l'email pour confirmer la réception"
+        correct: false
+      - id: c
+        text: "Appeler votre contact habituel chez ce fournisseur sur un numéro connu pour vérifier"
+        correct: true
+      - id: d
+        text: "Demander au fournisseur de renvoyer le RIB par courrier recommandé"
+        correct: false
+    explanation: "Le changement de RIB par email est un vecteur classique de fraude au virement. Les attaquants compromettent la messagerie d'un fournisseur et interceptent la relation pour substituer leur propre RIB. La seule vérification fiable est un appel téléphonique sur un numéro que vous avez dans votre propre carnet d'adresses — pas sur un numéro donné dans l'email."
+
+  - id: fv_07
+    type: true_false
+    weight: 1
+    text: "Si vous réalisez qu'un virement frauduleux vient d'être effectué, vous avez plusieurs jours pour réagir."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "FAUX. Chaque minute compte. En 3 minutes, les fonds peuvent être transférés vers un compte dans un autre pays. La procédure de rappel de fonds (recall) a bien plus de chances de succès dans les premières heures. Si vous découvrez une fraude : appelez immédiatement votre banque, puis votre direction, puis déposez plainte. Ne perdez pas de temps."
+
+  - id: fv_08
+    type: single_choice
+    weight: 1
+    text: "Quelle mesure organisationnelle aurait pu bloquer ce virement ?"
+    answers:
+      - id: a
+        text: "Un antivirus plus puissant sur le poste d'Isabelle"
+        correct: false
+      - id: b
+        text: "Une règle de double validation obligatoire pour les virements dépassant un certain seuil"
+        correct: true
+      - id: c
+        text: "Un logiciel d'analyse des emails entrants"
+        correct: false
+      - id: d
+        text: "Un changement de mot de passe mensuel obligatoire"
+        correct: false
+    explanation: "Une règle de double validation (deux personnes distinctes doivent valider) pour les virements dépassant un certain montant (ex : 50 000 €) aurait rendu ce virement impossible sans une seconde validation. Ce type de contrôle interne — indépendant de la technologie — est l'une des protections les plus efficaces contre la fraude au virement."

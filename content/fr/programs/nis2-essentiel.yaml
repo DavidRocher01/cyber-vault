@@ -1,33 +1,52 @@
 slug: nis2-essentiel
-title: "NIS2 Essentiel — Sensibilisation Cyber"
+title: "NIS2 Essentiel — Sensibilisation Cyber Complète"
 description: >
   Parcours de sensibilisation cybersécurité conforme NIS2 Article 21.
-  17 modules couvrant les réflexes essentiels pour protéger votre organisation —
-  dont 5 modules sur les menaces modernes : IA générative, Shadow IT,
-  ingénierie sociale, télétravail, réseaux sociaux et OSINT.
+  28 modules couvrant l'ensemble des obligations NIS2 : réflexes essentiels,
+  gestion des incidents, chiffrement, chaîne d'approvisionnement, continuité
+  d'activité, sécurité physique, études de cas réels et menaces modernes.
   Attestation vérifiable délivrée à la complétion.
 language: fr
-version: "2.1"
-estimated_duration_minutes: 72
+version: "3.0"
+estimated_duration_minutes: 143
 passing_score: 60
 certificate_validity_months: 12
 is_active: true
 
 modules:
+  # Fondamentaux — réflexes essentiels
   - phishing-bases
   - mots-de-passe
   - mfa
-  - wifi-public
-  - fraude-president
   - signal-avant-cliquer
-  - apres-incident
-  - sauvegardes-321
+  - securite-physique
+  # Menaces courantes
   - ransomware
   - usb-inconnu
-  - mobile-pro
-  - rgpd-essentiel
-  - ia-phishing
-  - shadow-it
+  - fraude-president
   - ingenerie-sociale
+  - ia-phishing
+  # Contextes spécifiques
+  - wifi-public
+  - mobile-pro
   - teletravail-securite
+  - shadow-it
   - reseaux-sociaux-osint
+  # Conformité et données
+  - rgpd-essentiel
+  - chiffrement-pratique
+  # Obligations NIS2 Art. 21 spécifiques
+  - chaine-approvisionnement
+  - gestion-vulnerabilites
+  - declaration-incident-nis2
+  - continuite-activite-nis2
+  # Réponse aux incidents
+  - apres-incident
+  - sauvegardes-321
+  # Études de cas réels
+  - cas-hopital-cyberattaque
+  - cas-pme-ransomware
+  - cas-fraude-virement
+  # Réglementations complémentaires
+  - dora-essentiel
+  - cra-essentiel

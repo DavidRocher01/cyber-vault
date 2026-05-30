@@ -1,0 +1,146 @@
+questions:
+  - id: ca_01
+    type: single_choice
+    weight: 1
+    text: "Qu'est-ce qu'une attaque par la chaîne d'approvisionnement ?"
+    answers:
+      - id: a
+        text: "Une attaque qui cible directement votre serveur principal"
+        correct: false
+      - id: b
+        text: "Une attaque qui passe par un fournisseur ou sous-traitant pour atteindre votre organisation"
+        correct: true
+      - id: c
+        text: "Une attaque sur les applications mobiles de vos employés"
+        correct: false
+      - id: d
+        text: "Une intrusion via un email de phishing interne"
+        correct: false
+    explanation: "Les attaques supply chain ciblent le maillon le plus faible de la chaîne — souvent un prestataire qui a accès à vos systèmes. L'attaque SolarWinds en 2020 a compromis 18 000 organisations via une mise à jour logicielle corrompue."
+
+  - id: ca_02
+    type: true_false
+    weight: 1
+    text: "Il est acceptable de partager vos identifiants avec un technicien prestataire pour faciliter son intervention."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Ne partagez jamais vos identifiants avec un prestataire. Votre IT doit créer un compte temporaire et limité pour chaque intervention. Partager vos identifiants engage votre responsabilité et supprime toute traçabilité."
+
+  - id: ca_03
+    type: multiple_choice
+    weight: 2
+    text: "Quels types d'accès un sous-traitant peut-il avoir sur votre organisation ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Accès VPN distant pour la maintenance"
+        correct: true
+      - id: b
+        text: "Accès à des fichiers partagés sur le cloud"
+        correct: true
+      - id: c
+        text: "Intégrations API entre systèmes"
+        correct: true
+      - id: d
+        text: "Accès biométrique à vos locaux"
+        correct: false
+      - id: e
+        text: "Boîtes email partagées"
+        correct: true
+    explanation: "Les tiers peuvent avoir de nombreux points d'accès à votre organisation : VPN, fichiers partagés, API, emails. Chacun de ces accès est une surface d'attaque potentielle. C'est pourquoi NIS2 impose de les gérer et les contrôler."
+
+  - id: ca_04
+    type: single_choice
+    weight: 1
+    text: "Que devez-vous faire quand un contrat avec un prestataire prend fin ?"
+    answers:
+      - id: a
+        text: "Attendre la prochaine revue annuelle des accès"
+        correct: false
+      - id: b
+        text: "Signaler immédiatement à votre IT pour révoquer les accès"
+        correct: true
+      - id: c
+        text: "Demander au prestataire de supprimer lui-même ses accès"
+        correct: false
+      - id: d
+        text: "Changer votre mot de passe personnel"
+        correct: false
+    explanation: "Les accès doivent être révoqués immédiatement à la fin d'un contrat. Un accès oublié est une porte ouverte permanente. C'est l'IT qui doit gérer la révocation — pas le prestataire lui-même."
+
+  - id: ca_05
+    type: single_choice
+    weight: 1
+    text: "Quel est le principe du moindre privilège appliqué aux tiers ?"
+    answers:
+      - id: a
+        text: "Donner aux prestataires un accès administrateur pour faciliter leurs interventions"
+        correct: false
+      - id: b
+        text: "Ne donner à chaque tiers que l'accès minimum nécessaire à sa mission, pour la durée nécessaire"
+        correct: true
+      - id: c
+        text: "Interdire tout accès externe à votre réseau"
+        correct: false
+      - id: d
+        text: "Partager un compte générique avec tous les prestataires"
+        correct: false
+    explanation: "Le principe du moindre privilège limite les dégâts en cas de compromission d'un prestataire. Un comptable externe n'a pas besoin d'accéder à votre liste de clients, un technicien réseau n'a pas besoin de lire vos emails."
+
+  - id: ca_06
+    type: true_false
+    weight: 1
+    text: "Un fichier Excel envoyé par votre prestataire comptable habituel ne peut pas être dangereux."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Les documents envoyés par des prestataires de confiance peuvent être dangereux si le prestataire a lui-même été compromis. Les macros dans les fichiers Office sont un vecteur d'attaque fréquent. Méfiez-vous des fichiers inattendus et désactivez les macros si possible."
+
+  - id: ca_07
+    type: single_choice
+    weight: 2
+    text: "Qu'a principalement permis l'attaque SolarWinds de 2020 ?"
+    answers:
+      - id: a
+        text: "Un accès physique non autorisé aux serveurs de SolarWinds"
+        correct: false
+      - id: b
+        text: "La corruption d'une mise à jour logicielle distribuée à 18 000 clients"
+        correct: true
+      - id: c
+        text: "Un phishing ciblé contre les employés des organisations victimes"
+        correct: false
+      - id: d
+        text: "L'exploitation d'un zero-day dans Windows"
+        correct: false
+    explanation: "SolarWinds est l'exemple emblématique d'une attaque supply chain. Les hackers ont infiltré l'éditeur du logiciel et injecté du code malveillant dans une mise à jour officielle. Les organisations l'ont installée légitimement — et ont involontairement ouvert leur réseau aux attaquants."
+
+  - id: ca_08
+    type: multiple_choice
+    weight: 2
+    text: "Quelles questions devriez-vous poser à un fournisseur critique ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Avez-vous une politique de sécurité documentée ?"
+        correct: true
+      - id: b
+        text: "Faites-vous des audits de sécurité réguliers ?"
+        correct: true
+      - id: c
+        text: "Quel est votre chiffre d'affaires annuel ?"
+        correct: false
+      - id: d
+        text: "Comment gérez-vous les accès de vos propres employés à nos données ?"
+        correct: true
+      - id: e
+        text: "Avez-vous une assurance cyber ?"
+        correct: true
+    explanation: "NIS2 impose d'évaluer la sécurité de vos prestataires critiques. La politique de sécurité, les audits, la gestion des accès et la couverture cyber sont des indicateurs clés. Certaines organisations demandent désormais une certification ISO 27001 ou SOC 2 à leurs fournisseurs critiques."

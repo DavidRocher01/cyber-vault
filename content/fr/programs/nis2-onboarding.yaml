@@ -1,0 +1,19 @@
+slug: nis2-onboarding
+title: "NIS2 Onboarding — Les fondamentaux en 20 minutes"
+description: >
+  Parcours express pour les nouveaux arrivants.
+  Les 4 réflexes essentiels à acquérir dès le premier jour :
+  phishing, mots de passe, MFA et sécurité physique.
+  Durée : 20 minutes.
+language: fr
+version: "1.0"
+estimated_duration_minutes: 20
+passing_score: 60
+certificate_validity_months: 12
+is_active: true
+
+modules:
+  - phishing-bases
+  - mots-de-passe
+  - mfa
+  - securite-physique

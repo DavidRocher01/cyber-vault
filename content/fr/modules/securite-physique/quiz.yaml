@@ -1,0 +1,143 @@
+questions:
+  - id: sp_01
+    type: single_choice
+    weight: 1
+    text: "Quel est le raccourci clavier pour verrouiller immédiatement un ordinateur Windows ?"
+    answers:
+      - id: a
+        text: "Ctrl + Alt + Suppr puis Verrouiller"
+        correct: false
+      - id: b
+        text: "Win + L"
+        correct: true
+      - id: c
+        text: "Alt + F4"
+        correct: false
+      - id: d
+        text: "Ctrl + W"
+        correct: false
+    explanation: "Win + L verrouille instantanément l'écran sous Windows. Sur Mac, c'est Cmd + Ctrl + Q. Adoptez ce réflexe systématiquement dès que vous quittez votre poste, même pour 30 secondes — le temps d'aller chercher un café peut suffire à compromettre votre machine."
+
+  - id: sp_02
+    type: single_choice
+    weight: 1
+    text: "Qu'est-ce que le 'tailgating' ?"
+    answers:
+      - id: a
+        text: "Une attaque qui suit vos mouvements en ligne"
+        correct: false
+      - id: b
+        text: "Entrer dans une zone sécurisée en suivant quelqu'un qui a badgé, sans s'authentifier"
+        correct: true
+      - id: c
+        text: "Lire par-dessus l'épaule de quelqu'un son écran"
+        correct: false
+      - id: d
+        text: "Suivre un employé sur les réseaux sociaux pour collecter des informations"
+        correct: false
+    explanation: "Le tailgating (ou piggybacking) consiste à s'infiltrer dans une zone sécurisée en profitant de l'ouverture de porte d'une personne autorisée. C'est une technique d'intrusion physique simple mais très efficace. La parade : ne laissez jamais quelqu'un entrer sans badger, même si vous le connaissez."
+
+  - id: sp_03
+    type: true_false
+    weight: 1
+    text: "Brancher une clé USB trouvée dans le couloir pour identifier son propriétaire est une bonne action."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Ne branchez jamais une clé USB inconnue. Les clés USB piégées (baiting) sont une technique d'attaque réelle : elles exécutent automatiquement du code malveillant dès la connexion. Si vous trouvez une clé USB, remettez-la à votre responsable IT sans la brancher."
+
+  - id: sp_04
+    type: multiple_choice
+    weight: 2
+    text: "Que devez-vous faire avec un ordinateur portable professionnel en déplacement ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Ne pas le laisser visible dans une voiture"
+        correct: true
+      - id: b
+        text: "Utiliser un câble antivol dans les espaces de coworking"
+        correct: true
+      - id: c
+        text: "Le confier à quelqu'un de confiance si vous devez le laisser seul"
+        correct: false
+      - id: d
+        text: "Signaler immédiatement à l'IT en cas de perte ou de vol"
+        correct: true
+      - id: e
+        text: "Le verrouiller avec un mot de passe fort"
+        correct: true
+    explanation: "En déplacement, l'ordinateur portable est l'actif le plus vulnérable. Visible dans une voiture, c'est une invitation au vol. Un câble antivol ralentit les voleurs opportunistes. Signaler immédiatement à l'IT permet l'effacement à distance. Ne confiez jamais votre ordinateur à quelqu'un d'autre, même brièvement."
+
+  - id: sp_05
+    type: single_choice
+    weight: 1
+    text: "Que devez-vous faire avec des documents papier contenant des informations sensibles ?"
+    answers:
+      - id: a
+        text: "Les jeter à la poubelle après les avoir déchirés en deux"
+        correct: false
+      - id: b
+        text: "Les conserver indéfiniment dans votre bureau"
+        correct: false
+      - id: c
+        text: "Les détruire avec une déchiqueteuse"
+        correct: true
+      - id: d
+        text: "Les brûler dans un cendrier"
+        correct: false
+    explanation: "Le 'dumpster diving' (fouille des poubelles) est une technique réelle utilisée par des attaquants pour récupérer des informations. Un document déchiré en deux peut être reconstitué. Seule une déchiqueteuse coupe-croisé garantit la destruction irréversible des documents sensibles."
+
+  - id: sp_06
+    type: true_false
+    weight: 1
+    text: "Prêter votre badge d'accès à un collègue qui a oublié le sien est un geste d'entraide anodin."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Prêter votre badge supprime la traçabilité des accès (le journal indiquera votre badge, pas celui de votre collègue), vous engage personnellement si un incident se produit pendant cette période, et peut constituer une violation de votre contrat de travail. Dirigez votre collègue vers l'accueil pour une badge temporaire."
+
+  - id: sp_07
+    type: single_choice
+    weight: 2
+    text: "Qu'est-ce que le 'shoulder surfing' ?"
+    answers:
+      - id: a
+        text: "Une technique de navigation sur le web en mode privé"
+        correct: false
+      - id: b
+        text: "Observer l'écran ou le clavier de quelqu'un pour lire des informations confidentielles"
+        correct: true
+      - id: c
+        text: "Un type d'attaque DDoS sur des équipements réseau"
+        correct: false
+      - id: d
+        text: "Une méthode de partage d'écran non autorisé"
+        correct: false
+    explanation: "Le shoulder surfing consiste à regarder par-dessus l'épaule d'une personne pour lire son écran, ses mots de passe ou ses données. C'est particulièrement risqué dans les transports, les espaces de coworking et les open spaces. Les filtres de confidentialité (films polarisants) et le positionnement stratégique de votre écran sont les remèdes."
+
+  - id: sp_08
+    type: single_choice
+    weight: 1
+    text: "Que devez-vous faire si vous voyez quelqu'un d'inconnu circuler seul dans vos locaux ?"
+    answers:
+      - id: a
+        text: "Ne rien faire pour ne pas créer une situation gênante"
+        correct: false
+      - id: b
+        text: "Lui proposer de l'aider et le raccompagner vers l'accueil ou un responsable"
+        correct: true
+      - id: c
+        text: "Prendre une photo discrète pour la signaler plus tard"
+        correct: false
+      - id: d
+        text: "Attendre de voir si quelqu'un d'autre intervient"
+        correct: false
+    explanation: "La 'règle du visiteur seul' est simple : si vous voyez quelqu'un que vous ne connaissez pas circuler sans accompagnateur, demandez-lui poliment si vous pouvez l'aider, puis raccompagnez-le vers l'accueil. Cette approche est à la fois bienveillante pour un visiteur légitime et dissuasive pour un intrus."
