@@ -1,7 +1,8 @@
-"""Module sensibilisation employés — 5 mini-modules + progress tracking."""
+"""Module sensibilisation employés — modules training + awareness NIS2."""
 
 from datetime import datetime
 
+import yaml
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -9,14 +10,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.models.awareness_module import AwarenessModule
+from app.models.awareness_program import AwarenessProgram
 from app.models.training_progress import TrainingProgress
 from app.models.user import User
 
 router = APIRouter(prefix="/training", tags=["training"])
 
-# ── Static module catalogue ────────────────────────────────────────────────────
+# ── Modules historiques (5 modules training originaux) ─────────────────────────
 
-MODULES: list[dict] = [
+LEGACY_MODULES: list[dict] = [
     {
         "id": "phishing",
         "title": "Reconnaître le phishing",
@@ -31,14 +34,8 @@ MODULES: list[dict] = [
         ),
         "choices": [
             {"id": "a", "text": "Je clique sur le lien pour vérifier mon compte."},
-            {
-                "id": "b",
-                "text": "Je supprime l'email et contacte ma banque via son site officiel.",
-            },
-            {
-                "id": "c",
-                "text": "Je transfère l'email à mes collègues pour les prévenir.",
-            },
+            {"id": "b", "text": "Je supprime l'email et contacte ma banque via son site officiel."},
+            {"id": "c", "text": "Je transfère l'email à mes collègues pour les prévenir."},
             {"id": "d", "text": "Je réponds à l'email pour signaler l'erreur."},
         ],
         "correct": "b",
@@ -86,22 +83,13 @@ MODULES: list[dict] = [
             "Que faites-vous ?"
         ),
         "choices": [
-            {
-                "id": "a",
-                "text": "Je me connecte au premier réseau disponible, le plus puissant.",
-            },
+            {"id": "a", "text": "Je me connecte au premier réseau disponible, le plus puissant."},
             {
                 "id": "b",
                 "text": "Je demande au personnel le nom exact du réseau officiel, j'utilise un VPN.",
             },
-            {
-                "id": "c",
-                "text": "Je reste sur le Wi-Fi public mais n'accède qu'aux emails.",
-            },
-            {
-                "id": "d",
-                "text": "Je désactive le Wi-Fi et utilise ma connexion 4G/5G mobile.",
-            },
+            {"id": "c", "text": "Je reste sur le Wi-Fi public mais n'accède qu'aux emails."},
+            {"id": "d", "text": "Je désactive le Wi-Fi et utilise ma connexion 4G/5G mobile."},
         ],
         "correct": "b",
         "explanation": (
@@ -123,18 +111,9 @@ MODULES: list[dict] = [
             "Que faites-vous ?"
         ),
         "choices": [
-            {
-                "id": "a",
-                "text": "Je la branche pour voir qui elle appartient et la rendre.",
-            },
-            {
-                "id": "b",
-                "text": "Je la branche sur un ordinateur personnel, pas professionnel.",
-            },
-            {
-                "id": "c",
-                "text": "Je la remets à la sécurité ou à la DSI sans la brancher.",
-            },
+            {"id": "a", "text": "Je la branche pour voir qui elle appartient et la rendre."},
+            {"id": "b", "text": "Je la branche sur un ordinateur personnel, pas professionnel."},
+            {"id": "c", "text": "Je la remets à la sécurité ou à la DSI sans la brancher."},
             {
                 "id": "d",
                 "text": "Je la garde sans la brancher jusqu'à ce que quelqu'un la réclame.",
@@ -160,10 +139,7 @@ MODULES: list[dict] = [
         ),
         "choices": [
             {"id": "a", "text": "Je donne le code car la personne semble officielle."},
-            {
-                "id": "b",
-                "text": "Je donne le code seulement s'ils connaissent mon nom.",
-            },
+            {"id": "b", "text": "Je donne le code seulement s'ils connaissent mon nom."},
             {
                 "id": "c",
                 "text": "Je raccroche et contacte le vrai support via les canaux officiels.",
@@ -180,7 +156,80 @@ MODULES: list[dict] = [
     },
 ]
 
-MODULE_IDS = {m["id"] for m in MODULES}
+# IDs des modules legacy — on n'ajoutera pas les slugs awareness qui correspondent
+# Alias pour compatibilité avec les tests existants
+MODULES = LEGACY_MODULES
+
+_LEGACY_IDS = {m["id"] for m in LEGACY_MODULES}
+
+# Slugs awareness déjà couverts par les modules legacy
+_AWARENESS_EXCLUDED_SLUGS = {"phishing-bases", "mots-de-passe", "mfa", "wifi-public", "usb-inconnu"}
+
+# Mapping slug awareness → icône Material + couleur Tailwind
+_SLUG_META: dict[str, tuple[str, str]] = {
+    "ransomware": ("bug_report", "red"),
+    "ingenerie-sociale": ("psychology", "purple"),
+    "fraude-president": ("account_balance", "red"),
+    "sauvegardes-321": ("backup", "blue"),
+    "mobile-pro": ("smartphone", "green"),
+    "rgpd-essentiel": ("gavel", "blue"),
+    "ia-phishing": ("smart_toy", "orange"),
+    "shadow-it": ("cloud_off", "yellow"),
+    "teletravail-securite": ("home_work", "cyan"),
+    "reseaux-sociaux-osint": ("share", "purple"),
+    "signal-avant-cliquer": ("touch_app", "orange"),
+    "apres-incident": ("healing", "green"),
+    "chaine-approvisionnement": ("link", "purple"),
+    "declaration-incident-nis2": ("notification_important", "red"),
+    "chiffrement-pratique": ("lock", "blue"),
+    "securite-physique": ("security", "green"),
+    "gestion-vulnerabilites": ("system_update", "orange"),
+    "continuite-activite-nis2": ("restart_alt", "cyan"),
+    "cas-hopital-cyberattaque": ("local_hospital", "red"),
+    "cas-pme-ransomware": ("business", "orange"),
+    "cas-fraude-virement": ("payments", "red"),
+    "dora-essentiel": ("account_balance", "purple"),
+    "cra-essentiel": ("devices", "blue"),
+}
+
+
+def _awareness_module_to_training(mod: AwarenessModule) -> dict | None:
+    """Convertit un AwarenessModule en dict compatible ModuleOut, en extrayant la 1ère question du quiz."""
+    if not mod.quiz_yaml:
+        return None
+    try:
+        quiz_data = yaml.safe_load(mod.quiz_yaml)
+        questions = quiz_data.get("questions", [])
+        if not questions:
+            return None
+        q = questions[0]
+        answers = q.get("answers", [])
+        if len(answers) < 2:
+            return None
+
+        choices = [{"id": a["id"], "text": a["text"]} for a in answers]
+        correct_ids = [a["id"] for a in answers if a.get("correct")]
+        correct = correct_ids[0] if correct_ids else answers[0]["id"]
+
+        icon, color = _SLUG_META.get(mod.slug, ("school", "cyan"))
+
+        return {
+            "id": f"awareness_{mod.slug}",
+            "title": mod.title,
+            "icon": icon,
+            "color": color,
+            "duration_min": mod.estimated_duration_minutes or 5,
+            "description": mod.description or "",
+            "scenario": q.get("text", ""),
+            "choices": choices,
+            "correct": correct,
+            "explanation": q.get("explanation", ""),
+        }
+    except Exception:
+        return None
+
+
+# ── Schémas ────────────────────────────────────────────────────────────────────
 
 
 class CompleteModuleIn(BaseModel):
@@ -209,15 +258,48 @@ class ProgressOut(BaseModel):
     completed_ids: list[str]
 
 
+# ── Endpoints ──────────────────────────────────────────────────────────────────
+
+
+async def _load_all_modules(db: AsyncSession) -> list[dict]:
+    """Charge les modules legacy + les modules awareness (programme nis2-essentiel)."""
+    modules: list[dict] = list(LEGACY_MODULES)
+
+    # Charge le programme principal
+    prog_result = await db.execute(
+        select(AwarenessProgram).where(AwarenessProgram.slug == "nis2-essentiel")
+    )
+    program = prog_result.scalar_one_or_none()
+    if program:
+        mods_result = await db.execute(
+            select(AwarenessModule)
+            .where(
+                AwarenessModule.program_id == program.id,
+                AwarenessModule.is_active == True,
+                AwarenessModule.slug.notin_(_AWARENESS_EXCLUDED_SLUGS),
+            )
+            .order_by(AwarenessModule.position)
+        )
+        for mod in mods_result.scalars().all():
+            converted = _awareness_module_to_training(mod)
+            if converted:
+                modules.append(converted)
+
+    return modules
+
+
 @router.get("/modules", response_model=list[ModuleOut])
 async def get_modules(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
+    all_modules = await _load_all_modules(db)
+    module_ids = {m["id"] for m in all_modules}
+
+    done_result = await db.execute(
         select(TrainingProgress).where(TrainingProgress.user_id == current_user.id)
     )
-    done = {p.module_id: p.completed_at for p in result.scalars().all()}
+    done = {p.module_id: p.completed_at for p in done_result.scalars().all()}
 
     return [
         ModuleOut(
@@ -226,7 +308,8 @@ async def get_modules(
             completed=m["id"] in done,
             completed_at=done.get(m["id"]),
         )
-        for m in MODULES
+        for m in all_modules
+        if m["id"] in module_ids
     ]
 
 
@@ -237,10 +320,11 @@ async def complete_module(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    if module_id not in MODULE_IDS:
+    all_modules = await _load_all_modules(db)
+    module = next((m for m in all_modules if m["id"] == module_id), None)
+    if not module:
         raise HTTPException(status_code=404, detail="Module introuvable")
 
-    module = next(m for m in MODULES if m["id"] == module_id)
     correct = payload.answer == module["correct"]
 
     if correct:
@@ -266,11 +350,12 @@ async def get_progress(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
+    all_modules = await _load_all_modules(db)
+    done_result = await db.execute(
         select(TrainingProgress).where(TrainingProgress.user_id == current_user.id)
     )
-    done = result.scalars().all()
-    total = len(MODULES)
+    done = done_result.scalars().all()
+    total = len(all_modules)
     completed = len(done)
     return ProgressOut(
         completed=completed,
