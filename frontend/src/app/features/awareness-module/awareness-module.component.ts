@@ -192,7 +192,7 @@ type PageView = 'dashboard' | 'content' | 'quiz' | 'quiz-result' | 'certificate'
                   class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white"
                   (click)="startQuiz()"
                 >
-                  <mat-icon>quiz</mat-icon> Passer le quiz
+                  <mat-icon>quiz</mat-icon> Passer au quizz
                 </button>
               } @else {
                 <button
