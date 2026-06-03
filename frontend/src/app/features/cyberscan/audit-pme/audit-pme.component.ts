@@ -9,7 +9,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
 export const AUDIT_OFFERS = [
   {
     name: 'Audit Flash',
-    price: '245',
+    price: '390',
     duration: '½ journée',
     target: 'Sites vitrines, blogs pro, e-commerce simples',
     icon: 'flash_on',
@@ -27,7 +27,7 @@ export const AUDIT_OFFERS = [
   },
   {
     name: 'App-Check',
-    price: '725',
+    price: '990',
     duration: '1,5 jour',
     target: 'SaaS, applications métier, e-commerce complexe',
     icon: 'manage_search',
@@ -47,7 +47,7 @@ export const AUDIT_OFFERS = [
   },
   {
     name: 'Pentest léger',
-    price: '1 900',
+    price: '2 490',
     duration: '4 jours',
     target: 'E-commerce, données sensibles, obligations légales',
     icon: 'bug_report',
@@ -62,43 +62,61 @@ export const AUDIT_OFFERS = [
       'Présentation au COMEX si besoin',
     ],
   },
+  {
+    name: 'Audit NIS2 / RGPD',
+    price: '1 290',
+    duration: '2 jours',
+    target: 'Entités essentielles ou importantes NIS2',
+    icon: 'policy',
+    color: 'border-green-600',
+    badge: 'text-green-300 bg-green-900/40',
+    features: [
+      'Cartographie des traitements de données',
+      'Analyse des écarts NIS2 (34 contrôles)',
+      'Revue des contrats sous-traitants (DPA)',
+      'Plan de remédiation priorisé',
+      'Rapport de conformité certifiable',
+      'Accompagnement déclaration CNIL si incident',
+    ],
+  },
 ];
 
 export const AUDIT_SUBSCRIPTIONS = [
   {
-    name: 'Vigie',
-    price: '~99',
+    name: 'Surveillance Starter',
+    price: '14,90',
     icon: 'visibility',
     color: 'border-gray-600',
     features: [
-      'Scan hebdomadaire automatisé',
+      '1 site — scan hebdomadaire',
       'Alerte immédiate nouveau risque',
       'Rapport mensuel synthétique',
+      'Alerte expiration SSL',
     ],
   },
   {
-    name: 'Sentinelle',
-    price: '~199',
+    name: 'Surveillance Pro',
+    price: '49',
     icon: 'shield',
     color: 'border-cyan-600',
     popular: true,
     features: [
-      'Scan quotidien',
+      '5 sites — 20 scans / mois',
+      'Scanner de code (SAST/SCA)',
+      'Conformité NIS2 / ISO 27001',
       'Rapport mensuel détaillé',
-      "Ligne directe en cas d'incident",
-      'Veille CVE sur vos dépendances',
     ],
   },
   {
-    name: 'Blindage 360',
-    price: '~499',
+    name: 'Surveillance Business',
+    price: '149',
     icon: 'security',
     color: 'border-purple-600',
     features: [
-      'Surveillance continue 24/7',
-      'Audit trimestriel',
-      'Revue de code mensuelle',
-      'Conseil stratégique RSSI externalisé',
+      '15 sites — scan quotidien',
+      'Rapport blanc (logo client)',
+      'Alerte SMS / WhatsApp',
+      '10 utilisateurs sur le compte',
     ],
   },
 ];

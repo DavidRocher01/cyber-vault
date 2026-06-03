@@ -72,7 +72,7 @@ class Settings(BaseSettings):
     # Add-on extra sites pack (5 slots per pack, monthly)
     ADDON_EXTRA_SITES_STRIPE_PRICE_ID: str = ""
     ADDON_EXTRA_SITES_COUNT: int = 5
-    ADDON_EXTRA_SITES_PRICE_EUR: int = 500  # 5.00€/month
+    ADDON_EXTRA_SITES_PRICE_EUR: int = 900  # 9.00€/month
 
     # Number of trusted reverse proxies in front of the app.
     # 0 = no proxy (local dev), 1 = ALB only, 2 = CloudFront + ALB.
