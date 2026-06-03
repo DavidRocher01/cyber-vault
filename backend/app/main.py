@@ -44,7 +44,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "script-src 'self'; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.gstatic.com; "
-            "img-src 'self' data: https:; "
+            "img-src 'self' data: https://cyberscanapp.com https://*.cyberscanapp.com https://www.gravatar.com; "
             "connect-src 'self'; "
             "frame-ancestors 'none'"
         )
@@ -147,7 +147,7 @@ async def _import_awareness_content() -> None:
 app = FastAPI(
     title=settings.APP_NAME,
     version=__version__,
-    on_startup=[_seed_plans, _seed_awareness_badges, _import_awareness_content, start_scheduler],
+    on_startup=[_seed_plans, _seed_awareness_badges, start_scheduler],
     on_shutdown=[stop_scheduler],
 )
 
@@ -245,4 +245,60 @@ async def health(db: AsyncSession = Depends(get_db)):
         "version": __version__,
         "environment": settings.APP_ENV,
         "database": db_status,
+    }
+
+
+@app.get("/health/deep")
+async def health_deep(db: AsyncSession = Depends(get_db)):
+    """Deep health check — tests DB + external services. Use for monitoring (not ALB)."""
+    import asyncio as _asyncio
+
+    checks: dict[str, str] = {}
+
+    # Database
+    try:
+        await db.execute(text("SELECT 1"))
+        checks["database"] = "ok"
+    except Exception as exc:
+        checks["database"] = f"error: {str(exc)[:100]}"
+
+    # Stripe
+    if settings.STRIPE_SECRET_KEY:
+        try:
+            import stripe as _stripe
+
+            _stripe.api_key = settings.STRIPE_SECRET_KEY
+            await _asyncio.to_thread(_stripe.Balance.retrieve)
+            checks["stripe"] = "ok"
+        except Exception as exc:
+            checks["stripe"] = f"error: {str(exc)[:100]}"
+
+    # Resend
+    if settings.RESEND_API_KEY:
+        try:
+            import resend as _resend
+
+            _resend.api_key = settings.RESEND_API_KEY
+            await _asyncio.to_thread(_resend.Domains.list)
+            checks["resend"] = "ok"
+        except Exception as exc:
+            checks["resend"] = f"error: {str(exc)[:100]}"
+
+    # S3
+    if settings.S3_BUCKET_NAME:
+        try:
+            import boto3 as _boto3
+
+            client = _boto3.client("s3", region_name=settings.AWS_REGION)
+            await _asyncio.to_thread(client.head_bucket, Bucket=settings.S3_BUCKET_NAME)
+            checks["s3"] = "ok"
+        except Exception as exc:
+            checks["s3"] = f"error: {str(exc)[:100]}"
+
+    all_ok = all(v == "ok" for v in checks.values())
+    return {
+        "status": "healthy" if all_ok else "degraded",
+        "version": __version__,
+        "environment": settings.APP_ENV,
+        "checks": checks,
     }

@@ -111,9 +111,21 @@ const PLANS: AwarenessPlan[] = [
             Formez vos équipes à la cybersécurité
           </h1>
           <p class="text-gray-400 text-lg max-w-2xl mx-auto">
-            17 modules e-learning NIS2 Article 21, attestations vérifiables et tableau de bord de
+            28 modules e-learning NIS2 Article 21, attestations vérifiables et tableau de bord de
             conformité. Simple, certifiant, prêt en 48h.
           </p>
+          <div
+            class="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-full border border-amber-600/30 bg-amber-500/5 text-amber-400 text-sm"
+          >
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">info</mat-icon>
+            Tarification sur devis — les prix ci-dessous sont indicatifs.
+            <a
+              routerLink="/cyberscan/contact"
+              [queryParams]="{ subject: 'sensibilisation-nis2' }"
+              class="underline hover:text-amber-300"
+              >Nous contacter</a
+            >
+          </div>
         </div>
 
         <!-- Plans grid -->
@@ -175,7 +187,8 @@ const PLANS: AwarenessPlan[] = [
               <!-- CTA -->
               <div class="p-5 pt-0">
                 <a
-                  routerLink="/cyberscan/awareness"
+                  routerLink="/cyberscan/contact"
+                  [queryParams]="{ subject: 'sensibilisation-nis2' }"
                   mat-flat-button
                   class="w-full !rounded-xl !text-sm"
                   [class]="
@@ -184,7 +197,7 @@ const PLANS: AwarenessPlan[] = [
                       : '!bg-gray-800 hover:!bg-gray-700 !text-gray-200'
                   "
                 >
-                  Commencer avec {{ plan.name }}
+                  Demander un devis {{ plan.name }}
                 </a>
               </div>
             </div>
