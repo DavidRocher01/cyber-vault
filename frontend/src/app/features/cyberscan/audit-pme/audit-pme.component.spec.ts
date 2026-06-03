@@ -2,24 +2,29 @@ import { describe, it, expect } from 'vitest';
 import { AUDIT_OFFERS, AUDIT_SUBSCRIPTIONS, AUDIT_FAQS } from './audit-pme.component';
 
 describe('AUDIT_OFFERS', () => {
-  it('contient exactement 3 offres ponctuelles', () => {
-    expect(AUDIT_OFFERS.length).toBe(3);
+  it('contient exactement 4 offres ponctuelles', () => {
+    expect(AUDIT_OFFERS.length).toBe(4);
   });
 
-  it('la première offre est Flash à 245€', () => {
+  it('la première offre est Flash à 390€', () => {
     expect(AUDIT_OFFERS[0].name).toBe('Audit Flash');
-    expect(AUDIT_OFFERS[0].price).toBe('245');
+    expect(AUDIT_OFFERS[0].price).toBe('390');
   });
 
-  it('la deuxième offre est App-Check à 725€, marquée popular', () => {
+  it('la deuxième offre est App-Check à 990€, marquée popular', () => {
     expect(AUDIT_OFFERS[1].name).toBe('App-Check');
-    expect(AUDIT_OFFERS[1].price).toBe('725');
+    expect(AUDIT_OFFERS[1].price).toBe('990');
     expect(AUDIT_OFFERS[1].popular).toBe(true);
   });
 
-  it('la troisième offre est Pentest léger à 1900€', () => {
+  it('la troisième offre est Pentest léger à 2 490€', () => {
     expect(AUDIT_OFFERS[2].name).toBe('Pentest léger');
-    expect(AUDIT_OFFERS[2].price).toBe('1 900');
+    expect(AUDIT_OFFERS[2].price).toBe('2 490');
+  });
+
+  it('la quatrième offre est Audit NIS2 / RGPD à 1 290€', () => {
+    expect(AUDIT_OFFERS[3].name).toBe('Audit NIS2 / RGPD');
+    expect(AUDIT_OFFERS[3].price).toBe('1 290');
   });
 
   it('chaque offre a au moins 4 features', () => {
@@ -31,6 +36,7 @@ describe('AUDIT_OFFERS', () => {
   it("les offres non popular n'ont pas le champ popular à true", () => {
     expect(AUDIT_OFFERS[0].popular).toBeFalsy();
     expect(AUDIT_OFFERS[2].popular).toBeFalsy();
+    expect(AUDIT_OFFERS[3].popular).toBeFalsy();
   });
 });
 
@@ -39,19 +45,21 @@ describe('AUDIT_SUBSCRIPTIONS', () => {
     expect(AUDIT_SUBSCRIPTIONS.length).toBe(3);
   });
 
-  it("l'abonnement Sentinelle est recommandé (popular) à ~199€", () => {
-    const sentinelle = AUDIT_SUBSCRIPTIONS.find(s => s.name === 'Sentinelle');
-    expect(sentinelle).toBeDefined();
-    expect(sentinelle!.popular).toBe(true);
-    expect(sentinelle!.price).toBe('~199');
+  it('Surveillance Pro est recommandé (popular) à 49€', () => {
+    const pro = AUDIT_SUBSCRIPTIONS.find(s => s.name === 'Surveillance Pro');
+    expect(pro).toBeDefined();
+    expect(pro!.popular).toBe(true);
+    expect(pro!.price).toBe('49');
   });
 
-  it('Vigie est à ~99€/mois', () => {
-    expect(AUDIT_SUBSCRIPTIONS[0].price).toBe('~99');
+  it('Surveillance Starter est à 14,90€/mois', () => {
+    expect(AUDIT_SUBSCRIPTIONS[0].name).toBe('Surveillance Starter');
+    expect(AUDIT_SUBSCRIPTIONS[0].price).toBe('14,90');
   });
 
-  it('Blindage 360 est à ~499€/mois', () => {
-    expect(AUDIT_SUBSCRIPTIONS[2].price).toBe('~499');
+  it('Surveillance Business est à 149€/mois', () => {
+    expect(AUDIT_SUBSCRIPTIONS[2].name).toBe('Surveillance Business');
+    expect(AUDIT_SUBSCRIPTIONS[2].price).toBe('149');
   });
 
   it('chaque abonnement a au moins 2 features', () => {
