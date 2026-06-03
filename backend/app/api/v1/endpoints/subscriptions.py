@@ -20,7 +20,17 @@ ADDON_EXTRA_SITES_PRICE_EUR = settings.ADDON_EXTRA_SITES_PRICE_EUR
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
 
 FRONTEND_URL = settings.FRONTEND_URL
-DEV_MODE = settings.APP_ENV == "development"
+# DEV_MODE allows checkout simulation without Stripe — forbidden in production.
+DEV_MODE = settings.APP_ENV == "development" and "cyberscanapp.com" not in settings.FRONTEND_URL
+
+if settings.APP_ENV == "development" and "cyberscanapp.com" in settings.FRONTEND_URL:
+    import logging as _logging
+
+    _logging.getLogger(__name__).critical(
+        "DEV_MODE blocked: APP_ENV=development detected against production FRONTEND_URL. "
+        "Set APP_ENV=production in ECS environment variables."
+    )
+    raise RuntimeError("DEV_MODE forbidden in production environment")
 
 
 @router.get("/me", response_model=SubscriptionOut | None)
