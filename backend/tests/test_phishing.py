@@ -465,32 +465,46 @@ class TestDynamicCtx:
 
 class TestAttachmentBadge:
     def test_returns_html_string(self):
-        result = phishing_service._attachment_badge("Facture.pdf", "PDF")
+        from app.services.phishing_templates import _attachment_badge
+
+        result = _attachment_badge("Facture.pdf", "PDF")
         assert isinstance(result, str)
         assert len(result) > 0
 
     def test_contains_filename(self):
-        result = phishing_service._attachment_badge("Mandat_virement.pdf", "PDF")
+        from app.services.phishing_templates import _attachment_badge
+
+        result = _attachment_badge("Mandat_virement.pdf", "PDF")
         assert "Mandat_virement.pdf" in result
 
     def test_contains_filetype(self):
-        result = phishing_service._attachment_badge("Rapport.docx", "DOCX")
+        from app.services.phishing_templates import _attachment_badge
+
+        result = _attachment_badge("Rapport.docx", "DOCX")
         assert "DOCX" in result
 
     def test_pdf_badge_present(self):
-        result = phishing_service._attachment_badge("doc.pdf", "PDF")
+        from app.services.phishing_templates import _attachment_badge
+
+        result = _attachment_badge("doc.pdf", "PDF")
         assert "PDF" in result
 
     def test_exe_badge_present(self):
-        result = phishing_service._attachment_badge("patch.exe", "EXE")
+        from app.services.phishing_templates import _attachment_badge
+
+        result = _attachment_badge("patch.exe", "EXE")
         assert "EXE" in result
 
     def test_xlsx_badge_present(self):
-        result = phishing_service._attachment_badge("grille.xlsx", "XLSX")
+        from app.services.phishing_templates import _attachment_badge
+
+        result = _attachment_badge("grille.xlsx", "XLSX")
         assert "XLSX" in result
 
     def test_is_html_table_or_div(self):
-        result = phishing_service._attachment_badge("file.pdf", "PDF")
+        from app.services.phishing_templates import _attachment_badge
+
+        result = _attachment_badge("file.pdf", "PDF")
         assert "<table" in result or "<div" in result
 
 
