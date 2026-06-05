@@ -16,9 +16,8 @@ XP gagné :
 
 Badges (20) — vérifiés après chaque action significative.
 """
-from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from __future__ import annotations
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,16 +26,14 @@ from app.models.awareness_badge import AwarenessBadge
 from app.models.awareness_enrollment import AwarenessEnrollment
 from app.models.awareness_learner import AwarenessLearner
 from app.models.awareness_learner_badge import AwarenessLearnerBadge
-from app.models.awareness_module import AwarenessModule
 from app.models.awareness_progress import AwarenessProgress
 from app.models.awareness_quiz_attempt import AwarenessQuizAttempt
-
 
 # ── Niveau ─────────────────────────────────────────────────────────────────────
 
 LEVELS = [
-    (0,   1, "Apprenti"),
-    (51,  2, "Initié"),
+    (0, 1, "Apprenti"),
+    (51, 2, "Initié"),
     (151, 3, "Vigilant"),
     (301, 4, "Expert"),
     (501, 5, "Sentinelle"),
@@ -50,7 +47,7 @@ def compute_level(xp: int) -> dict:
             level_num, label = num, name
     # Next threshold
     next_threshold = None
-    for threshold, num, _ in LEVELS:
+    for threshold, _num, _ in LEVELS:
         if xp < threshold:
             next_threshold = threshold
             break
@@ -63,6 +60,7 @@ def compute_level(xp: int) -> dict:
 
 
 # ── XP award ──────────────────────────────────────────────────────────────────
+
 
 async def award_xp(
     db: AsyncSession,
@@ -87,6 +85,7 @@ async def compute_total_xp(db: AsyncSession, learner_id: int) -> int:
 
 # ── Badge award ────────────────────────────────────────────────────────────────
 
+
 async def _has_badge(db: AsyncSession, learner_id: int, slug: str) -> bool:
     badge = (
         await db.execute(select(AwarenessBadge).where(AwarenessBadge.slug == slug))
@@ -104,7 +103,9 @@ async def _has_badge(db: AsyncSession, learner_id: int, slug: str) -> bool:
     return existing is not None
 
 
-async def _award_badge(db: AsyncSession, learner_id: int, slug: str) -> AwarenessLearnerBadge | None:
+async def _award_badge(
+    db: AsyncSession, learner_id: int, slug: str
+) -> AwarenessLearnerBadge | None:
     if await _has_badge(db, learner_id, slug):
         return None
     badge = (
@@ -183,6 +184,7 @@ async def check_and_award_badges(
     # ── nis2_ready : NIS2 program completed ───────────────────────────────────
     if enrollment.status == "completed":
         from app.models.awareness_program import AwarenessProgram
+
         program = (
             await db.execute(
                 select(AwarenessProgram).where(AwarenessProgram.id == enrollment.program_id)
@@ -225,6 +227,7 @@ async def check_and_award_badges(
 
 # ── Leaderboard ────────────────────────────────────────────────────────────────
 
+
 async def get_leaderboard(
     db: AsyncSession,
     organization_id: int,
@@ -252,13 +255,15 @@ async def get_leaderboard(
     for rank, row in enumerate(rows, start=1):
         initials = _initials(row.first_name, row.last_name)
         level = compute_level(row.total_xp or 0)
-        board.append({
-            "rank": rank,
-            "display_name": initials,
-            "total_xp": row.total_xp or 0,
-            "level": level["level"],
-            "level_label": level["label"],
-        })
+        board.append(
+            {
+                "rank": rank,
+                "display_name": initials,
+                "total_xp": row.total_xp or 0,
+                "level": level["level"],
+                "level_label": level["label"],
+            }
+        )
     return board
 
 
@@ -274,26 +279,166 @@ def _initials(first: str | None, last: str | None) -> str:
 # ── Badge catalog ──────────────────────────────────────────────────────────────
 
 BADGE_CATALOG: list[dict] = [
-    {"slug": "first_step",       "name": "Premier pas",         "icon": "🏅", "category": "engagement",   "xp_bonus": 5,  "description": "Complétez votre premier module"},
-    {"slug": "first_quiz",       "name": "Premier quiz",        "icon": "📝", "category": "performance",  "xp_bonus": 5,  "description": "Réussissez votre premier quiz"},
-    {"slug": "perfectionist",    "name": "Perfectionniste",     "icon": "💯", "category": "performance",  "xp_bonus": 10, "description": "Obtenez 100% à un quiz"},
-    {"slug": "speed_runner",     "name": "Speed runner",        "icon": "⚡", "category": "engagement",   "xp_bonus": 5,  "description": "Complétez un module en moins de 2 minutes"},
-    {"slug": "detective",        "name": "Détective",           "icon": "🔍", "category": "performance",  "xp_bonus": 15, "description": "100% au quiz phishing"},
-    {"slug": "shield",           "name": "Bouclier",            "icon": "🛡️", "category": "performance",  "xp_bonus": 20, "description": "Complétez 3 programmes"},
-    {"slug": "streak_7",         "name": "Série de 7",          "icon": "🔥", "category": "streak",       "xp_bonus": 20, "description": "7 jours consécutifs d'activité"},
-    {"slug": "noctambule",       "name": "Noctambule",          "icon": "🦉", "category": "special",      "xp_bonus": 5,  "description": "Connexion après 22h"},
-    {"slug": "early_bird",       "name": "Lève-tôt",            "icon": "🐦", "category": "special",      "xp_bonus": 5,  "description": "Connexion avant 8h"},
-    {"slug": "monthly_champion", "name": "Champion du mois",    "icon": "🏆", "category": "social",       "xp_bonus": 30, "description": "1er du classement mensuel"},
-    {"slug": "mentor",           "name": "Mentor",              "icon": "🤝", "category": "social",       "xp_bonus": 10, "description": "Partagez votre certificat"},
-    {"slug": "persistent",       "name": "Persévérant",         "icon": "💪", "category": "engagement",   "xp_bonus": 5,  "description": "3 tentatives sur un même quiz"},
-    {"slug": "fast_learner",     "name": "Apprenant rapide",    "icon": "🚀", "category": "performance",  "xp_bonus": 15, "description": "5 modules en une semaine"},
-    {"slug": "nis2_ready",       "name": "Prêt NIS2",           "icon": "✅", "category": "performance",  "xp_bonus": 25, "description": "Programme NIS2 complété"},
-    {"slug": "explorer",         "name": "Explorateur",         "icon": "🗺️", "category": "engagement",   "xp_bonus": 10, "description": "3 programmes différents commencés"},
-    {"slug": "consistent",       "name": "Régulier",            "icon": "📅", "category": "streak",       "xp_bonus": 10, "description": "Actif 5 jours consécutifs"},
-    {"slug": "overachiever",     "name": "Surperformant",       "icon": "🌟", "category": "performance",  "xp_bonus": 20, "description": "Score moyen > 90%"},
-    {"slug": "all_in",           "name": "Tout complété",       "icon": "🎯", "category": "performance",  "xp_bonus": 15, "description": "Tous les modules d'un programme complétés"},
-    {"slug": "veteran",          "name": "Vétéran",             "icon": "🎖️", "category": "special",      "xp_bonus": 30, "description": "6 mois d'utilisation"},
-    {"slug": "top_scorer",       "name": "Meilleur score",      "icon": "👑", "category": "performance",  "xp_bonus": 25, "description": "Score parfait 3 fois"},
+    {
+        "slug": "first_step",
+        "name": "Premier pas",
+        "icon": "🏅",
+        "category": "engagement",
+        "xp_bonus": 5,
+        "description": "Complétez votre premier module",
+    },
+    {
+        "slug": "first_quiz",
+        "name": "Premier quiz",
+        "icon": "📝",
+        "category": "performance",
+        "xp_bonus": 5,
+        "description": "Réussissez votre premier quiz",
+    },
+    {
+        "slug": "perfectionist",
+        "name": "Perfectionniste",
+        "icon": "💯",
+        "category": "performance",
+        "xp_bonus": 10,
+        "description": "Obtenez 100% à un quiz",
+    },
+    {
+        "slug": "speed_runner",
+        "name": "Speed runner",
+        "icon": "⚡",
+        "category": "engagement",
+        "xp_bonus": 5,
+        "description": "Complétez un module en moins de 2 minutes",
+    },
+    {
+        "slug": "detective",
+        "name": "Détective",
+        "icon": "🔍",
+        "category": "performance",
+        "xp_bonus": 15,
+        "description": "100% au quiz phishing",
+    },
+    {
+        "slug": "shield",
+        "name": "Bouclier",
+        "icon": "🛡️",
+        "category": "performance",
+        "xp_bonus": 20,
+        "description": "Complétez 3 programmes",
+    },
+    {
+        "slug": "streak_7",
+        "name": "Série de 7",
+        "icon": "🔥",
+        "category": "streak",
+        "xp_bonus": 20,
+        "description": "7 jours consécutifs d'activité",
+    },
+    {
+        "slug": "noctambule",
+        "name": "Noctambule",
+        "icon": "🦉",
+        "category": "special",
+        "xp_bonus": 5,
+        "description": "Connexion après 22h",
+    },
+    {
+        "slug": "early_bird",
+        "name": "Lève-tôt",
+        "icon": "🐦",
+        "category": "special",
+        "xp_bonus": 5,
+        "description": "Connexion avant 8h",
+    },
+    {
+        "slug": "monthly_champion",
+        "name": "Champion du mois",
+        "icon": "🏆",
+        "category": "social",
+        "xp_bonus": 30,
+        "description": "1er du classement mensuel",
+    },
+    {
+        "slug": "mentor",
+        "name": "Mentor",
+        "icon": "🤝",
+        "category": "social",
+        "xp_bonus": 10,
+        "description": "Partagez votre certificat",
+    },
+    {
+        "slug": "persistent",
+        "name": "Persévérant",
+        "icon": "💪",
+        "category": "engagement",
+        "xp_bonus": 5,
+        "description": "3 tentatives sur un même quiz",
+    },
+    {
+        "slug": "fast_learner",
+        "name": "Apprenant rapide",
+        "icon": "🚀",
+        "category": "performance",
+        "xp_bonus": 15,
+        "description": "5 modules en une semaine",
+    },
+    {
+        "slug": "nis2_ready",
+        "name": "Prêt NIS2",
+        "icon": "✅",
+        "category": "performance",
+        "xp_bonus": 25,
+        "description": "Programme NIS2 complété",
+    },
+    {
+        "slug": "explorer",
+        "name": "Explorateur",
+        "icon": "🗺️",
+        "category": "engagement",
+        "xp_bonus": 10,
+        "description": "3 programmes différents commencés",
+    },
+    {
+        "slug": "consistent",
+        "name": "Régulier",
+        "icon": "📅",
+        "category": "streak",
+        "xp_bonus": 10,
+        "description": "Actif 5 jours consécutifs",
+    },
+    {
+        "slug": "overachiever",
+        "name": "Surperformant",
+        "icon": "🌟",
+        "category": "performance",
+        "xp_bonus": 20,
+        "description": "Score moyen > 90%",
+    },
+    {
+        "slug": "all_in",
+        "name": "Tout complété",
+        "icon": "🎯",
+        "category": "performance",
+        "xp_bonus": 15,
+        "description": "Tous les modules d'un programme complétés",
+    },
+    {
+        "slug": "veteran",
+        "name": "Vétéran",
+        "icon": "🎖️",
+        "category": "special",
+        "xp_bonus": 30,
+        "description": "6 mois d'utilisation",
+    },
+    {
+        "slug": "top_scorer",
+        "name": "Meilleur score",
+        "icon": "👑",
+        "category": "performance",
+        "xp_bonus": 25,
+        "description": "Score parfait 3 fois",
+    },
 ]
 
 

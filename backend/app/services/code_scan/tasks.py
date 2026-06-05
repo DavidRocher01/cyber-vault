@@ -11,6 +11,7 @@ import shutil
 import tempfile
 import zipfile
 from datetime import UTC, datetime
+from pathlib import Path
 
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -136,9 +137,9 @@ async def run_code_scan_zip(scan_id: int, zip_path: str, db: AsyncSession) -> No
                     raise RuntimeError("Archive contient des chemins invalides (path traversal)")
             z.extractall(repo_dir)
 
-        entries = os.listdir(repo_dir)
-        if len(entries) == 1 and os.path.isdir(os.path.join(repo_dir, entries[0])):
-            repo_dir = os.path.join(repo_dir, entries[0])
+        entries = list(Path(repo_dir).iterdir())
+        if len(entries) == 1 and entries[0].is_dir():
+            repo_dir = str(entries[0])
 
         all_findings, counts, unavailable = await asyncio.to_thread(
             _run_all_tools, scan_id, repo_dir

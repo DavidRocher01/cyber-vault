@@ -1,4 +1,4 @@
-import { Injectable, signal, computed, PLATFORM_ID, inject } from '@angular/core';
+import { Injectable, signal, computed, PLATFORM_ID, Inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
@@ -7,15 +7,21 @@ const STORAGE_KEY = 'cvault_nav_history';
 
 @Injectable({ providedIn: 'root' })
 export class NavHistoryService {
-  private platformId = inject(PLATFORM_ID);
-  private stack: string[] = this.loadStack();
-  private pos = signal(Math.max(0, this.stack.length - 1));
+  private stack: string[];
+  private pos: ReturnType<typeof signal<number>>;
   private jumping = false;
 
-  readonly canGoBack = computed(() => this.pos() > 0);
-  readonly canGoForward = computed(() => this.pos() < this.stack.length - 1);
+  readonly canGoBack: ReturnType<typeof computed<boolean>>;
+  readonly canGoForward: ReturnType<typeof computed<boolean>>;
 
-  constructor(private router: Router) {
+  constructor(
+    private router: Router,
+    @Inject(PLATFORM_ID) private platformId: object
+  ) {
+    this.stack = this.loadStack();
+    this.pos = signal(Math.max(0, this.stack.length - 1));
+    this.canGoBack = computed(() => this.pos() > 0);
+    this.canGoForward = computed(() => this.pos() < this.stack.length - 1);
     this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe((e: any) => {
       if (this.jumping) return;
       const url = e.urlAfterRedirects as string;
