@@ -46,7 +46,7 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG:    ${{ github.sha }}
-          SM_ARN: arn:aws:secretsmanager:eu-west-3:328646895533:secret:cybervault/prod-Uqdfdg
+          SM_ARN: ${{ secrets.AWS_SM_ARN }}
         run: |
           TASK_DEF_ARN=$(aws ecs describe-services \
             --cluster ${{ secrets.ECS_CLUSTER }} \
@@ -92,7 +92,7 @@ jobs:
           # Secrets are stored in AWS Secrets Manager (cybervault/prod).
           # The task definition references them via valueFrom ARN — no plain
           # text secrets are passed through GitHub Actions env vars.
-          SM_ARN: arn:aws:secretsmanager:eu-west-3:328646895533:secret:cybervault/prod-Uqdfdg
+          SM_ARN: ${{ secrets.AWS_SM_ARN }}
           STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
         run: |
           # Retrieve the current task definition ARN from the service

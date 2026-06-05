@@ -5,7 +5,10 @@ import {
   OnInit,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  PLATFORM_ID,
+  inject,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { CommonModule } from '@angular/common';
 
 interface LogLine {
@@ -406,12 +409,16 @@ export class CyberLoaderComponent implements OnInit, OnDestroy {
   loopPct = 0;
   private rafId = 0;
   private logTimer: any;
-  private startTime = performance.now();
+  private startTime = 0;
   private logIdx = 0;
+  private platformId = inject(PLATFORM_ID);
 
   constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    this.startTime = performance.now();
     const frame = (now: number) => {
       const elapsed = ((now - this.startTime) / 1000) % this.loopSec;
       this.loopPct = elapsed / this.loopSec;

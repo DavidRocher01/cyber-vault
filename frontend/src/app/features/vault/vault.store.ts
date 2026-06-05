@@ -35,7 +35,11 @@ export class VaultStore extends ComponentStore<VaultState> {
       switchMap(() =>
         this.vaultService.getAll().pipe(
           tapResponse(
-            items => this.patchState({ items, loading: false }),
+            items => {
+              this.patchState({ items, loading: false });
+              // Migrate legacy plaintext items in the background (non-blocking)
+              this.vaultService.migrateLegacyItems().catch(() => {});
+            },
             (err: any) =>
               this.patchState({
                 loading: false,
@@ -50,8 +54,22 @@ export class VaultStore extends ComponentStore<VaultState> {
   readonly createItem = this.effect<VaultItemCreate>(payload$ =>
     payload$.pipe(
       concatMap(payload =>
-        from(this.cryptoService.encrypt(payload.password_encrypted)).pipe(
-          map(encrypted => ({ ...payload, password_encrypted: encrypted }))
+        from(
+          Promise.all([
+            this.cryptoService.encrypt(payload.password_encrypted),
+            this.vaultService.buildEncryptedPayload({
+              title: payload.title,
+              username: payload.username,
+              url: payload.url,
+              notes: payload.notes,
+            }),
+          ])
+        ).pipe(
+          map(([encPwd, encFields]) => ({
+            ...payload,
+            password_encrypted: encPwd,
+            ...encFields,
+          }))
         )
       ),
       concatMap(payload =>
@@ -67,14 +85,30 @@ export class VaultStore extends ComponentStore<VaultState> {
 
   readonly updateItem = this.effect<VaultItemUpdate>(payload$ =>
     payload$.pipe(
-      concatMap(({ id, password_encrypted, ...rest }) => {
-        const encrypt$ = password_encrypted
-          ? from(this.cryptoService.encrypt(password_encrypted)).pipe(
-              map(e => ({ password_encrypted: e }))
-            )
-          : from(Promise.resolve({}));
-        return encrypt$.pipe(map(extra => ({ id, ...rest, ...extra })));
-      }),
+      concatMap(({ id, password_encrypted, ...rest }) =>
+        from(
+          Promise.all([
+            password_encrypted
+              ? this.cryptoService.encrypt(password_encrypted)
+              : Promise.resolve(null),
+            rest.title !== undefined
+              ? this.vaultService.buildEncryptedPayload({
+                  title: rest.title ?? '',
+                  username: rest.username,
+                  url: rest.url,
+                  notes: rest.notes,
+                })
+              : Promise.resolve({}),
+          ])
+        ).pipe(
+          map(([encPwd, encFields]) => ({
+            id,
+            ...rest,
+            ...(encPwd ? { password_encrypted: encPwd } : {}),
+            ...encFields,
+          }))
+        )
+      ),
       concatMap(({ id, ...payload }) =>
         this.vaultService.update(id, payload).pipe(
           tapResponse(

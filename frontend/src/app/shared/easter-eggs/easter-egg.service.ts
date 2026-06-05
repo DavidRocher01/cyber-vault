@@ -1,4 +1,5 @@
-import { Injectable, inject, OnDestroy } from '@angular/core';
+import { Injectable, inject, OnDestroy, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 
@@ -19,6 +20,7 @@ const SECRET_WORD = 'cyberscan';
 @Injectable({ providedIn: 'root' })
 export class EasterEggService implements OnDestroy {
   private router = inject(Router);
+  private platformId = inject(PLATFORM_ID);
 
   readonly matrixTrigger$ = new Subject<void>();
 
@@ -46,11 +48,15 @@ export class EasterEggService implements OnDestroy {
   };
 
   constructor() {
-    window.addEventListener('keydown', this.onKey);
+    if (isPlatformBrowser(this.platformId)) {
+      window.addEventListener('keydown', this.onKey);
+    }
   }
 
   ngOnDestroy(): void {
-    window.removeEventListener('keydown', this.onKey);
+    if (isPlatformBrowser(this.platformId)) {
+      window.removeEventListener('keydown', this.onKey);
+    }
   }
 
   onLogoClick(): void {

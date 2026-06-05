@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 import sentry_sdk
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -144,11 +146,19 @@ async def _import_awareness_content() -> None:
             logger.error(f"Awareness content auto-import failed: {exc}")
 
 
+@asynccontextmanager
+async def lifespan(fastapi_app: FastAPI):
+    await _seed_plans()
+    await _seed_awareness_badges()
+    start_scheduler()
+    yield
+    stop_scheduler()
+
+
 app = FastAPI(
     title=settings.APP_NAME,
     version=__version__,
-    on_startup=[_seed_plans, _seed_awareness_badges, start_scheduler],
-    on_shutdown=[stop_scheduler],
+    lifespan=lifespan,
 )
 
 app.state.limiter = limiter

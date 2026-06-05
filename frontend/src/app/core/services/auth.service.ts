@@ -1,12 +1,29 @@
-import { Injectable } from '@angular/core';
+import { Injectable, PLATFORM_ID, inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { tap } from 'rxjs';
 
+// access_token et crypto_salt en sessionStorage (XSS safer — disparaissent à la fermeture de l'onglet)
+// Le refresh_token httpOnly cookie assure la persistance entre sessions
 const ACCESS_KEY = 'cv_token';
-const EMAIL_KEY = 'cv_email';
+const EMAIL_KEY = 'cv_email'; // localStorage : non sensible, identification UI
 const CRYPTO_SALT_KEY = 'cv_crypto_salt';
 const API = '/api/v1';
+
+// SSR-safe storage stubs
+const noopStorage: Storage = {
+  length: 0,
+  clear() {},
+  getItem() {
+    return null;
+  },
+  key() {
+    return null;
+  },
+  removeItem() {},
+  setItem() {},
+};
 
 export interface AccessTokenResponse {
   access_token: string;
@@ -18,6 +35,14 @@ export type LoginResponse = AccessTokenResponse | { requires_2fa: true };
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private platformId = inject(PLATFORM_ID);
+  private get session(): Storage {
+    return isPlatformBrowser(this.platformId) ? sessionStorage : noopStorage;
+  }
+  private get local(): Storage {
+    return isPlatformBrowser(this.platformId) ? localStorage : noopStorage;
+  }
+
   constructor(
     private http: HttpClient,
     private router: Router
@@ -29,10 +54,10 @@ export class AuthService {
     return this.http.post<LoginResponse>(`${API}/auth/login`, body, { withCredentials: true }).pipe(
       tap(res => {
         if ('access_token' in res) {
-          localStorage.setItem(ACCESS_KEY, res.access_token);
-          localStorage.setItem(EMAIL_KEY, email);
+          this.session.setItem(ACCESS_KEY, res.access_token);
+          this.local.setItem(EMAIL_KEY, email);
           if (res.crypto_salt) {
-            localStorage.setItem(CRYPTO_SALT_KEY, res.crypto_salt);
+            this.session.setItem(CRYPTO_SALT_KEY, res.crypto_salt);
           }
         }
       })
@@ -49,7 +74,8 @@ export class AuthService {
       .post<AccessTokenResponse>(`${API}/auth/refresh`, {}, { withCredentials: true })
       .pipe(
         tap(res => {
-          localStorage.setItem(ACCESS_KEY, res.access_token);
+          this.session.setItem(ACCESS_KEY, res.access_token);
+          if (res.crypto_salt) this.session.setItem(CRYPTO_SALT_KEY, res.crypto_salt);
         })
       );
   }
@@ -59,22 +85,22 @@ export class AuthService {
     this.http
       .post(`${API}/auth/logout`, {}, { withCredentials: true })
       .subscribe({ error: () => {} });
-    localStorage.removeItem(ACCESS_KEY);
-    localStorage.removeItem(EMAIL_KEY);
-    localStorage.removeItem(CRYPTO_SALT_KEY);
+    this.session.removeItem(ACCESS_KEY);
+    this.session.removeItem(CRYPTO_SALT_KEY);
+    this.local.removeItem(EMAIL_KEY);
     this.router.navigate(['/cyberscan']);
   }
 
   getToken(): string | null {
-    return localStorage.getItem(ACCESS_KEY);
+    return this.session.getItem(ACCESS_KEY);
   }
 
   getCurrentEmail(): string | null {
-    return localStorage.getItem(EMAIL_KEY);
+    return this.local.getItem(EMAIL_KEY);
   }
 
   getCryptoSalt(): string | null {
-    return localStorage.getItem(CRYPTO_SALT_KEY);
+    return this.session.getItem(CRYPTO_SALT_KEY);
   }
 
   isAuthenticated(): boolean {

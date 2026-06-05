@@ -1,4 +1,5 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { NavHistoryService } from './core/services/nav-history.service';
@@ -28,13 +29,19 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private startTime = Date.now();
   private easterEgg = inject(EasterEggService);
+  private platformId = inject(PLATFORM_ID);
   private sub!: Subscription;
 
   constructor() {
     inject(NavHistoryService);
+    // During SSR prerendering, skip the loader entirely
+    if (!isPlatformBrowser(this.platformId)) {
+      this.loading = false;
+    }
   }
 
   ngOnInit(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
     const elapsed = Date.now() - this.startTime;
     setTimeout(() => (this.loading = false), Math.max(0, MIN_LOADER_MS - elapsed));
 

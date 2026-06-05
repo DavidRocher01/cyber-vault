@@ -1,4 +1,5 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, PLATFORM_ID, inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 
@@ -6,6 +7,7 @@ const STORAGE_KEY = 'cvault_nav_history';
 
 @Injectable({ providedIn: 'root' })
 export class NavHistoryService {
+  private platformId = inject(PLATFORM_ID);
   private stack: string[] = this.loadStack();
   private pos = signal(Math.max(0, this.stack.length - 1));
   private jumping = false;
@@ -49,6 +51,7 @@ export class NavHistoryService {
   }
 
   private loadStack(): string[] {
+    if (!isPlatformBrowser(this.platformId)) return [];
     try {
       const stored = sessionStorage.getItem(STORAGE_KEY);
       return stored ? JSON.parse(stored) : [];
@@ -58,6 +61,7 @@ export class NavHistoryService {
   }
 
   private saveStack(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(this.stack));
     } catch {}
