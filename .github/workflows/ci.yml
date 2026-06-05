@@ -254,6 +254,7 @@ jobs:
     name: E2E Playwright
     runs-on: ubuntu-latest
     needs: [backend, frontend]
+    timeout-minutes: 20
 
     services:
       postgres:
@@ -298,6 +299,19 @@ jobs:
           ALLOWED_ORIGINS: '["http://localhost:4200"]'
         run: uvicorn app.main:app --host 0.0.0.0 --port 8000 &
         working-directory: backend
+
+      - name: Wait for backend to be ready
+        run: |
+          echo "Waiting for backend on :8000..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+              echo "Backend ready after ${i}s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend did not start after 60s — dumping last logs:"
+          exit 1
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
