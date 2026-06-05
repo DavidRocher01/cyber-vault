@@ -365,7 +365,7 @@ async def download_remediation_script(
 
     except HTTPException:
         raise
-    except (OSError, FileNotFoundError):
+    except (OSError, FileNotFoundError, ImportError):
         raise HTTPException(status_code=404, detail="Script non trouvé")
 
 
