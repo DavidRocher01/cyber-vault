@@ -145,9 +145,6 @@ export interface SiteBadgeInfo {
             <div class="h-full bg-cyan-500 animate-pulse w-full"></div>
           </div>
         }
-
-        <!-- Scans slot: projected content per site -->
-        <ng-content [select]="'[siteId='' + site.id + '']'"></ng-content>
       </div>
     }
   `,
