@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -16,7 +16,7 @@ import { OtpInputComponent } from '../../../shared/otp-input/otp-input.component
   standalone: true,
   selector: 'app-login',
   imports: [
-    CommonModule,
+    AsyncPipe,
     ReactiveFormsModule,
     FormsModule,
     RouterLink,

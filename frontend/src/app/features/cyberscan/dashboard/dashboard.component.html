@@ -271,62 +271,13 @@
       }
 
       <!-- ── Stats ───────────────────────────────────────────────────────── -->
-      @if (sites().length > 0 && averageScore !== null) {
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div class="dashboard-stat-card col-span-2 md:col-span-1 flex items-center gap-4">
-            <div class="w-14 h-14 flex-shrink-0">
-              <app-score-gauge [score]="averageScore"></app-score-gauge>
-            </div>
-            <div>
-              <p class="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Score moyen</p>
-              <p class="font-bold text-white">{{ getGrade(averageScore) }}</p>
-              <p class="text-xs text-gray-400">{{ averageScore }}/100</p>
-            </div>
-          </div>
-          <div class="dashboard-stat-card flex items-center gap-3">
-            <div
-              class="w-9 h-9 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0"
-            >
-              <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]"
-                >language</mat-icon
-              >
-            </div>
-            <div>
-              <p class="text-2xl font-bold">{{ sites().length }}</p>
-              <p class="text-xs text-gray-500">
-                site{{ sites().length > 1 ? 's' : '' }} surveillé{{ sites().length > 1 ? 's' : '' }}
-              </p>
-            </div>
-          </div>
-          <div class="dashboard-stat-card flex items-center gap-3">
-            <div
-              class="w-9 h-9 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0"
-            >
-              <mat-icon class="text-green-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]"
-                >analytics</mat-icon
-              >
-            </div>
-            <div>
-              <p class="text-2xl font-bold">{{ totalScans }}</p>
-              <p class="text-xs text-gray-500">scans effectués</p>
-            </div>
-          </div>
-          <div class="dashboard-stat-card flex items-center gap-3">
-            <div
-              class="w-9 h-9 rounded-lg bg-yellow-500/10 flex items-center justify-center flex-shrink-0"
-            >
-              <mat-icon class="text-yellow-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]"
-                >schedule</mat-icon
-              >
-            </div>
-            <div>
-              <p class="text-2xl font-bold">
-                {{ subscription()?.plan?.scan_interval_days ?? '—' }}
-              </p>
-              <p class="text-xs text-gray-500">jours entre scans</p>
-            </div>
-          </div>
-        </div>
+      @if (sites().length > 0) {
+        <app-stats-cards
+          [averageScore]="averageScore"
+          [sitesCount]="sites().length"
+          [totalScans]="totalScans"
+          [subscription]="subscription()"
+        ></app-stats-cards>
       }
 
       <!-- ── Quick Tools ─────────────────────────────────────────────────── -->
@@ -1090,303 +1041,33 @@
       <div class="flex flex-col gap-5">
         @for (site of sites(); track site.id) {
           <div class="rounded-2xl border border-gray-700/60 bg-gray-800/40 overflow-hidden">
-            <!-- Site Header -->
-            <div
-              class="flex items-center justify-between px-5 py-4 border-b border-gray-700/50 flex-wrap gap-3"
-            >
-              <div class="flex items-center gap-4">
-                @if (getLastScore(site.id); as score) {
-                  <div class="flex flex-col items-center gap-0.5 flex-shrink-0">
-                    <div class="w-12 h-12">
-                      <app-score-gauge [score]="score"></app-score-gauge>
-                    </div>
-                    @if (getTrend(site.id); as trend) {
-                      <span
-                        class="text-[10px] font-bold flex items-center gap-0.5"
-                        [class.text-green-400]="trend > 0"
-                        [class.text-red-400]="trend < 0"
-                        [class.text-gray-500]="trend === 0"
-                      >
-                        <mat-icon class="!text-[0.65rem] !w-[0.65rem] !h-[0.65rem]">
-                          {{
-                            trend > 0
-                              ? 'trending_up'
-                              : trend < 0
-                                ? 'trending_down'
-                                : 'trending_flat'
-                          }}
-                        </mat-icon>
-                        {{ trend > 0 ? '+' : '' }}{{ trend }}
-                      </span>
-                    }
-                  </div>
-                }
-                <div>
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <a
-                      [routerLink]="['/cyberscan/site', site.id]"
-                      class="font-bold text-white hover:text-cyan-400 transition-colors"
-                      >{{ site.name }}</a
-                    >
-                    <span
-                      class="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium"
-                      [class]="siteBadgeClass(site.id)"
-                    >
-                      <mat-icon class="!text-[0.7rem] !w-[0.7rem] !h-[0.7rem]">{{
-                        siteBadgeIcon(site.id)
-                      }}</mat-icon>
-                      {{ siteBadgeLabel(site.id) }}
-                    </span>
-                  </div>
-                  <a
-                    [href]="site.url"
-                    target="_blank"
-                    class="text-xs text-cyan-500/80 hover:text-cyan-400 hover:underline transition-colors mt-0.5 block"
-                  >
-                    {{ site.url }}
-                  </a>
-                  <!-- SSL expiry warning -->
-                  @if (getSslDaysRemaining(site.id); as days) {
-                    @if (days <= 30) {
-                      <span
-                        class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold mt-1"
-                        [class]="
-                          days <= 7
-                            ? 'bg-red-500/15 text-red-400 border border-red-700/40'
-                            : days <= 14
-                              ? 'bg-orange-500/15 text-orange-400 border border-orange-700/40'
-                              : 'bg-yellow-500/15 text-yellow-400 border border-yellow-700/40'
-                        "
-                      >
-                        <mat-icon class="!text-[0.65rem] !w-[0.65rem] !h-[0.65rem]"
-                          >lock_clock</mat-icon
-                        >
-                        SSL expire dans {{ days }}j
-                      </span>
-                    }
-                  }
-                </div>
-              </div>
-              <div class="flex items-center gap-1.5">
-                <a
-                  [routerLink]="['/cyberscan/subdomains', site.id]"
-                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-teal-700/40 text-teal-400 hover:bg-teal-500/10 hover:border-teal-500 transition-all"
-                >
-                  <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">dns</mat-icon>
-                  DNS
-                </a>
-                <a
-                  [routerLink]="['/cyberscan/site', site.id]"
-                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400 transition-all"
-                >
-                  <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]"
-                    >arrow_forward</mat-icon
-                  >
-                  Détails
-                </a>
-                <button
-                  mat-flat-button
-                  type="button"
-                  color="primary"
-                  class="!text-xs"
-                  [disabled]="isTriggeringScans(site.id)"
-                  (click)="triggerScan(site.id)"
-                >
-                  @if (isTriggeringScans(site.id)) {
-                    <mat-spinner diameter="14" class="mr-1"></mat-spinner>
-                  } @else {
-                    <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] mr-1"
-                      >play_arrow</mat-icon
-                    >
-                  }
-                  Scanner
-                </button>
-
-                <button
-                  mat-icon-button
-                  type="button"
-                  (click)="confirmDeleteSite(site)"
-                  class="!text-gray-500 hover:!text-red-400 !w-8 !h-8"
-                >
-                  <mat-icon class="!text-[1rem]">delete</mat-icon>
-                </button>
-              </div>
-            </div>
-
-            <!-- Progress bar -->
-            @if (hasActiveScans(site.id)) {
-              <div class="h-0.5 w-full bg-gray-700">
-                <div class="h-full bg-cyan-500 animate-pulse w-full"></div>
-              </div>
-            }
-
-            <!-- Scans table -->
-            <div class="px-5 py-3">
-              @if (isLoadingScans(site.id)) {
-                <div class="py-3">
-                  <!-- Indicateur radar -->
-                  <div class="flex items-center gap-2.5 mb-3 px-1">
-                    <div class="relative w-4 h-4 flex-shrink-0">
-                      <span class="radar-ring absolute inset-0 rounded-full bg-cyan-500/30"></span>
-                      <span
-                        class="relative flex w-4 h-4 rounded-full bg-cyan-500/10 border border-cyan-500/40 items-center justify-center"
-                      >
-                        <mat-icon class="text-cyan-400 !text-[0.6rem] !w-[0.6rem] !h-[0.6rem]"
-                          >radar</mat-icon
-                        >
-                      </span>
-                    </div>
-                    <span class="text-xs text-gray-500 animate-pulse tracking-wide"
-                      >Récupération des scans…</span
-                    >
-                  </div>
-                  <!-- En-tête du tableau -->
-                  <div class="scan-skeleton-grid pb-2 mb-1 border-b border-gray-700/40">
-                    @for (w of ['55%', '45%', '40%', '35%', '30%']; track w) {
-                      <app-skeleton
-                        height="0.55rem"
-                        [width]="w"
-                        cssClass="rounded-full"
-                      ></app-skeleton>
-                    }
-                  </div>
-                  <!-- Lignes skeleton -->
-                  @for (row of [1, 2, 3]; track row) {
-                    <div
-                      class="scan-skeleton-grid py-2.5 border-b border-gray-700/20 last:border-0"
-                    >
-                      <app-skeleton height="0.7rem" cssClass="rounded-full"></app-skeleton>
-                      <div class="flex items-center gap-1.5">
-                        <app-skeleton
-                          height="0.7rem"
-                          width="0.7rem"
-                          cssClass="!rounded-full"
-                        ></app-skeleton>
-                        <app-skeleton height="0.7rem" cssClass="rounded-full"></app-skeleton>
-                      </div>
-                      <app-skeleton
-                        height="0.7rem"
-                        [width]="row === 2 ? '65%' : '82%'"
-                        cssClass="rounded-full"
-                      ></app-skeleton>
-                      <app-skeleton
-                        height="0.7rem"
-                        width="45%"
-                        cssClass="rounded-full"
-                      ></app-skeleton>
-                      <div class="flex justify-end gap-1">
-                        <app-skeleton
-                          height="1.4rem"
-                          width="1.4rem"
-                          cssClass="rounded-md"
-                        ></app-skeleton>
-                        <app-skeleton
-                          height="1.4rem"
-                          width="1.4rem"
-                          cssClass="rounded-md"
-                        ></app-skeleton>
-                      </div>
-                    </div>
-                  }
-                </div>
-              } @else if (getScans(site.id).length === 0) {
-                <p class="text-sm text-gray-500 text-center py-5">
-                  {{
-                    scanFilter() === 'all'
-                      ? 'Aucun scan pour ce site'
-                      : 'Aucun scan correspondant au filtre'
-                  }}
-                </p>
-              } @else {
-                <table class="w-full text-sm">
-                  <thead>
-                    <tr class="text-gray-500 text-xs border-b border-gray-700/50">
-                      <th class="text-left py-2 pb-2.5 font-medium">Date</th>
-                      <th class="text-left py-2 pb-2.5 font-medium">Statut</th>
-                      <th class="text-left py-2 pb-2.5 font-medium">Résultat</th>
-                      <th class="text-left py-2 pb-2.5 font-medium">Score</th>
-                      <th class="text-right py-2 pb-2.5 font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (scan of getScans(site.id); track scan.id) {
-                      <tr
-                        class="border-b border-gray-700/30 last:border-0 hover:bg-gray-700/20 transition-colors"
-                      >
-                        <td class="py-2.5 text-gray-400 text-xs">
-                          {{ formatDate(scan.created_at) }}
-                        </td>
-                        <td class="py-2.5">
-                          <span
-                            class="flex items-center gap-1 text-xs"
-                            [class]="statusColor(scan.status)"
-                          >
-                            <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">{{
-                              statusIcon(scan.status)
-                            }}</mat-icon>
-                            {{ scan.status }}
-                          </span>
-                        </td>
-                        <td class="py-2.5">
-                          @if (scan.overall_status) {
-                            <span
-                              class="flex items-center gap-1 text-xs font-semibold"
-                              [class]="statusColor(scan.overall_status)"
-                            >
-                              <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">{{
-                                statusIcon(scan.overall_status)
-                              }}</mat-icon>
-                              {{ scan.overall_status }}
-                            </span>
-                          } @else {
-                            <span class="text-gray-600 text-xs">—</span>
-                          }
-                        </td>
-                        <td class="py-2.5">
-                          @if (getScanScore(scan); as score) {
-                            <span class="font-bold text-sm" [style.color]="getScoreColor(score)">
-                              {{ score }}<span class="text-gray-600 font-normal text-xs">/100</span>
-                            </span>
-                          } @else {
-                            <span class="text-gray-600 text-xs">—</span>
-                          }
-                        </td>
-                        <td class="py-2.5 text-right">
-                          <a
-                            [routerLink]="['/cyberscan/scan', scan.id]"
-                            mat-icon-button
-                            class="!text-gray-400 hover:!text-cyan-400 !w-7 !h-7"
-                          >
-                            <mat-icon class="!text-[1rem]">open_in_new</mat-icon>
-                          </a>
-                          @if (scan.pdf_path) {
-                            <button
-                              mat-icon-button
-                              type="button"
-                              (click)="downloadPdf(scan.id)"
-                              class="!text-cyan-400 !w-7 !h-7"
-                            >
-                              <mat-icon class="!text-[1rem]">picture_as_pdf</mat-icon>
-                            </button>
-                          }
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-                @if (getTotal(site.id) > getPerPage(site.id)) {
-                  <mat-paginator
-                    [length]="getTotal(site.id)"
-                    [pageSize]="getPerPage(site.id)"
-                    [pageIndex]="getCurrentPage(site.id)"
-                    [pageSizeOptions]="[10, 20]"
-                    (page)="onPageChange(site.id, $event)"
-                    class="bg-transparent text-gray-400 mt-1"
-                  >
-                  </mat-paginator>
-                }
-              }
-            </div>
+            <!-- Site Header (via SitesGridComponent) -->
+            <app-sites-grid
+              [sites]="[site]"
+              [lastScores]="buildLastScores()"
+              [trends]="buildTrends()"
+              [sslDays]="buildSslDays()"
+              [triggeringScansMap]="triggeringScans()"
+              [activeScansMap]="buildActiveScansMap()"
+              [lastScanStatuses]="buildLastScanStatuses()"
+              (triggerScan)="triggerScan($event)"
+              (deleteSite)="confirmDeleteSite($event)"
+            ></app-sites-grid>
+            <!-- Recent Scans (via RecentScansComponent) -->
+            <app-recent-scans
+              [scans]="getScans(site.id)"
+              [loading]="isLoadingScans(site.id)"
+              [total]="getTotal(site.id)"
+              [perPage]="getPerPage(site.id)"
+              [currentPage]="getCurrentPage(site.id)"
+              [emptyMessage]="
+                scanFilter() === 'all'
+                  ? 'Aucun scan pour ce site'
+                  : 'Aucun scan correspondant au filtre'
+              "
+              (downloadPdf)="downloadPdf($event)"
+              (pageChange)="onPageChange(site.id, $event)"
+            ></app-recent-scans>
           </div>
         }
       </div>

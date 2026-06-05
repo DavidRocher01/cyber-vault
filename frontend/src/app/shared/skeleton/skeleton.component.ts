@@ -1,10 +1,9 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
 
 @Component({
   standalone: true,
   selector: 'app-skeleton',
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div
       [class]="'skeleton-shimmer rounded-lg ' + cssClass"

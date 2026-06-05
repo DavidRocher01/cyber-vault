@@ -11,11 +11,18 @@ class VaultItem(Base):
     owner_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
+    # Legacy plaintext fields (kept during migration period)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     username: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    password_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
     url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Encrypted fields (zero-knowledge — backend stores opaque blobs)
+    title_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    username_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    url_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    notes_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Always encrypted
+    password_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
     category: Mapped[str] = mapped_column(
         String(32), nullable=False, default="login", server_default="login"
     )

@@ -1,0 +1,97 @@
+Ajouts sur le site
+
+Liens externes:
+
+Pour satisfaire à la fois les profils techniques (développeurs, administrateurs) et les profils fonctionnels (managers, utilisateurs avertis), il est intéressant de structurer vos liens par "niveaux d'analyse".
+
+Voici une sélection ciblée pour enrichir vos ressources complémentaires :
+1. Pour l'aspect Technique (SecDevOps & Audit)
+
+
+2. Pour l'aspect Fonctionnel (Gouvernance & Risques)
+
+Ces ressources sont destinées à comprendre l'impact métier, la conformité et les bonnes pratiques organisationnelles.
+
+    Cyber-Guide de l'ANSSI : Des fiches pratiques et accessibles pour mettre en place une hygiène informatique en entreprise.
+
+    L'Observatoire du FIC : Pour des analyses plus "macro" sur les tendances de la cybercriminalité et les enjeux géopolitiques.
+
+    CNIL - La sécurité des données : Le guide indispensable pour lier technique et obligations légales (RGPD).
+
+    Cybermalveillance.gouv.fr (Kit de sensibilisation) : Des supports prêts à l'emploi (vidéos, infographies) pour former les collaborateurs.
+
+3. Outils de "Bac à sable" (Sandbox)
+
+Ces liens permettent aux curieux de tester des éléments suspects sans prendre de risques.
+
+    Any.Run : Un service de sandbox interactive qui permet d'observer en temps réel comment un malware s'exécute dans une machine virtuelle.
+
+    Joe Sandbox : Analyse profonde de fichiers et d'URL pour détecter des comportements malveillants sophistiqués.
+
+
+
+4. Outils de Visualisation (L'aspect "Wow")
+
+Pour l'aspect fonctionnel et pédagogique, ces liens sont très appréciés car ils rendent la menace concrète.
+
+    Kaspersky Cyberthreat Real-Time Map : Une carte mondiale des attaques en temps réel. C'est très visuel et idéal pour illustrer l'ampleur du trafic malveillant lors d'une présentation.
+
+    Shodan : Souvent appelé le "moteur de recherche des objets connectés". Il permet de voir tout ce qui est exposé sur internet (caméras, serveurs, bases de données mal configurées).
+
+
+5. Éthique et Protection de la Vie Privée
+
+La cybersécurité, c'est aussi la défense des libertés numériques.
+
+    Privacy Guides / PrivacyTools : Des recommandations d'outils (navigateurs, VPN, messageries) axées sur la confidentialité.
+
+    Electronic Frontier Foundation (EFF) : Pour l'aspect juridique et politique de la sécurité et de la cryptographie dans le monde.
+
+    No More Ransom : Un portail qui fournit des clés de déchiffrement gratuites pour les victimes de ransomwares.
+
+
+6. La Dimension "Offensive" (Pratique et Apprentissage)
+
+Pour ceux qui veulent passer de la théorie à la pratique de manière légale et encadrée.
+
+    Root-Me / TryHackMe : Incontournables pour apprendre le hacking éthique via des exercices progressifs (CTF). C'est le pont parfait entre le fonctionnel (comprendre le risque) et le technique (le reproduire).
+
+    Google Online Security Blog : Pour une vision de pointe sur la manière dont les géants du web sécurisent leurs infrastructures à grande échelle
+
+
+7. Liens vidéos et chaines sur un nouvel onglet: "Le lab technique"
+
+
+Pour compléter votre site avec des ressources vidéo de qualité, voici une sélection de chaînes YouTube incontournables, classées par langue et par approche (technique vs fonctionnelle).
+a. Chaînes en Français 🇫🇷
+
+    Michel Kartner : Une excellente ressource pour apprendre la cybersécurité et la programmation, quel que soit le niveau initial.
+
+    Guardia - Ecole de Cybersécurité : Propose des décryptages de l'actualité cyber, des interviews d'experts et des conseils pour ceux qui souhaitent se professionnaliser.
+
+    Cybernews en Français : Un média indépendant qui vulgarise les enjeux numériques et les cyberattaques récentes.
+
+    Passion Cyber : Très utile pour les aspects de gouvernance, de certification (comme le CISSP) et de pratiques professionnelles.
+
+    Cybersécurité 360 : Orientée vers les entreprises, cette chaîne traite de gouvernance et de mise en conformité.
+
+b. Chaînes en Anglais 🇬🇧
+
+    Professor Messer : La référence absolue pour les certifications (Security+, Network+). Très structuré et pédagogique.
+
+    zSecurity : Spécialisée dans le hacking éthique et les tests d'intrusion. Très technique et axée sur la démonstration d'outils.
+
+    Google Career Certificates : Propose des modules de formation sur la cybersécurité avec une approche très professionnelle et reconnue par l'industrie.
+
+    SkillsBuild Security : Idéal pour ceux qui veulent progresser rapidement vers des métiers de "Ethical Hacker" ou d'analyste sécurité.
+
+
+
+Organisation suggérée pour votre page "Ressources"
+
+Pour une navigation fluide, vous pouvez présenter ces liens sous forme de boîtes à outils :
+Section	Public visé	Utilité principale
+Lab Technique	Développeurs / Ops	Tester le code, vérifier les dépendances, auditer les serveurs.
+Centre de Conformité	Managers / DPO	Se mettre en règle avec le RGPD et suivre les normes ISO/NIST.
+Veille Stratégique	Tous	Comprendre qui attaque, pourquoi et comment les menaces évoluent.
+Urgences Cyber	Victimes	Savoir qui contacter et comment réagir après une intrusion.

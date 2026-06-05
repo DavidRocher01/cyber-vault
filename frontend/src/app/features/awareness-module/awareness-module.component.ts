@@ -1,5 +1,5 @@
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -25,7 +25,7 @@ type PageView = 'dashboard' | 'content' | 'quiz' | 'quiz-result' | 'certificate'
   standalone: true,
   selector: 'app-awareness-module',
   imports: [
-    CommonModule,
+    DatePipe,
     RouterLink,
     FormsModule,
     MatButtonModule,

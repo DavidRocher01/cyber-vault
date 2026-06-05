@@ -1,5 +1,4 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -23,7 +22,6 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
   standalone: true,
   selector: 'app-awareness-org-detail',
   imports: [
-    CommonModule,
     RouterLink,
     FormsModule,
     MatButtonModule,

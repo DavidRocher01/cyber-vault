@@ -36,7 +36,7 @@ async def create_public_scan(
 
     try:
         assert_no_ssrf(url)
-    except Exception:
+    except ValueError:
         raise HTTPException(status_code=422, detail="URL non autorisée")
 
     scan = PublicScan(target_url=url, status="pending")

@@ -1,7 +1,7 @@
 """add_refresh_tokens
 
 Revision ID: 4263133690a1
-Revises: 5e6403bce97c
+Revises: 12c7302c2a65
 Create Date: 2026-04-01 09:59:21.307589
 
 """
@@ -14,7 +14,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "4263133690a1"
-down_revision: str | None = "5e6403bce97c"
+down_revision: str | None = "12c7302c2a65"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

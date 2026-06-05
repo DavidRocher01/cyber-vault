@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal, DestroyRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { TitleCasePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,7 +18,7 @@ import { PHISHING_SCENARIOS } from '../phishing/phishing.component';
   standalone: true,
   selector: 'app-phishing-campaign-detail',
   imports: [
-    CommonModule,
+    TitleCasePipe,
     RouterLink,
     MatButtonModule,
     MatIconModule,

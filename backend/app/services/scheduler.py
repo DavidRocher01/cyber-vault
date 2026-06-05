@@ -5,10 +5,14 @@ Business : toutes les 7 nuits à 2h00.
 """
 
 import asyncio
+import json
+import os
 from datetime import UTC, datetime, timedelta
 
+from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+from loguru import logger
 from sqlalchemy import func, select
 
 from app.core.database import AsyncSessionLocal
@@ -26,7 +30,25 @@ from app.services.email_service import (
 from app.services.newsletter_email import send_newsletter_issue
 from app.services.scan_service import run_scan
 
-scheduler = AsyncIOScheduler()
+
+def _make_scheduler() -> AsyncIOScheduler:
+    """Create scheduler with Redis jobstore if REDIS_URL is configured, otherwise in-memory."""
+    redis_url = os.getenv("REDIS_URL")
+    if redis_url:
+        try:
+            jobstores = {
+                "default": RedisJobStore(
+                    jobs_key="cybervault:jobs", run_times_key="cybervault:run_times", url=redis_url
+                )
+            }
+            logger.info(f"APScheduler using Redis jobstore: {redis_url}")
+            return AsyncIOScheduler(jobstores=jobstores)
+        except Exception as exc:
+            logger.warning(f"Redis jobstore unavailable, falling back to in-memory: {exc}")
+    return AsyncIOScheduler()
+
+
+scheduler = _make_scheduler()
 
 _NEWSLETTER_EDITION_KEY = "newsletter_edition"
 
@@ -94,8 +116,8 @@ async def _schedule_due_scans() -> None:
                             overall_status=scan.overall_status or "OK",
                             pdf_path=scan.pdf_path,
                         )
-                    except Exception:
-                        pass  # Ne pas bloquer si l'email échoue
+                    except Exception as exc:
+                        logger.warning(f"Scan report email failed for {user.email}: {exc}")
 
 
 _SSL_THRESHOLDS = [7, 14, 30]
@@ -149,7 +171,7 @@ async def _check_ssl_alerts() -> None:
                 expiry_date = ssl.get("expiry_date", "")
                 if days is None:
                     continue
-            except Exception:
+            except (json.JSONDecodeError, KeyError, TypeError):
                 continue
 
             # Reset alert state if cert was renewed
@@ -181,8 +203,8 @@ async def _check_ssl_alerts() -> None:
                 site.ssl_alert_threshold = threshold
                 site.ssl_alert_sent_at = datetime.now(UTC)
                 await db.commit()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning(f"SSL expiry alert email failed for {site.url}: {exc}")
 
 
 _NEWSLETTER_CONTENT_KEY = "newsletter_content"
@@ -233,7 +255,7 @@ async def _send_biweekly_newsletter() -> None:
         if content_setting and content_setting.value_text:
             try:
                 content = _json.loads(content_setting.value_text)
-            except Exception:
+            except json.JSONDecodeError:
                 pass
 
         result = await db.execute(
@@ -266,8 +288,8 @@ async def _send_biweekly_newsletter() -> None:
                 legal_title=legal_title,
                 legal_body=legal_body,
             )
-        except Exception:
-            pass  # Ne pas bloquer si un envoi échoue
+        except Exception as exc:
+            logger.warning(f"Newsletter send failed for {sub.email}: {exc}")
 
     logger.info(f"Newsletter édition #{edition} envoyée à {len(subscribers)} abonné(s)")
 
@@ -361,7 +383,7 @@ async def _send_monthly_digest_job() -> None:
                                 critical_count += 1
                             elif s == "WARNING":
                                 warning_count += 1
-                except Exception:
+                except (json.JSONDecodeError, AttributeError):
                     pass
             sites_summary.append(
                 {
@@ -381,8 +403,8 @@ async def _send_monthly_digest_job() -> None:
                 sites=sites_summary,
                 dashboard_url=dashboard_url,
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning(f"Monthly digest email failed for {user.email}: {exc}")
 
 
 async def _run_darkweb_monitoring() -> None:

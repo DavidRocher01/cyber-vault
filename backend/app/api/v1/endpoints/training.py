@@ -225,7 +225,7 @@ def _awareness_module_to_training(mod: AwarenessModule) -> dict | None:
             "correct": correct,
             "explanation": q.get("explanation", ""),
         }
-    except Exception:
+    except (KeyError, TypeError, AttributeError):
         return None
 
 

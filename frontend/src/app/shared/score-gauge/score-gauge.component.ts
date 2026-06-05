@@ -1,11 +1,10 @@
 import { Component, Input, OnChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { getGrade, getScoreColor } from '../score-utils';
 
 @Component({
   standalone: true,
   selector: 'app-score-gauge',
-  imports: [CommonModule],
+  imports: [],
   template: `
     <svg viewBox="0 0 120 120" class="w-full h-full" style="overflow:visible">
       <!-- Outer glow ring -->

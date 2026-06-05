@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { CryptoService } from './crypto.service';
 
 export type VaultCategory = 'login' | 'card' | 'note' | 'wifi' | 'other';
 
@@ -12,6 +14,15 @@ export interface VaultItem {
   url: string | null;
   notes: string | null;
   category: VaultCategory;
+  title_encrypted: string | null;
+  username_encrypted: string | null;
+  url_encrypted: string | null;
+  notes_encrypted: string | null;
+  // Decrypted display values (populated client-side after decryption)
+  _title?: string;
+  _username?: string | null;
+  _url?: string | null;
+  _notes?: string | null;
 }
 
 export interface VaultItemCreate {
@@ -21,13 +32,20 @@ export interface VaultItemCreate {
   url?: string;
   notes?: string;
   category?: VaultCategory;
+  title_encrypted?: string;
+  username_encrypted?: string;
+  url_encrypted?: string;
+  notes_encrypted?: string;
 }
 
 const API = environment.apiUrl;
 
 @Injectable({ providedIn: 'root' })
 export class VaultService {
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private crypto: CryptoService
+  ) {}
 
   getAll() {
     return this.http.get<VaultItem[]>(`${API}/vault/`);
@@ -43,5 +61,71 @@ export class VaultService {
 
   delete(id: number) {
     return this.http.delete(`${API}/vault/${id}`);
+  }
+
+  /** Decrypt display fields of a VaultItem. Returns the item with `_title`, `_username`, etc. populated. */
+  async decryptItem(item: VaultItem): Promise<VaultItem> {
+    const result = { ...item };
+    if (item.title_encrypted) {
+      result._title = (await this.crypto.tryDecrypt(item.title_encrypted)) ?? item.title;
+    } else {
+      result._title = item.title;
+    }
+    if (item.username_encrypted) {
+      result._username = await this.crypto.tryDecrypt(item.username_encrypted);
+    } else {
+      result._username = item.username;
+    }
+    if (item.url_encrypted) {
+      result._url = await this.crypto.tryDecrypt(item.url_encrypted);
+    } else {
+      result._url = item.url;
+    }
+    if (item.notes_encrypted) {
+      result._notes = await this.crypto.tryDecrypt(item.notes_encrypted);
+    } else {
+      result._notes = item.notes;
+    }
+    return result;
+  }
+
+  /** Encrypt an item's display fields and return a create/update payload with *_encrypted fields. */
+  async buildEncryptedPayload(plain: {
+    title: string;
+    username?: string | null;
+    url?: string | null;
+    notes?: string | null;
+  }): Promise<{
+    title_encrypted: string;
+    username_encrypted?: string;
+    url_encrypted?: string;
+    notes_encrypted?: string;
+  }> {
+    const result: Partial<VaultItemCreate> = {
+      title_encrypted: await this.crypto.encrypt(plain.title),
+    };
+    if (plain.username) result.username_encrypted = await this.crypto.encrypt(plain.username);
+    if (plain.url) result.url_encrypted = await this.crypto.encrypt(plain.url);
+    if (plain.notes) result.notes_encrypted = await this.crypto.encrypt(plain.notes);
+    return result as { title_encrypted: string };
+  }
+
+  /**
+   * Migrate legacy items that have plaintext title/username/url/notes but no encrypted versions.
+   * Called once after successful vault unlock.
+   */
+  async migrateLegacyItems(): Promise<void> {
+    if (!this.crypto.hasKey()) return;
+    const items = await firstValueFrom(this.getAll());
+    const legacyItems = items.filter(i => !i.title_encrypted);
+    for (const item of legacyItems) {
+      const encrypted = await this.buildEncryptedPayload({
+        title: item.title,
+        username: item.username,
+        url: item.url,
+        notes: item.notes,
+      });
+      await firstValueFrom(this.update(item.id, encrypted));
+    }
   }
 }

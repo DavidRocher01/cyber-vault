@@ -3,13 +3,12 @@ import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { Title } from '@angular/platform-browser';
 import { CyberscanService } from '../services/cyberscan.service';
-import { CommonModule } from '@angular/common';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
   standalone: true,
   selector: 'app-checkout-success',
-  imports: [CommonModule, RouterLink, MatIconModule, NavButtonsComponent],
+  imports: [RouterLink, MatIconModule, NavButtonsComponent],
   template: `
     <div
       class="min-h-screen bg-gray-900 text-white relative overflow-hidden flex flex-col items-center justify-center px-8"

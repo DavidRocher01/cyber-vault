@@ -1,5 +1,4 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -357,7 +356,7 @@ export const USE_CASES = [
 @Component({
   standalone: true,
   selector: 'app-phishing',
-  imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule, NavButtonsComponent],
+  imports: [RouterLink, MatButtonModule, MatIconModule, NavButtonsComponent],
   templateUrl: './phishing.component.html',
 })
 export class PhishingComponent implements OnInit {

@@ -7,7 +7,7 @@ import {
   ViewChild,
   DOCUMENT,
 } from '@angular/core';
-import { CommonModule, NgClass } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -49,7 +49,6 @@ import {
   standalone: true,
   selector: 'app-cyberscan-landing',
   imports: [
-    CommonModule,
     NgClass,
     RouterLink,
     MatButtonModule,

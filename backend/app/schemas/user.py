@@ -49,6 +49,7 @@ class NotificationPreferencesIn(BaseModel):
 class AccessTokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    crypto_salt: str | None = None  # base64-encoded 32-byte salt for client-side PBKDF2
 
 
 class TokenOut(BaseModel):

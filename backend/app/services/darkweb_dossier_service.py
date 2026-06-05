@@ -36,6 +36,7 @@ from app.services.darkweb_service import (
     enrich_breaches_from_catalog,
     fetch_hibp_breach_catalog,
 )
+from app.services.email_service import _send
 from app.services.pdf_brand import (
     DARK_BG,
     GRAY,
@@ -80,7 +81,7 @@ def _compute_severity(targets: list) -> int:
     for t in targets:
         try:
             breaches = json.loads(t.breach_sources_json or "[]")
-        except Exception:
+        except json.JSONDecodeError:
             continue
         for b in breaches:
             classes = [c.lower() for c in b.get("data_classes", [])]
@@ -155,7 +156,7 @@ async def _build_catalog_index(db: AsyncSession) -> dict[str, dict]:
     for e in entries:
         try:
             dc = json.loads(e.data_classes_json or "[]")
-        except Exception:
+        except json.JSONDecodeError:
             dc = []
         index[e.name.lower()] = {
             "domain": e.domain or "",
@@ -247,7 +248,7 @@ async def process_dossier(dossier_id: int, api_key: str) -> None:
                 try:
                     src = json.loads(target.breach_sources_json or "[]")
                     all_sources.extend(b.get("name", "") for b in src if b.get("name"))
-                except Exception:
+                except json.JSONDecodeError:
                     pass
             top_sources = [{"name": n, "count": c} for n, c in Counter(all_sources).most_common(10)]
 
@@ -295,7 +296,7 @@ def export_dossier_csv(dossier: DarkwebDossier, targets: list[DarkwebDossierTarg
     for t in targets:
         try:
             breaches = json.loads(t.breach_sources_json or "[]")
-        except Exception:
+        except json.JSONDecodeError:
             breaches = []
         sources = ", ".join(b.get("name", "") for b in breaches[:5])
         data_classes = ", ".join(
@@ -331,8 +332,6 @@ def send_darkweb_alert_email(
     dashboard_url: str,
 ) -> None:
     """Send an alert email when monitoring detects new exposed accounts."""
-    from app.services.email_service import _send  # local import to avoid circular
-
     new_list_html = "".join(f"<li style='color:#fca5a5'>{e}</li>" for e in new_exposed[:10])
     more = (
         f"<p style='color:#94a3b8;font-size:13px'>+ {len(new_exposed)-10} autres</p>"
@@ -368,8 +367,8 @@ Le monitoring Dark Web de <strong style="color:#f8fafc;">{company_name}</strong>
     plain = f"[ALERTE DARK WEB] {company_name} ({domain}) — {exposed_count} compte(s) exposé(s) détecté(s).\n\nConsultez le rapport : {dashboard_url}"
     try:
         _send(to_email, subject, html, plain)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning(f"Dark web monitoring alert email failed for {to_email}: {exc}")
 
 
 # ── PDF generation ────────────────────────────────────────────────────────────
@@ -585,7 +584,7 @@ def _build_recommendations(
     for t in exposed_targets:
         try:
             breaches = json.loads(t.breach_sources_json or "[]")
-        except Exception:
+        except json.JSONDecodeError:
             continue
         for b in breaches:
             all_classes.extend(c.lower() for c in b.get("data_classes", []))
@@ -697,7 +696,7 @@ def generate_dossier_pdf(
 
     try:
         top_sources = json.loads(dossier.top_sources_json or "[]")
-    except Exception:
+    except json.JSONDecodeError:
         top_sources = []
 
     def on_cover(canvas, doc):
@@ -727,7 +726,7 @@ def generate_dossier_pdf(
         for t in exposed_targets:
             try:
                 breaches = json.loads(t.breach_sources_json or "[]")
-            except Exception:
+            except json.JSONDecodeError:
                 breaches = []
             sources_str = ", ".join(b.get("name", "") for b in breaches[:4])
             if len(breaches) > 4:

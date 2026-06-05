@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,7 +10,7 @@ import { AwarenessService, CertificateVerification } from '../cyberscan/services
 @Component({
   standalone: true,
   selector: 'app-verify-certificate',
-  imports: [CommonModule, DatePipe, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [DatePipe, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
   template: `
     <div class="min-h-screen bg-gray-950 flex items-center justify-center p-4">
       <div class="w-full max-w-lg">

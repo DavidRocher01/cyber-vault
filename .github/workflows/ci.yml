@@ -43,7 +43,15 @@ jobs:
           cache-dependency-path: backend/requirements.prod.txt
 
       - name: Install dependencies
-        run: pip install -r requirements.prod.txt aiosqlite bandit pip-audit pytest pytest-asyncio httpx email-validator pytest-cov "testcontainers[postgres]"
+        run: pip install -r requirements.prod.txt aiosqlite bandit pip-audit pytest pytest-asyncio httpx email-validator pytest-cov "testcontainers[postgres]" ruff mypy
+        working-directory: backend
+
+      - name: Ruff (lint)
+        run: ruff check app/
+        working-directory: backend
+
+      - name: Mypy (typage statique)
+        run: mypy app/
         working-directory: backend
 
       - name: Bandit (sécurité statique)

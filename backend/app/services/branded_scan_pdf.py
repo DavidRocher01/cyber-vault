@@ -59,7 +59,7 @@ _STATUS_LABEL = {
 def _accent(hex_color: str) -> colors.Color:
     try:
         return colors.HexColor(hex_color)
-    except Exception:
+    except (ValueError, TypeError):
         return CYAN
 
 
@@ -126,7 +126,7 @@ def _draw_branded_cover(
                 mask="auto",
             )
             logo_drawn = True
-        except Exception:
+        except (OSError, ValueError, TypeError):
             pass
 
     if not logo_drawn:
@@ -496,7 +496,7 @@ def _extract_findings(results_json: str | None) -> list[dict]:
             if isinstance(c, dict):
                 findings.append(c)
         return findings
-    except Exception:
+    except (json.JSONDecodeError, AttributeError, TypeError):
         return []
 
 

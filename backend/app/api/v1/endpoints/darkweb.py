@@ -56,7 +56,7 @@ async def get_darkweb_status(
     age = datetime.now(UTC) - scan.checked_at
     try:
         breaches = json.loads(scan.results_json or "[]")
-    except Exception:
+    except json.JSONDecodeError:
         breaches = []
     return DarkwebStatusOut(
         email=scan.email,
@@ -88,7 +88,7 @@ async def run_darkweb_check(
         if age < timedelta(hours=REFRESH_INTERVAL_HOURS):
             try:
                 breaches = json.loads(existing.results_json or "[]")
-            except Exception:
+            except json.JSONDecodeError:
                 breaches = []
             return DarkwebStatusOut(
                 email=existing.email,

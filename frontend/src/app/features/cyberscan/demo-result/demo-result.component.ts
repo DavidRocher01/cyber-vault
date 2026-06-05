@@ -1,5 +1,4 @@
 import { Component, inject, OnInit, OnDestroy, signal, DOCUMENT } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { Title, Meta } from '@angular/platform-browser';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,7 +25,6 @@ interface ModuleResult {
   standalone: true,
   selector: 'app-demo-result',
   imports: [
-    CommonModule,
     RouterLink,
     MatButtonModule,
     MatIconModule,

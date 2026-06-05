@@ -1,5 +1,4 @@
 import { Component, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,7 +8,7 @@ const STORAGE_KEY = 'cyberscan_cookie_consent';
 @Component({
   standalone: true,
   selector: 'app-cookie-banner',
-  imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule],
+  imports: [RouterLink, MatButtonModule, MatIconModule],
   template: `
     @if (visible()) {
       <div

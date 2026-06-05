@@ -5,11 +5,13 @@ import { tap } from 'rxjs';
 
 const ACCESS_KEY = 'cv_token';
 const EMAIL_KEY = 'cv_email';
+const CRYPTO_SALT_KEY = 'cv_crypto_salt';
 const API = '/api/v1';
 
 export interface AccessTokenResponse {
   access_token: string;
   token_type: string;
+  crypto_salt?: string | null;
 }
 
 export type LoginResponse = AccessTokenResponse | { requires_2fa: true };
@@ -29,6 +31,9 @@ export class AuthService {
         if ('access_token' in res) {
           localStorage.setItem(ACCESS_KEY, res.access_token);
           localStorage.setItem(EMAIL_KEY, email);
+          if (res.crypto_salt) {
+            localStorage.setItem(CRYPTO_SALT_KEY, res.crypto_salt);
+          }
         }
       })
     );
@@ -56,6 +61,7 @@ export class AuthService {
       .subscribe({ error: () => {} });
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(EMAIL_KEY);
+    localStorage.removeItem(CRYPTO_SALT_KEY);
     this.router.navigate(['/cyberscan']);
   }
 
@@ -65,6 +71,10 @@ export class AuthService {
 
   getCurrentEmail(): string | null {
     return localStorage.getItem(EMAIL_KEY);
+  }
+
+  getCryptoSalt(): string | null {
+    return localStorage.getItem(CRYPTO_SALT_KEY);
   }
 
   isAuthenticated(): boolean {

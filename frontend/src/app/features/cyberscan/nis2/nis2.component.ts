@@ -1,5 +1,4 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -28,7 +27,6 @@ export interface Nis2Category {
   standalone: true,
   selector: 'app-nis2',
   imports: [
-    CommonModule,
     RouterLink,
     MatIconModule,
     MatProgressSpinnerModule,

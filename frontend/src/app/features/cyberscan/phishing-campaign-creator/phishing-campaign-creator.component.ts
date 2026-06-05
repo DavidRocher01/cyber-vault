@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { TitleCasePipe } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -58,7 +58,7 @@ export const PLAN_OPTIONS = [
   standalone: true,
   selector: 'app-phishing-campaign-creator',
   imports: [
-    CommonModule,
+    TitleCasePipe,
     ReactiveFormsModule,
     RouterLink,
     MatButtonModule,

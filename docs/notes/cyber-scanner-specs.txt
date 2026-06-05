@@ -1,0 +1,83 @@
+CYBER-SCANNER — DOSSIER DE SPÉCIFICATIONS
+==========================================
+
+VISION
+------
+Outil Python centralisé pour audits cybersécurité clients.
+Input  : URL du site + accès Git (optionnel)
+Output : Rapport PDF automatisé + scripts de remédiation
+
+
+1. MODULE D'ANALYSE EXTERNE (Network & Web)
+-------------------------------------------
+Scan sans accès client requis, uniquement via URL.
+
+| Test            | Lib Python    | Ce qu'on vérifie                                      |
+|-----------------|---------------|-------------------------------------------------------|
+| SSL/TLS         | ssl, socket   | Date expiration, version protocole (bloquer TLS <1.2) |
+| Headers HTTP    | requests      | CSP, X-Frame-Options, X-Content-Type-Options, etc.    |
+| Scan de ports   | python-nmap   | Ports sensibles ouverts : 5432, 22, 27017             |
+
+
+2. MODULE D'ANALYSE INTERNE (Code & Dépendances)
+-------------------------------------------------
+Nécessite accès Git ou export fichiers de config.
+
+- SCA (dépendances) :
+  Lit requirements.txt (Python) + package.json (Angular)
+  Interroge l'API OSV.dev pour lister les CVE
+
+- Secrets :
+  Regex ou trufflehog en CLI
+  Détecte patterns clés API / mots de passe
+
+
+3. LOGIQUE DE REMÉDIATION
+--------------------------
+
+A. Fixer Serveur (Bash/Python via SSH)
+   - Script ufw : configure le pare-feu automatiquement
+   - Script SSH : désactive auth par mot de passe,
+                  impose clés dans /etc/ssh/sshd_config
+
+B. Fixer Application (Middleware FastAPI)
+   Module Python à intégrer dans le code FastAPI client :
+
+   from fastapi import FastAPI
+   app = FastAPI()
+
+   @app.middleware("http")
+   async def add_security_headers(request, call_next):
+       response = await call_next(request)
+       response.headers["Content-Security-Policy"] = "default-src 'self'"
+       response.headers["X-Frame-Options"] = "DENY"
+       response.headers["X-Content-Type-Options"] = "nosniff"
+       return response
+
+
+4. STRUCTURE DU RAPPORT AUTOMATISÉ (Markdown → PDF)
+----------------------------------------------------
+
+Section      | Test effectué      | Résultat              | Action de remédiation
+-------------|--------------------|-----------------------|---------------------------
+Transport    | SSL/TLS Check      | CRITIQUE : expire     | Renouveler via Let's Encrypt
+Application  | Headers HTTP       | MOYEN : CSP manquant  | Injecter middleware sécu
+Code         | Dépendances        | CRITIQUE : 3 CVE      | npm update + pip install --upgrade
+
+
+5. WORKFLOW COMPLET
+-------------------
+1. Input   : URL du site + (optionnel) accès Git
+2. Process : Nmap -> SSL -> Headers -> OSV API
+3. Output  : Rapport PDF avec logo
+4. Upsell  : Proposition script de patch automatique
+             (middleware FastAPI ou scripts Bash SSH)
+
+
+6. CLAUSE CONTRACTUELLE (Disclaimer)
+-------------------------------------
+"Le prestataire effectue des remédiations basées sur les vulnérabilités
+identifiées au moment du diagnostic. La cybersécurité étant un domaine
+évolutif, le prestataire ne peut garantir une invulnérabilité totale et
+permanente. Le client reste responsable de la sauvegarde de ses données
+avant toute intervention technique."

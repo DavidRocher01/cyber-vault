@@ -351,7 +351,7 @@ async def fetch_og_image(url: str):
             parsed = urlparse(final_url)
             image_url = f"{parsed.scheme}://{parsed.netloc}{image_url}"
         return {"image_url": image_url}
-    except Exception:
+    except Exception:  # broad: httpx errors + parsing failures
         return {"image_url": None}
 
 
@@ -434,7 +434,7 @@ async def get_newsletter_content(db: AsyncSession = Depends(get_db)):
     try:
         data = json.loads(setting.value_text)
         return NewsletterContentOut(**data)
-    except Exception:
+    except (json.JSONDecodeError, TypeError, KeyError):
         return _DEFAULT_CONTENT
 
 

@@ -1,5 +1,4 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import {
   AbstractControl,
   ReactiveFormsModule,
@@ -26,7 +25,6 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
   standalone: true,
   selector: 'app-reset-password',
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     RouterLink,
     MatFormFieldModule,

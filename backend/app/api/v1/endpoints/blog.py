@@ -1,4 +1,3 @@
-import json
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -7,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import require_admin
-from app.core.utils import safe_json_load
 from app.models.blog_post import BlogPost
 from app.schemas.blog import BlogPostDetailOut, BlogPostIn, BlogPostOut
 
@@ -15,7 +13,6 @@ router = APIRouter(prefix="/blog", tags=["blog"])
 
 
 def _to_out(p: BlogPost) -> BlogPostOut:
-    tags = safe_json_load(p.tags, [])
     return BlogPostOut(
         id=p.id,
         slug=p.slug,
@@ -24,13 +21,12 @@ def _to_out(p: BlogPost) -> BlogPostOut:
         date=p.date,
         readTime=p.read_time,
         category=p.category,
-        tags=tags,
+        tags=p.tags,
         isPublished=p.is_published,
     )
 
 
 def _to_detail(p: BlogPost) -> BlogPostDetailOut:
-    tags = safe_json_load(p.tags, [])
     return BlogPostDetailOut(
         id=p.id,
         slug=p.slug,
@@ -39,7 +35,7 @@ def _to_detail(p: BlogPost) -> BlogPostDetailOut:
         date=p.date,
         readTime=p.read_time,
         category=p.category,
-        tags=tags,
+        tags=p.tags,
         isPublished=p.is_published,
         htmlContent=p.html_content,
     )
@@ -104,7 +100,7 @@ async def create_article(payload: BlogPostIn, db: AsyncSession = Depends(get_db)
         date=payload.date,
         read_time=payload.readTime,
         category=payload.category,
-        tags=json.dumps(payload.tags),
+        tags=payload.tags,
         html_content=payload.htmlContent,
         is_published=payload.isPublished,
         created_at=now,

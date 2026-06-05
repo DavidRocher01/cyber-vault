@@ -1,12 +1,12 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, DestroyRef, OnInit, inject, signal, computed } from '@angular/core';
+import { SlicePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { combineLatest, filter, map, take } from 'rxjs';
 
 import { HotToastService } from '@ngneat/hot-toast';
@@ -28,7 +28,7 @@ export interface CategoryMeta {
   standalone: true,
   selector: 'app-vault-dashboard',
   imports: [
-    CommonModule,
+    SlicePipe,
     RouterLink,
     ReactiveFormsModule,
     FormsModule,
@@ -136,6 +136,7 @@ export class VaultDashboardComponent implements OnInit {
   private toast = inject(HotToastService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
+  private destroyRef = inject(DestroyRef);
 
   readonly loading = toSignal(this.store.loading$, { initialValue: false });
   readonly error = toSignal(this.store.error$, { initialValue: null as string | null });
@@ -337,9 +338,11 @@ export class VaultDashboardComponent implements OnInit {
   ngOnInit() {
     this.store.loadItems();
     // Effacer le titulaire quand on passe en catégorie carte (évite l'autofill navigateur)
-    this.form.controls.category.valueChanges.subscribe(cat => {
-      if (cat === 'card') setTimeout(() => this.form.controls.username.setValue(''), 50);
-    });
+    this.form.controls.category.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(cat => {
+        if (cat === 'card') setTimeout(() => this.form.controls.username.setValue(''), 50);
+      });
   }
 
   get formTitle() {

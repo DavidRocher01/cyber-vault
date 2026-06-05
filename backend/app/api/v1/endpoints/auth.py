@@ -1,3 +1,4 @@
+import base64
 from datetime import UTC, datetime, timedelta
 
 from fastapi import (
@@ -138,7 +139,10 @@ async def login(
     await db.commit()
     _set_refresh_cookie(response, raw_refresh)
     logger.info("User logged in (id={})", user.id)
-    return AccessTokenOut(access_token=access_token)
+    return AccessTokenOut(
+        access_token=access_token,
+        crypto_salt=base64.b64encode(user.crypto_salt).decode() if user.crypto_salt else None,
+    )
 
 
 @router.post("/refresh", response_model=AccessTokenOut)

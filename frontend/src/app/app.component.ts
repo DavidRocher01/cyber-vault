@@ -1,6 +1,5 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { NavHistoryService } from './core/services/nav-history.service';
 import { CookieBannerComponent } from './shared/cookie-banner/cookie-banner.component';
@@ -13,13 +12,7 @@ const MIN_LOADER_MS = 1800;
 @Component({
   standalone: true,
   selector: 'app-root',
-  imports: [
-    RouterOutlet,
-    CookieBannerComponent,
-    CyberLoaderComponent,
-    MatrixRainComponent,
-    CommonModule,
-  ],
+  imports: [RouterOutlet, CookieBannerComponent, CyberLoaderComponent, MatrixRainComponent],
   template: `
     <app-cyber-loader [visible]="loading" product="CYBERSCAN" />
     @if (!loading) {

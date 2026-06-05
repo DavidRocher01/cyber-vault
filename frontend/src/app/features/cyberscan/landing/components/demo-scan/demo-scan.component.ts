@@ -1,5 +1,4 @@
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -9,7 +8,7 @@ import { CyberscanService } from '../../../services/cyberscan.service';
 @Component({
   standalone: true,
   selector: 'app-demo-scan',
-  imports: [CommonModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [MatIconModule, MatProgressSpinnerModule],
   template: `
     <section class="px-6 py-14 -mt-6 relative z-20">
       <div class="max-w-2xl mx-auto">

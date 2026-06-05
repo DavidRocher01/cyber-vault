@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from urllib.parse import urlparse
 
 import httpx
+from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -199,7 +200,7 @@ async def _analyze_url(url: str) -> dict:
                     final_url = str(resp.url)
                     redirect_chain = [str(r.url) for r in resp.history]
                     html = resp.text[:200_000]
-            except Exception:
+            except httpx.TransportError:
                 html = ""
         else:
             raise ValueError(f"Erreur réseau : {exc}")
@@ -455,8 +456,8 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
             )
             db.add(notif)
             await db.commit()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning(f"URL scan notification DB write failed: {exc}")
 
         # Send email alert (non-blocking — ignore SMTP errors)
         try:
@@ -476,8 +477,8 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
                     findings=analysis["findings"],
                     dashboard_url=dashboard_url,
                 )
-        except Exception:
-            pass  # Email failure must never crash the scan
+        except Exception as exc:
+            logger.warning(f"URL scan alert email failed: {exc}")
 
     except Exception as exc:
         url_scan.status = "error"
