@@ -4,7 +4,12 @@
  * — on les teste directement pour éviter les problèmes d'Object.create.
  */
 import { describe, it, expect } from 'vitest';
+import { StatsCardsComponent } from './stats-cards.component';
 import { getGrade, getScoreColor } from '../../../../../shared/score-utils';
+
+function make(): StatsCardsComponent {
+  return Object.create(StatsCardsComponent.prototype) as StatsCardsComponent;
+}
 
 describe('StatsCardsComponent — getGrade()', () => {
   it('retourne A pour un score >= 90', () => expect(getGrade(95)).toBe('A'));

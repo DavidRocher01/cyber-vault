@@ -9,9 +9,10 @@ describe('AuthService', () => {
 
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     httpMock = { post: vi.fn() };
     routerMock = { navigate: vi.fn() };
-    service = new AuthService(httpMock, routerMock);
+    service = new AuthService(httpMock, routerMock, 'browser');
   });
 
   it('getToken() retourne null avant connexion', () => {
@@ -30,8 +31,8 @@ describe('AuthService', () => {
     expect(service.isAuthenticated()).toBe(true);
   });
 
-  it('logout() vide le localStorage', () => {
-    localStorage.setItem('cv_token', 'x');
+  it('logout() vide le storage', () => {
+    sessionStorage.setItem('cv_token', 'x');
     localStorage.setItem('cv_email', 'a@b.com');
     httpMock.post.mockReturnValue(of({}));
     service.logout();

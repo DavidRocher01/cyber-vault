@@ -1,4 +1,4 @@
-import { Injectable, PLATFORM_ID, inject } from '@angular/core';
+import { Injectable, PLATFORM_ID, Inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
@@ -35,7 +35,6 @@ export type LoginResponse = AccessTokenResponse | { requires_2fa: true };
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private platformId = inject(PLATFORM_ID);
   private get session(): Storage {
     return isPlatformBrowser(this.platformId) ? sessionStorage : noopStorage;
   }
@@ -45,7 +44,8 @@ export class AuthService {
 
   constructor(
     private http: HttpClient,
-    private router: Router
+    private router: Router,
+    @Inject(PLATFORM_ID) private platformId: object
   ) {}
 
   login(email: string, password: string, totpCode?: string) {
