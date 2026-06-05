@@ -45,6 +45,8 @@ disable_error_code = [
     "name-defined", "attr-defined", "index", "misc",
     "import-untyped", "arg-type", "return-value",
     "operator", "call-overload", "var-annotated",
+    "call-arg",    # pydantic Settings / FastAPI constructors
+    "assignment",  # app = FastAPI(...) shadows module name 'app'
 ]
 
 [tool.pytest.ini_options]

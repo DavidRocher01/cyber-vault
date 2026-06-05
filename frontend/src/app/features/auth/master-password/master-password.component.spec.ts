@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { Injector, runInInjectionContext } from '@angular/core';
+import { Injector, PLATFORM_ID, runInInjectionContext } from '@angular/core';
 import { FormBuilder } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 
@@ -11,7 +11,10 @@ async function makeComponent(returnUrl?: string) {
   const navigateByUrlMock = vi.fn();
   const navigateMock = vi.fn();
   const cryptoMock = { deriveKey: vi.fn().mockResolvedValue(undefined) };
-  const authMock = { getCurrentEmail: vi.fn().mockReturnValue('user@test.com') };
+  const authMock = {
+    getCurrentEmail: vi.fn().mockReturnValue('user@test.com'),
+    getCryptoSalt: vi.fn().mockReturnValue(null),
+  };
   const routeMock = {
     snapshot: {
       queryParamMap: {
@@ -22,6 +25,7 @@ async function makeComponent(returnUrl?: string) {
 
   const injector = Injector.create({
     providers: [
+      { provide: PLATFORM_ID, useValue: 'browser' },
       { provide: FormBuilder, useValue: new FormBuilder() },
       { provide: CryptoService, useValue: cryptoMock },
       { provide: AuthService, useValue: authMock },
