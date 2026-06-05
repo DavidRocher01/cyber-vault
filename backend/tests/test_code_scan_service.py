@@ -398,9 +398,9 @@ async def test_run_code_scan_success():
         "confidence": "HIGH",
     }
 
-    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.tasks._run_subprocess", return_value=(0, "", "")):
         with patch(
-            "app.services.code_scan_service._run_all_tools",
+            "app.services.code_scan.tasks._run_all_tools",
             return_value=(
                 [high_finding],
                 {"critical": 0, "high": 1, "medium": 0, "low": 0},
@@ -554,7 +554,7 @@ async def test_run_code_scan_zip_descends_single_top_level_folder(tmp_path):
         return [], {"critical": 0, "high": 0, "medium": 0, "low": 0}, []
 
     with patch(
-        "app.services.code_scan_service._run_all_tools",
+        "app.services.code_scan.tasks._run_all_tools",
         side_effect=capture_run_all_tools,
     ):
         with patch("shutil.rmtree"):
@@ -1118,7 +1118,7 @@ def test_run_all_tools_runs_available_tool(tmp_path):
 
     with (
         patch("shutil.which", side_effect=fake_which),
-        patch("app.services.code_scan_service._run_bandit", return_value=[finding]),
+        patch("app.services.code_scan.runner._run_bandit", return_value=[finding]),
     ):
         findings, counts, unavailable = _run_all_tools(1, str(tmp_path))
 
@@ -1155,8 +1155,8 @@ def test_run_all_tools_aggregates_multiple_tool_findings(tmp_path):
 
     with (
         patch("shutil.which", side_effect=fake_which),
-        patch("app.services.code_scan_service._run_bandit", return_value=[fa]),
-        patch("app.services.code_scan_service._run_semgrep", return_value=[fb]),
+        patch("app.services.code_scan.runner._run_bandit", return_value=[fa]),
+        patch("app.services.code_scan.runner._run_semgrep", return_value=[fb]),
     ):
         findings, counts, unavailable = _run_all_tools(42, str(tmp_path))
 
@@ -1241,8 +1241,8 @@ def test_run_all_tools_severity_counts_sum_correctly(tmp_path):
 
     with (
         patch("shutil.which", side_effect=fake_which),
-        patch("app.services.code_scan_service._run_bandit", return_value=findings[:2]),
-        patch("app.services.code_scan_service._run_semgrep", return_value=findings[2:]),
+        patch("app.services.code_scan.runner._run_bandit", return_value=findings[:2]),
+        patch("app.services.code_scan.runner._run_semgrep", return_value=findings[2:]),
     ):
         _, counts, _ = _run_all_tools(1, str(tmp_path))
 
