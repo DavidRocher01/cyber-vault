@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { UpperCasePipe } from '@angular/common';
+import { NgClass, UpperCasePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -32,6 +32,7 @@ interface ModuleUiState {
   standalone: true,
   selector: 'app-sensibilisation',
   imports: [
+    NgClass,
     UpperCasePipe,
     RouterLink,
     MatButtonModule,

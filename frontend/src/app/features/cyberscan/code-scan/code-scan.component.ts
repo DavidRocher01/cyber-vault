@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
+import { NgClass } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -40,6 +41,7 @@ interface ScanResults {
   standalone: true,
   selector: 'app-code-scan',
   imports: [
+    NgClass,
     ReactiveFormsModule,
     RouterLink,
     MatButtonModule,

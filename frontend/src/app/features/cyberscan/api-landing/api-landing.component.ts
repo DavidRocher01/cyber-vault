@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
+import { NgClass } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Title, Meta } from '@angular/platform-browser';
@@ -112,6 +113,7 @@ const ROADMAP = [
   standalone: true,
   selector: 'app-api-landing',
   imports: [
+    NgClass,
     ReactiveFormsModule,
     RouterLink,
     MatIconModule,
