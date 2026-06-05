@@ -79,7 +79,7 @@ async def test_sync_catalog_no_auth_returns_403(http_client: AsyncClient):
 async def test_create_dossier_returns_201(http_client: AsyncClient):
     headers = await register_and_login(http_client, "dossier1@test.com")
     with patch(
-        "app.services.darkweb_dossier_service.check_email_breaches",
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_BREACH,
     ):
         r = await http_client.post(
@@ -100,7 +100,7 @@ async def test_create_dossier_returns_201(http_client: AsyncClient):
 async def test_create_dossier_strips_www(http_client: AsyncClient):
     headers = await register_and_login(http_client, "dossier2@test.com")
     with patch(
-        "app.services.darkweb_dossier_service.check_email_breaches",
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_CLEAN,
     ):
         r = await http_client.post(
@@ -161,7 +161,7 @@ async def test_list_dossiers_only_own(http_client: AsyncClient):
     h2 = await register_and_login(http_client, "dossier7@test.com")
 
     with patch(
-        "app.services.darkweb_dossier_service.check_email_breaches",
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_CLEAN,
     ):
         await http_client.post(
@@ -180,7 +180,7 @@ async def test_list_dossiers_only_own(http_client: AsyncClient):
 async def test_list_dossiers_returns_created(http_client: AsyncClient):
     headers = await register_and_login(http_client, "dossier8@test.com")
     with patch(
-        "app.services.darkweb_dossier_service.check_email_breaches",
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_CLEAN,
     ):
         await http_client.post(
@@ -204,7 +204,7 @@ async def test_list_dossiers_returns_created(http_client: AsyncClient):
 async def test_get_dossier_detail(http_client: AsyncClient):
     headers = await register_and_login(http_client, "dossier9@test.com")
     with patch(
-        "app.services.darkweb_dossier_service.check_email_breaches",
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_BREACH,
     ):
         create_r = await http_client.post(
@@ -226,7 +226,7 @@ async def test_get_dossier_other_user_returns_404(http_client: AsyncClient):
     h2 = await register_and_login(http_client, "dossier11@test.com")
 
     with patch(
-        "app.services.darkweb_dossier_service.check_email_breaches",
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_CLEAN,
     ):
         create_r = await http_client.post(
@@ -255,7 +255,7 @@ async def test_get_dossier_not_found_returns_404(http_client: AsyncClient):
 async def test_delete_dossier(http_client: AsyncClient):
     headers = await register_and_login(http_client, "dossier13@test.com")
     with patch(
-        "app.services.darkweb_dossier_service.check_email_breaches",
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_CLEAN,
     ):
         create_r = await http_client.post(
@@ -279,7 +279,7 @@ async def test_delete_dossier_other_user_returns_404(http_client: AsyncClient):
     h2 = await register_and_login(http_client, "dossier15@test.com")
 
     with patch(
-        "app.services.darkweb_dossier_service.check_email_breaches",
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_CLEAN,
     ):
         create_r = await http_client.post(
@@ -308,7 +308,7 @@ async def test_create_dossier_limit_enforced(http_client: AsyncClient):
     headers = await register_and_login(http_client, "dossier_limit@test.com")
 
     with patch(
-        "app.services.darkweb_dossier_service.check_email_breaches",
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_CLEAN,
     ):
         for i in range(2):
@@ -340,7 +340,7 @@ async def test_create_dossier_limit_enforced(http_client: AsyncClient):
 async def test_get_pdf_returns_pdf_bytes(http_client: AsyncClient):
     headers = await register_and_login(http_client, "dossier_pdf@test.com")
     with patch(
-        "app.services.darkweb_dossier_service.check_email_breaches",
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_BREACH,
     ):
         create_r = await http_client.post(
@@ -363,7 +363,7 @@ async def test_get_pdf_other_user_returns_404(http_client: AsyncClient):
     h2 = await register_and_login(http_client, "dossier_pdf3@test.com")
 
     with patch(
-        "app.services.darkweb_dossier_service.check_email_breaches",
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_CLEAN,
     ):
         create_r = await http_client.post(
@@ -385,7 +385,7 @@ async def test_get_pdf_other_user_returns_404(http_client: AsyncClient):
 async def test_rescan_resets_and_relaunches(http_client: AsyncClient):
     headers = await register_and_login(http_client, "rescan1@test.com")
     with patch(
-        "app.services.darkweb_dossier_service.check_email_breaches",
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_BREACH,
     ):
         create_r = await http_client.post(
@@ -397,7 +397,7 @@ async def test_rescan_resets_and_relaunches(http_client: AsyncClient):
     dossier_id = create_r.json()["id"]
 
     with patch(
-        "app.services.darkweb_dossier_service.check_email_breaches",
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_BREACH,
     ):
         r = await http_client.post(f"{ENDPOINT}/{dossier_id}/rescan", headers=headers)
@@ -435,7 +435,7 @@ async def test_rescan_other_user_returns_404(http_client: AsyncClient):
     h2 = await register_and_login(http_client, "rescan4@test.com")
 
     with patch(
-        "app.services.darkweb_dossier_service.check_email_breaches",
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_CLEAN,
     ):
         create_r = await http_client.post(
@@ -464,7 +464,7 @@ async def test_rescan_not_found_returns_404(http_client: AsyncClient):
 async def test_csv_export_returns_csv_bytes(http_client: AsyncClient):
     headers = await register_and_login(http_client, "csv1@test.com")
     with patch(
-        "app.services.darkweb_dossier_service.check_email_breaches",
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_BREACH,
     ):
         create_r = await http_client.post(
@@ -489,7 +489,7 @@ async def test_csv_export_other_user_returns_404(http_client: AsyncClient):
     h2 = await register_and_login(http_client, "csv3@test.com")
 
     with patch(
-        "app.services.darkweb_dossier_service.check_email_breaches",
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_CLEAN,
     ):
         create_r = await http_client.post(
@@ -511,7 +511,7 @@ async def test_csv_export_other_user_returns_404(http_client: AsyncClient):
 async def test_toggle_monitor_activates(http_client: AsyncClient):
     headers = await register_and_login(http_client, "monitor1@test.com")
     with patch(
-        "app.services.darkweb_dossier_service.check_email_breaches",
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_CLEAN,
     ):
         create_r = await http_client.post(
@@ -533,7 +533,7 @@ async def test_toggle_monitor_activates(http_client: AsyncClient):
 async def test_toggle_monitor_toggles_off_when_on(http_client: AsyncClient):
     headers = await register_and_login(http_client, "monitor2@test.com")
     with patch(
-        "app.services.darkweb_dossier_service.check_email_breaches",
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_CLEAN,
     ):
         create_r = await http_client.post(
@@ -559,7 +559,7 @@ async def test_toggle_monitor_other_user_returns_404(http_client: AsyncClient):
     h2 = await register_and_login(http_client, "monitor4@test.com")
 
     with patch(
-        "app.services.darkweb_dossier_service.check_email_breaches",
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_CLEAN,
     ):
         create_r = await http_client.post(

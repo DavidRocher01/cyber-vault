@@ -234,7 +234,7 @@ async def test_sync_catalog_upserts_entries():
     db.commit = AsyncMock()
 
     with patch(
-        "app.services.darkweb_dossier_service.fetch_hibp_breach_catalog",
+        "app.services.darkweb_dossier.enrichment.fetch_hibp_breach_catalog",
         return_value=fake_entries,
     ):
         count = await sync_breach_catalog(db)
@@ -250,7 +250,7 @@ async def test_sync_catalog_returns_zero_on_empty_fetch():
 
     db = AsyncMock()
     with patch(
-        "app.services.darkweb_dossier_service.fetch_hibp_breach_catalog",
+        "app.services.darkweb_dossier.enrichment.fetch_hibp_breach_catalog",
         return_value=[],
     ):
         count = await sync_breach_catalog(db)
