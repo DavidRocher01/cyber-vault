@@ -200,8 +200,8 @@ async def _analyze_url(url: str) -> dict:
                     final_url = str(resp.url)
                     redirect_chain = [str(r.url) for r in resp.history]
                     html = resp.text[:200_000]
-            except httpx.TransportError:
-                html = ""
+            except Exception:
+                html = ""  # SSL retry is best-effort; any failure → continue with empty html
         else:
             raise ValueError(f"Erreur réseau : {exc}")
     except httpx.RequestError as exc:

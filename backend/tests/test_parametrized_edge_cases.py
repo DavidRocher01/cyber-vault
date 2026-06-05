@@ -22,7 +22,7 @@ from app.schemas.vault_item import VaultItemCreate, VaultItemUpdate
         ("invalid_cat", "login"),  # fallback
         ("", "login"),  # empty string
         ("LOGIN", "login"),  # case sensitive — invalid → fallback
-        ("a" * 100, "login"),  # trop long — invalid → fallback
+        ("a" * 32, "login"),  # max_length — invalid category → fallback
         ("<script>alert(1)</script>", "login"),  # XSS attempt
         (None, "login"),  # None — defaults
     ],

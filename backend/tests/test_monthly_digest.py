@@ -25,7 +25,7 @@ def _sites(n=1, critical=0, warning=0, status="OK"):
     ]
 
 
-@patch("app.services.email_service._send")
+@patch("app.services.email_service.scan._send")
 def test_send_monthly_digest_calls_send(mock_send):
     send_monthly_digest(
         to_email="user@example.com",
@@ -42,7 +42,7 @@ def test_send_monthly_digest_calls_send(mock_send):
     assert "Janvier 2026" in subject
 
 
-@patch("app.services.email_service._send")
+@patch("app.services.email_service.scan._send")
 def test_send_monthly_digest_subject_contains_month(mock_send):
     send_monthly_digest("u@e.com", "Mars 2025", _sites(), "http://x")
     subject = mock_send.call_args[0][1]
@@ -50,35 +50,35 @@ def test_send_monthly_digest_subject_contains_month(mock_send):
     assert "bilan" in subject.lower()
 
 
-@patch("app.services.email_service._send")
+@patch("app.services.email_service.scan._send")
 def test_send_monthly_digest_html_contains_site_url(mock_send):
     send_monthly_digest("u@e.com", "Avril 2026", _sites(1), "http://dash")
     html = mock_send.call_args[0][2]
     assert "https://site0.example.com" in html
 
 
-@patch("app.services.email_service._send")
+@patch("app.services.email_service.scan._send")
 def test_send_monthly_digest_html_shows_critical_count(mock_send):
     send_monthly_digest("u@e.com", "Avril 2026", _sites(1, critical=3), "http://dash")
     html = mock_send.call_args[0][2]
     assert "3" in html
 
 
-@patch("app.services.email_service._send")
+@patch("app.services.email_service.scan._send")
 def test_send_monthly_digest_ok_status_green_color(mock_send):
     send_monthly_digest("u@e.com", "Avril 2026", _sites(1, status="OK"), "http://dash")
     html = mock_send.call_args[0][2]
     assert "#22c55e" in html
 
 
-@patch("app.services.email_service._send")
+@patch("app.services.email_service.scan._send")
 def test_send_monthly_digest_critical_status_red_color(mock_send):
     send_monthly_digest("u@e.com", "Avril 2026", _sites(1, status="CRITICAL"), "http://dash")
     html = mock_send.call_args[0][2]
     assert "#ef4444" in html
 
 
-@patch("app.services.email_service._send")
+@patch("app.services.email_service.scan._send")
 def test_send_monthly_digest_dashboard_link_in_html(mock_send):
     send_monthly_digest(
         "u@e.com", "Mai 2026", _sites(), "https://app.example.com/cyberscan/dashboard"
@@ -87,14 +87,14 @@ def test_send_monthly_digest_dashboard_link_in_html(mock_send):
     assert "https://app.example.com/cyberscan/dashboard" in html
 
 
-@patch("app.services.email_service._send")
+@patch("app.services.email_service.scan._send")
 def test_send_monthly_digest_plain_text_contains_site(mock_send):
     send_monthly_digest("u@e.com", "Mai 2026", _sites(1), "http://dash")
     plain = mock_send.call_args[0][3]
     assert "https://site0.example.com" in plain
 
 
-@patch("app.services.email_service._send")
+@patch("app.services.email_service.scan._send")
 def test_send_monthly_digest_multiple_sites(mock_send):
     send_monthly_digest("u@e.com", "Juin 2026", _sites(3), "http://dash")
     html = mock_send.call_args[0][2]
@@ -103,7 +103,7 @@ def test_send_monthly_digest_multiple_sites(mock_send):
     assert "site2" in html
 
 
-@patch("app.services.email_service._send")
+@patch("app.services.email_service.scan._send")
 def test_send_monthly_digest_zero_scans_handled(mock_send):
     sites = [
         {
@@ -120,14 +120,14 @@ def test_send_monthly_digest_zero_scans_handled(mock_send):
     assert "https://s.com" in html
 
 
-@patch("app.services.email_service._send")
+@patch("app.services.email_service.scan._send")
 def test_send_monthly_digest_no_criticals_green_summary(mock_send):
     send_monthly_digest("u@e.com", "Août 2026", _sites(2, critical=0), "http://dash")
     html = mock_send.call_args[0][2]
     assert "Aucune faille critique" in html
 
 
-@patch("app.services.email_service._send")
+@patch("app.services.email_service.scan._send")
 def test_send_monthly_digest_with_criticals_warning_summary(mock_send):
     send_monthly_digest("u@e.com", "Août 2026", _sites(1, critical=2), "http://dash")
     plain = mock_send.call_args[0][3]

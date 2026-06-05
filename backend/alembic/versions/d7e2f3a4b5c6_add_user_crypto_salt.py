@@ -1,7 +1,7 @@
 """add user crypto_salt
 
-Revision ID: b2c3d4e5f6a7
-Revises: a1b2c3d4e5f6
+Revision ID: d7e2f3a4b5c6
+Revises: b8c4d2e9f1a3
 Create Date: 2026-06-05 11:00:00.000000
 
 """
@@ -13,8 +13,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "b2c3d4e5f6a7"
-down_revision: str | None = "a1b2c3d4e5f6"
+revision: str = "d7e2f3a4b5c6"
+down_revision: str | None = "b8c4d2e9f1a3"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

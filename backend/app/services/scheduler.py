@@ -9,7 +9,6 @@ import json
 import os
 from datetime import UTC, datetime, timedelta
 
-from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from loguru import logger
@@ -36,6 +35,8 @@ def _make_scheduler() -> AsyncIOScheduler:
     redis_url = os.getenv("REDIS_URL")
     if redis_url:
         try:
+            from apscheduler.jobstores.redis import RedisJobStore  # lazy — requires redis package
+
             jobstores = {
                 "default": RedisJobStore(
                     jobs_key="cybervault:jobs", run_times_key="cybervault:run_times", url=redis_url
