@@ -7,6 +7,7 @@ function makeInstance(): MatrixRainComponent {
   (comp as any).rafId = 0;
   (comp as any).drops = [];
   (comp as any).autoClose = undefined;
+  (comp as any).platformId = 'browser'; // SSR guard needs platformId
   comp.visible = false;
   comp.closeRequested = false;
   return comp;

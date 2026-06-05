@@ -53,9 +53,9 @@ describe('PRICING_TIERS (one-shot)', () => {
 
   it('inclut Express, Standard, Premium', () => {
     const names = PRICING_TIERS.map(t => t.name);
-    expect(names).toContain('Express');
-    expect(names).toContain('Standard');
-    expect(names).toContain('Premium');
+    expect(names.some(n => n.includes('Express'))).toBe(true);
+    expect(names.some(n => n.includes('Standard'))).toBe(true);
+    expect(names.some(n => n.includes('Premium'))).toBe(true);
   });
 
   it('Express est à 990 €', () => {

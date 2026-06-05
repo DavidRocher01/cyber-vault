@@ -5,7 +5,9 @@ import { describe, it, expect } from 'vitest';
 import { ActionsTableComponent } from './actions-table.component';
 
 function make(): ActionsTableComponent {
-  return Object.create(ActionsTableComponent.prototype) as ActionsTableComponent;
+  const comp = Object.create(ActionsTableComponent.prototype) as ActionsTableComponent;
+  (comp as any).today = new Date().toISOString().slice(0, 10);
+  return comp;
 }
 
 describe('ActionsTableComponent — formatDate()', () => {

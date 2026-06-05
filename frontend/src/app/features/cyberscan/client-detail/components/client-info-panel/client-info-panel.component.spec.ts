@@ -2,7 +2,7 @@
  * ClientInfoPanelComponent — tests via injection de dépendances (FormGroup requis).
  */
 import { describe, it, expect } from 'vitest';
-import { Injector, runInInjectionContext } from '@angular/core';
+import { EventEmitter, Injector, runInInjectionContext } from '@angular/core';
 import { FormBuilder } from '@angular/forms';
 import { ClientInfoPanelComponent } from './client-info-panel.component';
 
@@ -30,6 +30,7 @@ function make() {
     c.form = form;
     c.saving = false;
     c.formulas = [];
+    (c as any).save = new EventEmitter<void>();
     return c;
   });
 
