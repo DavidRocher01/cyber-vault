@@ -297,7 +297,10 @@ jobs:
           SECRET_KEY: ci-test-secret-key
           DATABASE_URL: postgresql+asyncpg://postgres:password@localhost:5432/cybervault
           ALLOWED_ORIGINS: '["http://localhost:4200"]'
-        run: uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+        run: |
+          uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/uvicorn.log 2>&1 &
+          echo $! > /tmp/uvicorn.pid
+          echo "uvicorn started (PID $(cat /tmp/uvicorn.pid))"
         working-directory: backend
 
       - name: Wait for backend to be ready
@@ -305,12 +308,14 @@ jobs:
           echo "Waiting for backend on :8000..."
           for i in $(seq 1 30); do
             if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
-              echo "Backend ready after ${i}s"
+              echo "Backend ready after $((i * 2))s"
               exit 0
             fi
+            echo "  attempt $i/30..."
             sleep 2
           done
-          echo "Backend did not start after 60s — dumping last logs:"
+          echo "Backend did not start after 60s — uvicorn logs:"
+          cat /tmp/uvicorn.log || echo "(no log file)"
           exit 1
 
       - name: Setup Node.js
