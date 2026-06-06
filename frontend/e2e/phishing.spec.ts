@@ -145,8 +145,8 @@ test.describe('Phishing — wizard création', () => {
     await expect(page.getByText('Express')).toBeVisible();
     await expect(page.getByText('Standard')).toBeVisible();
     await expect(page.getByText('Premium')).toBeVisible();
-    // Les prix doivent être présents
-    await expect(page.getByText('800 €').first()).toBeVisible();
+    // Les prix doivent être présents (cf. phishing-campaign-creator.component.ts)
+    await expect(page.getByText('990 € HT').first()).toBeVisible();
   });
 
   test('wizard — Continuer depuis step 1 affiche step 2', async ({ page }) => {

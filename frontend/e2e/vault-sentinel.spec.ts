@@ -35,27 +35,48 @@ test('aucun champ vault en clair ne traverse l\'API', async ({ page }) => {
     }
   });
 
-  const token = await registerAndGetToken(page, email);
+  // Register + login via API to obtain a session token + crypto salt
+  await page.request.post(`${API}/auth/register`, {
+    data: { email, password: 'Pass123!' },
+  });
+  const loginRes = await page.request.post(`${API}/auth/login`, {
+    data: { email, password: 'Pass123!' },
+  });
+  const { access_token, crypto_salt } = await loginRes.json();
 
-  // Unlock vault via the UI (enter master password)
+  // Propage la session dans le navigateur pour que authGuard laisse passer /vault.
+  // AuthService lit cv_token (sessionStorage), cv_email (localStorage),
+  // cv_crypto_salt (sessionStorage). Sans ça, /vault redirige vers le login.
+  await page.addInitScript(
+    ({ token, salt, userEmail }) => {
+      sessionStorage.setItem('cv_token', token);
+      if (salt) sessionStorage.setItem('cv_crypto_salt', salt);
+      localStorage.setItem('cv_email', userEmail);
+    },
+    { token: access_token, salt: crypto_salt, userEmail: email },
+  );
+
+  // /vault est verrouillé (aucune clé en mémoire) → cryptoGuard redirige vers l'unlock
   await page.goto('/vault');
   await page.locator('[formcontrolname="masterPassword"]').fill('MySecureMaster#99');
   await page.getByRole('button', { name: /déverrouiller|unlock/i }).click();
   await page.waitForURL('**/vault');
 
   // Create a vault item with sentinel values via UI
-  await page.getByRole('button', { name: /nouveau|ajouter|add/i }).first().click();
-  await page.locator('[formcontrolname="title"]').fill(SENTINEL_TITLE);
-  await page.locator('[formcontrolname="username"]').fill(SENTINEL_USERNAME);
-  await page.locator('[formcontrolname="password_encrypted"]').fill(SENTINEL_PASSWORD);
+  await page.getByRole('button', { name: /nouvelle entrée|nouveau|ajouter/i }).first().click();
+  const form = page.locator('form');
+  await form.locator('[formcontrolname="title"]').fill(SENTINEL_TITLE);
+  await form.locator('[formcontrolname="username"]').fill(SENTINEL_USERNAME);
+  await form.locator('[formcontrolname="password_encrypted"]').fill(SENTINEL_PASSWORD);
 
-  const urlInput = page.locator('[formcontrolname="url"]');
+  const urlInput = form.locator('[formcontrolname="url"]');
   if (await urlInput.count() > 0) await urlInput.fill(SENTINEL_URL);
 
-  const notesInput = page.locator('[formcontrolname="notes"]');
+  const notesInput = form.locator('[formcontrolname="notes"]');
   if (await notesInput.count() > 0) await notesInput.fill(SENTINEL_NOTES);
 
-  await page.getByRole('button', { name: /enregistrer|sauvegarder|save/i }).click();
+  // Le bouton submit affiche "Ajouter" (création) ou "Enregistrer les modifications" (édition)
+  await form.getByRole('button', { name: /ajouter|enregistrer|sauvegarder|save/i }).click();
   await page.waitForTimeout(500);
 
   // Assert no sentinel value appears in any vault API request body

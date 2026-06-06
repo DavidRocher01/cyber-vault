@@ -34,8 +34,14 @@ test.describe('Reset password', () => {
 test.describe('Rate limiting', () => {
   test('retourne 429 après trop de tentatives de login', async ({ page }) => {
     const responses: number[] = [];
+    // Les requêtes loopback contournent volontairement le rate-limiting
+    // (cf. backend/app/core/limiter.py — clé unique par requête en dev/test).
+    // On simule une IP cliente publique via X-Forwarded-For pour que le
+    // limiter applique réellement la limite (10/minute sur /auth/login).
+    const headers = { 'X-Forwarded-For': '8.8.8.8' };
     for (let i = 0; i < 12; i++) {
       const r = await page.request.post(`${API}/auth/login`, {
+        headers,
         data: { email: 'rate@test.com', password: 'wrong' },
       });
       responses.push(r.status());
@@ -51,7 +57,7 @@ test.describe('Export RGPD', () => {
     const email = `rgpd-${Date.now()}@test.com`;
     const token = await registerAndLogin(page, email);
 
-    const r = await page.request.get(`${API}/profile/export`, {
+    const r = await page.request.get(`${API}/users/me/export`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
