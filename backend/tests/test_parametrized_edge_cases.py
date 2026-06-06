@@ -56,6 +56,7 @@ def test_vault_update_category_validation(category, expected):
 @pytest.mark.parametrize(
     "title",
     [
+        "",  # empty — valid since zero-knowledge clients send only *_encrypted
         "A",  # minimum (1 char)
         "A" * 200,  # maximum (200 chars)
         "Titre avec espaces",
@@ -68,10 +69,15 @@ def test_vault_title_valid(title):
     assert item.title == title
 
 
+def test_vault_title_optional_for_zero_knowledge():
+    # Zero-knowledge: the plaintext title is no longer required (only *_encrypted is sent).
+    item = VaultItemCreate(password_encrypted="enc", title_encrypted="blob")
+    assert item.title is None
+
+
 @pytest.mark.parametrize(
     "title",
     [
-        "",  # empty — below min_length=1
         "A" * 201,  # above max_length=200
     ],
 )
