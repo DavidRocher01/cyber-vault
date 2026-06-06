@@ -34,6 +34,13 @@ reportlab==4.4.10
 # Email transactionnel
 resend==2.7.0
 
+# Clients HTTP & réseau
+httpx==0.28.1
+dnspython==2.7.0
+
+# Stockage objet (S3 — livrables RSSI)
+boto3==1.35.0
+
 # 2FA
 pyotp==2.9.0
 qrcode[pil]==7.4.2
