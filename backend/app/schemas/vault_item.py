@@ -4,8 +4,8 @@ VALID_CATEGORIES = {"login", "card", "note", "wifi", "other"}
 
 
 class VaultItemCreate(BaseModel):
-    # Plain fields (legacy / fallback if crypto key not available)
-    title: str = Field(min_length=1, max_length=200)
+    # Plain fields — optional/legacy. Zero-knowledge clients send only *_encrypted.
+    title: str | None = Field(default=None, max_length=200)
     username: str | None = Field(default=None, max_length=200)
     password_encrypted: str = Field(min_length=0, max_length=8192)
     url: str | None = Field(default=None, max_length=2048)
@@ -41,7 +41,7 @@ class VaultItemUpdate(BaseModel):
 
 class VaultItemOut(BaseModel):
     id: int
-    title: str
+    title: str | None
     username: str | None
     password_encrypted: str
     url: str | None

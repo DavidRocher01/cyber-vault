@@ -11,8 +11,8 @@ class VaultItem(Base):
     owner_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    # Legacy plaintext fields (kept during migration period)
-    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Legacy plaintext fields (nullable — only populated for pre-ZK legacy items)
+    title: Mapped[str | None] = mapped_column(String(255), nullable=True)
     username: Mapped[str | None] = mapped_column(String(255), nullable=True)
     url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)

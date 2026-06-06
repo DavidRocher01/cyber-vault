@@ -34,6 +34,10 @@ export class VaultStore extends ComponentStore<VaultState> {
       tap(() => this.patchState({ loading: true, error: null })),
       switchMap(() =>
         this.vaultService.getAll().pipe(
+          // Decrypt display fields in-memory (server only ever stores opaque blobs)
+          switchMap(items =>
+            from(Promise.all(items.map(i => this.vaultService.hydrateForDisplay(i))))
+          ),
           tapResponse(
             items => {
               this.patchState({ items, loading: false });
@@ -53,29 +57,46 @@ export class VaultStore extends ComponentStore<VaultState> {
 
   readonly createItem = this.effect<VaultItemCreate>(payload$ =>
     payload$.pipe(
-      concatMap(payload =>
+      concatMap(plain =>
         from(
           Promise.all([
-            this.cryptoService.encrypt(payload.password_encrypted),
+            this.cryptoService.encrypt(plain.password_encrypted),
             this.vaultService.buildEncryptedPayload({
-              title: payload.title,
-              username: payload.username,
-              url: payload.url,
-              notes: payload.notes,
+              title: plain.title ?? '',
+              username: plain.username,
+              url: plain.url,
+              notes: plain.notes,
             }),
           ])
         ).pipe(
           map(([encPwd, encFields]) => ({
-            ...payload,
-            password_encrypted: encPwd,
-            ...encFields,
+            // Zero-knowledge: send ONLY encrypted fields + category (no plaintext)
+            send: {
+              category: plain.category,
+              password_encrypted: encPwd,
+              ...encFields,
+            } as VaultItemCreate,
+            plain,
           }))
         )
       ),
-      concatMap(payload =>
-        this.vaultService.create(payload).pipe(
+      concatMap(({ send, plain }) =>
+        this.vaultService.create(send).pipe(
           tapResponse(
-            item => this.patchState(s => ({ items: [...s.items, item] })),
+            item =>
+              // Server returns null plaintext; show the values we already hold locally
+              this.patchState(s => ({
+                items: [
+                  ...s.items,
+                  {
+                    ...item,
+                    title: plain.title ?? null,
+                    username: plain.username ?? null,
+                    url: plain.url ?? null,
+                    notes: plain.notes ?? null,
+                  },
+                ],
+              })),
             (err: any) => this.patchState({ error: err.error?.detail ?? 'Erreur de création' })
           )
         )
@@ -85,35 +106,53 @@ export class VaultStore extends ComponentStore<VaultState> {
 
   readonly updateItem = this.effect<VaultItemUpdate>(payload$ =>
     payload$.pipe(
-      concatMap(({ id, password_encrypted, ...rest }) =>
+      concatMap(({ id, password_encrypted, title, username, url, notes, category }) =>
         from(
           Promise.all([
             password_encrypted
               ? this.cryptoService.encrypt(password_encrypted)
               : Promise.resolve(null),
-            rest.title !== undefined
+            title !== undefined
               ? this.vaultService.buildEncryptedPayload({
-                  title: rest.title ?? '',
-                  username: rest.username,
-                  url: rest.url,
-                  notes: rest.notes,
+                  title: title ?? '',
+                  username,
+                  url,
+                  notes,
                 })
               : Promise.resolve({}),
           ])
         ).pipe(
           map(([encPwd, encFields]) => ({
             id,
-            ...rest,
-            ...(encPwd ? { password_encrypted: encPwd } : {}),
-            ...encFields,
+            // Zero-knowledge: send only category + encrypted fields (no plaintext)
+            send: {
+              ...(category !== undefined ? { category } : {}),
+              ...(encPwd ? { password_encrypted: encPwd } : {}),
+              ...encFields,
+            } as Partial<VaultItemCreate>,
+            plain: { title, username, url, notes },
           }))
         )
       ),
-      concatMap(({ id, ...payload }) =>
-        this.vaultService.update(id, payload).pipe(
+      concatMap(({ id, send, plain }) =>
+        this.vaultService.update(id, send).pipe(
           tapResponse(
             updated =>
-              this.patchState(s => ({ items: s.items.map(i => (i.id === id ? updated : i)) })),
+              // Server returns null plaintext; keep the values we already hold locally
+              this.patchState(s => ({
+                items: s.items.map(i =>
+                  i.id === id
+                    ? {
+                        ...updated,
+                        title: plain.title !== undefined ? (plain.title ?? null) : i.title,
+                        username:
+                          plain.username !== undefined ? (plain.username ?? null) : i.username,
+                        url: plain.url !== undefined ? (plain.url ?? null) : i.url,
+                        notes: plain.notes !== undefined ? (plain.notes ?? null) : i.notes,
+                      }
+                    : i
+                ),
+              })),
             (err: any) => this.patchState({ error: err.error?.detail ?? 'Erreur de modification' })
           )
         )

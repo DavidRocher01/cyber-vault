@@ -170,7 +170,7 @@ export class VaultDashboardComponent implements OnInit {
       const matchCat = cat === 'all' || item.category === cat;
       const matchQ =
         !q ||
-        item.title.toLowerCase().includes(q) ||
+        (item.title ?? '').toLowerCase().includes(q) ||
         (item.username ?? '').toLowerCase().includes(q);
       return matchCat && matchQ;
     });
@@ -371,7 +371,7 @@ export class VaultDashboardComponent implements OnInit {
   openEdit(item: VaultItem) {
     this.editingItem.set(item);
     this.form.patchValue({
-      title: item.title,
+      title: item.title ?? '',
       username: item.username ?? '',
       password_encrypted: '',
       url: item.url ?? '',

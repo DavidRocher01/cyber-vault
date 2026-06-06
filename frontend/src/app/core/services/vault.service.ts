@@ -8,7 +8,7 @@ export type VaultCategory = 'login' | 'card' | 'note' | 'wifi' | 'other';
 
 export interface VaultItem {
   id: number;
-  title: string;
+  title: string | null;
   username: string | null;
   password_encrypted: string;
   url: string | null;
@@ -19,18 +19,19 @@ export interface VaultItem {
   url_encrypted: string | null;
   notes_encrypted: string | null;
   // Decrypted display values (populated client-side after decryption)
-  _title?: string;
+  _title?: string | null;
   _username?: string | null;
   _url?: string | null;
   _notes?: string | null;
 }
 
 export interface VaultItemCreate {
-  title: string;
-  username?: string;
+  // Plaintext fields are nullable so legacy migration can clear them server-side.
+  title?: string | null;
+  username?: string | null;
   password_encrypted: string;
-  url?: string;
-  notes?: string;
+  url?: string | null;
+  notes?: string | null;
   category?: VaultCategory;
   title_encrypted?: string;
   username_encrypted?: string;
@@ -89,6 +90,24 @@ export class VaultService {
     return result;
   }
 
+  /**
+   * Returns a copy of the item with title/username/url/notes set to their
+   * decrypted plaintext (in-memory only, never sent back). Legacy items that
+   * still carry plaintext but no *_encrypted keep their existing values.
+   */
+  async hydrateForDisplay(item: VaultItem): Promise<VaultItem> {
+    const out = { ...item };
+    if (item.title_encrypted)
+      out.title = (await this.crypto.tryDecrypt(item.title_encrypted)) ?? item.title;
+    if (item.username_encrypted)
+      out.username = (await this.crypto.tryDecrypt(item.username_encrypted)) ?? item.username;
+    if (item.url_encrypted)
+      out.url = (await this.crypto.tryDecrypt(item.url_encrypted)) ?? item.url;
+    if (item.notes_encrypted)
+      out.notes = (await this.crypto.tryDecrypt(item.notes_encrypted)) ?? item.notes;
+    return out;
+  }
+
   /** Encrypt an item's display fields and return a create/update payload with *_encrypted fields. */
   async buildEncryptedPayload(plain: {
     title: string;
@@ -120,12 +139,15 @@ export class VaultService {
     const legacyItems = items.filter(i => !i.title_encrypted);
     for (const item of legacyItems) {
       const encrypted = await this.buildEncryptedPayload({
-        title: item.title,
+        title: item.title ?? '',
         username: item.username,
         url: item.url,
         notes: item.notes,
       });
-      await firstValueFrom(this.update(item.id, encrypted));
+      // Encrypt the legacy fields AND clear the plaintext columns server-side.
+      await firstValueFrom(
+        this.update(item.id, { ...encrypted, title: null, username: null, url: null, notes: null })
+      );
     }
   }
 }

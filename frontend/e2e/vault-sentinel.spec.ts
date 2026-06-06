@@ -52,6 +52,9 @@ test('aucun champ vault en clair ne traverse l\'API', async ({ page }) => {
       sessionStorage.setItem('cv_token', token);
       if (salt) sessionStorage.setItem('cv_crypto_salt', salt);
       localStorage.setItem('cv_email', userEmail);
+      // Évite que la bannière cookies (fixed bottom, z-50) ne recouvre le
+      // bouton submit du formulaire et n'intercepte le clic (cf. helpers.ts).
+      localStorage.setItem('cyberscan_cookie_consent', 'accepted');
     },
     { token: access_token, salt: crypto_salt, userEmail: email },
   );
