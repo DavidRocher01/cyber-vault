@@ -125,7 +125,9 @@ async def login(
             return {"requires_2fa": True}
         import pyotp
 
-        totp = pyotp.TOTP(user.totp_secret)
+        from app.core.totp_crypto import decrypt_totp_secret
+
+        totp = pyotp.TOTP(decrypt_totp_secret(user.totp_secret))
         if not totp.verify(payload.totp_code, valid_window=1):
             # Les échecs TOTP comptent dans le lockout (anti brute-force du code 2FA).
             user.failed_login_attempts += 1

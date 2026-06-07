@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.security import hash_password, verify_password
+from app.core.totp_crypto import decrypt_totp_secret, encrypt_totp_secret
 from app.models.scan import Scan
 from app.models.site import Site
 from app.models.user import User
@@ -293,7 +294,7 @@ async def setup_2fa(
                 status_code=400,
                 detail="Code TOTP actuel requis pour reconfigurer la 2FA",
             )
-        totp = pyotp.TOTP(current_user.totp_secret)
+        totp = pyotp.TOTP(decrypt_totp_secret(current_user.totp_secret))
         if not totp.verify(payload.current_code, valid_window=1):
             raise HTTPException(status_code=400, detail="Code TOTP invalide")
 
@@ -301,7 +302,9 @@ async def setup_2fa(
     totp = pyotp.TOTP(secret)
     uri = totp.provisioning_uri(name=current_user.email, issuer_name="CyberScan")
 
-    current_user.totp_secret = secret
+    # Graine chiffrée au repos ; le secret brut n'est renvoyé qu'ici (pré-activation,
+    # nécessaire pour la saisie manuelle dans l'app d'authentification).
+    current_user.totp_secret = encrypt_totp_secret(secret)
     await db.commit()
 
     return TwoFactorSetupOut(qr_code_b64=_make_qr_b64(uri), secret=secret)
@@ -316,7 +319,7 @@ async def enable_2fa(
     """Verify a TOTP code and enable 2FA for the account."""
     if not current_user.totp_secret:
         raise HTTPException(status_code=400, detail="Lancez d'abord la configuration 2FA")
-    totp = pyotp.TOTP(current_user.totp_secret)
+    totp = pyotp.TOTP(decrypt_totp_secret(current_user.totp_secret))
     if not totp.verify(payload.code, valid_window=1):
         raise HTTPException(status_code=400, detail="Code invalide ou expiré")
     current_user.totp_enabled = True
@@ -336,7 +339,7 @@ async def disable_2fa(
         raise HTTPException(status_code=401, detail="Mot de passe incorrect")
     if not current_user.totp_enabled or not current_user.totp_secret:
         raise HTTPException(status_code=400, detail="La double authentification n'est pas activée")
-    totp = pyotp.TOTP(current_user.totp_secret)
+    totp = pyotp.TOTP(decrypt_totp_secret(current_user.totp_secret))
     if not totp.verify(payload.code, valid_window=1):
         raise HTTPException(status_code=400, detail="Code 2FA invalide")
     current_user.totp_enabled = False
