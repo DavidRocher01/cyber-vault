@@ -21,6 +21,13 @@ TEST_EMAIL = "rocherdavid@ymail.com"
 
 
 def upgrade() -> None:
+    # Garde-fou : reset de donnees one-off reserve au dev/test. Ne JAMAIS
+    # supprimer de donnees en production (protege un rebuild from-scratch).
+    from app.core.config import settings
+
+    if settings.APP_ENV == "production":
+        return
+
     conn = op.get_bind()
     conn.execute(
         sa.text("""
