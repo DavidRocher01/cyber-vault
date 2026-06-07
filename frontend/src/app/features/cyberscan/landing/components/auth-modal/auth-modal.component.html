@@ -160,6 +160,9 @@
               <button
                 type="button"
                 class="auth-eye-btn"
+                [attr.aria-label]="
+                  showAuthPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'
+                "
                 (click)="showAuthPassword = !showAuthPassword"
               >
                 <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{
@@ -295,6 +298,9 @@
               <button
                 type="button"
                 class="auth-eye-btn"
+                [attr.aria-label]="
+                  showAuthPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'
+                "
                 (click)="showAuthPassword = !showAuthPassword"
               >
                 <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">{{
