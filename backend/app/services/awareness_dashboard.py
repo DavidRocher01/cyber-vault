@@ -246,57 +246,51 @@ async def _program_stats(db: AsyncSession, org_id: int) -> list[dict]:
         .all()
     )
 
+    # Agrégats groupés (3 requêtes au total) au lieu de 4 requêtes par programme.
+    modules_by_prog = dict(
+        (
+            await db.execute(
+                select(AwarenessModule.program_id, func.count(AwarenessModule.id))
+                .where(AwarenessModule.is_active == True)
+                .group_by(AwarenessModule.program_id)
+            )
+        ).all()
+    )
+
+    enroll_by_prog = {
+        row[0]: {"enrolled": row[1], "completed": row[2], "avg_pct": float(row[3] or 0.0)}
+        for row in (
+            await db.execute(
+                select(
+                    AwarenessEnrollment.program_id,
+                    func.count(AwarenessEnrollment.id),
+                    func.count(AwarenessEnrollment.id).filter(
+                        AwarenessEnrollment.status == "completed"
+                    ),
+                    func.avg(AwarenessEnrollment.completion_pct),
+                )
+                .where(AwarenessEnrollment.organization_id == org_id)
+                .group_by(AwarenessEnrollment.program_id)
+            )
+        ).all()
+    }
+
     stats = []
     for prog in programs:
-        total_modules = (
-            await db.execute(
-                select(func.count(AwarenessModule.id)).where(
-                    AwarenessModule.program_id == prog.id,
-                    AwarenessModule.is_active == True,
-                )
-            )
-        ).scalar_one()
-
-        enrolled = (
-            await db.execute(
-                select(func.count(AwarenessEnrollment.id)).where(
-                    AwarenessEnrollment.organization_id == org_id,
-                    AwarenessEnrollment.program_id == prog.id,
-                )
-            )
-        ).scalar_one()
-
-        if enrolled == 0:
+        e = enroll_by_prog.get(prog.id)
+        if not e or e["enrolled"] == 0:
             continue
-
-        completed = (
-            await db.execute(
-                select(func.count(AwarenessEnrollment.id)).where(
-                    AwarenessEnrollment.organization_id == org_id,
-                    AwarenessEnrollment.program_id == prog.id,
-                    AwarenessEnrollment.status == "completed",
-                )
-            )
-        ).scalar_one()
-
-        avg_pct = (
-            await db.execute(
-                select(func.avg(AwarenessEnrollment.completion_pct)).where(
-                    AwarenessEnrollment.organization_id == org_id,
-                    AwarenessEnrollment.program_id == prog.id,
-                )
-            )
-        ).scalar_one() or 0.0
-
+        enrolled = e["enrolled"]
+        completed = e["completed"]
         stats.append(
             {
                 "program_id": prog.id,
                 "program_title": prog.title,
-                "total_modules": total_modules,
+                "total_modules": modules_by_prog.get(prog.id, 0),
                 "enrolled_learners": enrolled,
                 "completed_learners": completed,
                 "completion_rate": round(completed / enrolled * 100, 1),
-                "avg_completion_pct": round(float(avg_pct), 1),
+                "avg_completion_pct": round(e["avg_pct"], 1),
             }
         )
 
