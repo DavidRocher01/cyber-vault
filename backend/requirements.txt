@@ -29,6 +29,7 @@ pytest-asyncio==0.23.7
 pytest-cov==5.0.0
 pytest-mock==3.14.0
 httpx==0.28.1
+requests==2.34.2
 aiosqlite==0.22.1
 
 # Qualité & Sécurité

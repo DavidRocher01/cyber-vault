@@ -36,6 +36,7 @@ resend==2.7.0
 
 # Clients HTTP & réseau
 httpx==0.28.1
+requests==2.34.2  # darkweb HIBP, scanner (épinglé : était transitif)
 dnspython==2.7.0
 
 # Stockage objet (S3 — livrables RSSI)
