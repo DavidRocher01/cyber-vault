@@ -113,24 +113,36 @@ async def login(
         await db.commit()  # Must commit before raising — rollback would undo the counter
         raise invalid_exc
 
-    user.failed_login_attempts = 0
-    user.locked_until = None
-
     # 2FA check — auto-repair inconsistent state (enabled=True but no secret)
     if user.totp_enabled and not user.totp_secret:
         user.totp_enabled = False
 
     if user.totp_enabled and user.totp_secret:
         if not payload.totp_code:
+            # Mot de passe OK mais 2FA en attente : on ne réinitialise PAS encore le
+            # compteur (sinon le brute-force du code TOTP ne serait jamais verrouillé).
             await db.commit()
             return {"requires_2fa": True}
         import pyotp
 
         totp = pyotp.TOTP(user.totp_secret)
         if not totp.verify(payload.totp_code, valid_window=1):
+            # Les échecs TOTP comptent dans le lockout (anti brute-force du code 2FA).
+            user.failed_login_attempts += 1
+            if user.failed_login_attempts >= settings.MAX_LOGIN_ATTEMPTS:
+                user.locked_until = datetime.now(UTC) + timedelta(minutes=settings.LOCKOUT_MINUTES)
+                logger.warning(
+                    f"Account locked after {user.failed_login_attempts} failed TOTP attempts: "
+                    f"user_id={user.id}"
+                )
+            await db.commit()  # commit avant de lever — sinon le compteur serait annulé
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Code 2FA invalide"
             )
+
+    # Authentification complète réussie (mot de passe + 2FA le cas échéant) → reset compteur
+    user.failed_login_attempts = 0
+    user.locked_until = None
 
     access_token = create_access_token(subject=str(user.id))
     raw_refresh = create_refresh_token()
