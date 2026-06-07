@@ -127,8 +127,9 @@ async def issue_certificate(
         if s3_key:
             cert.pdf_s3_key = s3_key
             await db.commit()
-    except Exception as exc:
-        logger.warning(f"Certificate PDF generation failed for {cert.public_id}: {exc}")
+    except Exception:
+        # Niveau error + traceback -> capture Sentry (echec generation = enjeu conformite)
+        logger.exception(f"Certificate PDF generation failed for {cert.public_id}")
 
     return cert
 
@@ -331,6 +332,7 @@ async def _upload_to_s3(public_id: str, pdf_bytes: bytes) -> str | None:
             ContentType="application/pdf",
         )
         return key
-    except Exception as exc:
-        logger.warning(f"S3 certificate upload failed for {public_id}: {exc}")
+    except Exception:
+        # Niveau error + traceback -> capture Sentry (certificat non stocke = perte donnee)
+        logger.exception(f"S3 certificate upload failed for {public_id}")
         return None
