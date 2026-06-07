@@ -92,7 +92,45 @@
 
 ## Recommandation d'ordre
 1. ✅ Quick wins sécu backend — **fait** (forbid public, rate-limit, webhook, deps).
-2. Étendre `extra='forbid'` aux schémas authentifiés + `except`→Sentry ciblé.
-3. a11y + `app-nav-buttons` + tests manquants (par lots).
+2. ✅ Étendre `extra='forbid'` aux schémas authentifiés cœur + `except`→Sentry — **fait**.
+3. ✅ a11y (noms accessibles) + tests des composants à logique — **fait** ; `app-nav-buttons` = non-problème.
 4. Infra/secrets/staging (toi) au moment de viser la prod.
 5. Refactos de dette quand un module est confirmé « gardé ».
+
+---
+
+## Mise à jour 2026-06-07 (passe d'exécution)
+
+**Fait :**
+
+- `extra='forbid'` étendu aux schémas authentifiés cœur (vault, 2FA, notif,
+  url/site/code scan) — payloads frontend vérifiés un par un.
+- Échecs critiques certificat (PDF + S3) → `logger.exception` (capturés Sentry).
+- a11y : 17 vrais bloqueurs WCAG corrigés (noms accessibles `aria-label` sur les
+  boutons icône-seule : toggles mot de passe, copier, statuts iso27001/nis2).
+- Tests unitaires des composants à logique (contact, newsletter-unsubscribe,
+  quote-action, collab-accept) — 24 tests.
+
+**Constats (faux positifs ou déjà fait) :**
+
+- `app-nav-buttons` : les pages sans en sont volontairement dépourvues (auth,
+  admin, landing, vault, modales). Rien à corriger.
+- **BasePdfBuilder déjà existant** : `pdf_brand.py` (header/footer, styles) +
+  `pdf_covers.py` sont la base partagée, utilisée par les rapports de conformité.
+  Migrer invoice/quote (docs financiers, layout dédié) serait inapproprié + risqué
+  (PDF clients, pas de validation visuelle) → à ne PAS faire à l'aveugle.
+
+**Reste, NON fait volontairement (risque/valeur) :**
+
+- `forbid` sur schémas admin/awareness/blog/booking : nécessite mapping
+  endpoint↔payload soigneux (ex: `/modules/{id}/complete` envoie `{answer}` ≠
+  `CompleteModuleIn{quiz_score}`) — diff_one_by_one avant.
+- a11y « polish » : `aria-hidden` sur les icônes décoratives (~55 fichiers) +
+  audit lecteur d'écran. Non bloquant WCAG (les éléments ont un nom).
+- Tests des flux complexes (onboarding, auth-modal) + pages statiques (faible valeur).
+- Refactos lourds (découpe monolithes, casse des cycles via module `notifications/`)
+  : code critique sans filet E2E complet → session dédiée avec régression.
+- TTL token newsletter : migration pour token opt-in non sensible (valeur faible).
+
+**#3 infra/produit — nécessite ton intervention** (inchangé) : staging Oracle,
+secrets AWS (S3/region, email ImprovMX), WAF/RDS/backups, décisions produit.
