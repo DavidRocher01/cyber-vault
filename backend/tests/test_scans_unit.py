@@ -129,6 +129,7 @@ async def test_trigger_scan_success_returns_scan_id():
         db.execute = AsyncMock(
             side_effect=[
                 _scalar_result(site),  # site query
+                MagicMock(),  # verrou FOR UPDATE (resultat non utilise)
                 count_result,  # recent scans count
             ]
         )
@@ -165,6 +166,7 @@ async def test_trigger_scan_recent_scan_raises_429():
         db.execute = AsyncMock(
             side_effect=[
                 _scalar_result(site),
+                MagicMock(),  # verrou FOR UPDATE (resultat non utilise)
                 count_result,
             ]
         )
@@ -202,6 +204,7 @@ async def test_trigger_scan_free_plan_blocks_after_one_scan():
         db.execute = AsyncMock(
             side_effect=[
                 _scalar_result(site),
+                MagicMock(),  # verrou FOR UPDATE (resultat non utilise)
                 count_result,
             ]
         )
