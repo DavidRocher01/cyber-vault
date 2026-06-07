@@ -1,3 +1,4 @@
+import asyncio
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -121,9 +122,11 @@ async def create_checkout(
     if existing and existing.stripe_customer_id:
         customer_id = existing.stripe_customer_id
     else:
-        customer_id = stripe_service.create_customer(current_user.email)
+        customer_id = await asyncio.to_thread(stripe_service.create_customer, current_user.email)
 
-    checkout_url = stripe_service.create_checkout_session(
+    # Appels Stripe synchrones déportés en thread (ne pas bloquer l'event loop).
+    checkout_url = await asyncio.to_thread(
+        stripe_service.create_checkout_session,
         customer_id=customer_id,
         price_id=plan.stripe_price_id,
         success_url=f"{FRONTEND_URL}/cyberscan/dashboard?subscribed=true",
@@ -151,7 +154,8 @@ async def billing_portal(
     if not sub or not sub.stripe_customer_id:
         raise HTTPException(status_code=404, detail="No active subscription found")
 
-    portal_url = stripe_service.create_billing_portal_session(
+    portal_url = await asyncio.to_thread(
+        stripe_service.create_billing_portal_session,
         customer_id=sub.stripe_customer_id,
         return_url=f"{FRONTEND_URL}/cyberscan/dashboard",
     )
