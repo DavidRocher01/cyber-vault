@@ -42,6 +42,8 @@ class CheckoutSessionOut(BaseModel):
 
 
 class SiteCreate(BaseModel):
+    model_config = {"extra": "forbid"}
+
     url: str
     name: str
     rssi_client_id: int | None = None
@@ -93,6 +95,8 @@ class PaginatedScans(BaseModel):
 
 
 class CodeScanCreate(BaseModel):
+    model_config = {"extra": "forbid"}
+
     repo_url: str
     github_token: str | None = None  # optional PAT for private repos
 

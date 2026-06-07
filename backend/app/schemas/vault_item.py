@@ -4,6 +4,8 @@ VALID_CATEGORIES = {"login", "card", "note", "wifi", "other"}
 
 
 class VaultItemCreate(BaseModel):
+    model_config = {"extra": "forbid"}
+
     # Plain fields — optional/legacy. Zero-knowledge clients send only *_encrypted.
     title: str | None = Field(default=None, max_length=200)
     username: str | None = Field(default=None, max_length=200)
@@ -23,6 +25,8 @@ class VaultItemCreate(BaseModel):
 
 
 class VaultItemUpdate(BaseModel):
+    model_config = {"extra": "forbid"}
+
     title: str | None = Field(default=None, max_length=200)
     username: str | None = Field(default=None, max_length=200)
     password_encrypted: str | None = Field(default=None, max_length=8192)

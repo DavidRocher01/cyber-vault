@@ -43,6 +43,8 @@ class NotificationPreferencesOut(BaseModel):
 
 
 class NotificationPreferencesIn(BaseModel):
+    model_config = {"extra": "forbid"}
+
     notif_scan_done: bool
     notif_scan_critical: bool
     notif_url_scan_done: bool
@@ -63,6 +65,8 @@ class TokenOut(BaseModel):
 
 
 class RefreshIn(BaseModel):
+    model_config = {"extra": "forbid"}
+
     refresh_token: str
 
 
@@ -85,13 +89,19 @@ class TwoFactorSetupOut(BaseModel):
 
 
 class TwoFactorSetupIn(BaseModel):
+    model_config = {"extra": "forbid"}
+
     current_code: str | None = None  # required when 2FA is already active
 
 
 class TwoFactorVerifyIn(BaseModel):
+    model_config = {"extra": "forbid"}
+
     code: str  # 6-digit TOTP code
 
 
 class TwoFactorDisableIn(BaseModel):
+    model_config = {"extra": "forbid"}
+
     password: str
     code: str  # TOTP code required to disable

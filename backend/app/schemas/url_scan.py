@@ -4,6 +4,8 @@ from pydantic import BaseModel, field_validator
 
 
 class UrlScanCreate(BaseModel):
+    model_config = {"extra": "forbid"}
+
     url: str
 
     @field_validator("url")
