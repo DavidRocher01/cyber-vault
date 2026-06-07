@@ -148,6 +148,31 @@ def _validate_url(url: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+class _SsrfRedirectError(Exception):
+    """Levée par le hook quand une redirection vise une adresse interne."""
+
+    def __init__(self, host: str | None):
+        self.host = host
+        super().__init__(host or "")
+
+
+async def _redirect_ssrf_guard(response: httpx.Response) -> None:
+    """Event hook httpx : valide la cible de CHAQUE redirection AVANT de la suivre.
+
+    httpx appelle ce hook sur chaque réponse 3xx avant d'émettre la requête
+    suivante : lever ici empêche tout GET vers une adresse interne (SSRF via
+    redirection / TOCTOU), au lieu de ne le détecter qu'après coup.
+    """
+    if response.is_redirect:
+        location = response.headers.get("location")
+        if location:
+            target = str(response.url.join(location))
+            try:
+                _validate_url(target)
+            except ValueError as exc:
+                raise _SsrfRedirectError(urlparse(target).hostname) from exc
+
+
 async def _analyze_url(url: str) -> dict:
     _validate_url(url)
 
@@ -166,12 +191,27 @@ async def _analyze_url(url: str) -> dict:
             timeout=15.0,
             verify=True,
             headers=HEADERS,
+            event_hooks={"response": [_redirect_ssrf_guard]},
         ) as client:
             resp = await client.get(url)
             final_url = str(resp.url)
             redirect_chain = [str(r.url) for r in resp.history]
             html = resp.text[:200_000]  # cap at 200 KB
 
+    except _SsrfRedirectError as blocked:
+        # Redirection vers une adresse interne : bloquée AVANT tout GET interne.
+        score = min(score + 50, 100)
+        findings.append(
+            {
+                "type": "ssrf_redirect",
+                "severity": "critical",
+                "time_ms": None,
+                "detail": f"Redirection vers une adresse interne bloquée : {blocked.host}",
+            }
+        )
+        html = ""
+        final_url = url
+        redirect_chain = []
     except httpx.TimeoutException:
         raise ValueError("L'URL ne répond pas (timeout 15s)")
     except httpx.ConnectError as exc:
@@ -195,6 +235,7 @@ async def _analyze_url(url: str) -> dict:
                     timeout=15.0,
                     verify=False,  # nosec B501 — fallback scan for sites with invalid certs
                     headers=HEADERS,
+                    event_hooks={"response": [_redirect_ssrf_guard]},
                 ) as client:
                     resp = await client.get(url)
                     final_url = str(resp.url)

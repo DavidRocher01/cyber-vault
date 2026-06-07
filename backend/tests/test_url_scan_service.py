@@ -481,3 +481,38 @@ class TestRunUrlScan:
 
         assert url_scan.status == "error"
         assert "réseau" in url_scan.error_message
+
+
+# ── SSRF : hook de validation des redirections (P1-3) ─────────────────────────
+
+
+class TestRedirectSsrfGuard:
+    @pytest.mark.asyncio
+    async def test_blocks_redirect_to_internal_ip(self):
+        from app.services.url_scan_service import _redirect_ssrf_guard, _SsrfRedirectError
+
+        resp = MagicMock()
+        resp.is_redirect = True
+        resp.headers = {"location": "http://169.254.169.254/latest/meta-data/"}
+        resp.url = httpx.URL("https://legit.com/click")
+        with pytest.raises(_SsrfRedirectError):
+            await _redirect_ssrf_guard(resp)
+
+    @pytest.mark.asyncio
+    async def test_allows_redirect_to_public(self):
+        from app.services.url_scan_service import _redirect_ssrf_guard
+
+        resp = MagicMock()
+        resp.is_redirect = True
+        resp.headers = {"location": "https://example.com/next"}
+        resp.url = httpx.URL("https://legit.com/click")
+        with patch("app.services.url_scan_service.socket.getaddrinfo", return_value=_PUBLIC_DNS):
+            await _redirect_ssrf_guard(resp)  # ne doit pas lever
+
+    @pytest.mark.asyncio
+    async def test_ignores_non_redirect(self):
+        from app.services.url_scan_service import _redirect_ssrf_guard
+
+        resp = MagicMock()
+        resp.is_redirect = False
+        await _redirect_ssrf_guard(resp)  # ne doit pas lever
