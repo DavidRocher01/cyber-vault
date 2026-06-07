@@ -201,7 +201,9 @@ RESET_TOKEN_EXPIRE_MINUTES = 30
 
 
 @router.post("/forgot-password", status_code=status.HTTP_202_ACCEPTED)
+@limiter.limit("5/minute")
 async def forgot_password(
+    request: Request,
     payload: ForgotPasswordIn,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
@@ -223,7 +225,10 @@ async def forgot_password(
 
 
 @router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
-async def reset_password(payload: ResetPasswordIn, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def reset_password(
+    request: Request, payload: ResetPasswordIn, db: AsyncSession = Depends(get_db)
+):
     result = await db.execute(
         select(PasswordResetToken).where(PasswordResetToken.token == hash_token(payload.token))
     )

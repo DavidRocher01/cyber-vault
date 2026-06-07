@@ -4,6 +4,8 @@ from pydantic import BaseModel
 
 
 class PublicScanCreate(BaseModel):
+    model_config = {"extra": "forbid"}
+
     url: str
 
 

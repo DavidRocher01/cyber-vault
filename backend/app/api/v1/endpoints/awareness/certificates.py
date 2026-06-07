@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_learner, get_current_user
+from app.core.deps import get_current_learner, get_current_user, require_admin
 from app.models.awareness_learner import AwarenessLearner
 from app.models.user import User
 from app.schemas.awareness import (
@@ -168,7 +168,7 @@ async def download_nis2_report_pdf(
 # ── Webhook phishing (Sprint 9) ────────────────────────────────────────────────
 
 
-@router.post("/internal/phishing-click", status_code=202)
+@router.post("/internal/phishing-click", status_code=202, dependencies=[Depends(require_admin)])
 async def phishing_click_webhook(
     learner_email: str,
     organization_id: int,
@@ -177,7 +177,8 @@ async def phishing_click_webhook(
     """
     Webhook interne déclenché quand un learner clique sur un lien de simulation phishing.
     Auto-enrôle le learner dans le module de remédiation post-clic (bienveillant, 3 min).
-    Aucune authentification — appelé uniquement par le module phishing interne.
+    Protégé par X-Admin-Key (require_admin) — appelé par le module phishing interne
+    avec le secret partagé, jamais exposé publiquement.
     """
     from app.models.awareness_program import AwarenessProgram
 

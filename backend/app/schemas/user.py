@@ -2,11 +2,15 @@ from pydantic import BaseModel, EmailStr, Field
 
 
 class UserCreate(BaseModel):
+    model_config = {"extra": "forbid"}
+
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
 
 
 class UserLogin(BaseModel):
+    model_config = {"extra": "forbid"}
+
     email: EmailStr
     password: str
     totp_code: str | None = None
@@ -63,10 +67,14 @@ class RefreshIn(BaseModel):
 
 
 class ForgotPasswordIn(BaseModel):
+    model_config = {"extra": "forbid"}
+
     email: EmailStr
 
 
 class ResetPasswordIn(BaseModel):
+    model_config = {"extra": "forbid"}
+
     token: str
     password: str = Field(min_length=8, max_length=128)
 
