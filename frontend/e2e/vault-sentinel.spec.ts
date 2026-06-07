@@ -104,8 +104,8 @@ test('les champs chiffrés retournés sont des blobs base64 opaques', async ({ p
 
   const r = await page.request.post(`${API}/vault/`, {
     headers: { Authorization: `Bearer ${token}` },
+    // Zero-knowledge strict : aucun champ en clair accepté, uniquement *_encrypted
     data: {
-      title: 'fallback-title',
       password_encrypted: 'enc_pwd',
       title_encrypted: encryptedTitle,
     },

@@ -4,14 +4,12 @@ VALID_CATEGORIES = {"login", "card", "note", "wifi", "other"}
 
 
 class VaultItemCreate(BaseModel):
+    # Zero-knowledge strict : le serveur n'accepte AUCUN champ en clair a la
+    # creation. Seuls les blobs *_encrypted sont stockes (extra='forbid' rejette
+    # title/username/url/notes en clair s'ils sont envoyes).
     model_config = {"extra": "forbid"}
 
-    # Plain fields — optional/legacy. Zero-knowledge clients send only *_encrypted.
-    title: str | None = Field(default=None, max_length=200)
-    username: str | None = Field(default=None, max_length=200)
-    password_encrypted: str = Field(min_length=0, max_length=8192)
-    url: str | None = Field(default=None, max_length=2048)
-    notes: str | None = Field(default=None, max_length=10000)
+    password_encrypted: str = Field(min_length=1, max_length=8192)
     category: str = Field(default="login", max_length=32)
     # Zero-knowledge encrypted fields (opaque blobs — backend never reads content)
     title_encrypted: str | None = Field(default=None, max_length=16384)

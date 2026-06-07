@@ -29,7 +29,7 @@ from app.schemas.vault_item import VaultItemCreate, VaultItemUpdate
 )
 def test_vault_category_validation(category, expected):
     item = VaultItemCreate(
-        title="Test",
+        title_encrypted="x",
         password_encrypted="enc",
         category=category if category is not None else "login",
     )
@@ -50,80 +50,38 @@ def test_vault_update_category_validation(category, expected):
     assert item.category == expected
 
 
-# ── Vault : validation des champs texte ──────────────────────────────────────
+# ── Vault : zero-knowledge strict (aucun champ en clair accepté) ─────────────
 
 
-@pytest.mark.parametrize(
-    "title",
-    [
-        "",  # empty — valid since zero-knowledge clients send only *_encrypted
-        "A",  # minimum (1 char)
-        "A" * 200,  # maximum (200 chars)
-        "Titre avec espaces",
-        "Titre-avec-tirets",
-        "Title 123!@#",
-    ],
-)
-def test_vault_title_valid(title):
-    item = VaultItemCreate(title=title, password_encrypted="enc")
-    assert item.title == title
-
-
-def test_vault_title_optional_for_zero_knowledge():
-    # Zero-knowledge: the plaintext title is no longer required (only *_encrypted is sent).
+def test_vault_create_accepts_encrypted_only():
     item = VaultItemCreate(password_encrypted="enc", title_encrypted="blob")
-    assert item.title is None
+    assert item.title_encrypted == "blob"
+    assert item.password_encrypted == "enc"
+
+
+@pytest.mark.parametrize("field", ["title", "username", "url", "notes"])
+def test_vault_create_rejects_plaintext_field(field):
+    # extra='forbid' : tout champ en clair est rejeté (P1-4).
+    with pytest.raises(ValidationError):
+        VaultItemCreate(**{field: "leak", "password_encrypted": "enc"})
+
+
+def test_vault_create_requires_nonempty_password_encrypted():
+    with pytest.raises(ValidationError):
+        VaultItemCreate(password_encrypted="", title_encrypted="blob")
 
 
 @pytest.mark.parametrize(
-    "title",
+    "title_encrypted,should_pass",
     [
-        "A" * 201,  # above max_length=200
+        ("A" * 16384, True),  # exactly at limit
+        ("A" * 16385, False),  # above limit
     ],
 )
-def test_vault_title_invalid(title):
-    with pytest.raises(ValidationError):  # pydantic ValidationError
-        VaultItemCreate(title=title, password_encrypted="enc")
-
-
-# ── Vault : URL field ─────────────────────────────────────────────────────────
-
-
-@pytest.mark.parametrize(
-    "url,should_pass",
-    [
-        ("https://example.com", True),
-        ("http://localhost", True),
-        (None, True),
-        ("A" * 2048, True),  # exactly at limit
-        ("A" * 2049, False),  # above limit
-    ],
-)
-def test_vault_url_length(url, should_pass):
+def test_vault_title_encrypted_length(title_encrypted, should_pass):
     if should_pass:
-        item = VaultItemCreate(title="T", password_encrypted="enc", url=url)
-        assert item.url == url
+        item = VaultItemCreate(password_encrypted="enc", title_encrypted=title_encrypted)
+        assert item.title_encrypted == title_encrypted
     else:
         with pytest.raises(ValidationError):
-            VaultItemCreate(title="T", password_encrypted="enc", url=url)
-
-
-# ── Vault : notes field ───────────────────────────────────────────────────────
-
-
-@pytest.mark.parametrize(
-    "notes,should_pass",
-    [
-        (None, True),
-        ("", True),
-        ("A" * 10000, True),  # exactly at limit
-        ("A" * 10001, False),  # above limit
-    ],
-)
-def test_vault_notes_length(notes, should_pass):
-    if should_pass:
-        item = VaultItemCreate(title="T", password_encrypted="enc", notes=notes)
-        assert item.notes == notes
-    else:
-        with pytest.raises(ValidationError):
-            VaultItemCreate(title="T", password_encrypted="enc", notes=notes)
+            VaultItemCreate(password_encrypted="enc", title_encrypted=title_encrypted)
