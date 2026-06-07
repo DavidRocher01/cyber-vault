@@ -53,6 +53,28 @@ Ou via le Makefile (si configuré) :
 make migrate-prod
 ```
 
+### Checklist avant migration
+
+- **Snapshot DB** d'abord (cf. § Rollback DB).
+- Vérifier une seule tête : `alembic heads`.
+- Appliquer la migration **avant** de basculer le nouveau code (l'ordre
+  `migrate puis deploy` évite qu'un nouveau code écrive dans une colonne
+  pas encore élargie).
+- Après : `alembic current` confirme la révision.
+
+### ⚠️ Migration `b7f3e1a9c2d4` (totp_secret chiffré au repos)
+
+- Élargit `users.totp_secret` (64→255) : opération **métadonnée seule** en
+  PostgreSQL (instantanée, pas de réécriture, pas de lock long).
+- Les graines TOTP existantes **en clair continuent de fonctionner** (fallback
+  de déchiffrement) — aucune migration de données requise.
+- **SECRET_KEY doit rester stable** : la clé de chiffrement TOTP en dérive. Une
+  rotation de SECRET_KEY rendrait les graines chiffrées indéchiffrables → 2FA
+  cassée. Si rotation prévue : clé dédiée `TOTP_ENC_KEY` ou re-chiffrement avant.
+- **Rollback** : redéployer l'ancien code est sûr (fallback). Ne **pas** lancer
+  `alembic downgrade` si des graines chiffrées (~140 car) existent déjà
+  (re-rétrécir la colonne les tronquerait).
+
 ## Déploiement manuel d'urgence
 
 Si le CD est cassé, déploiement manuel :

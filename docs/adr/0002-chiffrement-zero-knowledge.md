@@ -23,7 +23,7 @@ Les utilisateurs doivent pouvoir faire confiance à la plateforme sans avoir à 
 
 **Chiffrement côté client (zero-knowledge)** avec :
 
-- **PBKDF2** (100 000 itérations, SHA-256) pour dériver la clé AES à partir du mot de passe maître
+- **PBKDF2** (600 000 itérations, SHA-256) pour dériver la clé AES à partir du mot de passe maître
 - **AES-256-GCM** pour chiffrer chaque entrée du vault
 - **Web Crypto API** (natif navigateur) — pas de dépendance cryptographique externe
 - Le mot de passe maître et la clé AES restent **uniquement en mémoire côté client**

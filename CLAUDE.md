@@ -5,7 +5,7 @@
 **Cyber-Vault** est une plateforme SaaS de cybersécurité B2B/B2C déployée sur AWS ECS Fargate.
 Elle combine un gestionnaire de mots de passe zero-knowledge, des modules de conformité (NIS2, ISO 27001, PCA), un scanner de vulnérabilités, un module Dark Web, un RSSI externalisé, et des outils de sensibilisation.
 
-Stack : **FastAPI 0.115.14** + **SQLAlchemy 2.0 async** + **PostgreSQL 17** (backend) / **Angular 19 standalone** (frontend) / **GitHub Actions** (CI) / **AWS ECS Fargate + RDS** (prod).
+Stack : **FastAPI 0.115.14** + **SQLAlchemy 2.0 async** + **PostgreSQL 17** (backend) / **Angular 20 standalone** (frontend) / **GitHub Actions** (CI) / **AWS ECS Fargate + RDS** (prod).
 
 ---
 
@@ -108,7 +108,7 @@ frontend/src/app/
 
 - Framework : **pytest** avec `asyncio_mode = auto`
 - Isolation : fixture `setup_db` (autouse) — `TRUNCATE … RESTART IDENTITY CASCADE` avant chaque test
-- Seuil de couverture : **84%** minimum (CI Python 3.12)
+- Seuil de couverture : **81%** minimum (CI Python 3.12, `--cov-fail-under=81`)
 - Relancer uniquement les KO : `gh run rerun <id> --failed`
 - Le test `test_scans_unit.py::test_remediation_import_error_raises_404` échoue en local (cyber-scanner absent du PATH) — c'est normal, il passe en CI.
 

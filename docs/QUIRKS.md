@@ -65,11 +65,12 @@ Les deux sont dans l'omit coverage (`.coveragerc`) car non testables unitairemen
 
 ## Frontend
 
-### Tokens en localStorage
+### Tokens
 
-Le `refresh_token` est stocké en `localStorage` (XSS-attaquable).
-Décision documentée dans la politique de confidentialité.
-Migration vers `httpOnly cookies` prévue post-prospection.
+L'`access_token` est en `sessionStorage` ; le `refresh_token` est en **cookie
+httpOnly** (rotation + révocation en DB) — non accessible au JavaScript.
+Migration vers httpOnly réalisée (l'ancienne note « refresh_token en
+localStorage » est obsolète).
 
 ### Route admin obfusquée
 
