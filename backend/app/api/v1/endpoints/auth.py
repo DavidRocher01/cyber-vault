@@ -12,7 +12,7 @@ from fastapi import (
     status,
 )
 from loguru import logger
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -249,6 +249,21 @@ async def reset_password(
         raise invalid_exc
 
     user.hashed_password = hash_password(payload.password)
-    stored.used = True
+    # Sécurité : un reset de mot de passe doit invalider toutes les sessions et
+    # déverrouiller le compte (l'attaquant potentiel perd ses sessions).
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    # Révoque tous les refresh tokens actifs de l'utilisateur.
+    await db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user.id, RefreshToken.revoked.is_(False))
+        .values(revoked=True)
+    )
+    # Marque comme utilisés tous les reset tokens non consommés (dont celui-ci).
+    await db.execute(
+        update(PasswordResetToken)
+        .where(PasswordResetToken.user_id == user.id, PasswordResetToken.used.is_(False))
+        .values(used=True)
+    )
     await db.commit()
     logger.info(f"Password reset completed for user_id={user.id}")

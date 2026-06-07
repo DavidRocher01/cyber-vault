@@ -122,6 +122,35 @@ async def test_reset_password_allows_login_with_new_password():
 
 
 @pytest.mark.asyncio
+async def test_reset_password_revokes_existing_sessions():
+    """Un refresh token émis avant le reset doit être rejeté après (invalidation de session)."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        await c.post(
+            f"{BASE}/auth/register",
+            json={"email": "r-sess@test.com", "password": "StrongPass123!"},
+        )
+        login = await c.post(
+            f"{BASE}/auth/login",
+            json={"email": "r-sess@test.com", "password": "StrongPass123!"},
+        )
+        assert login.status_code == 200
+        # Le refresh (cookie httpOnly) fonctionne avant le reset.
+        assert (await c.post(f"{BASE}/auth/refresh")).status_code == 200
+
+        with patch("app.api.v1.endpoints.auth.send_password_reset") as mock_send:
+            await c.post(f"{BASE}/auth/forgot-password", json={"email": "r-sess@test.com"})
+        raw_token = _extract_token_from_mock(mock_send)
+        reset = await c.post(
+            f"{BASE}/auth/reset-password",
+            json={"token": raw_token, "password": "NewStrongPass456!"},
+        )
+        assert reset.status_code == 204
+
+        # Après reset : tous les refresh tokens sont révoqués -> 401.
+        assert (await c.post(f"{BASE}/auth/refresh")).status_code == 401
+
+
+@pytest.mark.asyncio
 async def test_reset_password_old_password_no_longer_works():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         await c.post(
