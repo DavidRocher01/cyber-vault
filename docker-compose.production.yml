@@ -2,6 +2,8 @@
 services:
   # PostgreSQL utilisé uniquement en local pour simuler la prod.
   # En production AWS : RDS PostgreSQL t4g.micro (géré par AWS).
+  # NB migrations : elles ne tournent plus au démarrage du conteneur.
+  # Après un `up`, jouer une fois :  docker compose exec backend python -m alembic upgrade head
   backend:
     build:
       context: .
@@ -25,6 +27,8 @@ services:
       ADMIN_API_KEY: ${ADMIN_API_KEY}
       SENTRY_DSN: ${SENTRY_DSN:-}
       HIBP_API_KEY: ${HIBP_API_KEY:-}
+      # Prod réelle = CloudFront + ALB = 2 hops (sinon IP client faussée pour le rate-limit).
+      TRUSTED_PROXY_COUNT: ${TRUSTED_PROXY_COUNT:-2}
     expose:
       - "8000"
     healthcheck:

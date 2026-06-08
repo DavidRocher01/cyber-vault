@@ -97,4 +97,9 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:8000/health || exit 1
 
-CMD ["sh", "-c", "python -m alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 --forwarded-allow-ips=${TRUSTED_PROXY_IPS:-127.0.0.1}"]
+# Les migrations NE sont PAS jouées au démarrage du conteneur : elles le sont par
+# une tâche dédiée one-shot (prod: .github/workflows/deploy.yml ; staging:
+# `docker compose exec backend alembic upgrade head`). Migrer ici relancerait
+# `alembic upgrade head` à chaque démarrage de chaque tâche ECS -> race possible
+# si le service scale (>1 réplica) avec une migration lourde (cf. docs/RELEASE_RUNBOOK.md).
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 --forwarded-allow-ips=${TRUSTED_PROXY_IPS:-127.0.0.1}"]
