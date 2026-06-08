@@ -63,7 +63,16 @@ def _clear_refresh_cookie(response: Response) -> None:
     response.delete_cookie(key=_COOKIE_NAME, path=_COOKIE_PATH)
 
 
-@router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    response_model=UserOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Créer un compte",
+    responses={
+        409: {"description": "Email déjà utilisé"},
+        429: {"description": "Trop de tentatives (5/min)"},
+    },
+)
 @limiter.limit("5/minute")
 async def register(request: Request, payload: UserCreate, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == payload.email))
@@ -76,7 +85,15 @@ async def register(request: Request, payload: UserCreate, db: AsyncSession = Dep
     return user
 
 
-@router.post("/login")
+@router.post(
+    "/login",
+    summary="Connexion (email + mot de passe, 2FA optionnelle)",
+    response_description="Access token + crypto_salt ; ou {requires_2fa: true} si la 2FA est active",
+    responses={
+        401: {"description": "Identifiants ou code 2FA invalides"},
+        429: {"description": "Compte verrouillé ou rate-limit (10/min)"},
+    },
+)
 @limiter.limit("10/minute")
 async def login(
     request: Request,
@@ -159,7 +176,13 @@ async def login(
     )
 
 
-@router.post("/refresh", response_model=AccessTokenOut)
+@router.post(
+    "/refresh",
+    response_model=AccessTokenOut,
+    summary="Renouveler l'access token",
+    response_description="Nouvel access token (le refresh token cookie est aussi tourné)",
+    responses={401: {"description": "Refresh token absent, expiré ou révoqué"}},
+)
 async def refresh(
     response: Response,
     refresh_token: str | None = Cookie(default=None, alias=_COOKIE_NAME),
@@ -194,7 +217,11 @@ async def refresh(
     return AccessTokenOut(access_token=new_access)
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Déconnexion (révoque le refresh token + efface le cookie)",
+)
 async def logout(
     response: Response,
     refresh_token: str | None = Cookie(default=None, alias=_COOKIE_NAME),
@@ -214,7 +241,13 @@ async def logout(
 RESET_TOKEN_EXPIRE_MINUTES = 30
 
 
-@router.post("/forgot-password", status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/forgot-password",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Demander un lien de réinitialisation",
+    response_description="202 systématique (pas d'énumération de comptes)",
+    responses={429: {"description": "Rate-limit (5/min)"}},
+)
 @limiter.limit("5/minute")
 async def forgot_password(
     request: Request,
@@ -238,7 +271,16 @@ async def forgot_password(
     logger.info(f"Password reset requested for: user_id={user.id}")
 
 
-@router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/reset-password",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Réinitialiser le mot de passe via token",
+    response_description="204 ; révoque toutes les sessions et déverrouille le compte",
+    responses={
+        400: {"description": "Lien invalide ou expiré"},
+        429: {"description": "Rate-limit (5/min)"},
+    },
+)
 @limiter.limit("5/minute")
 async def reset_password(
     request: Request, payload: ResetPasswordIn, db: AsyncSession = Depends(get_db)

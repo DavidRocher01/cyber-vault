@@ -11,7 +11,11 @@ from app.models.user import User
 router = APIRouter(prefix="/admin/users", tags=["admin"])
 
 
-@router.get("", dependencies=[Depends(require_admin)])
+@router.get(
+    "",
+    dependencies=[Depends(require_admin)],
+    summary="[Admin] Lister les utilisateurs (paginé)",
+)
 async def list_users(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=500),
@@ -44,7 +48,11 @@ async def list_users(
     ]
 
 
-@router.patch("/{user_id}/rssi", dependencies=[Depends(require_admin)])
+@router.patch(
+    "/{user_id}/rssi",
+    dependencies=[Depends(require_admin)],
+    summary="[Admin] Activer/désactiver le rôle consultant RSSI",
+)
 async def toggle_rssi_consultant(user_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()

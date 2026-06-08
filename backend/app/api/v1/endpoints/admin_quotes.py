@@ -105,7 +105,9 @@ def _serialize(q: Quote) -> dict:
     }
 
 
-@router.post("", dependencies=[Depends(_require_admin)], status_code=201)
+@router.post(
+    "", dependencies=[Depends(_require_admin)], status_code=201, summary="[Admin] Créer un devis"
+)
 async def admin_create_quote(
     body: QuoteCreateRequest,
     background_tasks: BackgroundTasks,
@@ -137,13 +139,17 @@ async def admin_create_quote(
     return _serialize(quote)
 
 
-@router.get("", dependencies=[Depends(_require_admin)])
+@router.get("", dependencies=[Depends(_require_admin)], summary="[Admin] Lister les devis")
 async def admin_list_quotes(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Quote).order_by(Quote.created_at.desc()))
     return [_serialize(q) for q in result.scalars().all()]
 
 
-@router.get("/{quote_id}/pdf", dependencies=[Depends(_require_admin)])
+@router.get(
+    "/{quote_id}/pdf",
+    dependencies=[Depends(_require_admin)],
+    summary="[Admin] Télécharger le devis (PDF)",
+)
 async def admin_download_quote_pdf(
     quote_id: int,
     db: AsyncSession = Depends(get_db),

@@ -24,7 +24,9 @@ def _week_label(dt: datetime) -> str:
     return dt.strftime("S%W")
 
 
-@router.get("/stats", dependencies=[Depends(require_admin)])
+@router.get(
+    "/stats", dependencies=[Depends(require_admin)], summary="[Admin] Statistiques globales"
+)
 async def get_stats(db: AsyncSession = Depends(get_db)):
     now = datetime.now(UTC)
 
@@ -162,7 +164,11 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
     }
 
 
-@router.post("/awareness/sync-content", dependencies=[Depends(require_admin)])
+@router.post(
+    "/awareness/sync-content",
+    dependencies=[Depends(require_admin)],
+    summary="[Admin] Réimporter le contenu de sensibilisation",
+)
 async def sync_awareness_content():
     """Reimporte le contenu NIS2 depuis les fichiers YAML/Markdown (idempotent)."""
     from app.core.database import AsyncSessionLocal
