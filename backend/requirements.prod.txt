@@ -21,7 +21,7 @@ python-dotenv==1.2.2
 
 # Observabilité
 loguru==0.7.2
-sentry-sdk[fastapi]==2.8.0
+sentry-sdk[fastapi]==2.62.0
 
 # CyberScan SaaS
 stripe==10.5.0
