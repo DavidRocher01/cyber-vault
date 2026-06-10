@@ -205,6 +205,8 @@ async def sitemap(db: AsyncSession = Depends(get_db)):
         ("/cyberscan/nis2", "monthly", "0.6"),
         ("/cyberscan/iso27001", "monthly", "0.6"),
         ("/cyberscan/cgu", "yearly", "0.3"),
+        ("/cyberscan/cgv", "yearly", "0.3"),
+        ("/cyberscan/dpa", "yearly", "0.3"),
         ("/cyberscan/politique-confidentialite", "yearly", "0.3"),
         ("/cyberscan/mentions-legales", "yearly", "0.3"),
     ]

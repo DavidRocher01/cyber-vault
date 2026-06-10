@@ -194,6 +194,16 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'CGU — CyberScan',
   },
   {
+    path: 'cgv',
+    loadComponent: () => import('./cgv/cgv.component').then(m => m.CgvComponent),
+    title: 'CGV — CyberScan',
+  },
+  {
+    path: 'dpa',
+    loadComponent: () => import('./dpa/dpa.component').then(m => m.DpaComponent),
+    title: 'Accord de sous-traitance RGPD (DPA) — CyberScan',
+  },
+  {
     path: 'politique-confidentialite',
     loadComponent: () =>
       import('./politique-confidentialite/politique-confidentialite.component').then(

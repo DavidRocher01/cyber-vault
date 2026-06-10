@@ -177,13 +177,13 @@ export class AuditPmeComponent implements OnInit {
     this.meta.updateTag({
       name: 'description',
       content:
-        "Audit cybersécurité pour TPE/PME à partir de 245 € HT. Flash, App-Check, Pentest. Développeur full-stack ET auditeur : rapport PDF + plan d'action sous 24 h. Zone Auvergne-Rhône-Alpes.",
+        "Audit cybersécurité pour TPE/PME à partir de 390 € HT. Flash, App-Check, Pentest. Développeur full-stack ET auditeur : rapport PDF + plan d'action sous 24 h. Zone Auvergne-Rhône-Alpes.",
     });
     this.meta.updateTag({ property: 'og:title', content: 'Audit cybersécurité PME — CyberScan' });
     this.meta.updateTag({
       property: 'og:description',
       content:
-        "Audit de sécurité web pour TPE/PME à partir de 245 € HT. Rapport + plan d'action concret sous 24 h.",
+        "Audit de sécurité web pour TPE/PME à partir de 390 € HT. Rapport + plan d'action concret sous 24 h.",
     });
     this.meta.updateTag({ name: 'robots', content: 'index, follow' });
   }
