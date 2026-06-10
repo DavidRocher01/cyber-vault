@@ -39,7 +39,7 @@ detect-secrets==1.5.0
 checkov==3.2.0
 
 # File storage (S3)
-boto3==1.35.0
+boto3==1.43.26
 
 # CyberScan SaaS
 stripe==10.5.0
