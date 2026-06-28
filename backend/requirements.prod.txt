@@ -10,6 +10,7 @@ alembic==1.13.1
 
 # Sécurité
 PyJWT==2.13.0
+cryptography==46.0.6
 bcrypt==5.0.0
 python-multipart==0.0.31
 
