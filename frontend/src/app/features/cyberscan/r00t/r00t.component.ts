@@ -64,7 +64,7 @@ const NMAP_LINES = [
           <span class="dot yellow"></span>
           <span class="dot green"></span>
         </div>
-        <span class="title">r00t&#64;cyberscan-edge-07:~$</span>
+        <span class="title">r00t&#64;rocher-edge-07:~$</span>
       </div>
 
       <div class="terminal-body" #body>
@@ -210,7 +210,7 @@ export class R00tComponent implements AfterViewInit {
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
 
-  prompt = 'r00t@cyberscan-edge-07:~$ ';
+  prompt = 'r00t@rocher-edge-07:~$ ';
   currentInput = '';
   lines: Line[] = BANNER.map(t => ({ type: 'out' as const, text: t }));
 
@@ -295,7 +295,7 @@ export class R00tComponent implements AfterViewInit {
         this.out(['r00t']);
         break;
       case 'uname':
-        this.out(['Linux cyberscan-edge-07 6.8.0-cyberscan #1 SMP PREEMPT_RT x86_64 GNU/Linux']);
+        this.out(['Linux rocher-edge-07 6.8.0-rocher #1 SMP PREEMPT_RT x86_64 GNU/Linux']);
         break;
       case 'date':
         this.out([new Date().toUTCString()]);
@@ -304,7 +304,7 @@ export class R00tComponent implements AfterViewInit {
         this.out([
           'PID   TTY   STAT  COMMAND',
           '1     ?     Ss    /sbin/init',
-          '48213 pts/0 S+    ./cyberscan-scanner --mode=full',
+          '48213 pts/0 S+    ./rocher-scanner --mode=full',
           '48214 pts/0 S     nginx -g daemon off',
           '48215 pts/0 S     uvicorn app.main:app --workers 4',
           '48216 pts/0 S     postgres -D /var/lib/postgresql/data',

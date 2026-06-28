@@ -1,0 +1,12 @@
+# Configuration gitleaks — etend le ruleset par defaut et allowliste
+# uniquement des FAUX POSITIFS connus (fixtures de test), jamais de vrais secrets.
+title = "cyber-vault"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Faux tokens de fixtures de test (verification de domaine phishing) — valeurs factices, pas de secrets reels"
+regexes = [
+  '''rocher-verify-[A-Za-z0-9_-]+''',
+]

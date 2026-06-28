@@ -410,5 +410,7 @@ async def export_assessment_pdf(
     return StreamingResponse(
         iter([pdf_bytes]),
         media_type="application/pdf",
-        headers={"Content-Disposition": 'attachment; filename="cyberscan_iso27001_conformite.pdf"'},
+        headers={
+            "Content-Disposition": 'attachment; filename="rochercybersecurite_iso27001_conformite.pdf"'
+        },
     )

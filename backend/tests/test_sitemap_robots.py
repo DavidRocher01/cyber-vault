@@ -115,7 +115,7 @@ async def test_sitemap_contains_homepage():
 
 
 @pytest.mark.asyncio
-async def test_sitemap_contains_cyberscan_static_pages():
+async def test_sitemap_contains_rochercybersecurite_static_pages():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get("/sitemap.xml")
     body = r.text

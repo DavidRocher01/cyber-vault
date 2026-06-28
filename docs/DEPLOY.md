@@ -32,7 +32,7 @@ GitHub (develop) ──PR──► GitHub (master)
 3. Merger la PR
 4. Le workflow `deploy.yml` se déclenche automatiquement
 5. Surveiller le déploiement dans GitHub Actions
-6. Vérifier `https://cyberscanapp.com/health` après déploiement
+6. Vérifier `https://rochercybersecurite.com/health` après déploiement
 
 ## Migrations Alembic en prod
 
@@ -148,10 +148,10 @@ Pour ajouter/modifier une variable :
 
 ```bash
 # Health check rapide (pour ALB)
-curl https://cyberscanapp.com/api/v1/health
+curl https://rochercybersecurite.com/api/v1/health
 
 # Health check approfondi (DB + Stripe + Resend + S3)
-curl https://cyberscanapp.com/api/v1/health/deep
+curl https://rochercybersecurite.com/api/v1/health/deep
 
 # Vérifier les logs récents
 aws logs tail /ecs/cyberscan-backend --follow --since 5m

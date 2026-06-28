@@ -110,7 +110,7 @@ class PhishingDomainVerification(Base):
     )
 
     domain: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
-    # DNS TXT token: add TXT record "_cyberscan-verify.<domain>" with this value
+    # DNS TXT token: add TXT record "_rocher-verify.<domain>" with this value
     verification_token: Mapped[str] = mapped_column(String(255), nullable=False)
     verified: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
 

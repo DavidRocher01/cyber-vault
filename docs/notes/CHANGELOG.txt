@@ -169,7 +169,7 @@
   FEATURES — PDF
   • Refonte PDF audit : thème sombre moderne
   • Page de couverture unifiée sur tous les générateurs PDF
-  • Fix : email contact dans les rapports → contact@cyberscanapp.com
+  • Fix : email contact dans les rapports → contact@rochercybersecurite.com
   • Fix qualité visuelle cover page + overflow bandes
 
   AUTH / UX

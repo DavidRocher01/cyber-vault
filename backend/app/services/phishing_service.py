@@ -62,7 +62,7 @@ async def request_domain_verification(
     if existing and existing.verified:
         return existing
 
-    token = f"cyberscan-verify-{secrets.token_urlsafe(16)}"
+    token = f"rocher-verify-{secrets.token_urlsafe(16)}"
     if existing:
         existing.verification_token = token
         existing.verified = False
@@ -92,7 +92,7 @@ async def check_domain_verification(record: PhishingDomainVerification, db: Asyn
     try:
         import dns.resolver
 
-        answers = dns.resolver.resolve(f"_cyberscan-verify.{record.domain}", "TXT", lifetime=5.0)
+        answers = dns.resolver.resolve(f"_rocher-verify.{record.domain}", "TXT", lifetime=5.0)
         for rdata in answers:
             for txt_string in rdata.strings:
                 if txt_string.decode("utf-8") == record.verification_token:

@@ -95,7 +95,7 @@ async def upload_code_scan(
     if len(content) > 50 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="Fichier trop volumineux (max 50 MB)")
 
-    fd, zip_path = tempfile.mkstemp(suffix=".zip", prefix="cyberscan_upload_")
+    fd, zip_path = tempfile.mkstemp(suffix=".zip", prefix="rochercybersecurite_upload_")
     os.close(fd)
     with open(zip_path, "wb") as f:
         f.write(content)

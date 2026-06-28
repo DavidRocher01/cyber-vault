@@ -15,7 +15,7 @@ function makeInstance(): R00tComponent {
   (comp as any).cdr = cdrMock;
   comp.lines = [];
   comp.currentInput = '';
-  comp.prompt = 'r00t@cyberscan-edge-07:~$ ';
+  comp.prompt = 'r00t@rocher-edge-07:~$ ';
   (comp as any).history = [];
   (comp as any).historyIdx = -1;
   return comp;
@@ -45,7 +45,7 @@ describe('R00tComponent — execute() commands', () => {
   it('uname — outputs Linux kernel string', () => {
     (comp as any).execute('uname');
     const out = linesOfType(comp, 'out');
-    expect(out[0]).toContain('Linux cyberscan-edge-07');
+    expect(out[0]).toContain('Linux rocher-edge-07');
   });
 
   it('date — outputs a non-empty date string', () => {
@@ -62,11 +62,11 @@ describe('R00tComponent — execute() commands', () => {
     expect(out).toContain('config.yml');
   });
 
-  it('ps — includes PID header and cyberscan-scanner process', () => {
+  it('ps — includes PID header and rocher-scanner process', () => {
     (comp as any).execute('ps');
     const out = linesOfType(comp, 'out').join('\n');
     expect(out).toContain('PID');
-    expect(out).toContain('cyberscan-scanner');
+    expect(out).toContain('rocher-scanner');
   });
 
   it('nmap — outputs port scan results', () => {

@@ -173,7 +173,9 @@ async def export_scans_csv(
     return StreamingResponse(
         iter([output.getvalue()]),
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=cyberscan_site_{site_id}.csv"},
+        headers={
+            "Content-Disposition": f"attachment; filename=rochercybersecurite_site_{site_id}.csv"
+        },
     )
 
 
@@ -214,7 +216,7 @@ async def download_pdf(
     return FileResponse(
         path=scan.pdf_path,
         media_type="application/pdf",
-        filename=f"cyberscan_rapport_{scan_id}.pdf",
+        filename=f"rochercybersecurite_rapport_{scan_id}.pdf",
     )
 
 
@@ -280,7 +282,7 @@ async def download_branded_pdf(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'attachment; filename="cyberscan_{safe_company}_{scan_id}.pdf"'
+            "Content-Disposition": f'attachment; filename="rochercybersecurite_{safe_company}_{scan_id}.pdf"'
         },
     )
 

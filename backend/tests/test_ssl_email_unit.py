@@ -64,7 +64,7 @@ def test_subject_contains_days_remaining():
     assert "10" in subject
 
 
-def test_subject_prefixed_with_cyberscan_tag():
+def test_subject_prefixed_with_rochercybersecurite_tag():
     subject, *_ = _call_alert(5)
     assert subject.startswith("[Rocher Cybersécurité]")
 

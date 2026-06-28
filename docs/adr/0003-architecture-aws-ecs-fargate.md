@@ -32,7 +32,7 @@ La plateforme doit être déployée en production avec les contraintes suivantes
 - **RDS PostgreSQL** : base de données managée avec backups automatiques
 - **S3** : stockage fichiers (livrables RSSI, exports)
 - **CloudFront** : CDN + terminaison TLS pour le frontend Angular (fichiers statiques)
-- **Route 53** : DNS avec `cyberscanapp.com`
+- **Route 53** : DNS avec `rochercybersecurite.com`
 - **AWS Secrets Manager** : gestion des secrets (plus de `.env` en production)
 - **GitHub Actions OIDC** : déploiement CI/CD sans credentials AWS statiques
 
