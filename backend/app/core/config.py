@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     # Email transactionnel Resend
     RESEND_API_KEY: str = ""
-    RESEND_FROM: str = "CyberScan <no-reply@cyberscanapp.com>"
+    RESEND_FROM: str = "Rocher Cybersécurité <no-reply@cyberscanapp.com>"
 
     # S3 file storage (livrables RSSI)
     S3_BUCKET_NAME: str = ""
@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     PHISHING_BASE_URL: str = "https://sim.cyberscanapp.com"
     # Sender identity in phishing emails (display name only — actual domain must be Resend-verified)
     PHISHING_FROM_EMAIL: str = ""  # e.g. no-reply@cyberscanapp.com (Resend verified domain)
-    PHISHING_FROM_NAME: str = "CyberScan Exercise"
+    PHISHING_FROM_NAME: str = "Rocher Cybersécurité Exercise"
     # Batch size: emails sent per scheduler tick (every 15 min) to avoid spam detection
     PHISHING_BATCH_SIZE: int = 20
     # How many days tracking links remain active after campaign launch (then events are silently dropped)

@@ -374,7 +374,7 @@ def generate_nis2_report_pdf(
     story.append(HRFlowable(width="100%", thickness=1, color=_GRAY))
     story.append(
         Paragraph(
-            "Rapport généré automatiquement par CyberScan — Module Sensibilisation NIS2",
+            "Rapport généré automatiquement par Rocher Cybersécurité — Module Sensibilisation NIS2",
             ParagraphStyle("rfooter", fontSize=7, textColor=_GRAY, alignment=1, spaceBefore=4),
         )
     )

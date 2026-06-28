@@ -1,5 +1,5 @@
 """
-Seed the plans table with the 4 CyberScan subscription plans.
+Seed the plans table with the 4 Rocher Cybersécurité subscription plans.
 Run once: python seed_plans.py
 Update stripe_price_id after creating prices in Stripe dashboard.
 """

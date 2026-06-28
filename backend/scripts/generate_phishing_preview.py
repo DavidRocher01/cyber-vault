@@ -82,7 +82,7 @@ def main() -> None:
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>CyberScan — Templates phishing</title>
+<title>Rocher Cybersécurité — Templates phishing</title>
 <style>
   @page { size: A4; margin: 12mm; }
   * { box-sizing: border-box; }

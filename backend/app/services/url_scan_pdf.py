@@ -228,7 +228,7 @@ def generate_url_scan_pdf(url_scan_data: dict) -> bytes:
     story.append(HRFlowable(width=W, thickness=0.5, color=BORDER, spaceAfter=4))
     story.append(
         Paragraph(
-            f"Rapport généré par CyberScan le {datetime.now(UTC).strftime('%d/%m/%Y à %H:%M')} UTC — "
+            f"Rapport généré par Rocher Cybersécurité le {datetime.now(UTC).strftime('%d/%m/%Y à %H:%M')} UTC — "
             "Ce rapport est fourni à titre informatif uniquement.",
             st["small"],
         )

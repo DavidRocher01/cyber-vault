@@ -252,7 +252,7 @@ async def download_branded_pdf(
     )
     brand = brand_result.scalar_one_or_none()
 
-    company_name = brand.company_name if brand else "CyberScan"
+    company_name = brand.company_name if brand else "Rocher Cybersécurité"
     accent_color = brand.accent_color if brand else "#06b6d4"
     logo_b64 = brand.logo_b64 if brand else None
 

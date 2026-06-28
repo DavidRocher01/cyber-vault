@@ -201,7 +201,9 @@ async def _handle_invoice_payment_succeeded(stripe_inv: dict, db: AsyncSession) 
     # Build description from Stripe line items if available
     lines = stripe_inv.get("lines", {}).get("data", [])
     description = (
-        lines[0].get("description", "Abonnement CyberScan") if lines else "Abonnement CyberScan"
+        lines[0].get("description", "Abonnement Rocher Cybersécurité")
+        if lines
+        else "Abonnement Rocher Cybersécurité"
     )
 
     invoice_date = datetime.fromtimestamp(

@@ -198,7 +198,7 @@ def _sim_subdomain(name: str, tld: str) -> LookalikeDomain:
         requires_purchase=False,
         note=(
             "Disponible immédiatement — utilise notre infrastructure existante. "
-            "L'URL visible est celle de CyberScan (moins réaliste, mais 0 € et 0 configuration)."
+            "L'URL visible est celle de Rocher Cybersécurité (moins réaliste, mais 0 € et 0 configuration)."
         ),
     )
 

@@ -66,7 +66,7 @@ def test_subject_contains_days_remaining():
 
 def test_subject_prefixed_with_cyberscan_tag():
     subject, *_ = _call_alert(5)
-    assert subject.startswith("[CyberScan]")
+    assert subject.startswith("[Rocher Cybersécurité]")
 
 
 # ─── email content ────────────────────────────────────────────────────────────

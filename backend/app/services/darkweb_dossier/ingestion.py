@@ -182,7 +182,7 @@ def send_monitoring_alert(
         else ""
     )
 
-    subject = f"[CyberScan] ⚠️ Dark Web — Nouvelles fuites détectées pour {domain}"
+    subject = f"[Rocher Cybersécurité] ⚠️ Dark Web — Nouvelles fuites détectées pour {domain}"
     html = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0f172a;font-family:Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 20px;">
 <table width="600" cellpadding="0" cellspacing="0" style="background:#1e293b;border-radius:12px;border:1px solid #334155;">
@@ -203,7 +203,7 @@ Le monitoring Dark Web de <strong style="color:#f8fafc;">{company_name}</strong>
 </a>
 </td></tr>
 <tr><td style="padding:20px 40px;border-top:1px solid #1e293b;text-align:center;">
-<p style="margin:0;color:#475569;font-size:12px;">CyberScan — Surveillance Dark Web B2B</p>
+<p style="margin:0;color:#475569;font-size:12px;">Rocher Cybersécurité — Surveillance Dark Web B2B</p>
 </td></tr>
 </table></td></tr></table>
 </body></html>"""

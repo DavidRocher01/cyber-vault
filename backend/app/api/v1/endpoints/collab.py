@@ -75,7 +75,7 @@ def _send_invite_email(email: str, site_name: str, site_url: str, role: str, tok
         </div>
         """
         plain = f"Vous êtes invité(e) à collaborer sur {site_url} (rôle : {role_label}).\nAcceptez : {accept_url}"
-        _send(email, f"Invitation CyberScan — {site_name}", html, plain)
+        _send(email, f"Invitation Rocher Cybersécurité — {site_name}", html, plain)
     except Exception as exc:
         logger.warning(f"Collab invitation email failed: {exc}")
 

@@ -38,7 +38,7 @@ def _footer(frontend: str, unsubscribe_url: str = "") -> str:
     )
     return (
         f'<tr><td style="padding:24px 40px;border-top:1px solid #334155;text-align:center;">'
-        f'<p style="margin:0 0 4px;color:#475569;font-size:12px;">CyberScan — Cybersecurite as a Service</p>'
+        f'<p style="margin:0 0 4px;color:#475569;font-size:12px;">Rocher Cybersécurité — Cybersecurite as a Service</p>'
         f'<p style="margin:0;font-size:11px;">'
         f'<a href="{frontend}/cyberscan/ressources" style="color:#475569;">Ressources</a>{unsub}'
         f"</p></td></tr>"
@@ -118,7 +118,7 @@ def send_confirmation_email(to_email: str, confirm_url: str) -> None:
             "",
             "Lien valable 7 jours.",
             "---",
-            "CyberScan",
+            "Rocher Cybersécurité",
         ]
     )
     _send(to_email, "Confirmez votre inscription au Radar Cyber", html, plain)
@@ -169,7 +169,7 @@ def send_newsletter_welcome(to_email: str, unsubscribe_url: str) -> None:
     plain = (
         "Bienvenue au Radar Cyber — Inscription confirmee !\n\n"
         "Vous recevrez votre brief cybersecurite toutes les deux semaines.\n\n"
-        f"Se desabonner : {unsubscribe_url}\n---\nCyberScan"
+        f"Se desabonner : {unsubscribe_url}\n---\nRocher Cybersécurité"
     )
     _send(to_email, "Bienvenue au Radar Cyber — Inscription confirmee !", html, plain)
 
@@ -195,7 +195,7 @@ def send_unsubscribe_confirmation(to_email: str) -> None:
         f'<a href="{resubscribe_url}"'
         ' style="display:inline-block;background:#1e293b;color:#22d3ee;text-decoration:none;'
         'padding:12px 28px;border-radius:10px;font-size:14px;border:1px solid #0e7490;">'
-        "Retourner sur CyberScan"
+        "Retourner sur Rocher Cybersécurité"
         "</a>"
         "</td></tr>" + _footer(settings.FRONTEND_URL)
     )
@@ -203,7 +203,7 @@ def send_unsubscribe_confirmation(to_email: str) -> None:
     plain = (
         "Desabonnement confirme.\n\n"
         "Vous avez ete desabonne(e) du Radar Cyber.\n"
-        f"Reabonnez-vous sur : {resubscribe_url}\n---\nCyberScan"
+        f"Reabonnez-vous sur : {resubscribe_url}\n---\nRocher Cybersécurité"
     )
     _send(to_email, "Desabonnement confirme — Radar Cyber", html, plain)
 
@@ -286,7 +286,7 @@ def send_newsletter_articles(
         f"RADAR CYBER · Edition #{edition_str}\n\n"
         f"{plain_articles}"
         f"Dashboard : {settings.FRONTEND_URL}/cyberscan/dashboard\n"
-        f"Se desabonner : {unsubscribe_url}\n---\nCyberScan"
+        f"Se desabonner : {unsubscribe_url}\n---\nRocher Cybersécurité"
     )
     _send(to_email, f"Le Radar Cyber #{edition_str}", html, plain)
 
@@ -356,6 +356,6 @@ def send_newsletter_issue(
         f"REFLEXE: {reflex_title}\n{reflex_body}\n\n"
         f"DIRIGEANTS: {legal_title}\n{legal_body}\n\n"
         f"Dashboard : {settings.FRONTEND_URL}/cyberscan/dashboard\n"
-        f"Se desabonner : {unsubscribe_url}\n---\nCyberScan"
+        f"Se desabonner : {unsubscribe_url}\n---\nRocher Cybersécurité"
     )
     _send(to_email, f"Le Radar Cyber #{edition_str}", html, plain)

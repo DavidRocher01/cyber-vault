@@ -80,7 +80,7 @@ def _footer(canvas, doc):
     canvas.setFillColor(_GRAY)
     page_num = f"Page {doc.page}"
     canvas.drawRightString(_PAGE_W - 20 * mm, 12 * mm, page_num)
-    canvas.drawString(20 * mm, 12 * mm, "CyberScan — Rapport confidentiel")
+    canvas.drawString(20 * mm, 12 * mm, "Rocher Cybersécurité — Rapport confidentiel")
     canvas.restoreState()
 
 
@@ -182,7 +182,7 @@ def generate_phishing_report(
     story = []
 
     # ── Header ──────────────────────────────────────────────────────────────
-    story.append(Paragraph("CyberScan", brand_style))
+    story.append(Paragraph("Rocher Cybersécurité", brand_style))
     story.append(Paragraph("Rapport de simulation de phishing", title_style))
     story.append(Paragraph(campaign.name, subtitle_style))
     story.append(HRFlowable(width="100%", thickness=1, color=_CYAN, spaceAfter=10))
@@ -560,7 +560,7 @@ def generate_phishing_report(
         Paragraph(
             "Ce rapport est confidentiel et destiné exclusivement à l'entreprise cliente. "
             "La simulation a été réalisée dans le cadre d'une convention d'exercice signée entre les parties. "
-            "Aucune donnée personnelle réelle n'a été collectée ni stockée. — CyberScan",
+            "Aucune donnée personnelle réelle n'a été collectée ni stockée. — Rocher Cybersécurité",
             small_style,
         )
     )

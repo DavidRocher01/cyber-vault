@@ -11,7 +11,7 @@ def send_awareness_magic_link(
     token_ttl_minutes: int = 30,
 ) -> None:
     greeting = f"Bonjour{' ' + first_name if first_name else ''},"
-    subject = f"[CyberScan] Votre lien de connexion — {org_name}"
+    subject = f"[Rocher Cybersécurité] Votre lien de connexion — {org_name}"
     plain = f"""{greeting}
 
 Vous avez été invité(e) à rejoindre la plateforme de sensibilisation NIS2 de {org_name}.
@@ -23,7 +23,7 @@ Cliquez sur le lien ci-dessous pour accéder à votre espace de formation (valab
 Ce lien est personnel et à usage unique. Si vous n'avez pas demandé cet accès, ignorez cet email.
 
 ---
-CyberScan — Sensibilisation NIS2
+Rocher Cybersécurité — Sensibilisation NIS2
 """
     html = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#030712;font-family:Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#030712;">
@@ -56,7 +56,7 @@ CyberScan — Sensibilisation NIS2
     </p>
   </td></tr>
   <tr><td style="padding:20px 40px;border-top:1px solid #1f2937;text-align:center;">
-    <p style="margin:0;color:#4b5563;font-size:12px;">CyberScan — Sensibilisation NIS2</p>
+    <p style="margin:0;color:#4b5563;font-size:12px;">Rocher Cybersécurité — Sensibilisation NIS2</p>
   </td></tr>
 </table></td></tr></table></body></html>"""
     _send(to_email, subject, html, plain)
@@ -70,7 +70,7 @@ def send_awareness_completion(
     certificate_url: str,
 ) -> None:
     greeting = f"Bonjour{' ' + first_name if first_name else ''},"
-    subject = "[CyberScan] Félicitations — Attestation NIS2 obtenue !"
+    subject = "[Rocher Cybersécurité] Félicitations — Attestation NIS2 obtenue !"
     plain = f"""{greeting}
 
 Bravo ! Vous avez complété le programme de sensibilisation NIS2 de {org_name}.
@@ -81,7 +81,7 @@ Attestation vérifiable disponible ici : {certificate_url}
 Cette attestation prouve votre formation cybersécurité conforme NIS2 Article 21.
 
 ---
-CyberScan — Sensibilisation NIS2
+Rocher Cybersécurité — Sensibilisation NIS2
 """
     html = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#030712;font-family:Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#030712;">
@@ -111,7 +111,7 @@ CyberScan — Sensibilisation NIS2
     </p>
   </td></tr>
   <tr><td style="padding:20px 40px;border-top:1px solid #1f2937;text-align:center;">
-    <p style="margin:0;color:#4b5563;font-size:12px;">CyberScan — Sensibilisation NIS2</p>
+    <p style="margin:0;color:#4b5563;font-size:12px;">Rocher Cybersécurité — Sensibilisation NIS2</p>
   </td></tr>
 </table></td></tr></table></body></html>"""
     _send(to_email, subject, html, plain)
@@ -123,7 +123,7 @@ def send_awareness_at_risk_alert(
     at_risk_count: int,
     dashboard_url: str,
 ) -> None:
-    subject = f"[CyberScan] {at_risk_count} learner(s) à risque — {org_name}"
+    subject = f"[Rocher Cybersécurité] {at_risk_count} learner(s) à risque — {org_name}"
     plain = f"""Bonjour,
 
 Un rapport hebdomadaire de sensibilisation NIS2 est disponible pour {org_name}.
@@ -134,7 +134,7 @@ Consultez le tableau de bord pour les identifier et leur renvoyer un lien de con
 {dashboard_url}
 
 ---
-CyberScan — Sensibilisation NIS2
+Rocher Cybersécurité — Sensibilisation NIS2
 """
     html = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#030712;font-family:Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#030712;">
@@ -165,7 +165,7 @@ CyberScan — Sensibilisation NIS2
     </table>
   </td></tr>
   <tr><td style="padding:20px 40px;border-top:1px solid #1f2937;text-align:center;">
-    <p style="margin:0;color:#4b5563;font-size:12px;">CyberScan — Sensibilisation NIS2</p>
+    <p style="margin:0;color:#4b5563;font-size:12px;">Rocher Cybersécurité — Sensibilisation NIS2</p>
   </td></tr>
 </table></td></tr></table></body></html>"""
     _send(to_email, subject, html, plain)

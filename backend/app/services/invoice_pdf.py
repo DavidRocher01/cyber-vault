@@ -103,7 +103,7 @@ def generate_invoice_pdf(
         [
             [
                 _p(
-                    "<b>CyberScan</b>",
+                    "<b>Rocher Cybersécurité</b>",
                     fontSize=18,
                     fontName="Helvetica-Bold",
                     textColor=WHITE,

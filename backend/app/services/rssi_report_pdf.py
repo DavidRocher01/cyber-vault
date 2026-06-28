@@ -473,7 +473,7 @@ def generate_rssi_report(
     story.append(_rule())
     story.append(
         Paragraph(
-            f"Rapport généré par CyberScan — RSSI Externalisé — {now.strftime('%d/%m/%Y')}",
+            f"Rapport généré par Rocher Cybersécurité — RSSI Externalisé — {now.strftime('%d/%m/%Y')}",
             styles["footer"],
         )
     )
