@@ -46,9 +46,18 @@ export class RegisterComponent {
 
   get returnUrl(): string | null {
     const url = this.route.snapshot.queryParamMap.get('returnUrl');
-    return url && url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/\\')
-      ? url
-      : null;
+    // Sous-chemin de l'app principale uniquement : exclut '/' (landing), les
+    // redirections externes (//, /\) et les zones a part (/auth, /vault, /awareness).
+    const isMainAppPath =
+      !!url &&
+      url.length > 1 &&
+      url.startsWith('/') &&
+      !url.startsWith('//') &&
+      !url.startsWith('/\\') &&
+      !url.startsWith('/auth') &&
+      !url.startsWith('/vault') &&
+      !url.startsWith('/awareness');
+    return isMainAppPath ? url : null;
   }
 
   form = this.fb.nonNullable.group(
