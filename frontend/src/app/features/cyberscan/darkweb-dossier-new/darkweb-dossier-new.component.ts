@@ -106,7 +106,7 @@ export class DarkwebDossierNewComponent {
       next: d => {
         this.submitting.set(false);
         this.snack.open('Dossier créé — analyse en cours', 'OK', { duration: 4000 });
-        this.router.navigate(['/cyberscan/darkweb-dossier', d.id]);
+        this.router.navigate(['/darkweb-dossier', d.id]);
       },
       error: err => {
         this.submitting.set(false);

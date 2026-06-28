@@ -17,7 +17,7 @@ import { environment } from '../../../../environments/environment';
       >
         <app-nav-buttons />
         <a
-          routerLink="/cyberscan"
+          routerLink="/"
           style="color:#22d3ee;font-weight:700;font-size:15px;text-decoration:none;margin-left:8px;"
         >
           Rocher Cybersécurité
@@ -50,13 +50,13 @@ import { environment } from '../../../../environments/environment';
             </p>
             <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
               <a
-                routerLink="/cyberscan"
+                routerLink="/"
                 style="padding:12px 24px;border-radius:10px;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;text-decoration:none;font-weight:600;font-size:14px;"
               >
                 Retour à l'accueil
               </a>
               <a
-                routerLink="/cyberscan/ressources"
+                routerLink="/ressources"
                 style="padding:12px 24px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;text-decoration:none;font-weight:600;font-size:14px;"
               >
                 Voir les ressources
@@ -81,7 +81,7 @@ import { environment } from '../../../../environments/environment';
               (7 jours). Vous pouvez vous réinscrire pour recevoir un nouveau lien.
             </p>
             <a
-              routerLink="/cyberscan"
+              routerLink="/"
               fragment="newsletter"
               style="padding:12px 24px;border-radius:10px;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;text-decoration:none;font-weight:600;font-size:14px;"
             >

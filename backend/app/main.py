@@ -195,20 +195,20 @@ async def sitemap(db: AsyncSession = Depends(get_db)):
     base = "https://rochercybersecurite.com"
     static_urls = [
         ("", "weekly", "1.0"),
-        ("/cyberscan", "weekly", "0.9"),
-        ("/cyberscan/scan-gratuit", "weekly", "0.9"),
-        ("/cyberscan/contact", "monthly", "0.8"),
-        ("/cyberscan/reserver", "monthly", "0.8"),
-        ("/cyberscan/ressources", "weekly", "0.7"),
-        ("/cyberscan/bonnes-pratiques", "monthly", "0.6"),
-        ("/cyberscan/blog", "daily", "0.8"),
-        ("/cyberscan/nis2", "monthly", "0.6"),
-        ("/cyberscan/iso27001", "monthly", "0.6"),
-        ("/cyberscan/cgu", "yearly", "0.3"),
-        ("/cyberscan/cgv", "yearly", "0.3"),
-        ("/cyberscan/dpa", "yearly", "0.3"),
-        ("/cyberscan/politique-confidentialite", "yearly", "0.3"),
-        ("/cyberscan/mentions-legales", "yearly", "0.3"),
+        ("/", "weekly", "0.9"),
+        ("/scan-gratuit", "weekly", "0.9"),
+        ("/contact", "monthly", "0.8"),
+        ("/reserver", "monthly", "0.8"),
+        ("/ressources", "weekly", "0.7"),
+        ("/bonnes-pratiques", "monthly", "0.6"),
+        ("/blog", "daily", "0.8"),
+        ("/nis2", "monthly", "0.6"),
+        ("/iso27001", "monthly", "0.6"),
+        ("/cgu", "yearly", "0.3"),
+        ("/cgv", "yearly", "0.3"),
+        ("/dpa", "yearly", "0.3"),
+        ("/politique-confidentialite", "yearly", "0.3"),
+        ("/mentions-legales", "yearly", "0.3"),
     ]
 
     result = await db.execute(
@@ -222,7 +222,7 @@ async def sitemap(db: AsyncSession = Depends(get_db)):
     )
     for slug, updated_at in blog_slugs:
         lastmod = f"<lastmod>{updated_at.date().isoformat()}</lastmod>" if updated_at else ""
-        urls += f"\n  <url><loc>{base}/cyberscan/blog/{slug}</loc>{lastmod}<changefreq>monthly</changefreq><priority>0.7</priority></url>"
+        urls += f"\n  <url><loc>{base}/blog/{slug}</loc>{lastmod}<changefreq>monthly</changefreq><priority>0.7</priority></url>"
 
     xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -239,7 +239,7 @@ async def robots():
     from fastapi.responses import PlainTextResponse
 
     return PlainTextResponse(
-        "User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /cyberscan/admin\n"
+        "User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /admin\n"
         "Sitemap: https://rochercybersecurite.com/sitemap.xml\n"
     )
 

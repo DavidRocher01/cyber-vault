@@ -86,7 +86,7 @@ async def create_checkout(
                 )
             )
         await db.commit()
-        return {"checkout_url": f"{FRONTEND_URL}/cyberscan/success"}
+        return {"checkout_url": f"{FRONTEND_URL}/success"}
 
     # Free plan: activate directly without Stripe
     if plan.price_eur == 0:
@@ -113,7 +113,7 @@ async def create_checkout(
                 )
             )
         await db.commit()
-        return {"checkout_url": f"{FRONTEND_URL}/cyberscan/dashboard"}
+        return {"checkout_url": f"{FRONTEND_URL}/dashboard"}
 
     # Production: real Stripe flow
     if not plan.stripe_price_id:
@@ -131,8 +131,8 @@ async def create_checkout(
         stripe_service.create_checkout_session,
         customer_id=customer_id,
         price_id=plan.stripe_price_id,
-        success_url=f"{FRONTEND_URL}/cyberscan/dashboard?subscribed=true",
-        cancel_url=f"{FRONTEND_URL}/cyberscan?checkout=cancel",
+        success_url=f"{FRONTEND_URL}/dashboard?subscribed=true",
+        cancel_url=f"{FRONTEND_URL}/?checkout=cancel",
     )
     return {"checkout_url": checkout_url}
 
@@ -144,7 +144,7 @@ async def billing_portal(
 ):
     """Redirect to Stripe Billing Portal (or dashboard in dev mode)."""
     if DEV_MODE:
-        return {"checkout_url": f"{FRONTEND_URL}/cyberscan/dashboard"}
+        return {"checkout_url": f"{FRONTEND_URL}/dashboard"}
 
     result = await db.execute(
         select(Subscription).where(
@@ -159,7 +159,7 @@ async def billing_portal(
     portal_url = await asyncio.to_thread(
         stripe_service.create_billing_portal_session,
         customer_id=sub.stripe_customer_id,
-        return_url=f"{FRONTEND_URL}/cyberscan/dashboard",
+        return_url=f"{FRONTEND_URL}/dashboard",
     )
     return {"checkout_url": portal_url}
 
@@ -201,7 +201,7 @@ async def purchase_extra_sites(
     if DEV_MODE:
         sub.extra_sites += ADDON_EXTRA_SITES_COUNT
         await db.commit()
-        return {"checkout_url": f"{FRONTEND_URL}/cyberscan/dashboard?addon=extra_sites"}
+        return {"checkout_url": f"{FRONTEND_URL}/dashboard?addon=extra_sites"}
 
     price_id = settings.ADDON_EXTRA_SITES_STRIPE_PRICE_ID
     if not price_id:
@@ -210,8 +210,8 @@ async def purchase_extra_sites(
     checkout_url = stripe_service.create_checkout_session(
         customer_id=sub.stripe_customer_id,
         price_id=price_id,
-        success_url=f"{FRONTEND_URL}/cyberscan/dashboard?addon=extra_sites",
-        cancel_url=f"{FRONTEND_URL}/cyberscan/dashboard",
+        success_url=f"{FRONTEND_URL}/dashboard?addon=extra_sites",
+        cancel_url=f"{FRONTEND_URL}/dashboard",
         metadata={"addon_type": "extra_sites", "user_id": str(current_user.id)},
     )
     return {"checkout_url": checkout_url}

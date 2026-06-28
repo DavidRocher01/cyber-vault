@@ -7,9 +7,9 @@
     <article class="max-w-3xl mx-auto">
       <!-- Breadcrumb -->
       <nav class="flex items-center gap-2 text-sm text-gray-500 mb-8">
-        <a routerLink="/cyberscan" class="hover:text-gray-300 transition-colors">Accueil</a>
+        <a routerLink="/" class="hover:text-gray-300 transition-colors">Accueil</a>
         <mat-icon class="text-xs">chevron_right</mat-icon>
-        <a routerLink="/cyberscan/blog" class="hover:text-gray-300 transition-colors">Blog</a>
+        <a routerLink="/blog" class="hover:text-gray-300 transition-colors">Blog</a>
         <mat-icon class="text-xs">chevron_right</mat-icon>
         <span class="text-gray-400 truncate max-w-[200px]">{{ a.title }}</span>
       </nav>
@@ -53,14 +53,14 @@
         </p>
         <div class="flex flex-col sm:flex-row gap-3">
           <a
-            routerLink="/cyberscan/scan-gratuit"
+            routerLink="/scan-gratuit"
             class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm transition-all"
           >
             <mat-icon>radar</mat-icon>
             Scan gratuit
           </a>
           <a
-            routerLink="/cyberscan/reserver"
+            routerLink="/reserver"
             class="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-600 hover:border-cyan-600 text-white text-sm transition-all"
           >
             Prendre rendez-vous
@@ -71,7 +71,7 @@
       <!-- Retour au blog -->
       <div class="mt-8 pt-8 border-t border-gray-800">
         <a
-          routerLink="/cyberscan/blog"
+          routerLink="/blog"
           class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm"
         >
           <mat-icon class="text-base">arrow_back</mat-icon>

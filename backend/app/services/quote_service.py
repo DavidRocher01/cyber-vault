@@ -86,8 +86,8 @@ async def send_quote_by_email(quote: Quote) -> None:
     total_eur = f"{quote.total_cents / 100:,.2f} €".replace(",", " ")
     expiry_str = expiry.strftime("%d/%m/%Y")
     token = quote.acceptance_token or ""
-    accept_url = f"{BASE_URL}/cyberscan/devis/{token}/accepter"
-    reject_url = f"{BASE_URL}/cyberscan/devis/{token}/refuser"
+    accept_url = f"{BASE_URL}/devis/{token}/accepter"
+    reject_url = f"{BASE_URL}/devis/{token}/refuser"
 
     html = (
         '<div style="font-family:sans-serif;max-width:600px;color:#1e293b">'

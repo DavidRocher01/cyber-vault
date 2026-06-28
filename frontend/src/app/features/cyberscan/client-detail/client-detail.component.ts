@@ -234,7 +234,7 @@ export class ClientDetailComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.router.navigate(['/cyberscan/consultant']);
+        this.router.navigate(['/consultant']);
       },
     });
   }

@@ -34,7 +34,7 @@ const ACCENT = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7'
       >
         <app-nav-buttons />
         <a
-          routerLink="/cyberscan"
+          routerLink="/"
           style="color:#22d3ee;font-weight:700;font-size:15px;text-decoration:none;margin-left:8px;"
           >Rocher Cybersécurité</a
         >

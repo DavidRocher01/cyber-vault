@@ -412,7 +412,7 @@ export class R00tComponent implements AfterViewInit {
   }
 
   exit(): void {
-    this.router.navigate(['/cyberscan']);
+    this.router.navigate(['/']);
   }
 
   private scrollBottom(): void {

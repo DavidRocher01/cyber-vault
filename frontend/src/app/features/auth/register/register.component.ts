@@ -46,7 +46,9 @@ export class RegisterComponent {
 
   get returnUrl(): string | null {
     const url = this.route.snapshot.queryParamMap.get('returnUrl');
-    return url?.startsWith('/cyberscan/') ? url : null;
+    return url && url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/\\')
+      ? url
+      : null;
   }
 
   form = this.fb.nonNullable.group(
@@ -95,7 +97,7 @@ export class RegisterComponent {
       .register(email, password)
       .pipe(switchMap(() => this.authService.login(email, password)))
       .subscribe({
-        next: () => this.router.navigateByUrl(this.returnUrl || '/cyberscan/onboarding'),
+        next: () => this.router.navigateByUrl(this.returnUrl || '/onboarding'),
         error: err => {
           this.error = err.error?.detail ?? 'Erreur inscription';
           this.loading = false;

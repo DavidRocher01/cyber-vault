@@ -453,27 +453,27 @@ describe('LandingComponent — non-régression comportement', () => {
   it('[RÉGRESSION] login redirige vers /cyberscan (landing) et non /cyberscan/dashboard', () => {
     const loginFnMatch = authModalSrc.match(/submitLogin\(\)\s*\{[\s\S]+?^  \}/m);
     if (loginFnMatch) {
-      expect(loginFnMatch[0]).toContain("'/cyberscan'");
-      expect(loginFnMatch[0]).not.toContain("'/cyberscan/dashboard'");
+      expect(loginFnMatch[0]).toContain("'/'");
+      expect(loginFnMatch[0]).not.toContain("'/dashboard'");
     }
     const totpFnMatch = authModalSrc.match(/submitLoginTotp\(\)\s*\{[\s\S]+?^  \}/m);
     if (totpFnMatch) {
-      expect(totpFnMatch[0]).toContain("'/cyberscan'");
-      expect(totpFnMatch[0]).not.toContain("'/cyberscan/dashboard'");
+      expect(totpFnMatch[0]).toContain("'/'");
+      expect(totpFnMatch[0]).not.toContain("'/dashboard'");
     }
   });
 
   it('[RÉGRESSION] ngOnInit ne redirige pas les utilisateurs authentifiés', () => {
     const ngOnInitMatch = landingSrc.match(/ngOnInit\(\)\s*\{[\s\S]+?^  \}/m);
     if (ngOnInitMatch) {
-      expect(ngOnInitMatch[0]).not.toContain("navigate(['/cyberscan/dashboard'])");
+      expect(ngOnInitMatch[0]).not.toContain("navigate(['/dashboard'])");
     }
   });
 
   it('[RÉGRESSION] inscription redirige vers /cyberscan/onboarding', () => {
     const registerFnMatch = authModalSrc.match(/submitRegister\(\)\s*\{[\s\S]+?^  \}/m);
     if (registerFnMatch) {
-      expect(registerFnMatch[0]).toContain('/cyberscan/onboarding');
+      expect(registerFnMatch[0]).toContain('/onboarding');
     }
   });
 
@@ -499,24 +499,24 @@ describe('LandingComponent — non-régression comportement', () => {
 
 describe('LandingComponent — navbar (liens pages publiques)', () => {
   it('contient un lien vers /cyberscan/blog dans la navbar', () => {
-    expect(html).toContain('/cyberscan/blog');
+    expect(html).toContain('/blog');
   });
 
   it('[SUPPRIMÉ] scan-gratuit retiré de la navbar', () => {
     const navBlock = html.match(/<nav[\s\S]*?<\/nav>/)?.[0] ?? '';
-    expect(navBlock).not.toContain('/cyberscan/scan-gratuit');
+    expect(navBlock).not.toContain('/scan-gratuit');
   });
 
   it('[RÉGRESSION] la navbar contient toujours Ressources', () => {
-    expect(html).toContain('/cyberscan/ressources');
+    expect(html).toContain('/ressources');
   });
 
   it('[RÉGRESSION] la navbar contient toujours Bonnes pratiques', () => {
-    expect(html).toContain('/cyberscan/bonnes-pratiques');
+    expect(html).toContain('/bonnes-pratiques');
   });
 
   it('[RÉGRESSION] la navbar contient toujours le lien Dashboard pour les connectés', () => {
-    expect(html).toContain('/cyberscan/dashboard');
+    expect(html).toContain('/dashboard');
   });
 
   it('[RÉGRESSION] la navbar contient toujours le lien coffre-fort pour les connectés', () => {
@@ -525,6 +525,6 @@ describe('LandingComponent — navbar (liens pages publiques)', () => {
 
   it('Blog est présent dans le nav', () => {
     const navBlock = html.match(/<nav[\s\S]*?<\/nav>/)?.[0] ?? '';
-    expect(navBlock).toContain('/cyberscan/blog');
+    expect(navBlock).toContain('/blog');
   });
 });

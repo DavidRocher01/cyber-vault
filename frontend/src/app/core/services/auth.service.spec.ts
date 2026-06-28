@@ -43,13 +43,13 @@ describe('AuthService', () => {
   it('logout() redirige vers /cyberscan', () => {
     httpMock.post.mockReturnValue(of({}));
     service.logout();
-    expect(routerMock.navigate).toHaveBeenCalledWith(['/cyberscan']);
+    expect(routerMock.navigate).toHaveBeenCalledWith(['/']);
   });
 
   it('logout() redirige vers /cyberscan même sans token en mémoire', () => {
     httpMock.post.mockReturnValue(of({}));
     service.logout();
-    expect(routerMock.navigate).toHaveBeenCalledWith(['/cyberscan']);
+    expect(routerMock.navigate).toHaveBeenCalledWith(['/']);
   });
 
   it('logout() appelle POST /auth/logout avec withCredentials', () => {

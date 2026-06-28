@@ -240,7 +240,7 @@ export class PhishingCampaignCreatorComponent implements OnInit {
           next: () => {
             this.launching.set(false);
             this.snack.open('Campagne lancée !', 'Fermer', { duration: 3000 });
-            this.router.navigate(['/cyberscan/phishing/campaigns']);
+            this.router.navigate(['/phishing/campaigns']);
           },
           error: err => {
             this.launching.set(false);

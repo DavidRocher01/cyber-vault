@@ -83,7 +83,7 @@ def send_campaign_complete(
     else:
         risk_label, risk_color = "Aucun clic", "#22c55e"
 
-    detail_url = f"{settings.FRONTEND_URL}/cyberscan/phishing/campaigns/{campaign_id}"
+    detail_url = f"{settings.FRONTEND_URL}/phishing/campaigns/{campaign_id}"
 
     plain = f"""Bonjour,
 

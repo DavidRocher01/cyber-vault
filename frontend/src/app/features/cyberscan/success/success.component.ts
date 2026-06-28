@@ -88,7 +88,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
       <!-- Buttons -->
       <div class="relative z-10 flex gap-3 flex-wrap justify-center mb-8">
         <a
-          routerLink="/cyberscan/onboarding"
+          routerLink="/onboarding"
           class="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all"
           style="background: linear-gradient(135deg,#06b6d4,#0891b2); color:#000; box-shadow: 0 4px 20px rgba(6,182,212,0.3)"
         >
@@ -96,7 +96,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
           Démarrer le guide
         </a>
         <a
-          routerLink="/cyberscan/dashboard"
+          routerLink="/dashboard"
           class="flex items-center gap-2 px-6 py-2.5 rounded-xl border border-gray-700 text-gray-300 text-sm font-semibold hover:border-gray-500 hover:text-white hover:bg-gray-800/60 transition-all"
         >
           <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">dashboard</mat-icon>

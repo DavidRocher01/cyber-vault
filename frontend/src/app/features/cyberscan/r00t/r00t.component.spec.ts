@@ -91,9 +91,9 @@ describe('R00tComponent — execute() commands', () => {
     expect(err[0]).toContain('foobar: command not found');
   });
 
-  it('exit — calls router.navigate with ["/cyberscan"]', () => {
+  it('exit — calls router.navigate with ["/"]', () => {
     (comp as any).execute('exit');
-    expect((comp as any).router.navigate).toHaveBeenCalledWith(['/cyberscan']);
+    expect((comp as any).router.navigate).toHaveBeenCalledWith(['/']);
   });
 });
 

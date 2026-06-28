@@ -62,7 +62,7 @@ def _send_invite_email(email: str, site_name: str, site_url: str, role: str, tok
     try:
         from app.services.email_service import _send
 
-        accept_url = f"https://rochercybersecurite.com/cyberscan/collab/accept/{token}"
+        accept_url = f"https://rochercybersecurite.com/collab/accept/{token}"
         role_label = ROLE_LABELS.get(role, role)
         html = f"""
         <div style="font-family:sans-serif;background:#0f172a;color:#e2e8f0;padding:32px;border-radius:12px;">

@@ -43,7 +43,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
           catchError(() => {
             authService.logout();
             cryptoService.clearKey();
-            router.navigate(['/cyberscan']);
+            router.navigate(['/']);
             return throwError(() => error);
           })
         );
@@ -51,7 +51,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       if (error.status === 401 && !isAuthEndpoint) {
         authService.logout();
         cryptoService.clearKey();
-        router.navigate(['/cyberscan']);
+        router.navigate(['/']);
       }
       if (error.status === 429) {
         const msg = error.error?.detail ?? 'Trop de requêtes. Réessayez dans quelques instants.';

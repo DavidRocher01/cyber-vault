@@ -50,7 +50,7 @@ export class DarkwebDossierDetailComponent implements OnInit, OnDestroy {
     this.title.setTitle('Dossier Dark Web — Rocher Cybersécurité');
     const id = Number(this.route.snapshot.paramMap.get('id'));
     if (!id) {
-      this.router.navigate(['/cyberscan/darkweb-dossier']);
+      this.router.navigate(['/darkweb-dossier']);
       return;
     }
     this.loadDossier(id);
@@ -71,7 +71,7 @@ export class DarkwebDossierDetailComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.loading.set(false);
-        this.router.navigate(['/cyberscan/darkweb-dossier']);
+        this.router.navigate(['/darkweb-dossier']);
       },
     });
   }

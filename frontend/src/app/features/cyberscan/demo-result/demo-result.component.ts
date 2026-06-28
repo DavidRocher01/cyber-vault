@@ -54,7 +54,7 @@ export class DemoResultComponent implements OnInit, OnDestroy {
   ngOnInit() {
     const token = this.route.snapshot.paramMap.get('token');
     if (!token) {
-      this.router.navigate(['/cyberscan']);
+      this.router.navigate(['/']);
       return;
     }
 
@@ -94,7 +94,7 @@ export class DemoResultComponent implements OnInit, OnDestroy {
 
   openCheckout() {
     if (!this.auth.isAuthenticated()) {
-      this.router.navigate(['/cyberscan'], { queryParams: { action: 'register' } });
+      this.router.navigate(['/'], { queryParams: { action: 'register' } });
       return;
     }
     this.checkoutLoading = true;

@@ -41,8 +41,8 @@ describe('RegisterComponent — returnUrl', () => {
   });
 
   it('returnUrl getter retourne la valeur si présente', async () => {
-    const { component } = await makeComponent('/cyberscan/dashboard');
-    expect(component.returnUrl).toBe('/cyberscan/dashboard');
+    const { component } = await makeComponent('/dashboard');
+    expect(component.returnUrl).toBe('/dashboard');
   });
 
   it('returnUrl getter retourne null si url pointe vers /vault', async () => {
@@ -56,12 +56,12 @@ describe('RegisterComponent — returnUrl', () => {
   });
 
   it('returnUrl getter retourne null pour /cyberscan sans slash final', async () => {
-    const { component } = await makeComponent('/cyberscan');
+    const { component } = await makeComponent('/');
     expect(component.returnUrl).toBeNull();
   });
 
   it('navigue vers returnUrl après inscription si présent', async () => {
-    const { component, navigateByUrlMock } = await makeComponent('/cyberscan/dashboard');
+    const { component, navigateByUrlMock } = await makeComponent('/dashboard');
     component.form.setValue({
       email: 'a@b.com',
       password: 'Password1!',
@@ -69,7 +69,7 @@ describe('RegisterComponent — returnUrl', () => {
     });
     component.submit();
     await new Promise(r => setTimeout(r, 20));
-    expect(navigateByUrlMock).toHaveBeenCalledWith('/cyberscan/dashboard');
+    expect(navigateByUrlMock).toHaveBeenCalledWith('/dashboard');
   });
 
   it('navigue vers /cyberscan/onboarding si pas de returnUrl', async () => {
@@ -81,7 +81,7 @@ describe('RegisterComponent — returnUrl', () => {
     });
     component.submit();
     await new Promise(r => setTimeout(r, 20));
-    expect(navigateByUrlMock).toHaveBeenCalledWith('/cyberscan/onboarding');
+    expect(navigateByUrlMock).toHaveBeenCalledWith('/onboarding');
   });
 
   it('navigue vers /cyberscan/onboarding si returnUrl pointe vers /vault', async () => {
@@ -93,7 +93,7 @@ describe('RegisterComponent — returnUrl', () => {
     });
     component.submit();
     await new Promise(r => setTimeout(r, 20));
-    expect(navigateByUrlMock).toHaveBeenCalledWith('/cyberscan/onboarding');
+    expect(navigateByUrlMock).toHaveBeenCalledWith('/onboarding');
   });
 
   it('navigue vers /cyberscan/onboarding si returnUrl pointe vers /auth/master-password', async () => {
@@ -105,6 +105,6 @@ describe('RegisterComponent — returnUrl', () => {
     });
     component.submit();
     await new Promise(r => setTimeout(r, 20));
-    expect(navigateByUrlMock).toHaveBeenCalledWith('/cyberscan/onboarding');
+    expect(navigateByUrlMock).toHaveBeenCalledWith('/onboarding');
   });
 });

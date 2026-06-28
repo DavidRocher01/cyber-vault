@@ -11,7 +11,7 @@
         </div>
         <p class="text-gray-400 text-sm">Gérez vos campagnes et téléchargez vos rapports.</p>
       </div>
-      <a routerLink="/cyberscan/phishing/new" mat-flat-button color="primary" class="!rounded-xl">
+      <a routerLink="/phishing/new" mat-flat-button color="primary" class="!rounded-xl">
         <mat-icon class="mr-1">add</mat-icon>
         Nouvelle campagne
       </a>
@@ -27,12 +27,7 @@
         <p class="text-gray-500 mb-8 max-w-sm mx-auto">
           Créez votre première campagne de simulation pour mesurer la vigilance de vos équipes.
         </p>
-        <a
-          routerLink="/cyberscan/phishing/new"
-          mat-flat-button
-          color="primary"
-          class="!rounded-xl !px-8"
-        >
+        <a routerLink="/phishing/new" mat-flat-button color="primary" class="!rounded-xl !px-8">
           Démarrer une campagne
         </a>
       </div>
@@ -222,7 +217,7 @@
                   c.status === 'scheduled'
                 ) {
                   <a
-                    [routerLink]="['/cyberscan/phishing/campaigns', c.id, 'edit']"
+                    [routerLink]="['/phishing/campaigns', c.id, 'edit']"
                     mat-stroked-button
                     class="!text-sm !border-gray-700 !text-gray-300 !rounded-lg"
                   >
@@ -232,7 +227,7 @@
                 }
                 @if (c.status === 'active' || c.status === 'sending' || c.status === 'completed') {
                   <a
-                    [routerLink]="['/cyberscan/phishing/campaigns', c.id]"
+                    [routerLink]="['/phishing/campaigns', c.id]"
                     mat-flat-button
                     color="primary"
                     class="!text-sm !rounded-lg"

@@ -16,7 +16,7 @@ const RESPONSES: Record<string, string[]> = {
   whoami: ['inconnu — accès refusé à cette zone'],
   ping: ['PING 404.cyberscan.local: 56 data bytes', "Request timeout — cette page n'existe pas"],
   trace: ['1  *  *  *', '2  *  *  *', '3  nowhere.internal  999ms', 'Destination unreachable'],
-  hint: ['Essaie /cyberscan/r00t 👀'],
+  hint: ['Essaie /r00t 👀'],
   scan: [
     'Scanning 404 space…',
     'ERROR_CODE    : 0x404 PAGE_NOT_FOUND',
@@ -77,12 +77,12 @@ const RESPONSES: Record<string, string[]> = {
         }
       </div>
 
-      <a routerLink="/cyberscan" mat-flat-button color="primary" class="px-8 py-3 text-lg">
+      <a routerLink="/" mat-flat-button color="primary" class="px-8 py-3 text-lg">
         Retour à l'accueil
       </a>
 
       <p class="text-gray-700 text-xs mt-4" style="font-family:'JetBrains Mono',monospace">
-        <!-- tu cherches quelque chose ? /cyberscan/r00t -->
+        <!-- tu cherches quelque chose ? /r00t -->
       </p>
     </div>
   `,

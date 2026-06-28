@@ -1,7 +1,7 @@
 <div class="min-h-screen bg-gray-900 text-white">
   <!-- Navbar -->
   <nav class="flex items-center justify-between px-6 py-4 border-b border-gray-800">
-    <a routerLink="/cyberscan" class="flex items-center gap-2">
+    <a routerLink="/" class="flex items-center gap-2">
       <mat-icon class="text-cyan-400">shield</mat-icon>
       <span class="text-xl font-bold text-cyan-400">Rocher Cybersécurité</span>
     </a>
@@ -11,7 +11,7 @@
   <div class="max-w-4xl mx-auto px-6 py-10">
     <!-- Back -->
     <a
-      routerLink="/cyberscan/dashboard"
+      routerLink="/dashboard"
       mat-button
       class="!text-gray-400 hover:!text-white !pl-0 mb-6 flex items-center gap-1 w-fit"
     >
@@ -157,12 +157,7 @@
           <p class="text-gray-600 text-sm max-w-sm">
             Lancez un scan depuis le dashboard pour analyser les sous-domaines de ce site.
           </p>
-          <a
-            routerLink="/cyberscan/dashboard"
-            mat-flat-button
-            color="primary"
-            class="!text-sm mt-2"
-          >
+          <a routerLink="/dashboard" mat-flat-button color="primary" class="!text-sm mt-2">
             Aller au dashboard
           </a>
         </div>

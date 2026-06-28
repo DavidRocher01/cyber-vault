@@ -80,11 +80,9 @@ def test_send_monthly_digest_critical_status_red_color(mock_send):
 
 @patch("app.services.email_service.scan._send")
 def test_send_monthly_digest_dashboard_link_in_html(mock_send):
-    send_monthly_digest(
-        "u@e.com", "Mai 2026", _sites(), "https://app.example.com/cyberscan/dashboard"
-    )
+    send_monthly_digest("u@e.com", "Mai 2026", _sites(), "https://app.example.com/dashboard")
     html = mock_send.call_args[0][2]
-    assert "https://app.example.com/cyberscan/dashboard" in html
+    assert "https://app.example.com/dashboard" in html
 
 
 @patch("app.services.email_service.scan._send")

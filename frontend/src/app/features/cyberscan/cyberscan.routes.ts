@@ -225,7 +225,7 @@ export const CYBERSCAN_ROUTES: Routes = [
   },
   {
     path: 'r/:token',
-    redirectTo: ({ params }) => `/cyberscan/demo-result/${params['token']}`,
+    redirectTo: ({ params }) => `/demo-result/${params['token']}`,
   },
   {
     path: 'subdomains/:id',

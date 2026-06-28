@@ -1,7 +1,7 @@
 <div class="min-h-screen bg-gray-900 text-white">
   <!-- Navbar -->
   <nav class="flex items-center justify-between px-6 py-4 border-b border-gray-800">
-    <a routerLink="/cyberscan" class="flex items-center gap-2">
+    <a routerLink="/" class="flex items-center gap-2">
       <mat-icon class="text-cyan-400">shield</mat-icon>
       <span class="text-xl font-bold text-cyan-400">Rocher Cybersécurité</span>
     </a>
@@ -28,7 +28,7 @@
       <div class="flex flex-col items-center gap-4 py-24 text-center">
         <mat-icon class="text-red-400 !text-5xl !w-12 !h-12">error_outline</mat-icon>
         <p class="text-lg font-semibold text-red-300">{{ error() }}</p>
-        <a routerLink="/cyberscan" mat-flat-button color="primary">Retour à l'accueil</a>
+        <a routerLink="/" mat-flat-button color="primary">Retour à l'accueil</a>
       </div>
     }
 
@@ -261,7 +261,7 @@
           </p>
         </div>
         <a
-          routerLink="/cyberscan/reserver"
+          routerLink="/reserver"
           class="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold transition-all"
         >
           <mat-icon class="!text-base !h-4 !w-4">calendar_today</mat-icon>
@@ -281,7 +281,7 @@
         </p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
           <a
-            routerLink="/cyberscan"
+            routerLink="/"
             [queryParams]="{ action: 'register' }"
             mat-flat-button
             color="primary"
@@ -289,7 +289,7 @@
           >
             Créer un compte gratuit
           </a>
-          <a routerLink="/cyberscan" mat-button class="!text-gray-300"> Voir les tarifs </a>
+          <a routerLink="/" mat-button class="!text-gray-300"> Voir les tarifs </a>
         </div>
         <p class="text-xs text-gray-600 mt-4">Essai gratuit · Sans carte bancaire</p>
       </div>

@@ -31,7 +31,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
           >
           <h2 class="text-xl font-bold mb-2">Invitation invalide</h2>
           <p class="text-gray-400 text-sm mb-6">{{ error() }}</p>
-          <a routerLink="/cyberscan" mat-flat-button color="primary">Retour à l'accueil</a>
+          <a routerLink="/" mat-flat-button color="primary">Retour à l'accueil</a>
         } @else if (collab()) {
           <mat-icon class="text-green-400 !text-[3rem] !w-[3rem] !h-[3rem] mb-4"
             >check_circle</mat-icon
@@ -45,9 +45,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
           <p class="text-gray-500 text-xs mb-6">
             Connectez-vous pour accéder aux résultats de l'audit.
           </p>
-          <a routerLink="/cyberscan/dashboard" mat-flat-button color="primary"
-            >Accéder au dashboard</a
-          >
+          <a routerLink="/dashboard" mat-flat-button color="primary">Accéder au dashboard</a>
         }
       </div>
     </div>

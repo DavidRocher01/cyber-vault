@@ -398,7 +398,7 @@ export class ProfileComponent implements OnInit {
     this.userService.deleteAccount(this.deleteForm.getRawValue().password).subscribe({
       next: () => {
         this.snack.open('Compte supprimé. Au revoir !', 'OK', { duration: 5000 });
-        this.router.navigate(['/cyberscan']);
+        this.router.navigate(['/']);
       },
       error: err => {
         this.deletingAccount.set(false);

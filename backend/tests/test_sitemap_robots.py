@@ -60,7 +60,7 @@ async def test_robots_disallows_api_and_admin():
         r = await c.get("/robots.txt")
     body = r.text
     assert "Disallow: /api/" in body
-    assert "Disallow: /cyberscan/admin" in body
+    assert "Disallow: /admin" in body
 
 
 @pytest.mark.asyncio
@@ -119,8 +119,8 @@ async def test_sitemap_contains_cyberscan_static_pages():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get("/sitemap.xml")
     body = r.text
-    assert "/cyberscan/contact" in body
-    assert "/cyberscan/blog" in body
+    assert "/contact" in body
+    assert "/blog" in body
 
 
 @pytest.mark.asyncio

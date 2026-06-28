@@ -99,7 +99,7 @@ export class ScanGratuitComponent implements OnInit, OnDestroy {
             .post(`${environment.apiUrl}/newsletter/subscribe`, { email })
             .subscribe({ next: () => {}, error: () => {} });
         }
-        this.router.navigate(['/cyberscan/demo-result', result.token]);
+        this.router.navigate(['/demo-result', result.token]);
       },
       error: err => {
         this.submitting.set(false);
@@ -123,7 +123,7 @@ export class ScanGratuitComponent implements OnInit, OnDestroy {
 
   openCheckout() {
     if (!this.auth.isAuthenticated()) {
-      this.router.navigate(['/cyberscan'], { queryParams: { action: 'register' } });
+      this.router.navigate(['/'], { queryParams: { action: 'register' } });
       return;
     }
     this.checkoutLoading = true;

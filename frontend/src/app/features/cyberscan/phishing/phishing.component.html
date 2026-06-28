@@ -40,7 +40,7 @@
 
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a
-          routerLink="/cyberscan/reserver"
+          routerLink="/reserver"
           [queryParams]="{ need_type: 'simulation-phishing' }"
           mat-flat-button
           color="primary"
@@ -50,7 +50,7 @@
           Réserver un créneau gratuit
         </a>
         <a
-          routerLink="/cyberscan/contact"
+          routerLink="/contact"
           [queryParams]="{ need_type: 'simulation-phishing' }"
           mat-stroked-button
           class="!text-base !px-8 !py-3 !rounded-xl !border-gray-600 !text-gray-300"
@@ -255,7 +255,7 @@
               </ul>
 
               <a
-                routerLink="/cyberscan/reserver"
+                routerLink="/reserver"
                 [queryParams]="{ need_type: 'simulation-phishing' }"
                 mat-flat-button
                 [color]="tier.highlight ? 'primary' : undefined"
@@ -319,7 +319,7 @@
               </ul>
 
               <a
-                routerLink="/cyberscan/reserver"
+                routerLink="/reserver"
                 [queryParams]="{ need_type: 'simulation-phishing' }"
                 mat-flat-button
                 [class]="
@@ -447,7 +447,7 @@
 
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
           <a
-            routerLink="/cyberscan/reserver"
+            routerLink="/reserver"
             [queryParams]="{ need_type: 'simulation-phishing' }"
             mat-flat-button
             color="primary"
@@ -457,7 +457,7 @@
             Réserver un créneau gratuit
           </a>
           <a
-            routerLink="/cyberscan/contact"
+            routerLink="/contact"
             [queryParams]="{ need_type: 'simulation-phishing' }"
             mat-stroked-button
             class="!text-base !px-8 !py-3 !rounded-xl !border-gray-600 !text-gray-300"
@@ -472,18 +472,14 @@
   <!-- Footer links -->
   <div class="border-t border-gray-800 py-6 px-4">
     <div class="max-w-5xl mx-auto flex flex-wrap justify-center gap-4 text-xs text-gray-600">
-      <a routerLink="/cyberscan/cgu" class="hover:text-gray-400 transition-colors">CGU</a>
-      <a
-        routerLink="/cyberscan/politique-confidentialite"
-        class="hover:text-gray-400 transition-colors"
+      <a routerLink="/cgu" class="hover:text-gray-400 transition-colors">CGU</a>
+      <a routerLink="/politique-confidentialite" class="hover:text-gray-400 transition-colors"
         >Politique de confidentialité</a
       >
-      <a routerLink="/cyberscan/mentions-legales" class="hover:text-gray-400 transition-colors"
+      <a routerLink="/mentions-legales" class="hover:text-gray-400 transition-colors"
         >Mentions légales</a
       >
-      <a routerLink="/cyberscan" class="hover:text-gray-400 transition-colors"
-        >Rocher Cybersécurité</a
-      >
+      <a routerLink="/" class="hover:text-gray-400 transition-colors">Rocher Cybersécurité</a>
     </div>
   </div>
 </div>

@@ -76,7 +76,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
           </div>
           <div class="flex items-center gap-2 shrink-0">
             <a
-              routerLink="/cyberscan/awareness-pricing"
+              routerLink="/awareness-pricing"
               mat-stroked-button
               class="!rounded-xl !border-gray-700 !text-gray-300 !text-sm"
             >
@@ -303,7 +303,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
                       <p class="text-[0.65rem] text-gray-500 uppercase tracking-wide">Complétion</p>
                     </div>
                     <a
-                      [routerLink]="['/cyberscan/awareness/org', org.id]"
+                      [routerLink]="['/awareness/org', org.id]"
                       mat-flat-button
                       class="!rounded-lg !bg-gray-800 group-hover:!bg-gray-700 !text-gray-300 !text-xs transition-colors"
                     >

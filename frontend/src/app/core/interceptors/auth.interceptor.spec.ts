@@ -145,18 +145,18 @@ describe('authInterceptor — logout sur 401 sans refresh', () => {
     if (error.status === 401 && !authService.getRefreshToken()) {
       authService.logout();
       crypto.clearKey();
-      router.navigate(['/cyberscan']);
+      router.navigate(['/']);
     }
 
     expect(authService.logout).toHaveBeenCalled();
     expect(crypto.clearKey).toHaveBeenCalled();
-    expect(router.navigate).toHaveBeenCalledWith(['/cyberscan']);
+    expect(router.navigate).toHaveBeenCalledWith(['/']);
   });
 
   it('redirige vers /cyberscan sur 401 définitif', () => {
     const router = makeRouter();
-    router.navigate(['/cyberscan']);
-    expect(router.navigate).toHaveBeenCalledWith(['/cyberscan']);
+    router.navigate(['/']);
+    expect(router.navigate).toHaveBeenCalledWith(['/']);
   });
 
   it('clearKey() est appelé lors du logout forcé', () => {
@@ -255,13 +255,13 @@ describe('authInterceptor — refresh échoue', () => {
       error: () => {
         authService.logout();
         crypto.clearKey();
-        router.navigate(['/cyberscan']);
+        router.navigate(['/']);
       },
     });
 
     expect(authService.logout).toHaveBeenCalled();
     expect(crypto.clearKey).toHaveBeenCalled();
-    expect(router.navigate).toHaveBeenCalledWith(['/cyberscan']);
+    expect(router.navigate).toHaveBeenCalledWith(['/']);
   });
 
   it("propage l'erreur originale après l'échec du refresh", () => {

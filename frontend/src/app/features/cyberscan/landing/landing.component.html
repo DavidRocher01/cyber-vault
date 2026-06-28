@@ -2,7 +2,7 @@
   <!-- Navbar -->
   <nav class="flex items-center justify-between px-4 md:px-8 py-4 border-b border-gray-800 gap-2">
     <a
-      routerLink="/cyberscan"
+      routerLink="/"
       class="flex items-center gap-2 flex-shrink-0"
       (click)="easterEgg.onLogoClick()"
     >
@@ -10,42 +10,33 @@
       <span class="text-xl font-bold text-cyan-400">Rocher Cybersécurité</span>
     </a>
     <div class="flex items-center gap-1 md:gap-2">
-      <a
-        routerLink="/cyberscan/ressources"
-        mat-button
-        class="!text-white font-medium hidden lg:inline-flex"
+      <a routerLink="/ressources" mat-button class="!text-white font-medium hidden lg:inline-flex"
         >Ressources</a
       >
       <a
-        routerLink="/cyberscan/bonnes-pratiques"
+        routerLink="/bonnes-pratiques"
         mat-button
         class="!text-white font-medium hidden lg:inline-flex"
         >Bonnes pratiques</a
       >
       <a
-        routerLink="/cyberscan/simulation-phishing"
+        routerLink="/simulation-phishing"
         mat-button
         class="!text-white font-medium hidden lg:inline-flex"
         >Phishing</a
       >
-      <a
-        routerLink="/cyberscan/blog"
-        mat-button
-        class="!text-white font-medium hidden lg:inline-flex"
+      <a routerLink="/blog" mat-button class="!text-white font-medium hidden lg:inline-flex"
         >Blog</a
       >
       <a
-        routerLink="/cyberscan/sensibilisation"
+        routerLink="/sensibilisation"
         mat-button
         class="!text-amber-400 font-medium hidden lg:inline-flex items-center gap-1"
       >
         <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">school</mat-icon>
         Formation NIS2
       </a>
-      <a
-        routerLink="/cyberscan/reserver"
-        mat-button
-        class="!text-white font-medium hidden lg:inline-flex"
+      <a routerLink="/reserver" mat-button class="!text-white font-medium hidden lg:inline-flex"
         >Réserver</a
       >
       @if (isLoggedIn) {
@@ -59,10 +50,7 @@
         </a>
       }
       @if (isLoggedIn) {
-        <a
-          routerLink="/cyberscan/dashboard"
-          mat-button
-          class="!text-white font-medium hidden md:inline-flex"
+        <a routerLink="/dashboard" mat-button class="!text-white font-medium hidden md:inline-flex"
           >Dashboard</a
         >
 
@@ -104,7 +92,7 @@
               <!-- Menu items -->
               <div class="py-1">
                 <a
-                  routerLink="/cyberscan/dashboard"
+                  routerLink="/dashboard"
                   (click)="userMenuOpen = false"
                   class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
                 >
@@ -114,7 +102,7 @@
                   Dashboard
                 </a>
                 <a
-                  routerLink="/cyberscan/profile"
+                  routerLink="/profile"
                   (click)="userMenuOpen = false"
                   class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
                 >
@@ -132,7 +120,7 @@
                   Mon coffre-fort
                 </a>
                 <a
-                  routerLink="/cyberscan/darkweb-dossier"
+                  routerLink="/darkweb-dossier"
                   (click)="userMenuOpen = false"
                   class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
                 >
@@ -143,7 +131,7 @@
                 </a>
                 @if (isRssiConsultant()) {
                   <a
-                    routerLink="/cyberscan/consultant"
+                    routerLink="/consultant"
                     (click)="userMenuOpen = false"
                     class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
                   >
@@ -233,7 +221,7 @@
       <div class="hero-ctas flex gap-3 flex-wrap justify-center">
         @if (isLoggedIn) {
           <a
-            routerLink="/cyberscan/dashboard"
+            routerLink="/dashboard"
             class="hero-cta-primary inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-base font-bold text-white"
           >
             <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">rocket_launch</mat-icon>
@@ -252,7 +240,7 @@
           </button>
         }
         <a
-          routerLink="/cyberscan/reserver"
+          routerLink="/reserver"
           class="hero-cta-secondary inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-base font-semibold text-gray-200"
         >
           <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">calendar_today</mat-icon>
@@ -546,7 +534,7 @@
             }
           </div>
           <a
-            routerLink="/cyberscan/reserver"
+            routerLink="/reserver"
             mat-flat-button
             [color]="offer.featured ? 'primary' : undefined"
             [class.bg-gray-700]="!offer.featured"
@@ -861,7 +849,7 @@
           </div>
           <div class="flex flex-col sm:flex-row gap-3">
             <a
-              routerLink="/cyberscan/sensibilisation"
+              routerLink="/sensibilisation"
               mat-flat-button
               color="primary"
               class="flex-1 text-center py-3 rounded-lg font-semibold text-sm"
@@ -869,7 +857,7 @@
               Découvrir le module
             </a>
             <a
-              routerLink="/cyberscan/awareness-pricing"
+              routerLink="/awareness-pricing"
               mat-stroked-button
               class="flex-1 text-center py-3 rounded-lg text-sm !border-gray-600 !text-gray-300"
             >
@@ -1239,7 +1227,7 @@
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a
-          routerLink="/cyberscan/scan-gratuit"
+          routerLink="/scan-gratuit"
           mat-flat-button
           color="primary"
           class="text-lg px-10 py-4 shadow-lg shadow-cyan-900/50"
@@ -1247,14 +1235,14 @@
           Scan gratuit
         </a>
         <a
-          routerLink="/cyberscan/reserver"
+          routerLink="/reserver"
           class="inline-flex items-center justify-center gap-2 px-10 py-4 rounded-lg border border-gray-600 hover:border-cyan-500 text-white font-semibold text-lg transition-all"
         >
           <mat-icon>calendar_today</mat-icon>
           Prendre rendez-vous
         </a>
         <a
-          routerLink="/cyberscan/awareness-pricing"
+          routerLink="/awareness-pricing"
           class="inline-flex items-center justify-center gap-2 px-10 py-4 rounded-lg border border-amber-700/50 hover:border-amber-500 text-amber-400 font-semibold text-lg transition-all"
         >
           <mat-icon>school</mat-icon>
@@ -1281,26 +1269,22 @@
       <div>
         <p class="font-semibold text-gray-300 mb-3">Ressources</p>
         <div class="flex flex-col gap-2 text-xs">
-          <a routerLink="/cyberscan/ressources" class="hover:text-cyan-400 transition-colors"
+          <a routerLink="/ressources" class="hover:text-cyan-400 transition-colors"
             >Liens & Outils utiles</a
           >
-          <a routerLink="/cyberscan/bonnes-pratiques" class="hover:text-cyan-400 transition-colors"
+          <a routerLink="/bonnes-pratiques" class="hover:text-cyan-400 transition-colors"
             >Bonnes pratiques</a
           >
-          <a
-            routerLink="/cyberscan/simulation-phishing"
-            class="hover:text-cyan-400 transition-colors"
+          <a routerLink="/simulation-phishing" class="hover:text-cyan-400 transition-colors"
             >Simulation phishing</a
           >
-          <a routerLink="/cyberscan/darkweb-dossier" class="hover:text-rose-400 transition-colors"
+          <a routerLink="/darkweb-dossier" class="hover:text-rose-400 transition-colors"
             >Dark Web Dossier</a
           >
-          <a routerLink="/cyberscan/consultant" class="hover:text-cyan-400 transition-colors"
+          <a routerLink="/consultant" class="hover:text-cyan-400 transition-colors"
             >RSSI Externalisé</a
           >
-          <a
-            routerLink="/cyberscan/awareness-pricing"
-            class="hover:text-amber-400 transition-colors"
+          <a routerLink="/awareness-pricing" class="hover:text-amber-400 transition-colors"
             >Formation NIS2</a
           >
           <a href="#audits" class="hover:text-cyan-400 transition-colors">Offres d'audit</a>
@@ -1314,16 +1298,16 @@
           <a routerLink="/auth/register" class="hover:text-cyan-400 transition-colors"
             >Créer un compte</a
           >
-          <a routerLink="/cyberscan/reserver" class="hover:text-cyan-400 transition-colors"
+          <a routerLink="/reserver" class="hover:text-cyan-400 transition-colors"
             >Réserver un créneau</a
           >
-          <a routerLink="/cyberscan/blog" class="hover:text-cyan-400 transition-colors">Blog</a>
-          <a routerLink="/cyberscan/mentions-legales" class="hover:text-cyan-400 transition-colors"
+          <a routerLink="/blog" class="hover:text-cyan-400 transition-colors">Blog</a>
+          <a routerLink="/mentions-legales" class="hover:text-cyan-400 transition-colors"
             >Mentions légales</a
           >
-          <a routerLink="/cyberscan/cgu" class="hover:text-cyan-400 transition-colors">CGU</a>
-          <a routerLink="/cyberscan/cgv" class="hover:text-cyan-400 transition-colors">CGV</a>
-          <a routerLink="/cyberscan/dpa" class="hover:text-cyan-400 transition-colors">DPA</a>
+          <a routerLink="/cgu" class="hover:text-cyan-400 transition-colors">CGU</a>
+          <a routerLink="/cgv" class="hover:text-cyan-400 transition-colors">CGV</a>
+          <a routerLink="/dpa" class="hover:text-cyan-400 transition-colors">DPA</a>
         </div>
       </div>
     </div>

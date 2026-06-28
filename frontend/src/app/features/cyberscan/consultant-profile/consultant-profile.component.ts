@@ -73,6 +73,6 @@ export class ConsultantProfileComponent implements OnInit {
   }
 
   back() {
-    this.router.navigate(['/cyberscan/consultant']);
+    this.router.navigate(['/consultant']);
   }
 }
