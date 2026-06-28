@@ -29,7 +29,7 @@ if (typeof window !== 'undefined')
       ' ╚═════╝   ╚═╝   ╚═════╝ ╚══════╝╚═╝  ╚═╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝\n' +
       '\n' +
       ' Si tu lis ça, tu es des nôtres. 👾\n' +
-      ' On recrute des talents en sécu — contact@cyberscanapp.com\n' +
+      ' On recrute des talents en sécu — contact@rochercybersecurite.com\n' +
       ' Easter egg #2/6 découvert ✓\n',
     'color: #00e645; font-family: monospace; font-size: 11px;'
   );

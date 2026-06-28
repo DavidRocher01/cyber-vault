@@ -38,8 +38,8 @@ VENDOR = {
     "city": "01600 Reyrieux, France",
     "siret": "104 009 634 00015",
     "ape": "6202A",
-    "email": "contact@cyberscanapp.com",
-    "website": "cyberscanapp.com",
+    "email": "contact@rochercybersecurite.com",
+    "website": "rochercybersecurite.com",
 }
 
 

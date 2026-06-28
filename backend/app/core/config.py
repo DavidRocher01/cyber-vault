@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     # Email transactionnel Resend
     RESEND_API_KEY: str = ""
-    RESEND_FROM: str = "Rocher Cybersécurité <no-reply@cyberscanapp.com>"
+    RESEND_FROM: str = "Rocher Cybersécurité <no-reply@rochercybersecurite.com>"
 
     # S3 file storage (livrables RSSI)
     S3_BUCKET_NAME: str = ""
@@ -52,17 +52,17 @@ class Settings(BaseSettings):
     ADMIN_API_KEY: str = ""
 
     # Contact form recipient
-    CONTACT_EMAIL: str = "contact@cyberscanapp.com"
+    CONTACT_EMAIL: str = "contact@rochercybersecurite.com"
 
     # HaveIBeenPwned API (breach checker)
     HIBP_API_KEY: str = ""
 
     # Phishing simulation engine (homemade, no GoPhish)
     # Base URL used for tracking pixel / click / landing routes (served by this API)
-    # Set to https://sim.cyberscanapp.com in prod; https://api.cyberscanapp.com also works
-    PHISHING_BASE_URL: str = "https://sim.cyberscanapp.com"
+    # Set to https://sim.rochercybersecurite.com in prod; https://api.rochercybersecurite.com also works
+    PHISHING_BASE_URL: str = "https://sim.rochercybersecurite.com"
     # Sender identity in phishing emails (display name only — actual domain must be Resend-verified)
-    PHISHING_FROM_EMAIL: str = ""  # e.g. no-reply@cyberscanapp.com (Resend verified domain)
+    PHISHING_FROM_EMAIL: str = ""  # e.g. no-reply@rochercybersecurite.com (Resend verified domain)
     PHISHING_FROM_NAME: str = "Rocher Cybersécurité Exercise"
     # Batch size: emails sent per scheduler tick (every 15 min) to avoid spam detection
     PHISHING_BATCH_SIZE: int = 20

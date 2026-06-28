@@ -101,7 +101,7 @@ MARGIN = 15  # mm (integer — multiply by `mm` to get points)
 TOP_BAND = 14  # mm — content-page band height
 FOOTER_H = 8  # mm — footer area height
 
-SITE_EMAIL = "contact@cyberscanapp.com"
+SITE_EMAIL = "contact@rochercybersecurite.com"
 
 
 # ---------------------------------------------------------------------------

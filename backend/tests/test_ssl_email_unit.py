@@ -19,7 +19,7 @@ def _call_alert(days: int, site_url: str = "https://example.com", expiry_date: s
             site_url=site_url,
             days_remaining=days,
             expiry_date=expiry_date,
-            dashboard_url="https://cyberscanapp.com/cyberscan/dashboard",
+            dashboard_url="https://rochercybersecurite.com/cyberscan/dashboard",
         )
     assert mock_send.called
     _, subject, html, plain = mock_send.call_args[0]
@@ -94,7 +94,7 @@ def test_plain_contains_site_url():
 
 def test_plain_contains_dashboard_url():
     _, _, plain, _ = _call_alert(5)
-    assert "cyberscanapp.com/cyberscan/dashboard" in plain
+    assert "rochercybersecurite.com/cyberscan/dashboard" in plain
 
 
 # ─── dispatch ────────────────────────────────────────────────────────────────
@@ -112,7 +112,7 @@ def test_send_receives_correct_recipient():
             site_url="https://example.com",
             days_remaining=10,
             expiry_date="2026-05-01",
-            dashboard_url="https://cyberscanapp.com/cyberscan/dashboard",
+            dashboard_url="https://rochercybersecurite.com/cyberscan/dashboard",
         )
     to_email = mock_send.call_args[0][0]
     assert to_email == "recipient@example.com"

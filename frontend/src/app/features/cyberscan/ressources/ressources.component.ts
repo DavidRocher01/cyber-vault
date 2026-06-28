@@ -35,10 +35,10 @@ export class RessourcesComponent {
     });
     this.meta.updateTag({
       property: 'og:url',
-      content: 'https://cyberscanapp.com/cyberscan/ressources',
+      content: 'https://rochercybersecurite.com/cyberscan/ressources',
     });
     this.meta.updateTag({ property: 'og:type', content: 'website' });
-    this._setCanonical('https://cyberscanapp.com/cyberscan/ressources');
+    this._setCanonical('https://rochercybersecurite.com/cyberscan/ressources');
   }
 
   private _setCanonical(url: string): void {

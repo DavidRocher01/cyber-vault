@@ -226,7 +226,10 @@ export class LandingComponent implements OnInit, AfterViewInit {
       content:
         'Auditez la sécurité de vos sites web : SSL, headers HTTP, ports ouverts. Rapports PDF automatiques et alertes en temps réel.',
     });
-    this.meta.updateTag({ property: 'og:url', content: 'https://cyberscanapp.com/cyberscan' });
+    this.meta.updateTag({
+      property: 'og:url',
+      content: 'https://rochercybersecurite.com/cyberscan',
+    });
     this.meta.updateTag({ property: 'og:type', content: 'website' });
     this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
     this.meta.updateTag({
@@ -238,7 +241,7 @@ export class LandingComponent implements OnInit, AfterViewInit {
       content:
         'Auditez la sécurité de vos sites : SSL, headers HTTP, ports ouverts. Rapports PDF inclus.',
     });
-    this._setCanonical('https://cyberscanapp.com/cyberscan');
+    this._setCanonical('https://rochercybersecurite.com/cyberscan');
     this.themeService.apply();
     this.cyberscan.getPlans().subscribe({
       next: plans => {

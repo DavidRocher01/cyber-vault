@@ -106,7 +106,12 @@ const ROADMAP = [
   { sprint: 'S5', label: 'Webhooks', desc: 'HMAC-SHA256, retry exponentiel', done: false },
   { sprint: 'S6', label: 'Facturation Stripe', desc: 'Plans API, overage metered', done: false },
   { sprint: 'S7', label: 'Dashboard API', desc: 'Section "API" dans le dashboard', done: false },
-  { sprint: 'S8', label: 'Documentation', desc: 'docs.cyberscanapp.com, quickstart', done: false },
+  {
+    sprint: 'S8',
+    label: 'Documentation',
+    desc: 'docs.rochercybersecurite.com, quickstart',
+    done: false,
+  },
 ];
 
 @Component({
@@ -144,7 +149,7 @@ export class ApiLandingComponent implements OnInit {
     company: [''],
   });
 
-  readonly curlExample = `curl -X POST https://api.cyberscanapp.com/v1/scans \\
+  readonly curlExample = `curl -X POST https://api.rochercybersecurite.com/v1/scans \\
   -H "Authorization: Bearer csk_live_xxxx" \\
   -H "Content-Type: application/json" \\
   -d '{"url": "https://mon-client.fr"}'`;

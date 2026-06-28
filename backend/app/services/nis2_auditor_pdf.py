@@ -194,7 +194,7 @@ def generate_nis2_auditor_pdf(
         ["Date d'évaluation", date_str],
         ["Score de conformité", f"{score} %"],
         ["Périmètre", "Directive NIS2 — Mesures de cybersécurité (Art. 21)"],
-        ["Outil d'évaluation", "Rocher Cybersécurité — cyberscanapp.com"],
+        ["Outil d'évaluation", "Rocher Cybersécurité — rochercybersecurite.com"],
     ]
     attest_tbl = Table(attest_data, colWidths=[50 * mm, doc.width - 50 * mm])
     attest_tbl.setStyle(
@@ -378,7 +378,7 @@ def generate_nis2_auditor_pdf(
     decl_text = (
         "Le soussigné atteste que l'évaluation de conformité à la Directive NIS2 a été réalisée "
         f"le {today_str}, sur la base des informations communiquées par l'entité évaluée. "
-        "Ce document a été généré via la plateforme Rocher Cybersécurité (cyberscanapp.com) et reflète "
+        "Ce document a été généré via la plateforme Rocher Cybersécurité (rochercybersecurite.com) et reflète "
         "l'état de conformité auto-évalué à la date indiquée. "
         "Il est destiné à servir de base documentaire lors d'un audit de conformité NIS2 ou "
         "d'une déclaration auprès de l'ANSSI."

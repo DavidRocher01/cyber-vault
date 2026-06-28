@@ -41,7 +41,7 @@ const FILES = [
 ];
 const NMAP_LINES = [
   'Starting Nmap 7.95 ( https://nmap.org )',
-  'Scanning cyberscanapp.com (10.64.0.1) ...',
+  'Scanning rochercybersecurite.com (10.64.0.1) ...',
   'PORT     STATE SERVICE  VERSION',
   '22/tcp   open  ssh      OpenSSH 9.4 (protocol 2.0)',
   '80/tcp   open  http     nginx 1.25.3',

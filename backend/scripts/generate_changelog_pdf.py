@@ -337,7 +337,7 @@ def build_pdf(groups: dict, tag: str, since: str | None, out_path: str) -> None:
     s.append(HRFlowable(width=cw, thickness=0.5, color=BORDER, spaceAfter=3 * mm))
     s.append(
         _p(
-            f"Rocher Cybersécurité — Changelog automatique — {now} — cyberscanapp.com",
+            f"Rocher Cybersécurité — Changelog automatique — {now} — rochercybersecurite.com",
             fontSize=7,
             fontName="Helvetica",
             textColor=GRAY,

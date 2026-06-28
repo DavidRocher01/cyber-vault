@@ -23,4 +23,4 @@ Disallow: /cyberscan/admin/
 Disallow: /vault
 Disallow: /auth/
 
-Sitemap: https://cyberscanapp.com/sitemap.xml
+Sitemap: https://rochercybersecurite.com/sitemap.xml

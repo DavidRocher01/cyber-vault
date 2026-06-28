@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.quote import Quote
 from app.services.quote_pdf import generate_quote_pdf
 
-BASE_URL = os.getenv("APP_BASE_URL", "https://cyberscanapp.com")
+BASE_URL = os.getenv("APP_BASE_URL", "https://rochercybersecurite.com")
 
 
 async def _next_seq(db: AsyncSession, year: int) -> int:
@@ -116,12 +116,12 @@ async def send_quote_by_email(quote: Quote) -> None:
         "</div>"
         '<p style="color:#64748b;font-size:13px">TVA non applicable, art. 293 B du CGI.</p>'
         "<p>Cordialement,<br><strong>David Rocher</strong><br>"
-        'Rocher Cybersécurité — <a href="https://cyberscanapp.com" style="color:#06b6d4">cyberscanapp.com</a></p>'
+        'Rocher Cybersécurité — <a href="https://rochercybersecurite.com" style="color:#06b6d4">rochercybersecurite.com</a></p>'
         "</div></div>"
     )
 
     payload = {
-        "from": "Rocher Cybersécurité <contact@cyberscanapp.com>",
+        "from": "Rocher Cybersécurité <contact@rochercybersecurite.com>",
         "to": [quote.client_email],
         "subject": f"Devis {quote.quote_number} — {quote.subject}",
         "html": html,

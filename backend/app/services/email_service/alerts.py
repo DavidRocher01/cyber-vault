@@ -236,7 +236,7 @@ Récapitulatif de votre demande :
 
 ---
 Rocher Cybersécurité
-contact@cyberscanapp.com
+contact@rochercybersecurite.com
 """
     html_confirm = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0f172a;font-family:Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;">
@@ -255,7 +255,7 @@ Je vous répondrai sous <strong style="color:#f8fafc;">4 heures</strong> (jours 
 </p>
 <p style="color:#475569;font-size:13px;line-height:1.7;margin:0;">
 Rocher Cybersécurité<br>
-<a href="mailto:contact@cyberscanapp.com" style="color:#22d3ee;">contact@cyberscanapp.com</a>
+<a href="mailto:contact@rochercybersecurite.com" style="color:#22d3ee;">contact@rochercybersecurite.com</a>
 </p>
 </td></tr>
 </table></td></tr></table></body></html>"""
