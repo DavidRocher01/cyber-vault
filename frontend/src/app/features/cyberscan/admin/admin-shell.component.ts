@@ -18,7 +18,7 @@ import { AdminAuthService } from './admin-auth.service';
         >
           <div class="flex items-center gap-2 mb-2">
             <mat-icon class="text-cyan-400">admin_panel_settings</mat-icon>
-            <h1 class="text-white font-bold text-lg">Administration CyberScan</h1>
+            <h1 class="text-white font-bold text-lg">Administration Rocher Cybersécurité</h1>
           </div>
           <input
             formControlName="key"

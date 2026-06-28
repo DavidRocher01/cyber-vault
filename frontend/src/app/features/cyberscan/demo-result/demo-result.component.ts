@@ -126,8 +126,8 @@ export class DemoResultComponent implements OnInit, OnDestroy {
     const sc = this.score;
     const title =
       sc !== null
-        ? `Rapport de sécurité ${url} — Score ${sc}/100 | CyberScan`
-        : `Rapport de sécurité ${url} | CyberScan`;
+        ? `Rapport de sécurité ${url} — Score ${sc}/100 | Rocher Cybersécurité`
+        : `Rapport de sécurité ${url} | Rocher Cybersécurité`;
     this.titleService.setTitle(title);
     this.metaService.updateTag({ property: 'og:title', content: title });
     this.metaService.updateTag({

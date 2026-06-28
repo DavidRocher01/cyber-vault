@@ -421,7 +421,7 @@ describe('LandingComponent — cyberStats (4 statistiques)', () => {
     expect(src).toContain("'82 %'");
   });
 
-  it('la 4e stat concerne le prix CyberScan (14,90 €)', () => {
+  it('la 4e stat concerne le prix Rocher Cybersécurité (14,90 €)', () => {
     expect(src).toContain("'14,90 €'");
   });
 

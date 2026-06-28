@@ -173,13 +173,18 @@ export class AuditPmeComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.titleService.setTitle('Audit cybersécurité PME — Flash, App-Check, Pentest | CyberScan');
+    this.titleService.setTitle(
+      'Audit cybersécurité PME — Flash, App-Check, Pentest | Rocher Cybersécurité'
+    );
     this.meta.updateTag({
       name: 'description',
       content:
         "Audit cybersécurité pour TPE/PME à partir de 390 € HT. Flash, App-Check, Pentest. Développeur full-stack ET auditeur : rapport PDF + plan d'action sous 24 h. Zone Auvergne-Rhône-Alpes.",
     });
-    this.meta.updateTag({ property: 'og:title', content: 'Audit cybersécurité PME — CyberScan' });
+    this.meta.updateTag({
+      property: 'og:title',
+      content: 'Audit cybersécurité PME — Rocher Cybersécurité',
+    });
     this.meta.updateTag({
       property: 'og:description',
       content:

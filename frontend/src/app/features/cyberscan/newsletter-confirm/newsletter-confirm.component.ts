@@ -20,7 +20,7 @@ import { environment } from '../../../../environments/environment';
           routerLink="/cyberscan"
           style="color:#22d3ee;font-weight:700;font-size:15px;text-decoration:none;margin-left:8px;"
         >
-          CyberScan
+          Rocher Cybersécurité
         </a>
       </nav>
 

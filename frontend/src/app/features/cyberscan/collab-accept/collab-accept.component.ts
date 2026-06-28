@@ -63,7 +63,7 @@ export class CollabAcceptComponent implements OnInit {
   collab = signal<Collaborator | null>(null);
 
   ngOnInit() {
-    this.title.setTitle("Accepter l'invitation — CyberScan");
+    this.title.setTitle("Accepter l'invitation — Rocher Cybersécurité");
     const token = this.route.snapshot.paramMap.get('token') ?? '';
     this.collabService.acceptInvite(token).subscribe({
       next: c => {

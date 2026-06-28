@@ -36,7 +36,7 @@ const ACCENT = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7'
         <a
           routerLink="/cyberscan"
           style="color:#22d3ee;font-weight:700;font-size:15px;text-decoration:none;margin-left:8px;"
-          >CyberScan</a
+          >Rocher Cybersécurité</a
         >
         <span style="color:#334155;margin:0 4px;">/</span>
         <span style="color:#64748b;font-size:14px;">Admin Newsletter</span>

@@ -24,7 +24,7 @@ const BANNER = [
   '  ██║  ██║███████╗╚██████╔╝   ██║   ',
   '  ╚═╝  ╚═╝╚══════╝ ╚═════╝    ╚═╝   ',
   '',
-  '  CyberScan Remote Access Terminal v4.2.1',
+  '  Rocher Cybersécurité Remote Access Terminal v4.2.1',
   '  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄',
   '  Connexion établie depuis 10.64.0.1 — spiffe://cluster/loader',
   '  Type "help" for available commands.',
@@ -399,7 +399,7 @@ export class R00tComponent implements AfterViewInit {
       '> ██████████████████████████ 100%',
       '',
       '> RESULT: System is hardened. No breach possible.',
-      '> CyberScan does its job well 😉',
+      '> Rocher Cybersécurité does its job well 😉',
     ];
     let i = 0;
     const interval = setInterval(() => {

@@ -52,7 +52,7 @@ export const routes: Routes = [
       import('./features/verify-certificate/verify-certificate.component').then(
         m => m.VerifyCertificateComponent
       ),
-    title: 'Vérification attestation — CyberScan',
+    title: 'Vérification attestation — Rocher Cybersécurité',
   },
   { path: '', redirectTo: 'cyberscan', pathMatch: 'full' },
   {

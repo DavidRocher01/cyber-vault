@@ -59,7 +59,7 @@ export class CostCalculatorComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.title.setTitle('Calculateur coût cyberattaque — PME | CyberScan');
+    this.title.setTitle('Calculateur coût cyberattaque — PME | Rocher Cybersécurité');
     this.calcService.getQuestions().subscribe({
       next: qs => {
         this.questions.set(qs);

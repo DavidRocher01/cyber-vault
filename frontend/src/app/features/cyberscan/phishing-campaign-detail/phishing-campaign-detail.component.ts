@@ -67,7 +67,7 @@ export class PhishingCampaignDetailComponent implements OnInit {
     this.phishingService.getCampaign(this.campaignId).subscribe({
       next: c => {
         this.campaign.set(c);
-        this.title.setTitle(`${c.name} — Résultats | CyberScan`);
+        this.title.setTitle(`${c.name} — Résultats | Rocher Cybersécurité`);
         this.loading.set(false);
       },
       error: () => {

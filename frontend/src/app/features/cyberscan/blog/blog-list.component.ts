@@ -23,7 +23,7 @@ export class BlogListComponent implements OnInit {
 
   ngOnInit() {
     this.titleService.setTitle(
-      'Blog cybersécurité — Conseils, audits, bonnes pratiques | CyberScan'
+      'Blog cybersécurité — Conseils, audits, bonnes pratiques | Rocher Cybersécurité'
     );
     this.meta.updateTag({
       name: 'description',

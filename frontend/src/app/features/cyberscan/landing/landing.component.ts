@@ -211,7 +211,7 @@ export class LandingComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
-    this.titleService.setTitle('CyberScan — Audit de sécurité web automatisé');
+    this.titleService.setTitle('Rocher Cybersécurité — Audit de sécurité web automatisé');
     this.meta.updateTag({
       name: 'description',
       content:
@@ -219,7 +219,7 @@ export class LandingComponent implements OnInit, AfterViewInit {
     });
     this.meta.updateTag({
       property: 'og:title',
-      content: 'CyberScan — Audit de sécurité web automatisé',
+      content: 'Rocher Cybersécurité — Audit de sécurité web automatisé',
     });
     this.meta.updateTag({
       property: 'og:description',
@@ -231,7 +231,7 @@ export class LandingComponent implements OnInit, AfterViewInit {
     this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
     this.meta.updateTag({
       name: 'twitter:title',
-      content: 'CyberScan — Audit de sécurité web automatisé',
+      content: 'Rocher Cybersécurité — Audit de sécurité web automatisé',
     });
     this.meta.updateTag({
       name: 'twitter:description',

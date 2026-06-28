@@ -32,7 +32,7 @@ export class BlogArticleComponent implements OnInit {
           return;
         }
         this.article.set(found);
-        this.titleService.setTitle(`${found.title} | CyberScan Blog`);
+        this.titleService.setTitle(`${found.title} | Rocher Cybersécurité Blog`);
         this.meta.updateTag({ name: 'description', content: found.description });
         this.meta.updateTag({ property: 'og:title', content: found.title });
         this.meta.updateTag({ property: 'og:description', content: found.description });

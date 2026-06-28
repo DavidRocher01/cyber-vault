@@ -60,7 +60,7 @@ export class PcaComponent {
   });
 
   constructor() {
-    this.title.setTitle('PCA Light — CyberScan');
+    this.title.setTitle('PCA Light — Rocher Cybersécurité');
   }
 
   get systems(): FormArray {

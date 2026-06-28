@@ -128,15 +128,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit() {
-    this.titleService.setTitle('Dashboard — CyberScan');
+    this.titleService.setTitle('Dashboard — Rocher Cybersécurité');
     this.meta.updateTag({
       name: 'description',
-      content: 'Gérez vos sites et consultez vos rapports de sécurité CyberScan.',
+      content: 'Gérez vos sites et consultez vos rapports de sécurité Rocher Cybersécurité.',
     });
 
     this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
       if (params['subscribed'] === 'true') {
-        this.snack.open('Abonnement activé ! Bienvenue sur CyberScan.', 'Super', {
+        this.snack.open('Abonnement activé ! Bienvenue sur Rocher Cybersécurité.', 'Super', {
           duration: 6000,
         });
       }

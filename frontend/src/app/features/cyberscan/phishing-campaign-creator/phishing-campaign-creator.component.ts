@@ -114,7 +114,7 @@ export class PhishingCampaignCreatorComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.title.setTitle('Nouvelle campagne de phishing | CyberScan');
+    this.title.setTitle('Nouvelle campagne de phishing | Rocher Cybersécurité');
   }
 
   goTo(step: WizardStep): void {

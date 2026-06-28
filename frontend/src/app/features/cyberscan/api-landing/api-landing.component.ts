@@ -158,11 +158,11 @@ export class ApiLandingComponent implements OnInit {
 }`;
 
   ngOnInit() {
-    this.titleService.setTitle('API CyberScan — Automatisez vos audits de sécurité');
+    this.titleService.setTitle('API Rocher Cybersécurité — Automatisez vos audits de sécurité');
     this.meta.updateTag({
       name: 'description',
       content:
-        "L'API CyberScan permet aux MSP, DevSecOps et éditeurs SaaS d'intégrer les scans de sécurité dans leurs outils. Rejoignez la liste d'attente.",
+        "L'API Rocher Cybersécurité permet aux MSP, DevSecOps et éditeurs SaaS d'intégrer les scans de sécurité dans leurs outils. Rejoignez la liste d'attente.",
     });
     this.http.get<{ count: number }>(`${API}/api-waitlist/count`).subscribe({
       next: r => this.count.set(r.count),

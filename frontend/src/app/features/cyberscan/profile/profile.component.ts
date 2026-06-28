@@ -125,7 +125,7 @@ export class ProfileComponent implements OnInit {
   });
 
   ngOnInit() {
-    this.title.setTitle('Mon profil — CyberScan');
+    this.title.setTitle('Mon profil — Rocher Cybersécurité');
     this.userService
       .getProfile()
       .pipe(takeUntilDestroyed(this.destroyRef))

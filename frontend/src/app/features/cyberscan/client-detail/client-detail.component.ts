@@ -228,7 +228,7 @@ export class ClientDetailComponent implements OnInit {
         this.deliverables.set(data.deliverables);
         this.sites.set(data.sites);
         this.unlinkedSites.set(data.unlinked);
-        this.title.setTitle(`${data.client.name} — RSSI CyberScan`);
+        this.title.setTitle(`${data.client.name} — RSSI Rocher Cybersécurité`);
         this._patchInfoForm(data.client);
         this.loading.set(false);
       },

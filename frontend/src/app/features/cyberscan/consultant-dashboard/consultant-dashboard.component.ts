@@ -102,7 +102,7 @@ export class ConsultantDashboardComponent implements OnInit {
   });
 
   ngOnInit() {
-    this.title.setTitle('RSSI Externalisé — CyberScan');
+    this.title.setTitle('RSSI Externalisé — Rocher Cybersécurité');
     this._loadAll();
 
     const clientParam = this.route.snapshot.queryParamMap.get('client');
