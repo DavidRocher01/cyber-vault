@@ -15,7 +15,14 @@ import { describe, it, expect } from 'vitest';
 
 function resolveReturnUrl(queryParamValue: string | null): string {
   const url = queryParamValue || '';
-  return url.startsWith('/') ? url : '/';
+  const isMainAppPath =
+    url.startsWith('/') &&
+    !url.startsWith('//') &&
+    !url.startsWith('/\\') &&
+    !url.startsWith('/auth') &&
+    !url.startsWith('/vault') &&
+    !url.startsWith('/awareness');
+  return isMainAppPath ? url : '/';
 }
 
 describe('AuthStore — returnUrl resolution', () => {
