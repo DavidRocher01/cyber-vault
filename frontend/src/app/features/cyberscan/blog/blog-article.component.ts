@@ -28,7 +28,7 @@ export class BlogArticleComponent implements OnInit {
       next: found => {
         this.loading.set(false);
         if (!found) {
-          this.router.navigate(['/cyberscan/blog']);
+          this.router.navigate(['/blog']);
           return;
         }
         this.article.set(found);
@@ -40,7 +40,7 @@ export class BlogArticleComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.router.navigate(['/cyberscan/blog']);
+        this.router.navigate(['/blog']);
       },
     });
   }

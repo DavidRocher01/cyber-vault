@@ -73,7 +73,7 @@
 
 ### Infra / Ops (accès AWS/Oracle requis)
 - **Staging Oracle** : provisionner l'instance (scripts `staging/` prêts), DNS
-  `staging.cyberscanapp.com`, hash bcrypt Caddy, secrets staging.
+  `staging.rochercybersecurite.com`, hash bcrypt Caddy, secrets staging.
 - **Secrets à configurer** : `S3_BUCKET_NAME` + `AWS_REGION` (livrables RSSI),
   domaine email ImprovMX (MX + Secrets Manager), vérifier OIDC GitHub→AWS.
 - **Sécurité ops à vérifier/activer** : WAF CloudFront, chiffrement RDS at-rest,

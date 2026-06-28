@@ -39,7 +39,7 @@ async def _seed_verification(
     domain: str = "acme.com",
     *,
     verified: bool = False,
-    token: str = "cyberscan-verify-existing-token",
+    token: str = "rocher-verify-existing-token",
 ) -> PhishingDomainVerification:
     record = PhishingDomainVerification(
         user_id=user_id,
@@ -71,7 +71,7 @@ class TestRequestDomainVerification:
 
         assert record.domain == "newdomain.com"
         assert record.user_id == user.id
-        assert record.verification_token.startswith("cyberscan-verify-")
+        assert record.verification_token.startswith("rocher-verify-")
         assert record.verified is False
 
     @pytest.mark.asyncio
@@ -83,8 +83,8 @@ class TestRequestDomainVerification:
             user.id, "formatted.com", db_session
         )
 
-        # Token must start with "cyberscan-verify-" and have a random suffix
-        parts = record.verification_token.split("cyberscan-verify-")
+        # Token must start with "rocher-verify-" and have a random suffix
+        parts = record.verification_token.split("rocher-verify-")
         assert len(parts) == 2
         assert len(parts[1]) >= 16  # token_urlsafe(16) yields ≥ 21 chars
 
@@ -92,7 +92,7 @@ class TestRequestDomainVerification:
     async def test_returns_existing_verified_record_unchanged(self, db_session: AsyncSession):
         user = await _seed_user(db_session, "rdv3@test.com")
         existing = await _seed_verification(
-            db_session, user.id, "verified.com", verified=True, token="cyberscan-verify-abc123"
+            db_session, user.id, "verified.com", verified=True, token="rocher-verify-abc123"
         )
         await db_session.commit()
 
@@ -103,13 +103,13 @@ class TestRequestDomainVerification:
         # Verified record must be returned as-is; token must not change
         assert returned.id == existing.id
         assert returned.verified is True
-        assert returned.verification_token == "cyberscan-verify-abc123"
+        assert returned.verification_token == "rocher-verify-abc123"
 
     @pytest.mark.asyncio
     async def test_refreshes_token_for_unverified_existing_record(self, db_session: AsyncSession):
         user = await _seed_user(db_session, "rdv4@test.com")
         existing = await _seed_verification(
-            db_session, user.id, "retry.com", verified=False, token="cyberscan-verify-old"
+            db_session, user.id, "retry.com", verified=False, token="rocher-verify-old"
         )
         await db_session.commit()
         old_token = existing.verification_token
@@ -121,7 +121,7 @@ class TestRequestDomainVerification:
         # Same record but with a new token
         assert returned.id == existing.id
         assert returned.verification_token != old_token
-        assert returned.verification_token.startswith("cyberscan-verify-")
+        assert returned.verification_token.startswith("rocher-verify-")
         assert returned.verified is False
 
     @pytest.mark.asyncio
@@ -216,7 +216,7 @@ class TestCheckDomainVerificationDnsMatch:
     @pytest.mark.asyncio
     async def test_dns_match_returns_true(self, db_session: AsyncSession):
         user = await _seed_user(db_session, "dns1@test.com")
-        token = "cyberscan-verify-match123"
+        token = "rocher-verify-match123"
         record = await _seed_verification(
             db_session, user.id, "match.com", verified=False, token=token
         )
@@ -237,7 +237,7 @@ class TestCheckDomainVerificationDnsMatch:
     @pytest.mark.asyncio
     async def test_dns_match_sets_verified_at(self, db_session: AsyncSession):
         user = await _seed_user(db_session, "dns2@test.com")
-        token = "cyberscan-verify-ts456"
+        token = "rocher-verify-ts456"
         record = await _seed_verification(
             db_session, user.id, "tscheck.com", verified=False, token=token
         )
@@ -256,9 +256,9 @@ class TestCheckDomainVerificationDnsMatch:
 
     @pytest.mark.asyncio
     async def test_dns_query_uses_correct_subdomain(self, db_session: AsyncSession):
-        """Resolver must query _cyberscan-verify.<domain>."""
+        """Resolver must query _rocher-verify.<domain>."""
         user = await _seed_user(db_session, "dns3@test.com")
-        token = "cyberscan-verify-sub789"
+        token = "rocher-verify-sub789"
         record = await _seed_verification(
             db_session, user.id, "querydomain.com", verified=False, token=token
         )
@@ -274,7 +274,7 @@ class TestCheckDomainVerificationDnsMatch:
             await phishing_service.check_domain_verification(record, db_session)
 
         call_args = mock_resolve.call_args[0]
-        assert call_args[0] == "_cyberscan-verify.querydomain.com"
+        assert call_args[0] == "_rocher-verify.querydomain.com"
         assert call_args[1] == "TXT"
 
 
@@ -288,12 +288,12 @@ class TestCheckDomainVerificationDnsMismatch:
     async def test_wrong_token_returns_false(self, db_session: AsyncSession):
         user = await _seed_user(db_session, "mm1@test.com")
         record = await _seed_verification(
-            db_session, user.id, "mismatch.com", verified=False, token="cyberscan-verify-correct"
+            db_session, user.id, "mismatch.com", verified=False, token="rocher-verify-correct"
         )
         await db_session.commit()
 
         rdata = MagicMock()
-        rdata.strings = [b"cyberscan-verify-WRONG"]
+        rdata.strings = [b"rocher-verify-WRONG"]
         answers = MagicMock()
         answers.__iter__ = MagicMock(return_value=iter([rdata]))
 
@@ -311,7 +311,7 @@ class TestCheckDomainVerificationDnsMismatch:
     async def test_empty_txt_records_returns_false(self, db_session: AsyncSession):
         user = await _seed_user(db_session, "mm2@test.com")
         record = await _seed_verification(
-            db_session, user.id, "empty.com", verified=False, token="cyberscan-verify-tok"
+            db_session, user.id, "empty.com", verified=False, token="rocher-verify-tok"
         )
         await db_session.commit()
 
@@ -342,7 +342,7 @@ class TestCheckDomainVerificationDnsFailure:
 
         user = await _seed_user(db_session, "fail1@test.com")
         record = await _seed_verification(
-            db_session, user.id, "nonexistent.example", verified=False, token="cyberscan-verify-x"
+            db_session, user.id, "nonexistent.example", verified=False, token="rocher-verify-x"
         )
         await db_session.commit()
 
@@ -362,7 +362,7 @@ class TestCheckDomainVerificationDnsFailure:
 
         user = await _seed_user(db_session, "fail2@test.com")
         record = await _seed_verification(
-            db_session, user.id, "slow.example", verified=False, token="cyberscan-verify-y"
+            db_session, user.id, "slow.example", verified=False, token="rocher-verify-y"
         )
         await db_session.commit()
 
@@ -379,7 +379,7 @@ class TestCheckDomainVerificationDnsFailure:
     async def test_generic_exception_returns_false(self, db_session: AsyncSession):
         user = await _seed_user(db_session, "fail3@test.com")
         record = await _seed_verification(
-            db_session, user.id, "broken.example", verified=False, token="cyberscan-verify-z"
+            db_session, user.id, "broken.example", verified=False, token="rocher-verify-z"
         )
         await db_session.commit()
 

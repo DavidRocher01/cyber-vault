@@ -74,8 +74,8 @@ describe('LoginComponent — returnUrl', () => {
   });
 
   it('returnUrl retourne la valeur si présente', async () => {
-    const { comp } = await makeComponent('/cyberscan/dashboard');
-    expect(comp.returnUrl).toBe('/cyberscan/dashboard');
+    const { comp } = await makeComponent('/dashboard');
+    expect(comp.returnUrl).toBe('/dashboard');
   });
 });
 

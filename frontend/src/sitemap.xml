@@ -3,77 +3,77 @@
 
   <!-- Pages principales -->
   <url>
-    <loc>https://rochercybersecurite.com/cyberscan</loc>
+    <loc>https://rochercybersecurite.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
 
   <!-- Pages d'acquisition (priorité haute) -->
   <url>
-    <loc>https://rochercybersecurite.com/cyberscan/audit-cybersecurite-pme</loc>
+    <loc>https://rochercybersecurite.com/audit-cybersecurite-pme</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
-    <loc>https://rochercybersecurite.com/cyberscan/scan-gratuit</loc>
+    <loc>https://rochercybersecurite.com/scan-gratuit</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
-    <loc>https://rochercybersecurite.com/cyberscan/contact</loc>
+    <loc>https://rochercybersecurite.com/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <!-- Blog -->
   <url>
-    <loc>https://rochercybersecurite.com/cyberscan/blog</loc>
+    <loc>https://rochercybersecurite.com/blog</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://rochercybersecurite.com/cyberscan/blog/audit-cybersecurite-pme-prix-2026</loc>
+    <loc>https://rochercybersecurite.com/blog/audit-cybersecurite-pme-prix-2026</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
-    <loc>https://rochercybersecurite.com/cyberscan/blog/vulnerabilites-courantes-sites-ecommerce</loc>
+    <loc>https://rochercybersecurite.com/blog/vulnerabilites-courantes-sites-ecommerce</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <!-- Pages ressources existantes -->
   <url>
-    <loc>https://rochercybersecurite.com/cyberscan/ressources</loc>
+    <loc>https://rochercybersecurite.com/ressources</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
-    <loc>https://rochercybersecurite.com/cyberscan/bonnes-pratiques</loc>
+    <loc>https://rochercybersecurite.com/bonnes-pratiques</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <!-- Pages légales -->
   <url>
-    <loc>https://rochercybersecurite.com/cyberscan/cgu</loc>
+    <loc>https://rochercybersecurite.com/cgu</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
 
   <url>
-    <loc>https://rochercybersecurite.com/cyberscan/politique-confidentialite</loc>
+    <loc>https://rochercybersecurite.com/politique-confidentialite</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
 
   <url>
-    <loc>https://rochercybersecurite.com/cyberscan/mentions-legales</loc>
+    <loc>https://rochercybersecurite.com/mentions-legales</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>

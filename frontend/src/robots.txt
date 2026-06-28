@@ -2,24 +2,24 @@ User-agent: *
 Allow: /
 
 # Pages publiques indexées
-Allow: /cyberscan/audit-cybersecurite-pme
-Allow: /cyberscan/scan-gratuit
-Allow: /cyberscan/contact
-Allow: /cyberscan/blog
+Allow: /audit-cybersecurite-pme
+Allow: /scan-gratuit
+Allow: /contact
+Allow: /blog
 
 # Pages privées (non indexées)
-Disallow: /cyberscan/dashboard
-Disallow: /cyberscan/scan/
-Disallow: /cyberscan/site/
-Disallow: /cyberscan/profile
-Disallow: /cyberscan/onboarding
-Disallow: /cyberscan/success
-Disallow: /cyberscan/url-scanner
-Disallow: /cyberscan/code-scan
-Disallow: /cyberscan/nis2
-Disallow: /cyberscan/iso27001
-Disallow: /cyberscan/subdomains/
-Disallow: /cyberscan/admin/
+Disallow: /dashboard
+Disallow: /scan/
+Disallow: /site/
+Disallow: /profile
+Disallow: /onboarding
+Disallow: /success
+Disallow: /url-scanner
+Disallow: /code-scan
+Disallow: /nis2
+Disallow: /iso27001
+Disallow: /subdomains/
+Disallow: /admin/
 Disallow: /vault
 Disallow: /auth/
 

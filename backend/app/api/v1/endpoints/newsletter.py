@@ -94,14 +94,14 @@ async def subscribe(
             existing.confirmation_token = hash_token(raw_token)
             existing.subscribed_at = datetime.now(UTC)
             await db.commit()
-            confirm_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/confirm?token={raw_token}"
+            confirm_url = f"{settings.FRONTEND_URL}/newsletter/confirm?token={raw_token}"
             background_tasks.add_task(send_confirmation_email, existing.email, confirm_url)
             return NewsletterSubscribeOut(message="Un email de confirmation vous a été renvoyé.")
         # Was confirmed but unsubscribed — re-activate directly
         existing.is_active = True
         existing.subscribed_at = datetime.now(UTC)
         await db.commit()
-        unsubscribe_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?token={make_unsubscribe_token(existing.email)}"
+        unsubscribe_url = f"{settings.FRONTEND_URL}/newsletter/unsubscribe?token={make_unsubscribe_token(existing.email)}"
         background_tasks.add_task(send_newsletter_welcome, existing.email, unsubscribe_url)
         return NewsletterSubscribeOut(message="Réabonnement confirmé !")
 
@@ -116,7 +116,7 @@ async def subscribe(
     db.add(subscriber)
     await db.commit()
 
-    confirm_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/confirm?token={raw_confirmation}"
+    confirm_url = f"{settings.FRONTEND_URL}/newsletter/confirm?token={raw_confirmation}"
     background_tasks.add_task(send_confirmation_email, payload.email, confirm_url)
     logger.info(f"Newsletter subscription pending confirmation: subscriber_id={subscriber.id}")
     return NewsletterSubscribeOut(
@@ -138,7 +138,7 @@ async def confirm(
     subscriber = result.scalar_one_or_none()
     if not subscriber:
         return RedirectResponse(
-            url=f"{settings.FRONTEND_URL}/cyberscan/newsletter/confirm?status=invalid",
+            url=f"{settings.FRONTEND_URL}/newsletter/confirm?status=invalid",
             status_code=302,
         )
     subscriber.is_active = True
@@ -146,11 +146,11 @@ async def confirm(
     subscriber.confirmation_token = None
     await db.commit()
 
-    unsubscribe_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?token={make_unsubscribe_token(subscriber.email)}"
+    unsubscribe_url = f"{settings.FRONTEND_URL}/newsletter/unsubscribe?token={make_unsubscribe_token(subscriber.email)}"
     background_tasks.add_task(send_newsletter_welcome, subscriber.email, unsubscribe_url)
     logger.info(f"Newsletter confirmed: subscriber_id={subscriber.id}")
     return RedirectResponse(
-        url=f"{settings.FRONTEND_URL}/cyberscan/newsletter/confirm?status=ok",
+        url=f"{settings.FRONTEND_URL}/newsletter/confirm?status=ok",
         status_code=302,
     )
 
@@ -167,7 +167,7 @@ async def unsubscribe(
     subscriber = result.scalar_one_or_none()
     if not subscriber:
         return RedirectResponse(
-            url=f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?status=invalid",
+            url=f"{settings.FRONTEND_URL}/newsletter/unsubscribe?status=invalid",
             status_code=302,
         )
     subscriber.is_active = False
@@ -175,7 +175,7 @@ async def unsubscribe(
     background_tasks.add_task(send_unsubscribe_confirmation, subscriber.email)
     logger.info(f"Newsletter unsubscribe: subscriber_id={subscriber.id}")
     return RedirectResponse(
-        url=f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?status=ok",
+        url=f"{settings.FRONTEND_URL}/newsletter/unsubscribe?status=ok",
         status_code=302,
     )
 
@@ -245,7 +245,7 @@ async def admin_send_issue(
     subscribers = result.scalars().all()
     count = 0
     for sub in subscribers:
-        unsubscribe_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?token={make_unsubscribe_token(sub.email)}"
+        unsubscribe_url = f"{settings.FRONTEND_URL}/newsletter/unsubscribe?token={make_unsubscribe_token(sub.email)}"
         background_tasks.add_task(
             send_newsletter_issue,
             sub.email,
@@ -302,7 +302,7 @@ async def admin_send_from_schedule(
     subscribers = subscribers_result.scalars().all()
     count = 0
     for sub in subscribers:
-        unsubscribe_url = f"{settings.FRONTEND_URL}/cyberscan/newsletter/unsubscribe?token={make_unsubscribe_token(sub.email)}"
+        unsubscribe_url = f"{settings.FRONTEND_URL}/newsletter/unsubscribe?token={make_unsubscribe_token(sub.email)}"
         background_tasks.add_task(
             send_newsletter_articles,
             sub.email,

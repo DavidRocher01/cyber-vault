@@ -1,15 +1,13 @@
 <div class="min-h-screen bg-gray-900 text-white">
   <!-- Navbar -->
   <nav class="flex items-center justify-between px-8 py-4 border-b border-gray-800">
-    <a routerLink="/cyberscan" class="flex items-center gap-2">
+    <a routerLink="/" class="flex items-center gap-2">
       <mat-icon class="text-cyan-400">shield</mat-icon>
       <span class="text-xl font-bold text-cyan-400">Rocher Cybersécurité</span>
     </a>
     <div class="flex items-center gap-3">
       <app-nav-buttons />
-      <a
-        routerLink="/cyberscan/dashboard"
-        class="text-sm text-gray-500 hover:text-cyan-400 transition-colors"
+      <a routerLink="/dashboard" class="text-sm text-gray-500 hover:text-cyan-400 transition-colors"
         >Dashboard</a
       >
     </div>
@@ -26,7 +24,7 @@
       <div class="text-center py-24 text-gray-500">
         <mat-icon class="!text-[3rem] !w-[3rem] !h-[3rem] mb-4">error_outline</mat-icon>
         <p class="text-xl">Site introuvable</p>
-        <a routerLink="/cyberscan/dashboard" mat-flat-button color="primary" class="mt-6"
+        <a routerLink="/dashboard" mat-flat-button color="primary" class="mt-6"
           >Retour au dashboard</a
         >
       </div>
@@ -222,7 +220,7 @@
               </div>
             </div>
             <a
-              [routerLink]="['/cyberscan/scan', latestDoneScan.id]"
+              [routerLink]="['/scan', latestDoneScan.id]"
               class="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gray-700/60 hover:bg-gray-700 border border-gray-600/60 hover:border-gray-500 text-sm font-medium text-gray-300 hover:text-white transition-all"
             >
               <mat-icon class="!text-[0.95rem] !w-[0.95rem] !h-[0.95rem]">open_in_new</mat-icon>
@@ -582,7 +580,7 @@
                   }
                   @if (scan.status === 'done') {
                     <a
-                      [routerLink]="['/cyberscan/scan', scan.id]"
+                      [routerLink]="['/scan', scan.id]"
                       mat-icon-button
                       class="!text-gray-400 hover:!text-cyan-400"
                       title="Voir le rapport"
@@ -665,7 +663,7 @@
                 <!-- Actions -->
                 <div class="flex items-center gap-2 flex-shrink-0">
                   <a
-                    [routerLink]="['/cyberscan/scan', scan.id]"
+                    [routerLink]="['/scan', scan.id]"
                     mat-stroked-button
                     class="border-gray-600 text-gray-300 text-sm"
                   >

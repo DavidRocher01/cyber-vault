@@ -131,7 +131,7 @@ async def create_booking(
     await db.commit()
 
     date_label = _format_date_fr(slot.date)
-    cancel_url = f"{settings.FRONTEND_URL}/cyberscan/reserver/annuler?token={cancel_token}"
+    cancel_url = f"{settings.FRONTEND_URL}/reserver/annuler?token={cancel_token}"
 
     background_tasks.add_task(
         send_booking_confirmation,

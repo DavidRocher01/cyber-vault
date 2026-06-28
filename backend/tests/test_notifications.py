@@ -30,7 +30,7 @@ async def _seed_notification(user_id: int, title: str = "Test", read: bool = Fal
             type="scan_done",
             title=title,
             body="Corps de la notification",
-            link="/cyberscan/dashboard",
+            link="/dashboard",
             read=read,
             created_at=datetime.utcnow(),
         )

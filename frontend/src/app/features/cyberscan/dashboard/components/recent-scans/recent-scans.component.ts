@@ -124,7 +124,7 @@ import { computeScore, getScoreColor } from '../../../../../shared/score-utils';
                 </td>
                 <td class="py-2.5 text-right">
                   <a
-                    [routerLink]="['/cyberscan/scan', scan.id]"
+                    [routerLink]="['/scan', scan.id]"
                     mat-icon-button
                     class="!text-gray-400 hover:!text-cyan-400 !w-7 !h-7"
                   >

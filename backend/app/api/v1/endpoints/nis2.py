@@ -392,7 +392,9 @@ async def export_assessment_pdf(
     return StreamingResponse(
         iter([pdf_bytes]),
         media_type="application/pdf",
-        headers={"Content-Disposition": 'attachment; filename="cyberscan_nis2_conformite.pdf"'},
+        headers={
+            "Content-Disposition": 'attachment; filename="rochercybersecurite_nis2_conformite.pdf"'
+        },
     )
 
 
@@ -433,5 +435,7 @@ async def export_auditor_pdf(
     return StreamingResponse(
         iter([pdf_bytes]),
         media_type="application/pdf",
-        headers={"Content-Disposition": 'attachment; filename="cyberscan_nis2_pret_a_deposer.pdf"'},
+        headers={
+            "Content-Disposition": 'attachment; filename="rochercybersecurite_nis2_pret_a_deposer.pdf"'
+        },
     )

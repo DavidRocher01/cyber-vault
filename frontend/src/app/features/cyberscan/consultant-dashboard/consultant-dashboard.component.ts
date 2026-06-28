@@ -231,7 +231,7 @@ export class ConsultantDashboardComponent implements OnInit {
   // ── Activity log ──────────────────────────────────────────────────────────────
 
   onClientRowClick(client: { id: number }) {
-    this.router.navigate(['/cyberscan/consultant/clients', client.id]);
+    this.router.navigate(['/consultant/clients', client.id]);
   }
 
   clearFocus() {

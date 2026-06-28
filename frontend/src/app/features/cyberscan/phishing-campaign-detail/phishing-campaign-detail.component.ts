@@ -73,7 +73,7 @@ export class PhishingCampaignDetailComponent implements OnInit {
       error: () => {
         this.loading.set(false);
         this.snack.open('Campagne introuvable', 'Fermer', { duration: 3000 });
-        this.router.navigate(['/cyberscan/phishing/campaigns']);
+        this.router.navigate(['/phishing/campaigns']);
       },
     });
   }

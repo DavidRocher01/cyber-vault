@@ -113,7 +113,7 @@ describe('BlogArticleComponent — ngOnInit() article non trouvé', () => {
   it('redirige vers /cyberscan/blog si article null', async () => {
     const { comp, navigateMock } = await makeComponent({ article: null });
     comp.ngOnInit();
-    expect(navigateMock).toHaveBeenCalledWith(['/cyberscan/blog']);
+    expect(navigateMock).toHaveBeenCalledWith(['/blog']);
   });
 
   it('article reste null après redirection', async () => {
@@ -127,7 +127,7 @@ describe('BlogArticleComponent — ngOnInit() erreur', () => {
   it("redirige vers /cyberscan/blog en cas d'erreur", async () => {
     const { comp, navigateMock } = await makeComponent({ throwErr: true });
     comp.ngOnInit();
-    expect(navigateMock).toHaveBeenCalledWith(['/cyberscan/blog']);
+    expect(navigateMock).toHaveBeenCalledWith(['/blog']);
   });
 
   it("loading passe à false même en cas d'erreur", async () => {

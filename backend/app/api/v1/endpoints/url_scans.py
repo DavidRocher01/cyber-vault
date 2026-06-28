@@ -111,7 +111,9 @@ async def download_url_scan_pdf(
     return StreamingResponse(
         iter([pdf_bytes]),
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="cyberscan_url_{scan_id}.pdf"'},
+        headers={
+            "Content-Disposition": f'attachment; filename="rochercybersecurite_url_{scan_id}.pdf"'
+        },
     )
 
 

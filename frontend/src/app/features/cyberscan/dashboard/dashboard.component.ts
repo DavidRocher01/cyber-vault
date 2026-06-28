@@ -175,7 +175,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         switchMap(sub => {
           if (!sub) {
             this.loading.set(false);
-            this.router.navigate(['/cyberscan/onboarding']);
+            this.router.navigate(['/onboarding']);
             return EMPTY;
           }
           return this.cyberscan.getMySites();

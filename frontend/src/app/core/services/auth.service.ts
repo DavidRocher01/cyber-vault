@@ -88,7 +88,7 @@ export class AuthService {
     this.session.removeItem(ACCESS_KEY);
     this.session.removeItem(CRYPTO_SALT_KEY);
     this.local.removeItem(EMAIL_KEY);
-    this.router.navigate(['/cyberscan']);
+    this.router.navigate(['/']);
   }
 
   getToken(): string | null {

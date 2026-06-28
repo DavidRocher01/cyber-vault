@@ -1,19 +1,17 @@
 <div class="min-h-screen bg-gray-900 text-white">
   <!-- Navbar -->
   <nav class="flex items-center justify-between px-8 py-4 border-b border-gray-800">
-    <a routerLink="/cyberscan" class="flex items-center gap-2 no-underline">
+    <a routerLink="/" class="flex items-center gap-2 no-underline">
       <mat-icon class="text-cyan-400">shield</mat-icon>
       <span class="text-xl font-bold text-cyan-400">Rocher Cybersécurité</span>
     </a>
     <div class="flex items-center gap-3">
       <app-nav-buttons />
-      <a
-        routerLink="/cyberscan/dashboard"
-        class="text-sm text-gray-500 hover:text-cyan-400 transition-colors"
+      <a routerLink="/dashboard" class="text-sm text-gray-500 hover:text-cyan-400 transition-colors"
         >Dashboard</a
       >
       <a
-        routerLink="/cyberscan/factures"
+        routerLink="/factures"
         class="text-sm text-gray-500 hover:text-cyan-400 transition-colors flex items-center gap-1"
       >
         <mat-icon class="!text-sm !w-4 !h-4">receipt_long</mat-icon>

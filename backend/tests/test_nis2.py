@@ -179,7 +179,8 @@ async def test_export_pdf_returns_pdf_content_type():
     assert r.status_code == 200
     assert r.headers["content-type"] == "application/pdf"
     assert (
-        r.headers["content-disposition"] == 'attachment; filename="cyberscan_nis2_conformite.pdf"'
+        r.headers["content-disposition"]
+        == 'attachment; filename="rochercybersecurite_nis2_conformite.pdf"'
     )
 
 

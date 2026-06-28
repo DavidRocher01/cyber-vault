@@ -72,10 +72,10 @@ test.describe('Export RGPD', () => {
 // ── Upgrade plan ───────────────────────────────────────────────────────────────
 
 test.describe('Navigation upgrade plan', () => {
-  test('le bouton upgrade redirige vers /cyberscan/pricing ou Stripe', async ({ page }) => {
+  test('le bouton upgrade redirige vers /pricing ou Stripe', async ({ page }) => {
     const email = `upgrade-${Date.now()}@test.com`;
     await registerAndLogin(page, email);
-    await page.goto('/cyberscan/dashboard');
+    await page.goto('/dashboard');
 
     // Cherche un lien/bouton "Passer à Pro" ou "Upgrade"
     const upgradeBtn = page.getByRole('link', { name: /upgrade|passer|pro|business/i }).first();

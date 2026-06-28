@@ -36,7 +36,17 @@ export class AuthStore extends ComponentStore<AuthState> {
 
   private get returnUrl(): string {
     const url = this.route.snapshot.queryParamMap.get('returnUrl') || '';
-    return url.startsWith('/cyberscan') ? url : '/cyberscan';
+    // returnUrl n'est honore que pour les pages de l'app principale (racine).
+    // On rejette les redirections externes (//evil, /\evil) et les zones a part
+    // (/auth = boucle de login, /vault = flow crypto, /awareness = portail magic-link).
+    const isMainAppPath =
+      url.startsWith('/') &&
+      !url.startsWith('//') &&
+      !url.startsWith('/\\') &&
+      !url.startsWith('/auth') &&
+      !url.startsWith('/vault') &&
+      !url.startsWith('/awareness');
+    return isMainAppPath ? url : '/';
   }
 
   readonly login = this.effect<{ email: string; password: string }>(credentials$ =>

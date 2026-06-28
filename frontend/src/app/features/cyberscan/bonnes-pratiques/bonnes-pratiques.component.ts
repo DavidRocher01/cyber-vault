@@ -34,10 +34,10 @@ export class BonnesPratiquesComponent {
     });
     this.meta.updateTag({
       property: 'og:url',
-      content: 'https://rochercybersecurite.com/cyberscan/bonnes-pratiques',
+      content: 'https://rochercybersecurite.com/bonnes-pratiques',
     });
     this.meta.updateTag({ property: 'og:type', content: 'website' });
-    this._setCanonical('https://rochercybersecurite.com/cyberscan/bonnes-pratiques');
+    this._setCanonical('https://rochercybersecurite.com/bonnes-pratiques');
   }
 
   private _setCanonical(url: string): void {

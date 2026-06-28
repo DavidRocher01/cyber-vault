@@ -396,12 +396,12 @@ async def request_domain_verification(
         "domain": record.domain,
         "verified": record.verified,
         "verification_token": record.verification_token,
-        "dns_record_name": f"_cyberscan-verify.{record.domain}",
+        "dns_record_name": f"_rocher-verify.{record.domain}",
         "dns_record_type": "TXT",
         "dns_record_value": record.verification_token,
         "instructions": (
             f"Ajoutez un enregistrement DNS TXT sur votre domaine :\n"
-            f"  Nom : _cyberscan-verify.{record.domain}\n"
+            f"  Nom : _rocher-verify.{record.domain}\n"
             f"  Type : TXT\n"
             f"  Valeur : {record.verification_token}\n"
             "Puis cliquez sur 'Vérifier' une fois propagé (peut prendre jusqu'à 10 min)."

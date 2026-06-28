@@ -157,7 +157,9 @@ async def export_my_data(
     return StreamingResponse(
         iter([content]),
         media_type="application/json",
-        headers={"Content-Disposition": "attachment; filename=cyberscan_mes_donnees.json"},
+        headers={
+            "Content-Disposition": "attachment; filename=rochercybersecurite_mes_donnees.json"
+        },
     )
 
 

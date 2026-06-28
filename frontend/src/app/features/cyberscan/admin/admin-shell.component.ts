@@ -63,14 +63,14 @@ import { AdminAuthService } from './admin-auth.service';
           </nav>
           <div class="px-3 py-4 border-t border-gray-800 space-y-1">
             <a
-              routerLink="/cyberscan/admin/ba61c5a60113/agenda"
+              routerLink="/admin/ba61c5a60113/agenda"
               class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors text-sm"
             >
               <mat-icon class="text-base !h-4 !w-4">calendar_month</mat-icon>
               Agenda
             </a>
             <a
-              routerLink="/cyberscan/admin/newsletter"
+              routerLink="/admin/newsletter"
               class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors text-sm"
             >
               <mat-icon class="text-base !h-4 !w-4">mail</mat-icon>
@@ -105,13 +105,13 @@ export class AdminShellComponent {
   keyForm = this.fb.group({ key: ['', Validators.required] });
 
   navItems = [
-    { path: '/cyberscan/admin', label: "Vue d'ensemble", icon: 'dashboard', exact: true },
-    { path: '/cyberscan/admin/contacts', label: 'Contacts', icon: 'mail_outline', exact: false },
-    { path: '/cyberscan/admin/blog', label: 'Blog', icon: 'article', exact: false },
-    { path: '/cyberscan/admin/users', label: 'Utilisateurs', icon: 'people', exact: false },
-    { path: '/cyberscan/admin/scans', label: 'Scans publics', icon: 'radar', exact: false },
-    { path: '/cyberscan/admin/invoices', label: 'Factures', icon: 'receipt_long', exact: false },
-    { path: '/cyberscan/admin/quotes', label: 'Devis', icon: 'request_quote', exact: false },
+    { path: '/admin', label: "Vue d'ensemble", icon: 'dashboard', exact: true },
+    { path: '/admin/contacts', label: 'Contacts', icon: 'mail_outline', exact: false },
+    { path: '/admin/blog', label: 'Blog', icon: 'article', exact: false },
+    { path: '/admin/users', label: 'Utilisateurs', icon: 'people', exact: false },
+    { path: '/admin/scans', label: 'Scans publics', icon: 'radar', exact: false },
+    { path: '/admin/invoices', label: 'Factures', icon: 'receipt_long', exact: false },
+    { path: '/admin/quotes', label: 'Devis', icon: 'request_quote', exact: false },
   ];
 
   login() {

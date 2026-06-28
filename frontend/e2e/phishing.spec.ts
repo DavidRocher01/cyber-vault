@@ -22,7 +22,7 @@ async function setupCampaign(browser: import('@playwright/test').Browser) {
     try {
       detailEmail = await createAndLogin(page);
 
-      await page.goto('/cyberscan/phishing/new');
+      await page.goto('/phishing/new');
       await page.getByRole('button', { name: /Continuer/i }).click();
       await page.getByText(/Informations de la campagne/i).waitFor({ timeout: 8_000 });
 
@@ -54,26 +54,26 @@ async function setupCampaign(browser: import('@playwright/test').Browser) {
 // ─────────────────────────────────────────────────────────────────────────────
 test.describe('Phishing — landing page (publique)', () => {
   test('page landing — h1 visible', async ({ page }) => {
-    await page.goto('/cyberscan/simulation-phishing');
-    await expect(page).toHaveURL(/\/cyberscan\/simulation-phishing/);
+    await page.goto('/simulation-phishing');
+    await expect(page).toHaveURL(/\/simulation-phishing/);
     await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
   });
 
   test('landing — CTAs Réserver et Demander un devis visibles', async ({ page }) => {
-    await page.goto('/cyberscan/simulation-phishing');
+    await page.goto('/simulation-phishing');
     await expect(page.getByText(/Réserver un créneau/i).first()).toBeVisible();
     await expect(page.getByText(/Demander un devis/i).first()).toBeVisible();
   });
 
   test('landing — 3 offres tarifaires affichées', async ({ page }) => {
-    await page.goto('/cyberscan/simulation-phishing');
+    await page.goto('/simulation-phishing');
     await expect(page.getByText('Express').first()).toBeVisible();
     await expect(page.getByText('Standard').first()).toBeVisible();
     await expect(page.getByText('Premium').first()).toBeVisible();
   });
 
   test('landing — scénarios phishing affichés', async ({ page }) => {
-    await page.goto('/cyberscan/simulation-phishing');
+    await page.goto('/simulation-phishing');
     await expect(page.getByText('Fraude au Président')).toBeVisible();
     await expect(page.getByText('Credentials Office 365')).toBeVisible();
   });
@@ -84,12 +84,12 @@ test.describe('Phishing — landing page (publique)', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 test.describe('Phishing — garde auth', () => {
   test('/campaigns redirige vers login sans auth', async ({ page }) => {
-    await page.goto('/cyberscan/phishing/campaigns');
+    await page.goto('/phishing/campaigns');
     await expect(page).toHaveURL(/\/auth\/login/);
   });
 
   test('/phishing/new redirige vers login sans auth', async ({ page }) => {
-    await page.goto('/cyberscan/phishing/new');
+    await page.goto('/phishing/new');
     await expect(page).toHaveURL(/\/auth\/login/);
   });
 });
@@ -100,23 +100,23 @@ test.describe('Phishing — garde auth', () => {
 test.describe('Phishing — liste des campagnes', () => {
   test('page campaigns — chargement et titre', async ({ page }) => {
     await createAndLogin(page);
-    await page.goto('/cyberscan/phishing/campaigns');
-    await expect(page).toHaveURL(/\/cyberscan\/phishing\/campaigns/);
+    await page.goto('/phishing/campaigns');
+    await expect(page).toHaveURL(/\/phishing\/campaigns/);
     await expect(page.getByRole('heading').first()).toBeVisible();
   });
 
   test('page campaigns — bouton Nouvelle campagne visible', async ({ page }) => {
     await createAndLogin(page);
-    await page.goto('/cyberscan/phishing/campaigns');
+    await page.goto('/phishing/campaigns');
     await expect(page.getByText(/Nouvelle campagne/i)).toBeVisible({ timeout: 5_000 });
   });
 
   test('page campaigns — lien vers wizard (/phishing/new)', async ({ page }) => {
     await createAndLogin(page);
-    await page.goto('/cyberscan/phishing/campaigns');
+    await page.goto('/phishing/campaigns');
     const link = page.getByRole('link', { name: /Nouvelle campagne/i });
     await expect(link).toBeVisible({ timeout: 5_000 });
-    await expect(link).toHaveAttribute('href', /\/cyberscan\/phishing\/new/);
+    await expect(link).toHaveAttribute('href', /\/phishing\/new/);
   });
 });
 
@@ -134,14 +134,14 @@ test.describe('Phishing — wizard création', () => {
 
   test('wizard — step 1 (plan) chargement', async ({ page }) => {
     await login(page, wizardEmail);
-    await page.goto('/cyberscan/phishing/new');
+    await page.goto('/phishing/new');
     await expect(page.getByRole('heading', { name: /Nouvelle campagne/i })).toBeVisible();
     await expect(page.getByText(/Choisissez votre offre/i)).toBeVisible();
   });
 
   test('wizard — 3 plans affichés avec prix', async ({ page }) => {
     await login(page, wizardEmail);
-    await page.goto('/cyberscan/phishing/new');
+    await page.goto('/phishing/new');
     await expect(page.getByText('Express')).toBeVisible();
     await expect(page.getByText('Standard')).toBeVisible();
     await expect(page.getByText('Premium')).toBeVisible();
@@ -151,14 +151,14 @@ test.describe('Phishing — wizard création', () => {
 
   test('wizard — Continuer depuis step 1 affiche step 2', async ({ page }) => {
     await login(page, wizardEmail);
-    await page.goto('/cyberscan/phishing/new');
+    await page.goto('/phishing/new');
     await page.getByRole('button', { name: /Continuer/i }).click();
     await expect(page.getByText(/Informations de la campagne/i)).toBeVisible({ timeout: 5_000 });
   });
 
   test('wizard — Retour depuis step 2 revient au step 1', async ({ page }) => {
     await login(page, wizardEmail);
-    await page.goto('/cyberscan/phishing/new');
+    await page.goto('/phishing/new');
     await page.getByRole('button', { name: /Continuer/i }).click();
     await expect(page.getByText(/Informations de la campagne/i)).toBeVisible({ timeout: 5_000 });
     await page.getByRole('button', { name: /Retour/i }).click();
@@ -167,7 +167,7 @@ test.describe('Phishing — wizard création', () => {
 
   test('wizard — step 2 invalide : Continuer désactivé sans nom', async ({ page }) => {
     await login(page, wizardEmail);
-    await page.goto('/cyberscan/phishing/new');
+    await page.goto('/phishing/new');
     await page.getByRole('button', { name: /Continuer/i }).click();
     await expect(page.getByText(/Informations de la campagne/i)).toBeVisible({ timeout: 5_000 });
     // Vider le champ et vérifier que le bouton submit est désactivé
@@ -178,7 +178,7 @@ test.describe('Phishing — wizard création', () => {
 
   test('wizard — step 2 : créer campagne navigue vers step 3 (cibles)', async ({ page }) => {
     await login(page, wizardEmail);
-    await page.goto('/cyberscan/phishing/new');
+    await page.goto('/phishing/new');
     await page.getByRole('button', { name: /Continuer/i }).click();
     await expect(page.getByText(/Informations de la campagne/i)).toBeVisible({ timeout: 5_000 });
 
@@ -191,7 +191,7 @@ test.describe('Phishing — wizard création', () => {
 
   test('wizard — step 3 : formulaire import CSV visible', async ({ page }) => {
     await login(page, wizardEmail);
-    await page.goto('/cyberscan/phishing/new');
+    await page.goto('/phishing/new');
     await page.getByRole('button', { name: /Continuer/i }).click();
     await expect(page.getByText(/Informations de la campagne/i)).toBeVisible({ timeout: 5_000 });
     await page.locator('input[placeholder*="Simulation"]').fill(`E2E CSV ${Date.now()}`);
@@ -211,26 +211,26 @@ test.describe('Phishing — détail campagne', () => {
 
   test('detail — chargement page', async ({ page }) => {
     await login(page, detailEmail);
-    await page.goto(`/cyberscan/phishing/campaigns/${campaignId}`);
-    await expect(page).toHaveURL(new RegExp(`/cyberscan/phishing/campaigns/${campaignId}`));
+    await page.goto(`/phishing/campaigns/${campaignId}`);
+    await expect(page).toHaveURL(new RegExp(`/phishing/campaigns/${campaignId}`));
     await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 5_000 });
   });
 
   test('detail — lien retour "Mes campagnes" visible', async ({ page }) => {
     await login(page, detailEmail);
-    await page.goto(`/cyberscan/phishing/campaigns/${campaignId}`);
+    await page.goto(`/phishing/campaigns/${campaignId}`);
     await expect(page.getByText(/Mes campagnes/i)).toBeVisible({ timeout: 5_000 });
   });
 
   test('detail — lien "Configurer la campagne" visible (statut draft)', async ({ page }) => {
     await login(page, detailEmail);
-    await page.goto(`/cyberscan/phishing/campaigns/${campaignId}`);
+    await page.goto(`/phishing/campaigns/${campaignId}`);
     await expect(page.getByText(/Configurer la campagne/i)).toBeVisible({ timeout: 5_000 });
   });
 
   test('detail — badges stats visibles (cibles, ouvertures, clics, identifiants)', async ({ page }) => {
     await login(page, detailEmail);
-    await page.goto(`/cyberscan/phishing/campaigns/${campaignId}`);
+    await page.goto(`/phishing/campaigns/${campaignId}`);
     await expect(page.getByText(/Cibles/i).first()).toBeVisible({ timeout: 5_000 });
     await expect(page.getByText(/Ouvertures/i).first()).toBeVisible({ timeout: 5_000 });
     await expect(page.getByText(/Clics/i).first()).toBeVisible({ timeout: 5_000 });
@@ -238,7 +238,7 @@ test.describe('Phishing — détail campagne', () => {
 
   test('detail — campagne 404 redirige vers la liste', async ({ page }) => {
     await login(page, detailEmail);
-    await page.goto('/cyberscan/phishing/campaigns/99999');
+    await page.goto('/phishing/campaigns/99999');
     await Promise.race([
       page.waitForURL(url => !url.pathname.includes('/99999'), { timeout: 8_000 }),
       page.getByText(/introuvable|not found|404|erreur/i).waitFor({ timeout: 8_000 }),
@@ -260,14 +260,14 @@ test.describe('Phishing — édition campagne', () => {
 
   test('edit — chargement page config', async ({ page }) => {
     await login(page, detailEmail);
-    await page.goto(`/cyberscan/phishing/campaigns/${campaignId}/edit`);
-    await expect(page).toHaveURL(new RegExp(`/cyberscan/phishing/campaigns/${campaignId}/edit`));
+    await page.goto(`/phishing/campaigns/${campaignId}/edit`);
+    await expect(page).toHaveURL(new RegExp(`/phishing/campaigns/${campaignId}/edit`));
     await expect(page.getByText(/Configurer la campagne/i)).toBeVisible({ timeout: 5_000 });
   });
 
   test('edit — champ nom pré-rempli avec la valeur existante', async ({ page }) => {
     await login(page, detailEmail);
-    await page.goto(`/cyberscan/phishing/campaigns/${campaignId}/edit`);
+    await page.goto(`/phishing/campaigns/${campaignId}/edit`);
     const nameInput = page.locator('input[type="text"]').first();
     await expect(nameInput).toBeVisible({ timeout: 5_000 });
     const value = await nameInput.inputValue();
@@ -276,7 +276,7 @@ test.describe('Phishing — édition campagne', () => {
 
   test('edit — 13 scénarios affichés avec cases à cocher', async ({ page }) => {
     await login(page, detailEmail);
-    await page.goto(`/cyberscan/phishing/campaigns/${campaignId}/edit`);
+    await page.goto(`/phishing/campaigns/${campaignId}/edit`);
     await expect(page.getByText('Fraude au Président')).toBeVisible({ timeout: 5_000 });
     await expect(page.getByText('Credentials Office 365')).toBeVisible({ timeout: 5_000 });
     await expect(page.getByText('Document RH Confidentiel')).toBeVisible({ timeout: 5_000 });
@@ -287,13 +287,13 @@ test.describe('Phishing — édition campagne', () => {
 
   test('edit — bouton Enregistrer visible', async ({ page }) => {
     await login(page, detailEmail);
-    await page.goto(`/cyberscan/phishing/campaigns/${campaignId}/edit`);
+    await page.goto(`/phishing/campaigns/${campaignId}/edit`);
     await expect(page.getByRole('button', { name: /Enregistrer/i })).toBeVisible({ timeout: 5_000 });
   });
 
   test('edit — bouton Lancer désactivé (sans scénario ni cibles)', async ({ page }) => {
     await login(page, detailEmail);
-    await page.goto(`/cyberscan/phishing/campaigns/${campaignId}/edit`);
+    await page.goto(`/phishing/campaigns/${campaignId}/edit`);
     const launchBtn = page.getByRole('button', { name: /Lancer la campagne/i });
     await expect(launchBtn).toBeVisible({ timeout: 5_000 });
     await expect(launchBtn).toBeDisabled();
@@ -301,17 +301,17 @@ test.describe('Phishing — édition campagne', () => {
 
   test('edit — case CGU visible et décochée par défaut', async ({ page }) => {
     await login(page, detailEmail);
-    await page.goto(`/cyberscan/phishing/campaigns/${campaignId}/edit`);
+    await page.goto(`/phishing/campaigns/${campaignId}/edit`);
     await expect(page.getByText(/Convention d'exercice/i)).toBeVisible({ timeout: 5_000 });
     await expect(page.getByText(/Je certifie avoir l'autorisation/i)).toBeVisible({ timeout: 5_000 });
   });
 
   test('edit — lien Annuler pointe vers /campaigns', async ({ page }) => {
     await login(page, detailEmail);
-    await page.goto(`/cyberscan/phishing/campaigns/${campaignId}/edit`);
+    await page.goto(`/phishing/campaigns/${campaignId}/edit`);
     const cancelLink = page.getByRole('link', { name: /Annuler/i });
     await expect(cancelLink).toBeVisible({ timeout: 5_000 });
-    await expect(cancelLink).toHaveAttribute('href', /\/cyberscan\/phishing\/campaigns$/);
+    await expect(cancelLink).toHaveAttribute('href', /\/phishing\/campaigns$/);
   });
 });
 
@@ -326,7 +326,7 @@ async function setupAndLaunchCampaign(browser: import('@playwright/test').Browse
     try {
       launchEmail = await createAndLogin(page);
 
-      await page.goto('/cyberscan/phishing/new');
+      await page.goto('/phishing/new');
       await page.getByRole('button', { name: /Continuer/i }).click();
       await page.getByText(/Informations de la campagne/i).waitFor({ timeout: 8_000 });
 
@@ -340,7 +340,7 @@ async function setupAndLaunchCampaign(browser: import('@playwright/test').Browse
       if (!createData.id) throw new Error('No campaign ID in response');
       launchCampaignId = createData.id;
 
-      await page.goto(`/cyberscan/phishing/campaigns/${launchCampaignId}/edit`);
+      await page.goto(`/phishing/campaigns/${launchCampaignId}/edit`);
       await page.getByText(/Configurer la campagne/i).waitFor({ timeout: 8_000 });
 
       const uploadDone = page.waitForResponse(
@@ -363,7 +363,7 @@ async function setupAndLaunchCampaign(browser: import('@playwright/test').Browse
       );
       await page.getByRole('button', { name: /Lancer la campagne/i }).click();
       await launchDone;
-      await page.waitForURL(new RegExp(`/cyberscan/phishing/campaigns/${launchCampaignId}$`), { timeout: 10_000 });
+      await page.waitForURL(new RegExp(`/phishing/campaigns/${launchCampaignId}$`), { timeout: 10_000 });
 
       await page.close();
       return;
@@ -395,7 +395,7 @@ test.describe('Phishing — lancement (file d\'attente)', () => {
 
   test('launch — barre de progression visible sur la page détail', async ({ page }) => {
     await login(page, launchEmail);
-    await page.goto(`/cyberscan/phishing/campaigns/${launchCampaignId}`);
+    await page.goto(`/phishing/campaigns/${launchCampaignId}`);
     // Progress bar is shown for status 'sending' or 'active'
     await expect(page.getByText(/Envoi en cours|emails/i).first()).toBeVisible({ timeout: 8_000 });
   });
@@ -403,17 +403,17 @@ test.describe('Phishing — lancement (file d\'attente)', () => {
   test('launch — redirection vers page détail après lancement', async ({ page }) => {
     // Verify we can reach the detail page for the launched campaign
     await login(page, launchEmail);
-    await page.goto(`/cyberscan/phishing/campaigns/${launchCampaignId}`);
-    await expect(page).toHaveURL(new RegExp(`/cyberscan/phishing/campaigns/${launchCampaignId}$`));
+    await page.goto(`/phishing/campaigns/${launchCampaignId}`);
+    await expect(page).toHaveURL(new RegExp(`/phishing/campaigns/${launchCampaignId}$`));
     await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 5_000 });
   });
 
   test('launch — edit redirige vers détail si campagne déjà lancée', async ({ page }) => {
     await login(page, launchEmail);
-    await page.goto(`/cyberscan/phishing/campaigns/${launchCampaignId}/edit`);
+    await page.goto(`/phishing/campaigns/${launchCampaignId}/edit`);
     // Edit component redirects away if status is sending/active/completed
-    await page.waitForURL(new RegExp(`/cyberscan/phishing/campaigns/${launchCampaignId}$`), { timeout: 8_000 });
-    await expect(page).toHaveURL(new RegExp(`/cyberscan/phishing/campaigns/${launchCampaignId}$`));
+    await page.waitForURL(new RegExp(`/phishing/campaigns/${launchCampaignId}$`), { timeout: 8_000 });
+    await expect(page).toHaveURL(new RegExp(`/phishing/campaigns/${launchCampaignId}$`));
   });
 });
 
@@ -430,7 +430,7 @@ test.describe('Phishing — rapport PDF', () => {
 
   test('PDF — bouton non visible pour une campagne draft', async ({ page }) => {
     await login(page, detailEmail);
-    await page.goto(`/cyberscan/phishing/campaigns/${campaignId}`);
+    await page.goto(`/phishing/campaigns/${campaignId}`);
     await page.getByRole('heading').first().waitFor({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /Rapport PDF/i })).not.toBeVisible();
   });
@@ -446,7 +446,7 @@ test.describe('Phishing — rapport PDF', () => {
 
   test('PDF — bouton Rapport PDF visible pour campagne active ou sending', async ({ page }) => {
     await login(page, launchEmail);
-    await page.goto(`/cyberscan/phishing/campaigns/${launchCampaignId}`);
+    await page.goto(`/phishing/campaigns/${launchCampaignId}`);
     // Button is shown only for status active or completed
     // (sending has progress bar but no PDF button yet — verify accordingly)
     const campaignToken = await page.evaluate(() => sessionStorage.getItem('cv_token'));

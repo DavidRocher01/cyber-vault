@@ -23,7 +23,7 @@
         </p>
       </div>
       <a
-        routerLink="/cyberscan/darkweb-dossier/new"
+        routerLink="/darkweb-dossier/new"
         mat-flat-button
         color="warn"
         class="!rounded-xl flex-shrink-0"
@@ -46,12 +46,7 @@
           Créez votre premier dossier en uploadant la liste des emails de vos collaborateurs.
           L'analyse est entièrement automatique.
         </p>
-        <a
-          routerLink="/cyberscan/darkweb-dossier/new"
-          mat-flat-button
-          color="warn"
-          class="!rounded-xl"
-        >
+        <a routerLink="/darkweb-dossier/new" mat-flat-button color="warn" class="!rounded-xl">
           <mat-icon>add</mat-icon>
           Créer un dossier
         </a>
@@ -137,7 +132,7 @@
             <div class="flex items-center gap-2 flex-shrink-0">
               @if (d.status === 'completed') {
                 <a
-                  [routerLink]="['/cyberscan/darkweb-dossier', d.id]"
+                  [routerLink]="['/darkweb-dossier', d.id]"
                   mat-stroked-button
                   class="!rounded-lg !border-gray-600 !text-gray-300 !text-xs"
                 >

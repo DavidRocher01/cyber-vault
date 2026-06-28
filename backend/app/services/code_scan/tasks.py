@@ -58,7 +58,7 @@ async def run_code_scan(scan_id: int, db: AsyncSession, clone_url: str | None = 
     scan.started_at = datetime.now(UTC)
     await db.commit()
 
-    tmp_dir = tempfile.mkdtemp(prefix="cyberscan_code_")
+    tmp_dir = tempfile.mkdtemp(prefix="rochercybersecurite_code_")
     try:
         effective_clone_url = clone_url or scan.repo_url
         logger.info(f"CodeScan {scan_id}: cloning {scan.repo_url}")
@@ -120,7 +120,7 @@ async def run_code_scan_zip(scan_id: int, zip_path: str, db: AsyncSession) -> No
     scan.started_at = datetime.now(UTC)
     await db.commit()
 
-    tmp_dir = tempfile.mkdtemp(prefix="cyberscan_code_")
+    tmp_dir = tempfile.mkdtemp(prefix="rochercybersecurite_code_")
     try:
         logger.info(f"CodeScan {scan_id}: extracting ZIP")
         repo_dir = os.path.join(tmp_dir, "repo")

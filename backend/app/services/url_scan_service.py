@@ -493,7 +493,7 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
                 type="url_scan_done",
                 title=f"{icon} Scan URL — {verdict.capitalize()} (score {score}/100)",
                 body=url_scan.url[:120],
-                link="/cyberscan/url-scanner",
+                link="/url-scanner",
             )
             db.add(notif)
             await db.commit()
@@ -508,7 +508,7 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
             user_result = await db.execute(select(User).where(User.id == url_scan.user_id))
             user = user_result.scalar_one_or_none()
             if user:
-                dashboard_url = f"{settings.FRONTEND_URL}/cyberscan/url-scanner"
+                dashboard_url = f"{settings.FRONTEND_URL}/url-scanner"
                 send_url_scan_alert(
                     to_email=user.email,
                     scanned_url=url_scan.url,

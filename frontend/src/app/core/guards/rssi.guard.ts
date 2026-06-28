@@ -15,7 +15,7 @@ export const rssiGuard: CanActivateFn = (_route, state: RouterStateSnapshot) => 
   }
 
   return http.get<{ is_rssi_consultant: boolean }>('/api/v1/users/me').pipe(
-    map(user => user.is_rssi_consultant || router.createUrlTree(['/cyberscan'])),
-    catchError(() => of(router.createUrlTree(['/cyberscan'])))
+    map(user => user.is_rssi_consultant || router.createUrlTree(['/'])),
+    catchError(() => of(router.createUrlTree(['/'])))
   );
 };

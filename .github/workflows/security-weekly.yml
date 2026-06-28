@@ -241,7 +241,7 @@ jobs:
           """
 
           payload = json.dumps({
-              "from": "CyberScan <contact@cyberscanapp.com>",
+              "from": "Rocher Cybersécurité <contact@rochercybersecurite.com>",
               "to": ["rocherdavid@ymail.com"],
               "subject": f"[CyberScan] ⚠️ Alerte sécurité — {date}",
               "html": html,

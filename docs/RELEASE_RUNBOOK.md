@@ -84,11 +84,11 @@
     --business price_LIVE_business
   ```
   (Idempotent : relançable sans risque ; ne touche que les plans fournis.)
-- [ ] **Vérifier le webhook Stripe** : endpoint `https://cyberscanapp.com/api/v1/webhooks/stripe`, `STRIPE_WEBHOOK_SECRET` à jour côté Secrets Manager ET côté dashboard Stripe.
+- [ ] **Vérifier le webhook Stripe** : endpoint `https://rochercybersecurite.com/api/v1/webhooks/stripe`, `STRIPE_WEBHOOK_SECRET` à jour côté Secrets Manager ET côté dashboard Stripe.
 
 ### 5. Vérifications post-déploiement
-- [ ] Health : `curl https://cyberscanapp.com/api/v1/health` → 200
-- [ ] Health profond : `curl https://cyberscanapp.com/api/v1/health/deep` → DB + Stripe + Resend + S3 OK
+- [ ] Health : `curl https://rochercybersecurite.com/api/v1/health` → 200
+- [ ] Health profond : `curl https://rochercybersecurite.com/api/v1/health/deep` → DB + Stripe + Resend + S3 OK
 - [ ] `alembic current` (via tâche/exec) = tête attendue
 - [ ] **Parcours nominal** : inscription → login → 2FA setup/verify → création entrée vault (chiffrée) → relecture → déconnexion.
 - [ ] **Checkout** : tester un abonnement (sandbox carte test si dispo) → redirection Stripe OK.

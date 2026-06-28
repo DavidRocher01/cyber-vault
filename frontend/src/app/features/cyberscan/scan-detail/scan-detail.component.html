@@ -1,15 +1,13 @@
 <div class="min-h-screen bg-gray-900 text-white">
   <!-- Navbar -->
   <nav class="flex items-center justify-between px-8 py-4 border-b border-gray-800">
-    <a routerLink="/cyberscan/dashboard" class="flex items-center gap-2">
+    <a routerLink="/dashboard" class="flex items-center gap-2">
       <mat-icon class="text-cyan-400">shield</mat-icon>
       <span class="text-xl font-bold text-cyan-400">Rocher Cybersécurité</span>
     </a>
     <div class="flex items-center gap-3">
       <app-nav-buttons />
-      <a
-        routerLink="/cyberscan/dashboard"
-        class="text-sm text-gray-500 hover:text-cyan-400 transition-colors"
+      <a routerLink="/dashboard" class="text-sm text-gray-500 hover:text-cyan-400 transition-colors"
         >Dashboard</a
       >
     </div>
@@ -26,7 +24,7 @@
       <div class="text-center py-24 text-gray-500">
         <mat-icon class="!text-[3rem] !w-[3rem] !h-[3rem] mb-4">error_outline</mat-icon>
         <p class="text-xl">{{ error() }}</p>
-        <a routerLink="/cyberscan/dashboard" mat-flat-button color="primary" class="mt-6">Retour</a>
+        <a routerLink="/dashboard" mat-flat-button color="primary" class="mt-6">Retour</a>
       </div>
     }
 
@@ -322,7 +320,7 @@
               </p>
             </div>
             <a
-              routerLink="/cyberscan/dashboard"
+              routerLink="/dashboard"
               [queryParams]="{ upgrade: 'true' }"
               mat-flat-button
               class="!bg-amber-500 !text-gray-900 !font-bold !text-xs flex-shrink-0"
@@ -461,7 +459,7 @@
 
           <!-- Bouton -->
           <a
-            [routerLink]="['/cyberscan/booking']"
+            [routerLink]="['/booking']"
             [queryParams]="{ domain: scannedDomain, need_type: 'audit-flash' }"
             mat-flat-button
             [class]="ctaButtonClass"

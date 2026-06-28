@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { authGuard } from './auth.guard';
 import { AuthService } from '../services/auth.service';
 
-function run(isAuthenticated: boolean, url = '/cyberscan/dashboard') {
+function run(isAuthenticated: boolean, url = '/dashboard') {
   const createUrlTreeMock = vi.fn((cmds: any[], extras?: any) => ({ cmds, extras }));
   const authMock = { isAuthenticated: vi.fn().mockReturnValue(isAuthenticated) };
 
@@ -27,16 +27,16 @@ describe('authGuard', () => {
   });
 
   it('redirige vers /auth/login si non authentifié', () => {
-    const { createUrlTreeMock } = run(false, '/cyberscan/dashboard');
+    const { createUrlTreeMock } = run(false, '/dashboard');
     expect(createUrlTreeMock).toHaveBeenCalledWith(
       ['/auth/login'],
-      expect.objectContaining({ queryParams: { returnUrl: '/cyberscan/dashboard' } })
+      expect.objectContaining({ queryParams: { returnUrl: '/dashboard' } })
     );
   });
 
   it('passe le returnUrl exact dans les queryParams', () => {
-    const { createUrlTreeMock } = run(false, '/cyberscan/scan/42');
-    expect(createUrlTreeMock.mock.calls[0][1].queryParams.returnUrl).toBe('/cyberscan/scan/42');
+    const { createUrlTreeMock } = run(false, '/scan/42');
+    expect(createUrlTreeMock.mock.calls[0][1].queryParams.returnUrl).toBe('/scan/42');
   });
 
   it('ne crée pas de UrlTree quand authentifié', () => {

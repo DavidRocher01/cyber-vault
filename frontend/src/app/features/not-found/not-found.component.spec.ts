@@ -78,7 +78,7 @@ describe('NotFoundComponent — termSubmit()', () => {
     comp.termCurrent = 'hint';
     comp.termSubmit();
     const out = outputLines(comp).join('\n');
-    expect(out).toContain('/cyberscan/r00t');
+    expect(out).toContain('/r00t');
   });
 
   it('scan — outputs 404 error code', () => {

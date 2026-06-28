@@ -1,7 +1,7 @@
 # Brief stratégique — Promotion & repositionnement Rocher Cybersécurité
 
 > **Document à destination de Claude Code (ou de toute personne reprenant le projet).**
-> Ce brief synthétise l'analyse du repo `cyber-vault` (https://github.com/DavidRocher01/cyber-vault) et du site en prod `https://cyberscanapp.com/cyberscan`, ainsi que la stratégie de campagne d'acquisition à mettre en œuvre.
+> Ce brief synthétise l'analyse du repo `cyber-vault` (https://github.com/DavidRocher01/cyber-vault) et du site en prod `https://rochercybersecurite.com/cyberscan`, ainsi que la stratégie de campagne d'acquisition à mettre en œuvre.
 > Date : avril 2026 — Budget total : < 500€ — Statut : site en ligne, 0 client.
 
 ---
@@ -56,7 +56,7 @@ Positionnement rare, plus profond que les "auditeurs théoriques" qui ne codent 
 **🚨 Problème n°1 — SEO inexistant**
 - Le site est une SPA Angular **sans SSR ni prérendu**
 - Google ne récupère que le `<title>`, aucun contenu indexé
-- Recherche `site:cyberscanapp.com` → 0 résultat
+- Recherche `site:rochercybersecurite.com` → 0 résultat
 - Conséquence : tout budget pub envoie du trafic sur une page non indexée, aucune découverte organique possible
 
 **🚨 Problème n°2 — Nom de marque non défendable**
@@ -430,7 +430,7 @@ David — [URL site]
 ## 7. Décisions ouvertes (à trancher avec David)
 
 - [ ] **Naming** : garder Rocher Cybersécurité + ajouter signature "David Rocher — Audit cybersécurité" en parallèle ? Ou pivot complet vers nouveau nom ?
-- [ ] **Domaine** : conserver cyberscanapp.com ou acheter un domaine secondaire dédié à l'audit (ex: `rocher-securite.fr`) qui pointe vers le même site ?
+- [ ] **Domaine** : conserver rochercybersecurite.com ou acheter un domaine secondaire dédié à l'audit (ex: `rocher-securite.fr`) qui pointe vers le même site ?
 - [ ] **Modèle de scan gratuit** : limiter à 1 scan par email/24h ? Captcha pour éviter abus ?
 - [ ] **CRM** : Notion / Airtable / HubSpot Free / solution custom dans Rocher Cybersécurité ?
 - [ ] **Facturation** : intégrer Stripe directement (Stripe Checkout pour offre Flash) ou rester sur facturation manuelle au début ?
@@ -441,7 +441,7 @@ David — [URL site]
 ## 8. Ressources et liens
 
 - Repo : https://github.com/DavidRocher01/cyber-vault
-- Site prod : https://cyberscanapp.com/cyberscan
+- Site prod : https://rochercybersecurite.com/cyberscan
 - Vérification marques INPI : https://base-marques.inpi.fr
 - Vérification marques EUIPO : https://euipo.europa.eu/eSearch
 - Google Search Console : https://search.google.com/search-console

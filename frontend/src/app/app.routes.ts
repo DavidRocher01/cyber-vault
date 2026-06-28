@@ -13,11 +13,6 @@ export const routes: Routes = [
     loadChildren: () => import('./features/vault/vault.routes').then(m => m.VAULT_ROUTES),
     canActivate: [authGuard, cryptoGuard],
   },
-  {
-    path: 'cyberscan',
-    loadChildren: () =>
-      import('./features/cyberscan/cyberscan.routes').then(m => m.CYBERSCAN_ROUTES),
-  },
   // ── Awareness learner portal (magic-link auth) ──────────────────────────────
   {
     path: 'awareness/login',
@@ -54,7 +49,11 @@ export const routes: Routes = [
       ),
     title: 'Vérification attestation — Rocher Cybersécurité',
   },
-  { path: '', redirectTo: 'cyberscan', pathMatch: 'full' },
+  {
+    path: '',
+    loadChildren: () =>
+      import('./features/cyberscan/cyberscan.routes').then(m => m.CYBERSCAN_ROUTES),
+  },
   {
     path: '**',
     loadComponent: () =>

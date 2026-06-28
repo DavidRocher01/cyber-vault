@@ -27,7 +27,7 @@ export async function createAndLogin(page: Page): Promise<string> {
     await page.locator('[formcontrolname="password"]').fill(PASSWORD);
     await page.locator('[formcontrolname="confirmPassword"]').fill(PASSWORD);
     await page.getByRole('button', { name: /créer mon compte/i }).click();
-    await page.waitForURL(/\/cyberscan/, { waitUntil: 'commit', timeout: 15_000 });
+    await page.waitForURL((url) => !url.pathname.startsWith('/auth'), { waitUntil: 'commit', timeout: 15_000 });
     return email;
   });
 }
@@ -40,6 +40,6 @@ export async function login(page: Page, email: string): Promise<void> {
     await page.locator('[formcontrolname="email"]').fill(email);
     await page.locator('[formcontrolname="password"]').fill(PASSWORD);
     await page.getByRole('button', { name: /se connecter/i }).click();
-    await page.waitForURL(/\/cyberscan/, { waitUntil: 'commit', timeout: 15_000 });
+    await page.waitForURL((url) => !url.pathname.startsWith('/auth'), { waitUntil: 'commit', timeout: 15_000 });
   });
 }

@@ -109,12 +109,12 @@ export class OnboardingComponent implements OnInit {
     if (this.currentStep() === 2) {
       this.currentStep.set(1);
     } else {
-      this.router.navigate(['/cyberscan/dashboard']);
+      this.router.navigate(['/dashboard']);
     }
   }
 
   goToDashboard() {
-    this.router.navigate(['/cyberscan/dashboard']);
+    this.router.navigate(['/dashboard']);
   }
 
   formatPrice(cents: number): string {

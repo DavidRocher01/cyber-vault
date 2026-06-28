@@ -319,7 +319,7 @@ async def test_export_csv_success():
     response = await export_scans_csv(site_id=1, current_user=user, db=db)
     # StreamingResponse
     assert response.media_type == "text/csv"
-    assert "cyberscan_site_1.csv" in response.headers.get("content-disposition", "")
+    assert "rochercybersecurite_site_1.csv" in response.headers.get("content-disposition", "")
 
 
 @pytest.mark.asyncio

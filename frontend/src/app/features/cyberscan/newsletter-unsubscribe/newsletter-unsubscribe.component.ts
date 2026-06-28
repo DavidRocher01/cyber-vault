@@ -15,7 +15,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
       >
         <app-nav-buttons />
         <a
-          routerLink="/cyberscan"
+          routerLink="/"
           style="color:#22d3ee;font-weight:700;font-size:15px;text-decoration:none;margin-left:8px;"
         >
           Rocher Cybersécurité
@@ -55,7 +55,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
                 Vous avez changé d'avis ? Vous pouvez vous réabonner à tout moment.
               </p>
               <a
-                routerLink="/cyberscan"
+                routerLink="/"
                 fragment="newsletter"
                 style="padding:10px 20px;border-radius:8px;background:rgba(8,145,178,0.15);border:1px solid rgba(8,145,178,0.3);color:#22d3ee;text-decoration:none;font-size:13px;font-weight:600;"
               >
@@ -63,7 +63,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
               </a>
             </div>
 
-            <a routerLink="/cyberscan" style="color:#475569;font-size:13px;text-decoration:none;">
+            <a routerLink="/" style="color:#475569;font-size:13px;text-decoration:none;">
               Retour à l'accueil
             </a>
           }
@@ -84,7 +84,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
               Ce lien de désabonnement est invalide ou a déjà été utilisé.
             </p>
             <a
-              routerLink="/cyberscan"
+              routerLink="/"
               style="padding:12px 24px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;text-decoration:none;font-weight:600;font-size:14px;"
             >
               Retour à l'accueil

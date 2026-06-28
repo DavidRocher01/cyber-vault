@@ -55,7 +55,7 @@ export interface SiteBadgeInfo {
             <div>
               <div class="flex items-center gap-2 flex-wrap">
                 <a
-                  [routerLink]="['/cyberscan/site', site.id]"
+                  [routerLink]="['/site', site.id]"
                   class="font-bold text-white hover:text-cyan-400 transition-colors"
                   >{{ site.name }}</a
                 >
@@ -100,14 +100,14 @@ export interface SiteBadgeInfo {
           </div>
           <div class="flex items-center gap-1.5">
             <a
-              [routerLink]="['/cyberscan/subdomains', site.id]"
+              [routerLink]="['/subdomains', site.id]"
               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-teal-700/40 text-teal-400 hover:bg-teal-500/10 hover:border-teal-500 transition-all"
             >
               <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">dns</mat-icon>
               DNS
             </a>
             <a
-              [routerLink]="['/cyberscan/site', site.id]"
+              [routerLink]="['/site', site.id]"
               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400 transition-all"
             >
               <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">arrow_forward</mat-icon>

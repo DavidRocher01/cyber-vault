@@ -3,22 +3,17 @@
   <nav
     class="sticky top-0 z-40 flex items-center justify-between px-6 py-3 border-b border-white/5 backdrop-blur-md bg-gray-900/80"
   >
-    <a routerLink="/cyberscan" class="flex items-center gap-2">
+    <a routerLink="/" class="flex items-center gap-2">
       <mat-icon class="text-cyan-400 !text-[1.6rem] !w-[1.6rem] !h-[1.6rem]">shield</mat-icon>
       <span class="text-lg font-bold text-white">Cyber<span class="text-cyan-400">Scan</span></span>
     </a>
     <div class="flex items-center gap-1">
       <app-nav-buttons />
-      <a
-        routerLink="/cyberscan"
-        mat-icon-button
-        class="!text-gray-400 hover:!text-white"
-        title="Accueil"
-      >
+      <a routerLink="/" mat-icon-button class="!text-gray-400 hover:!text-white" title="Accueil">
         <mat-icon>home</mat-icon>
       </a>
       <a
-        routerLink="/cyberscan/profile"
+        routerLink="/profile"
         mat-icon-button
         class="!text-gray-400 hover:!text-white"
         title="Profil"
@@ -26,7 +21,7 @@
         <mat-icon>person</mat-icon>
       </a>
       <a
-        routerLink="/cyberscan/factures"
+        routerLink="/factures"
         mat-icon-button
         class="!text-gray-400 hover:!text-white"
         title="Mes factures"
@@ -283,7 +278,7 @@
       <!-- ── Quick Tools ─────────────────────────────────────────────────── -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
         <a
-          routerLink="/cyberscan/url-scanner"
+          routerLink="/url-scanner"
           class="group flex items-center gap-4 rounded-xl border border-gray-700/60 bg-gray-800/40 hover:bg-gray-800/80 hover:border-red-700/50 px-5 py-4 transition-all"
         >
           <div
@@ -303,7 +298,7 @@
           >
         </a>
         <a
-          routerLink="/cyberscan/code-scan"
+          routerLink="/code-scan"
           class="group flex items-center gap-4 rounded-xl border border-gray-700/60 bg-gray-800/40 hover:bg-gray-800/80 hover:border-purple-700/50 px-5 py-4 transition-all"
         >
           <div
@@ -325,7 +320,7 @@
           >
         </a>
         <a
-          routerLink="/cyberscan/nis2"
+          routerLink="/nis2"
           class="group flex items-center gap-4 rounded-xl border border-gray-700/60 bg-gray-800/40 hover:bg-gray-800/80 hover:border-blue-700/50 px-5 py-4 transition-all"
         >
           <div
@@ -347,7 +342,7 @@
           >
         </a>
         <a
-          routerLink="/cyberscan/iso27001"
+          routerLink="/iso27001"
           class="group flex items-center gap-4 rounded-xl border border-gray-700/60 bg-gray-800/40 hover:bg-gray-800/80 hover:border-violet-700/50 px-5 py-4 transition-all"
         >
           <div
@@ -373,7 +368,7 @@
 
         @if (sites().length > 0) {
           <a
-            [routerLink]="['/cyberscan/subdomains', sites()[0].id]"
+            [routerLink]="['/subdomains', sites()[0].id]"
             class="group flex items-center gap-4 rounded-xl border border-gray-700/60 bg-gray-800/40 hover:bg-gray-800/80 hover:border-teal-700/50 px-5 py-4 transition-all"
           >
             <div
@@ -397,7 +392,7 @@
         }
 
         <a
-          routerLink="/cyberscan/phishing/campaigns"
+          routerLink="/phishing/campaigns"
           class="group flex items-center gap-4 rounded-xl border border-gray-700/60 bg-gray-800/40 hover:bg-gray-800/80 hover:border-orange-700/50 px-5 py-4 transition-all"
         >
           <div
@@ -422,7 +417,7 @@
         </a>
 
         <a
-          routerLink="/cyberscan/darkweb"
+          routerLink="/darkweb"
           class="group flex items-center gap-4 rounded-xl border border-gray-700/60 bg-gray-800/40 hover:bg-gray-800/80 hover:border-red-700/50 px-5 py-4 transition-all"
         >
           <div
@@ -445,7 +440,7 @@
         </a>
 
         <a
-          routerLink="/cyberscan/darkweb-dossier"
+          routerLink="/darkweb-dossier"
           class="group flex items-center gap-4 rounded-xl border border-gray-700/60 bg-gray-800/40 hover:bg-gray-800/80 hover:border-rose-700/50 px-5 py-4 transition-all"
         >
           <div
@@ -468,7 +463,7 @@
         </a>
 
         <a
-          routerLink="/cyberscan/sensibilisation"
+          routerLink="/sensibilisation"
           class="group flex items-center gap-4 rounded-xl border border-gray-700/60 bg-gray-800/40 hover:bg-gray-800/80 hover:border-purple-700/50 px-5 py-4 transition-all"
         >
           <div
@@ -744,7 +739,7 @@
                   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     @for (site of sites(); track site.id) {
                       <a
-                        [routerLink]="['/cyberscan/site', site.id]"
+                        [routerLink]="['/site', site.id]"
                         class="group flex items-center gap-3 bg-gray-900/60 border border-gray-700/50 rounded-xl px-4 py-3 hover:border-indigo-600/50 hover:bg-gray-900/80 transition-all"
                       >
                         <div class="flex-1 min-w-0">
@@ -1030,7 +1025,7 @@
               <mat-icon class="mr-2">add_circle</mat-icon>Ajouter mon premier site
             </button>
           } @else {
-            <a routerLink="/cyberscan/onboarding" mat-flat-button color="primary">
+            <a routerLink="/onboarding" mat-flat-button color="primary">
               <mat-icon class="mr-2">rocket_launch</mat-icon>Commencer
             </a>
           }

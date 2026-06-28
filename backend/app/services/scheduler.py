@@ -191,7 +191,7 @@ async def _check_ssl_alerts() -> None:
             if site.ssl_alert_threshold is not None and site.ssl_alert_threshold <= threshold:
                 continue
 
-            dashboard_url = f"{settings.FRONTEND_URL}/cyberscan/dashboard"
+            dashboard_url = f"{settings.FRONTEND_URL}/dashboard"
             try:
                 await asyncio.to_thread(
                     send_ssl_expiry_alert,
@@ -363,7 +363,7 @@ async def _send_monthly_digest_job() -> None:
         for scan in scans_result.scalars().all():
             scans_by_site.setdefault(scan.site_id, []).append(scan)
 
-    dashboard_url = f"{settings.FRONTEND_URL}/cyberscan/dashboard"
+    dashboard_url = f"{settings.FRONTEND_URL}/dashboard"
 
     for user_id, sites in sites_by_user.items():
         user = user_map[user_id]
@@ -485,7 +485,7 @@ async def _run_darkweb_monitoring() -> None:
             user = user_result.scalar_one_or_none()
 
         if new_exposed and user:
-            dashboard_url = f"{settings.FRONTEND_URL}/cyberscan/darkweb-dossier/{d.id}"
+            dashboard_url = f"{settings.FRONTEND_URL}/darkweb-dossier/{d.id}"
             send_darkweb_alert_email(
                 to_email=user.email,
                 company_name=d.company_name,
@@ -619,7 +619,7 @@ async def _run_awareness_at_risk_detection() -> None:
                 ).scalar_one_or_none()
                 if owner is None:
                     continue
-                dashboard_url = f"{settings.FRONTEND_URL}/cyberscan/awareness/org/{org.id}"
+                dashboard_url = f"{settings.FRONTEND_URL}/awareness/org/{org.id}"
                 send_awareness_at_risk_alert(
                     to_email=str(owner.email),
                     org_name=org.name,

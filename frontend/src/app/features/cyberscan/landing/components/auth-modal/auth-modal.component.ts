@@ -98,7 +98,7 @@ export class AuthModalComponent {
           this.authLoading = false;
         } else {
           this.close();
-          this.router.navigate(['/cyberscan']);
+          this.router.navigate(['/']);
         }
       },
       error: err => {
@@ -115,7 +115,7 @@ export class AuthModalComponent {
     this.auth.login(this.pendingEmail, this.pendingPassword, this.authOtpCode).subscribe({
       next: () => {
         this.close();
-        this.router.navigate(['/cyberscan']);
+        this.router.navigate(['/']);
       },
       error: err => {
         this.authError = err.error?.detail ?? 'Code invalide.';
@@ -142,7 +142,7 @@ export class AuthModalComponent {
       .subscribe({
         next: () => {
           this.close();
-          this.router.navigate(['/cyberscan/onboarding']);
+          this.router.navigate(['/onboarding']);
         },
         error: err => {
           this.authError = err.error?.detail ?? 'Erreur lors de la création du compte.';

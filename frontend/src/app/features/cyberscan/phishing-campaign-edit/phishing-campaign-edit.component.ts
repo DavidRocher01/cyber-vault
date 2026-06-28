@@ -77,7 +77,7 @@ export class PhishingCampaignEditComponent implements OnInit {
           c.status === 'sending' ||
           c.status === 'cancelled'
         ) {
-          this.router.navigate(['/cyberscan/phishing/campaigns', this.campaignId]);
+          this.router.navigate(['/phishing/campaigns', this.campaignId]);
           return;
         }
         this.campaign.set(c);
@@ -96,7 +96,7 @@ export class PhishingCampaignEditComponent implements OnInit {
       error: () => {
         this.loading.set(false);
         this.snack.open('Campagne introuvable', 'Fermer', { duration: 3000 });
-        this.router.navigate(['/cyberscan/phishing/campaigns']);
+        this.router.navigate(['/phishing/campaigns']);
       },
     });
   }
@@ -196,7 +196,7 @@ export class PhishingCampaignEditComponent implements OnInit {
               this.launching.set(false);
               const msg = this.isScheduled ? 'Envoi planifié !' : 'Campagne lancée !';
               this.snack.open(msg, 'Voir', { duration: 5000 });
-              this.router.navigate(['/cyberscan/phishing/campaigns', this.campaignId]);
+              this.router.navigate(['/phishing/campaigns', this.campaignId]);
             },
             error: err => {
               this.launching.set(false);

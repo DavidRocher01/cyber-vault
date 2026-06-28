@@ -86,7 +86,7 @@ export class DemoScanComponent {
     this.cyberscan.createPublicScan(url).subscribe({
       next: res => {
         this.demoLoading.set(false);
-        this.router.navigate(['/cyberscan/demo-result', res.token]);
+        this.router.navigate(['/demo-result', res.token]);
       },
       error: err => {
         this.demoLoading.set(false);

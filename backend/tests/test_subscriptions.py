@@ -84,7 +84,7 @@ async def test_checkout_dev_mode_returns_url():
         r = await c.post(f"{BASE}/subscriptions/checkout/{plan_id}", headers=h)
     assert r.status_code == 200
     assert "checkout_url" in r.json()
-    assert r.json()["checkout_url"].endswith("/cyberscan/success")
+    assert r.json()["checkout_url"].endswith("/success")
 
 
 @pytest.mark.asyncio

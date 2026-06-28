@@ -36,7 +36,7 @@ ou `python scripts/import_awareness_content.py`.
 ### DEV_MODE dans subscriptions.py
 
 Si `APP_ENV=development`, les checkouts Stripe sont simulés sans vrai paiement.
-Garde ajoutée : si `FRONTEND_URL` contient `cyberscanapp.com`, le démarrage crashe.
+Garde ajoutée : si `FRONTEND_URL` contient `rochercybersecurite.com`, le démarrage crashe.
 Ne jamais déployer avec `APP_ENV=development` en prod.
 
 ### _seed_plans dans main.py ET dans seed_plans.py

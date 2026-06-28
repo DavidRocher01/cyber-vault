@@ -11,7 +11,7 @@
       <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
         <div>
           <a
-            routerLink="/cyberscan/phishing/campaigns"
+            routerLink="/phishing/campaigns"
             class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-300 mb-3 transition-colors"
           >
             <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_back</mat-icon>
@@ -61,7 +61,7 @@
             </p>
           </div>
           <a
-            [routerLink]="['/cyberscan/phishing/campaigns', c.id, 'edit']"
+            [routerLink]="['/phishing/campaigns', c.id, 'edit']"
             class="ml-auto text-xs text-purple-400 hover:text-purple-300 transition-colors flex-shrink-0"
           >
             Modifier
@@ -258,7 +258,7 @@
             Aucune cible chargée — configurez la campagne pour importer votre liste.
           </p>
           <a
-            [routerLink]="['/cyberscan/phishing/campaigns', c.id, 'edit']"
+            [routerLink]="['/phishing/campaigns', c.id, 'edit']"
             mat-stroked-button
             class="!rounded-xl !border-gray-700 !text-gray-300 mt-4"
           >

@@ -119,7 +119,7 @@ const PLANS: AwarenessPlan[] = [
             <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">info</mat-icon>
             Tarification sur devis — les prix ci-dessous sont indicatifs.
             <a
-              routerLink="/cyberscan/contact"
+              routerLink="/contact"
               [queryParams]="{ subject: 'sensibilisation-nis2' }"
               class="underline hover:text-amber-300"
               >Nous contacter</a
@@ -186,7 +186,7 @@ const PLANS: AwarenessPlan[] = [
               <!-- CTA -->
               <div class="p-5 pt-0">
                 <a
-                  routerLink="/cyberscan/contact"
+                  routerLink="/contact"
                   [queryParams]="{ subject: 'sensibilisation-nis2' }"
                   mat-flat-button
                   class="w-full !rounded-xl !text-sm"
@@ -239,7 +239,7 @@ const PLANS: AwarenessPlan[] = [
             tout moment
           </p>
           <a
-            routerLink="/cyberscan/contact"
+            routerLink="/contact"
             mat-stroked-button
             class="!rounded-xl !border-gray-700 !text-gray-300 !text-sm"
           >

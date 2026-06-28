@@ -46,7 +46,18 @@ export class RegisterComponent {
 
   get returnUrl(): string | null {
     const url = this.route.snapshot.queryParamMap.get('returnUrl');
-    return url?.startsWith('/cyberscan/') ? url : null;
+    // Sous-chemin de l'app principale uniquement : exclut '/' (landing), les
+    // redirections externes (//, /\) et les zones a part (/auth, /vault, /awareness).
+    const isMainAppPath =
+      !!url &&
+      url.length > 1 &&
+      url.startsWith('/') &&
+      !url.startsWith('//') &&
+      !url.startsWith('/\\') &&
+      !url.startsWith('/auth') &&
+      !url.startsWith('/vault') &&
+      !url.startsWith('/awareness');
+    return isMainAppPath ? url : null;
   }
 
   form = this.fb.nonNullable.group(
@@ -95,7 +106,7 @@ export class RegisterComponent {
       .register(email, password)
       .pipe(switchMap(() => this.authService.login(email, password)))
       .subscribe({
-        next: () => this.router.navigateByUrl(this.returnUrl || '/cyberscan/onboarding'),
+        next: () => this.router.navigateByUrl(this.returnUrl || '/onboarding'),
         error: err => {
           this.error = err.error?.detail ?? 'Erreur inscription';
           this.loading = false;

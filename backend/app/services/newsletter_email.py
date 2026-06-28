@@ -40,7 +40,7 @@ def _footer(frontend: str, unsubscribe_url: str = "") -> str:
         f'<tr><td style="padding:24px 40px;border-top:1px solid #334155;text-align:center;">'
         f'<p style="margin:0 0 4px;color:#475569;font-size:12px;">Rocher Cybersécurité — Cybersecurite as a Service</p>'
         f'<p style="margin:0;font-size:11px;">'
-        f'<a href="{frontend}/cyberscan/ressources" style="color:#475569;">Ressources</a>{unsub}'
+        f'<a href="{frontend}/ressources" style="color:#475569;">Ressources</a>{unsub}'
         f"</p></td></tr>"
     )
 
@@ -161,7 +161,7 @@ def send_newsletter_welcome(to_email: str, unsubscribe_url: str) -> None:
         "</tr></table>"
         '<p style="color:#94a3b8;font-size:14px;line-height:1.7;">'
         'Prochaine edition dans <strong style="color:#f1f5f9;">moins de deux semaines</strong>.'
-        f' Consultez nos <a href="{settings.FRONTEND_URL}/cyberscan/ressources" style="color:#22d3ee;">ressources</a> en attendant.'
+        f' Consultez nos <a href="{settings.FRONTEND_URL}/ressources" style="color:#22d3ee;">ressources</a> en attendant.'
         "</p>"
         "</td></tr>" + _footer(settings.FRONTEND_URL, unsubscribe_url)
     )
@@ -178,7 +178,7 @@ def send_newsletter_welcome(to_email: str, unsubscribe_url: str) -> None:
 
 
 def send_unsubscribe_confirmation(to_email: str) -> None:
-    resubscribe_url = f"{settings.FRONTEND_URL}/cyberscan"
+    resubscribe_url = f"{settings.FRONTEND_URL}/"
     rows = (
         f'<tr><td style="{_HEADER_STYLE}text-align:center;">'
         '<p style="margin:0 0 6px;color:#67e8f9;font-size:12px;letter-spacing:2px;">LE RADAR CYBER</p>'
@@ -274,7 +274,7 @@ def send_newsletter_articles(
         '<tr><td style="padding:24px 28px 10px;">'
         '<p style="margin:0;color:#475569;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Au programme cette semaine</p>'
         "</td></tr>" + article_rows + '<tr><td style="padding:10px 28px 32px;text-align:center;">'
-        f'<a href="{settings.FRONTEND_URL}/cyberscan/dashboard"'
+        f'<a href="{settings.FRONTEND_URL}/dashboard"'
         ' style="display:inline-block;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;text-decoration:none;'
         'padding:13px 36px;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:0.3px;">'
         "Acceder a mon tableau de bord &rarr;"
@@ -285,7 +285,7 @@ def send_newsletter_articles(
     plain = (
         f"RADAR CYBER · Edition #{edition_str}\n\n"
         f"{plain_articles}"
-        f"Dashboard : {settings.FRONTEND_URL}/cyberscan/dashboard\n"
+        f"Dashboard : {settings.FRONTEND_URL}/dashboard\n"
         f"Se desabonner : {unsubscribe_url}\n---\nRocher Cybersécurité"
     )
     _send(to_email, f"Le Radar Cyber #{edition_str}", html, plain)
@@ -342,7 +342,7 @@ def send_newsletter_issue(
         "</td></tr></table>"
         "</td></tr>"
         '<tr><td style="padding:28px 40px;text-align:center;">'
-        f'<a href="{settings.FRONTEND_URL}/cyberscan/dashboard"'
+        f'<a href="{settings.FRONTEND_URL}/dashboard"'
         ' style="display:inline-block;background:#0891b2;color:#fff;text-decoration:none;'
         'padding:12px 32px;border-radius:8px;font-weight:bold;font-size:14px;">'
         "Acceder a mon dashboard"
@@ -355,7 +355,7 @@ def send_newsletter_issue(
         f"FLASH: {flash_title}\n{flash_body}\n\n"
         f"REFLEXE: {reflex_title}\n{reflex_body}\n\n"
         f"DIRIGEANTS: {legal_title}\n{legal_body}\n\n"
-        f"Dashboard : {settings.FRONTEND_URL}/cyberscan/dashboard\n"
+        f"Dashboard : {settings.FRONTEND_URL}/dashboard\n"
         f"Se desabonner : {unsubscribe_url}\n---\nRocher Cybersécurité"
     )
     _send(to_email, f"Le Radar Cyber #{edition_str}", html, plain)

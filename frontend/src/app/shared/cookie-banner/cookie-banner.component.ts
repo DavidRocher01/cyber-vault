@@ -21,10 +21,7 @@ const STORAGE_KEY = 'cyberscan_cookie_consent';
             <span class="font-semibold text-white">Cookies & confidentialité</span> — Nous utilisons
             uniquement des cookies strictement nécessaires au fonctionnement du service (session,
             authentification). Aucun cookie publicitaire ou de tracking tiers.
-            <a
-              routerLink="/cyberscan/politique-confidentialite"
-              class="text-cyan-400 hover:underline ml-1"
-            >
+            <a routerLink="/politique-confidentialite" class="text-cyan-400 hover:underline ml-1">
               Politique de confidentialité
             </a>
           </div>
