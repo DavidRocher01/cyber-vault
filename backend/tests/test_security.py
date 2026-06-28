@@ -7,7 +7,7 @@ Covers: hash_password, verify_password, create_access_token,
 
 import time
 
-from jose import jwt
+import jwt
 
 from app.core.config import settings
 from app.core.security import (

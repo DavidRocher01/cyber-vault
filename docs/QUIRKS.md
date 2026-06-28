@@ -114,12 +114,10 @@ Coût estimé : ~20 min/push. Budget : ~100 pushs/mois avant quota.
 Reset le 1er du mois. Surveiller via la routine quotidienne `CI Quota Monitor`.
 
 
-## CVE ignorées dans pip-audit (CI) — à revoir
+## CVE pip-audit (CI) — historique (résolu 2026-06-28)
 
-`pip-audit` (`.github/workflows/ci.yml`) ignore certaines vulnérabilités sans correctif applicable en l'état :
+`pip-audit` (`.github/workflows/ci.yml`) tourne désormais **sans aucun `--ignore-vuln`** — objectif zéro CVE atteint. Les 9 CVE auparavant ignorées ont été corrigées :
 
-- **starlette 0.46.2** — `PYSEC-2026-248`, `PYSEC-2026-249`, `CVE-2026-48817`, `CVE-2026-48818`.
-  Correctifs disponibles uniquement en **starlette 1.x**, **incompatible avec FastAPI 0.115**
-  (qui exige `starlette < 0.47`). À lever lors d'un futur **upgrade FastAPI** (FastAPI ≥ version
-  supportant starlette 1.x). Exposition jugée faible (app derrière CloudFront + usage standard).
-- python-multipart : **corrigé** par le bump `0.0.27 → 0.0.31` (plus ignoré).
+- **starlette** (`PYSEC-2026-161`, `CVE-2025-62727`, `PYSEC-2026-248`, `PYSEC-2026-249`, `CVE-2026-48817`, `CVE-2026-48818`, `GHSA-f96h-pmfr-66vw`, `GHSA-2c2j-9gv5-cj73`) — **corrigé** par le bump `fastapi 0.115.14 → 0.138.1` + `starlette → 1.3.1`.
+- **pyasn1** (`GHSA-jr27-m4p2-rc6r`) — **corrigé** par la migration `python-jose → PyJWT 2.13.0` (la chaîne pyasn1 vulnérable disparaît).
+- **python-multipart** — corrigé par le bump `0.0.27 → 0.0.31`.

@@ -61,12 +61,10 @@ jobs:
         working-directory: backend
 
       - name: pip-audit (vulnérabilités)
-        # GHSA-jr27-m4p2-rc6r : pyasn1 — python-jose@3.4.0 impose pyasn1<0.5.0, upgrade impossible sans migration JWT
-        # GHSA-f96h-pmfr-66vw : starlette — sera traité lors de la migration fastapi
-        # GHSA-2c2j-9gv5-cj73 : starlette — même raison
-        # PYSEC-2026-161 : starlette — même raison
-        # CVE-2025-62727 : starlette 0.46.2 — fix = 0.49.1, nécessite fastapi≥0.116, migration prévue
-        run: pip-audit --ignore-vuln GHSA-jr27-m4p2-rc6r --ignore-vuln GHSA-f96h-pmfr-66vw --ignore-vuln GHSA-2c2j-9gv5-cj73 --ignore-vuln PYSEC-2026-161 --ignore-vuln CVE-2025-62727 --ignore-vuln PYSEC-2026-248 --ignore-vuln PYSEC-2026-249 --ignore-vuln CVE-2026-48817 --ignore-vuln CVE-2026-48818
+        # Objectif : ZÉRO CVE ignorée. Chaîne python-jose/pyasn1 supprimée (migration
+        # vers PyJWT) et starlette/fastapi remontés (fastapi 0.138.1 / starlette 1.3.1)
+        # → les 9 CVE précédemment ignorées sont corrigées.
+        run: pip-audit
         working-directory: backend
 
       - name: Validate awareness content (YAML + Markdown)
