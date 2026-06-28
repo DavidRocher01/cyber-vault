@@ -36,7 +36,7 @@ test.describe('Dark Web — surveillance personnelle', () => {
   test('page darkweb — chargement après login', async ({ page }) => {
     await login(page, email);
     await page.goto('/darkweb');
-    await expect(page).toHaveURL(/\/cyberscan\/darkweb/);
+    await expect(page).toHaveURL(/\/darkweb/);
     // Le titre utilise un <span>, pas un heading — on vérifie le badge toujours visible
     await expect(page.getByText('SURVEILLANCE').first()).toBeVisible({ timeout: 10_000 });
   });
@@ -77,7 +77,7 @@ test.describe('Dark Web Dossier — liste', () => {
   test('page dossier — chargement après login', async ({ page }) => {
     await login(page, email);
     await page.goto('/darkweb-dossier');
-    await expect(page).toHaveURL(/\/cyberscan\/darkweb-dossier/);
+    await expect(page).toHaveURL(/\/darkweb-dossier/);
     // <h2> n'apparaît qu'après chargement (état vide) — attendre plus longtemps en CI
     await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 15_000 });
   });
@@ -114,7 +114,7 @@ test.describe('Dark Web Dossier — formulaire nouveau dossier', () => {
   test('page /new — chargement du formulaire', async ({ page }) => {
     await login(page, email);
     await page.goto('/darkweb-dossier/new');
-    await expect(page).toHaveURL(/\/cyberscan\/darkweb-dossier\/new/);
+    await expect(page).toHaveURL(/\/darkweb-dossier\/new/);
     await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 10_000 });
   });
 
@@ -148,6 +148,6 @@ test.describe('Dark Web Dossier — formulaire nouveau dossier', () => {
     await page.goto('/darkweb-dossier/new');
     const cancelLink = page.getByRole('link', { name: /Annuler|Retour/i }).first();
     await expect(cancelLink).toBeVisible({ timeout: 10_000 });
-    await expect(cancelLink).toHaveAttribute('href', /\/cyberscan\/darkweb-dossier$/);
+    await expect(cancelLink).toHaveAttribute('href', /\/darkweb-dossier$/);
   });
 });

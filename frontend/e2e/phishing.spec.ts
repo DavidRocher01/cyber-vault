@@ -55,7 +55,7 @@ async function setupCampaign(browser: import('@playwright/test').Browser) {
 test.describe('Phishing — landing page (publique)', () => {
   test('page landing — h1 visible', async ({ page }) => {
     await page.goto('/simulation-phishing');
-    await expect(page).toHaveURL(/\/cyberscan\/simulation-phishing/);
+    await expect(page).toHaveURL(/\/simulation-phishing/);
     await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
   });
 
@@ -101,7 +101,7 @@ test.describe('Phishing — liste des campagnes', () => {
   test('page campaigns — chargement et titre', async ({ page }) => {
     await createAndLogin(page);
     await page.goto('/phishing/campaigns');
-    await expect(page).toHaveURL(/\/cyberscan\/phishing\/campaigns/);
+    await expect(page).toHaveURL(/\/phishing\/campaigns/);
     await expect(page.getByRole('heading').first()).toBeVisible();
   });
 
@@ -116,7 +116,7 @@ test.describe('Phishing — liste des campagnes', () => {
     await page.goto('/phishing/campaigns');
     const link = page.getByRole('link', { name: /Nouvelle campagne/i });
     await expect(link).toBeVisible({ timeout: 5_000 });
-    await expect(link).toHaveAttribute('href', /\/cyberscan\/phishing\/new/);
+    await expect(link).toHaveAttribute('href', /\/phishing\/new/);
   });
 });
 
@@ -311,7 +311,7 @@ test.describe('Phishing — édition campagne', () => {
     await page.goto(`/phishing/campaigns/${campaignId}/edit`);
     const cancelLink = page.getByRole('link', { name: /Annuler/i });
     await expect(cancelLink).toBeVisible({ timeout: 5_000 });
-    await expect(cancelLink).toHaveAttribute('href', /\/cyberscan\/phishing\/campaigns$/);
+    await expect(cancelLink).toHaveAttribute('href', /\/phishing\/campaigns$/);
   });
 });
 
