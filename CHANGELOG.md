@@ -36,7 +36,7 @@ versionnage conforme à [Semantic Versioning](https://semver.org/lang/fr/).
 ## [0.3.0] — 2025-03-28
 
 ### Ajouté
-- **Plateforme SaaS CyberScan** : abonnements Stripe avec plans Starter (29 €/mois) et Pro (49 €/mois), tableau comparatif des plans
+- **Plateforme SaaS Rocher Cybersécurité** : abonnements Stripe avec plans Starter (29 €/mois) et Pro (49 €/mois), tableau comparatif des plans
 - **Frontend Angular complet** :
   - Landing page avec FAQ, témoignages, compteurs animés, section newsletter, offres d'audit
   - Dashboard avec liste de sites, déclenchement de scan, badges de statut

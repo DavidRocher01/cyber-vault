@@ -1,6 +1,6 @@
 # Checklist Vérification Naming — INPI / EUIPO / Domaine
 
-> **Objectif :** Sécuriser le choix d'un nom de marque (ou confirmer le maintien de "CyberScan")
+> **Objectif :** Sécuriser le choix d'un nom de marque (ou confirmer le maintien de "Rocher Cybersécurité")
 > **Temps requis :** 30 min pour pré-screening / 2h pour vérification approfondie
 > **Coût :** 0€ pour vérif autonome / ~50-200€ pour recherche d'antériorité INPI complète par cabinet
 
@@ -286,7 +286,7 @@ Si je devais arbitrer pour toi entre originalité, disponibilité probable et co
 
 **Pour démarrer la promo SANS bloquer ton lancement :**
 
-1. **Garde "CyberScan"** comme nom du **produit** (le scanner gratuit, le logiciel)
+1. **Garde "Rocher Cybersécurité"** comme nom du **produit** (le scanner gratuit, le logiciel)
 2. **Signe les prestations** sous "**Rocher Cybersécurité**" ou "**David Rocher — Auditeur Cybersécurité**"
 3. **Vérifie INPI/EUIPO** sur "Sentinex" et "Aegide" pendant les 4 premières semaines
 4. **Si un des deux est libre + 5 voyants verts** → dépose la marque (~190€) + bascule progressivement la communication

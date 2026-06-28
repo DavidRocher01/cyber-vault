@@ -1,4 +1,4 @@
-# CyberScan
+# Rocher Cybersécurité
 
 Plateforme SaaS de cybersécurité B2B — scanner de vulnérabilités, modules de conformité NIS2/ISO 27001/PCA, Dark Web monitoring, simulation phishing, sensibilisation e-learning, RSSI externalisé.
 

@@ -1,4 +1,4 @@
-# Dette technique CyberScan — refacto long terme
+# Dette technique Rocher Cybersécurité — refacto long terme
 
 > **Pour qui** : toi, dans 3-6 mois, quand tu auras des clients réels et que tu reprendras le code.
 > **Pour quoi** : tout ce qui n'a pas été fait avant le gel parce que **non visible commercialement**.
@@ -106,7 +106,7 @@ Options :
 
 **A. Le rendre vraiment indépendant** (CLI commercial séparé)
 - Packager comme un vrai package pip
-- Le vendre comme un produit séparé ("CyberScan CLI" — outil ligne de commande pour pentesters)
+- Le vendre comme un produit séparé ("Rocher Cybersécurité CLI" — outil ligne de commande pour pentesters)
 - Supprimer la dépendance backend → réécrire les services scan
 
 **B. L'intégrer proprement au backend**

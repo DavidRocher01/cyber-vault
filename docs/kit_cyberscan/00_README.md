@@ -1,6 +1,6 @@
-# Kit CyberScan — Stratégie de promotion complète
+# Kit Rocher Cybersécurité — Stratégie de promotion complète
 
-> **Pour qui ?** David Rocher, fondateur CyberScan / Cyber-Vault
+> **Pour qui ?** David Rocher, fondateur Rocher Cybersécurité / Cyber-Vault
 > **Pourquoi ?** Lancer une campagne d'acquisition B2B audit cybersécurité avec budget < 500€
 > **Quand ?** Avril 2026, plan 8 semaines
 > **Statut :** Pack prêt à exécuter
@@ -91,7 +91,7 @@
 
 ## ⚠️ Points de vigilance
 
-1. **Naming** : "CyberScan" pas défendable juridiquement. Plan B = signer sous "Rocher Cybersécurité" tout en testant Sentinex/Aegide à l'INPI.
+1. **Naming** : "Rocher Cybersécurité" pas défendable juridiquement. Plan B = signer sous "Rocher Cybersécurité" tout en testant Sentinex/Aegide à l'INPI.
 2. **SEO** : le site est invisible de Google en l'état (SPA Angular sans SSR). À régler avant le moindre euro de pub.
 3. **Vérifications INPI** : aucune n'a été faite par moi. À ta charge avant tout dépôt définitif.
 4. **Conformité RGPD** du cold email : intérêt légitime B2B OK, mais lien de désinscription obligatoire (cf. doc 03).

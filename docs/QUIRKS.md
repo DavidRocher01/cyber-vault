@@ -1,4 +1,4 @@
-# Bizarreries connues du codebase CyberScan
+# Bizarreries connues du codebase Rocher Cybersécurité
 
 Ce document recense les patterns surprenants ou non-évidents du code.
 À lire avant de toucher les modules concernés.

@@ -42,7 +42,7 @@
   • test_ssl_alerts_unit.py (16 tests) : logique déduplication, escalade
     seuils 30/14/7 jours, multi-sites, échec email silencieux
   • test_ssl_email_unit.py (15 tests) : HTML/texte, couleurs CRITIQUE/
-    URGENT/ATTENTION, sujet [CyberScan] prefix
+    URGENT/ATTENTION, sujet [Rocher Cybersécurité] prefix
   • test_notif_prefs_unit.py (6 tests) : persistance notif_ssl_expiry, schémas
 
   FEATURES — Alertes SSL
@@ -251,7 +251,7 @@
   • Page Ressources : liens externes + chaînes YouTube cybersécurité
   • Page Bonnes Pratiques : 4 sections de bonnes pratiques
 
-  FEATURES — SaaS CyberScan (module principal)
+  FEATURES — SaaS Rocher Cybersécurité (module principal)
   • Profil utilisateur, onboarding, succès Stripe
   • Pagination, export CSV, dialog de confirmation
   • Skeleton de chargement, thème dark, i18n
