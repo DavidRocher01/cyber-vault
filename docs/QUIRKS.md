@@ -112,3 +112,14 @@ Utiliser les RDS Automated Backups (rétention à configurer) + snapshots manuel
 Pipeline CI optimisé en mai 2026 (fusion job coverage + concurrency).
 Coût estimé : ~20 min/push. Budget : ~100 pushs/mois avant quota.
 Reset le 1er du mois. Surveiller via la routine quotidienne `CI Quota Monitor`.
+
+
+## CVE ignorées dans pip-audit (CI) — à revoir
+
+`pip-audit` (`.github/workflows/ci.yml`) ignore certaines vulnérabilités sans correctif applicable en l'état :
+
+- **starlette 0.46.2** — `PYSEC-2026-248`, `PYSEC-2026-249`, `CVE-2026-48817`, `CVE-2026-48818`.
+  Correctifs disponibles uniquement en **starlette 1.x**, **incompatible avec FastAPI 0.115**
+  (qui exige `starlette < 0.47`). À lever lors d'un futur **upgrade FastAPI** (FastAPI ≥ version
+  supportant starlette 1.x). Exposition jugée faible (app derrière CloudFront + usage standard).
+- python-multipart : **corrigé** par le bump `0.0.27 → 0.0.31` (plus ignoré).
