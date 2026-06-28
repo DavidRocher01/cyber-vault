@@ -291,13 +291,29 @@ async def test_nis2_report_pdf_returns_pdf_bytes():
 
 @pytest.mark.asyncio
 async def test_phishing_click_unknown_learner():
+    from unittest.mock import patch
+
+    with patch("app.core.deps.settings") as mock_settings:
+        mock_settings.ADMIN_API_KEY = "test-admin-key"
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.post(
+                f"{BASE}/awareness/internal/phishing-click",
+                params={"learner_email": "ghost@nowhere.com", "organization_id": 9999},
+                headers={"x-admin-key": "test-admin-key"},
+            )
+    assert r.status_code == 202
+    assert r.json()["enrolled"] is False
+
+
+@pytest.mark.asyncio
+async def test_phishing_click_requires_admin_key():
+    """Sans X-Admin-Key valide, le webhook interne doit être refusé (403)."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.post(
             f"{BASE}/awareness/internal/phishing-click",
             params={"learner_email": "ghost@nowhere.com", "organization_id": 9999},
         )
-    assert r.status_code == 202
-    assert r.json()["enrolled"] is False
+    assert r.status_code == 403
 
 
 # ── Scheduler Sprint 10 ────────────────────────────────────────────────────────

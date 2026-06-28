@@ -98,7 +98,7 @@ migrate: ## Applique les migrations Alembic
 migrate-rollback: ## Annule la dernière migration
 	cd backend && alembic downgrade -1
 
-migrate-new: ## Crée une nouvelle migration (MSG="description")
+migrate-new: check-migrations ## Crée une nouvelle migration (MSG="description") — vérifie le DAG avant
 	cd backend && alembic revision --autogenerate -m "$(MSG)"
 
 migrate-reset: ## Remet la DB à zéro (⚠️ destructif)
@@ -107,6 +107,9 @@ migrate-reset: ## Remet la DB à zéro (⚠️ destructif)
 
 migrate-status: ## Affiche le statut des migrations
 	cd backend && alembic current && alembic heads
+
+check-migrations: ## Vérifie la santé du DAG Alembic (IDs uniques, pas de fantômes, une tête)
+	python scripts/check_migrations.py
 
 # ── Docker ──────────────────────────────────────────────────────────────────────
 

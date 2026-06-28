@@ -344,3 +344,52 @@ async def test_users_me_totp_enabled_field_true_after_enable():
         r = await c.get(f"{BASE}/users/me", headers=headers)
 
     assert r.json()["totp_enabled"] is True
+
+
+@pytest.mark.asyncio
+async def test_totp_secret_encrypted_at_rest():
+    """La graine TOTP est chiffrée en base (pas en clair) et déchiffrable."""
+    from sqlalchemy import select
+
+    from app.core.totp_crypto import decrypt_totp_secret
+
+    email = "atrest@2fa.com"
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        headers = await _register_login(c, email)
+        secret = await _setup_and_enable_2fa(c, headers)
+
+    async with _db_module.AsyncSessionLocal() as db:
+        user = (await db.execute(select(User).where(User.email == email))).scalar_one()
+
+    assert user.totp_secret != secret, "graine TOTP stockée en clair !"
+    assert decrypt_totp_secret(user.totp_secret) == secret
+
+
+@pytest.mark.asyncio
+async def test_totp_failures_count_toward_lockout():
+    """N codes TOTP faux (mot de passe correct) verrouillent le compte."""
+    from app.core.config import settings as app_settings
+
+    email = "lock2fa@test.com"
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        headers = await _register_login(c, email)
+        secret = await _setup_and_enable_2fa(c, headers)
+
+        current = pyotp.TOTP(secret).now()
+        wrong = "654321" if current != "654321" else "123456"
+
+        for _ in range(app_settings.MAX_LOGIN_ATTEMPTS):
+            r = await c.post(
+                f"{BASE}/auth/login",
+                json={"email": email, "password": PWD, "totp_code": wrong},
+            )
+            assert r.status_code == 401
+
+        # Compte verrouillé : même le bon code est refusé par un 429.
+        good = pyotp.TOTP(secret).now()
+        locked = await c.post(
+            f"{BASE}/auth/login",
+            json={"email": email, "password": PWD, "totp_code": good},
+        )
+    assert locked.status_code == 429
+    assert "verrou" in locked.json()["detail"].lower()

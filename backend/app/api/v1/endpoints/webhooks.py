@@ -44,18 +44,24 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
 
     data = event["data"]["object"]
 
-    if event["type"] == "checkout.session.completed":
-        await _handle_checkout_completed(data, db)
+    try:
+        if event["type"] == "checkout.session.completed":
+            await _handle_checkout_completed(data, db)
 
-    elif event["type"] in (
-        "customer.subscription.updated",
-        "customer.subscription.deleted",
-    ):
-        await _handle_subscription_updated(data, db)
+        elif event["type"] in (
+            "customer.subscription.updated",
+            "customer.subscription.deleted",
+        ):
+            await _handle_subscription_updated(data, db)
 
-    elif event["type"] == "invoice.payment_succeeded":
-        await _handle_invoice_payment_succeeded(data, db)
+        elif event["type"] == "invoice.payment_succeeded":
+            await _handle_invoice_payment_succeeded(data, db)
 
+    except Exception as exc:
+        logger.exception(f"Stripe webhook {event_id} processing failed: {exc}")
+        raise HTTPException(status_code=500, detail="Webhook processing failed")
+
+    # Mark as processed only after successful handling so Stripe can retry on failure
     db.add(ProcessedStripeEvent(stripe_event_id=event_id))
     await db.commit()
     return {"status": "ok"}
@@ -91,12 +97,22 @@ async def _handle_checkout_completed(session: dict, db: AsyncSession) -> None:
 
     # Retrieve full subscription to get price_id and period (async-safe)
     stripe_sub = await asyncio.to_thread(stripe.Subscription.retrieve, subscription_id)
-    price_id = stripe_sub["items"]["data"][0]["price"]["id"]
+    try:
+        price_id = stripe_sub["items"]["data"][0]["price"]["id"]
+    except (KeyError, IndexError) as exc:
+        logger.error(
+            f"Stripe webhook: cannot extract price_id from subscription {subscription_id}: {exc}"
+        )
+        return
 
     # Find matching plan
     result = await db.execute(select(Plan).where(Plan.stripe_price_id == price_id))
     plan = result.scalar_one_or_none()
     if not plan:
+        logger.warning(
+            f"Stripe webhook: no plan found for price_id={price_id} "
+            f"(subscription_id={subscription_id}) — create a matching plan or update Stripe IDs"
+        )
         return
 
     # Find user by email
@@ -105,6 +121,10 @@ async def _handle_checkout_completed(session: dict, db: AsyncSession) -> None:
     user_result = await db.execute(select(User).where(User.email == customer_email))
     user = user_result.scalar_one_or_none()
     if not user:
+        logger.error(
+            f"Stripe webhook: user not found for subscription {subscription_id} "
+            f"— subscription will not be activated"
+        )
         return
 
     # Upsert subscription

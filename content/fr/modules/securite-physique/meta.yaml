@@ -1,0 +1,10 @@
+title: "Sécurité physique : locaux, écrans et matériel"
+description: "Une cyberattaque peut commencer par une porte mal fermée ou un écran mal orienté. Les bons réflexes physiques complètent la sécurité numérique."
+content_type: mixed
+estimated_duration_minutes: 5
+xp_points: 10
+has_quiz: true
+quiz_max_attempts: 3
+quiz_cooldown_minutes: 15
+quiz_passing_score: 60
+is_active: true

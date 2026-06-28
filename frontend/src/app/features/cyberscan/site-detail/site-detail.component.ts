@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -31,7 +31,7 @@ import {
   standalone: true,
   selector: 'app-site-detail',
   imports: [
-    CommonModule,
+    NgClass,
     FormsModule,
     RouterLink,
     MatButtonModule,

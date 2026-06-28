@@ -1,3 +1,4 @@
+import base64
 from datetime import UTC, datetime, timedelta
 
 from fastapi import (
@@ -11,7 +12,7 @@ from fastapi import (
     status,
 )
 from loguru import logger
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -62,7 +63,16 @@ def _clear_refresh_cookie(response: Response) -> None:
     response.delete_cookie(key=_COOKIE_NAME, path=_COOKIE_PATH)
 
 
-@router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    response_model=UserOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Créer un compte",
+    responses={
+        409: {"description": "Email déjà utilisé"},
+        429: {"description": "Trop de tentatives (5/min)"},
+    },
+)
 @limiter.limit("5/minute")
 async def register(request: Request, payload: UserCreate, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == payload.email))
@@ -75,7 +85,15 @@ async def register(request: Request, payload: UserCreate, db: AsyncSession = Dep
     return user
 
 
-@router.post("/login")
+@router.post(
+    "/login",
+    summary="Connexion (email + mot de passe, 2FA optionnelle)",
+    response_description="Access token + crypto_salt ; ou {requires_2fa: true} si la 2FA est active",
+    responses={
+        401: {"description": "Identifiants ou code 2FA invalides"},
+        429: {"description": "Compte verrouillé ou rate-limit (10/min)"},
+    },
+)
 @limiter.limit("10/minute")
 async def login(
     request: Request,
@@ -112,24 +130,38 @@ async def login(
         await db.commit()  # Must commit before raising — rollback would undo the counter
         raise invalid_exc
 
-    user.failed_login_attempts = 0
-    user.locked_until = None
-
     # 2FA check — auto-repair inconsistent state (enabled=True but no secret)
     if user.totp_enabled and not user.totp_secret:
         user.totp_enabled = False
 
     if user.totp_enabled and user.totp_secret:
         if not payload.totp_code:
+            # Mot de passe OK mais 2FA en attente : on ne réinitialise PAS encore le
+            # compteur (sinon le brute-force du code TOTP ne serait jamais verrouillé).
             await db.commit()
             return {"requires_2fa": True}
         import pyotp
 
-        totp = pyotp.TOTP(user.totp_secret)
+        from app.core.totp_crypto import decrypt_totp_secret
+
+        totp = pyotp.TOTP(decrypt_totp_secret(user.totp_secret))
         if not totp.verify(payload.totp_code, valid_window=1):
+            # Les échecs TOTP comptent dans le lockout (anti brute-force du code 2FA).
+            user.failed_login_attempts += 1
+            if user.failed_login_attempts >= settings.MAX_LOGIN_ATTEMPTS:
+                user.locked_until = datetime.now(UTC) + timedelta(minutes=settings.LOCKOUT_MINUTES)
+                logger.warning(
+                    f"Account locked after {user.failed_login_attempts} failed TOTP attempts: "
+                    f"user_id={user.id}"
+                )
+            await db.commit()  # commit avant de lever — sinon le compteur serait annulé
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Code 2FA invalide"
             )
+
+    # Authentification complète réussie (mot de passe + 2FA le cas échéant) → reset compteur
+    user.failed_login_attempts = 0
+    user.locked_until = None
 
     access_token = create_access_token(subject=str(user.id))
     raw_refresh = create_refresh_token()
@@ -138,10 +170,19 @@ async def login(
     await db.commit()
     _set_refresh_cookie(response, raw_refresh)
     logger.info("User logged in (id={})", user.id)
-    return AccessTokenOut(access_token=access_token)
+    return AccessTokenOut(
+        access_token=access_token,
+        crypto_salt=base64.b64encode(user.crypto_salt).decode() if user.crypto_salt else None,
+    )
 
 
-@router.post("/refresh", response_model=AccessTokenOut)
+@router.post(
+    "/refresh",
+    response_model=AccessTokenOut,
+    summary="Renouveler l'access token",
+    response_description="Nouvel access token (le refresh token cookie est aussi tourné)",
+    responses={401: {"description": "Refresh token absent, expiré ou révoqué"}},
+)
 async def refresh(
     response: Response,
     refresh_token: str | None = Cookie(default=None, alias=_COOKIE_NAME),
@@ -176,7 +217,11 @@ async def refresh(
     return AccessTokenOut(access_token=new_access)
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Déconnexion (révoque le refresh token + efface le cookie)",
+)
 async def logout(
     response: Response,
     refresh_token: str | None = Cookie(default=None, alias=_COOKIE_NAME),
@@ -196,8 +241,16 @@ async def logout(
 RESET_TOKEN_EXPIRE_MINUTES = 30
 
 
-@router.post("/forgot-password", status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/forgot-password",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Demander un lien de réinitialisation",
+    response_description="202 systématique (pas d'énumération de comptes)",
+    responses={429: {"description": "Rate-limit (5/min)"}},
+)
+@limiter.limit("5/minute")
 async def forgot_password(
+    request: Request,
     payload: ForgotPasswordIn,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
@@ -218,8 +271,20 @@ async def forgot_password(
     logger.info(f"Password reset requested for: user_id={user.id}")
 
 
-@router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
-async def reset_password(payload: ResetPasswordIn, db: AsyncSession = Depends(get_db)):
+@router.post(
+    "/reset-password",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Réinitialiser le mot de passe via token",
+    response_description="204 ; révoque toutes les sessions et déverrouille le compte",
+    responses={
+        400: {"description": "Lien invalide ou expiré"},
+        429: {"description": "Rate-limit (5/min)"},
+    },
+)
+@limiter.limit("5/minute")
+async def reset_password(
+    request: Request, payload: ResetPasswordIn, db: AsyncSession = Depends(get_db)
+):
     result = await db.execute(
         select(PasswordResetToken).where(PasswordResetToken.token == hash_token(payload.token))
     )
@@ -240,6 +305,21 @@ async def reset_password(payload: ResetPasswordIn, db: AsyncSession = Depends(ge
         raise invalid_exc
 
     user.hashed_password = hash_password(payload.password)
-    stored.used = True
+    # Sécurité : un reset de mot de passe doit invalider toutes les sessions et
+    # déverrouiller le compte (l'attaquant potentiel perd ses sessions).
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    # Révoque tous les refresh tokens actifs de l'utilisateur.
+    await db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user.id, RefreshToken.revoked.is_(False))
+        .values(revoked=True)
+    )
+    # Marque comme utilisés tous les reset tokens non consommés (dont celui-ci).
+    await db.execute(
+        update(PasswordResetToken)
+        .where(PasswordResetToken.user_id == user.id, PasswordResetToken.used.is_(False))
+        .values(used=True)
+    )
     await db.commit()
     logger.info(f"Password reset completed for user_id={user.id}")

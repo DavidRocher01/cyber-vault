@@ -1,5 +1,5 @@
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -25,7 +25,7 @@ type PageView = 'dashboard' | 'content' | 'quiz' | 'quiz-result' | 'certificate'
   standalone: true,
   selector: 'app-awareness-module',
   imports: [
-    CommonModule,
+    DatePipe,
     RouterLink,
     FormsModule,
     MatButtonModule,
@@ -192,7 +192,7 @@ type PageView = 'dashboard' | 'content' | 'quiz' | 'quiz-result' | 'certificate'
                   class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white"
                   (click)="startQuiz()"
                 >
-                  <mat-icon>quiz</mat-icon> Passer le quiz
+                  <mat-icon>quiz</mat-icon> Passer au quizz
                 </button>
               } @else {
                 <button

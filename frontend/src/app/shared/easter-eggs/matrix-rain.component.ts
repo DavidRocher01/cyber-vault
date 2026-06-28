@@ -8,7 +8,10 @@ import {
   AfterViewInit,
   ChangeDetectionStrategy,
   SimpleChanges,
+  PLATFORM_ID,
+  inject,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { CommonModule } from '@angular/common';
 
 const CHARS =
@@ -56,6 +59,7 @@ const CHARS =
 export class MatrixRainComponent implements OnChanges, AfterViewInit, OnDestroy {
   @Input() visible = false;
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLCanvasElement>;
+  private platformId = inject(PLATFORM_ID);
 
   private rafId = 0;
   private drops: number[] = [];
@@ -63,10 +67,12 @@ export class MatrixRainComponent implements OnChanges, AfterViewInit, OnDestroy 
   closeRequested = false;
 
   ngAfterViewInit(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
     if (this.visible) this.start();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (!isPlatformBrowser(this.platformId)) return;
     if (changes['visible']) {
       if (this.visible) {
         setTimeout(() => this.start(), 0);

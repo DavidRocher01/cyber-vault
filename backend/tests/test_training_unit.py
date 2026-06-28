@@ -40,8 +40,10 @@ def _db_no_progress():
 
 def _db_with_progress(module_ids: list[str]):
     db = AsyncMock()
+    call_count = [0]
 
     async def execute(q):
+        call_count[0] += 1
         r = MagicMock()
         items = []
         for mid in module_ids:
@@ -50,7 +52,13 @@ def _db_with_progress(module_ids: list[str]):
             p.completed_at = datetime.now(UTC)
             items.append(p)
         r.scalars.return_value.all.return_value = items
-        r.scalar_one_or_none.return_value = items[0] if items else None
+        # Call 1 is always the AwarenessProgram lookup inside _load_all_modules.
+        # Returning None skips the awareness branch (which would call
+        # yaml.safe_load on a MagicMock and hang).
+        # Subsequent calls are TrainingProgress lookups — return items normally.
+        r.scalar_one_or_none.return_value = (
+            None if call_count[0] == 1 else (items[0] if items else None)
+        )
         return r
 
     db.execute = execute

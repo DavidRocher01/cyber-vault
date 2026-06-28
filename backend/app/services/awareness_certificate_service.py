@@ -22,6 +22,7 @@ import json
 import secrets
 from datetime import UTC, datetime, timedelta
 
+from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -127,7 +128,8 @@ async def issue_certificate(
             cert.pdf_s3_key = s3_key
             await db.commit()
     except Exception:
-        pass  # PDF generation is best-effort; certificate DB record always created
+        # Niveau error + traceback -> capture Sentry (echec generation = enjeu conformite)
+        logger.exception(f"Certificate PDF generation failed for {cert.public_id}")
 
     return cert
 
@@ -331,4 +333,6 @@ async def _upload_to_s3(public_id: str, pdf_bytes: bytes) -> str | None:
         )
         return key
     except Exception:
+        # Niveau error + traceback -> capture Sentry (certificat non stocke = perte donnee)
+        logger.exception(f"S3 certificate upload failed for {public_id}")
         return None

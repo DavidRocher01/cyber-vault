@@ -98,7 +98,7 @@ async def download_url_scan_pdf(
 
     try:
         results = json.loads(scan.results_json)
-    except Exception:
+    except json.JSONDecodeError:
         raise HTTPException(status_code=500, detail="Données de scan invalides")
 
     results["url"] = scan.url

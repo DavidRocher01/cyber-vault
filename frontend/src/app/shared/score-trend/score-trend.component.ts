@@ -1,5 +1,4 @@
 import { Component, Input, OnChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
 
 export interface ScoreTrendPoint {
   date: string; // ISO string
@@ -16,7 +15,7 @@ interface ChartPoint {
 @Component({
   standalone: true,
   selector: 'app-score-trend',
-  imports: [CommonModule],
+  imports: [],
   template: `
     @if (points.length < 2) {
       <div class="flex items-center justify-center h-full text-gray-500 text-sm">

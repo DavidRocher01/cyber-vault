@@ -1,0 +1,143 @@
+questions:
+  - id: pca_01
+    type: single_choice
+    weight: 1
+    text: "Que signifie l'acronyme RTO ?"
+    answers:
+      - id: a
+        text: "Recovery Time Objective — durée maximale d'interruption acceptable"
+        correct: true
+      - id: b
+        text: "Recovery Total Operations — procédures de reprise complètes"
+        correct: false
+      - id: c
+        text: "Risk Transfer Operations — transfert du risque à l'assureur"
+        correct: false
+      - id: d
+        text: "Resilience Testing Order — ordre de priorité des tests"
+        correct: false
+    explanation: "Le RTO (Recovery Time Objective) définit combien de temps maximum un système peut être indisponible avant de causer un préjudice inacceptable. Si le RTO de votre CRM est de 4h, l'IT doit le restaurer en moins de 4h. C'est une mesure de l'urgence de la reprise."
+
+  - id: pca_02
+    type: single_choice
+    weight: 1
+    text: "Quelle est la première chose à faire si vous détectez un ransomware sur votre poste ?"
+    answers:
+      - id: a
+        text: "Redémarrer l'ordinateur pour tenter de l'éliminer"
+        correct: false
+      - id: b
+        text: "Éteindre immédiatement tous les ordinateurs du bureau"
+        correct: false
+      - id: c
+        text: "Signaler immédiatement à votre IT sans rien modifier"
+        correct: true
+      - id: d
+        text: "Contacter directement les clients potentiellement affectés"
+        correct: false
+    explanation: "En cas de ransomware, la priorité est de signaler immédiatement à l'IT SANS rien modifier. Redémarrer peut aggraver la situation (le ransomware chiffre plus de fichiers au redémarrage). Éteindre les machines peut détruire les logs nécessaires à l'analyse. Les communications vers l'extérieur sont gérées par la direction."
+
+  - id: pca_03
+    type: true_false
+    weight: 1
+    text: "Stocker des données professionnelles sur votre Dropbox personnel garantit leur sauvegarde en cas de ransomware."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Non. Les ransomwares modernes chiffrent aussi les lecteurs réseau et les dossiers synchronisés avec le cloud (Dropbox, OneDrive, Google Drive). Si votre Dropbox personnel est synchronisé sur votre poste infecté, les fichiers chiffrés se synchronisent dans le cloud en quelques minutes. Utilisez uniquement les solutions de stockage et sauvegarde validées par votre IT."
+
+  - id: pca_04
+    type: single_choice
+    weight: 2
+    text: "Quel est le temps moyen de reprise après un ransomware avec un PCA testé, selon Coveware 2024 ?"
+    answers:
+      - id: a
+        text: "22 jours"
+        correct: false
+      - id: b
+        text: "4 jours"
+        correct: true
+      - id: c
+        text: "1 jour"
+        correct: false
+      - id: d
+        text: "60 jours"
+        correct: false
+    explanation: "Selon Coveware (2024), le temps moyen de reprise après un ransomware est de 22 jours sans PCA testé, contre 4 jours avec un PCA bien préparé. Cette différence de 18 jours représente des coûts considérables (perte de production, salaires, contrats manqués). C'est pourquoi NIS2 impose un PCA documenté ET régulièrement testé."
+
+  - id: pca_05
+    type: multiple_choice
+    weight: 2
+    text: "Qu'est-ce qu'un 'mode dégradé' pendant une crise cyber ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Utiliser des téléphones portables à la place des emails d'entreprise"
+        correct: true
+      - id: b
+        text: "Travailler avec des processus manuels (bons papier, validation téléphonique)"
+        correct: true
+      - id: c
+        text: "Arrêter complètement l'activité jusqu'à la résolution"
+        correct: false
+      - id: d
+        text: "Accéder à des postes de secours ou machines prêtées"
+        correct: true
+      - id: e
+        text: "Utiliser des messageries alternatives sécurisées"
+        correct: true
+    explanation: "Le mode dégradé permet de maintenir une activité minimale pendant la restauration des systèmes. Il s'appuie sur des alternatives préparées à l'avance : autres canaux de communication, processus manuels documentés, équipements de secours. L'objectif n'est pas la performance maximale, mais la continuité des fonctions critiques."
+
+  - id: pca_06
+    type: true_false
+    weight: 1
+    text: "Pendant la phase de reprise après un incident, vous pouvez réintroduire vos fichiers personnels sauvegardés sur votre téléphone sans validation de l'IT."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Non. Pendant la reprise, tout fichier réintroduit sans validation IT peut être infecté et relancer l'incident. Même vos propres photos ou documents peuvent contenir du code malveillant si votre téléphone a été synchronisé pendant l'attaque. Tout support externe doit être validé par l'IT avant d'être connecté."
+
+  - id: pca_07
+    type: single_choice
+    weight: 1
+    text: "Pourquoi noter les numéros de contact d'urgence sur papier (et pas seulement dans son téléphone professionnel) ?"
+    answers:
+      - id: a
+        text: "Par habitude, les papiers se perdent moins facilement que les téléphones"
+        correct: false
+      - id: b
+        text: "En cas d'incident cyber, les systèmes habituels (email, téléphone IP) peuvent être indisponibles"
+        correct: true
+      - id: c
+        text: "Pour respecter la réglementation RGPD sur la conservation des données"
+        correct: false
+      - id: d
+        text: "Le téléphone professionnel peut manquer de batterie"
+        correct: false
+    explanation: "En cas de cyberattaque majeure, votre messagerie d'entreprise, votre téléphone IP et votre intranet peuvent être totalement inaccessibles. Avoir les numéros critiques sur papier (ou mémorisés) garantit que vous pouvez communiquer même sans accès aux systèmes habituels. C'est un principe de résilience simple mais crucial."
+
+  - id: pca_08
+    type: single_choice
+    weight: 2
+    text: "Que signifie RPO (Recovery Point Objective) ?"
+    answers:
+      - id: a
+        text: "La durée maximale d'interruption tolerable"
+        correct: false
+      - id: b
+        text: "La perte de données maximale acceptable, exprimée en durée"
+        correct: true
+      - id: c
+        text: "Le nombre maximal de systèmes pouvant être compromis simultanément"
+        correct: false
+      - id: d
+        text: "Le budget alloué à la reprise après sinistre"
+        correct: false
+    explanation: "Le RPO (Recovery Point Objective) définit jusqu'où remonter dans les sauvegardes en cas de restauration. Un RPO de 1h signifie qu'on accepte de perdre au maximum 1h de données. Plus le RPO est faible, plus les sauvegardes doivent être fréquentes. C'est un compromis entre coût de l'infrastructure de sauvegarde et tolérance à la perte de données."

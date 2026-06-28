@@ -1,5 +1,4 @@
 import { Component, Input, OnChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
 
 interface AxisData {
   label: string;
@@ -13,7 +12,7 @@ interface AxisData {
 @Component({
   standalone: true,
   selector: 'app-radar-chart',
-  imports: [CommonModule],
+  imports: [],
   template: `
     <svg viewBox="0 0 300 300" class="w-full h-full">
       <!-- Grid polygons -->

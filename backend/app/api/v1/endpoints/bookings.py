@@ -57,7 +57,7 @@ def _format_date_fr(date_str: str) -> str:
     try:
         y, m, d = date_str.split("-")
         return f"{int(d)} {months[int(m) - 1]} {y}"
-    except Exception:
+    except (ValueError, IndexError):
         return date_str
 
 

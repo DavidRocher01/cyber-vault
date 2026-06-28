@@ -5,6 +5,7 @@ Niveau 1 — RSSI Consultant : vue consolidée de toutes ses organisations clien
 Niveau 2 — Org Admin       : vue détaillée d'une organisation.
 Niveau 3 — Learner         : dashboard individuel (Sprint 3).
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -18,13 +19,13 @@ from app.models.awareness_learner import AwarenessLearner
 from app.models.awareness_module import AwarenessModule
 from app.models.awareness_organization import AwarenessOrganization
 from app.models.awareness_program import AwarenessProgram
-from app.models.awareness_progress import AwarenessProgress
 
-_AT_RISK_DAYS = 14       # learner inactif depuis N jours avec complétion < 70%
-_INACTIVE_DAYS = 30      # learner sans activité depuis N jours
+_AT_RISK_DAYS = 14  # learner inactif depuis N jours avec complétion < 70%
+_INACTIVE_DAYS = 30  # learner sans activité depuis N jours
 
 
 # ── RSSI Consultant dashboard ──────────────────────────────────────────────────
+
 
 async def consultant_dashboard(db: AsyncSession, owner_user_id: int) -> dict:
     """
@@ -32,13 +33,17 @@ async def consultant_dashboard(db: AsyncSession, owner_user_id: int) -> dict:
     Retourne toutes ses organisations avec KPIs globaux.
     """
     orgs = (
-        await db.execute(
-            select(AwarenessOrganization).where(
-                AwarenessOrganization.owner_user_id == owner_user_id,
-                AwarenessOrganization.is_active == True,
+        (
+            await db.execute(
+                select(AwarenessOrganization).where(
+                    AwarenessOrganization.owner_user_id == owner_user_id,
+                    AwarenessOrganization.is_active == True,
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     org_kpis = []
     total_learners = 0
@@ -55,8 +60,7 @@ async def consultant_dashboard(db: AsyncSession, owner_user_id: int) -> dict:
         total_at_risk += kpi["at_risk_count"]
 
     global_completion = (
-        round(total_completed / total_enrolled * 100, 1)
-        if total_enrolled > 0 else 0.0
+        round(total_completed / total_enrolled * 100, 1) if total_enrolled > 0 else 0.0
     )
 
     return {
@@ -103,8 +107,7 @@ async def _org_kpi(db: AsyncSession, org: AwarenessOrganization) -> dict:
 
     total_enrollments = active_enrollments + completed_enrollments
     completion_rate = (
-        round(completed_enrollments / total_enrollments * 100, 1)
-        if total_enrollments > 0 else 0.0
+        round(completed_enrollments / total_enrollments * 100, 1) if total_enrollments > 0 else 0.0
     )
 
     at_risk_count = await _count_at_risk(db, org.id)
@@ -136,8 +139,10 @@ async def _org_kpi(db: AsyncSession, org: AwarenessOrganization) -> dict:
 
 
 def _build_alerts(
-    learner_count: int, max_learners: int,
-    at_risk: int, completion_rate: float,
+    learner_count: int,
+    max_learners: int,
+    at_risk: int,
+    completion_rate: float,
 ) -> list[str]:
     alerts = []
     if learner_count >= max_learners * 0.9:
@@ -150,6 +155,7 @@ def _build_alerts(
 
 
 # ── Org Admin dashboard ────────────────────────────────────────────────────────
+
 
 async def org_admin_dashboard(db: AsyncSession, org_id: int) -> dict:
     """Vue détaillée pour l'admin d'une organisation."""
@@ -223,7 +229,9 @@ async def org_admin_dashboard(db: AsyncSession, org_id: int) -> dict:
             "enrolled_learners": enrolled_learners,
             "active_learners": active_learners,
             "completed_learners": completed_learners,
-            "enrollment_rate": round(enrolled_learners / total_learners * 100, 1) if total_learners else 0.0,
+            "enrollment_rate": round(enrolled_learners / total_learners * 100, 1)
+            if total_learners
+            else 0.0,
         },
         "programs": programs,
         "at_risk_learners": at_risk,
@@ -233,60 +241,58 @@ async def org_admin_dashboard(db: AsyncSession, org_id: int) -> dict:
 
 async def _program_stats(db: AsyncSession, org_id: int) -> list[dict]:
     programs = (
-        await db.execute(select(AwarenessProgram).where(AwarenessProgram.is_active == True))
-    ).scalars().all()
+        (await db.execute(select(AwarenessProgram).where(AwarenessProgram.is_active == True)))
+        .scalars()
+        .all()
+    )
+
+    # Agrégats groupés (3 requêtes au total) au lieu de 4 requêtes par programme.
+    modules_by_prog = dict(
+        (
+            await db.execute(
+                select(AwarenessModule.program_id, func.count(AwarenessModule.id))
+                .where(AwarenessModule.is_active == True)
+                .group_by(AwarenessModule.program_id)
+            )
+        ).all()
+    )
+
+    enroll_by_prog = {
+        row[0]: {"enrolled": row[1], "completed": row[2], "avg_pct": float(row[3] or 0.0)}
+        for row in (
+            await db.execute(
+                select(
+                    AwarenessEnrollment.program_id,
+                    func.count(AwarenessEnrollment.id),
+                    func.count(AwarenessEnrollment.id).filter(
+                        AwarenessEnrollment.status == "completed"
+                    ),
+                    func.avg(AwarenessEnrollment.completion_pct),
+                )
+                .where(AwarenessEnrollment.organization_id == org_id)
+                .group_by(AwarenessEnrollment.program_id)
+            )
+        ).all()
+    }
 
     stats = []
     for prog in programs:
-        total_modules = (
-            await db.execute(
-                select(func.count(AwarenessModule.id)).where(
-                    AwarenessModule.program_id == prog.id,
-                    AwarenessModule.is_active == True,
-                )
-            )
-        ).scalar_one()
-
-        enrolled = (
-            await db.execute(
-                select(func.count(AwarenessEnrollment.id)).where(
-                    AwarenessEnrollment.organization_id == org_id,
-                    AwarenessEnrollment.program_id == prog.id,
-                )
-            )
-        ).scalar_one()
-
-        if enrolled == 0:
+        e = enroll_by_prog.get(prog.id)
+        if not e or e["enrolled"] == 0:
             continue
-
-        completed = (
-            await db.execute(
-                select(func.count(AwarenessEnrollment.id)).where(
-                    AwarenessEnrollment.organization_id == org_id,
-                    AwarenessEnrollment.program_id == prog.id,
-                    AwarenessEnrollment.status == "completed",
-                )
-            )
-        ).scalar_one()
-
-        avg_pct = (
-            await db.execute(
-                select(func.avg(AwarenessEnrollment.completion_pct)).where(
-                    AwarenessEnrollment.organization_id == org_id,
-                    AwarenessEnrollment.program_id == prog.id,
-                )
-            )
-        ).scalar_one() or 0.0
-
-        stats.append({
-            "program_id": prog.id,
-            "program_title": prog.title,
-            "total_modules": total_modules,
-            "enrolled_learners": enrolled,
-            "completed_learners": completed,
-            "completion_rate": round(completed / enrolled * 100, 1),
-            "avg_completion_pct": round(float(avg_pct), 1),
-        })
+        enrolled = e["enrolled"]
+        completed = e["completed"]
+        stats.append(
+            {
+                "program_id": prog.id,
+                "program_title": prog.title,
+                "total_modules": modules_by_prog.get(prog.id, 0),
+                "enrolled_learners": enrolled,
+                "completed_learners": completed,
+                "completion_rate": round(completed / enrolled * 100, 1),
+                "avg_completion_pct": round(e["avg_pct"], 1),
+            }
+        )
 
     return stats
 
@@ -332,7 +338,9 @@ async def _at_risk_learners(db: AsyncSession, org_id: int) -> list[dict]:
             "department": r.department,
             "completion_pct": r.completion_pct,
             "last_activity_at": r.last_activity_at.isoformat() if r.last_activity_at else None,
-            "days_inactive": (datetime.now(UTC) - r.last_activity_at).days if r.last_activity_at else None,
+            "days_inactive": (datetime.now(UTC) - r.last_activity_at).days
+            if r.last_activity_at
+            else None,
         }
         for r in rows
     ]

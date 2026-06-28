@@ -27,6 +27,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from loguru import logger
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,6 +48,10 @@ from app.services.domain_lookalike import generate_lookalikes
 from app.services.phishing_report_pdf import generate_phishing_report
 
 router = APIRouter(prefix="/phishing", tags=["phishing"])
+
+# Conserve une référence forte aux tâches détachées : sans cela, asyncio peut
+# les garbage-collecter avant la fin (la tâche serait annulée silencieusement).
+_background_tasks: set = set()
 
 _MAX_TARGETS = {
     "express": 50,
@@ -327,15 +332,20 @@ async def launch_campaign(
         await phishing_service.launch_campaign(campaign, db)
     except (ValueError, RuntimeError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
-    except Exception as exc:
+    except Exception:
+        # Ne pas exposer l'exception brute au client (fuite d'info) — on la journalise.
+        logger.exception(f"Échec lancement campagne phishing id={campaign_id}")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Erreur lors du lancement de la campagne : {exc}",
+            detail="Erreur lors du lancement de la campagne.",
         )
 
     await db.commit()
-    # Trigger first batch immediately — APScheduler fires every 15 min but users expect prompt starts
-    asyncio.create_task(phishing_service.send_pending_batch())
+    # Trigger first batch immediately — APScheduler fires every 15 min but users expect prompt starts.
+    # On garde une référence forte à la tâche (sinon GC possible avant la fin).
+    task = asyncio.create_task(phishing_service.send_pending_batch())
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
     return {"status": "sending", "campaign_id": campaign_id}
 
 

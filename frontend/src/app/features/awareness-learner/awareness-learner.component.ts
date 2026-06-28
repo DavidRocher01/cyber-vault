@@ -1,5 +1,4 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -20,7 +19,6 @@ import {
   standalone: true,
   selector: 'app-awareness-learner',
   imports: [
-    CommonModule,
     RouterLink,
     MatButtonModule,
     MatIconModule,

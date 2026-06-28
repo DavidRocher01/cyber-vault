@@ -240,24 +240,24 @@ describe('LandingComponent — auditOffers (4 offres)', () => {
     expect(count).toBe(4);
   });
 
-  it('contient l\'offre "Audit Flash" à 290 €', () => {
+  it('contient l\'offre "Audit Flash" à 390 €', () => {
     expect(src).toContain("'Audit Flash'");
-    expect(src).toContain("'290 €'");
+    expect(src).toContain("'390 €'");
   });
 
-  it('contient l\'offre "App-Check" à 725 €', () => {
+  it('contient l\'offre "App-Check" à 990 €', () => {
     expect(src).toContain("'App-Check'");
-    expect(src).toContain("'725 €'");
+    expect(src).toContain("'990 €'");
   });
 
-  it('contient l\'offre "Conformité NIS2 / RGPD" à 890 €', () => {
-    expect(src).toContain("'Conformité NIS2 / RGPD'");
-    expect(src).toContain("'890 €'");
+  it('contient l\'offre "Audit NIS2 / RGPD" à 1 290 €', () => {
+    expect(src).toContain("'Audit NIS2 / RGPD'");
+    expect(src).toContain("'1 290 €'");
   });
 
-  it('contient l\'offre "Pentest léger" à 1 900 €', () => {
+  it('contient l\'offre "Pentest léger" à 2 490 €', () => {
     expect(src).toContain("'Pentest léger'");
-    expect(src).toContain("'1 900 €'");
+    expect(src).toContain("'2 490 €'");
   });
 
   it('une seule offre est featured (App-Check)', () => {
@@ -421,8 +421,8 @@ describe('LandingComponent — cyberStats (4 statistiques)', () => {
     expect(src).toContain("'82 %'");
   });
 
-  it('la 4e stat concerne le prix CyberScan (9,90 €)', () => {
-    expect(src).toContain("'9,90 €'");
+  it('la 4e stat concerne le prix CyberScan (14,90 €)', () => {
+    expect(src).toContain("'14,90 €'");
   });
 
   it('la source IBM est référencée', () => {
@@ -477,9 +477,9 @@ describe('LandingComponent — non-régression comportement', () => {
     }
   });
 
-  it("[RÉGRESSION] le prix de l'App-Check est 725 € (sans HT dans le code)", () => {
-    expect(src).toContain("'725 €'");
-    expect(src).not.toContain("'725 € HT'");
+  it("[RÉGRESSION] le prix de l'App-Check est 990 € (sans HT dans le code)", () => {
+    expect(src).toContain("'990 €'");
+    expect(src).not.toContain("'990 € HT'");
   });
 
   it("[RÉGRESSION] l'architecture affiche 21 modules", () => {

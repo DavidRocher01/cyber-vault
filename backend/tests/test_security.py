@@ -87,6 +87,28 @@ class TestAccessToken:
         t2 = create_access_token("b@test.com")
         assert t1 != t2
 
+    def test_access_token_carries_type_access(self):
+        token = create_access_token("user@test.com")
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        assert payload.get("type") == "access"
+
+    def test_token_without_type_is_rejected(self):
+        # Anti-confusion : un JWT valide signé sans type ne doit pas être accepté.
+        payload = {"sub": "user@test.com", "exp": int(time.time()) + 3600}
+        legacy = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        assert decode_access_token(legacy) is None
+
+    def test_learner_token_rejected_as_access(self):
+        # Un token learner (même secret, type différent) ne doit JAMAIS authentifier
+        # un compte utilisateur (usurpation de compte).
+        payload = {
+            "sub": "1",
+            "exp": int(time.time()) + 3600,
+            "type": "awareness_learner",
+        }
+        learner_token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        assert decode_access_token(learner_token) is None
+
 
 # ── hash_token (HMAC-SHA256) ──────────────────────────────────────────────────
 

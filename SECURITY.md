@@ -38,7 +38,7 @@ Cyber-Vault est une plateforme SaaS de cybersécurité. Ce document décrit les 
 ### Chiffrement des données (Vault zero-knowledge)
 
 - Chiffrement **AES-256-GCM** côté client (Web Crypto API)
-- Dérivation de clé **PBKDF2** (100 000 itérations, SHA-256) à partir du mot de passe maître
+- Dérivation de clé **PBKDF2** (600 000 itérations, SHA-256) à partir du mot de passe maître
 - Le serveur ne reçoit et ne stocke **jamais** les données en clair ni la clé de déchiffrement
 - Le mot de passe maître reste en mémoire côté client uniquement
 

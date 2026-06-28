@@ -27,7 +27,7 @@ command -v sudo &>/dev/null || error "sudo non disponible."
 
 log "▶ Setup Oracle Cloud staging CyberVault"
 log "▶ Architecture : $(uname -m)"
-log "▶ Distribution : $(lsb_release -d | cut -f2)"
+log "▶ Distribution : $(. /etc/os-release 2>/dev/null && echo "${PRETTY_NAME:-inconnue}")"
 
 # ---- 1. Mise à jour système ----
 log "▶ Mise à jour du système..."
@@ -37,7 +37,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt upgrade -y
 # ---- 2. Outils ----
 log "▶ Installation des outils..."
 sudo DEBIAN_FRONTEND=noninteractive apt install -y \
-    curl git htop fail2ban unattended-upgrades \
+    curl ca-certificates git htop fail2ban unattended-upgrades \
     ufw netfilter-persistent iptables-persistent \
     jq ncdu rsync
 
@@ -85,8 +85,8 @@ maxretry = 3
 [sshd]
 enabled = true
 port = 22
-filter = sshd
-logpath = /var/log/auth.log
+# backend systemd : lit le journal (Ubuntu 24.04 Minimal n'a pas /var/log/auth.log)
+backend = systemd
 EOF
 sudo systemctl enable --now fail2ban && sudo systemctl restart fail2ban
 

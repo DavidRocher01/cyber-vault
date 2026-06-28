@@ -1,5 +1,4 @@
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink, Router } from '@angular/router';
 import { Title, Meta } from '@angular/platform-browser';
@@ -29,7 +28,6 @@ interface Module {
   standalone: true,
   selector: 'app-scan-gratuit',
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     RouterLink,
     MatButtonModule,

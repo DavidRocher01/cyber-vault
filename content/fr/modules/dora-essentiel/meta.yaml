@@ -1,0 +1,10 @@
+title: "DORA : la résilience numérique pour le secteur financier"
+description: "Le règlement DORA impose des obligations spécifiques aux banques, assureurs et prestataires financiers. Seuils d'incidents, registre ICT tiers, superviseurs français, articulation avec ISO 27001 et scénario concret de réponse."
+content_type: mixed
+estimated_duration_minutes: 8
+xp_points: 15
+has_quiz: true
+quiz_max_attempts: 3
+quiz_cooldown_minutes: 15
+quiz_passing_score: 60
+is_active: true

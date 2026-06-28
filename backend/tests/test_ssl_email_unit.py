@@ -13,7 +13,7 @@ from app.services.email_service import send_ssl_expiry_alert
 
 def _call_alert(days: int, site_url: str = "https://example.com", expiry_date: str = "2026-05-01"):
     """Call send_ssl_expiry_alert with a patched _send and return (subject, html, plain, mock)."""
-    with patch("app.services.email_service._send") as mock_send:
+    with patch("app.services.email_service.scan._send") as mock_send:
         send_ssl_expiry_alert(
             to_email="user@example.com",
             site_url=site_url,
@@ -106,7 +106,7 @@ def test_send_called_once():
 
 
 def test_send_receives_correct_recipient():
-    with patch("app.services.email_service._send") as mock_send:
+    with patch("app.services.email_service.scan._send") as mock_send:
         send_ssl_expiry_alert(
             to_email="recipient@example.com",
             site_url="https://example.com",

@@ -108,7 +108,7 @@ def generate_url_scan_pdf(url_scan_data: dict) -> bytes:
         try:
             dt = datetime.fromisoformat(str(created_at).replace("Z", "+00:00"))
             date_str = dt.strftime("%d/%m/%Y à %H:%M")
-        except Exception:
+        except (ValueError, TypeError):
             date_str = str(created_at)
     else:
         date_str = "—"

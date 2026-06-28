@@ -1,0 +1,146 @@
+questions:
+  - id: cp_01
+    type: single_choice
+    weight: 1
+    text: "Que se passe-t-il si un ordinateur portable chiffré est volé ?"
+    answers:
+      - id: a
+        text: "Le voleur peut accéder aux données en redémarrant sur une clé USB"
+        correct: false
+      - id: b
+        text: "Les données sont illisibles sans la clé de déchiffrement"
+        correct: true
+      - id: c
+        text: "Le chiffrement ralentit l'accès mais ne l'empêche pas"
+        correct: false
+      - id: d
+        text: "Le chiffrement est contournable avec des outils gratuits en ligne"
+        correct: false
+    explanation: "Le chiffrement complet du disque (BitLocker sur Windows, FileVault sur Mac) rend les données totalement illisibles sans la clé. Même en branchant le disque sur un autre ordinateur, sans la clé de déchiffrement, le contenu est du bruit aléatoire."
+
+  - id: cp_02
+    type: multiple_choice
+    weight: 2
+    text: "Lesquels de ces éléments sont chiffrés par défaut ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Les connexions HTTPS (cadenas dans le navigateur)"
+        correct: true
+      - id: b
+        text: "Les messages WhatsApp et Signal"
+        correct: true
+      - id: c
+        text: "Les emails standard (sans configuration spéciale)"
+        correct: false
+      - id: d
+        text: "Les clés USB professionnelles"
+        correct: false
+      - id: e
+        text: "Les connexions VPN d'entreprise"
+        correct: true
+    explanation: "HTTPS, WhatsApp/Signal et les VPN entreprise sont chiffrés par défaut. En revanche, les emails standard circulent en clair (comme des cartes postales), et les clés USB ne sont pas chiffrées sauf configuration spécifique. C'est pourquoi il faut faire attention à ce qu'on envoie par email ou met sur une clé USB."
+
+  - id: cp_03
+    type: single_choice
+    weight: 1
+    text: "Comment vérifier que BitLocker est actif sur votre ordinateur Windows ?"
+    answers:
+      - id: a
+        text: "En regardant la couleur du disque dur dans l'explorateur de fichiers"
+        correct: false
+      - id: b
+        text: "En cherchant 'BitLocker' dans le menu Windows et en vérifiant le statut 'Activé'"
+        correct: true
+      - id: c
+        text: "En essayant de copier un fichier sur une clé USB"
+        correct: false
+      - id: d
+        text: "BitLocker est toujours actif sur tous les ordinateurs Windows"
+        correct: false
+    explanation: "Pour vérifier : touche Windows → tapez 'BitLocker' → 'Chiffrement de lecteur BitLocker'. Si actif, vous verrez 'BitLocker activé'. Si non, contactez votre IT — il peut l'activer facilement à distance dans un environnement d'entreprise."
+
+  - id: cp_04
+    type: true_false
+    weight: 1
+    text: "Il est sécurisé d'envoyer un document confidentiel par email si vous faites confiance au destinataire."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Faire confiance au destinataire ne suffit pas. Un email standard passe par de multiples serveurs intermédiaires (votre fournisseur, celui du destinataire, parfois des relais) et peut être intercepté. Pour les données vraiment sensibles, utilisez un fichier protégé par mot de passe et transmettez le mot de passe par un autre canal (SMS, appel)."
+
+  - id: cp_05
+    type: single_choice
+    weight: 1
+    text: "Quelle est la bonne pratique pour envoyer un document sensible par email ?"
+    answers:
+      - id: a
+        text: "Envoyer le document en pièce jointe sans protection"
+        correct: false
+      - id: b
+        text: "Chiffrer le document avec un mot de passe et envoyer le mot de passe par SMS"
+        correct: true
+      - id: c
+        text: "Renommer le fichier pour le rendre méconnaissable"
+        correct: false
+      - id: d
+        text: "Compresser le fichier en ZIP sans mot de passe"
+        correct: false
+    explanation: "La bonne pratique est de chiffrer le document (avec un mot de passe sur PDF/Office, ou via VeraCrypt) et de transmettre le mot de passe par un canal différent (SMS, appel). Ainsi, même si l'email est intercepté, le document reste illisible."
+
+  - id: cp_06
+    type: single_choice
+    weight: 2
+    text: "Qu'est-ce que le 'chiffrement de bout en bout' ?"
+    answers:
+      - id: a
+        text: "Un chiffrement géré par le fournisseur qui peut déchiffrer à tout moment"
+        correct: false
+      - id: b
+        text: "Un chiffrement où seuls l'expéditeur et le destinataire peuvent lire le message"
+        correct: true
+      - id: c
+        text: "Un chiffrement qui protège uniquement la transmission, pas le stockage"
+        correct: false
+      - id: d
+        text: "Un protocole uniquement disponible pour les grandes entreprises"
+        correct: false
+    explanation: "Le chiffrement de bout en bout (E2E) garantit que seuls l'expéditeur et le destinataire peuvent lire le message — ni le fournisseur de messagerie, ni un intermédiaire, ni un attaquant qui intercepterait le flux. C'est ce que propose Signal, et ce que WhatsApp affirme utiliser."
+
+  - id: cp_07
+    type: true_false
+    weight: 1
+    text: "Une clé USB professionnelle est automatiquement chiffrée dès qu'elle est fournie par votre entreprise."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "La plupart des clés USB ne sont pas chiffrées par défaut, même si elles sont fournies par votre employeur. Si vous transportez des données sensibles sur une clé USB, demandez à votre IT de vous configurer une clé chiffrée ou un volume VeraCrypt. En cas de perte, une clé non chiffrée est une fuite de données."
+
+  - id: cp_08
+    type: multiple_choice
+    weight: 2
+    text: "Quelles données professionnelles devez-vous absolument chiffrer ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Données RH (contrats, fiches de salaire)"
+        correct: true
+      - id: b
+        text: "Coordonnées et données financières des clients"
+        correct: true
+      - id: c
+        text: "Le menu de la cantine d'entreprise"
+        correct: false
+      - id: d
+        text: "Documents stratégiques et commerciaux confidentiels"
+        correct: true
+      - id: e
+        text: "Comptes rendus de réunions publiques"
+        correct: false
+    explanation: "Les données qui doivent être chiffrées sont celles dont la divulgation causerait un préjudice : données RH, données clients, données financières, documents confidentiels. Appliquez la règle : 'si je ne voudrais pas voir cette information dans un journal, je la chiffre'."

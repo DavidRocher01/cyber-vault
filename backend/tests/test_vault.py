@@ -25,18 +25,44 @@ async def test_create_and_list_items():
         r = await client.post(
             f"{BASE}/vault/",
             json={
-                "title": "GitHub",
+                "title_encrypted": "enc_github",
                 "password_encrypted": "enc_secret",
-                "username": "user",
+                "username_encrypted": "enc_user",
             },
             headers=headers,
         )
         assert r.status_code == 201
-        assert r.json()["title"] == "GitHub"
+        assert r.json()["title_encrypted"] == "enc_github"
 
         r = await client.get(f"{BASE}/vault/", headers=headers)
         assert r.status_code == 200
         assert len(r.json()) == 1
+
+
+@pytest.mark.asyncio
+async def test_create_refuses_plaintext_fields():
+    """P1-4 — la création n'accepte plus aucun champ en clair (zero-knowledge strict)."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        headers = await _auth_headers(client)
+        for field in ("title", "username", "url", "notes"):
+            r = await client.post(
+                f"{BASE}/vault/",
+                json={field: "leak", "password_encrypted": "enc"},
+                headers=headers,
+            )
+            assert r.status_code == 422, f"champ clair '{field}' accepte"
+
+
+@pytest.mark.asyncio
+async def test_create_requires_nonempty_password_encrypted():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        headers = await _auth_headers(client)
+        r = await client.post(
+            f"{BASE}/vault/",
+            json={"title_encrypted": "x", "password_encrypted": ""},
+            headers=headers,
+        )
+        assert r.status_code == 422
 
 
 @pytest.mark.asyncio
@@ -45,16 +71,16 @@ async def test_update_item():
         headers = await _auth_headers(client)
         r = await client.post(
             f"{BASE}/vault/",
-            json={"title": "Old Title", "password_encrypted": "enc"},
+            json={"title_encrypted": "enc_old", "password_encrypted": "enc"},
             headers=headers,
         )
         item_id = r.json()["id"]
 
         r = await client.patch(
-            f"{BASE}/vault/{item_id}", json={"title": "New Title"}, headers=headers
+            f"{BASE}/vault/{item_id}", json={"title_encrypted": "enc_new"}, headers=headers
         )
         assert r.status_code == 200
-        assert r.json()["title"] == "New Title"
+        assert r.json()["title_encrypted"] == "enc_new"
 
 
 @pytest.mark.asyncio
@@ -63,7 +89,7 @@ async def test_delete_item():
         headers = await _auth_headers(client)
         r = await client.post(
             f"{BASE}/vault/",
-            json={"title": "To Delete", "password_encrypted": "enc"},
+            json={"title_encrypted": "enc_todelete", "password_encrypted": "enc"},
             headers=headers,
         )
         item_id = r.json()["id"]
@@ -81,7 +107,7 @@ async def test_cannot_access_other_user_item():
         h1 = await _auth_headers(client)
         r = await client.post(
             f"{BASE}/vault/",
-            json={"title": "Private", "password_encrypted": "enc"},
+            json={"title_encrypted": "enc_private", "password_encrypted": "enc"},
             headers=h1,
         )
         item_id = r.json()["id"]
@@ -101,7 +127,7 @@ async def test_cannot_access_other_user_item():
 
 
 def test_create_invalid_category_defaults_to_login():
-    item = VaultItemCreate(title="Test", password_encrypted="enc", category="invalid_cat")
+    item = VaultItemCreate(title_encrypted="x", password_encrypted="enc", category="invalid_cat")
     assert item.category == "login"
 
 
@@ -116,7 +142,7 @@ def test_update_valid_category_preserved():
 
 
 def test_create_with_category():
-    item = VaultItemCreate(title="Netflix", password_encrypted="enc", category="login")
+    item = VaultItemCreate(title_encrypted="x", password_encrypted="enc", category="login")
     assert item.category == "login"
 
 
@@ -126,7 +152,7 @@ async def test_create_with_category_endpoint():
         headers = await _auth_headers(client)
         r = await client.post(
             f"{BASE}/vault/",
-            json={"title": "Card", "password_encrypted": "enc", "category": "card"},
+            json={"title_encrypted": "enc_card", "password_encrypted": "enc", "category": "card"},
             headers=headers,
         )
         assert r.status_code == 201
@@ -139,7 +165,7 @@ async def test_update_category():
         headers = await _auth_headers(client)
         r = await client.post(
             f"{BASE}/vault/",
-            json={"title": "Entry", "password_encrypted": "enc", "category": "login"},
+            json={"title_encrypted": "enc_entry", "password_encrypted": "enc", "category": "login"},
             headers=headers,
         )
         item_id = r.json()["id"]
@@ -178,7 +204,7 @@ async def test_zero_knowledge_sentinel():
         r = await client.post(
             f"{BASE}/vault/",
             json={
-                "title": "ZK Sentinel",
+                "title_encrypted": "enc_zk_sentinel",
                 "password_encrypted": SENTINEL,
             },
             headers=headers,

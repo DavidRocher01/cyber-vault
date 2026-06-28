@@ -1,5 +1,4 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,16 +18,16 @@ interface AwarenessPlan {
 
 const PLANS: AwarenessPlan[] = [
   {
-    id: 'starter',
-    name: 'Starter',
-    price: 49,
+    id: 'awareness-s',
+    name: 'Formation S',
+    price: 79,
     period: 'mois',
     maxLearners: 10,
     badge: '',
     featured: false,
     features: [
       "Jusqu'à 10 learners",
-      '17 modules NIS2 inclus',
+      '28 modules NIS2 inclus',
       'Quiz avec 3 tentatives',
       'Attestations PDF vérifiables',
       'Dashboard de complétion',
@@ -36,16 +35,16 @@ const PLANS: AwarenessPlan[] = [
     ],
   },
   {
-    id: 'pro',
-    name: 'Pro',
-    price: 99,
+    id: 'awareness-m',
+    name: 'Formation M',
+    price: 199,
     period: 'mois',
     maxLearners: 30,
     badge: 'Populaire',
     featured: true,
     features: [
       "Jusqu'à 30 learners",
-      'Tout Starter +',
+      'Tout Formation S +',
       'Import CSV en masse',
       'Gamification (XP, badges, classement)',
       'Rapport NIS2 Article 21 PDF',
@@ -53,16 +52,16 @@ const PLANS: AwarenessPlan[] = [
     ],
   },
   {
-    id: 'plus',
-    name: 'Plus',
-    price: 199,
+    id: 'awareness-l',
+    name: 'Formation L',
+    price: 449,
     period: 'mois',
     maxLearners: 75,
     badge: '',
     featured: false,
     features: [
       "Jusqu'à 75 learners",
-      'Tout Pro +',
+      'Tout Formation M +',
       'Multi-organisations',
       'Rapport de conformité exportable',
       'Relances automatiques des inactifs',
@@ -70,16 +69,16 @@ const PLANS: AwarenessPlan[] = [
     ],
   },
   {
-    id: 'premium',
-    name: 'Premium',
-    price: 399,
+    id: 'awareness-xl',
+    name: 'Formation XL',
+    price: 899,
     period: 'mois',
-    maxLearners: null,
+    maxLearners: 200,
     badge: 'Entreprise',
     featured: false,
     features: [
-      'Learners illimités',
-      'Tout Plus +',
+      "Jusqu'à 200 learners",
+      'Tout Formation L +',
       'Onboarding personnalisé',
       'Modules sur mesure (option)',
       'SLA 99,9 % garanti',
@@ -91,7 +90,7 @@ const PLANS: AwarenessPlan[] = [
 @Component({
   standalone: true,
   selector: 'app-awareness-pricing',
-  imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule, NavButtonsComponent],
+  imports: [RouterLink, MatButtonModule, MatIconModule, NavButtonsComponent],
   template: `
     <app-nav-buttons />
 
@@ -111,9 +110,21 @@ const PLANS: AwarenessPlan[] = [
             Formez vos équipes à la cybersécurité
           </h1>
           <p class="text-gray-400 text-lg max-w-2xl mx-auto">
-            17 modules e-learning NIS2 Article 21, attestations vérifiables et tableau de bord de
+            28 modules e-learning NIS2 Article 21, attestations vérifiables et tableau de bord de
             conformité. Simple, certifiant, prêt en 48h.
           </p>
+          <div
+            class="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-full border border-amber-600/30 bg-amber-500/5 text-amber-400 text-sm"
+          >
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">info</mat-icon>
+            Tarification sur devis — les prix ci-dessous sont indicatifs.
+            <a
+              routerLink="/cyberscan/contact"
+              [queryParams]="{ subject: 'sensibilisation-nis2' }"
+              class="underline hover:text-amber-300"
+              >Nous contacter</a
+            >
+          </div>
         </div>
 
         <!-- Plans grid -->
@@ -175,7 +186,8 @@ const PLANS: AwarenessPlan[] = [
               <!-- CTA -->
               <div class="p-5 pt-0">
                 <a
-                  routerLink="/cyberscan/awareness"
+                  routerLink="/cyberscan/contact"
+                  [queryParams]="{ subject: 'sensibilisation-nis2' }"
                   mat-flat-button
                   class="w-full !rounded-xl !text-sm"
                   [class]="
@@ -184,7 +196,7 @@ const PLANS: AwarenessPlan[] = [
                       : '!bg-gray-800 hover:!bg-gray-700 !text-gray-200'
                   "
                 >
-                  Commencer avec {{ plan.name }}
+                  Demander un devis {{ plan.name }}
                 </a>
               </div>
             </div>

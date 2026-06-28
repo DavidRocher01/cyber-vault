@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, PLATFORM_ID, inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 
 export type Lang = 'fr' | 'en';
 
@@ -56,7 +57,14 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
 @Injectable({ providedIn: 'root' })
 export class I18nService {
   private readonly STORAGE_KEY = 'cs_lang';
-  lang = signal<Lang>((localStorage.getItem(this.STORAGE_KEY) as Lang) ?? 'fr');
+  private platformId = inject(PLATFORM_ID);
+
+  lang = signal<Lang>(this.loadLang());
+
+  private loadLang(): Lang {
+    if (!isPlatformBrowser(this.platformId)) return 'fr';
+    return (localStorage.getItem(this.STORAGE_KEY) as Lang) ?? 'fr';
+  }
 
   t(key: string): string {
     return TRANSLATIONS[this.lang()][key] ?? key;
@@ -65,6 +73,8 @@ export class I18nService {
   toggle() {
     const next: Lang = this.lang() === 'fr' ? 'en' : 'fr';
     this.lang.set(next);
-    localStorage.setItem(this.STORAGE_KEY, next);
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem(this.STORAGE_KEY, next);
+    }
   }
 }

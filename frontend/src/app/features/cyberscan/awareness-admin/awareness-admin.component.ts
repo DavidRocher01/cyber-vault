@@ -1,11 +1,8 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -17,13 +14,10 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
   standalone: true,
   selector: 'app-awareness-admin',
   imports: [
-    CommonModule,
     RouterLink,
     FormsModule,
     MatButtonModule,
     MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
@@ -100,40 +94,82 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
 
         <!-- Create form -->
         @if (showCreate) {
-          <div class="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-5 mb-6">
-            <h3 class="text-white font-semibold mb-4 flex items-center gap-2">
-              <mat-icon class="text-cyan-400 !text-[1.1rem]">add_business</mat-icon>
-              Créer une organisation
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <mat-form-field appearance="outline" class="w-full">
-                <mat-label>Nom de l'organisation</mat-label>
-                <input matInput [(ngModel)]="newName" placeholder="Acme Corp" />
-              </mat-form-field>
-              <mat-form-field appearance="outline" class="w-full">
-                <mat-label>Secteur (optionnel)</mat-label>
-                <input matInput [(ngModel)]="newSector" placeholder="Industrie, Santé..." />
-              </mat-form-field>
-              <mat-form-field appearance="outline" class="w-full">
-                <mat-label>Nb max learners</mat-label>
-                <input matInput type="number" [(ngModel)]="newMaxLearners" min="1" />
-              </mat-form-field>
+          <div class="rounded-xl border border-cyan-500/20 bg-gray-900 p-6 mb-6">
+            <div class="flex items-center gap-2 mb-5">
+              <div
+                class="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center"
+              >
+                <mat-icon class="text-cyan-400 !text-[1rem] !w-[1rem] !h-[1rem]"
+                  >add_business</mat-icon
+                >
+              </div>
+              <h3 class="text-white font-semibold">Nouvelle organisation</h3>
             </div>
-            <div class="flex gap-2 mt-1">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <!-- Nom -->
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray-400 mb-1.5">
+                  Nom de l'organisation <span class="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  [(ngModel)]="newName"
+                  placeholder="Acme Corp"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 transition-colors"
+                />
+              </div>
+
+              <!-- Secteur -->
+              <div>
+                <label class="block text-xs font-medium text-gray-400 mb-1.5">
+                  Secteur <span class="text-gray-600">(optionnel)</span>
+                </label>
+                <input
+                  type="text"
+                  [(ngModel)]="newSector"
+                  placeholder="Industrie, Santé, Finance…"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 transition-colors"
+                />
+              </div>
+
+              <!-- Quota learners -->
+              <div>
+                <label class="block text-xs font-medium text-gray-400 mb-1.5">
+                  Quota de learners
+                </label>
+                <div class="relative">
+                  <input
+                    type="number"
+                    [(ngModel)]="newMaxLearners"
+                    min="1"
+                    max="10000"
+                    class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 transition-colors"
+                  />
+                  <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500"
+                    >learners max</span
+                  >
+                </div>
+              </div>
+            </div>
+
+            <div class="flex gap-2 pt-2 border-t border-gray-800">
               <button
                 mat-flat-button
                 class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white"
                 (click)="createOrg()"
-                [disabled]="creating()"
+                [disabled]="creating() || !newName.trim()"
               >
                 @if (creating()) {
                   <mat-spinner diameter="14" />
+                } @else {
+                  <mat-icon class="!text-[1rem]">add</mat-icon>
                 }
-                Créer
+                Créer l'organisation
               </button>
               <button
                 mat-stroked-button
-                class="!rounded-xl !border-gray-600 !text-gray-300"
+                class="!rounded-xl !border-gray-700 !text-gray-400"
                 (click)="showCreate = false"
               >
                 Annuler

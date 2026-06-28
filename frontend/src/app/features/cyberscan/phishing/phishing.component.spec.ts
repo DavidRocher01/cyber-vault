@@ -53,21 +53,21 @@ describe('PRICING_TIERS (one-shot)', () => {
 
   it('inclut Express, Standard, Premium', () => {
     const names = PRICING_TIERS.map(t => t.name);
-    expect(names).toContain('Express');
-    expect(names).toContain('Standard');
-    expect(names).toContain('Premium');
+    expect(names.some(n => n.includes('Express'))).toBe(true);
+    expect(names.some(n => n.includes('Standard'))).toBe(true);
+    expect(names.some(n => n.includes('Premium'))).toBe(true);
   });
 
-  it('Express est à 800 €', () => {
-    expect(PRICING_TIERS.find(t => t.id === 'express')?.price).toContain('800');
+  it('Express est à 990 €', () => {
+    expect(PRICING_TIERS.find(t => t.id === 'express')?.price).toContain('990');
   });
 
-  it('Standard est à 1 500 €', () => {
-    expect(PRICING_TIERS.find(t => t.id === 'standard')?.price).toContain('1 500');
+  it('Standard est à 1 890 €', () => {
+    expect(PRICING_TIERS.find(t => t.id === 'standard')?.price).toContain('1 890');
   });
 
-  it('Premium est à 2 500 €', () => {
-    expect(PRICING_TIERS.find(t => t.id === 'premium')?.price).toContain('2 500');
+  it('Premium est à 2 990 €', () => {
+    expect(PRICING_TIERS.find(t => t.id === 'premium')?.price).toContain('2 990');
   });
 
   it('Standard est le seul highlight', () => {

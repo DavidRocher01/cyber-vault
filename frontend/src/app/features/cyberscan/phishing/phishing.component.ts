@@ -1,5 +1,4 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -160,8 +159,8 @@ export const PHISHING_SCENARIOS: PhishingScenario[] = [
 export const PRICING_TIERS: PricingTier[] = [
   {
     id: 'express',
-    name: 'Express',
-    price: '800 €',
+    name: 'Phishing Express',
+    price: '990 €',
     priceDetail: 'HT — one-shot',
     highlight: false,
     features: [
@@ -175,8 +174,8 @@ export const PRICING_TIERS: PricingTier[] = [
   },
   {
     id: 'standard',
-    name: 'Standard',
-    price: '1 500 €',
+    name: 'Phishing Standard',
+    price: '1 890 €',
     priceDetail: 'HT — one-shot',
     highlight: true,
     features: [
@@ -191,8 +190,8 @@ export const PRICING_TIERS: PricingTier[] = [
   },
   {
     id: 'premium',
-    name: 'Premium',
-    price: '2 500 €',
+    name: 'Phishing Premium',
+    price: '2 990 €',
     priceDetail: 'HT — one-shot',
     highlight: false,
     features: [
@@ -357,7 +356,7 @@ export const USE_CASES = [
 @Component({
   standalone: true,
   selector: 'app-phishing',
-  imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule, NavButtonsComponent],
+  imports: [RouterLink, MatButtonModule, MatIconModule, NavButtonsComponent],
   templateUrl: './phishing.component.html',
 })
 export class PhishingComponent implements OnInit {
@@ -378,7 +377,7 @@ export class PhishingComponent implements OnInit {
     this.meta.updateTag({
       name: 'description',
       content:
-        'Testez la résistance de vos équipes au phishing avec des campagnes réalistes. Rapports détaillés, conformité NIS2, à partir de 800 € HT.',
+        'Testez la résistance de vos équipes au phishing avec des campagnes réalistes. Rapports détaillés, conformité NIS2, à partir de 990 € HT.',
     });
   }
 

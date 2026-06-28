@@ -9,12 +9,11 @@ import {
   OnChanges,
   SimpleChanges,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 
 @Component({
   standalone: true,
   selector: 'app-otp-input',
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="flex gap-2 justify-center">
       @for (i of indices; track i) {

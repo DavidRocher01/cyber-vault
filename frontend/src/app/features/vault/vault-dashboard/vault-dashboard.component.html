@@ -263,6 +263,11 @@
                   @if (item.category !== 'note') {
                     <button
                       type="button"
+                      [attr.aria-label]="
+                        revealedPasswords[item.id] !== undefined
+                          ? 'Masquer la valeur'
+                          : 'Révéler la valeur'
+                      "
                       (click)="toggleReveal(item)"
                       [matTooltip]="
                         revealedPasswords[item.id] !== undefined
@@ -283,6 +288,7 @@
                   @if (item.category !== 'note') {
                     <button
                       type="button"
+                      aria-label="Copier dans le presse-papier"
                       (click)="copyPassword(item)"
                       [matTooltip]="
                         copiedId === item.id
@@ -576,6 +582,9 @@
                   />
                   <button
                     type="button"
+                    [attr.aria-label]="
+                      showPasswordInForm() ? 'Masquer le mot de passe' : 'Afficher le mot de passe'
+                    "
                     (click)="showPasswordInForm.set(!showPasswordInForm())"
                     class="absolute right-3 top-3 text-gray-600 hover:text-gray-300 transition-colors"
                   >

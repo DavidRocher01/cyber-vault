@@ -28,30 +28,30 @@ PLANS = [
     },
     {
         "name": "starter",
-        "display_name": "Starter",
-        "price_eur": 990,  # 9,90 €
+        "display_name": "Surveillance Starter",
+        "price_eur": 1490,  # 14,90 €
         "max_sites": 1,
-        "scan_interval_days": 30,
+        "scan_interval_days": 7,  # 4 scans/mois (hebdo)
         "tier_level": 2,
-        "stripe_price_id": "price_1TOzSg1kFVtkWldS7qBgnmh6",
+        "stripe_price_id": "",  # À créer dans Stripe (nouveau prix)
     },
     {
         "name": "pro",
-        "display_name": "Pro",
-        "price_eur": 3990,  # 39,90 €
-        "max_sites": 3,
-        "scan_interval_days": 7,
+        "display_name": "Surveillance Pro",
+        "price_eur": 4900,  # 49,00 €
+        "max_sites": 5,
+        "scan_interval_days": 7,  # 20 scans/mois (5/sem)
         "tier_level": 3,
-        "stripe_price_id": "price_1TOzSk1kFVtkWldSj1Z5U49V",
+        "stripe_price_id": "",  # À créer dans Stripe (nouveau prix)
     },
     {
         "name": "business",
-        "display_name": "Business",
-        "price_eur": 4990,  # 49,90 €
-        "max_sites": 10,
-        "scan_interval_days": 1,
+        "display_name": "Surveillance Business",
+        "price_eur": 14900,  # 149,00 €
+        "max_sites": 15,
+        "scan_interval_days": 1,  # quotidien
         "tier_level": 4,
-        "stripe_price_id": "price_1TOzSk1kFVtkWldS4RJ2u8pf",
+        "stripe_price_id": "",  # À créer dans Stripe (nouveau prix)
     },
 ]
 

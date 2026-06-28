@@ -1,5 +1,5 @@
-import { Component, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, PLATFORM_ID, inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,7 +9,7 @@ const STORAGE_KEY = 'cyberscan_cookie_consent';
 @Component({
   standalone: true,
   selector: 'app-cookie-banner',
-  imports: [CommonModule, RouterLink, MatButtonModule, MatIconModule],
+  imports: [RouterLink, MatButtonModule, MatIconModule],
   template: `
     @if (visible()) {
       <div
@@ -50,22 +50,29 @@ const STORAGE_KEY = 'cyberscan_cookie_consent';
   `,
 })
 export class CookieBannerComponent {
+  private platformId = inject(PLATFORM_ID);
   visible = signal(false);
 
   constructor() {
-    const consent = localStorage.getItem(STORAGE_KEY);
-    if (!consent) {
-      this.visible.set(true);
+    if (isPlatformBrowser(this.platformId)) {
+      const consent = localStorage.getItem(STORAGE_KEY);
+      if (!consent) {
+        this.visible.set(true);
+      }
     }
   }
 
   accept() {
-    localStorage.setItem(STORAGE_KEY, 'accepted');
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem(STORAGE_KEY, 'accepted');
+    }
     this.visible.set(false);
   }
 
   reject() {
-    localStorage.setItem(STORAGE_KEY, 'rejected');
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem(STORAGE_KEY, 'rejected');
+    }
     this.visible.set(false);
   }
 }

@@ -1,5 +1,6 @@
 """Dark web surveillance — email breach monitoring via HIBP."""
 
+import asyncio
 import json
 from datetime import UTC, datetime, timedelta
 
@@ -56,7 +57,7 @@ async def get_darkweb_status(
     age = datetime.now(UTC) - scan.checked_at
     try:
         breaches = json.loads(scan.results_json or "[]")
-    except Exception:
+    except json.JSONDecodeError:
         breaches = []
     return DarkwebStatusOut(
         email=scan.email,
@@ -88,7 +89,7 @@ async def run_darkweb_check(
         if age < timedelta(hours=REFRESH_INTERVAL_HOURS):
             try:
                 breaches = json.loads(existing.results_json or "[]")
-            except Exception:
+            except json.JSONDecodeError:
                 breaches = []
             return DarkwebStatusOut(
                 email=existing.email,
@@ -100,7 +101,9 @@ async def run_darkweb_check(
                 fresh=True,
             )
 
-    data = check_email_breaches(current_user.email, settings.HIBP_API_KEY)
+    # Appel HTTP synchrone (requests, timeout 30s) déporté dans un thread
+    # pour ne pas bloquer l'event loop.
+    data = await asyncio.to_thread(check_email_breaches, current_user.email, settings.HIBP_API_KEY)
     scan = DarkwebScan(
         user_id=current_user.id,
         email=current_user.email,

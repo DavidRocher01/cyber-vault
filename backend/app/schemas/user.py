@@ -2,11 +2,15 @@ from pydantic import BaseModel, EmailStr, Field
 
 
 class UserCreate(BaseModel):
+    model_config = {"extra": "forbid"}
+
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
 
 
 class UserLogin(BaseModel):
+    model_config = {"extra": "forbid"}
+
     email: EmailStr
     password: str
     totp_code: str | None = None
@@ -39,6 +43,8 @@ class NotificationPreferencesOut(BaseModel):
 
 
 class NotificationPreferencesIn(BaseModel):
+    model_config = {"extra": "forbid"}
+
     notif_scan_done: bool
     notif_scan_critical: bool
     notif_url_scan_done: bool
@@ -49,6 +55,7 @@ class NotificationPreferencesIn(BaseModel):
 class AccessTokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    crypto_salt: str | None = None  # base64-encoded 32-byte salt for client-side PBKDF2
 
 
 class TokenOut(BaseModel):
@@ -58,14 +65,20 @@ class TokenOut(BaseModel):
 
 
 class RefreshIn(BaseModel):
+    model_config = {"extra": "forbid"}
+
     refresh_token: str
 
 
 class ForgotPasswordIn(BaseModel):
+    model_config = {"extra": "forbid"}
+
     email: EmailStr
 
 
 class ResetPasswordIn(BaseModel):
+    model_config = {"extra": "forbid"}
+
     token: str
     password: str = Field(min_length=8, max_length=128)
 
@@ -76,13 +89,19 @@ class TwoFactorSetupOut(BaseModel):
 
 
 class TwoFactorSetupIn(BaseModel):
+    model_config = {"extra": "forbid"}
+
     current_code: str | None = None  # required when 2FA is already active
 
 
 class TwoFactorVerifyIn(BaseModel):
+    model_config = {"extra": "forbid"}
+
     code: str  # 6-digit TOTP code
 
 
 class TwoFactorDisableIn(BaseModel):
+    model_config = {"extra": "forbid"}
+
     password: str
     code: str  # TOTP code required to disable

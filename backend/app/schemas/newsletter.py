@@ -4,6 +4,8 @@ from pydantic import BaseModel, EmailStr
 
 
 class NewsletterSubscribeIn(BaseModel):
+    model_config = {"extra": "forbid"}
+
     email: EmailStr
 
 

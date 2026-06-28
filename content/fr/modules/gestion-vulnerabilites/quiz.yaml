@@ -1,0 +1,143 @@
+questions:
+  - id: gv_01
+    type: single_choice
+    weight: 1
+    text: "Quel pourcentage des cyberattaques réussies exploitent des vulnérabilités connues et déjà corrigées ?"
+    answers:
+      - id: a
+        text: "20 %"
+        correct: false
+      - id: b
+        text: "50 %"
+        correct: false
+      - id: c
+        text: "80 %"
+        correct: true
+      - id: d
+        text: "100 %"
+        correct: false
+    explanation: "Selon Gartner, environ 80 % des cyberattaques réussies exploitent des vulnérabilités pour lesquelles un correctif existait déjà. L'ennemi n'est donc pas la sophistication technique des attaquants, mais la procrastination dans l'application des mises à jour."
+
+  - id: gv_02
+    type: single_choice
+    weight: 1
+    text: "Combien de temps après la publication d'une vulnérabilité les outils d'exploitation automatisés circulent-ils ?"
+    answers:
+      - id: a
+        text: "Plusieurs mois"
+        correct: false
+      - id: b
+        text: "Environ 1 semaine"
+        correct: true
+      - id: c
+        text: "Uniquement si la faille est très critique"
+        correct: false
+      - id: d
+        text: "Jamais — les attaquants préfèrent les zero-days"
+        correct: false
+    explanation: "En pratique, les outils d'exploitation (exploits) pour une faille connue circulent sur des forums spécialisés en quelques jours à une semaine. C'est pourquoi les équipes IT cherchent à patcher les vulnérabilités critiques en 24-48h — chaque jour de retard est une opportunité supplémentaire pour les attaquants."
+
+  - id: gv_03
+    type: true_false
+    weight: 1
+    text: "Il est préférable d'attendre après une mise à jour importante pour éviter les bugs potentiels."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Attendre délibérément les mises à jour de sécurité vous expose aux attaques pendant la période de vulnérabilité. Les risques liés aux bugs d'une mise à jour sont généralement bien inférieurs aux risques d'une exploitation. Pour les mises à jour critiques (score CVSS 9-10), le patch doit être appliqué dans les 24-48h."
+
+  - id: gv_04
+    type: single_choice
+    weight: 1
+    text: "Qu'est-ce qu'une vulnérabilité 'zero-day' ?"
+    answers:
+      - id: a
+        text: "Une vulnérabilité corrigée le jour même de sa découverte"
+        correct: false
+      - id: b
+        text: "Une faille que l'éditeur ne connaît pas encore, sans correctif disponible"
+        correct: true
+      - id: c
+        text: "Une vulnérabilité qui date de plus d'un an"
+        correct: false
+      - id: d
+        text: "Un bug qui n'affecte que les systèmes hors ligne"
+        correct: false
+    explanation: "Un zero-day est une faille inconnue de l'éditeur — il n'existe donc aucun patch. Ces vulnérabilités se vendent plusieurs millions de dollars sur le marché noir et sont utilisées par des acteurs sophistiqués. Cependant, la majorité des attaques exploitent des failles CONNUES et corrigées, pas des zero-days."
+
+  - id: gv_05
+    type: single_choice
+    weight: 2
+    text: "Un score CVSS de 9.5 correspond à quel délai de patch recommandé ?"
+    answers:
+      - id: a
+        text: "Dans les 30 jours"
+        correct: false
+      - id: b
+        text: "Dans les 7 jours"
+        correct: false
+      - id: c
+        text: "Dans les 24-48 heures"
+        correct: true
+      - id: d
+        text: "Lors de la prochaine maintenance planifiée"
+        correct: false
+    explanation: "Le score CVSS (Common Vulnerability Scoring System) classe les failles de 0 à 10. Un score de 9.0-10.0 est 'critique' et impose un patch en 24-48h. Les scores 7.0-8.9 ('élevé') : 7 jours. Les 4.0-6.9 ('moyen') : 30 jours. Plus le score est élevé, plus la faille est dangereuse et urgente à corriger."
+
+  - id: gv_06
+    type: true_false
+    weight: 1
+    text: "Les équipements réseau (routeurs, switches) n'ont pas besoin d'être mis à jour régulièrement."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Les équipements réseau ont des firmwares qui contiennent aussi des vulnérabilités. Plusieurs attaques majeures ont exploité des routeurs et switches non mis à jour. En entreprise, votre IT s'en charge. Pour votre routeur personnel, vérifiez régulièrement que le firmware est à jour — c'est généralement dans l'interface d'administration."
+
+  - id: gv_07
+    type: multiple_choice
+    weight: 2
+    text: "Que s'est-il passé lors de l'attaque WannaCry de 2017 ? (plusieurs réponses correctes)"
+    answers:
+      - id: a
+        text: "200 000 ordinateurs ont été chiffrés en 72 heures"
+        correct: true
+      - id: b
+        text: "La faille exploitée avait été corrigée 2 mois avant l'attaque"
+        correct: true
+      - id: c
+        text: "Des hôpitaux ont dû refuser des patients"
+        correct: true
+      - id: d
+        text: "L'attaque a uniquement ciblé des systèmes militaires"
+        correct: false
+      - id: e
+        text: "La faille était un zero-day inconnu de Microsoft"
+        correct: false
+    explanation: "WannaCry est l'exemple parfait de l'impact des mises à jour manquantes. La faille EternalBlue exploitée était connue et corrigée par Microsoft depuis 2 mois. Les organisations touchées (dont des hôpitaux du NHS britannique) n'avaient pas appliqué la mise à jour. Coût estimé : 4 milliards de dollars."
+
+  - id: gv_08
+    type: single_choice
+    weight: 1
+    text: "Que faire si votre IT vous demande d'appliquer une mise à jour urgente en dehors des heures habituelles ?"
+    answers:
+      - id: a
+        text: "Refuser et attendre le prochain créneau de maintenance planifié"
+        correct: false
+      - id: b
+        text: "Coopérer immédiatement — une urgence signifie une vulnérabilité critique"
+        correct: true
+      - id: c
+        text: "Demander une explication technique détaillée avant d'accepter"
+        correct: false
+      - id: d
+        text: "Appliquer la mise à jour uniquement si vous n'avez pas de travail urgent"
+        correct: false
+    explanation: "Si votre IT demande une mise à jour urgente hors planning, c'est probablement pour une vulnérabilité critique (CVSS 9-10) que les attaquants exploitent activement. Votre coopération immédiate peut éviter une compromission. Le délai de quelques minutes pour appliquer la mise à jour est bien préférable à des semaines de récupération après une attaque."

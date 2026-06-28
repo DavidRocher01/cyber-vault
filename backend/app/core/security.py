@@ -21,13 +21,19 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_access_token(subject: str) -> str:
     expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload = {"sub": subject, "exp": expire}
+    # "type": "access" empêche qu'un autre JWT signé avec le même secret
+    # (ex: token learner awareness, type="awareness_learner") soit accepté ici.
+    payload = {"sub": subject, "exp": expire, "type": "access"}
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
 def decode_access_token(token: str) -> str | None:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        # Rejette tout token dont le type n'est pas exactement "access"
+        # (anti-confusion de types : usurpation de compte via token learner).
+        if payload.get("type") != "access":
+            return None
         return payload.get("sub")
     except JWTError:
         return None

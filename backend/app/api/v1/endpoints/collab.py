@@ -7,6 +7,7 @@ import secrets
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from loguru import logger
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -75,8 +76,8 @@ def _send_invite_email(email: str, site_name: str, site_url: str, role: str, tok
         """
         plain = f"Vous êtes invité(e) à collaborer sur {site_url} (rôle : {role_label}).\nAcceptez : {accept_url}"
         _send(email, f"Invitation CyberScan — {site_name}", html, plain)
-    except Exception:
-        pass  # Non-blocking — invitation is still created in DB
+    except Exception as exc:
+        logger.warning(f"Collab invitation email failed: {exc}")
 
 
 # ---------------------------------------------------------------------------

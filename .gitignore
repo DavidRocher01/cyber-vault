@@ -25,6 +25,8 @@ dist/
 # Playwright
 playwright-report/
 /test-results/
+test-results/
+frontend/test-results/
 
 # VS Code
 .vscode/
@@ -32,6 +34,7 @@ playwright-report/
 
 # Test reports / generated PDFs
 docs/test-reports/
+reports/
 
 # OS
 .DS_Store

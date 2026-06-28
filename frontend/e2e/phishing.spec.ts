@@ -145,8 +145,8 @@ test.describe('Phishing — wizard création', () => {
     await expect(page.getByText('Express')).toBeVisible();
     await expect(page.getByText('Standard')).toBeVisible();
     await expect(page.getByText('Premium')).toBeVisible();
-    // Les prix doivent être présents
-    await expect(page.getByText('800 €').first()).toBeVisible();
+    // Les prix doivent être présents (cf. phishing-campaign-creator.component.ts)
+    await expect(page.getByText('990 € HT').first()).toBeVisible();
   });
 
   test('wizard — Continuer depuis step 1 affiche step 2', async ({ page }) => {
@@ -384,7 +384,7 @@ test.describe('Phishing — lancement (file d\'attente)', () => {
 
   test('launch — campagne passe au statut sending après lancement', async ({ page }) => {
     await login(page, launchEmail);
-    const token = await page.evaluate(() => localStorage.getItem('cv_token'));
+    const token = await page.evaluate(() => sessionStorage.getItem('cv_token'));
     const r = await page.request.get(`/api/v1/phishing/campaigns/${launchCampaignId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -437,7 +437,7 @@ test.describe('Phishing — rapport PDF', () => {
 
   test('PDF — API retourne 400 pour une campagne draft', async ({ page }) => {
     await login(page, detailEmail);
-    const token = await page.evaluate(() => localStorage.getItem('cv_token'));
+    const token = await page.evaluate(() => sessionStorage.getItem('cv_token'));
     const r = await page.request.get(`/api/v1/phishing/campaigns/${campaignId}/pdf`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -449,7 +449,7 @@ test.describe('Phishing — rapport PDF', () => {
     await page.goto(`/cyberscan/phishing/campaigns/${launchCampaignId}`);
     // Button is shown only for status active or completed
     // (sending has progress bar but no PDF button yet — verify accordingly)
-    const campaignToken = await page.evaluate(() => localStorage.getItem('cv_token'));
+    const campaignToken = await page.evaluate(() => sessionStorage.getItem('cv_token'));
     const statusResp = await page.request.get(`/api/v1/phishing/campaigns/${launchCampaignId}`, {
       headers: { Authorization: `Bearer ${campaignToken}` },
     });
@@ -464,7 +464,7 @@ test.describe('Phishing — rapport PDF', () => {
 
   test('PDF — API retourne application/pdf pour campagne active', async ({ page }) => {
     await login(page, launchEmail);
-    const token = await page.evaluate(() => localStorage.getItem('cv_token'));
+    const token = await page.evaluate(() => sessionStorage.getItem('cv_token'));
 
     // Promote campaign to active via PATCH (simulate all emails sent)
     // In dev/test env, we can force status via the service endpoint

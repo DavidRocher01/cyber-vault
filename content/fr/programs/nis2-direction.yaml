@@ -1,0 +1,21 @@
+slug: nis2-direction
+title: "NIS2 Direction & RSSI — Gouvernance et responsabilités"
+description: >
+  Parcours accéléré pour les dirigeants, managers et RSSI.
+  Focus sur les obligations légales NIS2, la gestion de crise,
+  la chaîne d'approvisionnement et la continuité d'activité.
+  Durée : 35 minutes.
+language: fr
+version: "1.0"
+estimated_duration_minutes: 35
+passing_score: 70
+certificate_validity_months: 12
+is_active: true
+
+modules:
+  - declaration-incident-nis2
+  - chaine-approvisionnement
+  - continuite-activite-nis2
+  - cas-hopital-cyberattaque
+  - cas-fraude-virement
+  - fraude-president

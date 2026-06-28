@@ -10,12 +10,30 @@ export class CryptoService {
     return !!this.key;
   }
 
+  /**
+   * Derive the vault encryption key from the master password.
+   * @param masterPassword  User-supplied master password (never sent to server)
+   * @param saltOrEmail     Prefer the base64-encoded crypto_salt from the server.
+   *                        Falls back to email if salt is not yet available (legacy sessions).
+   * @param iterations      PBKDF2 iteration count
+   */
   async deriveKey(
     masterPassword: string,
-    email: string,
+    saltOrEmail: string,
     iterations = CryptoService.ITERATIONS
   ): Promise<void> {
     const enc = new TextEncoder();
+    let saltBytes: Uint8Array;
+    try {
+      // If saltOrEmail is base64 (44 chars for 32 bytes), decode it; otherwise treat as email string
+      if (/^[A-Za-z0-9+/]{43}=?$/.test(saltOrEmail)) {
+        saltBytes = Uint8Array.from(atob(saltOrEmail), c => c.charCodeAt(0));
+      } else {
+        saltBytes = enc.encode(saltOrEmail);
+      }
+    } catch {
+      saltBytes = enc.encode(saltOrEmail);
+    }
     const keyMaterial = await crypto.subtle.importKey(
       'raw',
       enc.encode(masterPassword),
@@ -24,7 +42,7 @@ export class CryptoService {
       ['deriveKey']
     );
     this.key = await crypto.subtle.deriveKey(
-      { name: 'PBKDF2', salt: enc.encode(email), iterations, hash: 'SHA-256' },
+      { name: 'PBKDF2', salt: saltBytes, iterations, hash: 'SHA-256' },
       keyMaterial,
       { name: 'AES-GCM', length: 256 },
       false,

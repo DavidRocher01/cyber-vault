@@ -1,4 +1,3 @@
-import json
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -7,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import require_admin
-from app.core.utils import safe_json_load
 from app.models.blog_post import BlogPost
 from app.schemas.blog import BlogPostDetailOut, BlogPostIn, BlogPostOut
 
@@ -15,7 +13,6 @@ router = APIRouter(prefix="/blog", tags=["blog"])
 
 
 def _to_out(p: BlogPost) -> BlogPostOut:
-    tags = safe_json_load(p.tags, [])
     return BlogPostOut(
         id=p.id,
         slug=p.slug,
@@ -24,13 +21,12 @@ def _to_out(p: BlogPost) -> BlogPostOut:
         date=p.date,
         readTime=p.read_time,
         category=p.category,
-        tags=tags,
+        tags=p.tags,
         isPublished=p.is_published,
     )
 
 
 def _to_detail(p: BlogPost) -> BlogPostDetailOut:
-    tags = safe_json_load(p.tags, [])
     return BlogPostDetailOut(
         id=p.id,
         slug=p.slug,
@@ -39,13 +35,17 @@ def _to_detail(p: BlogPost) -> BlogPostDetailOut:
         date=p.date,
         readTime=p.read_time,
         category=p.category,
-        tags=tags,
+        tags=p.tags,
         isPublished=p.is_published,
         htmlContent=p.html_content,
     )
 
 
-@router.get("/articles", response_model=list[BlogPostOut])
+@router.get(
+    "/articles",
+    response_model=list[BlogPostOut],
+    summary="Lister les articles de blog publiés",
+)
 async def list_articles(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(BlogPost)
@@ -55,7 +55,12 @@ async def list_articles(db: AsyncSession = Depends(get_db)):
     return [_to_out(p) for p in result.scalars().all()]
 
 
-@router.get("/articles/{slug}", response_model=BlogPostDetailOut)
+@router.get(
+    "/articles/{slug}",
+    response_model=BlogPostDetailOut,
+    summary="Détail d'un article publié (par slug)",
+    responses={404: {"description": "Article introuvable ou non publié"}},
+)
 async def get_article(slug: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(BlogPost).where(BlogPost.slug == slug, BlogPost.is_published == True)  # noqa: E712
@@ -70,6 +75,7 @@ async def get_article(slug: str, db: AsyncSession = Depends(get_db)):
     "/admin/articles",
     response_model=list[BlogPostOut],
     dependencies=[Depends(require_admin)],
+    summary="[Admin] Lister tous les articles (publiés ou non)",
 )
 async def admin_list_articles(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(BlogPost).order_by(BlogPost.date.desc()))
@@ -80,6 +86,8 @@ async def admin_list_articles(db: AsyncSession = Depends(get_db)):
     "/admin/articles/{slug}",
     response_model=BlogPostDetailOut,
     dependencies=[Depends(require_admin)],
+    summary="[Admin] Détail d'un article (par slug)",
+    responses={404: {"description": "Article introuvable"}},
 )
 async def admin_get_article(slug: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(BlogPost).where(BlogPost.slug == slug))
@@ -94,6 +102,7 @@ async def admin_get_article(slug: str, db: AsyncSession = Depends(get_db)):
     response_model=BlogPostDetailOut,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_admin)],
+    summary="[Admin] Créer un article",
 )
 async def create_article(payload: BlogPostIn, db: AsyncSession = Depends(get_db)):
     now = datetime.now(UTC)
@@ -104,7 +113,7 @@ async def create_article(payload: BlogPostIn, db: AsyncSession = Depends(get_db)
         date=payload.date,
         read_time=payload.readTime,
         category=payload.category,
-        tags=json.dumps(payload.tags),
+        tags=payload.tags,
         html_content=payload.htmlContent,
         is_published=payload.isPublished,
         created_at=now,
@@ -119,6 +128,8 @@ async def create_article(payload: BlogPostIn, db: AsyncSession = Depends(get_db)
     "/admin/articles/{slug}",
     response_model=BlogPostDetailOut,
     dependencies=[Depends(require_admin)],
+    summary="[Admin] Mettre à jour un article",
+    responses={404: {"description": "Article introuvable"}},
 )
 async def update_article(slug: str, payload: BlogPostIn, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(BlogPost).where(BlogPost.slug == slug))
@@ -131,7 +142,7 @@ async def update_article(slug: str, payload: BlogPostIn, db: AsyncSession = Depe
     post.date = payload.date
     post.read_time = payload.readTime
     post.category = payload.category
-    post.tags = json.dumps(payload.tags)
+    post.tags = payload.tags
     post.html_content = payload.htmlContent
     post.is_published = payload.isPublished
     post.updated_at = datetime.now(UTC)
@@ -143,6 +154,8 @@ async def update_article(slug: str, payload: BlogPostIn, db: AsyncSession = Depe
     "/admin/articles/{slug}",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_admin)],
+    summary="[Admin] Supprimer un article",
+    responses={404: {"description": "Article introuvable"}},
 )
 async def delete_article(slug: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(BlogPost).where(BlogPost.slug == slug))

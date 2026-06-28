@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Title, Meta } from '@angular/platform-browser';
@@ -24,8 +24,8 @@ const PLANS = [
   },
   {
     name: 'Dev',
-    price: '29 €/mois',
-    quota: '200 scans',
+    price: '49 €/mois',
+    quota: '500 scans',
     sites: '5 sites',
     webhooks: '1 webhook',
     badge: null,
@@ -33,8 +33,8 @@ const PLANS = [
   },
   {
     name: 'Pro',
-    price: '99 €/mois',
-    quota: '2 000 scans',
+    price: '199 €/mois',
+    quota: '5 000 scans',
     sites: '50 sites',
     webhooks: '5 webhooks',
     badge: 'Populaire',
@@ -42,8 +42,8 @@ const PLANS = [
   },
   {
     name: 'Business',
-    price: '299 €/mois',
-    quota: '10 000 scans',
+    price: '499 €/mois',
+    quota: '25 000 scans',
     sites: 'Illimité',
     webhooks: '20 webhooks',
     badge: null,
@@ -58,7 +58,7 @@ const USE_CASES = [
     color: 'cyan',
     desc: "Automatisez l'audit mensuel de vos 40 clients PME. Un appel API le lundi matin, un rapport PDF par client à présenter en revue.",
     quote: '"40 clients, 0 audit manuel."',
-    detail: '200–800 scans/mois · Plan Pro recommandé',
+    detail: '500–5 000 scans/mois · Plan Pro recommandé',
   },
   {
     icon: 'terminal',
@@ -66,7 +66,7 @@ const USE_CASES = [
     color: 'purple',
     desc: 'Intégrez un check sécurité dans votre pipeline GitHub Actions. Si une faille critique apparaît, le déploiement échoue automatiquement.',
     quote: '"Security gate en 3 lignes de YAML."',
-    detail: '100–500 scans/mois · Plan Dev recommandé',
+    detail: '100–500 scans/mois · Plan Dev recommandé (49 €/mois)',
   },
   {
     icon: 'api',
@@ -74,7 +74,7 @@ const USE_CASES = [
     color: 'indigo',
     desc: "Affichez un score sécurité lors de l'onboarding de vos utilisateurs. Différenciez-vous sans développer le moteur.",
     quote: '"Score 0–100 pour chaque utilisateur."',
-    detail: '3 000–10 000 scans/mois · Plan Business',
+    detail: '5 000–25 000 scans/mois · Plan Business',
   },
 ];
 
@@ -113,7 +113,7 @@ const ROADMAP = [
   standalone: true,
   selector: 'app-api-landing',
   imports: [
-    CommonModule,
+    NgClass,
     ReactiveFormsModule,
     RouterLink,
     MatIconModule,

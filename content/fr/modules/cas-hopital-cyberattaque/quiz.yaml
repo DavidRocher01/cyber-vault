@@ -1,0 +1,143 @@
+questions:
+  - id: ch_01
+    type: single_choice
+    weight: 1
+    text: "Dans cette étude de cas, quel a été le point d'entrée initial de l'attaque ?"
+    answers:
+      - id: a
+        text: "Une intrusion physique dans la salle serveur"
+        correct: false
+      - id: b
+        text: "Un email de phishing imitant la CPAM"
+        correct: true
+      - id: c
+        text: "Une clé USB abandonnée dans l'hôpital"
+        correct: false
+      - id: d
+        text: "Une vulnérabilité dans le logiciel de radiologie"
+        correct: false
+    explanation: "L'attaque a commencé par un email de phishing imitant la CPAM. L'agent administratif a saisi ses identifiants sur une fausse page de connexion. Ce vecteur — le phishing — est le point de départ de plus de 80 % des cyberattaques sur les organisations."
+
+  - id: ch_02
+    type: single_choice
+    weight: 1
+    text: "Combien de temps les attaquants ont-ils observé le réseau avant de déclencher le ransomware ?"
+    answers:
+      - id: a
+        text: "Quelques heures"
+        correct: false
+      - id: b
+        text: "1 semaine"
+        correct: false
+      - id: c
+        text: "45 jours"
+        correct: true
+      - id: d
+        text: "6 mois"
+        correct: false
+    explanation: "Les attaquants ont passé 45 jours à observer silencieusement le réseau, cartographier l'organisation et identifier les accès privilégiés avant de déclencher le ransomware. C'est typique des attaques sophistiquées : la discrétion pendant la phase de reconnaissance maximise l'impact au moment du déclenchement."
+
+  - id: ch_03
+    type: true_false
+    weight: 1
+    text: "Les sauvegardes connectées en permanence au réseau sont suffisantes pour se protéger d'un ransomware."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Non. Dans cette étude de cas, les sauvegardes connectées au réseau ont été chiffrées en même temps que les données principales. Les ransomwares modernes ciblent spécifiquement les sauvegardes. La règle 3-2-1 impose au moins une copie hors-ligne ou hors-réseau pour garantir la récupération."
+
+  - id: ch_04
+    type: multiple_choice
+    weight: 2
+    text: "Quelles mesures auraient pu empêcher ou limiter cette attaque ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "La MFA sur la messagerie de l'agent administratif"
+        correct: true
+      - id: b
+        text: "Une formation de sensibilisation au phishing"
+        correct: true
+      - id: c
+        text: "Des sauvegardes hors-ligne testées régulièrement"
+        correct: true
+      - id: d
+        text: "Un antivirus plus puissant"
+        correct: false
+      - id: e
+        text: "La segmentation réseau pour limiter la propagation latérale"
+        correct: true
+    explanation: "Plusieurs mesures auraient changé l'issue. La MFA aurait rendu les identifiants volés inutilisables. La formation aurait pu prévenir le clic initial. Les sauvegardes hors-ligne auraient permis une reprise en jours plutôt qu'en semaines. La segmentation réseau aurait limité la propagation. Un antivirus standard ne suffit généralement pas contre les attaques sophistiquées qui opèrent en plusieurs phases."
+
+  - id: ch_05
+    type: single_choice
+    weight: 1
+    text: "Pourquoi les attaquants ont-ils déclenché le ransomware un vendredi soir ?"
+    answers:
+      - id: a
+        text: "Par hasard — ils n'avaient pas de stratégie"
+        correct: false
+      - id: b
+        text: "Pour maximiser les dégâts quand les équipes IT sont réduites"
+        correct: true
+      - id: c
+        text: "Parce que les systèmes sont moins protégés le week-end"
+        correct: false
+      - id: d
+        text: "Pour éviter d'être détectés par les caméras de surveillance"
+        correct: false
+    explanation: "Le timing du vendredi soir est délibéré. Les attaquants savent que les équipes IT sont squelettiques le week-end, que la réaction sera plus lente, et que le ransomware aura plus de temps pour se propager avant d'être détecté. C'est une tactique documentée dans la majorité des grandes attaques."
+
+  - id: ch_06
+    type: single_choice
+    weight: 2
+    text: "Quel est le coût estimé de cette attaque pour l'hôpital ?"
+    answers:
+      - id: a
+        text: "Le montant de la rançon payée : 1,2 million de dollars"
+        correct: false
+      - id: b
+        text: "Entre 10 et 15 millions d'euros, même sans payer la rançon"
+        correct: true
+      - id: c
+        text: "Environ 500 000 euros de reconstruction IT"
+        correct: false
+      - id: d
+        text: "Nul, car l'assurance a tout couvert"
+        correct: false
+    explanation: "Le coût réel est de 10 à 15 millions d'euros (reconstruction IT, personnel supplémentaire, pertes d'activité, données perdues) — et l'hôpital n'a pas payé la rançon. C'est typique : le coût réel d'un ransomware est toujours bien supérieur au montant de la rançon. Et la rançon ne garantit pas la récupération des données."
+
+  - id: ch_07
+    type: true_false
+    weight: 1
+    text: "En cas de suspicion de ransomware, la première chose à faire est de redémarrer son ordinateur."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "Non. Redémarrer peut aggraver la situation : certains ransomwares utilisent le redémarrage pour finaliser le chiffrement ou supprimer les copies fantômes (shadow copies) de Windows. La première action est de signaler à l'IT et de déconnecter du réseau si l'IT vous le demande — sans redémarrer."
+
+  - id: ch_08
+    type: single_choice
+    weight: 1
+    text: "Si vous recevez un email de phishing mais ne cliquez pas, que devez-vous faire ?"
+    answers:
+      - id: a
+        text: "Le supprimer et passer à autre chose"
+        correct: false
+      - id: b
+        text: "Le signaler à votre IT même si vous n'avez pas cliqué"
+        correct: true
+      - id: c
+        text: "Transférer l'email à vos collègues pour les prévenir"
+        correct: false
+      - id: d
+        text: "Répondre à l'expéditeur pour lui signaler qu'il a été piraté"
+        correct: false
+    explanation: "Signaler les tentatives de phishing, même ratées, est crucial. Cela permet à votre IT d'identifier une campagne en cours, de bloquer l'expéditeur pour protéger vos collègues, et d'analyser si d'autres employés ont reçu le même email. Ne transférez jamais l'email à des collègues — vous risquez de propager le lien malveillant."

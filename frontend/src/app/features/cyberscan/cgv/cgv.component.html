@@ -1,0 +1,306 @@
+<div class="min-h-screen bg-gray-900 text-white">
+  <nav class="flex items-center justify-between px-8 py-4 border-b border-gray-800">
+    <a routerLink="/cyberscan" class="flex items-center gap-2">
+      <mat-icon class="text-cyan-400">shield</mat-icon>
+      <span class="text-xl font-bold text-cyan-400">CyberScan</span>
+    </a>
+    <app-nav-buttons />
+  </nav>
+
+  <div class="max-w-3xl mx-auto px-6 py-14">
+    <h1 class="text-3xl font-bold mb-2">Conditions Générales de Vente</h1>
+    <p class="text-gray-400 text-sm mb-10">Dernière mise à jour : Juin 2026</p>
+
+    <!-- Sélecteur de partie -->
+    <div class="bg-cyan-950 border border-cyan-800 rounded-xl p-4 mb-10">
+      <p class="text-sm text-gray-300">
+        Les présentes CGV régissent la vente des services CyberScan. Elles comportent deux parties
+        distinctes :
+      </p>
+      <ul class="text-sm text-gray-400 mt-2 ml-4 list-disc">
+        <li>
+          <strong class="text-white">Partie A</strong> — applicable aux clients particuliers (B2C)
+        </li>
+        <li>
+          <strong class="text-white">Partie B</strong> — applicable aux clients professionnels (B2B)
+        </li>
+      </ul>
+    </div>
+
+    <div class="flex flex-col gap-10 text-gray-300 text-sm leading-relaxed">
+      <!-- ============================================ -->
+      <!-- DISPOSITIONS COMMUNES                        -->
+      <!-- ============================================ -->
+
+      <section>
+        <h2 class="text-xl font-bold text-cyan-400 mb-4">Dispositions communes</h2>
+
+        <h3 class="text-lg font-semibold text-white mb-3">1. Vendeur</h3>
+        <p class="mb-2">
+          Les services CyberScan sont vendus par David Rocher, entrepreneur individuel immatriculé
+          au Registre National des Entreprises (RNE) sous le numéro SIRET 10400963400015, dont le
+          siège est situé 546 Montée Carriat, 01600 Reyrieux, France.
+        </p>
+        <p>
+          Contact :
+          <a href="mailto:contact@cyberscanapp.com" class="text-cyan-400 hover:underline"
+            >contact&#64;cyberscanapp.com</a
+          >
+        </p>
+      </section>
+
+      <section>
+        <h3 class="text-lg font-semibold text-white mb-3">2. Description des services</h3>
+        <p class="mb-3">CyberScan propose les services suivants :</p>
+        <ul class="list-disc list-inside text-gray-400 flex flex-col gap-1 mb-3">
+          <li>
+            <strong class="text-white">Abonnements Surveillance</strong> (Starter, Pro, Business) —
+            service récurrent mensuel ou annuel de surveillance automatisée de sites web
+          </li>
+          <li>
+            <strong class="text-white">Audits ponctuels</strong> (Audit Flash, App-Check, Pentest
+            léger, Audit NIS2/RGPD) — prestations forfaitaires délivrées sous 5 jours ouvrés
+          </li>
+          <li>
+            <strong class="text-white">Simulation de phishing</strong> — prestations forfaitaires
+          </li>
+          <li>
+            <strong class="text-white">RSSI externalisé</strong> — prestation récurrente avec
+            engagement de 6 ou 12 mois
+          </li>
+          <li><strong class="text-white">Sensibilisation NIS2</strong> — sur devis</li>
+        </ul>
+        <p>
+          La description précise de chaque service, les tarifs et les fonctionnalités sont détaillés
+          sur le site cyberscanapp.com.
+        </p>
+      </section>
+
+      <section>
+        <h3 class="text-lg font-semibold text-white mb-3">3. Prix</h3>
+        <p class="mb-2">
+          Les prix sont affichés en euros et sont indiqués hors taxes (HT). CyberScan est
+          actuellement en franchise en base de TVA (article 293 B du CGI), aucune TVA n'est donc
+          appliquée.
+        </p>
+        <p>
+          L'éditeur se réserve le droit de modifier ses tarifs à tout moment. Pour les abonnements
+          en cours, toute modification tarifaire ne s'applique qu'à compter du renouvellement
+          suivant, après notification au client au moins 30 jours à l'avance.
+        </p>
+      </section>
+
+      <section>
+        <h3 class="text-lg font-semibold text-white mb-3">4. Modalités de paiement</h3>
+        <p class="mb-2">
+          Les paiements sont traités par <strong class="text-white">Stripe Inc.</strong>,
+          prestataire certifié PCI-DSS niveau 1. Les coordonnées bancaires ne sont jamais stockées
+          sur les serveurs de CyberScan.
+        </p>
+        <p>
+          Moyens de paiement acceptés : carte bancaire (Visa, Mastercard, American Express), SEPA
+          virement pour les forfaits supérieurs à 1 000 € HT (sur demande).
+        </p>
+      </section>
+
+      <!-- ============================================ -->
+      <!-- PARTIE A : B2C                               -->
+      <!-- ============================================ -->
+
+      <section class="border-t border-gray-800 pt-10">
+        <h2 class="text-xl font-bold text-cyan-400 mb-4">
+          Partie A — Conditions applicables aux particuliers (B2C)
+        </h2>
+        <p class="text-gray-400 text-sm mb-6">
+          Cette partie s'applique exclusivement aux clients consommateurs au sens du Code de la
+          consommation (article liminaire).
+        </p>
+      </section>
+
+      <section>
+        <h3 class="text-lg font-semibold text-white mb-3">A.1 Droit de rétractation</h3>
+        <p class="mb-3">
+          Conformément à l'article L221-18 du Code de la consommation, vous disposez d'un délai de
+          <strong class="text-white">14 jours</strong> à compter de la souscription pour exercer
+          votre droit de rétractation, sans avoir à justifier de motif ni à payer de pénalité.
+        </p>
+        <p class="mb-3">
+          Pour exercer ce droit, vous pouvez nous adresser un email à
+          <a href="mailto:contact@cyberscanapp.com" class="text-cyan-400 hover:underline"
+            >contact&#64;cyberscanapp.com</a
+          >
+          en indiquant votre demande sans ambiguïté.
+        </p>
+        <div class="bg-amber-950 border border-amber-700 rounded-xl p-4 my-3">
+          <p class="text-sm text-amber-200 font-semibold mb-2">
+            ⚠ Renonciation au droit de rétractation pour les audits ponctuels
+          </p>
+          <p class="text-sm text-gray-300">
+            Conformément à l'article L221-28 1° du Code de la consommation, pour les audits one-shot
+            (Audit Flash, App-Check, Pentest, Audit NIS2) exécutés sous 5 jours ouvrés, si le client
+            demande expressément le démarrage de la prestation avant l'expiration du délai de 14
+            jours, il
+            <strong class="text-white">renonce expressément à son droit de rétractation</strong> dès
+            lors que la prestation a été pleinement exécutée. Cette renonciation est matérialisée
+            par la case à cocher présente sur le bon de commande.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h3 class="text-lg font-semibold text-white mb-3">A.2 Garantie légale</h3>
+        <p>
+          Conformément aux articles L217-4 et suivants du Code de la consommation, CyberScan est
+          tenue à la garantie légale de conformité du service fourni. Le consommateur dispose d'un
+          délai de 2 ans à compter de la délivrance du service pour agir.
+        </p>
+      </section>
+
+      <section>
+        <h3 class="text-lg font-semibold text-white mb-3">A.3 Médiation de la consommation</h3>
+        <p>
+          En cas de litige avec un consommateur, et après tentative de résolution amiable (réponse
+          sous 30 jours à toute réclamation envoyée à
+          <a href="mailto:contact@cyberscanapp.com" class="text-cyan-400 hover:underline"
+            >contact&#64;cyberscanapp.com</a
+          >), le consommateur peut saisir gratuitement le médiateur de la consommation :
+        </p>
+        <div class="bg-gray-800 rounded-xl p-4 mt-3 text-xs text-gray-400">
+          <p><strong class="text-white">[À COMPLÉTER après adhésion]</strong></p>
+          <p>Exemple : CNPM Médiation Consommation</p>
+          <p>Adresse : 27 avenue de la Libération, 42400 Saint-Chamond</p>
+          <p>Site : cnpm-mediation-consommation.eu</p>
+        </div>
+      </section>
+
+      <!-- ============================================ -->
+      <!-- PARTIE B : B2B                               -->
+      <!-- ============================================ -->
+
+      <section class="border-t border-gray-800 pt-10">
+        <h2 class="text-xl font-bold text-cyan-400 mb-4">
+          Partie B — Conditions applicables aux professionnels (B2B)
+        </h2>
+        <p class="text-gray-400 text-sm mb-6">
+          Cette partie s'applique exclusivement aux clients professionnels, c'est-à-dire toute
+          personne physique ou morale agissant à des fins entrant dans le cadre de son activité
+          commerciale, industrielle, artisanale, libérale ou agricole.
+        </p>
+      </section>
+
+      <section>
+        <h3 class="text-lg font-semibold text-white mb-3">B.1 Absence de droit de rétractation</h3>
+        <p>
+          Les présentes CGV ne prévoient pas de droit de rétractation pour les clients
+          professionnels. L'acceptation de la commande vaut acceptation ferme et définitive.
+        </p>
+      </section>
+
+      <section>
+        <h3 class="text-lg font-semibold text-white mb-3">B.2 Délais de paiement</h3>
+        <p class="mb-2">
+          Sauf accord particulier mentionné sur la facture, les factures sont payables à
+          <strong class="text-white">30 jours fin de mois</strong> à compter de leur émission,
+          conformément à l'article L441-10 du Code de commerce.
+        </p>
+      </section>
+
+      <section>
+        <h3 class="text-lg font-semibold text-white mb-3">B.3 Pénalités de retard</h3>
+        <p class="mb-2">
+          En cas de retard de paiement, des pénalités sont applicables de plein droit, sans mise en
+          demeure préalable, à compter du jour suivant la date d'échéance, au taux égal au
+          <strong class="text-white"
+            >taux d'intérêt appliqué par la Banque centrale européenne à son opération de
+            refinancement la plus récente, majoré de 10 points de pourcentage</strong
+          >
+          (article L441-10 II du Code de commerce).
+        </p>
+        <p>
+          De plus, conformément à l'article D441-5 du Code de commerce, une indemnité forfaitaire de
+          <strong class="text-white">40 € pour frais de recouvrement</strong> est due de plein droit
+          pour chaque facture en retard. Lorsque les frais de recouvrement exposés sont supérieurs à
+          ce montant, une indemnisation complémentaire peut être demandée sur justificatifs.
+        </p>
+      </section>
+
+      <section>
+        <h3 class="text-lg font-semibold text-white mb-3">B.4 Engagement et résiliation</h3>
+        <p class="mb-2">
+          Les abonnements Surveillance sont sans engagement de durée et résiliables à tout moment
+          depuis l'espace client. La résiliation prend effet au terme de la période en cours.
+        </p>
+        <p>
+          Les contrats RSSI externalisé sont conclus avec engagement minimum de 6 mois (formule
+          Light) ou 12 mois (formules Standard et Premium). Toute résiliation anticipée donne lieu
+          au paiement des mensualités restantes jusqu'au terme de l'engagement, sauf cas de force
+          majeure ou manquement grave de l'éditeur.
+        </p>
+      </section>
+
+      <section>
+        <h3 class="text-lg font-semibold text-white mb-3">B.5 Limitation de responsabilité</h3>
+        <p>
+          La responsabilité de CyberScan envers le client professionnel est expressément limitée au
+          montant facturé au cours des 12 derniers mois précédant le fait générateur du dommage.
+          CyberScan ne saurait être tenue responsable des dommages indirects, immatériels, perte de
+          chiffre d'affaires, perte de clientèle, atteinte à l'image ou perte de données du client.
+        </p>
+      </section>
+
+      <section>
+        <h3 class="text-lg font-semibold text-white mb-3">
+          B.6 Données personnelles — sous-traitance
+        </h3>
+        <p>
+          Lorsque CyberScan traite des données personnelles pour le compte du client (responsable de
+          traitement), un accord de sous-traitance conforme à l'article 28 du RGPD est conclu entre
+          les parties. Le modèle de cet accord est disponible sur
+          <a routerLink="/cyberscan/dpa" class="text-cyan-400 hover:underline">la page DPA</a> et
+          peut être adapté sur demande.
+        </p>
+      </section>
+
+      <!-- ============================================ -->
+      <!-- DISPOSITIONS FINALES                         -->
+      <!-- ============================================ -->
+
+      <section class="border-t border-gray-800 pt-10">
+        <h2 class="text-xl font-bold text-cyan-400 mb-4">Dispositions finales</h2>
+      </section>
+
+      <section>
+        <h3 class="text-lg font-semibold text-white mb-3">Modification des CGV</h3>
+        <p>
+          CyberScan se réserve le droit de modifier les présentes CGV à tout moment. La version
+          applicable est celle en vigueur au jour de la commande. Pour les abonnements en cours,
+          toute modification substantielle sera notifiée par e-mail au moins 30 jours avant son
+          entrée en vigueur. À défaut d'acceptation, le client peut résilier sans pénalité.
+        </p>
+      </section>
+
+      <section>
+        <h3 class="text-lg font-semibold text-white mb-3">Loi applicable et juridiction</h3>
+        <p class="mb-2">Les présentes CGV sont régies par le droit français.</p>
+        <p>
+          En cas de litige avec un consommateur, et après tentative de résolution amiable ou recours
+          à la médiation de la consommation, la juridiction compétente est celle du domicile du
+          défendeur ou du lieu d'exécution du contrat, au choix du consommateur. En cas de litige
+          avec un professionnel,
+          <strong class="text-white"
+            >les tribunaux de Bourg-en-Bresse (Ain, France) seront seuls compétents</strong
+          >, nonobstant pluralité de défendeurs ou appel en garantie.
+        </p>
+      </section>
+
+      <section class="bg-gray-800 border border-gray-700 rounded-xl p-5">
+        <p class="text-xs text-gray-400">
+          Pour toute question, contactez-nous à
+          <a href="mailto:contact@cyberscanapp.com" class="text-cyan-400 hover:underline"
+            >contact&#64;cyberscanapp.com</a
+          >.
+        </p>
+      </section>
+    </div>
+  </div>
+</div>

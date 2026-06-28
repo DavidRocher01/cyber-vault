@@ -1,4 +1,14 @@
-import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy, NgZone } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  ViewChild,
+  AfterViewInit,
+  OnDestroy,
+  NgZone,
+  PLATFORM_ID,
+  inject,
+} from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 
 const DEG = Math.PI / 180;
 const TILT = 23.5 * DEG; // Earth's axial tilt
@@ -132,10 +142,12 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
   private rotation = 0;
   private stars: Star[] = [];
   private attackCount = 8_000 + Math.floor(Math.random() * 4000);
+  private platformId = inject(PLATFORM_ID);
 
   constructor(private ngZone: NgZone) {}
 
   ngAfterViewInit() {
+    if (!isPlatformBrowser(this.platformId)) return;
     this.ngZone.runOutsideAngular(() => this.boot());
   }
 

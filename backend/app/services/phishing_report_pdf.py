@@ -165,7 +165,7 @@ def generate_phishing_report(
     scenario_keys: list[str] = []
     try:
         scenario_keys = json.loads(campaign.scenario_keys or "[]")
-    except Exception:
+    except json.JSONDecodeError:
         pass
 
     # Median time-to-click (hours)

@@ -1,5 +1,4 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
@@ -29,13 +28,7 @@ const API = '/api/v1';
 @Component({
   standalone: true,
   selector: 'app-admin-invoices',
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatIconModule,
-    MatSnackBarModule,
-    MatProgressSpinnerModule,
-  ],
+  imports: [ReactiveFormsModule, MatIconModule, MatSnackBarModule, MatProgressSpinnerModule],
   templateUrl: './admin-invoices.component.html',
 })
 export class AdminInvoicesComponent implements OnInit {

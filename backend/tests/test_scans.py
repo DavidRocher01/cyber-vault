@@ -118,6 +118,30 @@ async def test_scan_frequency_enforcement_429():
 
 
 @pytest.mark.asyncio
+async def test_trigger_scan_quota_race_only_one_created():
+    """P0 — N triggers concurrents sur un compte free (quota = 1) : un seul scan créé."""
+    import asyncio
+
+    with (
+        patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock),
+        patch(
+            "app.api.v1.endpoints.scans.get_active_plan",
+            new=AsyncMock(return_value=MagicMock(scan_interval_days=30, max_sites=1, price_eur=0)),
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await _headers(c, "race@test.com")
+            site_id = await _site(c, h)
+            results = await asyncio.gather(
+                *[c.post(f"{BASE}/scans/trigger/{site_id}", headers=h) for _ in range(5)]
+            )
+
+    codes = [r.status_code for r in results]
+    assert codes.count(202) == 1, codes
+    assert codes.count(403) == 4, codes
+
+
+@pytest.mark.asyncio
 async def test_list_scans_empty():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "list1@test.com")

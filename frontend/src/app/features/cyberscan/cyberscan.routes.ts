@@ -164,13 +164,11 @@ export const CYBERSCAN_ROUTES: Routes = [
   {
     path: 'nis2',
     loadComponent: () => import('./nis2/nis2.component').then(m => m.Nis2Component),
-    canActivate: [authGuard],
     title: 'Conformité NIS2 — CyberScan',
   },
   {
     path: 'iso27001',
     loadComponent: () => import('./iso27001/iso27001.component').then(m => m.Iso27001Component),
-    canActivate: [authGuard],
     title: 'Conformité ISO 27001:2022 — CyberScan',
   },
   {
@@ -178,6 +176,11 @@ export const CYBERSCAN_ROUTES: Routes = [
     loadComponent: () =>
       import('./ressources/ressources.component').then(m => m.RessourcesComponent),
     title: 'Ressources — CyberScan',
+  },
+  {
+    path: 'audit-pme',
+    loadComponent: () => import('./audit-pme/audit-pme.component').then(m => m.AuditPmeComponent),
+    title: 'Audit sécurité PME — CyberScan',
   },
   {
     path: 'bonnes-pratiques',
@@ -189,6 +192,16 @@ export const CYBERSCAN_ROUTES: Routes = [
     path: 'cgu',
     loadComponent: () => import('./cgu/cgu.component').then(m => m.CguComponent),
     title: 'CGU — CyberScan',
+  },
+  {
+    path: 'cgv',
+    loadComponent: () => import('./cgv/cgv.component').then(m => m.CgvComponent),
+    title: 'CGV — CyberScan',
+  },
+  {
+    path: 'dpa',
+    loadComponent: () => import('./dpa/dpa.component').then(m => m.DpaComponent),
+    title: 'Accord de sous-traitance RGPD (DPA) — CyberScan',
   },
   {
     path: 'politique-confidentialite',

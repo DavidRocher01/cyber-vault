@@ -1,0 +1,203 @@
+questions:
+  - id: dora_01
+    type: single_choice
+    weight: 1
+    text: "À partir de quand DORA est-il en vigueur ?"
+    answers:
+      - id: a
+        text: "Janvier 2023"
+        correct: false
+      - id: b
+        text: "Janvier 2025"
+        correct: true
+      - id: c
+        text: "Décembre 2027"
+        correct: false
+      - id: d
+        text: "Il n'est pas encore en vigueur"
+        correct: false
+    explanation: "DORA est entré en application le 17 janvier 2025. C'est un règlement européen directement applicable dans tous les États membres, sans transposition nationale — contrairement à NIS2 qui nécessite une loi dans chaque pays."
+
+  - id: dora_02
+    type: multiple_choice
+    weight: 2
+    text: "Quelles entités sont directement concernées par DORA ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Banques et établissements de crédit"
+        correct: true
+      - id: b
+        text: "Compagnies d'assurance"
+        correct: true
+      - id: c
+        text: "Hôpitaux et cliniques"
+        correct: false
+      - id: d
+        text: "Plateformes de crypto-actifs"
+        correct: true
+      - id: e
+        text: "Entreprises industrielles non financières"
+        correct: false
+    explanation: "DORA cible le secteur financier : banques, assureurs, gestionnaires de fonds, entreprises d'investissement, établissements de paiement et plateformes de crypto-actifs. Les hôpitaux et entreprises industrielles sont couverts par NIS2, pas DORA."
+
+  - id: dora_03
+    type: single_choice
+    weight: 2
+    text: "Quel est le délai DORA pour notifier un incident majeur à l'autorité compétente ?"
+    answers:
+      - id: a
+        text: "24 heures (comme NIS2)"
+        correct: false
+      - id: b
+        text: "4 heures"
+        correct: true
+      - id: c
+        text: "1 heure"
+        correct: false
+      - id: d
+        text: "72 heures"
+        correct: false
+    explanation: "DORA impose une alerte précoce dans les 4 heures — contre 24h pour NIS2. Cette exigence plus stricte reflète l'impact systémique potentiel du secteur financier. Un incident bancaire peut se propager à tout le système en quelques heures."
+
+  - id: dora_04
+    type: multiple_choice
+    weight: 2
+    text: "Quels critères font qu'un incident est qualifié de 'majeur' sous DORA ? (plusieurs réponses)"
+    answers:
+      - id: a
+        text: "Plus de 10 % des clients affectés ou plus de 10 000 clients"
+        correct: true
+      - id: b
+        text: "Indisponibilité de plus de 24h pour un service critique"
+        correct: true
+      - id: c
+        text: "Toute interruption de service quelle que soit sa durée"
+        correct: false
+      - id: d
+        text: "Perte financière supérieure à 1 million d'euros pour l'entité"
+        correct: true
+      - id: e
+        text: "Un seul client professionnel affecté"
+        correct: false
+    explanation: "DORA définit des seuils quantitatifs précis pour qualifier un incident de 'majeur'. Un incident est majeur s'il franchit au moins un des seuils : plus de 10 % ou 10 000 clients affectés, indisponibilité > 24h d'un service critique, perturbation > 25 % du volume journalier de transactions, impact géographique multi-États, ou perte > 1 M€. Cette précision évite les déclarations inutiles tout en assurant que les vrais incidents sont notifiés."
+
+  - id: dora_05
+    type: true_false
+    weight: 1
+    text: "DORA remplace NIS2 pour les entités du secteur financier."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "DORA et NIS2 coexistent. NIS2 s'applique à tous les secteurs critiques, DORA ajoute des exigences plus strictes pour le secteur financier. Une banque doit être conforme aux deux — mais DORA est lex specialis et prime quand les deux traitent du même sujet."
+
+  - id: dora_06
+    type: single_choice
+    weight: 1
+    text: "Qu'est-ce que les tests TLPT imposés par DORA ?"
+    answers:
+      - id: a
+        text: "Des tests de charge pour vérifier la performance des systèmes"
+        correct: false
+      - id: b
+        text: "Des simulations d'attaques réelles menées par des testeurs certifiés, tous les 3 ans"
+        correct: true
+      - id: c
+        text: "Des questionnaires de conformité annuels"
+        correct: false
+      - id: d
+        text: "Des audits comptables des dépenses IT"
+        correct: false
+    explanation: "Les TLPT (Threat-Led Penetration Testing) simulent des attaques réelles selon la méthodologie TIBER-EU, menés par des équipes certifiées. Ils sont obligatoires tous les 3 ans pour les entités importantes. L'objectif est de tester la résilience réelle, pas seulement la conformité documentaire."
+
+  - id: dora_07
+    type: single_choice
+    weight: 2
+    text: "Jusqu'à quel montant peut aller l'amende DORA pour non-conformité ?"
+    answers:
+      - id: a
+        text: "100 000 euros"
+        correct: false
+      - id: b
+        text: "1 % du CA journalier moyen mondial par jour de non-conformité"
+        correct: true
+      - id: c
+        text: "10 millions d'euros maximum"
+        correct: false
+      - id: d
+        text: "Les mêmes montants que NIS2"
+        correct: false
+    explanation: "DORA prévoit des sanctions jusqu'à 1 % du CA journalier moyen mondial par jour de non-conformité. Pour les prestataires critiques désignés, jusqu'à 5 M€ ou 10 % du CA annuel. Ce mécanisme est dissuasif même pour les grandes institutions."
+
+  - id: dora_08
+    type: single_choice
+    weight: 1
+    text: "Quel est le superviseur DORA pour les banques françaises ?"
+    answers:
+      - id: a
+        text: "L'ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information)"
+        correct: false
+      - id: b
+        text: "L'ACPR (Autorité de Contrôle Prudentiel et de Résolution)"
+        correct: true
+      - id: c
+        text: "La CNIL (Commission Nationale Informatique et Libertés)"
+        correct: false
+      - id: d
+        text: "Le CERT-FR"
+        correct: false
+    explanation: "Contrairement à NIS2 supervisée par l'ANSSI, DORA est supervisé par les autorités sectorielles. En France : l'ACPR pour les banques et assurances, l'AMF pour les marchés financiers et sociétés de gestion, la BCE pour les établissements systémiques. En cas d'incident DORA, c'est votre superviseur sectoriel que vous notifiez en priorité."
+
+  - id: dora_09
+    type: single_choice
+    weight: 1
+    text: "Qu'est-ce que le Registre ICT tiers imposé par DORA ?"
+    answers:
+      - id: a
+        text: "Un registre interne confidentiel des incidents de sécurité"
+        correct: false
+      - id: b
+        text: "Un inventaire de tous les fournisseurs IT, communicable aux superviseurs sur demande"
+        correct: true
+      - id: c
+        text: "Un annuaire des prestataires certifiés ISO 27001"
+        correct: false
+      - id: d
+        text: "Une liste des logiciels autorisés sur les postes de travail"
+        correct: false
+    explanation: "Le Registre ICT tiers recense tous les fournisseurs de services IT (cloud, SaaS, maintenance, hébergement...) avec leur niveau de criticité, les données accessibles, et les clauses contractuelles de sécurité. Les superviseurs peuvent le demander à tout moment. L'utilisation de services non référencés (Shadow IT) compromet ce registre et constitue une violation DORA potentielle."
+
+  - id: dora_10
+    type: true_false
+    weight: 2
+    text: "Une organisation certifiée ISO 27001 est automatiquement conforme à DORA."
+    answers:
+      - id: a
+        text: "Vrai"
+        correct: false
+      - id: b
+        text: "Faux"
+        correct: true
+    explanation: "ISO 27001 couvre environ 60 % des exigences DORA : cartographie des actifs, analyse de risques, gestion des incidents. Mais DORA ajoute des obligations spécifiques non couvertes : tests TLPT selon TIBER-EU, Registre ICT tiers communicable aux superviseurs, seuils quantitatifs précis de notification, et notification à l'ACPR/AMF plutôt qu'à l'ANSSI. La certification ISO 27001 accélère la mise en conformité DORA mais ne la remplace pas."
+
+  - id: dora_11
+    type: single_choice
+    weight: 1
+    text: "Les micro-entreprises d'investissement sont-elles entièrement exemptées de DORA ?"
+    answers:
+      - id: a
+        text: "Oui, DORA ne s'applique pas aux entités de moins de 10 salariés"
+        correct: false
+      - id: b
+        text: "Non, elles bénéficient d'un régime simplifié mais restent soumises aux obligations de notification et de gestion tiers"
+        correct: true
+      - id: c
+        text: "Oui, seules les grandes banques sont concernées"
+        correct: false
+      - id: d
+        text: "Non, elles ont exactement les mêmes obligations que les grandes banques"
+        correct: false
+    explanation: "DORA prévoit un régime simplifié pour les petites entités (micro-entreprises d'investissement, petites mutuelles) : cadre de gestion des risques allégé, tests simplifiés. Mais les obligations de notification d'incidents (délai 4h) et les exigences contractuelles tiers restent entières même pour les plus petites entités. La proportionnalité allège, mais n'exempte pas."

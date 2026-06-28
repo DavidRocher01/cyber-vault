@@ -3,7 +3,7 @@ import re
 from datetime import UTC, datetime
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse
 from loguru import logger
 from sqlalchemy import func, select
@@ -215,9 +215,16 @@ async def admin_stats(db: AsyncSession = Depends(get_db)):
     response_model=list[SubscriberOut],
     dependencies=[Depends(require_admin)],
 )
-async def admin_subscribers(db: AsyncSession = Depends(get_db)):
+async def admin_subscribers(
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+):
     result = await db.execute(
-        select(NewsletterSubscriber).order_by(NewsletterSubscriber.subscribed_at.desc())
+        select(NewsletterSubscriber)
+        .order_by(NewsletterSubscriber.subscribed_at.desc())
+        .offset(skip)
+        .limit(limit)
     )
     return result.scalars().all()
 
@@ -351,7 +358,7 @@ async def fetch_og_image(url: str):
             parsed = urlparse(final_url)
             image_url = f"{parsed.scheme}://{parsed.netloc}{image_url}"
         return {"image_url": image_url}
-    except Exception:
+    except Exception:  # broad: httpx errors + parsing failures
         return {"image_url": None}
 
 
@@ -434,7 +441,7 @@ async def get_newsletter_content(db: AsyncSession = Depends(get_db)):
     try:
         data = json.loads(setting.value_text)
         return NewsletterContentOut(**data)
-    except Exception:
+    except (json.JSONDecodeError, TypeError, KeyError):
         return _DEFAULT_CONTENT
 
 

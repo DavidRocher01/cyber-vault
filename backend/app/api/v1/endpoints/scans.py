@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal, get_db
@@ -47,16 +47,28 @@ async def trigger_scan(
 
     assert_no_ssrf(site.url)
 
+    # Sérialise les triggers concurrents du même utilisateur : verrou sur la ligne
+    # user tenu jusqu'au commit. Ferme la race check-then-act du quota (deux POST
+    # simultanés voyaient le même décompte et créaient chacun un scan).
+    await db.execute(select(User.id).where(User.id == current_user.id).with_for_update())
+
     # Enforce scan frequency based on active subscription plan
     plan = await get_active_plan(db, current_user.id)
     interval_days = plan.scan_interval_days if plan else 30
 
-    # Free plan: 1 completed scan total ever across all sites
+    # Statuts "en vol" : un scan pending/running compte déjà dans le quota,
+    # sinon des triggers concurrents le contourneraient (il n'est pas encore "done").
+    in_flight = ("pending", "running")
+
+    # Free plan: 1 scan total ever across all sites (en vol ou terminé)
     if plan and plan.price_eur == 0:
         total_result = await db.execute(
             select(func.count(Scan.id))
             .join(Site, Scan.site_id == Site.id)
-            .where(Site.user_id == current_user.id, Scan.status == "done")
+            .where(
+                Site.user_id == current_user.id,
+                Scan.status.in_((*in_flight, "done")),
+            )
         )
         if total_result.scalar() >= 1:
             raise HTTPException(
@@ -75,8 +87,10 @@ async def trigger_scan(
             .join(Site, Scan.site_id == Site.id)
             .where(
                 Site.user_id == current_user.id,
-                Scan.status == "done",
-                Scan.finished_at >= since,
+                or_(
+                    Scan.status.in_(in_flight),
+                    and_(Scan.status == "done", Scan.finished_at >= since),
+                ),
             )
         )
         if recent_result.scalar() >= max_scans:
@@ -365,7 +379,7 @@ async def download_remediation_script(
 
     except HTTPException:
         raise
-    except Exception:
+    except (OSError, FileNotFoundError, ImportError):
         raise HTTPException(status_code=404, detail="Script non trouvé")
 
 

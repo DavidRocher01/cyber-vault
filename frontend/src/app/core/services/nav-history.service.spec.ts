@@ -17,7 +17,7 @@ function makeService() {
     events: events$,
     navigateByUrl: vi.fn().mockResolvedValue(true),
   };
-  const service = new NavHistoryService(router);
+  const service = new NavHistoryService(router, 'browser');
   return { service, router, events$ };
 }
 
@@ -146,7 +146,7 @@ describe('NavHistoryService — persistance sessionStorage', () => {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(['/page-a', '/page-b']));
     const events$ = new Subject<any>();
     const router: any = { events: events$, navigateByUrl: vi.fn().mockResolvedValue(true) };
-    const service = new NavHistoryService(router);
+    const service = new NavHistoryService(router, 'browser');
     // pos = stack.length - 1 = 1 → canGoBack = true
     expect(service.canGoBack()).toBe(true);
   });

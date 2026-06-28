@@ -1,0 +1,10 @@
+title: "Étude de cas : PME victime de ransomware"
+description: "Une PME de 45 employés paralyse pendant 3 semaines après un ransomware. Chronologie heure par heure, erreurs commises, et leçons à retenir."
+content_type: mixed
+estimated_duration_minutes: 6
+xp_points: 15
+has_quiz: true
+quiz_max_attempts: 3
+quiz_cooldown_minutes: 15
+quiz_passing_score: 60
+is_active: true

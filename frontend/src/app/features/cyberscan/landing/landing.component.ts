@@ -7,7 +7,7 @@ import {
   ViewChild,
   DOCUMENT,
 } from '@angular/core';
-import { CommonModule, NgClass } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -49,7 +49,6 @@ import {
   standalone: true,
   selector: 'app-cyberscan-landing',
   imports: [
-    CommonModule,
     NgClass,
     RouterLink,
     MatButtonModule,
@@ -350,6 +349,6 @@ export class LandingComponent implements OnInit, AfterViewInit {
 
   scrollToPricing(event: Event) {
     event.preventDefault();
-    document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+    this.doc.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
   }
 }

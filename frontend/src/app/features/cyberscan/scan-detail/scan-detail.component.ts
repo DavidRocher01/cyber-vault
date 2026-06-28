@@ -1,5 +1,4 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -36,7 +35,6 @@ const PRO_MODULE_DESCRIPTIONS: Record<string, string> = {
   standalone: true,
   selector: 'app-scan-detail',
   imports: [
-    CommonModule,
     RouterLink,
     MatButtonModule,
     MatIconModule,

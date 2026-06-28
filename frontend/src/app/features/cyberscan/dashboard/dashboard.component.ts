@@ -9,7 +9,6 @@ import {
   ElementRef,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -37,7 +36,6 @@ import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { ThemeService } from '../../../core/services/theme.service';
 import { I18nService } from '../../../core/services/i18n.service';
-import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
 import {
   computeScore,
   getGrade,
@@ -47,6 +45,9 @@ import {
 } from '../../../shared/score-utils';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { environment } from '../../../../environments/environment';
+import { StatsCardsComponent } from './components/stats-cards/stats-cards.component';
+import { RecentScansComponent } from './components/recent-scans/recent-scans.component';
+import { SitesGridComponent } from './components/sites-grid/sites-grid.component';
 
 type ScanFilter = 'all' | 'done' | 'running' | 'error';
 
@@ -62,7 +63,6 @@ interface PaginatedScans {
   standalone: true,
   selector: 'app-cyberscan-dashboard',
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     RouterLink,
     MatButtonModule,
@@ -74,8 +74,10 @@ interface PaginatedScans {
     MatDialogModule,
     MatPaginatorModule,
     SkeletonComponent,
-    ScoreGaugeComponent,
     NavButtonsComponent,
+    StatsCardsComponent,
+    RecentScansComponent,
+    SitesGridComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
@@ -732,6 +734,38 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   get totalScans(): number {
     return Object.values(this.scansMap()).reduce((sum, p) => sum + (p?.total ?? 0), 0);
+  }
+
+  // ── Builder helpers for SitesGridComponent @Input() maps ─────────────────
+
+  buildLastScores(): Record<number, number | null> {
+    const result: Record<number, number | null> = {};
+    for (const site of this.sites()) result[site.id] = this.getLastScore(site.id);
+    return result;
+  }
+
+  buildTrends(): Record<number, number | null> {
+    const result: Record<number, number | null> = {};
+    for (const site of this.sites()) result[site.id] = this.getTrend(site.id);
+    return result;
+  }
+
+  buildSslDays(): Record<number, number | null> {
+    const result: Record<number, number | null> = {};
+    for (const site of this.sites()) result[site.id] = this.getSslDaysRemaining(site.id);
+    return result;
+  }
+
+  buildActiveScansMap(): Record<number, boolean> {
+    const result: Record<number, boolean> = {};
+    for (const site of this.sites()) result[site.id] = this.hasActiveScans(site.id);
+    return result;
+  }
+
+  buildLastScanStatuses(): Record<number, string | null> {
+    const result: Record<number, string | null> = {};
+    for (const site of this.sites()) result[site.id] = this.lastScanStatus(site.id);
+    return result;
   }
 
   get averageScore(): number | null {

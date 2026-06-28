@@ -1,0 +1,23 @@
+slug: nis2-technique
+title: "NIS2 Équipes Techniques — Sécurité avancée"
+description: >
+  Parcours approfondi pour les équipes IT, développeurs et DevOps.
+  Focus sur la gestion des vulnérabilités, le chiffrement,
+  la chaîne d'approvisionnement logicielle et la réponse aux incidents.
+  Durée : 45 minutes.
+language: fr
+version: "1.0"
+estimated_duration_minutes: 45
+passing_score: 70
+certificate_validity_months: 12
+is_active: true
+
+modules:
+  - gestion-vulnerabilites
+  - chiffrement-pratique
+  - chaine-approvisionnement
+  - shadow-it
+  - declaration-incident-nis2
+  - continuite-activite-nis2
+  - cas-pme-ransomware
+  - sauvegardes-321

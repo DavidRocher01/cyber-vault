@@ -9,6 +9,7 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -206,7 +207,8 @@ def _run_scan_sync(url: str, tier: int, scan_id: int, hibp_key: str) -> dict:
             waf_result=waf_result,
             output_dir=remediation_dir,
         )
-    except Exception:
+    except Exception as exc:
+        logger.warning(f"Remediation generation failed: {exc}")
         remediation_paths = {}
 
     results = {
@@ -302,8 +304,8 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
                         overall_status="CRITICAL",
                         pdf_path=result["pdf_path"],
                     )
-            except Exception:
-                pass  # Ne pas bloquer si l'email échoue
+            except Exception as exc:
+                logger.warning(f"Scan report email failed: {exc}")
 
     except Exception as exc:
         scan.status = "failed"

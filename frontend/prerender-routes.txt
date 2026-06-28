@@ -1,0 +1,10 @@
+/cyberscan
+/cyberscan/audit-pme
+/cyberscan/scan-gratuit
+/cyberscan/bonnes-pratiques
+/cyberscan/nis2
+/cyberscan/iso27001
+/cyberscan/cgu
+/cyberscan/politique-confidentialite
+/cyberscan/mentions-legales
+/cyberscan/blog

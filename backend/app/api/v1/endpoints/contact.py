@@ -30,7 +30,12 @@ class ContactMessageOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-@router.post("", status_code=status.HTTP_200_OK)
+@router.post(
+    "",
+    status_code=status.HTTP_200_OK,
+    summary="Envoyer un message de contact / demande de devis",
+    responses={429: {"description": "Rate-limit (3/heure par IP)"}},
+)
 @limiter.limit("3/hour")
 async def submit_contact(
     request: Request,
@@ -67,6 +72,7 @@ async def submit_contact(
     "/admin/messages",
     response_model=list[ContactMessageOut],
     dependencies=[Depends(require_admin)],
+    summary="[Admin] Lister les messages de contact",
 )
 async def admin_list_messages(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ContactMessage).order_by(ContactMessage.created_at.desc()))
@@ -87,7 +93,12 @@ async def admin_list_messages(db: AsyncSession = Depends(get_db)):
     ]
 
 
-@router.patch("/admin/messages/{msg_id}/status", dependencies=[Depends(require_admin)])
+@router.patch(
+    "/admin/messages/{msg_id}/status",
+    dependencies=[Depends(require_admin)],
+    summary="[Admin] Changer le statut d'un message",
+    responses={404: {"description": "Message introuvable"}},
+)
 async def admin_update_status(
     msg_id: int,
     body: dict,

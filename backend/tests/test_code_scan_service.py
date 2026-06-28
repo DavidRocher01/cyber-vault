@@ -170,7 +170,7 @@ def test_run_bandit_parses_findings():
             ]
         }
     )
-    with patch("app.services.code_scan_service._run", return_value=(0, bandit_output, "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, bandit_output, "")):
         findings = _run_bandit("/tmp/repo")  # nosec B108
     assert len(findings) == 1
     assert findings[0]["tool"] == "bandit"
@@ -194,19 +194,19 @@ def test_run_bandit_maps_high_severity():
             ]
         }
     )
-    with patch("app.services.code_scan_service._run", return_value=(0, bandit_output, "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, bandit_output, "")):
         findings = _run_bandit("/tmp/repo")  # nosec B108
     assert findings[0]["severity"] == "high"
 
 
 def test_run_bandit_empty_output_returns_empty():
-    with patch("app.services.code_scan_service._run", return_value=(1, "", "bandit not found")):
+    with patch("app.services.code_scan.runner._run", return_value=(1, "", "bandit not found")):
         findings = _run_bandit("/tmp/repo")  # nosec B108
     assert findings == []
 
 
 def test_run_bandit_invalid_json_returns_empty():
-    with patch("app.services.code_scan_service._run", return_value=(0, "not-json", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "not-json", "")):
         findings = _run_bandit("/tmp/repo")  # nosec B108
     assert findings == []
 
@@ -227,7 +227,7 @@ def test_run_bandit_strips_repo_dir_from_filename():
             ]
         }
     )
-    with patch("app.services.code_scan_service._run", return_value=(0, bandit_output, "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, bandit_output, "")):
         findings = _run_bandit("/tmp/repo")  # nosec B108
     assert findings[0]["file"] == "src/app.py"
 
@@ -248,7 +248,7 @@ def test_run_semgrep_parses_findings():
             ]
         }
     )
-    with patch("app.services.code_scan_service._run", return_value=(0, semgrep_output, "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, semgrep_output, "")):
         findings = _run_semgrep("/tmp/repo")  # nosec B108
     assert len(findings) == 1
     assert findings[0]["tool"] == "semgrep"
@@ -269,19 +269,19 @@ def test_run_semgrep_critical_severity():
             ]
         }
     )
-    with patch("app.services.code_scan_service._run", return_value=(0, semgrep_output, "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, semgrep_output, "")):
         findings = _run_semgrep("/tmp/repo")  # nosec B108
     assert findings[0]["severity"] == "critical"
 
 
 def test_run_semgrep_empty_output_returns_empty():
-    with patch("app.services.code_scan_service._run", return_value=(1, "", "semgrep not found")):
+    with patch("app.services.code_scan.runner._run", return_value=(1, "", "semgrep not found")):
         findings = _run_semgrep("/tmp/repo")  # nosec B108
     assert findings == []
 
 
 def test_run_semgrep_invalid_json_returns_empty():
-    with patch("app.services.code_scan_service._run", return_value=(0, "broken{json", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "broken{json", "")):
         findings = _run_semgrep("/tmp/repo")  # nosec B108
     assert findings == []
 
@@ -316,7 +316,7 @@ def test_run_pip_audit_parses_vulnerabilities(tmp_path):
             ]
         }
     )
-    with patch("app.services.code_scan_service._run", return_value=(0, audit_output, "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, audit_output, "")):
         findings = _run_pip_audit(str(tmp_path))
     assert len(findings) == 1
     assert findings[0]["tool"] == "pip-audit"
@@ -329,7 +329,7 @@ def test_run_pip_audit_empty_output_returns_empty(tmp_path):
     req = tmp_path / "requirements.txt"
     req.write_text("django==3.2\n")
     with patch(
-        "app.services.code_scan_service._run",
+        "app.services.code_scan.runner._run",
         return_value=(1, "", "pip-audit not found"),
     ):
         findings = _run_pip_audit(str(tmp_path))
@@ -339,7 +339,7 @@ def test_run_pip_audit_empty_output_returns_empty(tmp_path):
 def test_run_pip_audit_invalid_json_returns_empty(tmp_path):
     req = tmp_path / "requirements.txt"
     req.write_text("django==3.2\n")
-    with patch("app.services.code_scan_service._run", return_value=(0, "not-json", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "not-json", "")):
         findings = _run_pip_audit(str(tmp_path))
     assert findings == []
 
@@ -350,7 +350,7 @@ def test_run_pip_audit_no_vulns_returns_empty(tmp_path):
     audit_output = json.dumps(
         {"dependencies": [{"name": "requests", "version": "2.28.0", "vulns": []}]}
     )
-    with patch("app.services.code_scan_service._run", return_value=(0, audit_output, "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, audit_output, "")):
         findings = _run_pip_audit(str(tmp_path))
     assert findings == []
 
@@ -398,9 +398,9 @@ async def test_run_code_scan_success():
         "confidence": "HIGH",
     }
 
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.tasks._run_subprocess", return_value=(0, "", "")):
         with patch(
-            "app.services.code_scan_service._run_all_tools",
+            "app.services.code_scan.tasks._run_all_tools",
             return_value=(
                 [high_finding],
                 {"critical": 0, "high": 1, "medium": 0, "low": 0},
@@ -424,7 +424,7 @@ async def test_run_code_scan_git_clone_failure():
     db = _make_mock_db(scan)
 
     # git clone returns non-zero exit code
-    with patch("app.services.code_scan_service._run", return_value=(1, "", "fatal: not found")):
+    with patch("app.services.code_scan.runner._run", return_value=(1, "", "fatal: not found")):
         with patch("shutil.rmtree"):
             await run_code_scan(1, db)
 
@@ -441,7 +441,7 @@ async def test_run_code_scan_token_not_stored_in_error_message():
     clone_url = f"https://{token}@github.com/user/private-repo.git"
     stderr_with_token = f"fatal: Authentication failed for '{clone_url}'"
 
-    with patch("app.services.code_scan_service._run", return_value=(1, "", stderr_with_token)):
+    with patch("app.services.code_scan.runner._run", return_value=(1, "", stderr_with_token)):
         with patch("shutil.rmtree"):
             await run_code_scan(1, db, clone_url=clone_url)
 
@@ -454,7 +454,7 @@ async def test_run_code_scan_sets_started_at():
     scan = _make_mock_scan()
     db = _make_mock_db(scan)
 
-    with patch("app.services.code_scan_service._run", return_value=(1, "", "error")):
+    with patch("app.services.code_scan.runner._run", return_value=(1, "", "error")):
         with patch("shutil.rmtree"):
             await run_code_scan(1, db)
 
@@ -554,7 +554,7 @@ async def test_run_code_scan_zip_descends_single_top_level_folder(tmp_path):
         return [], {"critical": 0, "high": 0, "medium": 0, "low": 0}, []
 
     with patch(
-        "app.services.code_scan_service._run_all_tools",
+        "app.services.code_scan.tasks._run_all_tools",
         side_effect=capture_run_all_tools,
     ):
         with patch("shutil.rmtree"):
@@ -568,7 +568,7 @@ async def test_run_code_scan_zip_descends_single_top_level_folder(tmp_path):
 
 
 def test_run_gitleaks_no_report_file_returns_empty(tmp_path):
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         findings = _run_gitleaks(str(tmp_path))
     assert findings == []
 
@@ -576,7 +576,7 @@ def test_run_gitleaks_no_report_file_returns_empty(tmp_path):
 def test_run_gitleaks_invalid_json_returns_empty(tmp_path):
     report = tmp_path / "gitleaks-report.json"
     report.write_text("not-json")
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         findings = _run_gitleaks(str(tmp_path))
     assert findings == []
 
@@ -584,7 +584,7 @@ def test_run_gitleaks_invalid_json_returns_empty(tmp_path):
 def test_run_gitleaks_non_list_report_returns_empty(tmp_path):
     report = tmp_path / "gitleaks-report.json"
     report.write_text(json.dumps({"key": "value"}))
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         findings = _run_gitleaks(str(tmp_path))
     assert findings == []
 
@@ -601,7 +601,7 @@ def test_run_gitleaks_parses_leak(tmp_path):
     ]
     report = tmp_path / "gitleaks-report.json"
     report.write_text(json.dumps(leaks))
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         findings = _run_gitleaks(str(tmp_path))
     assert len(findings) == 1
     assert findings[0]["tool"] == "gitleaks"
@@ -623,7 +623,7 @@ def test_run_gitleaks_truncates_long_match(tmp_path):
     ]
     report = tmp_path / "gitleaks-report.json"
     report.write_text(json.dumps(leaks))
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         findings = _run_gitleaks(str(tmp_path))
     # preview is capped at 80 chars
     assert "X" * 80 in findings[0]["message"]
@@ -634,7 +634,7 @@ def test_run_gitleaks_empty_match_uses_default_message(tmp_path):
     leaks = [{"RuleID": "r", "Description": "d", "Match": "", "File": "f.py", "StartLine": 1}]
     report = tmp_path / "gitleaks-report.json"
     report.write_text(json.dumps(leaks))
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         findings = _run_gitleaks(str(tmp_path))
     assert findings[0]["message"] == "Secret potentiel détecté"
 
@@ -658,7 +658,7 @@ def test_run_gitleaks_multiple_leaks(tmp_path):
     ]
     report = tmp_path / "gitleaks-report.json"
     report.write_text(json.dumps(leaks))
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         findings = _run_gitleaks(str(tmp_path))
     assert len(findings) == 2
     assert all(f["severity"] == "critical" for f in findings)
@@ -675,14 +675,14 @@ def test_run_npm_audit_no_package_json_returns_empty(tmp_path):
 def test_run_npm_audit_no_output_returns_empty(tmp_path):
     (tmp_path / "package.json").write_text('{"name":"test"}')
     (tmp_path / "package-lock.json").write_text("{}")  # so npm install isn't called
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "err")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "err")):
         assert _run_npm_audit(str(tmp_path)) == []
 
 
 def test_run_npm_audit_invalid_json_returns_empty(tmp_path):
     (tmp_path / "package.json").write_text('{"name":"test"}')
     (tmp_path / "package-lock.json").write_text("{}")
-    with patch("app.services.code_scan_service._run", return_value=(0, "bad-json", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "bad-json", "")):
         assert _run_npm_audit(str(tmp_path)) == []
 
 
@@ -705,7 +705,7 @@ def test_run_npm_audit_parses_advisory_vulnerability(tmp_path):
         }
     }
     with patch(
-        "app.services.code_scan_service._run",
+        "app.services.code_scan.runner._run",
         return_value=(0, json.dumps(audit_data), ""),
     ):
         findings = _run_npm_audit(str(tmp_path))
@@ -730,7 +730,7 @@ def test_run_npm_audit_parses_indirect_vulnerability(tmp_path):
         }
     }
     with patch(
-        "app.services.code_scan_service._run",
+        "app.services.code_scan.runner._run",
         return_value=(0, json.dumps(audit_data), ""),
     ):
         findings = _run_npm_audit(str(tmp_path))
@@ -752,7 +752,7 @@ def test_run_npm_audit_generates_lockfile_when_missing(tmp_path):
             return (0, json.dumps({"vulnerabilities": {}}), "")
         return (0, "", "")
 
-    with patch("app.services.code_scan_service._run", side_effect=fake_run):
+    with patch("app.services.code_scan.runner._run", side_effect=fake_run):
         _run_npm_audit(str(tmp_path))
 
     assert any(
@@ -779,7 +779,7 @@ def test_run_npm_audit_severity_critical(tmp_path):
         }
     }
     with patch(
-        "app.services.code_scan_service._run",
+        "app.services.code_scan.runner._run",
         return_value=(0, json.dumps(audit_data), ""),
     ):
         findings = _run_npm_audit(str(tmp_path))
@@ -790,7 +790,7 @@ def test_run_npm_audit_no_vulnerabilities_returns_empty(tmp_path):
     (tmp_path / "package.json").write_text('{"name":"test"}')
     (tmp_path / "package-lock.json").write_text("{}")
     with patch(
-        "app.services.code_scan_service._run",
+        "app.services.code_scan.runner._run",
         return_value=(0, json.dumps({"vulnerabilities": {}}), ""),
     ):
         assert _run_npm_audit(str(tmp_path)) == []
@@ -800,18 +800,18 @@ def test_run_npm_audit_no_vulnerabilities_returns_empty(tmp_path):
 
 
 def test_run_detect_secrets_no_output_returns_empty(tmp_path):
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         assert _run_detect_secrets(str(tmp_path)) == []
 
 
 def test_run_detect_secrets_invalid_json_returns_empty(tmp_path):
-    with patch("app.services.code_scan_service._run", return_value=(0, "bad", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "bad", "")):
         assert _run_detect_secrets(str(tmp_path)) == []
 
 
 def test_run_detect_secrets_empty_results(tmp_path):
     data = {"results": {}}
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         assert _run_detect_secrets(str(tmp_path)) == []
 
 
@@ -824,7 +824,7 @@ def test_run_detect_secrets_parses_secrets(tmp_path):
             ]
         }
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_detect_secrets(str(tmp_path))
     assert len(findings) == 2
     assert all(f["tool"] == "detect-secrets" for f in findings)
@@ -840,7 +840,7 @@ def test_run_detect_secrets_multiple_files(tmp_path):
             "b.py": [{"type": "Secret2", "line_number": 2}],
         }
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_detect_secrets(str(tmp_path))
     assert len(findings) == 2
 
@@ -849,18 +849,18 @@ def test_run_detect_secrets_multiple_files(tmp_path):
 
 
 def test_run_trivy_no_output_returns_empty(tmp_path):
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         assert _run_trivy(str(tmp_path)) == []
 
 
 def test_run_trivy_invalid_json_returns_empty(tmp_path):
-    with patch("app.services.code_scan_service._run", return_value=(0, "bad", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "bad", "")):
         assert _run_trivy(str(tmp_path)) == []
 
 
 def test_run_trivy_empty_results(tmp_path):
     with patch(
-        "app.services.code_scan_service._run",
+        "app.services.code_scan.runner._run",
         return_value=(0, json.dumps({"Results": []}), ""),
     ):
         assert _run_trivy(str(tmp_path)) == []
@@ -884,7 +884,7 @@ def test_run_trivy_parses_high_vulnerability(tmp_path):
             }
         ]
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_trivy(str(tmp_path))
     assert len(findings) == 1
     assert findings[0]["tool"] == "trivy"
@@ -912,7 +912,7 @@ def test_run_trivy_parses_critical_no_fix(tmp_path):
             }
         ]
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_trivy(str(tmp_path))
     assert findings[0]["severity"] == "critical"
     assert findings[0]["fix_versions"] == []
@@ -921,7 +921,7 @@ def test_run_trivy_parses_critical_no_fix(tmp_path):
 
 def test_run_trivy_none_vulnerabilities_skipped(tmp_path):
     data = {"Results": [{"Target": "Dockerfile", "Vulnerabilities": None}]}
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         assert _run_trivy(str(tmp_path)) == []
 
 
@@ -940,7 +940,7 @@ def test_run_trivy_unknown_severity_maps_to_low(tmp_path):
             }
         ]
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_trivy(str(tmp_path))
     assert findings[0]["severity"] == "low"
 
@@ -949,18 +949,18 @@ def test_run_trivy_unknown_severity_maps_to_low(tmp_path):
 
 
 def test_run_checkov_no_output_returns_empty(tmp_path):
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         assert _run_checkov(str(tmp_path)) == []
 
 
 def test_run_checkov_invalid_json_returns_empty(tmp_path):
-    with patch("app.services.code_scan_service._run", return_value=(0, "bad", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "bad", "")):
         assert _run_checkov(str(tmp_path)) == []
 
 
 def test_run_checkov_empty_failed_checks(tmp_path):
     data = {"results": {"failed_checks": []}}
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         assert _run_checkov(str(tmp_path)) == []
 
 
@@ -982,7 +982,7 @@ def test_run_checkov_parses_single_block(tmp_path):
             ]
         }
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_checkov(str(tmp_path))
     assert len(findings) == 1
     assert findings[0]["tool"] == "checkov"
@@ -1007,7 +1007,7 @@ def test_run_checkov_parses_list_of_blocks(tmp_path):
         }
     }
     with patch(
-        "app.services.code_scan_service._run",
+        "app.services.code_scan.runner._run",
         return_value=(0, json.dumps([block, block]), ""),
     ):
         findings = _run_checkov(str(tmp_path))
@@ -1027,7 +1027,7 @@ def test_run_checkov_no_severity_defaults_to_medium(tmp_path):
             ]
         }
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_checkov(str(tmp_path))
     assert findings[0]["severity"] == "medium"
 
@@ -1046,7 +1046,7 @@ def test_run_checkov_critical_severity(tmp_path):
             ]
         }
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_checkov(str(tmp_path))
     assert findings[0]["severity"] == "critical"
 
@@ -1065,7 +1065,7 @@ def test_run_checkov_strips_leading_slash_from_file(tmp_path):
             ]
         }
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_checkov(str(tmp_path))
     assert not findings[0]["file"].startswith("/")
 
@@ -1118,7 +1118,7 @@ def test_run_all_tools_runs_available_tool(tmp_path):
 
     with (
         patch("shutil.which", side_effect=fake_which),
-        patch("app.services.code_scan_service._run_bandit", return_value=[finding]),
+        patch("app.services.code_scan.runner._run_bandit", return_value=[finding]),
     ):
         findings, counts, unavailable = _run_all_tools(1, str(tmp_path))
 
@@ -1155,8 +1155,8 @@ def test_run_all_tools_aggregates_multiple_tool_findings(tmp_path):
 
     with (
         patch("shutil.which", side_effect=fake_which),
-        patch("app.services.code_scan_service._run_bandit", return_value=[fa]),
-        patch("app.services.code_scan_service._run_semgrep", return_value=[fb]),
+        patch("app.services.code_scan.runner._run_bandit", return_value=[fa]),
+        patch("app.services.code_scan.runner._run_semgrep", return_value=[fb]),
     ):
         findings, counts, unavailable = _run_all_tools(42, str(tmp_path))
 
@@ -1241,8 +1241,8 @@ def test_run_all_tools_severity_counts_sum_correctly(tmp_path):
 
     with (
         patch("shutil.which", side_effect=fake_which),
-        patch("app.services.code_scan_service._run_bandit", return_value=findings[:2]),
-        patch("app.services.code_scan_service._run_semgrep", return_value=findings[2:]),
+        patch("app.services.code_scan.runner._run_bandit", return_value=findings[:2]),
+        patch("app.services.code_scan.runner._run_semgrep", return_value=findings[2:]),
     ):
         _, counts, _ = _run_all_tools(1, str(tmp_path))
 
@@ -1256,13 +1256,13 @@ def test_run_all_tools_severity_counts_sum_correctly(tmp_path):
 
 
 def test_run_trufflehog_no_output_returns_empty(tmp_path):
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         assert _run_trufflehog(str(tmp_path)) == []
 
 
 def test_run_trufflehog_invalid_json_lines_skipped(tmp_path):
     with patch(
-        "app.services.code_scan_service._run",
+        "app.services.code_scan.runner._run",
         return_value=(0, "bad-line\nanother-bad", ""),
     ):
         assert _run_trufflehog(str(tmp_path)) == []
@@ -1277,7 +1277,7 @@ def test_run_trufflehog_parses_finding(tmp_path):
             "SourceMetadata": {"Data": {"Filesystem": {"file": "config/secrets.py", "line": 12}}},
         }
     )
-    with patch("app.services.code_scan_service._run", return_value=(0, line, "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, line, "")):
         findings = _run_trufflehog(str(tmp_path))
     assert len(findings) == 1
     assert findings[0]["tool"] == "trufflehog"
@@ -1295,7 +1295,7 @@ def test_run_trufflehog_long_raw_truncated(tmp_path):
             "SourceMetadata": {},
         }
     )
-    with patch("app.services.code_scan_service._run", return_value=(0, line, "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, line, "")):
         findings = _run_trufflehog(str(tmp_path))
     assert findings[0]["confidence"] == "medium"
     assert "…" in findings[0]["message"]
@@ -1323,7 +1323,7 @@ def test_run_trufflehog_multiple_lines(tmp_path):
             "",  # empty line — should be skipped
         ]
     )
-    with patch("app.services.code_scan_service._run", return_value=(0, lines, "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, lines, "")):
         findings = _run_trufflehog(str(tmp_path))
     assert len(findings) == 2
 
@@ -1332,12 +1332,12 @@ def test_run_trufflehog_multiple_lines(tmp_path):
 
 
 def test_run_njsscan_no_output_returns_empty(tmp_path):
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         assert _run_njsscan(str(tmp_path)) == []
 
 
 def test_run_njsscan_invalid_json_returns_empty(tmp_path):
-    with patch("app.services.code_scan_service._run", return_value=(0, "bad", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "bad", "")):
         assert _run_njsscan(str(tmp_path)) == []
 
 
@@ -1354,7 +1354,7 @@ def test_run_njsscan_parses_nodejs_finding(tmp_path):
         },
         "templates": {},
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_njsscan(str(tmp_path))
     assert len(findings) == 1
     assert findings[0]["tool"] == "njsscan"
@@ -1376,7 +1376,7 @@ def test_run_njsscan_warning_maps_to_medium(tmp_path):
         },
         "templates": {},
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_njsscan(str(tmp_path))
     assert findings[0]["severity"] == "medium"
 
@@ -1391,7 +1391,7 @@ def test_run_njsscan_parses_templates_section(tmp_path):
             }
         },
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_njsscan(str(tmp_path))
     assert len(findings) == 1
     assert findings[0]["file"] == "views/index.html"
@@ -1401,12 +1401,12 @@ def test_run_njsscan_parses_templates_section(tmp_path):
 
 
 def test_run_bearer_no_output_returns_empty(tmp_path):
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         assert _run_bearer(str(tmp_path)) == []
 
 
 def test_run_bearer_invalid_json_returns_empty(tmp_path):
-    with patch("app.services.code_scan_service._run", return_value=(0, "bad", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "bad", "")):
         assert _run_bearer(str(tmp_path)) == []
 
 
@@ -1431,7 +1431,7 @@ def test_run_bearer_parses_findings(tmp_path):
             }
         ],
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_bearer(str(tmp_path))
     assert len(findings) == 2
     assert findings[0]["severity"] == "critical"
@@ -1441,14 +1441,14 @@ def test_run_bearer_parses_findings(tmp_path):
 
 def test_run_bearer_non_list_section_skipped(tmp_path):
     data = {"critical": "not-a-list", "high": []}
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_bearer(str(tmp_path))
     assert findings == []
 
 
 def test_run_bearer_warning_maps_to_medium(tmp_path):
     data = {"warning": [{"rule_id": "r1", "title": "t1", "filename": "f.py", "line_number": 1}]}
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_bearer(str(tmp_path))
     assert findings[0]["severity"] == "medium"
 
@@ -1463,13 +1463,13 @@ def test_run_gosec_no_go_files_returns_empty(tmp_path):
 
 def test_run_gosec_no_output_returns_empty(tmp_path):
     (tmp_path / "main.go").write_text("package main")
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         assert _run_gosec(str(tmp_path)) == []
 
 
 def test_run_gosec_invalid_json_returns_empty(tmp_path):
     (tmp_path / "main.go").write_text("package main")
-    with patch("app.services.code_scan_service._run", return_value=(0, "bad", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "bad", "")):
         assert _run_gosec(str(tmp_path)) == []
 
 
@@ -1487,7 +1487,7 @@ def test_run_gosec_parses_issue(tmp_path):
             }
         ]
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_gosec(str(tmp_path))
     assert len(findings) == 1
     assert findings[0]["tool"] == "gosec"
@@ -1509,7 +1509,7 @@ def test_run_gosec_medium_severity(tmp_path):
             }
         ]
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_gosec(str(tmp_path))
     assert findings[0]["severity"] == "medium"
 
@@ -1524,13 +1524,13 @@ def test_run_eslint_no_js_files_returns_empty(tmp_path):
 
 def test_run_eslint_no_output_returns_empty(tmp_path):
     (tmp_path / "app.js").write_text("const x = 1;")
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         assert _run_eslint_security(str(tmp_path)) == []
 
 
 def test_run_eslint_invalid_json_returns_empty(tmp_path):
     (tmp_path / "app.js").write_text("const x = 1;")
-    with patch("app.services.code_scan_service._run", return_value=(0, "bad", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "bad", "")):
         assert _run_eslint_security(str(tmp_path)) == []
 
 
@@ -1549,7 +1549,7 @@ def test_run_eslint_parses_finding(tmp_path):
             ],
         }
     ]
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_eslint_security(str(tmp_path))
     assert len(findings) == 1
     assert findings[0]["tool"] == "eslint-security"
@@ -1572,7 +1572,7 @@ def test_run_eslint_warning_severity(tmp_path):
             ],
         }
     ]
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_eslint_security(str(tmp_path))
     assert findings[0]["severity"] == "medium"
 
@@ -1581,18 +1581,18 @@ def test_run_eslint_warning_severity(tmp_path):
 
 
 def test_run_osv_scanner_no_output_returns_empty(tmp_path):
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         assert _run_osv_scanner(str(tmp_path)) == []
 
 
 def test_run_osv_scanner_invalid_json_returns_empty(tmp_path):
-    with patch("app.services.code_scan_service._run", return_value=(0, "bad", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "bad", "")):
         assert _run_osv_scanner(str(tmp_path)) == []
 
 
 def test_run_osv_scanner_empty_results(tmp_path):
     data = {"results": []}
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         assert _run_osv_scanner(str(tmp_path)) == []
 
 
@@ -1617,7 +1617,7 @@ def test_run_osv_scanner_parses_vulnerability(tmp_path):
             }
         ]
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_osv_scanner(str(tmp_path))
     assert len(findings) == 1
     assert findings[0]["tool"] == "osv-scanner"
@@ -1627,7 +1627,7 @@ def test_run_osv_scanner_parses_vulnerability(tmp_path):
 
 def test_run_osv_scanner_uses_stderr_when_stdout_empty(tmp_path):
     data = {"results": []}
-    with patch("app.services.code_scan_service._run", return_value=(1, "", json.dumps(data))):
+    with patch("app.services.code_scan.runner._run", return_value=(1, "", json.dumps(data))):
         findings = _run_osv_scanner(str(tmp_path))
     assert findings == []
 
@@ -1642,20 +1642,20 @@ def test_run_safety_no_requirements_returns_empty(tmp_path):
 
 def test_run_safety_no_output_returns_empty(tmp_path):
     (tmp_path / "requirements.txt").write_text("flask==1.0.0\n")
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         assert _run_safety(str(tmp_path)) == []
 
 
 def test_run_safety_invalid_json_returns_empty(tmp_path):
     (tmp_path / "requirements.txt").write_text("flask==1.0.0\n")
-    with patch("app.services.code_scan_service._run", return_value=(0, "bad", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "bad", "")):
         assert _run_safety(str(tmp_path)) == []
 
 
 def test_run_safety_parses_vulnerability(tmp_path):
     (tmp_path / "requirements.txt").write_text("flask==1.0.0\n")
     data = [["flask", "<2.0", "1.0.0", "XSS vulnerability in Flask", "PYSEC-2021-1"]]
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_safety(str(tmp_path))
     assert len(findings) == 1
     assert findings[0]["tool"] == "safety"
@@ -1667,7 +1667,7 @@ def test_run_safety_parses_vulnerability(tmp_path):
 def test_run_safety_non_list_item_skipped(tmp_path):
     (tmp_path / "requirements.txt").write_text("flask==1.0.0\n")
     data = [{"not": "a list"}, ["pkg", "spec", "1.0", "desc", "ID-1"]]
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_safety(str(tmp_path))
     assert len(findings) == 1
 
@@ -1675,7 +1675,7 @@ def test_run_safety_non_list_item_skipped(tmp_path):
 def test_run_safety_finds_requirements_prod(tmp_path):
     (tmp_path / "requirements-prod.txt").write_text("requests==2.0.0\n")
     data = []
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_safety(str(tmp_path))
     assert findings == []
 
@@ -1690,13 +1690,13 @@ def test_run_hadolint_no_dockerfile_returns_empty(tmp_path):
 
 def test_run_hadolint_no_output_skipped(tmp_path):
     (tmp_path / "Dockerfile").write_text("FROM ubuntu\n")
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         assert _run_hadolint(str(tmp_path)) == []
 
 
 def test_run_hadolint_invalid_json_skipped(tmp_path):
     (tmp_path / "Dockerfile").write_text("FROM ubuntu\n")
-    with patch("app.services.code_scan_service._run", return_value=(0, "bad", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "bad", "")):
         assert _run_hadolint(str(tmp_path)) == []
 
 
@@ -1711,7 +1711,7 @@ def test_run_hadolint_parses_issue(tmp_path):
             "file": str(tmp_path / "Dockerfile"),
         }
     ]
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_hadolint(str(tmp_path))
     assert len(findings) == 1
     assert findings[0]["tool"] == "hadolint"
@@ -1730,7 +1730,7 @@ def test_run_hadolint_error_severity(tmp_path):
             "file": str(tmp_path / "Dockerfile"),
         }
     ]
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_hadolint(str(tmp_path))
     assert findings[0]["severity"] == "high"
 
@@ -1745,13 +1745,13 @@ def test_run_tfsec_no_tf_files_returns_empty(tmp_path):
 
 def test_run_tfsec_no_output_returns_empty(tmp_path):
     (tmp_path / "main.tf").write_text('resource "aws_s3_bucket" "b" {}')
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         assert _run_tfsec(str(tmp_path)) == []
 
 
 def test_run_tfsec_invalid_json_returns_empty(tmp_path):
     (tmp_path / "main.tf").write_text('resource "aws_s3_bucket" "b" {}')
-    with patch("app.services.code_scan_service._run", return_value=(0, "bad", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "bad", "")):
         assert _run_tfsec(str(tmp_path)) == []
 
 
@@ -1769,7 +1769,7 @@ def test_run_tfsec_parses_result(tmp_path):
             }
         ]
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_tfsec(str(tmp_path))
     assert len(findings) == 1
     assert findings[0]["tool"] == "tfsec"
@@ -1789,7 +1789,7 @@ def test_run_tfsec_critical_severity(tmp_path):
             }
         ]
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_tfsec(str(tmp_path))
     assert findings[0]["severity"] == "critical"
 
@@ -1798,18 +1798,18 @@ def test_run_tfsec_critical_severity(tmp_path):
 
 
 def test_run_grype_no_output_returns_empty(tmp_path):
-    with patch("app.services.code_scan_service._run", return_value=(0, "", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "", "")):
         assert _run_grype(str(tmp_path)) == []
 
 
 def test_run_grype_invalid_json_returns_empty(tmp_path):
-    with patch("app.services.code_scan_service._run", return_value=(0, "bad", "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, "bad", "")):
         assert _run_grype(str(tmp_path)) == []
 
 
 def test_run_grype_empty_matches(tmp_path):
     data = {"matches": []}
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         assert _run_grype(str(tmp_path)) == []
 
 
@@ -1831,7 +1831,7 @@ def test_run_grype_parses_match(tmp_path):
             }
         ]
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_grype(str(tmp_path))
     assert len(findings) == 1
     assert findings[0]["tool"] == "grype"
@@ -1850,6 +1850,6 @@ def test_run_grype_unknown_severity_maps_to_low(tmp_path):
             }
         ]
     }
-    with patch("app.services.code_scan_service._run", return_value=(0, json.dumps(data), "")):
+    with patch("app.services.code_scan.runner._run", return_value=(0, json.dumps(data), "")):
         findings = _run_grype(str(tmp_path))
     assert findings[0]["severity"] == "low"

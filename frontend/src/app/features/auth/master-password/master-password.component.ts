@@ -1,5 +1,4 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,7 +10,7 @@ import { AuthService } from '../../../core/services/auth.service';
 @Component({
   standalone: true,
   selector: 'app-master-password',
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, MatIconModule, MatProgressSpinnerModule],
+  imports: [ReactiveFormsModule, RouterLink, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './master-password.component.html',
   styles: [
     `
@@ -80,7 +79,9 @@ export class MasterPasswordComponent {
       return;
     }
     try {
-      await this.cryptoService.deriveKey(this.form.getRawValue().masterPassword, email);
+      // Use server-provided crypto_salt if available; fall back to email for legacy sessions
+      const salt = this.authService.getCryptoSalt() ?? email;
+      await this.cryptoService.deriveKey(this.form.getRawValue().masterPassword, salt);
       const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/vault';
       this.router.navigateByUrl(returnUrl);
     } catch {

@@ -12,6 +12,8 @@ NEED_TYPES = {
 
 
 class ContactIn(BaseModel):
+    model_config = {"extra": "forbid"}
+
     name: str
     email: EmailStr
     phone: str | None = None

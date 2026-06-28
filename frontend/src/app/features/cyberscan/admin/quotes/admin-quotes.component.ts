@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import {
   ReactiveFormsModule,
   FormBuilder,
@@ -42,7 +42,7 @@ const API = '/api/v1';
   standalone: true,
   selector: 'app-admin-quotes',
   imports: [
-    CommonModule,
+    DecimalPipe,
     ReactiveFormsModule,
     MatIconModule,
     MatSnackBarModule,

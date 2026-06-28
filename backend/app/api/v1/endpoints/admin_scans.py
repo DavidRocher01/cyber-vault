@@ -9,7 +9,7 @@ from app.models.public_scan import PublicScan
 router = APIRouter(prefix="/admin/scans", tags=["admin"])
 
 
-@router.get("", dependencies=[Depends(require_admin)])
+@router.get("", dependencies=[Depends(require_admin)], summary="[Admin] Lister tous les scans")
 async def list_public_scans(limit: int = 50, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(PublicScan).order_by(PublicScan.created_at.desc()).limit(limit)

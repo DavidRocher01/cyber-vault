@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 import sentry_sdk
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -44,7 +46,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "script-src 'self'; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.gstatic.com; "
-            "img-src 'self' data: https:; "
+            "img-src 'self' data: https://cyberscanapp.com https://*.cyberscanapp.com https://www.gravatar.com; "
             "connect-src 'self'; "
             "frame-ancestors 'none'"
         )
@@ -76,25 +78,25 @@ async def _seed_plans() -> None:
         },
         {
             "name": "starter",
-            "display_name": "Starter",
-            "price_eur": 990,
+            "display_name": "Surveillance Starter",
+            "price_eur": 1490,
             "max_sites": 1,
-            "scan_interval_days": 30,
+            "scan_interval_days": 7,
             "tier_level": 2,
         },
         {
             "name": "pro",
-            "display_name": "Pro",
-            "price_eur": 3990,
-            "max_sites": 3,
+            "display_name": "Surveillance Pro",
+            "price_eur": 4900,
+            "max_sites": 5,
             "scan_interval_days": 7,
             "tier_level": 3,
         },
         {
             "name": "business",
-            "display_name": "Business",
-            "price_eur": 4990,
-            "max_sites": 10,
+            "display_name": "Surveillance Business",
+            "price_eur": 14900,
+            "max_sites": 15,
             "scan_interval_days": 1,
             "tier_level": 4,
         },
@@ -122,10 +124,7 @@ async def _import_awareness_content() -> None:
     """Import NIS2 awareness content from content/fr/ if no programs exist yet (idempotent)."""
     from pathlib import Path
 
-    from sqlalchemy import func, select
-
     from app.core.database import AsyncSessionLocal
-    from app.models.awareness_program import AwarenessProgram
     from app.services.awareness_content_importer import import_from_directory
 
     content_dir = Path(__file__).parent.parent.parent / "content" / "fr"
@@ -134,14 +133,10 @@ async def _import_awareness_content() -> None:
         return
 
     async with AsyncSessionLocal() as db:
-        count = (await db.execute(select(func.count(AwarenessProgram.id)))).scalar_one()
-        if count > 0:
-            logger.debug(f"Awareness content already imported ({count} programme(s)) — skipping")
-            return
         try:
             summary = await import_from_directory(db, content_dir)
             logger.info(
-                f"Awareness content imported: {summary['programs']} programmes, "
+                f"Awareness content synced: {summary['programs']} programmes, "
                 f"{summary['modules']} modules"
             )
             if summary.get("errors"):
@@ -151,11 +146,19 @@ async def _import_awareness_content() -> None:
             logger.error(f"Awareness content auto-import failed: {exc}")
 
 
+@asynccontextmanager
+async def lifespan(fastapi_app: FastAPI):
+    await _seed_plans()
+    await _seed_awareness_badges()
+    start_scheduler()
+    yield
+    stop_scheduler()
+
+
 app = FastAPI(
     title=settings.APP_NAME,
     version=__version__,
-    on_startup=[_seed_plans, _seed_awareness_badges, _import_awareness_content, start_scheduler],
-    on_shutdown=[stop_scheduler],
+    lifespan=lifespan,
 )
 
 app.state.limiter = limiter
@@ -202,6 +205,8 @@ async def sitemap(db: AsyncSession = Depends(get_db)):
         ("/cyberscan/nis2", "monthly", "0.6"),
         ("/cyberscan/iso27001", "monthly", "0.6"),
         ("/cyberscan/cgu", "yearly", "0.3"),
+        ("/cyberscan/cgv", "yearly", "0.3"),
+        ("/cyberscan/dpa", "yearly", "0.3"),
         ("/cyberscan/politique-confidentialite", "yearly", "0.3"),
         ("/cyberscan/mentions-legales", "yearly", "0.3"),
     ]
@@ -252,4 +257,60 @@ async def health(db: AsyncSession = Depends(get_db)):
         "version": __version__,
         "environment": settings.APP_ENV,
         "database": db_status,
+    }
+
+
+@app.get("/health/deep")
+async def health_deep(db: AsyncSession = Depends(get_db)):
+    """Deep health check — tests DB + external services. Use for monitoring (not ALB)."""
+    import asyncio as _asyncio
+
+    checks: dict[str, str] = {}
+
+    # Database
+    try:
+        await db.execute(text("SELECT 1"))
+        checks["database"] = "ok"
+    except Exception as exc:
+        checks["database"] = f"error: {str(exc)[:100]}"
+
+    # Stripe
+    if settings.STRIPE_SECRET_KEY:
+        try:
+            import stripe as _stripe
+
+            _stripe.api_key = settings.STRIPE_SECRET_KEY
+            await _asyncio.to_thread(_stripe.Balance.retrieve)
+            checks["stripe"] = "ok"
+        except Exception as exc:
+            checks["stripe"] = f"error: {str(exc)[:100]}"
+
+    # Resend
+    if settings.RESEND_API_KEY:
+        try:
+            import resend as _resend
+
+            _resend.api_key = settings.RESEND_API_KEY
+            await _asyncio.to_thread(_resend.Domains.list)
+            checks["resend"] = "ok"
+        except Exception as exc:
+            checks["resend"] = f"error: {str(exc)[:100]}"
+
+    # S3
+    if settings.S3_BUCKET_NAME:
+        try:
+            import boto3 as _boto3
+
+            client = _boto3.client("s3", region_name=settings.AWS_REGION)
+            await _asyncio.to_thread(client.head_bucket, Bucket=settings.S3_BUCKET_NAME)
+            checks["s3"] = "ok"
+        except Exception as exc:
+            checks["s3"] = f"error: {str(exc)[:100]}"
+
+    all_ok = all(v == "ok" for v in checks.values())
+    return {
+        "status": "healthy" if all_ok else "degraded",
+        "version": __version__,
+        "environment": settings.APP_ENV,
+        "checks": checks,
     }

@@ -34,7 +34,9 @@ class InvoiceCreateRequest(BaseModel):
     issue_date: date | None = None
 
 
-@router.post("", dependencies=[Depends(require_admin)], status_code=201)
+@router.post(
+    "", dependencies=[Depends(require_admin)], status_code=201, summary="[Admin] Créer une facture"
+)
 async def admin_create_invoice(
     body: InvoiceCreateRequest,
     db: AsyncSession = Depends(get_db),
@@ -63,7 +65,7 @@ async def admin_create_invoice(
     return _serialize(invoice)
 
 
-@router.get("", dependencies=[Depends(require_admin)])
+@router.get("", dependencies=[Depends(require_admin)], summary="[Admin] Lister les factures")
 async def admin_list_invoices(
     limit: int = 100,
     offset: int = 0,
@@ -78,7 +80,9 @@ async def admin_list_invoices(
     return [_serialize(inv) for inv in result.scalars().all()]
 
 
-@router.get("/{invoice_id}", dependencies=[Depends(require_admin)])
+@router.get(
+    "/{invoice_id}", dependencies=[Depends(require_admin)], summary="[Admin] Détail d'une facture"
+)
 async def admin_get_invoice(
     invoice_id: int,
     db: AsyncSession = Depends(get_db),
@@ -87,7 +91,11 @@ async def admin_get_invoice(
     return _serialize(inv)
 
 
-@router.get("/{invoice_id}/pdf", dependencies=[Depends(require_admin)])
+@router.get(
+    "/{invoice_id}/pdf",
+    dependencies=[Depends(require_admin)],
+    summary="[Admin] Télécharger la facture (PDF)",
+)
 async def admin_download_pdf(
     invoice_id: int,
     db: AsyncSession = Depends(get_db),

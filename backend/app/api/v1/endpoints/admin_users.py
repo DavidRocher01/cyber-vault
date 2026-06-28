@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,8 +11,16 @@ from app.models.user import User
 router = APIRouter(prefix="/admin/users", tags=["admin"])
 
 
-@router.get("", dependencies=[Depends(require_admin)])
-async def list_users(db: AsyncSession = Depends(get_db)):
+@router.get(
+    "",
+    dependencies=[Depends(require_admin)],
+    summary="[Admin] Lister les utilisateurs (paginé)",
+)
+async def list_users(
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+):
     result = await db.execute(
         select(User, Subscription, Plan)
         .outerjoin(
@@ -21,6 +29,8 @@ async def list_users(db: AsyncSession = Depends(get_db)):
         )
         .outerjoin(Plan, Plan.id == Subscription.plan_id)
         .order_by(User.id.desc())
+        .offset(skip)
+        .limit(limit)
     )
     rows = result.all()
     return [
@@ -38,7 +48,11 @@ async def list_users(db: AsyncSession = Depends(get_db)):
     ]
 
 
-@router.patch("/{user_id}/rssi", dependencies=[Depends(require_admin)])
+@router.patch(
+    "/{user_id}/rssi",
+    dependencies=[Depends(require_admin)],
+    summary="[Admin] Activer/désactiver le rôle consultant RSSI",
+)
 async def toggle_rssi_consultant(user_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
