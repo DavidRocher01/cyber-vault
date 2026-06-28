@@ -36,7 +36,7 @@ export class InvoicesComponent implements OnInit {
   downloading = signal<number | null>(null);
 
   ngOnInit() {
-    this.title.setTitle('Mes factures — CyberScan');
+    this.title.setTitle('Mes factures — Rocher Cybersécurité');
     this.load(1);
   }
 

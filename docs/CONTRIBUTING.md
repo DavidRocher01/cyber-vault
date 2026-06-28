@@ -1,4 +1,4 @@
-# Contribuer à CyberScan
+# Contribuer à Rocher Cybersécurité
 
 ## Workflow git
 

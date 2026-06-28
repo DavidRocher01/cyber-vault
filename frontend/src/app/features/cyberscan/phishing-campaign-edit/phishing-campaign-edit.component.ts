@@ -81,7 +81,7 @@ export class PhishingCampaignEditComponent implements OnInit {
           return;
         }
         this.campaign.set(c);
-        this.title.setTitle(`Configurer "${c.name}" | CyberScan`);
+        this.title.setTitle(`Configurer "${c.name}" | Rocher Cybersécurité`);
         const scheduledLocal = c.scheduled_at
           ? new Date(c.scheduled_at).toISOString().slice(0, 16)
           : '';

@@ -56,10 +56,11 @@ export class Iso27001Component implements OnInit {
   readonly STATUS_LIST: Iso27001Status[] = ['compliant', 'partial', 'non_compliant', 'na'];
 
   ngOnInit() {
-    this.titleService.setTitle('Conformité ISO 27001:2022 — CyberScan');
+    this.titleService.setTitle('Conformité ISO 27001:2022 — Rocher Cybersécurité');
     this.meta.updateTag({
       name: 'description',
-      content: 'Évaluez votre niveau de conformité à la norme ISO/IEC 27001:2022 avec CyberScan.',
+      content:
+        'Évaluez votre niveau de conformité à la norme ISO/IEC 27001:2022 avec Rocher Cybersécurité.',
     });
     this.cyberscan.getIso27001Assessment().subscribe({
       next: data => {

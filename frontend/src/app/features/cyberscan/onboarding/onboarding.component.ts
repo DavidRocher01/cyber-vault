@@ -48,7 +48,7 @@ export class OnboardingComponent implements OnInit {
   ];
 
   ngOnInit() {
-    this.title.setTitle('Démarrage — CyberScan');
+    this.title.setTitle('Démarrage — Rocher Cybersécurité');
     this.cyberscan.getPlans().subscribe({ next: p => this.plans.set(p) });
     // If user already has a subscription (e.g. coming back from Stripe success),
     // skip step 1 and go directly to step 2 (add first site).

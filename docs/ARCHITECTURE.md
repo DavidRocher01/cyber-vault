@@ -1,8 +1,8 @@
-# Architecture CyberScan
+# Architecture Rocher Cybersécurité
 
 ## Vue d'ensemble
 
-CyberScan est un SaaS de cybersécurité B2B/B2C déployé sur AWS.
+Rocher Cybersécurité est un SaaS de cybersécurité B2B/B2C déployé sur AWS.
 
 ```
 Internet

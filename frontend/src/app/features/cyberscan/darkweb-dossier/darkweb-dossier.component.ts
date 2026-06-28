@@ -32,7 +32,7 @@ export class DarkwebDossierComponent implements OnInit {
   deletingId = signal<number | null>(null);
 
   ngOnInit() {
-    this.title.setTitle('Dark Web Dossier — CyberScan');
+    this.title.setTitle('Dark Web Dossier — Rocher Cybersécurité');
     this.load();
   }
 

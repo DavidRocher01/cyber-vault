@@ -83,7 +83,7 @@ import { AwarenessService, CertificateVerification } from '../cyberscan/services
 
             <div class="mt-5 flex items-center justify-center gap-2 text-green-400 text-xs">
               <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">lock</mat-icon>
-              Signature SHA-256 vérifiée — CyberScan
+              Signature SHA-256 vérifiée — Rocher Cybersécurité
             </div>
           </div>
         }

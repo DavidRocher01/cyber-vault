@@ -46,7 +46,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "script-src 'self'; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.gstatic.com; "
-            "img-src 'self' data: https://cyberscanapp.com https://*.cyberscanapp.com https://www.gravatar.com; "
+            "img-src 'self' data: https://rochercybersecurite.com https://*.rochercybersecurite.com https://www.gravatar.com; "
             "connect-src 'self'; "
             "frame-ancestors 'none'"
         )
@@ -192,7 +192,7 @@ async def sitemap(db: AsyncSession = Depends(get_db)):
 
     from app.models.blog_post import BlogPost  # noqa: F401
 
-    base = "https://cyberscanapp.com"
+    base = "https://rochercybersecurite.com"
     static_urls = [
         ("", "weekly", "1.0"),
         ("/cyberscan", "weekly", "0.9"),
@@ -240,7 +240,7 @@ async def robots():
 
     return PlainTextResponse(
         "User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /cyberscan/admin\n"
-        "Sitemap: https://cyberscanapp.com/sitemap.xml\n"
+        "Sitemap: https://rochercybersecurite.com/sitemap.xml\n"
     )
 
 

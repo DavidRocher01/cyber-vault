@@ -62,7 +62,7 @@ def _send_invite_email(email: str, site_name: str, site_url: str, role: str, tok
     try:
         from app.services.email_service import _send
 
-        accept_url = f"https://cyberscanapp.com/cyberscan/collab/accept/{token}"
+        accept_url = f"https://rochercybersecurite.com/cyberscan/collab/accept/{token}"
         role_label = ROLE_LABELS.get(role, role)
         html = f"""
         <div style="font-family:sans-serif;background:#0f172a;color:#e2e8f0;padding:32px;border-radius:12px;">
@@ -75,7 +75,7 @@ def _send_invite_email(email: str, site_name: str, site_url: str, role: str, tok
         </div>
         """
         plain = f"Vous êtes invité(e) à collaborer sur {site_url} (rôle : {role_label}).\nAcceptez : {accept_url}"
-        _send(email, f"Invitation CyberScan — {site_name}", html, plain)
+        _send(email, f"Invitation Rocher Cybersécurité — {site_name}", html, plain)
     except Exception as exc:
         logger.warning(f"Collab invitation email failed: {exc}")
 

@@ -63,7 +63,7 @@ export class ScanGratuitComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.titleService.setTitle(
-      'Scan de sécurité gratuit — Audit de votre site en 90 secondes | CyberScan'
+      'Scan de sécurité gratuit — Audit de votre site en 90 secondes | Rocher Cybersécurité'
     );
     this.meta.updateTag({
       name: 'description',

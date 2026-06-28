@@ -18,13 +18,16 @@ export class RessourcesComponent {
   private doc = inject(DOCUMENT);
 
   constructor() {
-    this.titleService.setTitle('Ressources cybersécurité — CyberScan');
+    this.titleService.setTitle('Ressources cybersécurité — Rocher Cybersécurité');
     this.meta.updateTag({
       name: 'description',
       content:
         'Outils, plateformes et chaînes YouTube sélectionnés pour approfondir vos connaissances en cybersécurité : audits, gouvernance, RGPD, CTF.',
     });
-    this.meta.updateTag({ property: 'og:title', content: 'Ressources cybersécurité — CyberScan' });
+    this.meta.updateTag({
+      property: 'og:title',
+      content: 'Ressources cybersécurité — Rocher Cybersécurité',
+    });
     this.meta.updateTag({
       property: 'og:description',
       content:
@@ -32,10 +35,10 @@ export class RessourcesComponent {
     });
     this.meta.updateTag({
       property: 'og:url',
-      content: 'https://cyberscanapp.com/cyberscan/ressources',
+      content: 'https://rochercybersecurite.com/cyberscan/ressources',
     });
     this.meta.updateTag({ property: 'og:type', content: 'website' });
-    this._setCanonical('https://cyberscanapp.com/cyberscan/ressources');
+    this._setCanonical('https://rochercybersecurite.com/cyberscan/ressources');
   }
 
   private _setCanonical(url: string): void {

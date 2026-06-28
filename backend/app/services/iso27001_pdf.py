@@ -445,7 +445,7 @@ def generate_iso27001_pdf(
     story.append(HRFlowable(width=W, thickness=0.5, color=BORDER, spaceAfter=4))
     story.append(
         Paragraph(
-            f"Rapport ISO 27001:2022 généré par CyberScan le "
+            f"Rapport ISO 27001:2022 généré par Rocher Cybersécurité le "
             f"{datetime.now(UTC).strftime('%d/%m/%Y à %H:%M')} UTC — "
             "Ce rapport est fourni à titre indicatif et ne constitue pas une certification ISO/IEC 27001.",
             _st("Disc", fontSize=7, textColor=GRAY),

@@ -1,4 +1,4 @@
-# Procédure de déploiement CyberScan
+# Procédure de déploiement Rocher Cybersécurité
 
 ## Architecture de déploiement
 

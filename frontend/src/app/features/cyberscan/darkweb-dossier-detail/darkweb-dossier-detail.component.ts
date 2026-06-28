@@ -47,7 +47,7 @@ export class DarkwebDossierDetailComponent implements OnInit, OnDestroy {
   private pollInterval: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit() {
-    this.title.setTitle('Dossier Dark Web — CyberScan');
+    this.title.setTitle('Dossier Dark Web — Rocher Cybersécurité');
     const id = Number(this.route.snapshot.paramMap.get('id'));
     if (!id) {
       this.router.navigate(['/cyberscan/darkweb-dossier']);

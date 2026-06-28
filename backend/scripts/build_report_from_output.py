@@ -201,7 +201,7 @@ def build_pdf(data: dict, out_path: str) -> None:
         [
             [
                 _p(
-                    "<b>CyberScan</b>",
+                    "<b>Rocher Cybersécurité</b>",
                     fontSize=18,
                     fontName="Helvetica-Bold",
                     textColor=WHITE,
@@ -573,7 +573,7 @@ def build_pdf(data: dict, out_path: str) -> None:
     s.append(HRFlowable(width=cw, thickness=0.5, color=BORDER, spaceAfter=3 * mm))
     s.append(
         _p(
-            f"CyberScan — Rapport de tests automatisés — {now} — cyberscanapp.com",
+            f"Rocher Cybersécurité — Rapport de tests automatisés — {now} — rochercybersecurite.com",
             fontSize=7,
             fontName="Helvetica",
             textColor=GRAY,

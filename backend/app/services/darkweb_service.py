@@ -11,7 +11,7 @@ HIBP_EMAIL_URL = "https://haveibeenpwned.com/api/v3/breachedaccount/{email}"
 HIBP_DOMAIN_URL = "https://haveibeenpwned.com/api/v3/breacheddomain/{domain}"
 HIBP_BREACHES_URL = "https://haveibeenpwned.com/api/v3/breaches"
 
-_HEADERS = {"User-Agent": "CyberScan/2.0"}
+_HEADERS = {"User-Agent": "Rocher Cybersécurité/2.0"}
 _TIMEOUT = 10
 
 

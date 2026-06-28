@@ -7,7 +7,7 @@
       (click)="easterEgg.onLogoClick()"
     >
       <mat-icon class="text-cyan-400">shield</mat-icon>
-      <span class="text-xl font-bold text-cyan-400">CyberScan</span>
+      <span class="text-xl font-bold text-cyan-400">Rocher Cybersécurité</span>
     </a>
     <div class="flex items-center gap-1 md:gap-2">
       <a
@@ -387,9 +387,9 @@
           <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">people</mat-icon>
           Pour tous les profils
         </span>
-        <h2 class="text-3xl font-bold mb-3">Qui utilise CyberScan ?</h2>
+        <h2 class="text-3xl font-bold mb-3">Qui utilise Rocher Cybersécurité ?</h2>
         <p class="text-gray-400 max-w-xl mx-auto text-sm leading-relaxed">
-          De la startup au grand compte, CyberScan s'adapte à votre contexte.
+          De la startup au grand compte, Rocher Cybersécurité s'adapte à votre contexte.
         </p>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -443,15 +443,15 @@
           <div
             class="rounded-2xl border p-6 flex flex-col gap-3 text-center"
             [ngClass]="
-              stat.source === 'CyberScan'
+              stat.source === 'Rocher Cybersécurité'
                 ? 'border-cyan-800 bg-cyan-900/20'
                 : 'border-gray-700 bg-gray-800'
             "
           >
             <p
               class="text-3xl font-extrabold"
-              [class.text-red-400]="stat.source !== 'CyberScan'"
-              [class.text-cyan-400]="stat.source === 'CyberScan'"
+              [class.text-red-400]="stat.source !== 'Rocher Cybersécurité'"
+              [class.text-cyan-400]="stat.source === 'Rocher Cybersécurité'"
             >
               {{ stat.value }}
             </p>
@@ -467,7 +467,7 @@
   <section class="px-8 py-16">
     <h2 class="text-3xl font-bold text-center mb-2">Ils nous font confiance</h2>
     <p class="text-gray-300 text-center mb-10">
-      Des équipes qui protègent leurs assets avec CyberScan
+      Des équipes qui protègent leurs assets avec Rocher Cybersécurité
     </p>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
       @for (t of testimonials; track t.name) {
@@ -672,7 +672,7 @@
             }
           </div>
           <a
-            href="mailto:contact@cyberscanapp.com?subject=Demande Enterprise CyberScan"
+            href="mailto:contact@rochercybersecurite.com?subject=Demande Enterprise Rocher Cybersécurité"
             class="w-full py-3 rounded-lg font-semibold text-center text-sm bg-violet-600 hover:bg-violet-500 text-white transition-all block"
           >
             Nous contacter
@@ -1271,7 +1271,7 @@
       <div>
         <div class="flex items-center gap-2 mb-3">
           <mat-icon class="text-cyan-400">shield</mat-icon>
-          <span class="font-bold text-cyan-400">CyberScan</span>
+          <span class="font-bold text-cyan-400">Rocher Cybersécurité</span>
         </div>
         <p class="text-xs leading-relaxed text-gray-400">
           Audit de sécurité web automatisé. Les scans sont réalisés de manière non intrusive sur vos
@@ -1328,7 +1328,7 @@
       </div>
     </div>
     <div class="border-t border-gray-800 pt-6 text-center text-xs text-gray-500">
-      © 2025 CyberScan. Tous droits réservés. Les scans sont passifs et non intrusifs.
+      © 2025 Rocher Cybersécurité. Tous droits réservés. Les scans sont passifs et non intrusifs.
       <span class="ml-3 text-gray-600">v{{ version }}</span>
     </div>
   </footer>

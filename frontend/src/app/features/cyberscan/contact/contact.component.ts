@@ -48,7 +48,7 @@ export class ContactComponent implements OnInit {
   });
 
   ngOnInit() {
-    this.titleService.setTitle('Contact — Réserver un audit cybersécurité | CyberScan');
+    this.titleService.setTitle('Contact — Réserver un audit cybersécurité | Rocher Cybersécurité');
     this.meta.updateTag({
       name: 'description',
       content:

@@ -40,7 +40,7 @@ export class PhishingCampaignsComponent implements OnInit {
   loading = signal(true);
 
   ngOnInit() {
-    this.title.setTitle('Simulation de phishing — Mes campagnes | CyberScan');
+    this.title.setTitle('Simulation de phishing — Mes campagnes | Rocher Cybersécurité');
     this.load();
   }
 

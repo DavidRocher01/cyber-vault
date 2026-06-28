@@ -100,12 +100,12 @@ class AuditDocTemplate(BaseDocTemplate):
         canvas.setFont("Helvetica-Bold", 6)
         canvas.drawCentredString(logo_x + logo_size / 2, logo_y + 1.5 * mm, "CS")
 
-        # "CyberScan" label
+        # "Rocher Cybersécurité" label
         text_x = logo_x + logo_size + 3 * mm
         mid_y  = band_y + band_h / 2 - 1.5 * mm
         canvas.setFillColor(COLOR_WHITE)
         canvas.setFont("Helvetica-Bold", 11)
-        canvas.drawString(text_x, mid_y, "CyberScan")
+        canvas.drawString(text_x, mid_y, "Rocher Cybersécurité")
 
         # Pipe separator
         sep_x = text_x + 60
@@ -132,7 +132,7 @@ class AuditDocTemplate(BaseDocTemplate):
         canvas.setFillColor(colors.HexColor("#94a3b8"))
         canvas.setFont("Helvetica", 7)
 
-        canvas.drawString(left_margin, footer_y - 5 * mm, "CyberScan \u2014 confidentiel")
+        canvas.drawString(left_margin, footer_y - 5 * mm, "Rocher Cybersécurité \u2014 confidentiel")
         canvas.drawCentredString(page_w / 2, footer_y - 5 * mm, f"Page {doc.page}")
         canvas.drawRightString(left_margin + doc.width, footer_y - 5 * mm, self.report_date)
 
@@ -391,7 +391,7 @@ def _build_cover(
     ]))
 
     logo_row = Table(
-        [[logo_badge, Paragraph("CyberScan", cs_label_style)]],
+        [[logo_badge, Paragraph("Rocher Cybersécurité", cs_label_style)]],
         colWidths=[2 * cm, col_w - 2 * cm],
     )
     logo_row.setStyle(TableStyle([

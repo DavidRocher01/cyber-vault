@@ -291,7 +291,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     question: 'Est-ce légal de simuler des attaques phishing sur mes employés ?',
     answer:
-      "Oui, sous réserve d'une convention d'exercice signée entre l'entreprise et CyberScan. Une information générale peut être communiquée aux collaborateurs (sans révéler la date). Les données collectées sont strictement anonymisées dans les rapports. Nous fournissons un modèle de convention conforme au RGPD.",
+      "Oui, sous réserve d'une convention d'exercice signée entre l'entreprise et Rocher Cybersécurité. Une information générale peut être communiquée aux collaborateurs (sans révéler la date). Les données collectées sont strictement anonymisées dans les rapports. Nous fournissons un modèle de convention conforme au RGPD.",
   },
   {
     question: "Les employés sont-ils prévenus à l'avance ?",
@@ -373,7 +373,9 @@ export class PhishingComponent implements OnInit {
   openFaqIndex = signal<number | null>(null);
 
   ngOnInit() {
-    this.title.setTitle('Simulation de Phishing pour PME — Test et Sensibilisation | CyberScan');
+    this.title.setTitle(
+      'Simulation de Phishing pour PME — Test et Sensibilisation | Rocher Cybersécurité'
+    );
     this.meta.updateTag({
       name: 'description',
       content:

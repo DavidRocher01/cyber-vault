@@ -544,7 +544,7 @@ Donc je me suis dit : OK, je le fais.
 Avec mes compétences de dev. Avec ma rigueur d'auditeur.
 Avec des prix accessibles à une TPE de 5 personnes.
 
-CyberScan, ce n'est pas un produit.
+Rocher Cybersécurité, ce n'est pas un produit.
 C'est ma manière de répondre à un truc qui m'énerve depuis 8 ans :
 les PME françaises ne sont pas mal protégées par incompétence.
 Elles le sont par manque de prestataires accessibles.

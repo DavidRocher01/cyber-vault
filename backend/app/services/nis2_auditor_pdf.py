@@ -80,7 +80,7 @@ def _draw_auditor_page(canvas, doc, *, user_email: str, date_str: str) -> None:
 
     canvas.setFillColor(WHITE)
     canvas.setFont("Helvetica-Bold", BAND_H * 0.55)
-    canvas.drawString(M + 3 * mm, band_cy - BAND_H * 0.12, "CyberScan")
+    canvas.drawString(M + 3 * mm, band_cy - BAND_H * 0.12, "Rocher Cybersécurité")
     canvas.setFillColor(acc)
     canvas.setFont("Helvetica-Bold", BAND_H * 0.45)
     canvas.drawRightString(PAGE_W - M, band_cy + BAND_H * 0.10, "NIS2 — DOCUMENT OFFICIEL")
@@ -194,7 +194,7 @@ def generate_nis2_auditor_pdf(
         ["Date d'évaluation", date_str],
         ["Score de conformité", f"{score} %"],
         ["Périmètre", "Directive NIS2 — Mesures de cybersécurité (Art. 21)"],
-        ["Outil d'évaluation", "CyberScan — cyberscanapp.com"],
+        ["Outil d'évaluation", "Rocher Cybersécurité — rochercybersecurite.com"],
     ]
     attest_tbl = Table(attest_data, colWidths=[50 * mm, doc.width - 50 * mm])
     attest_tbl.setStyle(
@@ -378,7 +378,7 @@ def generate_nis2_auditor_pdf(
     decl_text = (
         "Le soussigné atteste que l'évaluation de conformité à la Directive NIS2 a été réalisée "
         f"le {today_str}, sur la base des informations communiquées par l'entité évaluée. "
-        "Ce document a été généré via la plateforme CyberScan (cyberscanapp.com) et reflète "
+        "Ce document a été généré via la plateforme Rocher Cybersécurité (rochercybersecurite.com) et reflète "
         "l'état de conformité auto-évalué à la date indiquée. "
         "Il est destiné à servir de base documentaire lors d'un audit de conformité NIS2 ou "
         "d'une déclaration auprès de l'ANSSI."

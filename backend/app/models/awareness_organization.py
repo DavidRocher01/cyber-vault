@@ -12,7 +12,7 @@ class AwarenessOrganization(Base):
     __tablename__ = "awareness_organizations"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    # Link to the CyberScan user (org admin or RSSI consultant owner)
+    # Link to the Rocher Cybersécurité user (org admin or RSSI consultant owner)
     owner_user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )

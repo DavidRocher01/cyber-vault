@@ -399,7 +399,7 @@ function pad(n: number, w = 2) {
 })
 export class CyberLoaderComponent implements OnInit, OnDestroy {
   @Input() visible = true;
-  @Input() product = 'CYBERSCAN';
+  @Input() product = 'ROCHER CYBERSÉCURITÉ';
   @Input() loopSec = 12;
 
   readonly CHECKS = CHECK_ITEMS;

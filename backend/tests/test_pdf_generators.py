@@ -175,7 +175,7 @@ def test_doc_color_contains_expected_types():
 
 def test_site_email_format():
     assert "@" in SITE_EMAIL
-    assert "cyberscanapp" in SITE_EMAIL
+    assert "rochercybersecurite" in SITE_EMAIL
 
 
 def test_section_rule_returns_hrflowable():

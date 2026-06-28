@@ -52,7 +52,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
       <div class="text-center mb-6 relative z-10">
         <h1 class="text-4xl font-extrabold mb-3 tracking-tight">Abonnement activé&nbsp;!</h1>
         <p class="text-gray-400 text-lg max-w-sm leading-relaxed">
-          Bienvenue sur CyberScan. Votre plan
+          Bienvenue sur Rocher Cybersécurité. Votre plan
           <span class="text-green-400 font-bold">{{ planName }}</span>
           est désormais actif.
         </p>
@@ -116,7 +116,7 @@ export class CheckoutSuccessComponent implements OnInit {
   planName = '';
 
   ngOnInit() {
-    this.title.setTitle('Abonnement activé — CyberScan');
+    this.title.setTitle('Abonnement activé — Rocher Cybersécurité');
     this.cyberscan.getMySubscription().subscribe({
       next: sub => {
         this.planName = sub?.plan?.display_name ?? '';

@@ -58,7 +58,7 @@ export class SensibilisationComponent implements OnInit {
   uiState = signal<Record<string, ModuleUiState>>({});
 
   ngOnInit() {
-    this.title.setTitle('Sensibilisation — CyberScan');
+    this.title.setTitle('Sensibilisation — Rocher Cybersécurité');
     this.loadAll();
   }
 

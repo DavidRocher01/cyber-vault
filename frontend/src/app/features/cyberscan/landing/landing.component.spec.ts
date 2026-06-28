@@ -421,7 +421,7 @@ describe('LandingComponent — cyberStats (4 statistiques)', () => {
     expect(src).toContain("'82 %'");
   });
 
-  it('la 4e stat concerne le prix CyberScan (14,90 €)', () => {
+  it('la 4e stat concerne le prix Rocher Cybersécurité (14,90 €)', () => {
     expect(src).toContain("'14,90 €'");
   });
 
@@ -486,8 +486,8 @@ describe('LandingComponent — non-régression comportement', () => {
     expect(src).toContain("'21 modules'");
   });
 
-  it('[RÉGRESSION] email de contact est cyberscanapp.com', () => {
-    expect(landingSrc).toContain('cyberscanapp.com');
+  it('[RÉGRESSION] email de contact est rochercybersecurite.com', () => {
+    expect(landingSrc).toContain('rochercybersecurite.com');
   });
 
   it("[RÉGRESSION] l'Enterprise est sur devis (pas un prix fixe)", () => {

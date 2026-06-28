@@ -379,7 +379,7 @@ def generate_nis2_pdf(
     story.append(HRFlowable(width=W, thickness=0.5, color=BORDER, spaceAfter=4))
     story.append(
         Paragraph(
-            f"Rapport NIS2 généré par CyberScan le {datetime.now(UTC).strftime('%d/%m/%Y à %H:%M')} UTC — "
+            f"Rapport NIS2 généré par Rocher Cybersécurité le {datetime.now(UTC).strftime('%d/%m/%Y à %H:%M')} UTC — "
             "Ce rapport est fourni à titre indicatif et ne constitue pas un audit légal de conformité.",
             _st("Disc", fontSize=7, textColor=GRAY),
         )

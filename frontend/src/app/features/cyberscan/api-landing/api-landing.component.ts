@@ -106,7 +106,12 @@ const ROADMAP = [
   { sprint: 'S5', label: 'Webhooks', desc: 'HMAC-SHA256, retry exponentiel', done: false },
   { sprint: 'S6', label: 'Facturation Stripe', desc: 'Plans API, overage metered', done: false },
   { sprint: 'S7', label: 'Dashboard API', desc: 'Section "API" dans le dashboard', done: false },
-  { sprint: 'S8', label: 'Documentation', desc: 'docs.cyberscanapp.com, quickstart', done: false },
+  {
+    sprint: 'S8',
+    label: 'Documentation',
+    desc: 'docs.rochercybersecurite.com, quickstart',
+    done: false,
+  },
 ];
 
 @Component({
@@ -144,7 +149,7 @@ export class ApiLandingComponent implements OnInit {
     company: [''],
   });
 
-  readonly curlExample = `curl -X POST https://api.cyberscanapp.com/v1/scans \\
+  readonly curlExample = `curl -X POST https://api.rochercybersecurite.com/v1/scans \\
   -H "Authorization: Bearer csk_live_xxxx" \\
   -H "Content-Type: application/json" \\
   -d '{"url": "https://mon-client.fr"}'`;
@@ -158,11 +163,11 @@ export class ApiLandingComponent implements OnInit {
 }`;
 
   ngOnInit() {
-    this.titleService.setTitle('API CyberScan — Automatisez vos audits de sécurité');
+    this.titleService.setTitle('API Rocher Cybersécurité — Automatisez vos audits de sécurité');
     this.meta.updateTag({
       name: 'description',
       content:
-        "L'API CyberScan permet aux MSP, DevSecOps et éditeurs SaaS d'intégrer les scans de sécurité dans leurs outils. Rejoignez la liste d'attente.",
+        "L'API Rocher Cybersécurité permet aux MSP, DevSecOps et éditeurs SaaS d'intégrer les scans de sécurité dans leurs outils. Rejoignez la liste d'attente.",
     });
     this.http.get<{ count: number }>(`${API}/api-waitlist/count`).subscribe({
       next: r => this.count.set(r.count),

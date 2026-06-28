@@ -99,7 +99,7 @@ export class BookingComponent implements OnInit {
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   ngOnInit() {
-    this.titleService.setTitle('Réserver un audit cybersécurité | CyberScan');
+    this.titleService.setTitle('Réserver un audit cybersécurité | Rocher Cybersécurité');
     this.meta.updateTag({
       name: 'description',
       content:

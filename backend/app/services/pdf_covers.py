@@ -1,5 +1,5 @@
 """
-pdf_covers.py — Cover-page renderers for CyberScan PDF reports.
+pdf_covers.py — Cover-page renderers for Rocher Cybersécurité PDF reports.
 
 Extracted from pdf_brand.py to keep that module focused on shared constants
 and helpers. All functions here are re-exported from pdf_brand.py so existing
@@ -285,7 +285,7 @@ def draw_compliance_cover(
     canvas.line(M, footer_y + 4 * mm, W - M, footer_y + 4 * mm)
     canvas.setFillColor(GRAY)
     canvas.setFont("Helvetica", 7)
-    canvas.drawString(M, footer_y - 1 * mm, "CyberScan — confidentiel")
+    canvas.drawString(M, footer_y - 1 * mm, "Rocher Cybersécurité — confidentiel")
     canvas.drawCentredString(W / 2, footer_y - 1 * mm, "Page 1")
     canvas.drawRightString(W - M, footer_y - 1 * mm, date_str[:10])
 
@@ -473,7 +473,7 @@ def draw_url_scan_cover(
     canvas.line(M, footer_y + 4 * mm, W - M, footer_y + 4 * mm)
     canvas.setFillColor(GRAY)
     canvas.setFont("Helvetica", 7)
-    canvas.drawString(M, footer_y - 1 * mm, "CyberScan — confidentiel")
+    canvas.drawString(M, footer_y - 1 * mm, "Rocher Cybersécurité — confidentiel")
     canvas.drawCentredString(W / 2, footer_y - 1 * mm, "Page 1")
     canvas.drawRightString(W - M, footer_y - 1 * mm, date_str[:10])
 

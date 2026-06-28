@@ -56,7 +56,7 @@ export const TESTIMONIALS = [
     name: 'Sophie M.',
     role: 'CTO, StartupTech',
     avatar: 'S',
-    text: "CyberScan nous a permis de détecter une fuite de configuration en production avant qu'elle ne soit exploitée. Indispensable.",
+    text: "Rocher Cybersécurité nous a permis de détecter une fuite de configuration en production avant qu'elle ne soit exploitée. Indispensable.",
   },
   {
     name: 'Thomas R.',
@@ -80,13 +80,13 @@ export const TESTIMONIALS = [
     name: 'Chloé V.',
     role: 'Lead Dev, agence web',
     avatar: 'C',
-    text: 'On livre le rapport CyberScan à chaque client en fin de projet. Ça devient un vrai argument commercial et ça rassure les décideurs.',
+    text: 'On livre le rapport Rocher Cybersécurité à chaque client en fin de projet. Ça devient un vrai argument commercial et ça rassure les décideurs.',
   },
   {
     name: 'Antoine P.',
     role: 'Fondateur, SaaS RH',
     avatar: 'A',
-    text: "Le scanner de code a trouvé une clé AWS hardcodée dans un vieux fichier de config. Sans CyberScan, on ne l'aurait jamais vu.",
+    text: "Le scanner de code a trouvé une clé AWS hardcodée dans un vieux fichier de config. Sans Rocher Cybersécurité, on ne l'aurait jamais vu.",
   },
   {
     name: 'Isabelle K.',
@@ -98,8 +98,8 @@ export const TESTIMONIALS = [
 
 export const FAQS = [
   {
-    q: "Qu'est-ce que CyberScan analyse exactement ?",
-    a: "CyberScan effectue une analyse non intrusive de votre site : headers de sécurité, configuration SSL/TLS, technologies exposées, JWT, redirections ouvertes, clickjacking, threat intelligence (Shodan, CVE) et bien d'autres vérifications selon votre plan.",
+    q: "Qu'est-ce que Rocher Cybersécurité analyse exactement ?",
+    a: "Rocher Cybersécurité effectue une analyse non intrusive de votre site : headers de sécurité, configuration SSL/TLS, technologies exposées, JWT, redirections ouvertes, clickjacking, threat intelligence (Shodan, CVE) et bien d'autres vérifications selon votre plan.",
   },
   {
     q: 'Les scans sont-ils intrusifs ou dangereux pour mon site ?',
@@ -130,7 +130,7 @@ export const FAQS = [
     a: "Oui. Vous pouvez fournir un Personal Access Token GitHub pour analyser vos repositories privés. Le token est utilisé uniquement pendant le scan et n'est jamais stocké sur nos serveurs.",
   },
   {
-    q: "CyberScan peut-il m'aider pour ma conformité NIS2 ou ISO 27001 ?",
+    q: "Rocher Cybersécurité peut-il m'aider pour ma conformité NIS2 ou ISO 27001 ?",
     a: "Oui. L'outil d'auto-évaluation NIS2 et ISO 27001 vous guide item par item et génère un rapport PDF de conformité avec un score et un plan d'action. Il ne remplace pas un audit légal, mais constitue un excellent point de départ pour structurer votre démarche.",
   },
   {
@@ -443,6 +443,6 @@ export const CYBER_STATS = [
   {
     value: '14,90 €',
     label: "Le prix d'un abonnement Surveillance Starter par mois",
-    source: 'CyberScan',
+    source: 'Rocher Cybersécurité',
   },
 ];

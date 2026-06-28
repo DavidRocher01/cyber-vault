@@ -1,4 +1,4 @@
-# Brief stratégique — Promotion & repositionnement CyberScan
+# Brief stratégique — Promotion & repositionnement Rocher Cybersécurité
 
 > **Document à destination de Claude Code (ou de toute personne reprenant le projet).**
 > Ce brief synthétise l'analyse du repo `cyber-vault` (https://github.com/DavidRocher01/cyber-vault) et du site en prod `https://cyberscanapp.com/cyberscan`, ainsi que la stratégie de campagne d'acquisition à mettre en œuvre.
@@ -10,7 +10,7 @@
 
 ### 1.1 Ce qui est construit
 
-**Projet dual** sous une même marque CyberScan :
+**Projet dual** sous une même marque Rocher Cybersécurité :
 
 - **Cyber-Vault** — Gestionnaire de mots de passe zero-knowledge
   - Chiffrement client AES-256-GCM (Web Crypto API), PBKDF2 100k itérations
@@ -60,16 +60,16 @@ Positionnement rare, plus profond que les "auditeurs théoriques" qui ne codent 
 - Conséquence : tout budget pub envoie du trafic sur une page non indexée, aucune découverte organique possible
 
 **🚨 Problème n°2 — Nom de marque non défendable**
-Concurrents existants sur "CyberScan" :
+Concurrents existants sur "Rocher Cybersécurité" :
 - `cyberscan.io` (Allemagne) — exactement le même métier, antériorité forte
 - `cyberscan.com` (USA, IoT)
-- App iOS CyberScan
-- Github medbenali/CyberScan
+- App iOS Rocher Cybersécurité
+- Github medbenali/Rocher Cybersécurité
 - Cyberscope.io/cyberscan
 
 Implications :
 - Nom descriptif → non protégeable INPI (refus probable classe 9/42)
-- Confusion en SERP : prospects qui googlent "CyberScan" tombent sur les concurrents
+- Confusion en SERP : prospects qui googlent "Rocher Cybersécurité" tombent sur les concurrents
 - Marque interchangeable, pas d'ancrage mémoriel
 
 **🚨 Problème n°3 — Pas de landing page d'acquisition dédiée**
@@ -82,7 +82,7 @@ Implications :
 **Option A — Pivoter sur un nom propre / cabinet (recommandé)**
 - "Rocher Cybersécurité" / "Cabinet Rocher" / "DR Audit"
 - ✅ Zéro risque INPI, ancrage local fort, crédibilité de cabinet (cf. avocats/experts-comptables)
-- ✅ Permet de garder "CyberScan" comme nom du produit/scanner interne
+- ✅ Permet de garder "Rocher Cybersécurité" comme nom du produit/scanner interne
 - ❌ Moins "scalable" si ambition SaaS internationale
 
 **Option B — Marque inventée à valider INPI/EUIPO**
@@ -102,7 +102,7 @@ Pistes à vérifier (présentées par famille) :
 4. Google "[nom] cybersécurité"
 5. LinkedIn search "[nom]"
 
-**Recommandation pragmatique :** garder CyberScan comme nom produit, **vendre les services sous nom propre** ("David Rocher — Audit cybersécurité") pour démarrer sans bloquer la promo, puis investir dans une marque solide après les premiers clients.
+**Recommandation pragmatique :** garder Rocher Cybersécurité comme nom produit, **vendre les services sous nom propre** ("David Rocher — Audit cybersécurité") pour démarrer sans bloquer la promo, puis investir dans une marque solide après les premiers clients.
 
 ---
 
@@ -251,7 +251,7 @@ Objectif : crédibilité technique et autorité, pas la monétisation directe (m
 - SSR/prérendu activé, Search Console + Plausible installés
 - Landing `/audit-cybersecurite-pme` live
 - Scan gratuit en lead magnet fonctionnel
-- Google Business Profile créé ("CyberScan / Rocher Cybersécurité — Audit cybersécurité Trévoux/Lyon")
+- Google Business Profile créé ("Rocher Cybersécurité / Rocher Cybersécurité — Audit cybersécurité Trévoux/Lyon")
 - Profil LinkedIn optimisé (titre, bannière, featured)
 - Inscription Malt + Comet + LeHibou avec tags "Cybersécurité, Audit, FastAPI, Angular, DevSecOps"
 - Post LinkedIn d'annonce avec offre 3 audits gratuits contre témoignages
@@ -429,10 +429,10 @@ David — [URL site]
 
 ## 7. Décisions ouvertes (à trancher avec David)
 
-- [ ] **Naming** : garder CyberScan + ajouter signature "David Rocher — Audit cybersécurité" en parallèle ? Ou pivot complet vers nouveau nom ?
+- [ ] **Naming** : garder Rocher Cybersécurité + ajouter signature "David Rocher — Audit cybersécurité" en parallèle ? Ou pivot complet vers nouveau nom ?
 - [ ] **Domaine** : conserver cyberscanapp.com ou acheter un domaine secondaire dédié à l'audit (ex: `rocher-securite.fr`) qui pointe vers le même site ?
 - [ ] **Modèle de scan gratuit** : limiter à 1 scan par email/24h ? Captcha pour éviter abus ?
-- [ ] **CRM** : Notion / Airtable / HubSpot Free / solution custom dans CyberScan ?
+- [ ] **CRM** : Notion / Airtable / HubSpot Free / solution custom dans Rocher Cybersécurité ?
 - [ ] **Facturation** : intégrer Stripe directement (Stripe Checkout pour offre Flash) ou rester sur facturation manuelle au début ?
 - [ ] **Vérification INPI** : faire avant ou après les premiers clients ? (Recommandation : avant tout dépôt de marque, lancer la promo en attendant)
 

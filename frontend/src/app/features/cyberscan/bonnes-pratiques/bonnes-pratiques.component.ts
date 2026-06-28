@@ -18,7 +18,7 @@ export class BonnesPratiquesComponent {
   private doc = inject(DOCUMENT);
 
   constructor() {
-    this.titleService.setTitle('Bonnes pratiques cybersécurité — CyberScan');
+    this.titleService.setTitle('Bonnes pratiques cybersécurité — Rocher Cybersécurité');
     this.meta.updateTag({
       name: 'description',
       content:
@@ -26,7 +26,7 @@ export class BonnesPratiquesComponent {
     });
     this.meta.updateTag({
       property: 'og:title',
-      content: 'Bonnes pratiques cybersécurité — CyberScan',
+      content: 'Bonnes pratiques cybersécurité — Rocher Cybersécurité',
     });
     this.meta.updateTag({
       property: 'og:description',
@@ -34,10 +34,10 @@ export class BonnesPratiquesComponent {
     });
     this.meta.updateTag({
       property: 'og:url',
-      content: 'https://cyberscanapp.com/cyberscan/bonnes-pratiques',
+      content: 'https://rochercybersecurite.com/cyberscan/bonnes-pratiques',
     });
     this.meta.updateTag({ property: 'og:type', content: 'website' });
-    this._setCanonical('https://cyberscanapp.com/cyberscan/bonnes-pratiques');
+    this._setCanonical('https://rochercybersecurite.com/cyberscan/bonnes-pratiques');
   }
 
   private _setCanonical(url: string): void {

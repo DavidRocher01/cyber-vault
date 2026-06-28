@@ -51,7 +51,7 @@ L'analyse de l'URL suivante vient de se terminer :
   Accéder au rapport complet : {dashboard_url}
 
 ---
-CyberScan — Cybersécurité as a Service
+Rocher Cybersécurité — Cybersécurité as a Service
 """
     subject = (
         f"[ScanURL] {verdict_emoji} {verdict_fr} — Score {threat_score}/100 — {scanned_url[:60]}"
@@ -101,7 +101,7 @@ Voir les résultats détaillés et télécharger le rapport PDF :
 {detail_url}
 
 ---
-CyberScan — Simulation de phishing
+Rocher Cybersécurité — Simulation de phishing
 """
     html = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0f172a;font-family:Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;">
@@ -141,11 +141,11 @@ CyberScan — Simulation de phishing
     <p style="color:#475569;font-size:12px;text-align:center;margin:20px 0 0;">Le rapport PDF est disponible depuis la page de résultats.</p>
   </td></tr>
   <tr><td style="padding:20px 40px;border-top:1px solid #334155;text-align:center;">
-    <p style="margin:0;color:#475569;font-size:12px;">CyberScan — Simulation de phishing</p>
+    <p style="margin:0;color:#475569;font-size:12px;">Rocher Cybersécurité — Simulation de phishing</p>
   </td></tr>
 </table></td></tr></table></body></html>"""
 
-    subject = f"[CyberScan] Campagne terminée — {campaign_name} ({click_rate}% de clic)"
+    subject = f"[Rocher Cybersécurité] Campagne terminée — {campaign_name} ({click_rate}% de clic)"
     _send(to_email, subject, html, plain)
 
 
@@ -168,9 +168,9 @@ def send_contact_email(
     }
     need_label = need_labels.get(need_type, need_type)
 
-    subject = f"[CyberScan Contact] {need_label} — {name} <{email}>"
+    subject = f"[Rocher Cybersécurité Contact] {need_label} — {name} <{email}>"
 
-    plain_owner = f"""Nouvelle demande de contact via CyberScan
+    plain_owner = f"""Nouvelle demande de contact via Rocher Cybersécurité
 
 Nom     : {name}
 Email   : {email}
@@ -219,7 +219,7 @@ padding:12px 28px;border-radius:8px;font-weight:700;font-size:14px;">Répondre �
 </td></tr></table>
 </td></tr>
 <tr><td style="padding:20px 40px;border-top:1px solid #334155;text-align:center;">
-<p style="margin:0;color:#475569;font-size:12px;">CyberScan — Formulaire de contact</p>
+<p style="margin:0;color:#475569;font-size:12px;">Rocher Cybersécurité — Formulaire de contact</p>
 </td></tr>
 </table></td></tr></table></body></html>"""
 
@@ -235,8 +235,8 @@ Récapitulatif de votre demande :
   Site : {site_url or '—'}
 
 ---
-CyberScan
-contact@cyberscanapp.com
+Rocher Cybersécurité
+contact@rochercybersecurite.com
 """
     html_confirm = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0f172a;font-family:Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;">
@@ -254,8 +254,8 @@ Votre demande concernant <strong style="color:#22d3ee;">{need_label}</strong> a 
 Je vous répondrai sous <strong style="color:#f8fafc;">4 heures</strong> (jours ouvrés, 9h–18h).
 </p>
 <p style="color:#475569;font-size:13px;line-height:1.7;margin:0;">
-CyberScan<br>
-<a href="mailto:contact@cyberscanapp.com" style="color:#22d3ee;">contact@cyberscanapp.com</a>
+Rocher Cybersécurité<br>
+<a href="mailto:contact@rochercybersecurite.com" style="color:#22d3ee;">contact@rochercybersecurite.com</a>
 </p>
 </td></tr>
 </table></td></tr></table></body></html>"""
@@ -263,7 +263,7 @@ CyberScan<br>
     try:
         _send(
             email,
-            "[CyberScan] Votre message a bien été reçu",
+            "[Rocher Cybersécurité] Votre message a bien été reçu",
             html_confirm,
             plain_confirm,
         )
@@ -289,7 +289,7 @@ def send_booking_confirmation(
         "autre": "Autre / Devis",
     }
     need_label = need_labels.get(need_type, need_type)
-    subject = f"[CyberScan] Réservation confirmée — {date_label} à {time_label}"
+    subject = f"[Rocher Cybersécurité] Réservation confirmée — {date_label} à {time_label}"
     plain = f"""Bonjour {name},
 
 Votre rendez-vous est confirmé :
@@ -303,7 +303,7 @@ Pour annuler votre réservation :
 {cancel_url}
 
 À bientôt,
-David Rocher — CyberScan
+David Rocher — Rocher Cybersécurité
 """
     html = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0f172a;font-family:Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;">
@@ -338,7 +338,7 @@ padding:11px 24px;border-radius:8px;font-size:13px;">Annuler ma réservation</a>
 </td></tr></table>
 </td></tr>
 <tr><td style="padding:20px 40px;border-top:1px solid #334155;text-align:center;">
-<p style="margin:0;color:#475569;font-size:12px;">David Rocher — CyberScan · Trévoux (01)</p>
+<p style="margin:0;color:#475569;font-size:12px;">David Rocher — Rocher Cybersécurité · Trévoux (01)</p>
 </td></tr>
 </table></td></tr></table></body></html>"""
     _send(to_email, subject, html, plain)
@@ -363,7 +363,7 @@ def send_booking_admin_notification(
         "autre": "Autre / Devis",
     }
     need_label = need_labels.get(need_type, need_type)
-    subject = f"[CyberScan] Nouvelle réservation — {name} le {date_label} à {time_label}"
+    subject = f"[Rocher Cybersécurité] Nouvelle réservation — {name} le {date_label} à {time_label}"
     plain = f"""Nouvelle réservation
 
   Nom      : {name}

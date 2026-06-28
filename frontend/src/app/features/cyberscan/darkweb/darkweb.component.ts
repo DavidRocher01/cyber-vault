@@ -36,7 +36,7 @@ export class DarkwebComponent implements OnInit {
   checking = signal(false);
 
   ngOnInit() {
-    this.title.setTitle('Dark Web — CyberScan');
+    this.title.setTitle('Dark Web — Rocher Cybersécurité');
     this.service.getStatus().subscribe({
       next: s => {
         this.status.set(s);

@@ -52,7 +52,7 @@ export class DarkwebDossierNewComponent {
   submitting = signal(false);
 
   constructor() {
-    this.title.setTitle('Nouveau dossier — Dark Web | CyberScan');
+    this.title.setTitle('Nouveau dossier — Dark Web | Rocher Cybersécurité');
   }
 
   onFileChange(event: Event) {

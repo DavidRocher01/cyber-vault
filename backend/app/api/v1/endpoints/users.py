@@ -300,7 +300,7 @@ async def setup_2fa(
 
     secret = pyotp.random_base32()
     totp = pyotp.TOTP(secret)
-    uri = totp.provisioning_uri(name=current_user.email, issuer_name="CyberScan")
+    uri = totp.provisioning_uri(name=current_user.email, issuer_name="Rocher Cybersécurité")
 
     # Graine chiffrée au repos ; le secret brut n'est renvoyé qu'ici (pré-activation,
     # nécessaire pour la saisie manuelle dans l'app d'authentification).

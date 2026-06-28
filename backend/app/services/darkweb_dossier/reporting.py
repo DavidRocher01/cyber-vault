@@ -114,7 +114,7 @@ def _draw_dossier_cover(
     canvas.drawString(tx, ty - 9 * mm, "Dark Web — Fuites de données")
     canvas.setFillColor(GRAY)
     canvas.setFont("Helvetica", 7.5)
-    canvas.drawString(tx, ty - 16 * mm, f"Généré le {date_str}  •  contact@cyberscanapp.com")
+    canvas.drawString(tx, ty - 16 * mm, f"Généré le {date_str}  •  contact@rochercybersecurite.com")
 
     # Company card
     card_y = H - 120 * mm
@@ -230,7 +230,7 @@ def _draw_dossier_cover(
     canvas.line(M, footer_y + 4 * mm, W - M, footer_y + 4 * mm)
     canvas.setFillColor(GRAY)
     canvas.setFont("Helvetica", 7)
-    canvas.drawString(M, footer_y - 1 * mm, "CyberScan — confidentiel")
+    canvas.drawString(M, footer_y - 1 * mm, "Rocher Cybersécurité — confidentiel")
     canvas.drawCentredString(W / 2, footer_y - 1 * mm, "Page 1")
     canvas.drawRightString(W - M, footer_y - 1 * mm, date_str[:10])
 

@@ -6,52 +6,52 @@ export const CYBERSCAN_ROUTES: Routes = [
   {
     path: '',
     loadComponent: () => import('./landing/landing.component').then(m => m.LandingComponent),
-    title: 'CyberScan — Audit de sécurité web',
+    title: 'Rocher Cybersécurité — Audit de sécurité web',
   },
   {
     path: 'dashboard',
     loadComponent: () => import('./dashboard/dashboard.component').then(m => m.DashboardComponent),
     canActivate: [authGuard],
-    title: 'Dashboard — CyberScan',
+    title: 'Dashboard — Rocher Cybersécurité',
   },
   {
     path: 'scan/:id',
     loadComponent: () =>
       import('./scan-detail/scan-detail.component').then(m => m.ScanDetailComponent),
     canActivate: [authGuard],
-    title: 'Résultats du scan — CyberScan',
+    title: 'Résultats du scan — Rocher Cybersécurité',
   },
   {
     path: 'url-scanner',
     loadComponent: () =>
       import('./url-scanner/url-scanner.component').then(m => m.UrlScannerComponent),
     canActivate: [authGuard],
-    title: 'Scanner URL suspecte — CyberScan',
+    title: 'Scanner URL suspecte — Rocher Cybersécurité',
   },
   {
     path: 'code-scan',
     loadComponent: () => import('./code-scan/code-scan.component').then(m => m.CodeScanComponent),
     canActivate: [authGuard],
-    title: 'Analyse de code — CyberScan',
+    title: 'Analyse de code — Rocher Cybersécurité',
   },
   {
     path: 'site/:id',
     loadComponent: () =>
       import('./site-detail/site-detail.component').then(m => m.SiteDetailComponent),
     canActivate: [authGuard],
-    title: 'Page site — CyberScan',
+    title: 'Page site — Rocher Cybersécurité',
   },
   {
     path: 'profile',
     loadComponent: () => import('./profile/profile.component').then(m => m.ProfileComponent),
     canActivate: [authGuard],
-    title: 'Mon profil — CyberScan',
+    title: 'Mon profil — Rocher Cybersécurité',
   },
   {
     path: 'factures',
     loadComponent: () => import('./invoices/invoices.component').then(m => m.InvoicesComponent),
     canActivate: [authGuard],
-    title: 'Mes factures — CyberScan',
+    title: 'Mes factures — Rocher Cybersécurité',
   },
   {
     path: 'consultant',
@@ -60,7 +60,7 @@ export const CYBERSCAN_ROUTES: Routes = [
         m => m.ConsultantDashboardComponent
       ),
     canActivate: [rssiGuard],
-    title: 'RSSI Externalisé — CyberScan',
+    title: 'RSSI Externalisé — Rocher Cybersécurité',
   },
   {
     path: 'consultant/profile',
@@ -69,21 +69,21 @@ export const CYBERSCAN_ROUTES: Routes = [
         m => m.ConsultantProfileComponent
       ),
     canActivate: [rssiGuard],
-    title: 'Mon profil consultant — CyberScan',
+    title: 'Mon profil consultant — Rocher Cybersécurité',
   },
   {
     path: 'consultant/clients/:id',
     loadComponent: () =>
       import('./client-detail/client-detail.component').then(m => m.ClientDetailComponent),
     canActivate: [rssiGuard],
-    title: 'Détail client — CyberScan',
+    title: 'Détail client — Rocher Cybersécurité',
   },
   {
     path: 'sensibilisation',
     loadComponent: () =>
       import('./sensibilisation/sensibilisation.component').then(m => m.SensibilisationComponent),
     canActivate: [authGuard],
-    title: 'Sensibilisation — CyberScan',
+    title: 'Sensibilisation — Rocher Cybersécurité',
   },
   {
     path: 'awareness-pricing',
@@ -92,7 +92,7 @@ export const CYBERSCAN_ROUTES: Routes = [
         m => m.AwarenessPricingComponent
       ),
     canActivate: [authGuard],
-    title: 'Tarifs Sensibilisation NIS2 — CyberScan',
+    title: 'Tarifs Sensibilisation NIS2 — Rocher Cybersécurité',
   },
   {
     path: 'awareness',
@@ -114,20 +114,20 @@ export const CYBERSCAN_ROUTES: Routes = [
     path: 'pca',
     loadComponent: () => import('./pca/pca.component').then(m => m.PcaComponent),
     canActivate: [authGuard],
-    title: 'PCA Light — CyberScan',
+    title: 'PCA Light — Rocher Cybersécurité',
   },
   {
     path: 'darkweb',
     loadComponent: () => import('./darkweb/darkweb.component').then(m => m.DarkwebComponent),
     canActivate: [authGuard],
-    title: 'Surveillance Dark Web — CyberScan',
+    title: 'Surveillance Dark Web — Rocher Cybersécurité',
   },
   {
     path: 'darkweb-dossier',
     loadComponent: () =>
       import('./darkweb-dossier/darkweb-dossier.component').then(m => m.DarkwebDossierComponent),
     canActivate: [authGuard],
-    title: 'Dark Web Dossier B2B — CyberScan',
+    title: 'Dark Web Dossier B2B — Rocher Cybersécurité',
   },
   {
     path: 'darkweb-dossier/new',
@@ -136,7 +136,7 @@ export const CYBERSCAN_ROUTES: Routes = [
         m => m.DarkwebDossierNewComponent
       ),
     canActivate: [authGuard],
-    title: 'Nouveau dossier dark web — CyberScan',
+    title: 'Nouveau dossier dark web — Rocher Cybersécurité',
   },
   {
     path: 'darkweb-dossier/:id',
@@ -145,63 +145,63 @@ export const CYBERSCAN_ROUTES: Routes = [
         m => m.DarkwebDossierDetailComponent
       ),
     canActivate: [authGuard],
-    title: 'Résultats dossier dark web — CyberScan',
+    title: 'Résultats dossier dark web — Rocher Cybersécurité',
   },
   {
     path: 'onboarding',
     loadComponent: () =>
       import('./onboarding/onboarding.component').then(m => m.OnboardingComponent),
     canActivate: [authGuard],
-    title: 'Démarrage — CyberScan',
+    title: 'Démarrage — Rocher Cybersécurité',
   },
   {
     path: 'success',
     loadComponent: () =>
       import('./success/success.component').then(m => m.CheckoutSuccessComponent),
     canActivate: [authGuard],
-    title: 'Abonnement activé — CyberScan',
+    title: 'Abonnement activé — Rocher Cybersécurité',
   },
   {
     path: 'nis2',
     loadComponent: () => import('./nis2/nis2.component').then(m => m.Nis2Component),
-    title: 'Conformité NIS2 — CyberScan',
+    title: 'Conformité NIS2 — Rocher Cybersécurité',
   },
   {
     path: 'iso27001',
     loadComponent: () => import('./iso27001/iso27001.component').then(m => m.Iso27001Component),
-    title: 'Conformité ISO 27001:2022 — CyberScan',
+    title: 'Conformité ISO 27001:2022 — Rocher Cybersécurité',
   },
   {
     path: 'ressources',
     loadComponent: () =>
       import('./ressources/ressources.component').then(m => m.RessourcesComponent),
-    title: 'Ressources — CyberScan',
+    title: 'Ressources — Rocher Cybersécurité',
   },
   {
     path: 'audit-pme',
     loadComponent: () => import('./audit-pme/audit-pme.component').then(m => m.AuditPmeComponent),
-    title: 'Audit sécurité PME — CyberScan',
+    title: 'Audit sécurité PME — Rocher Cybersécurité',
   },
   {
     path: 'bonnes-pratiques',
     loadComponent: () =>
       import('./bonnes-pratiques/bonnes-pratiques.component').then(m => m.BonnesPratiquesComponent),
-    title: 'Bonnes pratiques — CyberScan',
+    title: 'Bonnes pratiques — Rocher Cybersécurité',
   },
   {
     path: 'cgu',
     loadComponent: () => import('./cgu/cgu.component').then(m => m.CguComponent),
-    title: 'CGU — CyberScan',
+    title: 'CGU — Rocher Cybersécurité',
   },
   {
     path: 'cgv',
     loadComponent: () => import('./cgv/cgv.component').then(m => m.CgvComponent),
-    title: 'CGV — CyberScan',
+    title: 'CGV — Rocher Cybersécurité',
   },
   {
     path: 'dpa',
     loadComponent: () => import('./dpa/dpa.component').then(m => m.DpaComponent),
-    title: 'Accord de sous-traitance RGPD (DPA) — CyberScan',
+    title: 'Accord de sous-traitance RGPD (DPA) — Rocher Cybersécurité',
   },
   {
     path: 'politique-confidentialite',
@@ -209,19 +209,19 @@ export const CYBERSCAN_ROUTES: Routes = [
       import('./politique-confidentialite/politique-confidentialite.component').then(
         m => m.PolitiqueConfidentialiteComponent
       ),
-    title: 'Politique de confidentialité — CyberScan',
+    title: 'Politique de confidentialité — Rocher Cybersécurité',
   },
   {
     path: 'mentions-legales',
     loadComponent: () =>
       import('./mentions-legales/mentions-legales.component').then(m => m.MentionsLegalesComponent),
-    title: 'Mentions légales — CyberScan',
+    title: 'Mentions légales — Rocher Cybersécurité',
   },
   {
     path: 'demo-result/:token',
     loadComponent: () =>
       import('./demo-result/demo-result.component').then(m => m.DemoResultComponent),
-    title: 'Résultat demo — CyberScan',
+    title: 'Résultat demo — Rocher Cybersécurité',
   },
   {
     path: 'r/:token',
@@ -232,13 +232,13 @@ export const CYBERSCAN_ROUTES: Routes = [
     loadComponent: () =>
       import('./subdomains/subdomains.component').then(m => m.SubdomainsComponent),
     canActivate: [authGuard],
-    title: 'Sous-domaines — CyberScan',
+    title: 'Sous-domaines — Rocher Cybersécurité',
   },
   {
     path: 'admin/newsletter',
     loadComponent: () =>
       import('./newsletter-admin/newsletter-admin.component').then(m => m.NewsletterAdminComponent),
-    title: 'Admin Newsletter — CyberScan',
+    title: 'Admin Newsletter — Rocher Cybersécurité',
   },
   {
     path: 'newsletter/confirm',
@@ -246,7 +246,7 @@ export const CYBERSCAN_ROUTES: Routes = [
       import('./newsletter-confirm/newsletter-confirm.component').then(
         m => m.NewsletterConfirmComponent
       ),
-    title: 'Confirmation newsletter — CyberScan',
+    title: 'Confirmation newsletter — Rocher Cybersécurité',
   },
   {
     path: 'newsletter/unsubscribe',
@@ -254,7 +254,7 @@ export const CYBERSCAN_ROUTES: Routes = [
       import('./newsletter-unsubscribe/newsletter-unsubscribe.component').then(
         m => m.NewsletterUnsubscribeComponent
       ),
-    title: 'Désabonnement newsletter — CyberScan',
+    title: 'Désabonnement newsletter — Rocher Cybersécurité',
   },
   {
     path: 'r00t',
@@ -264,7 +264,7 @@ export const CYBERSCAN_ROUTES: Routes = [
   {
     path: 'simulation-phishing',
     loadComponent: () => import('./phishing/phishing.component').then(m => m.PhishingComponent),
-    title: 'Simulation de Phishing PME — Test et Sensibilisation | CyberScan',
+    title: 'Simulation de Phishing PME — Test et Sensibilisation | Rocher Cybersécurité',
   },
   {
     path: 'phishing/campaigns',
@@ -273,7 +273,7 @@ export const CYBERSCAN_ROUTES: Routes = [
         m => m.PhishingCampaignsComponent
       ),
     canActivate: [authGuard],
-    title: 'Mes campagnes phishing — CyberScan',
+    title: 'Mes campagnes phishing — Rocher Cybersécurité',
   },
   {
     path: 'phishing/new',
@@ -282,7 +282,7 @@ export const CYBERSCAN_ROUTES: Routes = [
         m => m.PhishingCampaignCreatorComponent
       ),
     canActivate: [authGuard],
-    title: 'Nouvelle campagne phishing — CyberScan',
+    title: 'Nouvelle campagne phishing — Rocher Cybersécurité',
   },
   {
     path: 'phishing/campaigns/:id',
@@ -291,7 +291,7 @@ export const CYBERSCAN_ROUTES: Routes = [
         m => m.PhishingCampaignDetailComponent
       ),
     canActivate: [authGuard],
-    title: 'Résultats campagne — CyberScan',
+    title: 'Résultats campagne — Rocher Cybersécurité',
   },
   {
     path: 'phishing/campaigns/:id/edit',
@@ -300,79 +300,79 @@ export const CYBERSCAN_ROUTES: Routes = [
         m => m.PhishingCampaignEditComponent
       ),
     canActivate: [authGuard],
-    title: 'Configurer campagne — CyberScan',
+    title: 'Configurer campagne — Rocher Cybersécurité',
   },
   {
     path: 'scan-gratuit',
     loadComponent: () =>
       import('./scan-gratuit/scan-gratuit.component').then(m => m.ScanGratuitComponent),
-    title: 'Scan de sécurité gratuit — Audit en 90 secondes | CyberScan',
+    title: 'Scan de sécurité gratuit — Audit en 90 secondes | Rocher Cybersécurité',
   },
   {
     path: 'api',
     loadComponent: () =>
       import('./api-landing/api-landing.component').then(m => m.ApiLandingComponent),
-    title: 'API CyberScan — Automatisez vos audits de sécurité',
+    title: 'API Rocher Cybersécurité — Automatisez vos audits de sécurité',
   },
   {
     path: 'contact',
     loadComponent: () => import('./contact/contact.component').then(m => m.ContactComponent),
-    title: 'Contact — Réserver un audit cybersécurité | CyberScan',
+    title: 'Contact — Réserver un audit cybersécurité | Rocher Cybersécurité',
   },
   {
     path: 'collab/accept/:token',
     loadComponent: () =>
       import('./collab-accept/collab-accept.component').then(m => m.CollabAcceptComponent),
-    title: "Accepter l'invitation — CyberScan",
+    title: "Accepter l'invitation — Rocher Cybersécurité",
   },
   {
     path: 'cout-cyberattaque',
     loadComponent: () =>
       import('./cost-calculator/cost-calculator.component').then(m => m.CostCalculatorComponent),
-    title: 'Calculateur coût cyberattaque PME — CyberScan',
+    title: 'Calculateur coût cyberattaque PME — Rocher Cybersécurité',
   },
   {
     path: 'quiz-maturite',
     loadComponent: () => import('./quiz/quiz.component').then(m => m.QuizComponent),
-    title: 'Quiz maturité cybersécurité NIS2 / ISO 27001 — CyberScan',
+    title: 'Quiz maturité cybersécurité NIS2 / ISO 27001 — Rocher Cybersécurité',
   },
   {
     path: 'blog',
     loadComponent: () => import('./blog/blog-list.component').then(m => m.BlogListComponent),
-    title: 'Blog cybersécurité — Conseils & analyses | CyberScan',
+    title: 'Blog cybersécurité — Conseils & analyses | Rocher Cybersécurité',
   },
   {
     path: 'blog/:slug',
     loadComponent: () => import('./blog/blog-article.component').then(m => m.BlogArticleComponent),
-    title: 'Blog | CyberScan',
+    title: 'Blog | Rocher Cybersécurité',
   },
   {
     path: 'devis/:token/accepter',
     loadComponent: () =>
       import('./quote-action/quote-action.component').then(m => m.QuoteActionComponent),
-    title: 'Acceptation du devis — CyberScan',
+    title: 'Acceptation du devis — Rocher Cybersécurité',
   },
   {
     path: 'devis/:token/refuser',
     loadComponent: () =>
       import('./quote-action/quote-action.component').then(m => m.QuoteActionComponent),
-    title: 'Refus du devis — CyberScan',
+    title: 'Refus du devis — Rocher Cybersécurité',
   },
   {
     path: 'reserver',
     loadComponent: () => import('./booking/booking.component').then(m => m.BookingComponent),
-    title: 'Réserver un créneau — CyberScan',
+    title: 'Réserver un créneau — Rocher Cybersécurité',
   },
   {
     path: 'reserver/annuler',
     loadComponent: () => import('./booking/booking.component').then(m => m.BookingComponent),
-    title: 'Annulation réservation — CyberScan',
+    title: 'Annulation réservation — Rocher Cybersécurité',
   },
   {
     path: 'admin/ba61c5a60113/agenda',
     loadComponent: () =>
       import('./booking-admin/booking-admin.component').then(m => m.BookingAdminComponent),
-    title: 'Admin — Agenda | CyberScan',
+    title: 'Admin — Agenda | Rocher Cybersécurité',
   },
   {
     path: 'admin',
@@ -385,43 +385,43 @@ export const CYBERSCAN_ROUTES: Routes = [
           import('./admin/dashboard/admin-dashboard.component').then(
             m => m.AdminDashboardComponent
           ),
-        title: "Admin — Vue d'ensemble | CyberScan",
+        title: "Admin — Vue d'ensemble | Rocher Cybersécurité",
       },
       {
         path: 'contacts',
         loadComponent: () =>
           import('./admin/contacts/admin-contacts.component').then(m => m.AdminContactsComponent),
-        title: 'Admin — Contacts | CyberScan',
+        title: 'Admin — Contacts | Rocher Cybersécurité',
       },
       {
         path: 'blog',
         loadComponent: () =>
           import('./admin/blog/admin-blog.component').then(m => m.AdminBlogComponent),
-        title: 'Admin — Blog | CyberScan',
+        title: 'Admin — Blog | Rocher Cybersécurité',
       },
       {
         path: 'users',
         loadComponent: () =>
           import('./admin/users/admin-users.component').then(m => m.AdminUsersComponent),
-        title: 'Admin — Utilisateurs | CyberScan',
+        title: 'Admin — Utilisateurs | Rocher Cybersécurité',
       },
       {
         path: 'scans',
         loadComponent: () =>
           import('./admin/scans/admin-scans.component').then(m => m.AdminScansComponent),
-        title: 'Admin — Scans | CyberScan',
+        title: 'Admin — Scans | Rocher Cybersécurité',
       },
       {
         path: 'invoices',
         loadComponent: () =>
           import('./admin/invoices/admin-invoices.component').then(m => m.AdminInvoicesComponent),
-        title: 'Admin — Factures | CyberScan',
+        title: 'Admin — Factures | Rocher Cybersécurité',
       },
       {
         path: 'quotes',
         loadComponent: () =>
           import('./admin/quotes/admin-quotes.component').then(m => m.AdminQuotesComponent),
-        title: 'Admin — Devis | CyberScan',
+        title: 'Admin — Devis | Rocher Cybersécurité',
       },
     ],
   },

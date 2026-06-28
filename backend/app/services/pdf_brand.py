@@ -1,5 +1,5 @@
 """
-pdf_brand.py — Shared visual identity for all CyberScan PDF reports.
+pdf_brand.py — Shared visual identity for all Rocher Cybersécurité PDF reports.
 
 Constants and helpers live here; the two large cover-page renderers have been
 moved to pdf_covers.py and are re-exported below for backward compatibility.
@@ -101,7 +101,7 @@ MARGIN = 15  # mm (integer — multiply by `mm` to get points)
 TOP_BAND = 14  # mm — content-page band height
 FOOTER_H = 8  # mm — footer area height
 
-SITE_EMAIL = "contact@cyberscanapp.com"
+SITE_EMAIL = "contact@rochercybersecurite.com"
 
 
 # ---------------------------------------------------------------------------
@@ -198,11 +198,11 @@ def _draw_band(
     canvas.setFont("Helvetica-Bold", band_h * 0.33)
     canvas.drawCentredString(logo_cx, band_cy - band_h * 0.07, "CS")
 
-    # "CyberScan" wordmark
+    # "Rocher Cybersécurité" wordmark
     wm_x = logo_cx + logo_r + 2.5 * mm
     canvas.setFillColor(WHITE)
     canvas.setFont("Helvetica-Bold", band_h * 0.62)
-    canvas.drawString(wm_x, band_cy - band_h * 0.12, "CyberScan")
+    canvas.drawString(wm_x, band_cy - band_h * 0.12, "Rocher Cybersécurité")
 
     # Thin rule connecting wordmark to right text
     rule_x0 = wm_x + 52
@@ -263,7 +263,7 @@ def draw_page(canvas, doc, doc_type: str, title: str, subtitle: str = "") -> Non
     canvas.line(M, footer_y, PAGE_W - M, footer_y)
     canvas.setFillColor(GRAY)
     canvas.setFont("Helvetica", 7)
-    canvas.drawString(M, footer_y - 5 * mm, "CyberScan — confidentiel")
+    canvas.drawString(M, footer_y - 5 * mm, "Rocher Cybersécurité — confidentiel")
     canvas.drawCentredString(PAGE_W / 2, footer_y - 5 * mm, f"Page {doc.page}")
     canvas.drawRightString(PAGE_W - M, footer_y - 5 * mm, today_str)
 

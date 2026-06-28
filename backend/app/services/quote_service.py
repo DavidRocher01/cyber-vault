@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.quote import Quote
 from app.services.quote_pdf import generate_quote_pdf
 
-BASE_URL = os.getenv("APP_BASE_URL", "https://cyberscanapp.com")
+BASE_URL = os.getenv("APP_BASE_URL", "https://rochercybersecurite.com")
 
 
 async def _next_seq(db: AsyncSession, year: int) -> int:
@@ -92,7 +92,7 @@ async def send_quote_by_email(quote: Quote) -> None:
     html = (
         '<div style="font-family:sans-serif;max-width:600px;color:#1e293b">'
         '<div style="background:#0f172a;padding:20px 24px;border-radius:12px 12px 0 0">'
-        '<span style="color:#fff;font-size:20px;font-weight:700">CyberScan</span>'
+        '<span style="color:#fff;font-size:20px;font-weight:700">Rocher Cybersécurité</span>'
         '<span style="color:#06b6d4;font-size:24px;margin-left:4px">&#9679;</span>'
         "</div>"
         '<div style="border:1px solid #e2e8f0;border-top:none;padding:28px 24px;border-radius:0 0 12px 12px">'
@@ -116,12 +116,12 @@ async def send_quote_by_email(quote: Quote) -> None:
         "</div>"
         '<p style="color:#64748b;font-size:13px">TVA non applicable, art. 293 B du CGI.</p>'
         "<p>Cordialement,<br><strong>David Rocher</strong><br>"
-        'CyberScan — <a href="https://cyberscanapp.com" style="color:#06b6d4">cyberscanapp.com</a></p>'
+        'Rocher Cybersécurité — <a href="https://rochercybersecurite.com" style="color:#06b6d4">rochercybersecurite.com</a></p>'
         "</div></div>"
     )
 
     payload = {
-        "from": "CyberScan <contact@cyberscanapp.com>",
+        "from": "Rocher Cybersécurité <contact@rochercybersecurite.com>",
         "to": [quote.client_email],
         "subject": f"Devis {quote.quote_number} — {quote.subject}",
         "html": html,

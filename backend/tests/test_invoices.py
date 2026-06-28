@@ -160,7 +160,7 @@ def test_invoice_pdf_is_valid_pdf():
         client_name="Client Test",
         client_email="test@test.com",
         client_address=None,
-        description="Abonnement CyberScan",
+        description="Abonnement Rocher Cybersécurité",
         amount_cents=990,
     )
     assert pdf[:4] == b"%PDF"
@@ -499,7 +499,7 @@ async def test_webhook_invoice_payment_creates_invoice():
             "customer_name": "Client Webhook",
             "amount_paid": 990,
             "created": int(datetime(2026, 5, 19, tzinfo=UTC).timestamp()),
-            "lines": {"data": [{"description": "Abonnement CyberScan Starter"}]},
+            "lines": {"data": [{"description": "Abonnement Rocher Cybersécurité Starter"}]},
         },
     )
 
@@ -542,7 +542,7 @@ async def test_webhook_invoice_payment_deduplication():
             "customer_email": "wh_inv2@test.com",
             "amount_paid": 990,
             "created": int(datetime(2026, 5, 19, tzinfo=UTC).timestamp()),
-            "lines": {"data": [{"description": "Abonnement CyberScan"}]},
+            "lines": {"data": [{"description": "Abonnement Rocher Cybersécurité"}]},
         },
     )
 

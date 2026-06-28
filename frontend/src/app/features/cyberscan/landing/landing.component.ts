@@ -211,7 +211,7 @@ export class LandingComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
-    this.titleService.setTitle('CyberScan — Audit de sécurité web automatisé');
+    this.titleService.setTitle('Rocher Cybersécurité — Audit de sécurité web automatisé');
     this.meta.updateTag({
       name: 'description',
       content:
@@ -219,26 +219,29 @@ export class LandingComponent implements OnInit, AfterViewInit {
     });
     this.meta.updateTag({
       property: 'og:title',
-      content: 'CyberScan — Audit de sécurité web automatisé',
+      content: 'Rocher Cybersécurité — Audit de sécurité web automatisé',
     });
     this.meta.updateTag({
       property: 'og:description',
       content:
         'Auditez la sécurité de vos sites web : SSL, headers HTTP, ports ouverts. Rapports PDF automatiques et alertes en temps réel.',
     });
-    this.meta.updateTag({ property: 'og:url', content: 'https://cyberscanapp.com/cyberscan' });
+    this.meta.updateTag({
+      property: 'og:url',
+      content: 'https://rochercybersecurite.com/cyberscan',
+    });
     this.meta.updateTag({ property: 'og:type', content: 'website' });
     this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
     this.meta.updateTag({
       name: 'twitter:title',
-      content: 'CyberScan — Audit de sécurité web automatisé',
+      content: 'Rocher Cybersécurité — Audit de sécurité web automatisé',
     });
     this.meta.updateTag({
       name: 'twitter:description',
       content:
         'Auditez la sécurité de vos sites : SSL, headers HTTP, ports ouverts. Rapports PDF inclus.',
     });
-    this._setCanonical('https://cyberscanapp.com/cyberscan');
+    this._setCanonical('https://rochercybersecurite.com/cyberscan');
     this.themeService.apply();
     this.cyberscan.getPlans().subscribe({
       next: plans => {

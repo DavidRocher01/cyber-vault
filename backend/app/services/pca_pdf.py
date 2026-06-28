@@ -277,7 +277,7 @@ def generate_pca_pdf(data: dict) -> bytes:
     story.append(_section_rule(col_w))
     story.append(
         Paragraph(
-            f"Document généré le {now.strftime('%d/%m/%Y à %H:%M')} UTC — CyberScan PCA Light",
+            f"Document généré le {now.strftime('%d/%m/%Y à %H:%M')} UTC — Rocher Cybersécurité PCA Light",
             ParagraphStyle("footer", fontName="Helvetica", fontSize=8, textColor=GRAY),
         )
     )

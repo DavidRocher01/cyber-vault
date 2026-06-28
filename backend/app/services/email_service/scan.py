@@ -21,7 +21,7 @@ def send_scan_report(
     pdf_path: str,
 ) -> None:
     status_emoji = {"OK": "✅", "WARNING": "⚠️", "CRITICAL": "🚨"}.get(overall_status, "📋")
-    subject = f"[CyberScan] Rapport de scan — {site_url} {status_emoji}"
+    subject = f"[Rocher Cybersécurité] Rapport de scan — {site_url} {status_emoji}"
     plain = f"""Bonjour,
 
 Votre rapport de sécurité mensuel pour {site_url} est disponible.
@@ -31,7 +31,7 @@ Résultat global : {overall_status} {status_emoji}
 Retrouvez le rapport détaillé en pièce jointe.
 
 ---
-CyberScan — Cybersécurité as a Service
+Rocher Cybersécurité — Cybersécurité as a Service
 """
     _html = f"<p>{plain.replace(chr(10), '<br>')}</p>"
 
@@ -94,9 +94,7 @@ def send_ssl_expiry_alert(
         color = "#eab308"
         emoji = "⚠️"
 
-    subject = (
-        f"[CyberScan] {emoji} Certificat SSL expirant dans {days_remaining} jour(s) — {site_url}"
-    )
+    subject = f"[Rocher Cybersécurité] {emoji} Certificat SSL expirant dans {days_remaining} jour(s) — {site_url}"
     html = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0f172a;font-family:Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;">
 <tr><td align="center" style="padding:40px 20px;">
@@ -132,7 +130,7 @@ Voir le rapport SSL →
 </td></tr></table>
 </td></tr>
 <tr><td style="padding:20px 40px;border-top:1px solid #334155;text-align:center;">
-<p style="margin:0;color:#475569;font-size:12px;">CyberScan — Cybersécurité as a Service</p>
+<p style="margin:0;color:#475569;font-size:12px;">Rocher Cybersécurité — Cybersécurité as a Service</p>
 </td></tr>
 </table></td></tr></table></body></html>"""
 
@@ -145,7 +143,7 @@ Renouvelez votre certificat avant cette date.
 Tableau de bord : {dashboard_url}
 
 ---
-CyberScan
+Rocher Cybersécurité
 """
     _send(to_email, subject, html, plain)
 
@@ -176,7 +174,7 @@ def send_monthly_digest(
 
     plain = f"""Bonjour,
 
-Voici votre bilan de sécurité CyberScan pour {month_label}.
+Voici votre bilan de sécurité Rocher Cybersécurité pour {month_label}.
 
 ━━━ Résumé global ━━━
   Sites surveillés : {len(sites)}
@@ -189,7 +187,7 @@ Voici votre bilan de sécurité CyberScan pour {month_label}.
 Accéder à votre dashboard : {dashboard_url}
 
 ---
-CyberScan — Cybersécurité as a Service
+Rocher Cybersécurité — Cybersécurité as a Service
 Pour ne plus recevoir ce bilan, rendez-vous dans vos préférences de notification.
 """
 
@@ -269,10 +267,10 @@ Pour ne plus recevoir ce bilan, rendez-vous dans vos préférences de notificati
     </div>
   </td></tr>
   <tr><td style="padding:20px 40px;border-top:1px solid #334155;text-align:center;">
-    <p style="margin:0;color:#475569;font-size:12px;">CyberScan — Cybersécurité as a Service</p>
+    <p style="margin:0;color:#475569;font-size:12px;">Rocher Cybersécurité — Cybersécurité as a Service</p>
     <p style="margin:4px 0 0;color:#475569;font-size:11px;">Pour désactiver ce bilan, rendez-vous dans vos préférences de notification.</p>
   </td></tr>
 </table></td></tr></table></body></html>"""
 
-    subject = f"[CyberScan] Votre bilan de sécurité — {month_label}"
+    subject = f"[Rocher Cybersécurité] Votre bilan de sécurité — {month_label}"
     _send(to_email, subject, html, plain)

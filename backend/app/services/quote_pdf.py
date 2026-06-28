@@ -36,8 +36,8 @@ VENDOR = {
     "city": "01600 Reyrieux, France",
     "siret": "104 009 634 00015",
     "ape": "6202A",
-    "email": "contact@cyberscanapp.com",
-    "website": "cyberscanapp.com",
+    "email": "contact@rochercybersecurite.com",
+    "website": "rochercybersecurite.com",
 }
 
 CGV = (
@@ -115,7 +115,7 @@ def generate_quote_pdf(
         [
             [
                 _p(
-                    "<b>CyberScan</b>",
+                    "<b>Rocher Cybersécurité</b>",
                     fontSize=18,
                     fontName="Helvetica-Bold",
                     textColor=WHITE,

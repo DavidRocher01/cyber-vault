@@ -60,7 +60,7 @@ export class QuizComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.title.setTitle('Quiz maturité cybersécurité — NIS2 / ISO 27001 | CyberScan');
+    this.title.setTitle('Quiz maturité cybersécurité — NIS2 / ISO 27001 | Rocher Cybersécurité');
     this.quizService.getQuestions().subscribe({
       next: qs => {
         this.questions.set(qs);

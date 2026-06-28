@@ -108,7 +108,10 @@ async def test_sitemap_is_valid_xml():
 async def test_sitemap_contains_homepage():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get("/sitemap.xml")
-    assert "cyberscanapp.com</loc>" in r.text or "<loc>https://cyberscanapp.com</loc>" in r.text
+    assert (
+        "rochercybersecurite.com</loc>" in r.text
+        or "<loc>https://rochercybersecurite.com</loc>" in r.text
+    )
 
 
 @pytest.mark.asyncio
