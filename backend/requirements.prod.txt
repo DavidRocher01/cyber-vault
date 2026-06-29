@@ -42,7 +42,7 @@ requests==2.34.2  # darkweb HIBP, scanner (épinglé : était transitif)
 dnspython==2.7.0
 
 # Stockage objet (S3 — livrables RSSI)
-boto3==1.35.0
+boto3==1.43.36
 
 # 2FA
 pyotp==2.9.0
