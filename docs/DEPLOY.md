@@ -1,5 +1,7 @@
 # Procédure de déploiement Rocher Cybersécurité
 
+> **Cible de production : AWS uniquement** — ECS Fargate (cluster `cybervault-prod`) + RDS PostgreSQL + S3/CloudFront, région `eu-west-3`. Il n'y a **pas** de Render ni de staging actif (le `render.yaml` et le staging Oracle ont été supprimés).
+
 ## Architecture de déploiement
 
 ```
@@ -42,7 +44,7 @@ Elles doivent être exécutées manuellement via une ECS task :
 ```bash
 # Déclencher la task de migration (adapter le cluster/task-definition)
 aws ecs run-task \
-  --cluster cyberscan-prod \
+  --cluster cybervault-prod \
   --task-definition cyberscan-migrate \
   --launch-type FARGATE \
   --network-configuration "awsvpcConfiguration={subnets=[subnet-xxx],securityGroups=[sg-xxx],assignPublicIp=ENABLED}"
@@ -82,12 +84,12 @@ Si le CD est cassé, déploiement manuel :
 ```bash
 # 1. Récupérer l'ID du dernier déploiement réussi
 aws ecs describe-services \
-  --cluster cyberscan-prod \
+  --cluster cybervault-prod \
   --services cyberscan-backend
 
 # 2. Forcer un nouveau déploiement (même image)
 aws ecs update-service \
-  --cluster cyberscan-prod \
+  --cluster cybervault-prod \
   --service cyberscan-backend \
   --force-new-deployment
 ```
@@ -105,7 +107,7 @@ aws ecs list-task-definitions \
 
 # 2. Revenir à la révision précédente
 aws ecs update-service \
-  --cluster cyberscan-prod \
+  --cluster cybervault-prod \
   --service cyberscan-backend \
   --task-definition cyberscan-backend:N-1  # remplacer N-1 par le numéro voulu
 ```
@@ -116,7 +118,7 @@ aws ecs update-service \
 # Créer un snapshot avant tout rollback DB
 aws rds create-db-snapshot \
   --db-snapshot-identifier cyberscan-rollback-$(date +%Y%m%d) \
-  --db-instance-identifier cyberscan-prod
+  --db-instance-identifier cybervault-prod
 
 # Restaurer depuis un snapshot (opération longue ~15-30 min)
 aws rds restore-db-instance-from-db-snapshot \
@@ -131,7 +133,7 @@ Avant tout déploiement important :
 ```bash
 aws rds create-db-snapshot \
   --db-snapshot-identifier cyberscan-pre-$(git rev-parse --short HEAD) \
-  --db-instance-identifier cyberscan-prod
+  --db-instance-identifier cybervault-prod
 ```
 
 ## Variables d'environnement en prod
@@ -140,7 +142,7 @@ Gérées via AWS Secrets Manager → injectées dans ECS task definition.
 Ne jamais éditer directement dans la task definition (sera écrasé au prochain déploiement).
 
 Pour ajouter/modifier une variable :
-1. AWS Console → Secrets Manager → `cyberscan-prod`
+1. AWS Console → Secrets Manager → `cybervault/prod`
 2. Modifier la valeur JSON
 3. Forcer un nouveau déploiement ECS (voir ci-dessus)
 

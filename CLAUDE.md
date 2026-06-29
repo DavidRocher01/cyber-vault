@@ -5,7 +5,7 @@
 **Cyber-Vault** est une plateforme SaaS de cybersécurité B2B/B2C déployée sur AWS ECS Fargate.
 Elle combine un gestionnaire de mots de passe zero-knowledge, des modules de conformité (NIS2, ISO 27001, PCA), un scanner de vulnérabilités, un module Dark Web, un RSSI externalisé, et des outils de sensibilisation.
 
-Stack : **FastAPI 0.115.14** + **SQLAlchemy 2.0 async** + **PostgreSQL 17** (backend) / **Angular 20 standalone** (frontend) / **GitHub Actions** (CI) / **AWS ECS Fargate + RDS** (prod).
+Stack : **FastAPI 0.138.1** + **Starlette 1.3.1** + **SQLAlchemy 2.0 async** + **PostgreSQL 17** (backend) / **Angular 20 standalone** (frontend) / **GitHub Actions** (CI) / **AWS ECS Fargate + RDS** (prod).
 
 ---
 
@@ -80,9 +80,10 @@ frontend/src/app/
 
 **Règle :** Chaque nouvelle page doit inclure `app-nav-buttons` (NavButtonsComponent).
 
-**Navigation auth :**
-- Login/inscription → redirection vers `/cyberscan`
-- Déconnexion → redirection vers `/cyberscan`
+**Navigation auth (app à la racine depuis le flatten couche 3) :**
+- Login → `/` (ou returnUrl valide) ; inscription → `/onboarding` (ou returnUrl valide)
+- Déconnexion → `/`
+- `returnUrl` validé (anti open-redirect) : seules les pages de l'app principale (racine) sont acceptées ; `/auth`, `/vault`, `/awareness` et les redirections externes (`//`, `/\`) sont rejetées. Logique dans `auth.store.ts` + `register.component.ts` (dupliquée dans leurs specs + helpers e2e).
 - Guard `cryptoGuard` uniquement sur `/vault`
 
 **SSR / Prerendering :**

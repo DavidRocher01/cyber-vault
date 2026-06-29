@@ -141,5 +141,5 @@
 
 ## Notes mécaniques
 
-- **Migrations = tâche one-shot uniquement.** Le `CMD` du conteneur ne lance plus `alembic upgrade head` au démarrage (évite la race si ECS scale >1 tâche). La migration est jouée par la tâche dédiée de `deploy.yml` (prod) ou l'étape `docker compose exec … alembic upgrade head` (staging Oracle).
-- **Cible = AWS** (ECS Fargate + RDS + S3/CloudFront). Le `render.yaml` est un vestige ; le staging tourne sur Oracle Cloud.
+- **Migrations = tâche one-shot uniquement.** Le `CMD` du conteneur ne lance plus `alembic upgrade head` au démarrage (évite la race si ECS scale >1 tâche). La migration est jouée par la tâche dédiée de `deploy.yml` (prod).
+- **Cible = AWS uniquement** (ECS Fargate cluster `cybervault-prod` + RDS + S3/CloudFront, `eu-west-3`). Le `render.yaml` et le staging Oracle ont été **supprimés** (juin 2026) — pas de staging actif.
