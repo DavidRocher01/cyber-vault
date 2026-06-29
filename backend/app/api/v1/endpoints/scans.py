@@ -1,3 +1,4 @@
+import asyncio
 import csv
 import io
 import os
@@ -266,7 +267,8 @@ async def download_branded_pdf(
         else ""
     )
 
-    pdf_bytes = generate_branded_pdf(
+    pdf_bytes = await asyncio.to_thread(
+        generate_branded_pdf,
         company_name=company_name,
         accent_color=accent_color,
         logo_b64=logo_b64,

@@ -5,6 +5,8 @@ GET /invoices/{id}     — get invoice detail
 GET /invoices/{id}/pdf — download PDF
 """
 
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 from sqlalchemy import func, select
@@ -69,7 +71,8 @@ async def download_invoice_pdf(
     db: AsyncSession = Depends(get_db),
 ):
     inv = await _get_owned(invoice_id, current_user.id, db)
-    pdf_bytes = generate_invoice_pdf(
+    pdf_bytes = await asyncio.to_thread(
+        generate_invoice_pdf,
         invoice_number=inv.invoice_number,
         issue_date=inv.issue_date,
         client_name=inv.client_name,

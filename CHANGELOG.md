@@ -239,10 +239,85 @@ versionnage conforme à [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
+## [1.2.0] — 2026-06-28
+
+### Ajouté
+
+- **Vault zero-knowledge complet** : les champs `title`, `username`, `url`, `notes` sont chiffrés AES-GCM **côté client** ; le serveur refuse tout champ en clair et ne stocke que des blobs opaques (migrations `crypto_salt`, `title_encrypted`)
+- **Pages légales** : CGV + DPA (accord de traitement des données), mise à jour mentions légales/CGU ; SIRET + adresse réels (attestation INPI), téléphone ; prix audit aligné à 390 €
+- **OpenAPI** : `summary` + codes d'erreur documentés (auth, contact, blog, admin)
+- **Accessibilité** : `aria-label` sur les boutons icône-seule
+
+### Sécurité
+
+- **P0** — confusion de types de JWT corrigée + invalidation des sessions au reset du mot de passe
+- **P0-3** — fermeture de la race du quota de scans (verrou `FOR UPDATE`, fin du check-then-act)
+- **P1-1** — les échecs TOTP comptent désormais dans le verrouillage de compte
+- **P1-2** — chiffrement du `totp_secret` au repos (Fernet)
+- **P1-3** — validation de chaque redirection avant de la suivre (anti-SSRF)
+- **P1-4** — refus strict de tout champ vault en clair côté serveur
+- `extra=forbid` sur les schémas d'entrée authentifiés clés ; remontée Sentry des échecs critiques de certificat
+
+### Performance
+
+- Pagination des endpoints de liste admin
+- Appels Stripe déportés en thread (non bloquants)
+- Appel HIBP (dark web) non bloquant
+- Suppression du N+1 sur le dashboard awareness (GROUP BY)
+
+### Corrigé
+
+- Tâche phishing détachée correctement référencée + exception non exposée
+- SSR : `clipboard.service` SSR-safe ; corrections de build (config SSR/AOS/NgClass)
+- `requirements.prod.txt` : ajout httpx, dnspython, boto3, email-validator (divergence prod/dev)
+- Garde-fou anti-prod sur `reset_test_account_scans` (Alembic)
+
+### Interne
+
+- **Remboursement complet de la dette technique** (22 items) : refacto de services en sous-packages, nettoyage des dépendances mortes, purge des artefacts, `.gitignore`, alignement apscheduler prod/dev
+- Correction des 36 tests cassés post-refacto ; specs frontend adaptées au SSR
+
+---
+
+## [2.0.0] — 2026-06-28
+
+> Rebranding complet : **CyberScan → Rocher Cybersécurité** (nom, domaine, URLs).
+
+### Modifié
+
+- **Nom de marque** : « CyberScan » → « Rocher Cybersécurité » partout (interface, emails, PDF, documentation, module scanner)
+- **Domaine** : `cyberscanapp.com` → `rochercybersecurite.com`. L'ancien domaine est conservé avec une **redirection 301** permanente (fonction CloudFront)
+- **URLs à la racine** : suppression du préfixe de route `/cyberscan` — la landing est sur `/`, les pages sur `/dashboard`, `/blog`, `/contact`, etc.
+- **Emails** : envoi depuis `no-reply@rochercybersecurite.com` (Resend, DKIM/SPF vérifiés), réception sur `contact@rochercybersecurite.com` (ImprovMX)
+- **Noms de fichiers téléchargés** : `cyberscan_*.pdf/.csv/.json` → `rochercybersecurite_*` ; token de vérification de domaine phishing `_cyberscan-verify` → `_rocher-verify`
+
+### Ajouté
+
+- Infrastructure du nouveau domaine : certificat ACM multi-domaines, alias CloudFront, zones Route 53, hébergement email (Resend + ImprovMX)
+
+### Corrigé
+
+- **Webhook Stripe** : l'URL pointait vers une route inexistante (404 silencieux servi en fallback SPA, événements jamais traités) → corrigée vers `/api/v1/webhooks/stripe`
+- **Open redirect** : durcissement de la validation `returnUrl` — rejet des cibles externes (`//evil`, `/\`) et des zones à part (`/auth`, `/vault`, `/awareness`)
+
+### Supprimé
+
+- Configuration Oracle Cloud staging (abandonnée) : dossier `staging/`, workflow `deploy-staging.yml`, `docker-compose.staging.yml`
+
+### CI/CD
+
+- **`deploy.yml`** : les migrations Alembic s'exécutent désormais sur la **nouvelle** image (elles étaient jouées sur l'ancienne → migrations jamais appliquées en prod)
+- `python-multipart` bumpé en 0.0.31 (CVE-2026-53538/53539/53540) ; CVE starlette sans correctif compatible ignorées et documentées
+- Ajout d'un `.gitleaks.toml` (allowlist des faux tokens de fixtures de test)
+
+---
+
 ## [Unreleased]
 
 ---
 
+[2.0.0]: https://github.com/DavidRocher01/cyber-vault/compare/v1.2.0...v2.0.0
+[1.2.0]: https://github.com/DavidRocher01/cyber-vault/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/DavidRocher01/cyber-vault/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/DavidRocher01/cyber-vault/compare/v0.9.0...v1.0.0
 [0.9.0]: https://github.com/DavidRocher01/cyber-vault/compare/v0.8.0...v0.9.0

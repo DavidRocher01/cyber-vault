@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -73,7 +75,7 @@ async def download_certificate_pdf(
         raise HTTPException(status_code=404, detail="Certificat introuvable.")
 
     frozen = __import__("json").loads(cert.frozen_data_json)
-    pdf_bytes = generate_certificate_pdf(cert, frozen)
+    pdf_bytes = await asyncio.to_thread(generate_certificate_pdf, cert, frozen)
     filename = f"attestation-{cert.public_id}.pdf"
     return Response(
         content=pdf_bytes,

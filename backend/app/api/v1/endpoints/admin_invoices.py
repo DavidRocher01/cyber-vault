@@ -6,6 +6,7 @@ GET  /admin/invoices/{id}   — get invoice detail
 GET  /admin/invoices/{id}/pdf — download PDF
 """
 
+import asyncio
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -101,7 +102,8 @@ async def admin_download_pdf(
     db: AsyncSession = Depends(get_db),
 ):
     inv = await _get_by_id(invoice_id, db)
-    pdf_bytes = generate_invoice_pdf(
+    pdf_bytes = await asyncio.to_thread(
+        generate_invoice_pdf,
         invoice_number=inv.invoice_number,
         issue_date=inv.issue_date,
         client_name=inv.client_name,

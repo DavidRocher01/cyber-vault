@@ -1,5 +1,7 @@
 """Module PCA Light — generates a mini Business Continuity Plan PDF."""
 
+import asyncio
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -48,7 +50,7 @@ async def generate_pca(
 ):
     """Generate a PCA Light PDF from the wizard data."""
     data = payload.model_dump()
-    pdf_bytes = generate_pca_pdf(data)
+    pdf_bytes = await asyncio.to_thread(generate_pca_pdf, data)
     filename = f"pca_{payload.company.name.replace(' ', '_').lower()}.pdf"
     return StreamingResponse(
         iter([pdf_bytes]),

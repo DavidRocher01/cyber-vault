@@ -1,3 +1,4 @@
+import asyncio
 import base64
 from datetime import UTC, datetime, timedelta
 
@@ -78,7 +79,10 @@ async def register(request: Request, payload: UserCreate, db: AsyncSession = Dep
     result = await db.execute(select(User).where(User.email == payload.email))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
-    user = User(email=payload.email, hashed_password=hash_password(payload.password))
+    user = User(
+        email=payload.email,
+        hashed_password=await asyncio.to_thread(hash_password, payload.password),
+    )
     db.add(user)
     await db.commit()
     logger.info("New user registered (id={})", user.id)
@@ -120,7 +124,7 @@ async def login(
             detail=f"Compte verrouillé. Réessayez dans {remaining} minute(s).",
         )
 
-    if not verify_password(payload.password, user.hashed_password):
+    if not await asyncio.to_thread(verify_password, payload.password, user.hashed_password):
         user.failed_login_attempts += 1
         if user.failed_login_attempts >= settings.MAX_LOGIN_ATTEMPTS:
             user.locked_until = datetime.now(UTC) + timedelta(minutes=settings.LOCKOUT_MINUTES)
@@ -304,7 +308,7 @@ async def reset_password(
     if not user:
         raise invalid_exc
 
-    user.hashed_password = hash_password(payload.password)
+    user.hashed_password = await asyncio.to_thread(hash_password, payload.password)
     # Sécurité : un reset de mot de passe doit invalider toutes les sessions et
     # déverrouiller le compte (l'attaquant potentiel perd ses sessions).
     user.failed_login_attempts = 0

@@ -2,6 +2,7 @@
 ISO 27001:2022 Compliance endpoints — save/load user assessment and export PDF.
 """
 
+import asyncio
 import json
 from datetime import UTC, datetime
 
@@ -399,7 +400,8 @@ async def export_assessment_pdf(
 
     from app.services.iso27001_pdf import generate_iso27001_pdf
 
-    pdf_bytes = generate_iso27001_pdf(
+    pdf_bytes = await asyncio.to_thread(
+        generate_iso27001_pdf,
         categories=ISO27001_CATEGORIES,
         items=items,
         score=score,

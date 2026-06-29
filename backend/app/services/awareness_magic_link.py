@@ -12,7 +12,7 @@ import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
 
-from jose import JWTError, jwt
+import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -51,7 +51,7 @@ def decode_learner_jwt(token: str) -> dict | None:
         if payload.get("type") != "awareness_learner":
             return None
         return payload
-    except JWTError:
+    except jwt.PyJWTError:
         return None
 
 

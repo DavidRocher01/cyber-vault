@@ -4,6 +4,7 @@ enrichment.py — Severity scoring, breach catalog helpers, and recommendations.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from datetime import UTC, datetime
 
@@ -57,7 +58,7 @@ async def sync_breach_catalog(db: AsyncSession) -> int:
     """Fetch HIBP public breach list and upsert into local breach_catalog table."""
     from app.models.breach_catalog import BreachCatalogEntry
 
-    raw = fetch_hibp_breach_catalog()
+    raw = await asyncio.to_thread(fetch_hibp_breach_catalog)
     if not raw:
         return 0
     upserted = 0
