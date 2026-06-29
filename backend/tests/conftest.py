@@ -77,11 +77,6 @@ async def setup_db(pg_url):
     async with engine.begin() as conn:
         await conn.execute(text(_truncate_sql()))
 
-    # Reset des caches en mémoire qui survivent entre tests (ex: cache TTL /plans)
-    from app.api.v1.endpoints.plans import reset_plans_cache
-
-    reset_plans_cache()
-
     AsyncTestSession = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async def override_get_db():
