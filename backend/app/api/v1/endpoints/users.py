@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import io
 import json
@@ -57,7 +58,9 @@ async def update_email(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    if not verify_password(payload.current_password, current_user.hashed_password):
+    if not await asyncio.to_thread(
+        verify_password, payload.current_password, current_user.hashed_password
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Mot de passe incorrect"
         )
@@ -78,7 +81,9 @@ async def update_password(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    if not verify_password(payload.current_password, current_user.hashed_password):
+    if not await asyncio.to_thread(
+        verify_password, payload.current_password, current_user.hashed_password
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Mot de passe actuel incorrect",
@@ -89,7 +94,7 @@ async def update_password(
             detail="Le mot de passe doit faire au moins 8 caractères",
         )
 
-    current_user.hashed_password = hash_password(payload.new_password)
+    current_user.hashed_password = await asyncio.to_thread(hash_password, payload.new_password)
     await db.commit()
 
 
@@ -170,7 +175,7 @@ async def delete_my_account(
     db: AsyncSession = Depends(get_db),
 ):
     """Delete account and all associated data (RGPD — droit à l'effacement)."""
-    if not verify_password(payload.password, current_user.hashed_password):
+    if not await asyncio.to_thread(verify_password, payload.password, current_user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Mot de passe incorrect"
         )
@@ -337,7 +342,7 @@ async def disable_2fa(
     db: AsyncSession = Depends(get_db),
 ):
     """Disable 2FA after verifying password + current TOTP code."""
-    if not verify_password(payload.password, current_user.hashed_password):
+    if not await asyncio.to_thread(verify_password, payload.password, current_user.hashed_password):
         raise HTTPException(status_code=401, detail="Mot de passe incorrect")
     if not current_user.totp_enabled or not current_user.totp_secret:
         raise HTTPException(status_code=400, detail="La double authentification n'est pas activée")
