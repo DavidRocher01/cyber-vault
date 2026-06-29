@@ -10,6 +10,7 @@ Routes:
   POST   /darkweb-dossier/catalog/sync — sync HIBP breach catalog (admin)
 """
 
+import asyncio
 import csv
 import io
 from datetime import UTC, datetime
@@ -301,7 +302,7 @@ async def download_dossier_pdf(
     if dossier.status != "completed":
         raise HTTPException(status_code=400, detail="Le dossier n'est pas encore terminé")
 
-    pdf_bytes = generate_dossier_pdf(dossier, dossier.targets or [])
+    pdf_bytes = await asyncio.to_thread(generate_dossier_pdf, dossier, dossier.targets or [])
     filename = f"dossier-darkweb-{dossier.domain}-{datetime.now().strftime('%Y%m%d')}.pdf"
     return Response(
         content=pdf_bytes,

@@ -2,6 +2,7 @@
 URL Scan endpoints — trigger and consult suspicious URL analyses.
 """
 
+import asyncio
 import json
 from datetime import UTC
 
@@ -106,7 +107,7 @@ async def download_url_scan_pdf(
 
     from app.services.url_scan_pdf import generate_url_scan_pdf
 
-    pdf_bytes = generate_url_scan_pdf(results)
+    pdf_bytes = await asyncio.to_thread(generate_url_scan_pdf, results)
 
     return StreamingResponse(
         iter([pdf_bytes]),

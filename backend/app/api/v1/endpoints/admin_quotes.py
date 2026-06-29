@@ -5,6 +5,7 @@ GET  /admin/quotes          — list all quotes
 GET  /admin/quotes/{id}/pdf — download PDF
 """
 
+import asyncio
 import secrets
 from datetime import date
 
@@ -159,7 +160,8 @@ async def admin_download_quote_pdf(
     if not quote:
         raise HTTPException(status_code=404, detail="Devis introuvable")
 
-    pdf = generate_quote_pdf(
+    pdf = await asyncio.to_thread(
+        generate_quote_pdf,
         quote_number=quote.quote_number,
         issue_date=quote.issue_date,
         validity_days=quote.validity_days,
