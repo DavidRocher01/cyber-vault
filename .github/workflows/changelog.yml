@@ -47,7 +47,7 @@ jobs:
           echo "Artifact : \`changelog-pdf\`" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload changelog PDF
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: changelog-pdf
           path: changelog.pdf
