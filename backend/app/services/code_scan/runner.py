@@ -658,8 +658,8 @@ def _run_eslint_security(repo_dir: str) -> list[dict]:
     )
     try:
         os.unlink(eslint_config)
-    except OSError:
-        pass
+    except OSError as exc:
+        logger.debug("Nettoyage config eslint temporaire echoue : {}", exc)
 
     if not stdout:
         return []

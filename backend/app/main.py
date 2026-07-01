@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 import sentry_sdk
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from loguru import logger
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -172,6 +173,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
 )
+# Compression GZip des réponses >= 1 Ko (gros gain sur le JSON ; les binaires déjà
+# compressés comme les PDF n'en profitent pas mais restent corrects).
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 app.include_router(api_router)
 

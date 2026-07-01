@@ -13,6 +13,7 @@ import json
 from datetime import datetime
 from typing import Any
 
+from loguru import logger
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -126,8 +127,8 @@ def _draw_branded_cover(
                 mask="auto",
             )
             logo_drawn = True
-        except (OSError, ValueError, TypeError):
-            pass
+        except (OSError, ValueError, TypeError) as exc:
+            logger.warning("Logo non dessine dans le PDF scan (image invalide ?) : {}", exc)
 
     if not logo_drawn:
         # Fallback: colored circle with initials

@@ -256,8 +256,10 @@ async def _send_biweekly_newsletter() -> None:
         if content_setting and content_setting.value_text:
             try:
                 content = _json.loads(content_setting.value_text)
-            except json.JSONDecodeError:
-                pass
+            except json.JSONDecodeError as exc:
+                logger.warning(
+                    "Contenu newsletter en base illisible (JSON), fallback defaut : {}", exc
+                )
 
         result = await db.execute(
             select(NewsletterSubscriber).where(NewsletterSubscriber.is_active == True)
@@ -384,8 +386,10 @@ async def _send_monthly_digest_job() -> None:
                                 critical_count += 1
                             elif s == "WARNING":
                                 warning_count += 1
-                except (json.JSONDecodeError, AttributeError):
-                    pass
+                except (json.JSONDecodeError, AttributeError) as exc:
+                    logger.warning(
+                        "results_json illisible pour un site (alertes SSL), ignore : {}", exc
+                    )
             sites_summary.append(
                 {
                     "url": site.url,
