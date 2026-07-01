@@ -14,7 +14,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models.brand_profile import BrandProfile
 from app.models.nis2_assessment import Nis2Assessment
 from app.models.user import User
 from app.services.assessment_service import compute_assessment_score
@@ -416,6 +415,7 @@ async def export_auditor_pdf(
     updated_at = assessment.updated_at if assessment else None
 
     # Try to get company name from brand profile
+    from app.models.brand_profile import BrandProfile
 
     brand_result = await db.execute(
         select(BrandProfile).where(BrandProfile.user_id == current_user.id)

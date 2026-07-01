@@ -171,13 +171,12 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
 )
 async def sync_awareness_content():
     """Reimporte le contenu NIS2 depuis les fichiers YAML/Markdown (idempotent)."""
+    from app.core.database import AsyncSessionLocal
     from app.services.awareness_content_importer import import_from_directory
 
     content_dir = Path(__file__).parents[4] / "content" / "fr"
     if not content_dir.exists():
         return {"error": f"Dossier contenu introuvable : {content_dir}"}
-
-    from app.core.database import AsyncSessionLocal  # runtime-patched par les tests -> garder lazy
 
     async with AsyncSessionLocal() as db:
         try:

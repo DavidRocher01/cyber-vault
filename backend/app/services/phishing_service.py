@@ -82,6 +82,7 @@ async def request_domain_verification(
 async def check_domain_verification(record: PhishingDomainVerification, db: AsyncSession) -> bool:
     if record.verified:
         return True
+    from app.core.config import settings
 
     if settings.APP_ENV == "development":
         record.verified = True
@@ -305,7 +306,7 @@ async def send_pending_batch() -> None:
         return
 
     async with _batch_lock:
-        from app.core.database import AsyncSessionLocal  # runtime-patched par les tests -> lazy
+        from app.core.database import AsyncSessionLocal
 
         async with AsyncSessionLocal() as db:
             # Activate any scheduled campaigns whose send time has arrived

@@ -16,8 +16,6 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
-from app.models.notification import Notification
 from app.models.url_scan import UrlScan
 from app.models.user import User
 
@@ -485,6 +483,8 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
 
         # In-app notification
         try:
+            from app.models.notification import Notification
+
             verdict = analysis["verdict"]
             score = analysis["threat_score"]
             icon = {"safe": "✅", "suspicious": "⚠️", "malicious": "🚨"}.get(verdict, "🔍")
@@ -502,6 +502,7 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
 
         # Send email alert (non-blocking — ignore SMTP errors)
         try:
+            from app.core.config import settings
             from app.services.email_service import send_url_scan_alert
 
             user_result = await db.execute(select(User).where(User.id == url_scan.user_id))

@@ -18,11 +18,9 @@ from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.models.awareness_enrollment import AwarenessEnrollment
 from app.models.awareness_learner import AwarenessLearner
 from app.models.awareness_module import AwarenessModule
-from app.models.awareness_organization import AwarenessOrganization
 from app.models.awareness_program import AwarenessProgram
 from app.models.awareness_progress import AwarenessProgress
 
@@ -245,6 +243,9 @@ async def complete_module(
         cert = await issue_certificate(db, enrollment)
 
         try:
+            from app.core.config import settings
+            from app.models.awareness_organization import AwarenessOrganization
+            from app.models.awareness_program import AwarenessProgram
             from app.services.email_service import send_awareness_completion
 
             program = (
