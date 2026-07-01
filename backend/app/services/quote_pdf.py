@@ -10,35 +10,28 @@ from datetime import date, timedelta
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import (
     HRFlowable,
-    Paragraph,
     SimpleDocTemplate,
     Spacer,
     Table,
     TableStyle,
 )
 
-NAVY = colors.HexColor("#0f172a")
-CYAN = colors.HexColor("#06b6d4")
-GRAY = colors.HexColor("#64748b")
-LGRAY = colors.HexColor("#f1f5f9")
-BORDER = colors.HexColor("#cbd5e1")
-WHITE = colors.white
-BLACK = colors.HexColor("#1e293b")
-
-VENDOR = {
-    "name": "David Rocher",
-    "status": "Entrepreneur individuel",
-    "address": "546 Montée Carriat",
-    "city": "01600 Reyrieux, France",
-    "siret": "104 009 634 00015",
-    "ape": "6202A",
-    "email": "contact@rochercybersecurite.com",
-    "website": "rochercybersecurite.com",
-}
+from app.services.pdf_billing import (
+    BLACK,
+    BORDER,
+    CYAN,
+    GRAY,
+    LGRAY,
+    NAVY,
+    VENDOR,
+    WHITE,
+    _date,
+    _fmt,
+    _p,
+)
 
 CGV = (
     "Conditions générales de vente — "
@@ -51,32 +44,6 @@ CGV = (
     "TVA non applicable, art. 293 B du CGI. "
     "En cas de retard de paiement : indemnité forfaitaire de recouvrement de 40 € (art. L.441-10 C. com.)."
 )
-
-
-def _p(text: str, **kw) -> Paragraph:
-    return Paragraph(text, ParagraphStyle("_", **kw))
-
-
-def _fmt(cents: int) -> str:
-    return f"{cents / 100:,.2f} €".replace(",", " ")
-
-
-def _date(d: date) -> str:
-    m = [
-        "janvier",
-        "février",
-        "mars",
-        "avril",
-        "mai",
-        "juin",
-        "juillet",
-        "août",
-        "septembre",
-        "octobre",
-        "novembre",
-        "décembre",
-    ]
-    return f"{d.day} {m[d.month - 1]} {d.year}"
 
 
 def generate_quote_pdf(
