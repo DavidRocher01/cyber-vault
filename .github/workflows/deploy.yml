@@ -103,6 +103,18 @@ jobs:
           # Migrations OK -> point the service at the new revision
           aws ecs update-service             --cluster ${{ secrets.ECS_CLUSTER }}             --service ${{ secrets.ECS_SERVICE }}             --task-definition "$NEW_ARN"
 
+          # Attendre la stabilisation ET verifier que le service tourne bien la NOUVELLE
+          # revision : le circuit breaker ECS rollback silencieusement si le conteneur crashe,
+          # et update-service rend la main immediatement (d'ou les faux succes passes).
+          echo "Attente de la stabilisation du service ECS..."
+          aws ecs wait services-stable --cluster ${{ secrets.ECS_CLUSTER }} --services ${{ secrets.ECS_SERVICE }} || true
+          RUNNING=$(aws ecs describe-services --cluster ${{ secrets.ECS_CLUSTER }} --services ${{ secrets.ECS_SERVICE }} --query 'services[0].taskDefinition' --output text)
+          if [ "$RUNNING" != "$NEW_ARN" ]; then
+            echo "::error::Deploiement ECHOUE (rollback) : le service tourne $RUNNING au lieu de $NEW_ARN. Voir CloudWatch /ecs/cybervault-backend."
+            exit 1
+          fi
+          echo "Deploiement stable sur $NEW_ARN"
+
   # ── Frontend : S3 + CloudFront ──────────────────────────────────────────────
   deploy-frontend:
     name: Frontend → S3 + CloudFront
