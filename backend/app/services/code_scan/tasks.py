@@ -170,6 +170,6 @@ async def run_code_scan_zip(scan_id: int, zip_path: str, db: AsyncSession) -> No
         shutil.rmtree(tmp_dir, ignore_errors=True)
         try:
             os.unlink(zip_path)
-        except OSError:
-            pass
+        except OSError as exc:
+            logger.debug("Nettoyage du zip temporaire echoue : {}", exc)
         await db.commit()

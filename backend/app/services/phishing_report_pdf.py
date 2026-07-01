@@ -7,6 +7,7 @@ import io
 import json
 from datetime import UTC, datetime
 
+from loguru import logger
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
@@ -165,8 +166,8 @@ def generate_phishing_report(
     scenario_keys: list[str] = []
     try:
         scenario_keys = json.loads(campaign.scenario_keys or "[]")
-    except json.JSONDecodeError:
-        pass
+    except json.JSONDecodeError as exc:
+        logger.warning("scenario_keys illisible (JSON) pour la campagne, liste vide : {}", exc)
 
     # Median time-to-click (hours)
     click_delays_h: list[float] = []

@@ -97,8 +97,8 @@ async def process_dossier(dossier_id: int, api_key: str) -> None:
                 try:
                     src = json.loads(target.breach_sources_json or "[]")
                     all_sources.extend(b.get("name", "") for b in src if b.get("name"))
-                except json.JSONDecodeError:
-                    pass
+                except json.JSONDecodeError as exc:
+                    logger.warning("breach_sources_json illisible pour une cible, ignore : {}", exc)
             top_sources = [{"name": n, "count": c} for n, c in Counter(all_sources).most_common(10)]
 
             severity_score = _compute_severity(targets)
