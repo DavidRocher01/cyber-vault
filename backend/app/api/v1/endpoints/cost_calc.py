@@ -3,8 +3,10 @@ Public cost calculator — 5 questions → estimated cyber-attack cost + lead ca
 No authentication required.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, EmailStr, Field
+
+from app.core.http_cache import cache_public
 
 router = APIRouter(prefix="/cost-calc", tags=["cost-calc"])
 
@@ -175,7 +177,7 @@ class CostResult(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-@router.get("/questions")
+@router.get("/questions", dependencies=[Depends(cache_public(3600))])
 async def get_questions():
     """Return the calculator questions (options without multiplier metadata)."""
     return [
