@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import require_admin
+from app.core.http_cache import cache_public
 from app.models.blog_post import BlogPost
 from app.schemas.blog import BlogPostDetailOut, BlogPostIn, BlogPostOut
 
@@ -45,6 +46,7 @@ def _to_detail(p: BlogPost) -> BlogPostDetailOut:
     "/articles",
     response_model=list[BlogPostOut],
     summary="Lister les articles de blog publiés",
+    dependencies=[Depends(cache_public(300))],
 )
 async def list_articles(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
@@ -60,6 +62,7 @@ async def list_articles(db: AsyncSession = Depends(get_db)):
     response_model=BlogPostDetailOut,
     summary="Détail d'un article publié (par slug)",
     responses={404: {"description": "Article introuvable ou non publié"}},
+    dependencies=[Depends(cache_public(300))],
 )
 async def get_article(slug: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(

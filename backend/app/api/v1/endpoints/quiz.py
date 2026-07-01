@@ -5,8 +5,10 @@ No authentication required. Results are stored with optional email.
 
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, EmailStr, Field
+
+from app.core.http_cache import cache_public
 
 router = APIRouter(prefix="/quiz", tags=["quiz"])
 
@@ -233,7 +235,7 @@ class QuizResult(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-@router.get("/questions")
+@router.get("/questions", dependencies=[Depends(cache_public(3600))])
 async def get_questions():
     """Return the list of quiz questions (without correct-answer metadata)."""
     return [
