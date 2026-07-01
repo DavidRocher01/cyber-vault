@@ -6,7 +6,7 @@ from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import AsyncSessionLocal, get_db
+from app.core.database import get_db
 from app.core.deps import require_admin
 from app.models.booking import Booking
 from app.models.booking_slot import BookingSlot
@@ -176,6 +176,8 @@ async def sync_awareness_content():
     content_dir = Path(__file__).parents[4] / "content" / "fr"
     if not content_dir.exists():
         return {"error": f"Dossier contenu introuvable : {content_dir}"}
+
+    from app.core.database import AsyncSessionLocal  # runtime-patched par les tests -> garder lazy
 
     async with AsyncSessionLocal() as db:
         try:

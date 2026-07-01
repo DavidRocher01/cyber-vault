@@ -16,7 +16,7 @@ import app.models  # noqa: F401 — register all models with Base.metadata
 from app.__version__ import __version__
 from app.api.v1.router import api_router
 from app.core.config import settings
-from app.core.database import AsyncSessionLocal, get_db
+from app.core.database import get_db
 from app.core.limiter import limiter
 from app.core.logging import setup_logging
 from app.models.blog_post import BlogPost  # noqa: F401
@@ -101,6 +101,8 @@ async def _seed_plans() -> None:
             "tier_level": 4,
         },
     ]
+    from app.core.database import AsyncSessionLocal  # runtime-patched par les tests -> garder lazy
+
     async with AsyncSessionLocal() as db:
         for plan_data in PLANS:
             result = await db.execute(select(Plan).where(Plan.name == plan_data["name"]))
@@ -112,6 +114,7 @@ async def _seed_plans() -> None:
 
 async def _seed_awareness_badges() -> None:
     """Seed / upsert the 20 awareness badge definitions (idempotent)."""
+    from app.core.database import AsyncSessionLocal  # runtime-patched par les tests -> garder lazy
     from app.services.awareness_gamification import seed_badges
 
     async with AsyncSessionLocal() as db:
@@ -130,6 +133,8 @@ async def _import_awareness_content() -> None:
     if not content_dir.exists():
         logger.warning(f"Awareness content directory not found: {content_dir}")
         return
+
+    from app.core.database import AsyncSessionLocal  # runtime-patched par les tests -> garder lazy
 
     async with AsyncSessionLocal() as db:
         try:
