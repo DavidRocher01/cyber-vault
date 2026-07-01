@@ -8,65 +8,29 @@ from __future__ import annotations
 import io
 from datetime import date
 
-from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import (
     HRFlowable,
-    Paragraph,
     SimpleDocTemplate,
     Spacer,
     Table,
     TableStyle,
 )
 
-# ── Palette ────────────────────────────────────────────────────────────────────
-NAVY = colors.HexColor("#0f172a")
-CYAN = colors.HexColor("#06b6d4")
-GRAY = colors.HexColor("#64748b")
-LGRAY = colors.HexColor("#f1f5f9")
-BORDER = colors.HexColor("#cbd5e1")
-WHITE = colors.white
-BLACK = colors.HexColor("#1e293b")
-
-# ── Vendor ────────────────────────────────────────────────────────────────────
-VENDOR = {
-    "name": "David Rocher",
-    "status": "Entrepreneur individuel",
-    "address": "546 Montée Carriat",
-    "city": "01600 Reyrieux, France",
-    "siret": "104 009 634 00015",
-    "ape": "6202A",
-    "email": "contact@rochercybersecurite.com",
-    "website": "rochercybersecurite.com",
-}
-
-
-def _p(text: str, **kw) -> Paragraph:
-    return Paragraph(text, ParagraphStyle("_", **kw))
-
-
-def _fmt(cents: int) -> str:
-    return f"{cents / 100:,.2f} €".replace(",", " ")
-
-
-def _date(d: date) -> str:
-    m = [
-        "janvier",
-        "février",
-        "mars",
-        "avril",
-        "mai",
-        "juin",
-        "juillet",
-        "août",
-        "septembre",
-        "octobre",
-        "novembre",
-        "décembre",
-    ]
-    return f"{d.day} {m[d.month - 1]} {d.year}"
+from app.services.pdf_billing import (
+    BLACK,
+    BORDER,
+    CYAN,
+    GRAY,
+    LGRAY,
+    NAVY,
+    VENDOR,
+    WHITE,
+    _date,
+    _fmt,
+    _p,
+)
 
 
 def generate_invoice_pdf(
