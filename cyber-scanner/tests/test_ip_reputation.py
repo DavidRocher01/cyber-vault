@@ -10,6 +10,7 @@ from scanner.ip_reputation import (
     _reverse_ip,
     _resolve_hostname,
     _query_dnsbl,
+    _detect_cdn,
     check_ip_reputation,
 )
 
@@ -81,6 +82,7 @@ def test_check_ip_reputation_warning_one_blacklist():
         return call_count == 1  # only first call returns True
 
     with patch("scanner.ip_reputation._resolve_hostname", return_value="1.2.3.4"), \
+         patch("scanner.ip_reputation._detect_cdn", return_value=None), \
          patch("scanner.ip_reputation._query_dnsbl", side_effect=fake_dnsbl):
         result = check_ip_reputation("badhost.com")
     assert result["status"] == "WARNING"
@@ -89,10 +91,40 @@ def test_check_ip_reputation_warning_one_blacklist():
 
 def test_check_ip_reputation_critical_two_or_more_blacklists():
     with patch("scanner.ip_reputation._resolve_hostname", return_value="1.2.3.4"), \
+         patch("scanner.ip_reputation._detect_cdn", return_value=None), \
          patch("scanner.ip_reputation._query_dnsbl", return_value=True):
         result = check_ip_reputation("spammer.com")
     assert result["status"] == "CRITICAL"
     assert result["total_listed"] >= 2
+
+
+def test_check_ip_reputation_cdn_ip_not_flagged():
+    """Une IP d'edge CDN partagee (ex. CloudFront) listee sur des blocklists ne doit
+    PAS etre CRITICAL : la reputation de l'IP est mutualisee entre des milliers de
+    sites, elle ne reflete pas le site scanne."""
+    with patch("scanner.ip_reputation._resolve_hostname", return_value="18.245.199.48"), \
+         patch("scanner.ip_reputation._detect_cdn", return_value="cloudfront"), \
+         patch("scanner.ip_reputation._query_dnsbl", return_value=True):
+        result = check_ip_reputation("site-derriere-cloudfront.com")
+    assert result["status"] == "OK"
+    assert result["cdn"] == "cloudfront"
+    assert result["total_listed"] == 0  # blocklist court-circuitee
+    assert "cdn" in (result.get("note") or "").lower()
+
+
+def test_detect_cdn_matches_cloudfront_ptr():
+    """_detect_cdn reconnait un PTR CloudFront (str(rdata) contient 'cloudfront')."""
+    with patch(
+        "scanner.ip_reputation.dns.resolver.resolve",
+        return_value=["server-1-2-3-4.cdg55.r.cloudfront.net."],
+    ):
+        assert _detect_cdn("exemple.com", "1.2.3.4") == "cloudfront"
+
+
+def test_detect_cdn_none_for_regular_ip():
+    """_detect_cdn renvoie None quand ni PTR ni CNAME ne matchent un CDN."""
+    with patch("scanner.ip_reputation.dns.resolver.resolve", side_effect=dns.exception.DNSException):
+        assert _detect_cdn("exemple.com", "93.184.216.34") is None
 
 
 def test_check_ip_reputation_hostname_unresolvable():

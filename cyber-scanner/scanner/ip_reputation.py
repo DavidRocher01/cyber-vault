@@ -11,6 +11,7 @@ from typing import Any
 
 import dns.resolver
 import dns.exception
+import dns.reversename
 
 # Well-known DNSBL providers and what they flag
 DNSBL_PROVIDERS: list[dict[str, str]] = [
@@ -23,9 +24,58 @@ DNSBL_PROVIDERS: list[dict[str, str]] = [
 ]
 
 
+# Substrings identifying a shared CDN / cloud edge in reverse-DNS (PTR) or CNAME.
+# A blocklist hit on such an IP reflects the shared infrastructure — it is mutualised
+# across thousands of sites — and does NOT reflect the reputation of the scanned site.
+CDN_MARKERS: tuple[str, ...] = (
+    "cloudfront",
+    "cloudflare",
+    "fastly",
+    "akamai",
+    "akamaiedge",
+    "edgekey",
+    "edgesuite",
+    "amazonaws",
+    "1e100",
+    "googleusercontent",
+    "azureedge",
+    "azurefd",
+    "incapdns",
+    "stackpathdns",
+    "cdn77",
+    "bunnycdn",
+)
+
+
 def _reverse_ip(ip: str) -> str:
     """Return the reversed IP string for DNSBL lookup (e.g. 1.2.3.4 → 4.3.2.1)."""
     return ".".join(reversed(ip.split(".")))
+
+
+def _detect_cdn(hostname: str, ip: str) -> str | None:
+    """Return the CDN/cloud edge name if the IP or hostname belongs to a known shared
+    CDN (via reverse-DNS PTR or CNAME), else None. Used to avoid flagging a site as
+    CRITICAL just because its shared CDN edge IP is on a blocklist."""
+    # 1. Reverse DNS (PTR) of the resolved IP — e.g. CloudFront -> *.r.cloudfront.net
+    try:
+        rev = dns.reversename.from_address(ip)
+        for rdata in dns.resolver.resolve(rev, "PTR", lifetime=3):
+            ptr = str(rdata).lower()
+            for marker in CDN_MARKERS:
+                if marker in ptr:
+                    return marker
+    except (dns.exception.DNSException, Exception):
+        pass
+    # 2. CNAME chain of the hostname (covers www.* pointing at a CDN)
+    try:
+        for rdata in dns.resolver.resolve(hostname, "CNAME", lifetime=3):
+            target = str(rdata.target).lower()
+            for marker in CDN_MARKERS:
+                if marker in target:
+                    return marker
+    except (dns.exception.DNSException, Exception):
+        pass
+    return None
 
 
 def _resolve_hostname(hostname: str) -> str | None:
@@ -63,6 +113,7 @@ def check_ip_reputation(hostname: str) -> dict[str, Any]:
     """
     result: dict[str, Any] = {
         "ip": None,
+        "cdn": None,
         "listed_in": [],
         "total_listed": 0,
         "status": "OK",
@@ -86,6 +137,20 @@ def check_ip_reputation(hostname: str) -> dict[str, Any]:
         pass
 
     result["ip"] = ip
+
+    # A shared CDN edge IP (CloudFront, Cloudflare, …) is used by thousands of sites;
+    # a DNSBL hit on it reflects the shared infrastructure, not this site. Don't flag
+    # it CRITICAL — otherwise every site behind a CDN gets a false positive.
+    cdn = _detect_cdn(hostname, ip)
+    if cdn:
+        result["cdn"] = cdn
+        result["note"] = (
+            f"IP appartenant à un CDN mutualisé ({cdn}) — sa réputation est partagée "
+            "entre de nombreux sites et ne reflète pas le site scanné (blocklist non pertinente)."
+        )
+        result["status"] = "OK"
+        return result
+
     reversed_ip = _reverse_ip(ip)
     listed_in: list[dict[str, str]] = []
 
