@@ -11,7 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_learner, get_current_user, require_admin
+from app.models.awareness_certificate import AwarenessCertificate
 from app.models.awareness_learner import AwarenessLearner
+from app.models.awareness_program import AwarenessProgram
 from app.models.user import User
 from app.schemas.awareness import (
     AwarenessCertificateOut,
@@ -34,7 +36,6 @@ async def get_certificate(
     db: AsyncSession = Depends(get_db),
 ) -> AwarenessCertificateOut:
     """Retourne les métadonnées du certificat d'une inscription complétée."""
-    from app.models.awareness_certificate import AwarenessCertificate
 
     cert = (
         await db.execute(
@@ -60,7 +61,6 @@ async def download_certificate_pdf(
     """Télécharge le PDF du certificat."""
     from fastapi.responses import Response
 
-    from app.models.awareness_certificate import AwarenessCertificate
     from app.services.awareness_certificate_service import generate_certificate_pdf
 
     cert = (
@@ -182,7 +182,6 @@ async def phishing_click_webhook(
     Protégé par X-Admin-Key (require_admin) — appelé par le module phishing interne
     avec le secret partagé, jamais exposé publiquement.
     """
-    from app.models.awareness_program import AwarenessProgram
 
     learner = (
         await db.execute(

@@ -13,10 +13,12 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.models.plan import Plan
 from app.models.scan import Scan
 from app.models.site import Site
 from app.models.subscription import Subscription
+from app.models.user import User
 
 # Resolve cyber-scanner path (sibling of backend/)
 SCANNER_DIR = Path(__file__).resolve().parents[3] / "cyber-scanner"
@@ -272,8 +274,6 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
     if not url.startswith(("http://", "https://")):
         url = f"https://{url}"
 
-    from app.core.config import settings
-
     hibp_key = settings.HIBP_API_KEY
 
     try:
@@ -292,7 +292,6 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
         # Email alert on CRITICAL (manual scans)
         if result["overall"] == "CRITICAL" and result["pdf_path"]:
             try:
-                from app.models.user import User
                 from app.services.email_service import send_scan_report
 
                 user_result = await db.execute(select(User).where(User.id == site.user_id))

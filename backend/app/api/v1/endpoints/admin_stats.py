@@ -6,7 +6,7 @@ from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
+from app.core.database import AsyncSessionLocal, get_db
 from app.core.deps import require_admin
 from app.models.booking import Booking
 from app.models.booking_slot import BookingSlot
@@ -171,7 +171,6 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
 )
 async def sync_awareness_content():
     """Reimporte le contenu NIS2 depuis les fichiers YAML/Markdown (idempotent)."""
-    from app.core.database import AsyncSessionLocal
     from app.services.awareness_content_importer import import_from_directory
 
     content_dir = Path(__file__).parents[4] / "content" / "fr"

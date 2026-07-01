@@ -12,10 +12,13 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
+from app.models.invoice import Invoice
 from app.models.plan import Plan
 from app.models.processed_stripe_event import ProcessedStripeEvent
 from app.models.subscription import Subscription
+from app.models.user import User
 from app.services.invoice_service import create_invoice
 from app.services.stripe_service import construct_webhook_event
 
@@ -75,8 +78,6 @@ async def _handle_checkout_completed(session: dict, db: AsyncSession) -> None:
     if metadata.get("addon_type") == "extra_sites":
         user_id = metadata.get("user_id")
         if user_id:
-            from app.core.config import settings
-
             result = await db.execute(
                 select(Subscription).where(
                     Subscription.user_id == int(user_id),
@@ -116,7 +117,6 @@ async def _handle_checkout_completed(session: dict, db: AsyncSession) -> None:
         return
 
     # Find user by email
-    from app.models.user import User
 
     user_result = await db.execute(select(User).where(User.email == customer_email))
     user = user_result.scalar_one_or_none()
@@ -184,7 +184,6 @@ async def _handle_invoice_payment_succeeded(stripe_inv: dict, db: AsyncSession) 
         return
 
     # Avoid duplicate invoices for the same Stripe invoice ID
-    from app.models.invoice import Invoice
 
     existing = await db.execute(
         select(Invoice).where(Invoice.stripe_invoice_id == stripe_invoice_id)
@@ -193,7 +192,6 @@ async def _handle_invoice_payment_succeeded(stripe_inv: dict, db: AsyncSession) 
         return
 
     # Resolve user
-    from app.models.user import User
 
     user_result = await db.execute(select(User).where(User.email == customer_email))
     user = user_result.scalar_one_or_none()

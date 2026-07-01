@@ -19,6 +19,8 @@ from app.core.config import settings
 from app.core.database import AsyncSessionLocal, get_db
 from app.core.limiter import limiter
 from app.core.logging import setup_logging
+from app.models.blog_post import BlogPost  # noqa: F401
+from app.models.plan import Plan
 from app.services.scheduler import start_scheduler, stop_scheduler
 
 setup_logging(settings.APP_ENV)
@@ -64,9 +66,6 @@ async def _seed_plans() -> None:
     to avoid overwriting live Stripe IDs on restart.
     """
     from sqlalchemy import select
-
-    from app.core.database import AsyncSessionLocal
-    from app.models.plan import Plan
 
     PLANS = [
         {
@@ -125,7 +124,6 @@ async def _import_awareness_content() -> None:
     """Import NIS2 awareness content from content/fr/ if no programs exist yet (idempotent)."""
     from pathlib import Path
 
-    from app.core.database import AsyncSessionLocal
     from app.services.awareness_content_importer import import_from_directory
 
     content_dir = Path(__file__).parent.parent.parent / "content" / "fr"
@@ -193,8 +191,6 @@ if not settings.S3_BUCKET_NAME:
 @app.get("/sitemap.xml", include_in_schema=False)
 async def sitemap(db: AsyncSession = Depends(get_db)):
     from sqlalchemy import select
-
-    from app.models.blog_post import BlogPost  # noqa: F401
 
     base = "https://rochercybersecurite.com"
     static_urls = [

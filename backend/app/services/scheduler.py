@@ -14,13 +14,19 @@ from apscheduler.triggers.cron import CronTrigger
 from loguru import logger
 from sqlalchemy import func, select
 
+from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.models.app_setting import AppSetting
+from app.models.awareness_enrollment import AwarenessEnrollment
+from app.models.awareness_learner import AwarenessLearner
+from app.models.awareness_organization import AwarenessOrganization
+from app.models.darkweb_dossier import DarkwebDossier, DarkwebDossierTarget
 from app.models.newsletter_subscriber import NewsletterSubscriber
 from app.models.plan import Plan
 from app.models.scan import Scan
 from app.models.site import Site
 from app.models.subscription import Subscription
+from app.models.user import User
 from app.services.email_service import (
     send_monthly_digest,
     send_scan_report,
@@ -82,7 +88,6 @@ async def _schedule_due_scans() -> None:
         last_scan_map: dict[int, Scan] = {s.site_id: s for s in last_scans_result.scalars().all()}
 
         # Batch load users
-        from app.models.user import User
 
         user_ids = list({site.user_id for site, _ in rows})
         users_result = await db.execute(select(User).where(User.id.in_(user_ids)))
@@ -127,9 +132,6 @@ _SSL_THRESHOLDS = [7, 14, 30]
 async def _check_ssl_alerts() -> None:
     """Daily job: send SSL expiry alerts when cert expires within 30/14/7 days."""
     import json
-
-    from app.core.config import settings
-    from app.models.user import User
 
     async with AsyncSessionLocal() as db:
         result = await db.execute(
@@ -238,8 +240,6 @@ async def _send_biweekly_newsletter() -> None:
 
     from loguru import logger
 
-    from app.core.config import settings
-
     async with AsyncSessionLocal() as db:
         # Read and atomically increment the persisted edition counter
         setting = await db.get(AppSetting, _NEWSLETTER_EDITION_KEY)
@@ -317,9 +317,6 @@ async def _send_monthly_digest_job() -> None:
     """1st of each month: send a security digest to every paying user."""
     import json as _json
     from calendar import monthrange
-
-    from app.core.config import settings
-    from app.models.user import User
 
     now = datetime.now(UTC)
     last_month = now.month - 1 if now.month > 1 else 12
@@ -414,9 +411,6 @@ async def _send_monthly_digest_job() -> None:
 
 async def _run_darkweb_monitoring() -> None:
     """Monthly job: re-scan active monitored dossiers and send alerts on new exposures."""
-    from app.core.config import settings
-    from app.models.darkweb_dossier import DarkwebDossier, DarkwebDossierTarget
-    from app.models.user import User
     from app.services.darkweb_dossier_service import (
         process_dossier,
         send_darkweb_alert_email,
@@ -570,10 +564,6 @@ async def _run_awareness_at_risk_detection() -> None:
 
     from sqlalchemy import func, select
 
-    from app.models.awareness_enrollment import AwarenessEnrollment
-    from app.models.awareness_learner import AwarenessLearner
-    from app.models.awareness_organization import AwarenessOrganization
-
     _AT_RISK_DAYS = 14
     cutoff = datetime.now(UTC) - timedelta(days=_AT_RISK_DAYS)
 
@@ -602,8 +592,6 @@ async def _run_awareness_at_risk_detection() -> None:
         )
 
         # Log per-org for monitoring dashboards + notify org owners by email
-        from app.core.config import settings
-        from app.models.user import User
         from app.services.email_service import send_awareness_at_risk_alert
 
         for row in rows:

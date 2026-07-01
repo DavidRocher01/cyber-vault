@@ -16,6 +16,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.security import hash_password, verify_password
 from app.core.totp_crypto import decrypt_totp_secret, encrypt_totp_secret
+from app.models.nis2_assessment import Nis2Assessment
 from app.models.scan import Scan
 from app.models.site import Site
 from app.models.user import User
@@ -212,8 +213,6 @@ async def get_my_badges(
 ):
     """Return the 5 gamification badges computed from existing data."""
     from datetime import timedelta
-
-    from app.models.nis2_assessment import Nis2Assessment
 
     now = datetime.now(UTC)
     since_30d = now - timedelta(days=30)

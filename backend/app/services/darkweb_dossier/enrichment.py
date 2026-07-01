@@ -56,7 +56,6 @@ def _compute_severity(targets: list) -> int:
 
 async def sync_breach_catalog(db: AsyncSession) -> int:
     """Fetch HIBP public breach list and upsert into local breach_catalog table."""
-    from app.models.breach_catalog import BreachCatalogEntry
 
     raw = await asyncio.to_thread(fetch_hibp_breach_catalog)
     if not raw:

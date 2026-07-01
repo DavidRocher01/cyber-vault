@@ -26,6 +26,7 @@ from app.models.awareness_badge import AwarenessBadge
 from app.models.awareness_enrollment import AwarenessEnrollment
 from app.models.awareness_learner import AwarenessLearner
 from app.models.awareness_learner_badge import AwarenessLearnerBadge
+from app.models.awareness_program import AwarenessProgram
 from app.models.awareness_progress import AwarenessProgress
 from app.models.awareness_quiz_attempt import AwarenessQuizAttempt
 
@@ -183,8 +184,6 @@ async def check_and_award_badges(
 
     # ── nis2_ready : NIS2 program completed ───────────────────────────────────
     if enrollment.status == "completed":
-        from app.models.awareness_program import AwarenessProgram
-
         program = (
             await db.execute(
                 select(AwarenessProgram).where(AwarenessProgram.id == enrollment.program_id)

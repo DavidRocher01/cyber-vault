@@ -28,6 +28,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.database import AsyncSessionLocal
 from app.models.phishing import (
     PhishingCampaign,
     PhishingDomainVerification,
@@ -82,7 +83,6 @@ async def request_domain_verification(
 async def check_domain_verification(record: PhishingDomainVerification, db: AsyncSession) -> bool:
     if record.verified:
         return True
-    from app.core.config import settings
 
     if settings.APP_ENV == "development":
         record.verified = True
@@ -305,9 +305,7 @@ async def send_pending_batch() -> None:
     if _batch_lock.locked():
         return
 
-    async with _batch_lock:
-        from app.core.database import AsyncSessionLocal
-
+    async with _batch_lock:  # noqa: SIM117 -- imbrication lisible, fusion sans gain
         async with AsyncSessionLocal() as db:
             # Activate any scheduled campaigns whose send time has arrived
             now = datetime.now(UTC)

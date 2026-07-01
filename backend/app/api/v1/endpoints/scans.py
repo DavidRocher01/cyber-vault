@@ -14,6 +14,7 @@ from app.core.deps import get_current_user
 from app.core.pagination import paginate
 from app.core.ssrf import assert_no_ssrf
 from app.core.utils import safe_json_load
+from app.models.brand_profile import BrandProfile
 from app.models.finding_status import FindingStatus
 from app.models.scan import Scan
 from app.models.site import Site
@@ -228,7 +229,6 @@ async def download_branded_pdf(
     db: AsyncSession = Depends(get_db),
 ):
     """Generate a white-label management summary PDF using the user's brand profile."""
-    from app.models.brand_profile import BrandProfile
     from app.services.branded_scan_pdf import (
         _compute_score,
         _extract_findings,
