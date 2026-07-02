@@ -20,9 +20,28 @@ _PRIVATE_NETWORKS = [
 def _is_private(ip_str: str) -> bool:
     try:
         addr = ipaddress.ip_address(ip_str)
-        return any(addr in net for net in _PRIVATE_NETWORKS)
     except ValueError:
-        return True  # unparseable → block
+        return True  # unparseable → block (fail-closed)
+
+    # IPv4-mapped IPv6 (ex. ::ffff:127.0.0.1) : déballer vers l'IPv4 sous-jacente
+    # pour empêcher de contourner les contrôles en enveloppant une IP interne.
+    if isinstance(addr, ipaddress.IPv6Address) and addr.ipv4_mapped is not None:
+        addr = addr.ipv4_mapped
+
+    # Classification native (défense en profondeur) : couvre 0.0.0.0/8 et :: (unspecified),
+    # loopback, link-local (169.254 / fe80), multicast et plages réservées — en plus
+    # des plages privées explicites ci-dessous.
+    if (
+        addr.is_private
+        or addr.is_loopback
+        or addr.is_link_local
+        or addr.is_multicast
+        or addr.is_reserved
+        or addr.is_unspecified
+    ):
+        return True
+
+    return any(addr in net for net in _PRIVATE_NETWORKS)
 
 
 def assert_no_ssrf(url: str) -> None:
