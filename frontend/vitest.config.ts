@@ -22,11 +22,13 @@ export default defineConfig({
         'src/app/core/services/i18n.service.ts',
         'src/app/core/guards/crypto.guard.ts',
       ],
+      // Ratchet : ces planchers ne doivent que MONTER. Relevés le 2026-07-02
+      // après l'ajout des tests d'invariants (baseline mesurée 34.2/43.2/33.9/34.0).
       thresholds: {
-        statements: 31,
-        lines: 30,
-        functions: 32,
-        branches: 40,
+        statements: 33,
+        lines: 33,
+        functions: 33,
+        branches: 42,
       },
     },
   },
