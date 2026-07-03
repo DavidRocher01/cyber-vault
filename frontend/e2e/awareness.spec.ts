@@ -375,8 +375,9 @@ test.describe('Sensibilisation NIS2 — parcours apprenant', () => {
     expect(submitBody.answers.q1).toEqual(['a2']);
     expect(typeof submitBody.duration_seconds).toBe('number');
 
-    // Résultat "réussi" affiché.
-    await expect(page.getByText(/Réussi/i)).toBeVisible({ timeout: 10_000 });
+    // Résultat "réussi" affiché (texte exact — évite la collision strict-mode avec
+    // un autre élément contenant "Réussi").
+    await expect(page.getByText('✓ Réussi !')).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('100%')).toBeVisible();
   });
 });
