@@ -152,18 +152,23 @@ async def enroll_all_learners(
     )
     learners = learners_result.scalars().all()
 
+    # Précharge en UNE requête les inscriptions déjà existantes pour ce programme
+    # parmi ces learners (évite un N+1 : sinon une requête SELECT par learner).
+    learner_ids = [learner.id for learner in learners]
+    already_enrolled: set[int] = set()
+    if learner_ids:
+        existing_rows = await db.execute(
+            select(AwarenessEnrollment.learner_id).where(
+                AwarenessEnrollment.program_id == program_id,
+                AwarenessEnrollment.learner_id.in_(learner_ids),
+            )
+        )
+        already_enrolled = set(existing_rows.scalars().all())
+
     enrolled = 0
     skipped = 0
     for learner in learners:
-        existing = (
-            await db.execute(
-                select(AwarenessEnrollment).where(
-                    AwarenessEnrollment.learner_id == learner.id,
-                    AwarenessEnrollment.program_id == program_id,
-                )
-            )
-        ).scalar_one_or_none()
-        if existing:
+        if learner.id in already_enrolled:
             skipped += 1
             continue
         enrollment = AwarenessEnrollment(

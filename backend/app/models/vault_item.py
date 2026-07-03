@@ -9,7 +9,7 @@ class VaultItem(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     owner_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     # Legacy plaintext fields (nullable — only populated for pre-ZK legacy items)
     title: Mapped[str | None] = mapped_column(String(255), nullable=True)
