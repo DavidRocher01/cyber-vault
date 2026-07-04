@@ -59,6 +59,7 @@ jobs:
           NEW_TASK_DEF=$(aws ecs describe-task-definition             --task-definition "$TASK_DEF_ARN"             --query 'taskDefinition'             --output json | jq               --arg IMAGE      "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"               --arg SM_ARN     "$SM_ARN"               --arg PK_LIVE    "$STRIPE_PUBLISHABLE_KEY"               'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)
                | .cpu = "1024"
                | .memory = "2048"
+               | .taskRoleArn = "arn:aws:iam::328646895533:role/cybervault-ecs-task-role"
                | .containerDefinitions[0].image = $IMAGE
                | .containerDefinitions[0].environment = (
                    (.containerDefinitions[0].environment // [])
