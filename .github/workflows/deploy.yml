@@ -71,9 +71,11 @@ jobs:
                        .name != "ADMIN_API_KEY" and
                        .name != "RESEND_API_KEY" and
                        .name != "SENTRY_DSN" and
-                       .name != "STRIPE_PUBLISHABLE_KEY"
+                       .name != "STRIPE_PUBLISHABLE_KEY" and
+                       .name != "S3_BUCKET_NAME"
                      ))
-                 + [{"name": "STRIPE_PUBLISHABLE_KEY", "value": $PK_LIVE}]
+                 + [{"name": "STRIPE_PUBLISHABLE_KEY", "value": $PK_LIVE},
+                    {"name": "S3_BUCKET_NAME",         "value": "cybervault-rssi-deliverables-prod"}]
                  )
                | .containerDefinitions[0].secrets = [
                    {"name": "SECRET_KEY",            "valueFrom": ($SM_ARN + ":SECRET_KEY::")},
