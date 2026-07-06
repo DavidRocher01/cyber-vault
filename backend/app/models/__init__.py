@@ -55,7 +55,9 @@ from app.models.public_scan import PublicScan  # noqa: F401
 from app.models.quote import Quote  # noqa: F401
 from app.models.refresh_token import RefreshToken  # noqa: F401
 from app.models.rssi_action import RssiAction  # noqa: F401
+from app.models.rssi_activity_log import RssiActivityLog  # noqa: F401
 from app.models.rssi_client import RssiClient  # noqa: F401
+from app.models.rssi_deliverable import RssiDeliverable  # noqa: F401
 from app.models.rssi_visit import RssiVisit  # noqa: F401
 from app.models.scan import Scan  # noqa: F401
 from app.models.site import Site  # noqa: F401

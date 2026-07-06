@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import get_rssi_consultant
 from app.models.rssi_action import RssiAction
+from app.models.rssi_visit import RssiVisit
 from app.models.user import User
 
 from ._shared import _get_client_or_404
@@ -89,6 +90,20 @@ async def create_action(
 
     if not payload.title.strip():
         raise HTTPException(status_code=422, detail="Le titre de l'action est requis")
+
+    # Isolation : une visite source référencée doit appartenir à CE client (sinon un
+    # consultant pourrait lier l'action à la visite d'un autre client).
+    if payload.source_visit_id is not None:
+        visit = (
+            await db.execute(
+                select(RssiVisit).where(
+                    RssiVisit.id == payload.source_visit_id,
+                    RssiVisit.client_id == client_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if visit is None:
+            raise HTTPException(status_code=422, detail="Visite source introuvable pour ce client")
 
     action = RssiAction(
         client_id=client_id,

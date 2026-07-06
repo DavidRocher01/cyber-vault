@@ -20,10 +20,12 @@ class CampaignStatus(StrEnum):
 
 
 class SubscriptionStatus(StrEnum):
+    # Valeurs alignées sur celles renvoyées par Stripe et stockées en base
+    # (orthographe US "canceled" à 1 L, contrairement à CampaignStatus interne "cancelled").
     ACTIVE = "active"
     TRIALING = "trialing"
     PAST_DUE = "past_due"
-    CANCELLED = "cancelled"
+    CANCELED = "canceled"
     UNPAID = "unpaid"
 
 

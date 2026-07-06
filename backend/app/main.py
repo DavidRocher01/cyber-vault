@@ -1,3 +1,4 @@
+import time
 from contextlib import asynccontextmanager
 
 import sentry_sdk
@@ -156,6 +157,25 @@ async def lifespan(fastapi_app: FastAPI):
     stop_scheduler()
 
 
+class RequestTimingMiddleware(BaseHTTPMiddleware):
+    """Log structuré de la latence par requête, exploitable dans CloudWatch Logs Insights.
+    Complète l'échantillonnage Sentry (10 %) par une mesure 100 % côté logs, sans coût
+    supplémentaire (utilise les logs déjà ingérés)."""
+
+    async def dispatch(self, request: Request, call_next):
+        start = time.perf_counter()
+        response = await call_next(request)
+        duration_ms = round((time.perf_counter() - start) * 1000, 1)
+        response.headers["X-Process-Time-ms"] = str(duration_ms)
+        # /health est appelé en boucle par l'ALB — on ne pollue pas les logs avec.
+        if request.url.path != "/health":
+            logger.info(
+                f"http_request method={request.method} path={request.url.path} "
+                f"status={response.status_code} duration_ms={duration_ms}"
+            )
+        return response
+
+
 app = FastAPI(
     title=settings.APP_NAME,
     version=__version__,
@@ -176,6 +196,10 @@ app.add_middleware(
 # Compression GZip des réponses >= 1 Ko (gros gain sur le JSON ; les binaires déjà
 # compressés comme les PDF n'en profitent pas mais restent corrects).
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# Ajouté en dernier => middleware le plus externe : mesure la latence TOTALE de la requête
+# (y compris GZip/CORS/headers). Log 100 % en CloudWatch pour des percentiles par endpoint.
+app.add_middleware(RequestTimingMiddleware)
 
 app.include_router(api_router)
 
