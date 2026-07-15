@@ -20,6 +20,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
+from tests.conftest import create_plan_and_subscription
 
 BASE = "/api/v1"
 
@@ -196,6 +197,7 @@ async def test_url_scan_valid_https_accepted():
 async def test_code_scan_missing_repo_url_returns_422():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "codev1@test.com")
+        await create_plan_and_subscription(c, h, tier=2)  # analyse de code gatée Starter+
         r = await c.post(f"{BASE}/code-scans", json={}, headers=h)
     assert r.status_code == 422
 
@@ -204,6 +206,7 @@ async def test_code_scan_missing_repo_url_returns_422():
 async def test_code_scan_invalid_repo_url_returns_422():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "codev2@test.com")
+        await create_plan_and_subscription(c, h, tier=2)
         r = await c.post(f"{BASE}/code-scans", json={"repo_url": "not-a-url"}, headers=h)
     assert r.status_code == 422
 
@@ -212,6 +215,7 @@ async def test_code_scan_invalid_repo_url_returns_422():
 async def test_code_scan_empty_repo_url_returns_422():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "codev3@test.com")
+        await create_plan_and_subscription(c, h, tier=2)
         r = await c.post(f"{BASE}/code-scans", json={"repo_url": ""}, headers=h)
     assert r.status_code == 422
 

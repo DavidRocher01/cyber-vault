@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_min_tier
 from app.models.darkweb_scan import DarkwebScan
 from app.models.user import User
 from app.services.darkweb_service import check_email_breaches
@@ -31,7 +31,11 @@ class DarkwebStatusOut(BaseModel):
     fresh: bool
 
 
-@router.get("/status", response_model=DarkwebStatusOut)
+@router.get(
+    "/status",
+    response_model=DarkwebStatusOut,
+    dependencies=[Depends(require_min_tier(3))],  # Surveillance dark web : Pro+
+)
 async def get_darkweb_status(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -70,7 +74,11 @@ async def get_darkweb_status(
     )
 
 
-@router.post("/check", response_model=DarkwebStatusOut)
+@router.post(
+    "/check",
+    response_model=DarkwebStatusOut,
+    dependencies=[Depends(require_min_tier(3))],  # Surveillance dark web : Pro+
+)
 async def run_darkweb_check(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

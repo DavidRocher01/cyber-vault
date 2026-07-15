@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crud import get_user_resource
 from app.core.database import AsyncSessionLocal, get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_min_tier
 from app.core.pagination import paginate
 from app.core.ssrf import assert_no_ssrf
 from app.models.code_scan import CodeScan
@@ -78,7 +78,12 @@ async def _check_no_running_scan(user_id: int, db: AsyncSession) -> None:
         )
 
 
-@router.post("/upload", response_model=CodeScanTriggerOut, status_code=202)
+@router.post(
+    "/upload",
+    response_model=CodeScanTriggerOut,
+    status_code=202,
+    dependencies=[Depends(require_min_tier(2))],  # Analyse de code : Starter+
+)
 async def upload_code_scan(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
@@ -124,7 +129,12 @@ async def upload_code_scan(
     return {"scan_id": scan.id, "message": "Analyse lancée en arrière-plan"}
 
 
-@router.post("", response_model=CodeScanTriggerOut, status_code=202)
+@router.post(
+    "",
+    response_model=CodeScanTriggerOut,
+    status_code=202,
+    dependencies=[Depends(require_min_tier(2))],  # Analyse de code : Starter+
+)
 async def trigger_code_scan(
     body: CodeScanCreate,
     background_tasks: BackgroundTasks,

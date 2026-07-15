@@ -334,21 +334,38 @@ export class LandingComponent implements OnInit, AfterViewInit {
   }
 
   getPlanFeatures(plan: Plan): { label: string; detail?: string }[] {
+    // max_sites < 0 => illimité (plan Gratuit). Sinon accord singulier/pluriel.
     const s = plan.max_sites > 1 ? 's' : '';
+    const sitesLabel =
+      plan.max_sites < 0 ? 'Sites illimités' : `${plan.max_sites} site${s} surveillé${s}`;
     const features: { label: string; detail?: string }[] = [
-      { label: `${plan.max_sites} site${s} surveillé${s}` },
+      { label: sitesLabel },
       { label: formatScanFrequency(plan.scan_interval_days) },
       { label: 'Rapport clair, prêt à présenter' },
       {
         label: 'Sécurité essentielle',
         detail: 'SSL/TLS, en-têtes de sécurité, DNS, e-mail (SPF/DMARC), cookies, réputation IP…',
       },
+      { label: 'Conformité NIS2 & ISO 27001' },
+      { label: 'Alerte e-mail en cas de faille critique' },
     ];
-    if (plan.tier_level >= 3)
+    if (plan.tier_level >= 2) {
+      features.push({
+        label: 'Analyse de code (SAST/SCA)',
+        detail: 'Détection de failles directement dans votre code source',
+      });
+      features.push({ label: 'Scripts de remédiation prêts à l’emploi' });
+    }
+    if (plan.tier_level >= 3) {
       features.push({
         label: 'Analyse avancée',
         detail: 'Chiffrement approfondi, réputation & menaces, empreinte technologique',
       });
+      features.push({
+        label: 'Surveillance Dark Web',
+        detail: 'Fuites de données & dossier Dark Web pour vos domaines',
+      });
+    }
     if (plan.tier_level >= 4)
       features.push({
         label: 'Analyse experte',

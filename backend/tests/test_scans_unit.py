@@ -178,19 +178,16 @@ async def test_trigger_scan_recent_scan_raises_429():
 
 
 @pytest.mark.asyncio
-async def test_trigger_scan_free_plan_blocks_after_one_scan():
-    """Free plan (price_eur=0) allows only 1 scan total ever."""
+async def test_trigger_scan_free_plan_unlimited_no_block():
+    """Free plan (max_sites=-1) : scans illimités, le quota de fréquence est bypassé."""
     site = _mock_site()
     user = _mock_user()
     bg = MagicMock(spec=BackgroundTasks)
 
     mock_plan = MagicMock()
-    mock_plan.scan_interval_days = 30
-    mock_plan.max_sites = 1
-    mock_plan.price_eur = 0  # free plan
-
-    count_result = MagicMock()
-    count_result.scalar.return_value = 1  # already has 1 scan
+    mock_plan.scan_interval_days = 1
+    mock_plan.max_sites = -1  # illimité (cf. subscription_service.UNLIMITED_SITES)
+    mock_plan.price_eur = 0
 
     with (
         patch(
@@ -201,17 +198,12 @@ async def test_trigger_scan_free_plan_blocks_after_one_scan():
         patch("app.api.v1.endpoints.scans.assert_no_ssrf"),
     ):
         db = AsyncMock()
-        db.execute = AsyncMock(
-            side_effect=[
-                _scalar_result(site),
-                MagicMock(),  # verrou FOR UPDATE (resultat non utilise)
-                count_result,
-            ]
-        )
-        with pytest.raises(HTTPException) as exc:
-            await trigger_scan(site_id=1, background_tasks=bg, current_user=user, db=db)
+        # site query + verrou FOR UPDATE ; pas de requête de quota (max_sites < 0 => bypass)
+        db.execute = AsyncMock(side_effect=[_scalar_result(site), MagicMock()])
+        # trigger_scan ne doit PAS lever : un scan est créé
+        result = await trigger_scan(site_id=1, background_tasks=bg, current_user=user, db=db)
 
-    assert exc.value.status_code == 403
+    assert "scan_id" in result
 
 
 # ─── list_scans ───────────────────────────────────────────────────────────────

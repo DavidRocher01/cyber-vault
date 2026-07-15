@@ -182,5 +182,46 @@ async def register_and_login(
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
+_PLAN_DEFAULTS = {
+    1: ("free", 0, -1, 1),
+    2: ("starter", 1490, 1, 7),
+    3: ("pro", 4900, 5, 7),
+    4: ("business", 14900, 15, 1),
+}
+
+
 async def create_plan_and_subscription(client: AsyncClient, headers: dict, tier: int = 2) -> None:
-    pass
+    """Give the authenticated user an active subscription of the given tier.
+
+    Utilisé par les tests d'intégration qui appellent des endpoints gatés par
+    require_min_tier (analyse de code = tier 2, dark web = tier 3, ...). Crée le Plan
+    correspondant s'il est absent (les tests TRUNCATE la table plans) + une Subscription
+    active pour l'utilisateur identifié par le JWT présent dans `headers`.
+    """
+    from sqlalchemy import select
+
+    import app.core.database as _db_module
+    from app.core.security import decode_access_token
+    from app.models.plan import Plan
+    from app.models.subscription import Subscription
+
+    token = headers["Authorization"].removeprefix("Bearer ").strip()
+    user_id = int(decode_access_token(token))
+
+    name, price, max_sites, interval = _PLAN_DEFAULTS[tier]
+    async with _db_module.AsyncSessionLocal() as db:
+        result = await db.execute(select(Plan).where(Plan.name == name))
+        plan = result.scalar_one_or_none()
+        if plan is None:
+            plan = Plan(
+                name=name,
+                display_name=name.capitalize(),
+                price_eur=price,
+                max_sites=max_sites,
+                scan_interval_days=interval,
+                tier_level=tier,
+            )
+            db.add(plan)
+            await db.flush()
+        db.add(Subscription(user_id=user_id, plan_id=plan.id, status="active"))
+        await db.commit()

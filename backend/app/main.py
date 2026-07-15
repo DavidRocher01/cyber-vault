@@ -74,8 +74,10 @@ async def _seed_plans() -> None:
             "name": "free",
             "display_name": "Gratuit",
             "price_eur": 0,
-            "max_sites": 1,
-            "scan_interval_days": 0,
+            # -1 = sites illimites (cf. subscription_service.UNLIMITED_SITES) ;
+            # scan quotidien (1) et scans manuels illimites : offre volontairement genereuse.
+            "max_sites": -1,
+            "scan_interval_days": 1,
             "tier_level": 1,
         },
         {

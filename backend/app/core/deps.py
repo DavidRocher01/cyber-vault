@@ -77,3 +77,31 @@ async def get_rssi_consultant(
             detail="Accès réservé aux consultants RSSI",
         )
     return current_user
+
+
+def require_min_tier(min_tier: int):
+    """Factory de dépendance : autorise la route seulement si le plan actif de
+    l'utilisateur a un tier_level >= min_tier, sinon 403.
+
+    Le gating vit ici (couche transverse) mais délègue la lecture du tier au service
+    (subscription_service.get_active_tier). Utilisation :
+        @router.post(..., dependencies=[Depends(require_min_tier(2))])
+
+    Tiers : 1=Gratuit, 2=Starter, 3=Pro, 4=Business.
+    """
+
+    async def _dependency(
+        current_user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
+    ) -> None:
+        # Import local pour éviter un cycle (services -> models -> ...).
+        from app.services.subscription_service import get_active_tier
+
+        tier = await get_active_tier(db, current_user.id)
+        if tier < min_tier:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Cette fonctionnalité nécessite un abonnement supérieur.",
+            )
+
+    return _dependency

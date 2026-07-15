@@ -291,13 +291,13 @@ describe('LandingComponent — auditOffers (4 offres)', () => {
   });
 });
 
-// ── comparisonRows (16 lignes + colonne enterprise) ───────────────────────────
+// ── comparisonRows (18 lignes + colonne enterprise) ───────────────────────────
 
-describe('LandingComponent — comparisonRows (16 lignes, colonne enterprise)', () => {
-  it('contient exactement 16 lignes', () => {
+describe('LandingComponent — comparisonRows (18 lignes, colonne enterprise)', () => {
+  it('contient exactement 18 lignes', () => {
     const block = src.match(/COMPARISON_ROWS\s*=\s*\[([\s\S]*?)\];/)?.[1] ?? '';
     const count = (block.match(/label:/g) ?? []).length;
-    expect(count).toBe(16);
+    expect(count).toBe(18);
   });
 
   it('chaque ligne a un champ enterprise', () => {
