@@ -22,6 +22,7 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { Title, Meta } from '@angular/platform-browser';
 import { EMPTY, Subscription as RxSubscription, interval, switchMap, tap } from 'rxjs';
 import { pollWithBackoff } from '../../../shared/poll-with-backoff';
+import { formatScanFrequency } from '../../../shared/plan-features';
 
 import {
   CyberscanService,
@@ -97,6 +98,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private pollingMap: Record<number, RxSubscription> = {};
 
   readonly theme = inject(ThemeService).theme;
+
+  /** Formule lisible de la fréquence de scan (util partagé avec les pages tarifs). */
+  scanFrequency(days: number): string {
+    return formatScanFrequency(days);
+  }
   readonly i18n = inject(I18nService);
   readonly version = environment.version;
 

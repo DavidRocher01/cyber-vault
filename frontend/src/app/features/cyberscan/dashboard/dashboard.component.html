@@ -219,8 +219,9 @@
               <p class="text-sm text-gray-400 mt-0.5">
                 <span class="text-white font-medium">{{ sites().length }}</span
                 >/{{ sub.plan.max_sites }} site{{ sub.plan.max_sites > 1 ? 's' : '' }} &nbsp;·&nbsp;
-                Scan tous les
-                <span class="text-white font-medium">{{ sub.plan.scan_interval_days }}</span> jours
+                <span class="text-white font-medium">{{
+                  scanFrequency(sub.plan.scan_interval_days)
+                }}</span>
               </p>
             </div>
           </div>
@@ -1173,7 +1174,7 @@
                       class="text-cyan-500 !text-[0.75rem] !w-[0.75rem] !h-[0.75rem] flex-shrink-0"
                       >check_circle</mat-icon
                     >
-                    Scan tous les {{ plan.scan_interval_days }} jours
+                    {{ scanFrequency(plan.scan_interval_days) }}
                   </div>
                   <div class="flex items-center gap-2 text-xs text-gray-300">
                     <mat-icon
