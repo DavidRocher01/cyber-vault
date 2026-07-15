@@ -245,11 +245,17 @@ export const NEWSLETTER_ITEMS = [
 ];
 
 export const COMPARISON_ROWS = [
-  { label: 'Sites surveillés', starter: '1', pro: '3', business: '10', enterprise: 'Illimités' },
+  {
+    label: 'Sites surveillés',
+    starter: 'Illimités',
+    pro: 'Illimités',
+    business: 'Illimités',
+    enterprise: 'Illimités',
+  },
   {
     label: 'Fréquence des scans',
-    starter: 'Mensuel',
-    pro: 'Hebdomadaire',
+    starter: 'Quotidien',
+    pro: 'Quotidien',
     business: 'Quotidien',
     enterprise: 'Temps réel',
   },
@@ -270,15 +276,29 @@ export const COMPARISON_ROWS = [
     business: true,
     enterprise: true,
   },
-  { label: 'Scan de code (SAST/SCA)', starter: false, pro: true, business: true, enterprise: true },
+  { label: 'Scan de code (SAST/SCA)', starter: true, pro: true, business: true, enterprise: true },
+  {
+    label: 'Scripts de remédiation',
+    starter: true,
+    pro: true,
+    business: true,
+    enterprise: true,
+  },
   {
     label: 'Conformité NIS2 / ISO 27001',
+    starter: true,
+    pro: true,
+    business: true,
+    enterprise: true,
+  },
+  { label: 'Alerte email CRITICAL', starter: true, pro: true, business: true, enterprise: true },
+  {
+    label: 'Surveillance Dark Web + Dossier',
     starter: false,
     pro: true,
     business: true,
     enterprise: true,
   },
-  { label: 'Alerte email CRITICAL', starter: false, pro: true, business: true, enterprise: true },
   { label: 'Alerte SSL expiration', starter: false, pro: true, business: true, enterprise: true },
   {
     label: 'Rapport blanc (logo client)',

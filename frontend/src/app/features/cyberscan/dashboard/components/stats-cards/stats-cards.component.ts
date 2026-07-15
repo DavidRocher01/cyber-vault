@@ -59,9 +59,13 @@ import { Subscription as UserSubscription } from '../../../services/cyberscan.se
           </div>
           <div>
             <p class="text-2xl font-bold">
-              {{ subscription?.plan?.scan_interval_days ?? '—' }}
+              {{ subscription?.plan?.scan_interval_days || '—' }}
             </p>
-            <p class="text-xs text-gray-500">jours entre scans</p>
+            <p class="text-xs text-gray-500">
+              {{
+                subscription?.plan?.scan_interval_days ? 'jours entre scans' : 'scan à la demande'
+              }}
+            </p>
           </div>
         </div>
       </div>

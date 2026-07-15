@@ -74,31 +74,36 @@ async def _seed_plans() -> None:
             "name": "free",
             "display_name": "Gratuit",
             "price_eur": 0,
-            "max_sites": 1,
-            "scan_interval_days": 0,
+            # -1 = sites illimites (cf. subscription_service.UNLIMITED_SITES) ;
+            # scan quotidien (1) et scans manuels illimites : offre volontairement genereuse.
+            "max_sites": -1,
+            "scan_interval_days": 1,
             "tier_level": 1,
         },
         {
             "name": "starter",
             "display_name": "Surveillance Starter",
             "price_eur": 1490,
-            "max_sites": 1,
-            "scan_interval_days": 7,
+            # Sites illimites (-1) ET scan quotidien (1) sur tous les plans : chaque tier inclut
+            # le precedent, et le Gratuit est deja illimite + quotidien. La differenciation se
+            # fait sur les features, pas sur le nombre de sites ni la frequence de scan.
+            "max_sites": -1,
+            "scan_interval_days": 1,
             "tier_level": 2,
         },
         {
             "name": "pro",
             "display_name": "Surveillance Pro",
             "price_eur": 4900,
-            "max_sites": 5,
-            "scan_interval_days": 7,
+            "max_sites": -1,
+            "scan_interval_days": 1,
             "tier_level": 3,
         },
         {
             "name": "business",
             "display_name": "Surveillance Business",
             "price_eur": 14900,
-            "max_sites": 15,
+            "max_sites": -1,
             "scan_interval_days": 1,
             "tier_level": 4,
         },

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createAndLogin, login } from './helpers';
+import { createAndLogin, login, upgradeToPlan } from './helpers';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Garde authentification
@@ -30,6 +30,8 @@ test.describe('Dark Web — surveillance personnelle', () => {
   test.beforeAll(async ({ browser }) => {
     const page = await browser.newPage();
     email = await createAndLogin(page);
+    // Dark web (surveillance + dossier) est gate Pro+ : on octroie un abonnement Pro.
+    await upgradeToPlan(page, 'pro');
     await page.close();
   });
 
@@ -71,6 +73,8 @@ test.describe('Dark Web Dossier — liste', () => {
   test.beforeAll(async ({ browser }) => {
     const page = await browser.newPage();
     email = await createAndLogin(page);
+    // Dark web (surveillance + dossier) est gate Pro+ : on octroie un abonnement Pro.
+    await upgradeToPlan(page, 'pro');
     await page.close();
   });
 
@@ -108,6 +112,8 @@ test.describe('Dark Web Dossier — formulaire nouveau dossier', () => {
   test.beforeAll(async ({ browser }) => {
     const page = await browser.newPage();
     email = await createAndLogin(page);
+    // Dark web (surveillance + dossier) est gate Pro+ : on octroie un abonnement Pro.
+    await upgradeToPlan(page, 'pro');
     await page.close();
   });
 

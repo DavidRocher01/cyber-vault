@@ -593,12 +593,18 @@
             </div>
 
             <div class="flex flex-col gap-2 flex-1">
-              @for (f of getPlanFeatures(plan); track f) {
-                <div class="flex items-center gap-2 text-sm text-gray-300">
-                  <mat-icon class="text-cyan-400 !text-[1rem] !w-[1rem] !h-[1rem] flex-shrink-0"
+              @for (f of getPlanFeatures(plan); track f.label) {
+                <div class="flex items-start gap-2 text-sm text-gray-300">
+                  <mat-icon
+                    class="text-cyan-400 !text-[1rem] !w-[1rem] !h-[1rem] flex-shrink-0 mt-0.5"
                     >check_circle</mat-icon
                   >
-                  <span>{{ f }}</span>
+                  <div class="flex flex-col">
+                    <span>{{ f.label }}</span>
+                    @if (f.detail) {
+                      <span class="text-xs text-gray-500 leading-snug">{{ f.detail }}</span>
+                    }
+                  </div>
                 </div>
               }
             </div>
@@ -948,7 +954,7 @@
       <p class="text-center text-gray-500 text-sm mt-10">
         Une autre question ?
         <a
-          href="mailto:contact@cyberscan.fr"
+          href="mailto:contact@rochercybersecurite.com"
           class="text-cyan-400 hover:text-cyan-300 transition-colors ml-1"
           >Contactez-nous</a
         >

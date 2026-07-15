@@ -6,10 +6,18 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import register_and_login
+from tests.conftest import create_plan_and_subscription, register_and_login
 
 BASE = "/api/v1"
 ENDPOINT = f"{BASE}/darkweb-dossier"
+
+
+async def _pro_headers(client: AsyncClient, email: str) -> dict:
+    """register + login + abonnement tier 3 : la création/rescan de dossier est gatée Pro+."""
+    headers = await register_and_login(client, email)
+    await create_plan_and_subscription(client, headers, tier=3)
+    return headers
+
 
 _MOCK_BREACH = {
     "email": "test@acme.fr",
@@ -77,7 +85,7 @@ async def test_sync_catalog_no_auth_returns_403(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_dossier_returns_201(http_client: AsyncClient):
-    headers = await register_and_login(http_client, "dossier1@test.com")
+    headers = await _pro_headers(http_client, "dossier1@test.com")
     with patch(
         "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_BREACH,
@@ -98,7 +106,7 @@ async def test_create_dossier_returns_201(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_dossier_strips_www(http_client: AsyncClient):
-    headers = await register_and_login(http_client, "dossier2@test.com")
+    headers = await _pro_headers(http_client, "dossier2@test.com")
     with patch(
         "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_CLEAN,
@@ -115,7 +123,7 @@ async def test_create_dossier_strips_www(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_dossier_empty_csv_returns_400(http_client: AsyncClient):
-    headers = await register_and_login(http_client, "dossier3@test.com")
+    headers = await _pro_headers(http_client, "dossier3@test.com")
     r = await http_client.post(
         ENDPOINT,
         data={"company_name": "Acme", "domain": "acme.fr"},
@@ -128,7 +136,7 @@ async def test_create_dossier_empty_csv_returns_400(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_dossier_no_valid_emails_returns_400(http_client: AsyncClient):
-    headers = await register_and_login(http_client, "dossier4@test.com")
+    headers = await _pro_headers(http_client, "dossier4@test.com")
     r = await http_client.post(
         ENDPOINT,
         data={"company_name": "Acme", "domain": "acme.fr"},
@@ -149,7 +157,7 @@ async def test_create_dossier_no_valid_emails_returns_400(http_client: AsyncClie
 
 @pytest.mark.asyncio
 async def test_list_dossiers_empty_for_new_user(http_client: AsyncClient):
-    headers = await register_and_login(http_client, "dossier5@test.com")
+    headers = await _pro_headers(http_client, "dossier5@test.com")
     r = await http_client.get(ENDPOINT, headers=headers)
     assert r.status_code == 200
     assert r.json() == []
@@ -157,8 +165,8 @@ async def test_list_dossiers_empty_for_new_user(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_list_dossiers_only_own(http_client: AsyncClient):
-    h1 = await register_and_login(http_client, "dossier6@test.com")
-    h2 = await register_and_login(http_client, "dossier7@test.com")
+    h1 = await _pro_headers(http_client, "dossier6@test.com")
+    h2 = await _pro_headers(http_client, "dossier7@test.com")
 
     with patch(
         "app.services.darkweb_dossier.ingestion.check_email_breaches",
@@ -178,7 +186,7 @@ async def test_list_dossiers_only_own(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_list_dossiers_returns_created(http_client: AsyncClient):
-    headers = await register_and_login(http_client, "dossier8@test.com")
+    headers = await _pro_headers(http_client, "dossier8@test.com")
     with patch(
         "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_CLEAN,
@@ -202,7 +210,7 @@ async def test_list_dossiers_returns_created(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_get_dossier_detail(http_client: AsyncClient):
-    headers = await register_and_login(http_client, "dossier9@test.com")
+    headers = await _pro_headers(http_client, "dossier9@test.com")
     with patch(
         "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_BREACH,
@@ -222,8 +230,8 @@ async def test_get_dossier_detail(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_get_dossier_other_user_returns_404(http_client: AsyncClient):
-    h1 = await register_and_login(http_client, "dossier10@test.com")
-    h2 = await register_and_login(http_client, "dossier11@test.com")
+    h1 = await _pro_headers(http_client, "dossier10@test.com")
+    h2 = await _pro_headers(http_client, "dossier11@test.com")
 
     with patch(
         "app.services.darkweb_dossier.ingestion.check_email_breaches",
@@ -243,7 +251,7 @@ async def test_get_dossier_other_user_returns_404(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_get_dossier_not_found_returns_404(http_client: AsyncClient):
-    headers = await register_and_login(http_client, "dossier12@test.com")
+    headers = await _pro_headers(http_client, "dossier12@test.com")
     r = await http_client.get(f"{ENDPOINT}/99999", headers=headers)
     assert r.status_code == 404
 
@@ -253,7 +261,7 @@ async def test_get_dossier_not_found_returns_404(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_delete_dossier(http_client: AsyncClient):
-    headers = await register_and_login(http_client, "dossier13@test.com")
+    headers = await _pro_headers(http_client, "dossier13@test.com")
     with patch(
         "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_CLEAN,
@@ -275,8 +283,8 @@ async def test_delete_dossier(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_delete_dossier_other_user_returns_404(http_client: AsyncClient):
-    h1 = await register_and_login(http_client, "dossier14@test.com")
-    h2 = await register_and_login(http_client, "dossier15@test.com")
+    h1 = await _pro_headers(http_client, "dossier14@test.com")
+    h2 = await _pro_headers(http_client, "dossier15@test.com")
 
     with patch(
         "app.services.darkweb_dossier.ingestion.check_email_breaches",
@@ -305,7 +313,7 @@ async def test_create_dossier_limit_enforced(http_client: AsyncClient):
     original_limit = ep_module._MAX_DOSSIERS_PER_USER
     ep_module._MAX_DOSSIERS_PER_USER = 2
 
-    headers = await register_and_login(http_client, "dossier_limit@test.com")
+    headers = await _pro_headers(http_client, "dossier_limit@test.com")
 
     with patch(
         "app.services.darkweb_dossier.ingestion.check_email_breaches",
@@ -338,7 +346,7 @@ async def test_create_dossier_limit_enforced(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_get_pdf_returns_pdf_bytes(http_client: AsyncClient):
-    headers = await register_and_login(http_client, "dossier_pdf@test.com")
+    headers = await _pro_headers(http_client, "dossier_pdf@test.com")
     with patch(
         "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_BREACH,
@@ -359,8 +367,8 @@ async def test_get_pdf_returns_pdf_bytes(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_get_pdf_other_user_returns_404(http_client: AsyncClient):
-    h1 = await register_and_login(http_client, "dossier_pdf2@test.com")
-    h2 = await register_and_login(http_client, "dossier_pdf3@test.com")
+    h1 = await _pro_headers(http_client, "dossier_pdf2@test.com")
+    h2 = await _pro_headers(http_client, "dossier_pdf3@test.com")
 
     with patch(
         "app.services.darkweb_dossier.ingestion.check_email_breaches",
@@ -383,7 +391,7 @@ async def test_get_pdf_other_user_returns_404(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_rescan_resets_and_relaunches(http_client: AsyncClient):
-    headers = await register_and_login(http_client, "rescan1@test.com")
+    headers = await _pro_headers(http_client, "rescan1@test.com")
     with patch(
         "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_BREACH,
@@ -411,7 +419,7 @@ async def test_rescan_resets_and_relaunches(http_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_rescan_while_pending_returns_400(http_client: AsyncClient):
     """Cannot rescan a dossier that is already pending/processing."""
-    headers = await register_and_login(http_client, "rescan2@test.com")
+    headers = await _pro_headers(http_client, "rescan2@test.com")
 
     # Create without running the background task so status stays pending
     with patch("app.api.v1.endpoints.darkweb_dossier.process_dossier", new=AsyncMock()):
@@ -431,8 +439,8 @@ async def test_rescan_while_pending_returns_400(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_rescan_other_user_returns_404(http_client: AsyncClient):
-    h1 = await register_and_login(http_client, "rescan3@test.com")
-    h2 = await register_and_login(http_client, "rescan4@test.com")
+    h1 = await _pro_headers(http_client, "rescan3@test.com")
+    h2 = await _pro_headers(http_client, "rescan4@test.com")
 
     with patch(
         "app.services.darkweb_dossier.ingestion.check_email_breaches",
@@ -452,7 +460,7 @@ async def test_rescan_other_user_returns_404(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_rescan_not_found_returns_404(http_client: AsyncClient):
-    headers = await register_and_login(http_client, "rescan5@test.com")
+    headers = await _pro_headers(http_client, "rescan5@test.com")
     r = await http_client.post(f"{ENDPOINT}/99999/rescan", headers=headers)
     assert r.status_code == 404
 
@@ -462,7 +470,7 @@ async def test_rescan_not_found_returns_404(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_csv_export_returns_csv_bytes(http_client: AsyncClient):
-    headers = await register_and_login(http_client, "csv1@test.com")
+    headers = await _pro_headers(http_client, "csv1@test.com")
     with patch(
         "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_BREACH,
@@ -485,8 +493,8 @@ async def test_csv_export_returns_csv_bytes(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_csv_export_other_user_returns_404(http_client: AsyncClient):
-    h1 = await register_and_login(http_client, "csv2@test.com")
-    h2 = await register_and_login(http_client, "csv3@test.com")
+    h1 = await _pro_headers(http_client, "csv2@test.com")
+    h2 = await _pro_headers(http_client, "csv3@test.com")
 
     with patch(
         "app.services.darkweb_dossier.ingestion.check_email_breaches",
@@ -509,7 +517,7 @@ async def test_csv_export_other_user_returns_404(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_toggle_monitor_activates(http_client: AsyncClient):
-    headers = await register_and_login(http_client, "monitor1@test.com")
+    headers = await _pro_headers(http_client, "monitor1@test.com")
     with patch(
         "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_CLEAN,
@@ -531,7 +539,7 @@ async def test_toggle_monitor_activates(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_toggle_monitor_toggles_off_when_on(http_client: AsyncClient):
-    headers = await register_and_login(http_client, "monitor2@test.com")
+    headers = await _pro_headers(http_client, "monitor2@test.com")
     with patch(
         "app.services.darkweb_dossier.ingestion.check_email_breaches",
         return_value=_MOCK_CLEAN,
@@ -555,8 +563,8 @@ async def test_toggle_monitor_toggles_off_when_on(http_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_toggle_monitor_other_user_returns_404(http_client: AsyncClient):
-    h1 = await register_and_login(http_client, "monitor3@test.com")
-    h2 = await register_and_login(http_client, "monitor4@test.com")
+    h1 = await _pro_headers(http_client, "monitor3@test.com")
+    h2 = await _pro_headers(http_client, "monitor4@test.com")
 
     with patch(
         "app.services.darkweb_dossier.ingestion.check_email_breaches",

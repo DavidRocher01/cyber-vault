@@ -32,7 +32,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.deps import get_current_user, require_admin
+from app.core.deps import get_current_user, require_admin, require_min_tier
 from app.models.darkweb_dossier import DarkwebDossier, DarkwebDossierTarget
 from app.models.user import User
 from app.services.darkweb_dossier_service import (
@@ -165,7 +165,12 @@ def _to_dossier_out(d: DarkwebDossier) -> DossierOut:
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 
-@router.post("", response_model=DossierOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=DossierOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_min_tier(3))],  # Dark Web Dossier : Pro+
+)
 async def create_dossier(
     background_tasks: BackgroundTasks,
     company_name: str = Form(..., min_length=2, max_length=200),
@@ -320,7 +325,11 @@ async def sync_catalog(
     return {"synced": count, "message": f"{count} entrées synchronisées depuis HIBP"}
 
 
-@router.post("/{dossier_id}/rescan", response_model=DossierOut)
+@router.post(
+    "/{dossier_id}/rescan",
+    response_model=DossierOut,
+    dependencies=[Depends(require_min_tier(3))],  # Dark Web Dossier : Pro+
+)
 async def rescan_dossier(
     dossier_id: int,
     background_tasks: BackgroundTasks,

@@ -86,9 +86,9 @@ describe('OnboardingComponent — planFeatures()', () => {
     expect(f[0]).toBe('3 sites surveillés');
   });
 
-  it('mentionne la fréquence de scan', () => {
+  it('mentionne la fréquence de scan en clair', () => {
     const f = make().planFeatures(makePlan({ scan_interval_days: 30 }));
-    expect(f.some(x => x.includes('30 jours'))).toBe(true);
+    expect(f.some(x => x.toLowerCase().includes('mensuelle'))).toBe(true);
   });
 
   it('ajoute alertes immédiates si scan <= 7 jours', () => {

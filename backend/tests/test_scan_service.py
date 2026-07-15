@@ -44,14 +44,16 @@ async def test_get_plan_tier_returns_plan_tier_level():
 
 
 @pytest.mark.asyncio
-async def test_get_plan_tier_defaults_to_2_when_no_subscription():
+async def test_get_plan_tier_defaults_to_1_when_no_subscription():
+    # Repli unifie a 1 (Gratuit) : un compte sans abonnement ne doit pas obtenir un tier
+    # payant (avant : 2 pour le scan, incoherent avec le gating et les sites).
     db = AsyncMock(spec=AsyncSession)
     result_mock = MagicMock()
     result_mock.scalar_one_or_none.return_value = None
     db.execute = AsyncMock(return_value=result_mock)
 
     tier = await _get_plan_tier(db, user_id=99)
-    assert tier == 2
+    assert tier == 1
 
 
 # ── run_scan ───────────────────────────────────────────────────────────────────

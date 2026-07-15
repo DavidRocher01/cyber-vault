@@ -13,10 +13,8 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.plan import Plan
 from app.models.scan import Scan
 from app.models.site import Site
-from app.models.subscription import Subscription
 
 # Resolve cyber-scanner path (sibling of backend/)
 SCANNER_DIR = Path(__file__).resolve().parents[3] / "cyber-scanner"
@@ -24,14 +22,13 @@ sys.path.insert(0, str(SCANNER_DIR))
 
 
 async def _get_plan_tier(db: AsyncSession, user_id: int) -> int:
-    """Return the tier level of the user's active subscription (default 2)."""
-    result = await db.execute(
-        select(Plan)
-        .join(Subscription, Subscription.plan_id == Plan.id)
-        .where(Subscription.user_id == user_id, Subscription.status == "active")
-    )
-    plan = result.scalar_one_or_none()
-    return plan.tier_level if plan else 2
+    """Return the tier level of the user's active subscription (default 1 = Gratuit).
+
+    Source de vérité unique : subscription_service.get_active_tier.
+    """
+    from app.services.subscription_service import get_active_tier
+
+    return await get_active_tier(db, user_id)
 
 
 def _run_scan_sync(url: str, tier: int, scan_id: int, hibp_key: str) -> dict:

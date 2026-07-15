@@ -10,7 +10,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal, get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_min_tier
 from app.core.pagination import paginate
 from app.core.ssrf import assert_no_ssrf
 from app.core.utils import safe_json_load
@@ -61,28 +61,13 @@ async def trigger_scan(
     # sinon des triggers concurrents le contourneraient (il n'est pas encore "done").
     in_flight = ("pending", "running")
 
-    # Free plan: 1 scan total ever across all sites (en vol ou terminé)
-    if plan and plan.price_eur == 0:
-        total_result = await db.execute(
-            select(func.count(Scan.id))
-            .join(Site, Scan.site_id == Site.id)
-            .where(
-                Site.user_id == current_user.id,
-                Scan.status.in_((*in_flight, "done")),
-            )
-        )
-        if total_result.scalar() >= 1:
-            raise HTTPException(
-                status_code=403,
-                detail="Le plan gratuit inclut 1 scan unique. Passez à un plan payant pour continuer.",
-            )
-
-    # Enforce interval globally across all user sites to prevent bypass via delete+recreate
-    if interval_days > 0:
+    # Enforce interval globally across all user sites to prevent bypass via delete+recreate.
+    # max_sites < 0 => plan a scans illimités (ex. Gratuit) : aucune limite de fréquence.
+    max_scans = plan.max_sites if plan else 1
+    if interval_days > 0 and max_scans >= 0:
         from datetime import timedelta
 
         since = datetime.now(UTC) - timedelta(days=interval_days)
-        max_scans = plan.max_sites if plan else 1
         recent_result = await db.execute(
             select(func.count(Scan.id))
             .join(Site, Scan.site_id == Site.id)
@@ -309,7 +294,10 @@ _REMEDIATION_META: dict[str, tuple[str, str]] = {
 }
 
 
-@router.get("/{scan_id}/remediation/{script_key}")
+@router.get(
+    "/{scan_id}/remediation/{script_key}",
+    dependencies=[Depends(require_min_tier(2))],  # Scripts de remédiation : Starter+
+)
 async def download_remediation_script(
     scan_id: int,
     script_key: str,

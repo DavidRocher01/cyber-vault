@@ -14,6 +14,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.exc import IntegrityError
 
 from app.main import app
+from tests.conftest import create_plan_and_subscription
 
 BASE = "/api/v1"
 
@@ -21,7 +22,10 @@ BASE = "/api/v1"
 async def _headers(client: AsyncClient, email: str) -> dict:
     await client.post(f"{BASE}/auth/register", json={"email": email, "password": "StrongPass123!"})
     r = await client.post(f"{BASE}/auth/login", json={"email": email, "password": "StrongPass123!"})
-    return {"Authorization": f"Bearer {r.json()['access_token']}"}
+    headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
+    # L'analyse de code est gatée Starter+ (require_min_tier(2)) : on octroie une sub tier 2.
+    await create_plan_and_subscription(client, headers, tier=2)
+    return headers
 
 
 def _make_zip(filename: str = "main.py", content: str = "import os") -> bytes:

@@ -18,6 +18,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { environment } from '../../../../environments/environment';
+import { formatScanFrequency } from '../../../shared/plan-features';
 
 import { CyberscanService, Plan } from '../services/cyberscan.service';
 import { GlobeComponent } from '../../../shared/globe/globe.component';
@@ -332,15 +333,44 @@ export class LandingComponent implements OnInit, AfterViewInit {
     return (cents / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
   }
 
-  getPlanFeatures(plan: Plan): string[] {
-    const features: string[] = [
-      `${plan.max_sites} site${plan.max_sites > 1 ? 's' : ''}`,
-      `Scan tous les ${plan.scan_interval_days} jours`,
-      'Rapport PDF complet',
-      'Modules Tier 1 & 2',
+  getPlanFeatures(plan: Plan): { label: string; detail?: string }[] {
+    // max_sites < 0 => illimité (plan Gratuit). Sinon accord singulier/pluriel.
+    const s = plan.max_sites > 1 ? 's' : '';
+    const sitesLabel =
+      plan.max_sites < 0 ? 'Sites illimités' : `${plan.max_sites} site${s} surveillé${s}`;
+    const features: { label: string; detail?: string }[] = [
+      { label: sitesLabel },
+      { label: formatScanFrequency(plan.scan_interval_days) },
+      { label: 'Rapport clair, prêt à présenter' },
+      {
+        label: 'Sécurité essentielle',
+        detail: 'SSL/TLS, en-têtes de sécurité, DNS, e-mail (SPF/DMARC), cookies, réputation IP…',
+      },
+      { label: 'Conformité NIS2 & ISO 27001' },
+      { label: 'Alerte e-mail en cas de faille critique' },
     ];
-    if (plan.tier_level >= 3) features.push('Modules Tier 3 (TLS, Threat Intel, Fingerprint)');
-    if (plan.tier_level >= 4) features.push('Modules Tier 4 (JWT, Redirects, Clickjacking)');
+    if (plan.tier_level >= 2) {
+      features.push({
+        label: 'Analyse de code (SAST/SCA)',
+        detail: 'Détection de failles directement dans votre code source',
+      });
+      features.push({ label: 'Scripts de remédiation prêts à l’emploi' });
+    }
+    if (plan.tier_level >= 3) {
+      features.push({
+        label: 'Analyse avancée',
+        detail: 'Chiffrement approfondi, réputation & menaces, empreinte technologique',
+      });
+      features.push({
+        label: 'Surveillance Dark Web',
+        detail: 'Fuites de données & dossier Dark Web pour vos domaines',
+      });
+    }
+    if (plan.tier_level >= 4)
+      features.push({
+        label: 'Analyse experte',
+        detail: 'Authentification (JWT), redirections ouvertes, détournement de clic',
+      });
     return features;
   }
 

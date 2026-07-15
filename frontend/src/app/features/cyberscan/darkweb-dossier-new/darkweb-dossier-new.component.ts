@@ -2,9 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Title } from '@angular/platform-browser';
@@ -19,9 +17,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
     RouterLink,
     ReactiveFormsModule,
     MatButtonModule,
-    MatFormFieldModule,
     MatIconModule,
-    MatInputModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     NavButtonsComponent,
@@ -92,6 +88,12 @@ export class DarkwebDossierNewComponent {
       }
     };
     reader.readAsText(file);
+  }
+
+  /** Affiche l'erreur d'un champ uniquement apres interaction (touched), pas au chargement. */
+  showError(name: string): boolean {
+    const c = this.form.get(name);
+    return !!c && c.invalid && c.touched;
   }
 
   get canSubmit(): boolean {

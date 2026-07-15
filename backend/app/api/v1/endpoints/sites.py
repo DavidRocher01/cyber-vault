@@ -36,15 +36,19 @@ async def add_site(
     if max_sites == 0:
         raise HTTPException(status_code=403, detail="Abonnement requis pour ajouter un site")
 
-    count_result = await db.execute(
-        select(func.count(Site.id)).where(Site.user_id == current_user.id, Site.is_active == True)
-    )
-    current_count = count_result.scalar()
-    if current_count >= max_sites:
-        raise HTTPException(
-            status_code=403,
-            detail=f"Limite de {max_sites} site(s) atteinte pour votre formule",
+    # max_sites < 0 => plan a un nombre de sites illimité (ex. Gratuit) : pas de limite.
+    if max_sites > 0:
+        count_result = await db.execute(
+            select(func.count(Site.id)).where(
+                Site.user_id == current_user.id, Site.is_active == True
+            )
         )
+        current_count = count_result.scalar()
+        if current_count >= max_sites:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Limite de {max_sites} site(s) atteinte pour votre formule",
+            )
 
     url = payload.url
     # Reject non-web protocols explicitly before auto-correction
