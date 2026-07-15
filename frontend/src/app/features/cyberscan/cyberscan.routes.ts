@@ -320,6 +320,12 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Contact — Réserver un audit cybersécurité | Rocher Cybersécurité',
   },
   {
+    path: 'rssi-externalise',
+    loadComponent: () =>
+      import('./rssi-externalise/rssi-externalise.component').then(m => m.RssiExternaliseComponent),
+    title: 'RSSI externalisé — votre RSSI à temps partagé | Rocher Cybersécurité',
+  },
+  {
     path: 'collab/accept/:token',
     loadComponent: () =>
       import('./collab-accept/collab-accept.component').then(m => m.CollabAcceptComponent),

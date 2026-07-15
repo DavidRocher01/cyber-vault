@@ -36,6 +36,14 @@
         <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">school</mat-icon>
         Formation NIS2
       </a>
+      <a
+        routerLink="/rssi-externalise"
+        mat-button
+        class="!text-cyan-400 font-medium hidden lg:inline-flex items-center gap-1"
+      >
+        <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">support_agent</mat-icon>
+        RSSI externalisé
+      </a>
       <a routerLink="/reserver" mat-button class="!text-white font-medium hidden lg:inline-flex"
         >Réserver</a
       >
@@ -620,13 +628,22 @@
       </div>
 
       <div class="text-center">
-        <a
-          routerLink="/reserver"
-          class="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-all"
-        >
-          <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">event_available</mat-icon>
-          Réserver un diagnostic gratuit
-        </a>
+        <div class="flex flex-col sm:flex-row gap-3 justify-center items-center">
+          <a
+            routerLink="/reserver"
+            class="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-all"
+          >
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">event_available</mat-icon>
+            Réserver un diagnostic gratuit
+          </a>
+          <a
+            routerLink="/rssi-externalise"
+            class="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl border border-gray-600 hover:border-cyan-500 text-white font-bold text-sm transition-all"
+          >
+            Découvrir l'offre
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_forward</mat-icon>
+          </a>
+        </div>
         <p class="text-xs text-gray-500 mt-3">
           Échange de 30 min · sans engagement · on évalue votre exposition NIS2.
         </p>
