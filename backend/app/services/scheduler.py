@@ -1,7 +1,8 @@
 """
-APScheduler — planifie les scans automatiques selon la fréquence du plan.
-Starter/Pro : toutes les 30 nuits à 2h00.
-Business : toutes les 7 nuits à 2h00.
+APScheduler — planifie les scans automatiques selon la fréquence du plan
+(`plan.scan_interval_days`, vérifiée chaque nuit à 2h00).
+Starter/Pro : hebdomadaire (7 j). Business : quotidien (1 j).
+Gratuit (intervalle 0) : jamais de scan automatique (à la demande uniquement).
 """
 
 import asyncio
@@ -90,6 +91,12 @@ async def _schedule_due_scans() -> None:
 
         now = datetime.now(UTC)
         for site, plan in rows:
+            # Plan "à la demande" (intervalle 0 ou négatif, ex. Gratuit) : jamais de scan
+            # automatique — sinon `days_since < 0` est toujours faux et le site serait
+            # re-scanné chaque nuit.
+            if plan.scan_interval_days <= 0:
+                continue
+
             last_scan = last_scan_map.get(site.id)
             if last_scan and last_scan.finished_at:
                 days_since = (now - last_scan.finished_at).days
