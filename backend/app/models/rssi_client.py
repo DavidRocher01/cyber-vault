@@ -13,6 +13,11 @@ class RssiClient(Base):
     consultant_user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"), nullable=False, index=True
     )
+    # Portail client : compte User lié via invitation. Nullable tant que le client n'est pas
+    # invité ; unique (un compte = au plus un client RSSI) — base de l'isolation du portail.
+    client_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True, unique=True, index=True
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     description: Mapped[str | None] = mapped_column(String(1000), nullable=True)

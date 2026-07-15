@@ -27,6 +27,7 @@ from app.api.v1.endpoints import (
     pca,
     phishing,
     plans,
+    portal,
     public_scans,
     quiz,
     quotes,
@@ -68,6 +69,7 @@ api_router.include_router(admin_invoices.router)
 api_router.include_router(admin_quotes.router)
 api_router.include_router(quotes.router)
 api_router.include_router(rssi.router)
+api_router.include_router(portal.router)
 api_router.include_router(training.router)
 api_router.include_router(pca.router)
 api_router.include_router(darkweb.router)
