@@ -203,3 +203,96 @@ async def test_invite_isolation_other_consultant(http_client: AsyncClient):
     # B tente d'inviter le client de A -> 404 (isolation consultant)
     r = await http_client.post(f"{BASE}/rssi/clients/{client_of_a}/invite", headers=chB)
     assert r.status_code == 404
+
+
+# ── Parcours complet consultant -> client ─────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_full_journey_consultant_to_client(http_client: AsyncClient):
+    """De bout en bout : le consultant crée un client, remplit la mission, l'invite ;
+    le client définit son mot de passe, se connecte et voit SON espace rempli."""
+    from unittest.mock import patch
+
+    ch, _ = await _make_consultant(http_client, "journey_consult@test.com")
+
+    # 1. Créer le client via l'API consultant
+    r = await http_client.post(
+        f"{BASE}/rssi/clients",
+        headers=ch,
+        json={"name": "Journey SAS", "email": "journeyclient@test.com", "formula": "premium"},
+    )
+    assert r.status_code == 201, r.text
+    client_id = r.json()["id"]
+
+    # 2. Plan d'action : 2 actions, dont 1 terminée
+    r = await http_client.post(
+        f"{BASE}/rssi/clients/{client_id}/actions",
+        headers=ch,
+        json={"title": "Activer le MFA", "priority": "high"},
+    )
+    assert r.status_code == 201, r.text
+    action_id = r.json()["id"]
+    r = await http_client.post(
+        f"{BASE}/rssi/clients/{client_id}/actions",
+        headers=ch,
+        json={"title": "Documenter le PRA", "priority": "critical"},
+    )
+    assert r.status_code == 201
+    r = await http_client.put(
+        f"{BASE}/rssi/clients/{client_id}/actions/{action_id}",
+        headers=ch,
+        json={"status": "done"},
+    )
+    assert r.status_code == 200, r.text
+
+    # 3. Une visite planifiée
+    r = await http_client.post(
+        f"{BASE}/rssi/clients/{client_id}/visits",
+        headers=ch,
+        json={"scheduled_date": "2026-09-24", "visit_type": "quarterly", "location": "onsite"},
+    )
+    assert r.status_code == 201, r.text
+
+    # 4. Un livrable
+    r = await http_client.post(
+        f"{BASE}/rssi/clients/{client_id}/deliverables",
+        headers=ch,
+        json={"title": "Audit initial", "doc_type": "rapport", "delivered_at": "2026-03-12"},
+    )
+    assert r.status_code == 201, r.text
+
+    # 5. Inviter le client (on capture le token brut depuis l'e-mail mocké)
+    with patch("app.services.email_service.send_password_reset") as mock_email:
+        r = await http_client.post(f"{BASE}/rssi/clients/{client_id}/invite", headers=ch)
+    assert r.status_code == 200, r.text
+    reset_url = mock_email.call_args[0][1]
+    token = reset_url.split("token=")[1]
+
+    # 6. Le client définit son mot de passe (vrai flux reset) puis se connecte
+    r = await http_client.post(
+        f"{BASE}/auth/reset-password", json={"token": token, "password": "ClientPass123!"}
+    )
+    assert r.status_code == 204, r.text
+    r = await http_client.post(
+        f"{BASE}/auth/login", json={"email": "journeyclient@test.com", "password": "ClientPass123!"}
+    )
+    assert r.status_code == 200, r.text
+    client_h = {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+    # 7. Le client voit SON espace rempli
+    me = (await http_client.get(f"{BASE}/portal/me", headers=client_h)).json()
+    assert me["name"] == "Journey SAS"
+    assert me["formula"] == "premium"
+    assert me["actions_total"] == 2
+    assert me["actions_done"] == 1
+    assert me["progress_score"] == 50  # 1 done (2 pts) + 1 open (0) / (2*2) = 50 %
+    assert me["consultant"]["email"] == "journey_consult@test.com"
+    assert me["next_visit"]["visit_type"] == "quarterly"
+
+    actions = (await http_client.get(f"{BASE}/portal/actions", headers=client_h)).json()
+    assert len(actions) == 2
+    deliverables = (await http_client.get(f"{BASE}/portal/deliverables", headers=client_h)).json()
+    assert len(deliverables) == 1 and deliverables[0]["title"] == "Audit initial"
+    visits = (await http_client.get(f"{BASE}/portal/visits", headers=client_h)).json()
+    assert len(visits) == 1
