@@ -183,10 +183,11 @@ async def register_and_login(
 
 
 _PLAN_DEFAULTS = {
+    # (name, price_eur, max_sites, scan_interval_days) — tous : sites illimités (-1) + quotidien (1)
     1: ("free", 0, -1, 1),
-    2: ("starter", 1490, 1, 7),
-    3: ("pro", 4900, 5, 7),
-    4: ("business", 14900, 15, 1),
+    2: ("starter", 1490, -1, 1),
+    3: ("pro", 4900, -1, 1),
+    4: ("business", 14900, -1, 1),
 }
 
 

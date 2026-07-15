@@ -245,11 +245,17 @@ export const NEWSLETTER_ITEMS = [
 ];
 
 export const COMPARISON_ROWS = [
-  { label: 'Sites surveillés', starter: '1', pro: '5', business: '15', enterprise: 'Illimités' },
+  {
+    label: 'Sites surveillés',
+    starter: 'Illimités',
+    pro: 'Illimités',
+    business: 'Illimités',
+    enterprise: 'Illimités',
+  },
   {
     label: 'Fréquence des scans',
-    starter: 'Hebdomadaire',
-    pro: 'Hebdomadaire',
+    starter: 'Quotidien',
+    pro: 'Quotidien',
     business: 'Quotidien',
     enterprise: 'Temps réel',
   },
