@@ -24,33 +24,78 @@
           Informations entreprise
         </h2>
 
-        <div class="flex flex-col gap-4">
-          <mat-form-field
-            appearance="outline"
-            class="w-full [&_.mat-mdc-form-field-flex]:bg-gray-800/50"
-          >
-            <mat-label>Nom de l'entreprise</mat-label>
-            <input matInput formControlName="company_name" placeholder="Acme SAS" />
-            <mat-icon matPrefix class="text-gray-500 mr-2">business</mat-icon>
-            @if (
-              form.get('company_name')?.hasError('required') && form.get('company_name')?.touched
-            ) {
-              <mat-error>Nom requis</mat-error>
+        <div class="flex flex-col gap-5">
+          <!-- Nom de l'entreprise -->
+          <div>
+            <label for="dossier-company" class="block text-sm font-medium text-gray-300 mb-1.5">
+              Nom de l'entreprise <span class="text-red-400">*</span>
+            </label>
+            <div class="relative">
+              <mat-icon
+                class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 !text-[1.15rem] !w-[1.15rem] !h-[1.15rem] pointer-events-none"
+                >business</mat-icon
+              >
+              <input
+                id="dossier-company"
+                type="text"
+                formControlName="company_name"
+                placeholder="Acme SAS"
+                autocomplete="organization"
+                class="w-full rounded-xl bg-gray-800/60 border pl-10 pr-3 py-2.5 text-sm text-white placeholder-gray-600 outline-none transition-all focus:ring-2 focus:ring-cyan-500/40"
+                [class]="
+                  showError('company_name')
+                    ? 'border-red-500/70 focus:border-red-500'
+                    : 'border-gray-700 focus:border-cyan-500/70'
+                "
+              />
+            </div>
+            @if (showError('company_name')) {
+              <p class="flex items-center gap-1 text-xs text-red-400 mt-1.5">
+                <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">error_outline</mat-icon>
+                Indiquez le nom de l'entreprise (2 caractères minimum).
+              </p>
             }
-          </mat-form-field>
+          </div>
 
-          <mat-form-field
-            appearance="outline"
-            class="w-full [&_.mat-mdc-form-field-flex]:bg-gray-800/50"
-          >
-            <mat-label>Domaine email</mat-label>
-            <input matInput formControlName="domain" placeholder="acme.fr" />
-            <mat-icon matPrefix class="text-gray-500 mr-2">language</mat-icon>
-            <mat-hint>Le domaine principal utilisé par vos collaborateurs (sans &#64;)</mat-hint>
-            @if (form.get('domain')?.hasError('pattern') && form.get('domain')?.touched) {
-              <mat-error>Format de domaine invalide (ex: entreprise.fr)</mat-error>
+          <!-- Domaine email -->
+          <div>
+            <label for="dossier-domain" class="block text-sm font-medium text-gray-300 mb-1.5">
+              Domaine email <span class="text-red-400">*</span>
+            </label>
+            <div class="relative">
+              <mat-icon
+                class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 !text-[1.15rem] !w-[1.15rem] !h-[1.15rem] pointer-events-none"
+                >language</mat-icon
+              >
+              <input
+                id="dossier-domain"
+                type="text"
+                formControlName="domain"
+                placeholder="acme.fr"
+                autocomplete="off"
+                class="w-full rounded-xl bg-gray-800/60 border pl-10 pr-3 py-2.5 text-sm text-white placeholder-gray-600 outline-none transition-all focus:ring-2 focus:ring-cyan-500/40"
+                [class]="
+                  showError('domain')
+                    ? 'border-red-500/70 focus:border-red-500'
+                    : 'border-gray-700 focus:border-cyan-500/70'
+                "
+              />
+            </div>
+            @if (showError('domain')) {
+              <p class="flex items-center gap-1 text-xs text-red-400 mt-1.5">
+                <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">error_outline</mat-icon>
+                {{
+                  form.get('domain')?.hasError('required')
+                    ? 'Indiquez le domaine principal de vos collaborateurs.'
+                    : 'Format de domaine invalide (ex : entreprise.fr).'
+                }}
+              </p>
+            } @else {
+              <p class="text-xs text-gray-500 mt-1.5">
+                Le domaine principal utilisé par vos collaborateurs (sans &#64;)
+              </p>
             }
-          </mat-form-field>
+          </div>
         </div>
       </div>
 
