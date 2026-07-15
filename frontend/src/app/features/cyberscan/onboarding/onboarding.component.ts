@@ -8,6 +8,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Title } from '@angular/platform-browser';
 
 import { CyberscanService, Plan } from '../services/cyberscan.service';
+import { formatScanFrequency } from '../../../shared/plan-features';
 
 @Component({
   standalone: true,
@@ -126,7 +127,7 @@ export class OnboardingComponent implements OnInit {
     features.push(
       `${plan.max_sites} site${plan.max_sites > 1 ? 's' : ''} surveillé${plan.max_sites > 1 ? 's' : ''}`
     );
-    features.push(`Scan tous les ${plan.scan_interval_days} jours`);
+    features.push(formatScanFrequency(plan.scan_interval_days));
     if (plan.scan_interval_days <= 7) features.push('Alertes email immédiates');
     if (plan.scan_interval_days <= 14) features.push('Rapports PDF inclus');
     if (plan.max_sites >= 5) features.push('Multi-sites & équipes');

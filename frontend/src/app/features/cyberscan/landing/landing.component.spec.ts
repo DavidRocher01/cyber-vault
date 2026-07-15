@@ -41,70 +41,88 @@ describe('LandingComponent — formatPrice()', () => {
 // ── getPlanFeatures() ─────────────────────────────────────────────────────────
 
 describe('LandingComponent — getPlanFeatures()', () => {
-  it('inclut max_sites dans les features', () => {
+  it('inclut le nombre de sites surveillés', () => {
     const plan: any = { max_sites: 3, scan_interval_days: 7, tier_level: 2 };
     expect(
       make()
         .getPlanFeatures(plan)
-        .some(f => f.includes('3'))
+        .some(f => f.label.includes('3'))
     ).toBe(true);
   });
 
-  it('inclut scan_interval_days dans les features', () => {
+  it('affiche la fréquence de scan en clair (mensuelle)', () => {
     const plan: any = { max_sites: 1, scan_interval_days: 30, tier_level: 2 };
     expect(
       make()
         .getPlanFeatures(plan)
-        .some(f => f.includes('30'))
+        .some(f => f.label.toLowerCase().includes('mensuelle'))
     ).toBe(true);
   });
 
-  it('inclut "Rapport PDF" dans toutes les features', () => {
-    const plan: any = { max_sites: 1, scan_interval_days: 30, tier_level: 1 };
+  it('affiche "Scan à la demande" quand l\'intervalle est 0 (plan gratuit)', () => {
+    const plan: any = { max_sites: 1, scan_interval_days: 0, tier_level: 1 };
     expect(
       make()
         .getPlanFeatures(plan)
-        .some(f => f.includes('Rapport PDF'))
+        .some(f => f.label.includes('à la demande'))
     ).toBe(true);
   });
 
-  it('ajoute les modules Tier 3 si tier_level >= 3', () => {
+  it('inclut "Sécurité essentielle" avec un détail technique (tooltip)', () => {
+    const plan: any = { max_sites: 1, scan_interval_days: 30, tier_level: 1 };
+    const f = make()
+      .getPlanFeatures(plan)
+      .find(x => x.label === 'Sécurité essentielle');
+    expect(f).toBeDefined();
+    expect(f?.detail).toBeTruthy();
+  });
+
+  it('ajoute "Analyse avancée" si tier_level >= 3', () => {
     const plan: any = { max_sites: 5, scan_interval_days: 7, tier_level: 3 };
     expect(
       make()
         .getPlanFeatures(plan)
-        .some(f => f.includes('Tier 3'))
+        .some(f => f.label.includes('avancée'))
     ).toBe(true);
   });
 
-  it("n'ajoute pas les modules Tier 3 si tier_level < 3", () => {
+  it("n'ajoute pas l'analyse avancée si tier_level < 3", () => {
     const plan: any = { max_sites: 1, scan_interval_days: 30, tier_level: 2 };
     expect(
       make()
         .getPlanFeatures(plan)
-        .some(f => f.includes('Tier 3'))
+        .some(f => f.label.includes('avancée'))
     ).toBe(false);
   });
 
-  it('ajoute les modules Tier 4 si tier_level >= 4', () => {
+  it('ajoute "Analyse experte" si tier_level >= 4', () => {
     const plan: any = { max_sites: 10, scan_interval_days: 7, tier_level: 4 };
     expect(
       make()
         .getPlanFeatures(plan)
-        .some(f => f.includes('Tier 4'))
+        .some(f => f.label.includes('experte'))
     ).toBe(true);
   });
 
-  it("n'ajoute pas les modules Tier 4 si tier_level < 4", () => {
+  it("n'ajoute pas l'analyse experte si tier_level < 4", () => {
     const plan: any = { max_sites: 5, scan_interval_days: 7, tier_level: 3 };
     expect(
       make()
         .getPlanFeatures(plan)
-        .some(f => f.includes('Tier 4'))
+        .some(f => f.label.includes('experte'))
     ).toBe(false);
   });
 
-  it('retourne au moins 4 features pour un plan Tier 1', () => {
+  it('ne montre aucun jargon "Tier" à l\'utilisateur', () => {
+    const plan: any = { max_sites: 10, scan_interval_days: 7, tier_level: 4 };
+    expect(
+      make()
+        .getPlanFeatures(plan)
+        .some(f => f.label.includes('Tier'))
+    ).toBe(false);
+  });
+
+  it('retourne au moins 4 features pour un plan de base', () => {
     const plan: any = { max_sites: 1, scan_interval_days: 30, tier_level: 1 };
     expect(make().getPlanFeatures(plan).length).toBeGreaterThanOrEqual(4);
   });

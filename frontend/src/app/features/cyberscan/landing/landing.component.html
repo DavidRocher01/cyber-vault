@@ -593,12 +593,22 @@
             </div>
 
             <div class="flex flex-col gap-2 flex-1">
-              @for (f of getPlanFeatures(plan); track f) {
-                <div class="flex items-center gap-2 text-sm text-gray-300">
+              @for (f of getPlanFeatures(plan); track f.label) {
+                <div
+                  class="flex items-center gap-2 text-sm text-gray-300"
+                  [title]="f.detail || null"
+                >
                   <mat-icon class="text-cyan-400 !text-[1rem] !w-[1rem] !h-[1rem] flex-shrink-0"
                     >check_circle</mat-icon
                   >
-                  <span>{{ f }}</span>
+                  <span>{{ f.label }}</span>
+                  @if (f.detail) {
+                    <mat-icon
+                      class="text-gray-500 !text-[0.85rem] !w-[0.85rem] !h-[0.85rem] cursor-help"
+                      [attr.aria-label]="f.detail"
+                      >info_outline</mat-icon
+                    >
+                  }
                 </div>
               }
             </div>

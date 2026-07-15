@@ -18,6 +18,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { environment } from '../../../../environments/environment';
+import { formatScanFrequency } from '../../../shared/plan-features';
 
 import { CyberscanService, Plan } from '../services/cyberscan.service';
 import { GlobeComponent } from '../../../shared/globe/globe.component';
@@ -332,15 +333,27 @@ export class LandingComponent implements OnInit, AfterViewInit {
     return (cents / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
   }
 
-  getPlanFeatures(plan: Plan): string[] {
-    const features: string[] = [
-      `${plan.max_sites} site${plan.max_sites > 1 ? 's' : ''}`,
-      `Scan tous les ${plan.scan_interval_days} jours`,
-      'Rapport PDF complet',
-      'Modules Tier 1 & 2',
+  getPlanFeatures(plan: Plan): { label: string; detail?: string }[] {
+    const s = plan.max_sites > 1 ? 's' : '';
+    const features: { label: string; detail?: string }[] = [
+      { label: `${plan.max_sites} site${s} surveillé${s}` },
+      { label: formatScanFrequency(plan.scan_interval_days) },
+      { label: 'Rapport clair, prêt à présenter' },
+      {
+        label: 'Sécurité essentielle',
+        detail: 'SSL/TLS, en-têtes de sécurité, DNS, e-mail (SPF/DMARC), cookies, réputation IP…',
+      },
     ];
-    if (plan.tier_level >= 3) features.push('Modules Tier 3 (TLS, Threat Intel, Fingerprint)');
-    if (plan.tier_level >= 4) features.push('Modules Tier 4 (JWT, Redirects, Clickjacking)');
+    if (plan.tier_level >= 3)
+      features.push({
+        label: 'Analyse avancée',
+        detail: 'Chiffrement approfondi, réputation & menaces, empreinte technologique',
+      });
+    if (plan.tier_level >= 4)
+      features.push({
+        label: 'Analyse experte',
+        detail: 'Authentification (JWT), redirections ouvertes, détournement de clic',
+      });
     return features;
   }
 
