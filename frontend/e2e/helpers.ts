@@ -43,3 +43,28 @@ export async function login(page: Page, email: string): Promise<void> {
     await page.waitForURL((url) => !url.pathname.startsWith('/auth'), { waitUntil: 'commit', timeout: 15_000 });
   });
 }
+
+/**
+ * Octroie a l'utilisateur connecte un abonnement ACTIF du plan donne, via le checkout
+ * DEV_MODE (sans Stripe — actif quand APP_ENV=development, cas de la CI E2E).
+ * Necessaire pour tester les features gatees par tier (dark web = Pro, etc.).
+ * La page doit etre authentifiee (token cv_token present en sessionStorage).
+ */
+export async function upgradeToPlan(
+  page: Page,
+  planName: 'starter' | 'pro' | 'business'
+): Promise<void> {
+  const token = await page.evaluate(() => sessionStorage.getItem('cv_token'));
+  if (!token) throw new Error('Token cv_token introuvable — utilisateur non connecte');
+
+  const plansRes = await page.request.get('/api/v1/plans');
+  if (!plansRes.ok()) throw new Error(`GET /api/v1/plans a echoue: ${plansRes.status()}`);
+  const plans: Array<{ id: number; name: string }> = await plansRes.json();
+  const plan = plans.find((p) => p.name === planName);
+  if (!plan) throw new Error(`Plan "${planName}" introuvable dans /api/v1/plans`);
+
+  const res = await page.request.post(`/api/v1/subscriptions/checkout/${plan.id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok()) throw new Error(`Checkout ${planName} a echoue: ${res.status()}`);
+}
