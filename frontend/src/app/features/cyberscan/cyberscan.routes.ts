@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from '../../core/guards/auth.guard';
 import { rssiGuard } from '../../core/guards/rssi.guard';
+import { rssiClientGuard } from '../../core/guards/rssi-client.guard';
 
 export const CYBERSCAN_ROUTES: Routes = [
   {
@@ -77,6 +78,13 @@ export const CYBERSCAN_ROUTES: Routes = [
       import('./client-detail/client-detail.component').then(m => m.ClientDetailComponent),
     canActivate: [rssiGuard],
     title: 'Détail client — Rocher Cybersécurité',
+  },
+  {
+    path: 'espace-client',
+    loadComponent: () =>
+      import('./client-portal/client-portal.component').then(m => m.ClientPortalComponent),
+    canActivate: [rssiClientGuard],
+    title: 'Mon espace sécurité — Rocher Cybersécurité',
   },
   {
     path: 'sensibilisation',

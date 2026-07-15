@@ -77,8 +77,19 @@
         </div>
       </div>
 
-      <!-- Report button -->
-      <div class="flex justify-end mb-4">
+      <!-- Actions header -->
+      <div class="flex justify-end gap-2 mb-4">
+        <button
+          type="button"
+          mat-stroked-button
+          (click)="inviteClient()"
+          [disabled]="inviting()"
+          matTooltip="Créer/lier le compte du client et lui envoyer l'accès à son espace"
+          class="!border-emerald-600/50 !text-emerald-300 hover:!bg-emerald-500/10"
+        >
+          <mat-icon style="font-size: 18px; height: 18px; width: 18px">person_add</mat-icon>
+          {{ inviting() ? 'Envoi…' : 'Inviter le client' }}
+        </button>
         <button
           type="button"
           mat-stroked-button

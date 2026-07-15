@@ -271,6 +271,15 @@ export class RssiService {
     return this.http.delete<void>(`${API}/clients/${id}`);
   }
 
+  inviteClient(
+    id: number
+  ): Observable<{ status: string; email: string; account_created: boolean }> {
+    return this.http.post<{ status: string; email: string; account_created: boolean }>(
+      `${API}/clients/${id}/invite`,
+      {}
+    );
+  }
+
   // ── Visits ───────────────────────────────────────────────────────────────────
 
   getVisits(clientId: number): Observable<RssiVisit[]> {

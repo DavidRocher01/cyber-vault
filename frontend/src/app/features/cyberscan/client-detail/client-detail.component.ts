@@ -332,6 +332,40 @@ export class ClientDetailComponent implements OnInit {
       });
   }
 
+  // ── Portail client : invitation ─────────────────────────────────────────────
+
+  inviting = signal(false);
+
+  inviteClient() {
+    const c = this.client();
+    if (!c) return;
+    if (!c.email) {
+      this.snack.open("Renseignez l'email du client avant de l'inviter.", 'Fermer', {
+        duration: 4000,
+      });
+      return;
+    }
+    this.inviting.set(true);
+    this.rssi.inviteClient(c.id).subscribe({
+      next: res => {
+        this.inviting.set(false);
+        this.snack.open(
+          res.account_created
+            ? `Invitation envoyée à ${res.email} (compte créé).`
+            : `Invitation envoyée à ${res.email}.`,
+          'OK',
+          { duration: 5000 }
+        );
+      },
+      error: err => {
+        this.inviting.set(false);
+        this.snack.open(err.error?.detail || "Erreur lors de l'invitation", 'Fermer', {
+          duration: 4000,
+        });
+      },
+    });
+  }
+
   // ── Visits ────────────────────────────────────────────────────────────────
 
   addVisit() {

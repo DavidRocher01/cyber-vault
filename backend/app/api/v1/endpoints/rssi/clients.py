@@ -1,7 +1,7 @@
 from datetime import UTC, date, datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -417,3 +417,69 @@ async def unlink_site_from_client(
 
     site.rssi_client_id = None
     await db.commit()
+
+
+@router.post("/clients/{client_id}/invite")
+async def invite_client_to_portal(
+    client_id: int,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_rssi_consultant),
+    db: AsyncSession = Depends(get_db),
+):
+    """Invite le client à son espace : crée (ou lie) un compte User avec l'email du client,
+    rattache le RssiClient (client_user_id) et envoie un e-mail de définition de mot de passe
+    (réutilise le flux reset-password). Le client accède ensuite à /espace-client."""
+    import secrets
+    from datetime import timedelta
+
+    from app.core.config import settings
+    from app.core.security import hash_password, hash_token
+    from app.models.password_reset_token import PasswordResetToken
+    from app.services.email_service import send_password_reset
+
+    client = await _get_client_or_404(client_id, current_user.id, db)
+    if not client.email:
+        raise HTTPException(
+            status_code=422, detail="Renseignez l'email du client avant de l'inviter."
+        )
+
+    user = (await db.execute(select(User).where(User.email == client.email))).scalar_one_or_none()
+    account_created = False
+    if user is None:
+        user = User(
+            email=client.email,
+            hashed_password=hash_password(secrets.token_urlsafe(32)),
+            is_active=True,
+        )
+        db.add(user)
+        await db.flush()
+        account_created = True
+
+    # Ce compte ne doit pas déjà être rattaché à un AUTRE client (unicité du portail).
+    other = (
+        await db.execute(
+            select(RssiClient).where(
+                RssiClient.client_user_id == user.id, RssiClient.id != client.id
+            )
+        )
+    ).scalar_one_or_none()
+    if other is not None:
+        raise HTTPException(
+            status_code=409, detail="Ce compte est déjà rattaché à un autre client."
+        )
+
+    client.client_user_id = user.id
+
+    raw_token = secrets.token_urlsafe(32)
+    db.add(
+        PasswordResetToken(
+            user_id=user.id,
+            token=hash_token(raw_token),
+            expires_at=datetime.now(UTC) + timedelta(days=7),
+        )
+    )
+    await db.commit()
+
+    reset_url = f"{settings.FRONTEND_URL}/auth/reset-password?token={raw_token}"
+    background_tasks.add_task(send_password_reset, client.email, reset_url)
+    return {"status": "invited", "email": client.email, "account_created": account_created}
