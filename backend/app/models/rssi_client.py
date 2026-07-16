@@ -18,6 +18,14 @@ class RssiClient(Base):
     client_user_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id"), nullable=True, unique=True, index=True
     )
+    # Sensibilisation NIS2 : organisation de formation liée (créée à la demande via
+    # "Activer la sensibilisation"). Nullable = additif ; les orgs autonomes restent NULL.
+    awareness_organization_id: Mapped[int | None] = mapped_column(
+        ForeignKey("awareness_organizations.id", ondelete="SET NULL"),
+        nullable=True,
+        unique=True,
+        index=True,
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     description: Mapped[str | None] = mapped_column(String(1000), nullable=True)

@@ -100,6 +100,29 @@
           <mat-icon style="font-size: 18px; height: 18px; width: 18px">picture_as_pdf</mat-icon>
           {{ generatingReport() ? 'Génération…' : 'Générer le rapport PDF' }}
         </button>
+        @if (client()?.awareness_organization_id; as orgId) {
+          <a
+            [routerLink]="['/awareness/org', orgId]"
+            mat-stroked-button
+            matTooltip="Gérer les apprenants et la formation NIS2 de ce client"
+            class="!border-purple-600/50 !text-purple-300 hover:!bg-purple-500/10"
+          >
+            <mat-icon style="font-size: 18px; height: 18px; width: 18px">school</mat-icon>
+            Formation NIS2
+          </a>
+        } @else {
+          <button
+            type="button"
+            mat-stroked-button
+            (click)="enableAwareness()"
+            [disabled]="enablingAwareness()"
+            matTooltip="Créer l'organisation de sensibilisation liée à ce client (une seule saisie)"
+            class="!border-purple-600/50 !text-purple-300 hover:!bg-purple-500/10"
+          >
+            <mat-icon style="font-size: 18px; height: 18px; width: 18px">school</mat-icon>
+            {{ enablingAwareness() ? 'Activation…' : 'Activer la sensibilisation' }}
+          </button>
+        }
       </div>
 
       <!-- Confirmation suppression -->

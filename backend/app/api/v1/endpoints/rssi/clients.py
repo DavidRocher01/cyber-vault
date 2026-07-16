@@ -66,6 +66,7 @@ class RssiClientOut(BaseModel):
     notion_workspace_url: str | None
     pipedrive_deal_id: str | None
     pennylane_customer_id: str | None
+    awareness_organization_id: int | None
     created_at: datetime
     updated_at: datetime | None
     sites_count: int
@@ -114,6 +115,7 @@ def _build_client_out(
         notion_workspace_url=c.notion_workspace_url,
         pipedrive_deal_id=c.pipedrive_deal_id,
         pennylane_customer_id=c.pennylane_customer_id,
+        awareness_organization_id=c.awareness_organization_id,
         created_at=c.created_at,
         updated_at=c.updated_at,
         sites_count=sites_count,
@@ -483,3 +485,56 @@ async def invite_client_to_portal(
     reset_url = f"{settings.FRONTEND_URL}/auth/reset-password?token={raw_token}"
     background_tasks.add_task(send_password_reset, client.email, reset_url)
     return {"status": "invited", "email": client.email, "account_created": account_created}
+
+
+@router.post("/clients/{client_id}/awareness")
+async def enable_client_awareness(
+    client_id: int,
+    current_user: User = Depends(get_rssi_consultant),
+    db: AsyncSession = Depends(get_db),
+):
+    """Active la sensibilisation NIS2 pour un client : crée (ou renvoie) l'organisation de
+    formation liée, propriété du consultant. Idempotent (unifie client RSSI <-> org awareness)."""
+    from sqlalchemy import func
+
+    from app.models.awareness_learner import AwarenessLearner
+    from app.models.awareness_organization import AwarenessOrganization
+
+    client = await _get_client_or_404(client_id, current_user.id, db)
+
+    async def _out(org: AwarenessOrganization, already: bool) -> dict:
+        count = (
+            await db.execute(
+                select(func.count(AwarenessLearner.id)).where(
+                    AwarenessLearner.organization_id == org.id
+                )
+            )
+        ).scalar()
+        return {
+            "id": org.id,
+            "name": org.name,
+            "max_learners": org.max_learners,
+            "learner_count": count or 0,
+            "already": already,
+        }
+
+    # Déjà liée -> renvoie l'organisation existante
+    if client.awareness_organization_id is not None:
+        org = (
+            await db.execute(
+                select(AwarenessOrganization).where(
+                    AwarenessOrganization.id == client.awareness_organization_id
+                )
+            )
+        ).scalar_one_or_none()
+        if org is not None:
+            return await _out(org, already=True)
+
+    # Sinon création + liaison (même propriétaire que le consultant, isolation cohérente).
+    seats = {"essentiel": 10, "premium": 25, "excellence": 50}.get(client.formula or "", 10)
+    org = AwarenessOrganization(owner_user_id=current_user.id, name=client.name, max_learners=seats)
+    db.add(org)
+    await db.flush()
+    client.awareness_organization_id = org.id
+    await db.commit()
+    return await _out(org, already=False)

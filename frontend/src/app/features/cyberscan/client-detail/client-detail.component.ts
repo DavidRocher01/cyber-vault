@@ -366,6 +366,33 @@ export class ClientDetailComponent implements OnInit {
     });
   }
 
+  // ── Sensibilisation : activation de l'organisation liée ──────────────────────
+
+  enablingAwareness = signal(false);
+
+  enableAwareness() {
+    const c = this.client();
+    if (!c) return;
+    this.enablingAwareness.set(true);
+    this.rssi.enableAwareness(c.id).subscribe({
+      next: org => {
+        this.enablingAwareness.set(false);
+        this.client.set({ ...c, awareness_organization_id: org.id });
+        this.snack.open(
+          org.already ? 'Sensibilisation déjà active' : 'Sensibilisation activée pour ce client',
+          'OK',
+          { duration: 3000 }
+        );
+      },
+      error: err => {
+        this.enablingAwareness.set(false);
+        this.snack.open(err.error?.detail || "Erreur lors de l'activation", 'Fermer', {
+          duration: 4000,
+        });
+      },
+    });
+  }
+
   // ── Visits ────────────────────────────────────────────────────────────────
 
   addVisit() {
