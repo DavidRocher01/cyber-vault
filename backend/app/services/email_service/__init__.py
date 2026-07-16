@@ -17,6 +17,7 @@ Sous-modules :
               send_booking_admin_notification
   awareness — send_awareness_magic_link, send_awareness_completion,
               send_awareness_at_risk_alert
+  rssi      — send_portal_invitation
 """
 
 from .alerts import (
@@ -33,6 +34,7 @@ from .awareness import (
     send_awareness_magic_link,
 )
 from .base import _send, _send_via_resend, _send_via_smtp
+from .rssi import send_portal_invitation
 from .scan import send_monthly_digest, send_scan_report, send_ssl_expiry_alert
 
 __all__ = [
@@ -56,4 +58,6 @@ __all__ = [
     "send_awareness_magic_link",
     "send_awareness_completion",
     "send_awareness_at_risk_alert",
+    # rssi
+    "send_portal_invitation",
 ]

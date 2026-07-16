@@ -437,7 +437,9 @@ async def invite_client_to_portal(
     from app.core.config import settings
     from app.core.security import hash_password, hash_token
     from app.models.password_reset_token import PasswordResetToken
-    from app.services.email_service import send_password_reset
+    from app.services.email_service import send_portal_invitation
+
+    INVITE_TTL_DAYS = 7
 
     client = await _get_client_or_404(client_id, current_user.id, db)
     if not client.email:
@@ -477,13 +479,20 @@ async def invite_client_to_portal(
         PasswordResetToken(
             user_id=user.id,
             token=hash_token(raw_token),
-            expires_at=datetime.now(UTC) + timedelta(days=7),
+            expires_at=datetime.now(UTC) + timedelta(days=INVITE_TTL_DAYS),
         )
     )
     await db.commit()
 
-    reset_url = f"{settings.FRONTEND_URL}/auth/reset-password?token={raw_token}"
-    background_tasks.add_task(send_password_reset, client.email, reset_url)
+    invite_url = f"{settings.FRONTEND_URL}/auth/reset-password?token={raw_token}&invite=1"
+    background_tasks.add_task(
+        send_portal_invitation,
+        client.email,
+        invite_url,
+        client.name,
+        current_user.display_name,
+        INVITE_TTL_DAYS,
+    )
     return {"status": "invited", "email": client.email, "account_created": account_created}
 
 

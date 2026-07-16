@@ -159,7 +159,7 @@ async def test_invite_creates_and_links_account(http_client: AsyncClient):
     ch, cid_consult = await _make_consultant(http_client, "inv_consult@test.com")
     client_id = await _consultant_client_with_email(cid_consult, "Acme", "newclient@test.com")
 
-    with patch("app.services.email_service.send_password_reset") as mock_email:
+    with patch("app.services.email_service.send_portal_invitation") as mock_email:
         r = await http_client.post(f"{BASE}/rssi/clients/{client_id}/invite", headers=ch)
     assert r.status_code == 200
     assert r.json()["account_created"] is True
@@ -263,11 +263,11 @@ async def test_full_journey_consultant_to_client(http_client: AsyncClient):
     assert r.status_code == 201, r.text
 
     # 5. Inviter le client (on capture le token brut depuis l'e-mail mocké)
-    with patch("app.services.email_service.send_password_reset") as mock_email:
+    with patch("app.services.email_service.send_portal_invitation") as mock_email:
         r = await http_client.post(f"{BASE}/rssi/clients/{client_id}/invite", headers=ch)
     assert r.status_code == 200, r.text
-    reset_url = mock_email.call_args[0][1]
-    token = reset_url.split("token=")[1]
+    invite_url = mock_email.call_args[0][1]
+    token = invite_url.split("token=")[1].split("&")[0]
 
     # 6. Le client définit son mot de passe (vrai flux reset) puis se connecte
     r = await http_client.post(
