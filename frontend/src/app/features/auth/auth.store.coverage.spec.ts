@@ -42,8 +42,20 @@ beforeAll(() => {
 
 function makeStore(returnUrl: string | null = null) {
   const loginMock = vi.fn();
+  // me() est appele par navigateAfterLogin quand aucun returnUrl explicite n'est
+  // fourni (routage par role). Par defaut : utilisateur sans role => home '/'.
+  const meMock = vi.fn(() =>
+    of({
+      id: 1,
+      email: 'u@test.com',
+      is_active: true,
+      totp_enabled: false,
+      is_rssi_consultant: false,
+      is_portal_client: false,
+    })
+  );
 
-  const authServiceMock = { login: loginMock } as unknown as AuthService;
+  const authServiceMock = { login: loginMock, me: meMock } as unknown as AuthService;
 
   const navigateByUrlMock = vi.fn();
   const routerMock = { navigateByUrl: navigateByUrlMock } as unknown as Router;
@@ -76,7 +88,7 @@ function makeStore(returnUrl: string | null = null) {
   });
 
   const store = TestBed.inject(AuthStore);
-  return { store, loginMock, navigateByUrlMock, routeMock };
+  return { store, loginMock, meMock, navigateByUrlMock, routeMock };
 }
 
 /** Lit la valeur synchrone courante d'un selector (observable a valeur immediate). */
@@ -201,6 +213,61 @@ describe('AuthStore — login redirection & returnUrl', () => {
 
   it('rejette /awareness (portail magic-link)', () => {
     expect(loginAndGetNav('/awareness/portal')).toHaveBeenCalledWith('/');
+  });
+});
+
+// ── login — routage par role (sans returnUrl explicite) ─────────────────────────
+
+describe('AuthStore — routage par role', () => {
+  const baseUser = {
+    id: 1,
+    email: 'u@test.com',
+    is_active: true,
+    totp_enabled: false,
+    is_rssi_consultant: false,
+    is_portal_client: false,
+  };
+
+  function loginWithRole(role: Partial<typeof baseUser>) {
+    const { store, loginMock, meMock, navigateByUrlMock } = makeStore(null);
+    meMock.mockReturnValue(of({ ...baseUser, ...role }));
+    loginMock.mockReturnValue(of({ access_token: 'tok', token_type: 'bearer' }));
+    store.login({ email: 'user@test.com', password: 'Pw1!' });
+    return navigateByUrlMock;
+  }
+
+  it('consultant -> /consultant', () => {
+    expect(loginWithRole({ is_rssi_consultant: true })).toHaveBeenCalledWith('/consultant');
+  });
+
+  it('client de portail -> /espace-client', () => {
+    expect(loginWithRole({ is_portal_client: true })).toHaveBeenCalledWith('/espace-client');
+  });
+
+  it('double role consultant + client -> /consultant (priorite)', () => {
+    expect(
+      loginWithRole({ is_rssi_consultant: true, is_portal_client: true })
+    ).toHaveBeenCalledWith('/consultant');
+  });
+
+  it('utilisateur scanner classique -> /', () => {
+    expect(loginWithRole({})).toHaveBeenCalledWith('/');
+  });
+
+  it('si /users/me echoue, fallback sur /', () => {
+    const { store, loginMock, meMock, navigateByUrlMock } = makeStore(null);
+    meMock.mockReturnValue(throwError(() => ({ status: 500 })));
+    loginMock.mockReturnValue(of({ access_token: 'tok', token_type: 'bearer' }));
+    store.login({ email: 'user@test.com', password: 'Pw1!' });
+    expect(navigateByUrlMock).toHaveBeenCalledWith('/');
+  });
+
+  it('un returnUrl explicite valide court-circuite le routage par role (pas d appel me)', () => {
+    const { store, loginMock, meMock, navigateByUrlMock } = makeStore('/dashboard');
+    loginMock.mockReturnValue(of({ access_token: 'tok', token_type: 'bearer' }));
+    store.login({ email: 'user@test.com', password: 'Pw1!' });
+    expect(navigateByUrlMock).toHaveBeenCalledWith('/dashboard');
+    expect(meMock).not.toHaveBeenCalled();
   });
 });
 

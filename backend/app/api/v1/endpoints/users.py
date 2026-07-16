@@ -48,8 +48,20 @@ class PasswordUpdate(BaseModel):
 
 
 @router.get("/me", response_model=UserOut)
-async def get_profile(current_user: User = Depends(get_current_user)):
-    return current_user
+async def get_profile(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.rssi_client import RssiClient
+
+    linked_client = (
+        await db.execute(
+            select(RssiClient.id).where(RssiClient.client_user_id == current_user.id).limit(1)
+        )
+    ).scalar_one_or_none()
+    out = UserOut.model_validate(current_user)
+    out.is_portal_client = linked_client is not None
+    return out
 
 
 @router.put("/me/email", response_model=UserOut)

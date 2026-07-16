@@ -33,6 +33,15 @@ export interface AccessTokenResponse {
 
 export type LoginResponse = AccessTokenResponse | { requires_2fa: true };
 
+export interface CurrentUser {
+  id: number;
+  email: string;
+  is_active: boolean;
+  totp_enabled: boolean;
+  is_rssi_consultant: boolean;
+  is_portal_client: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private get session(): Storage {
@@ -66,6 +75,10 @@ export class AuthService {
 
   register(email: string, password: string) {
     return this.http.post(`${API}/auth/register`, { email, password });
+  }
+
+  me() {
+    return this.http.get<CurrentUser>(`${API}/users/me`, { withCredentials: true });
   }
 
   refresh() {

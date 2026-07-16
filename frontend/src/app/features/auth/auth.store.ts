@@ -34,11 +34,12 @@ export class AuthStore extends ComponentStore<AuthState> {
     });
   }
 
-  private get returnUrl(): string {
+  // returnUrl explicite et sûr, sinon null (=> on route alors selon le rôle).
+  // N'honore que les pages de l'app principale (racine) ; rejette les redirections
+  // externes (//evil, /\evil) et les zones a part (/auth = boucle de login,
+  // /vault = flow crypto, /awareness = portail magic-link).
+  private get explicitReturnUrl(): string | null {
     const url = this.route.snapshot.queryParamMap.get('returnUrl') || '';
-    // returnUrl n'est honore que pour les pages de l'app principale (racine).
-    // On rejette les redirections externes (//evil, /\evil) et les zones a part
-    // (/auth = boucle de login, /vault = flow crypto, /awareness = portail magic-link).
     const isMainAppPath =
       url.startsWith('/') &&
       !url.startsWith('//') &&
@@ -46,7 +47,27 @@ export class AuthStore extends ComponentStore<AuthState> {
       !url.startsWith('/auth') &&
       !url.startsWith('/vault') &&
       !url.startsWith('/awareness');
-    return isMainAppPath ? url : '/';
+    return isMainAppPath ? url : null;
+  }
+
+  // Destination par defaut selon le role (priorite : consultant > client > scanner).
+  private homeForRole(u: { is_rssi_consultant: boolean; is_portal_client: boolean }): string {
+    if (u.is_rssi_consultant) return '/consultant';
+    if (u.is_portal_client) return '/espace-client';
+    return '/';
+  }
+
+  // Apres connexion : honore un returnUrl explicite, sinon route selon le role.
+  private navigateAfterLogin(): void {
+    const explicit = this.explicitReturnUrl;
+    if (explicit) {
+      this.router.navigateByUrl(explicit);
+      return;
+    }
+    this.authService.me().subscribe({
+      next: u => this.router.navigateByUrl(this.homeForRole(u)),
+      error: () => this.router.navigateByUrl('/'),
+    });
   }
 
   readonly login = this.effect<{ email: string; password: string }>(credentials$ =>
@@ -65,7 +86,7 @@ export class AuthStore extends ComponentStore<AuthState> {
                 });
               } else {
                 this.patchState({ loading: false, requires2fa: false });
-                this.router.navigateByUrl(this.returnUrl);
+                this.navigateAfterLogin();
               }
             },
             (err: any) => {
@@ -93,7 +114,7 @@ export class AuthStore extends ComponentStore<AuthState> {
                 pendingEmail: null,
                 pendingPassword: null,
               });
-              this.router.navigateByUrl(this.returnUrl);
+              this.navigateAfterLogin();
             },
             (err: any) => {
               const msg = err.error?.detail ?? 'Code invalide';
