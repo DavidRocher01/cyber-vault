@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 export const NEED_OPTIONS = [
+  { value: 'rssi-externalise', label: 'RSSI externalisé — votre RSSI à temps partagé (sur devis)' },
   { value: 'audit-flash', label: 'Audit Flash — 390 € HT (site vitrine, blog)' },
   { value: 'audit-app', label: 'Audit App-Check — 990 € HT (SaaS, e-commerce)' },
   { value: 'pentest', label: 'Pentest léger — 2 490 € HT (données sensibles)' },
