@@ -14,13 +14,17 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
 
-router = APIRouter(prefix="/dev", tags=["dev"])
-
 
 def _require_dev() -> None:
     if not settings.is_dev_mode:
-        # En prod : la route se comporte comme si elle n'existait pas.
+        # En prod : tout le routeur se comporte comme s'il n'existait pas (404),
+        # AVANT meme la verification d'auth (pas de fuite d'existence de route).
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+
+
+# Garde au niveau du routeur : _require_dev s'execute avant les dependances de route
+# (dont get_current_user), donc 404 pour tous en prod.
+router = APIRouter(prefix="/dev", tags=["dev"], dependencies=[Depends(_require_dev)])
 
 
 @router.post("/become-consultant")
@@ -32,7 +36,6 @@ async def become_consultant(
 
     Remplace, pour l'E2E, le toggle admin `PATCH /admin/users/{id}/rssi` qui
     exige la clef ADMIN_API_KEY (absente de l'environnement E2E)."""
-    _require_dev()
     current_user.is_rssi_consultant = True
     await db.commit()
     return {"id": current_user.id, "is_rssi_consultant": True}
