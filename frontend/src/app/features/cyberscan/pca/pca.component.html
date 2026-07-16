@@ -30,6 +30,7 @@
             <mat-form-field appearance="outline" class="w-full">
               <mat-label>Nom de l'entreprise *</mat-label>
               <input matInput formControlName="name" placeholder="Acme SAS" />
+              <mat-error>Ce champ est requis.</mat-error>
             </mat-form-field>
             <mat-form-field appearance="outline" class="w-full">
               <mat-label>Secteur d'activité</mat-label>
@@ -59,7 +60,7 @@
               mat-flat-button
               color="primary"
               matStepperNext
-              [disabled]="companyForm.invalid"
+              (click)="companyForm.markAllAsTouched()"
             >
               Suivant <mat-icon>arrow_forward</mat-icon>
             </button>
@@ -88,6 +89,7 @@
                 <mat-form-field appearance="outline" class="w-full col-span-2">
                   <mat-label>Nom du système *</mat-label>
                   <input matInput formControlName="name" placeholder="ERP, CRM, Site web..." />
+                  <mat-error>Ce champ est requis.</mat-error>
                 </mat-form-field>
                 <mat-form-field appearance="outline" class="w-full col-span-2">
                   <mat-label>Description</mat-label>
@@ -154,6 +156,7 @@
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>Nom *</mat-label>
                   <input matInput formControlName="name" placeholder="Prénom Nom" />
+                  <mat-error>Ce champ est requis.</mat-error>
                 </mat-form-field>
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>Rôle</mat-label>
@@ -229,7 +232,7 @@
               type="button"
               mat-flat-button
               color="primary"
-              [disabled]="companyForm.invalid || generating()"
+              [disabled]="generating()"
               (click)="generate()"
             >
               @if (generating()) {

@@ -25,7 +25,7 @@ interface FormulaOption {
   template: `
     <form
       [formGroup]="form"
-      (ngSubmit)="save.emit()"
+      (ngSubmit)="submitForm()"
       class="bg-gray-900 border border-gray-800 rounded-xl p-6"
     >
       <h2 class="text-sm font-semibold text-gray-300 mb-4">Informations client</h2>
@@ -33,6 +33,7 @@ interface FormulaOption {
         <mat-form-field appearance="outline" class="w-full">
           <mat-label>Nom *</mat-label>
           <input matInput formControlName="name" placeholder="Acme Corp" />
+          <mat-error>Ce champ est requis.</mat-error>
         </mat-form-field>
         <mat-form-field appearance="outline" class="w-full">
           <mat-label>Email</mat-label>
@@ -97,7 +98,7 @@ interface FormulaOption {
       </div>
 
       <div class="flex justify-end">
-        <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid || saving">
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving">
           <mat-icon>save</mat-icon>
           {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
         </button>
@@ -111,4 +112,12 @@ export class ClientInfoPanelComponent {
   @Input() formulas: FormulaOption[] = [];
 
   @Output() save = new EventEmitter<void>();
+
+  submitForm(): void {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    this.save.emit();
+  }
 }

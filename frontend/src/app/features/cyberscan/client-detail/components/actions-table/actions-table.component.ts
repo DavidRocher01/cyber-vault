@@ -71,12 +71,13 @@ interface LabelOption {
       @if (showAddForm) {
         <form
           [formGroup]="addForm"
-          (ngSubmit)="addAction.emit()"
+          (ngSubmit)="submitAdd()"
           class="bg-gray-900 border border-cyan-700/50 rounded-xl p-4 mb-4 grid grid-cols-1 md:grid-cols-3 gap-3"
         >
           <mat-form-field appearance="outline" class="w-full md:col-span-2">
             <mat-label>Titre *</mat-label>
             <input matInput formControlName="title" placeholder="Mettre en place MFA…" />
+            <mat-error>Ce champ est requis.</mat-error>
           </mat-form-field>
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>Priorité</mat-label>
@@ -120,14 +121,7 @@ interface LabelOption {
           </mat-form-field>
           <div class="md:col-span-3 flex justify-end gap-2">
             <button type="button" mat-stroked-button (click)="toggleAddForm.emit()">Annuler</button>
-            <button
-              mat-flat-button
-              color="primary"
-              type="submit"
-              [disabled]="addForm.invalid || saving"
-            >
-              Créer
-            </button>
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving">Créer</button>
           </div>
         </form>
       }
@@ -146,12 +140,13 @@ interface LabelOption {
             @if (editingActionId === a.id) {
               <form
                 [formGroup]="editForm"
-                (ngSubmit)="saveAction.emit(a.id)"
+                (ngSubmit)="submitEdit(a.id)"
                 class="bg-gray-900 border border-cyan-700/50 rounded-xl p-4 grid grid-cols-1 md:grid-cols-3 gap-3"
               >
                 <mat-form-field appearance="outline" class="w-full md:col-span-2">
                   <mat-label>Titre *</mat-label>
                   <input matInput formControlName="title" placeholder="Titre de l'action" />
+                  <mat-error>Ce champ est requis.</mat-error>
                 </mat-form-field>
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>Statut</mat-label>
@@ -205,14 +200,7 @@ interface LabelOption {
                   <button type="button" mat-stroked-button (click)="cancelEdit.emit()">
                     Annuler
                   </button>
-                  <button
-                    mat-flat-button
-                    color="primary"
-                    type="submit"
-                    [disabled]="editForm.invalid"
-                  >
-                    Enregistrer
-                  </button>
+                  <button mat-flat-button color="primary" type="submit">Enregistrer</button>
                 </div>
               </form>
             } @else {
@@ -342,6 +330,22 @@ export class ActionsTableComponent {
   @Output() deleteAction = new EventEmitter<number>();
 
   readonly today = new Date().toISOString().slice(0, 10);
+
+  submitAdd(): void {
+    if (this.addForm.invalid) {
+      this.addForm.markAllAsTouched();
+      return;
+    }
+    this.addAction.emit();
+  }
+
+  submitEdit(id: number): void {
+    if (this.editForm.invalid) {
+      this.editForm.markAllAsTouched();
+      return;
+    }
+    this.saveAction.emit(id);
+  }
 
   formatDate(d: string | null): string {
     if (!d) return '—';
