@@ -1,6 +1,6 @@
 import { Page } from '@playwright/test';
 
-const PASSWORD = 'StrongPass123!';
+export const PASSWORD = 'StrongPass123!';
 
 // Transient proxy "socket hang up" errors can occur under test load.
 // Retry up to 3 times with a short back-off before letting the test fail.
@@ -42,6 +42,54 @@ export async function login(page: Page, email: string): Promise<void> {
     await page.getByRole('button', { name: /se connecter/i }).click();
     await page.waitForURL((url) => !url.pathname.startsWith('/auth'), { waitUntil: 'commit', timeout: 15_000 });
   });
+}
+
+/** Lit le token d'acces de l'utilisateur connecte (sessionStorage). */
+async function authHeader(page: Page): Promise<{ Authorization: string }> {
+  const token = await page.evaluate(() => sessionStorage.getItem('cv_token'));
+  if (!token) throw new Error('Token cv_token introuvable — utilisateur non connecte');
+  return { Authorization: `Bearer ${token}` };
+}
+
+/**
+ * Active le role consultant RSSI sur le compte connecte, via l'endpoint DEV_MODE
+ * `/dev/become-consultant` (sans clef admin — indisponible en E2E). Miroir de
+ * upgradeToPlan : affordance de test active seulement en APP_ENV=development.
+ */
+export async function becomeConsultant(page: Page): Promise<void> {
+  const res = await page.request.post('/api/v1/dev/become-consultant', {
+    headers: await authHeader(page),
+  });
+  if (!res.ok()) throw new Error(`become-consultant a echoue: ${res.status()}`);
+}
+
+/**
+ * Cree un client RSSI (API) rattache au consultant connecte, puis l'invite au portail.
+ * Retourne l'id du client et le CHEMIN d'activation (token brut expose par l'invite en
+ * DEV_MODE, sinon irrecuperable car hache en base).
+ */
+export async function createClientAndInvite(
+  page: Page,
+  clientEmail: string,
+  clientName = 'Client E2E'
+): Promise<{ clientId: number; activationPath: string }> {
+  const headers = await authHeader(page);
+
+  const created = await page.request.post('/api/v1/rssi/clients', {
+    headers,
+    data: { name: clientName, email: clientEmail, formula: 'essentiel' },
+  });
+  if (!created.ok()) throw new Error(`Creation client a echoue: ${created.status()}`);
+  const clientId = (await created.json()).id as number;
+
+  const invited = await page.request.post(`/api/v1/rssi/clients/${clientId}/invite`, { headers });
+  if (!invited.ok()) throw new Error(`Invitation a echoue: ${invited.status()}`);
+  const inviteUrl = (await invited.json()).invite_url as string | undefined;
+  if (!inviteUrl) throw new Error('invite_url absent — DEV_MODE requis cote backend');
+
+  // URL absolue (FRONTEND_URL) -> chemin relatif utilisable avec baseURL Playwright.
+  const activationPath = inviteUrl.replace(/^https?:\/\/[^/]+/, '');
+  return { clientId, activationPath };
 }
 
 /**

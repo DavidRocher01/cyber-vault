@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from '../../core/guards/auth.guard';
 import { rssiGuard } from '../../core/guards/rssi.guard';
+import { rssiClientGuard } from '../../core/guards/rssi-client.guard';
 
 export const CYBERSCAN_ROUTES: Routes = [
   {
@@ -79,6 +80,13 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Détail client — Rocher Cybersécurité',
   },
   {
+    path: 'espace-client',
+    loadComponent: () =>
+      import('./client-portal/client-portal.component').then(m => m.ClientPortalComponent),
+    canActivate: [rssiClientGuard],
+    title: 'Mon espace sécurité — Rocher Cybersécurité',
+  },
+  {
     path: 'sensibilisation',
     loadComponent: () =>
       import('./sensibilisation/sensibilisation.component').then(m => m.SensibilisationComponent),
@@ -95,7 +103,8 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Tarifs Sensibilisation NIS2 — Rocher Cybersécurité',
   },
   {
-    path: 'awareness',
+    // NB: pas 'awareness' — ce chemin est capté par le portail apprenant (app.routes.ts).
+    path: 'awareness-admin',
     loadComponent: () =>
       import('./awareness-admin/awareness-admin.component').then(m => m.AwarenessAdminComponent),
     canActivate: [authGuard],
@@ -318,6 +327,12 @@ export const CYBERSCAN_ROUTES: Routes = [
     path: 'contact',
     loadComponent: () => import('./contact/contact.component').then(m => m.ContactComponent),
     title: 'Contact — Réserver un audit cybersécurité | Rocher Cybersécurité',
+  },
+  {
+    path: 'rssi-externalise',
+    loadComponent: () =>
+      import('./rssi-externalise/rssi-externalise.component').then(m => m.RssiExternaliseComponent),
+    title: 'RSSI externalisé — votre RSSI à temps partagé | Rocher Cybersécurité',
   },
   {
     path: 'collab/accept/:token',

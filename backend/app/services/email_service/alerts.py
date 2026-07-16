@@ -159,10 +159,13 @@ def send_contact_email(
     contact_email: str,
 ) -> None:
     need_labels = {
+        "rssi-externalise": "RSSI externalisé",
         "audit-flash": "Audit Flash (290 € HT)",
         "audit-app": "Audit App-Check (725 € HT)",
         "pentest": "Pentest léger (1 900 € HT)",
+        "audit-nis2": "Audit NIS2 / RGPD",
         "simulation-phishing": "Simulation de phishing",
+        "sensibilisation-nis2": "Formation NIS2",
         "abonnement": "Abonnement surveillance continue",
         "autre": "Autre / Demande de devis",
     }

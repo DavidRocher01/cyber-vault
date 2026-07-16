@@ -250,8 +250,19 @@
               formControlName="email"
               type="email"
               placeholder="olivier@mon-msp.fr"
-              class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 outline-none focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/10 transition-all"
+              class="w-full bg-gray-800 border rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 outline-none focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/10 transition-all"
+              [class.border-gray-700]="!(form.get('email')?.invalid && form.get('email')?.touched)"
+              [class.border-red-500]="form.get('email')?.invalid && form.get('email')?.touched"
             />
+            @if (form.get('email')?.invalid && form.get('email')?.touched) {
+              <p class="mt-1 text-xs text-red-400">
+                {{
+                  form.get('email')?.hasError('email')
+                    ? 'Adresse email invalide.'
+                    : 'Ce champ est requis.'
+                }}
+              </p>
+            }
           </div>
 
           <!-- Rôle -->
@@ -261,13 +272,18 @@
             >
             <select
               formControlName="role"
-              class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/10 transition-all appearance-none cursor-pointer"
+              class="w-full bg-gray-800 border rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/10 transition-all appearance-none cursor-pointer"
+              [class.border-gray-700]="!(form.get('role')?.invalid && form.get('role')?.touched)"
+              [class.border-red-500]="form.get('role')?.invalid && form.get('role')?.touched"
             >
               <option value="msp">MSP / Infogérant</option>
               <option value="devsecops">DevSecOps / Développeur</option>
               <option value="saas">Éditeur SaaS</option>
               <option value="other">Autre</option>
             </select>
+            @if (form.get('role')?.invalid && form.get('role')?.touched) {
+              <p class="mt-1 text-xs text-red-400">Ce champ est requis.</p>
+            }
           </div>
 
           <!-- Entreprise (optionnel) -->
@@ -296,7 +312,7 @@
           <!-- Submit -->
           <button
             type="submit"
-            [disabled]="form.invalid || loading()"
+            [disabled]="loading()"
             class="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-500 hover:to-cyan-600 border border-cyan-500/40 text-white shadow-lg shadow-cyan-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             @if (loading()) {

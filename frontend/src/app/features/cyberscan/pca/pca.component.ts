@@ -103,7 +103,10 @@ export class PcaComponent {
   }
 
   generate() {
-    if (this.companyForm.invalid) return;
+    if (this.companyForm.invalid) {
+      this.companyForm.markAllAsTouched();
+      return;
+    }
     this.generating.set(true);
 
     const payload = {

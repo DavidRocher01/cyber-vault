@@ -90,8 +90,13 @@
             formControlName="title"
             type="text"
             placeholder="Titre de l'article"
-            class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm outline-none focus:border-cyan-500"
+            class="w-full px-3 py-2 rounded-lg bg-gray-900 border text-white text-sm outline-none focus:border-cyan-500"
+            [class.border-gray-600]="!(form.get('title')?.invalid && form.get('title')?.touched)"
+            [class.border-red-500]="form.get('title')?.invalid && form.get('title')?.touched"
           />
+          @if (form.get('title')?.invalid && form.get('title')?.touched) {
+            <p class="mt-1 text-xs text-red-400">Ce champ est requis.</p>
+          }
         </div>
         <div>
           <label class="block text-xs text-gray-400 mb-1">Slug *</label>
@@ -99,8 +104,13 @@
             formControlName="slug"
             type="text"
             placeholder="mon-article-url"
-            class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm outline-none focus:border-cyan-500"
+            class="w-full px-3 py-2 rounded-lg bg-gray-900 border text-white text-sm outline-none focus:border-cyan-500"
+            [class.border-gray-600]="!(form.get('slug')?.invalid && form.get('slug')?.touched)"
+            [class.border-red-500]="form.get('slug')?.invalid && form.get('slug')?.touched"
           />
+          @if (form.get('slug')?.invalid && form.get('slug')?.touched) {
+            <p class="mt-1 text-xs text-red-400">Ce champ est requis.</p>
+          }
         </div>
         <div>
           <label class="block text-xs text-gray-400 mb-1">Description *</label>
@@ -108,8 +118,17 @@
             formControlName="description"
             rows="2"
             placeholder="Description courte (SEO)"
-            class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm outline-none focus:border-cyan-500 resize-none"
+            class="w-full px-3 py-2 rounded-lg bg-gray-900 border text-white text-sm outline-none focus:border-cyan-500 resize-none"
+            [class.border-gray-600]="
+              !(form.get('description')?.invalid && form.get('description')?.touched)
+            "
+            [class.border-red-500]="
+              form.get('description')?.invalid && form.get('description')?.touched
+            "
           ></textarea>
+          @if (form.get('description')?.invalid && form.get('description')?.touched) {
+            <p class="mt-1 text-xs text-red-400">Ce champ est requis.</p>
+          }
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
@@ -117,8 +136,13 @@
             <input
               formControlName="date"
               type="date"
-              class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm outline-none focus:border-cyan-500"
+              class="w-full px-3 py-2 rounded-lg bg-gray-900 border text-white text-sm outline-none focus:border-cyan-500"
+              [class.border-gray-600]="!(form.get('date')?.invalid && form.get('date')?.touched)"
+              [class.border-red-500]="form.get('date')?.invalid && form.get('date')?.touched"
             />
+            @if (form.get('date')?.invalid && form.get('date')?.touched) {
+              <p class="mt-1 text-xs text-red-400">Ce champ est requis.</p>
+            }
           </div>
           <div>
             <label class="block text-xs text-gray-400 mb-1">Lecture (min)</label>
@@ -126,8 +150,17 @@
               formControlName="readTime"
               type="number"
               min="1"
-              class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm outline-none focus:border-cyan-500"
+              class="w-full px-3 py-2 rounded-lg bg-gray-900 border text-white text-sm outline-none focus:border-cyan-500"
+              [class.border-gray-600]="
+                !(form.get('readTime')?.invalid && form.get('readTime')?.touched)
+              "
+              [class.border-red-500]="
+                form.get('readTime')?.invalid && form.get('readTime')?.touched
+              "
             />
+            @if (form.get('readTime')?.invalid && form.get('readTime')?.touched) {
+              <p class="mt-1 text-xs text-red-400">Ce champ est requis.</p>
+            }
           </div>
         </div>
         <div>
@@ -136,8 +169,15 @@
             formControlName="category"
             type="text"
             placeholder="Audit & Conseils"
-            class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm outline-none focus:border-cyan-500"
+            class="w-full px-3 py-2 rounded-lg bg-gray-900 border text-white text-sm outline-none focus:border-cyan-500"
+            [class.border-gray-600]="
+              !(form.get('category')?.invalid && form.get('category')?.touched)
+            "
+            [class.border-red-500]="form.get('category')?.invalid && form.get('category')?.touched"
           />
+          @if (form.get('category')?.invalid && form.get('category')?.touched) {
+            <p class="mt-1 text-xs text-red-400">Ce champ est requis.</p>
+          }
         </div>
         <div>
           <label class="block text-xs text-gray-400 mb-1">Tags (séparés par virgule)</label>
@@ -165,14 +205,23 @@
           formControlName="htmlContent"
           rows="20"
           placeholder="<p>Contenu de l'article en HTML...</p>"
-          class="flex-1 w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-600 text-white text-xs font-mono outline-none focus:border-cyan-500 resize-none"
+          class="flex-1 w-full px-3 py-2 rounded-lg bg-gray-900 border text-white text-xs font-mono outline-none focus:border-cyan-500 resize-none"
+          [class.border-gray-600]="
+            !(form.get('htmlContent')?.invalid && form.get('htmlContent')?.touched)
+          "
+          [class.border-red-500]="
+            form.get('htmlContent')?.invalid && form.get('htmlContent')?.touched
+          "
         ></textarea>
+        @if (form.get('htmlContent')?.invalid && form.get('htmlContent')?.touched) {
+          <p class="mt-1 text-xs text-red-400">Ce champ est requis.</p>
+        }
       </div>
 
       <div class="md:col-span-2 flex items-center gap-4">
         <button
           type="submit"
-          [disabled]="form.invalid || saving()"
+          [disabled]="saving()"
           class="px-6 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm transition-all disabled:opacity-50"
         >
           {{ saving() ? 'Enregistrement...' : 'Enregistrer' }}

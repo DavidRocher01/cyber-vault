@@ -99,7 +99,10 @@ export class AdminBlogComponent implements OnInit {
   }
 
   save() {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     const v = this.form.value;
     const payload = {
       slug: v.slug!,

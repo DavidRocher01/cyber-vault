@@ -38,7 +38,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
       <div class="max-w-5xl mx-auto">
         <!-- Back -->
         <a
-          routerLink="/awareness"
+          routerLink="/awareness-admin"
           class="inline-flex items-center gap-1.5 text-gray-400 hover:text-white text-sm mb-6 transition-colors"
         >
           <mat-icon class="!text-base">arrow_back</mat-icon> Mes organisations
@@ -123,9 +123,15 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
                     <input
                       type="email"
                       [(ngModel)]="newEmail"
+                      (ngModelChange)="emailError.set(false)"
                       placeholder="alice@entreprise.com"
-                      class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 transition-colors"
+                      class="w-full bg-gray-800 border rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 transition-colors"
+                      [class.border-gray-700]="!emailError()"
+                      [class.border-red-500]="emailError()"
                     />
+                    @if (emailError()) {
+                      <p class="mt-1.5 text-xs text-red-400">L'email du learner est requis.</p>
+                    }
                   </div>
                   <div>
                     <label class="block text-xs font-medium text-gray-400 mb-1.5">Prénom</label>
@@ -152,7 +158,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
                   mat-flat-button
                   class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white !text-sm"
                   (click)="addLearner()"
-                  [disabled]="addingLearner() || !newEmail.trim()"
+                  [disabled]="addingLearner()"
                 >
                   @if (addingLearner()) {
                     <mat-spinner diameter="14" />
@@ -524,6 +530,7 @@ export class AwarenessOrgDetailComponent implements OnInit {
   addingLearner = signal(false);
   importingCsv = signal(false);
   enrollingAll = signal(false);
+  emailError = signal(false);
 
   newEmail = '';
   newFirstName = '';
@@ -573,7 +580,11 @@ export class AwarenessOrgDetailComponent implements OnInit {
   }
 
   addLearner() {
-    if (!this.newEmail.trim()) return;
+    if (!this.newEmail.trim()) {
+      this.emailError.set(true);
+      return;
+    }
+    this.emailError.set(false);
     this.addingLearner.set(true);
     this.svc
       .createLearner(this.orgId(), {

@@ -115,9 +115,15 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
                 <input
                   type="text"
                   [(ngModel)]="newName"
+                  (ngModelChange)="nameError.set(false)"
                   placeholder="Acme Corp"
-                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 transition-colors"
+                  class="w-full bg-gray-800 border rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 transition-colors"
+                  [class.border-gray-700]="!nameError()"
+                  [class.border-red-500]="nameError()"
                 />
+                @if (nameError()) {
+                  <p class="mt-1.5 text-xs text-red-400">Le nom de l'organisation est requis.</p>
+                }
               </div>
 
               <!-- Secteur -->
@@ -158,7 +164,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
                 mat-flat-button
                 class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white"
                 (click)="createOrg()"
-                [disabled]="creating() || !newName.trim()"
+                [disabled]="creating()"
               >
                 @if (creating()) {
                   <mat-spinner diameter="14" />
@@ -170,7 +176,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
               <button
                 mat-stroked-button
                 class="!rounded-xl !border-gray-700 !text-gray-400"
-                (click)="showCreate = false"
+                (click)="showCreate = false; nameError.set(false)"
               >
                 Annuler
               </button>
@@ -345,6 +351,7 @@ export class AwarenessAdminComponent implements OnInit {
   orgs = signal<AwarenessOrganization[]>([]);
   loading = signal(true);
   creating = signal(false);
+  nameError = signal(false);
   showCreate = false;
   newName = '';
   newSector = '';
@@ -390,7 +397,11 @@ export class AwarenessAdminComponent implements OnInit {
   }
 
   createOrg() {
-    if (!this.newName.trim()) return;
+    if (!this.newName.trim()) {
+      this.nameError.set(true);
+      return;
+    }
+    this.nameError.set(false);
     this.creating.set(true);
     this.svc
       .createOrganization({

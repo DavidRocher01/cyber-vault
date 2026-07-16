@@ -48,6 +48,80 @@ html.light-mode .text-white {
   color: #0f172a !important;
 }
 
+/* ── Angular Material — thème sombre (form fields, selects, datepicker) ──────
+   L'app charge le thème CLAIR prebuilt (indigo-pink) ; sans ces overrides, les
+   champs Material (labels, texte, contours) s'affichent en couleurs claires,
+   illisibles sur fond sombre. Appliqués par défaut, désactivés en light-mode. */
+html:not(.light-mode) {
+  .mat-mdc-form-field {
+    /* Champs texte (outline) */
+    --mdc-outlined-text-field-input-text-color: #f3f4f6;
+    --mdc-outlined-text-field-label-text-color: #9ca3af;
+    --mdc-outlined-text-field-input-text-placeholder-color: #6b7280;
+    --mdc-outlined-text-field-outline-color: #4b5563;
+    --mdc-outlined-text-field-hover-outline-color: #6b7280;
+    --mdc-outlined-text-field-focus-outline-color: #22d3ee;
+    --mdc-outlined-text-field-focus-label-text-color: #22d3ee;
+    --mdc-outlined-text-field-caret-color: #22d3ee;
+    --mdc-outlined-text-field-error-outline-color: #ef4444;
+    --mdc-outlined-text-field-error-hover-outline-color: #f87171;
+    --mdc-outlined-text-field-error-focus-outline-color: #ef4444;
+    --mdc-outlined-text-field-error-label-text-color: #f87171;
+    --mdc-outlined-text-field-error-caret-color: #ef4444;
+    /* Selects */
+    --mat-select-enabled-trigger-text-color: #f3f4f6;
+    --mat-select-placeholder-text-color: #6b7280;
+    --mat-select-enabled-arrow-color: #9ca3af;
+    --mat-select-focused-arrow-color: #22d3ee;
+    --mat-select-disabled-trigger-text-color: #6b7280;
+  }
+
+  /* Fallbacks directs (robustesse vs thème prebuilt) */
+  .mat-mdc-input-element {
+    color: #f3f4f6 !important;
+    caret-color: #22d3ee;
+  }
+  .mat-mdc-select-value-text {
+    color: #f3f4f6 !important;
+  }
+  .mat-mdc-select-placeholder {
+    color: #6b7280 !important;
+  }
+  .mat-mdc-select-arrow {
+    color: #9ca3af !important;
+  }
+  /* Input date natif : icône calendrier + texte en clair */
+  .mat-mdc-form-field input[type='date'] {
+    color-scheme: dark;
+  }
+
+  /* Boutons désactivés lisibles (au lieu de quasi-invisibles) */
+  .mat-mdc-unelevated-button:disabled,
+  .mat-mdc-raised-button:disabled,
+  .mat-mdc-flat-button:disabled {
+    --mdc-filled-button-disabled-container-color: #374151;
+    --mdc-filled-button-disabled-label-text-color: #9ca3af;
+    opacity: 1 !important;
+  }
+}
+
+/* Panneau déroulant des mat-select + options (rendus dans l'overlay CDK) */
+html:not(.light-mode) {
+  .mat-mdc-select-panel {
+    background: #1f2937 !important;
+    border: 1px solid #374151;
+  }
+  .mat-mdc-option {
+    --mat-option-label-text-color: #e5e7eb;
+    --mat-option-selected-state-layer-color: rgba(6, 182, 212, 0.16);
+    --mat-option-hover-state-layer-color: rgba(255, 255, 255, 0.06);
+    --mat-option-focus-state-layer-color: rgba(255, 255, 255, 0.06);
+  }
+  .mat-mdc-option .mdc-list-item__primary-text {
+    color: #e5e7eb !important;
+  }
+}
+
 /* ── Dark dialog panel ── */
 .dark-dialog .mat-mdc-dialog-surface {
   background: transparent !important;

@@ -2,9 +2,6 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { ReactiveFormsModule, FormGroup } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RssiAction } from '../../../services/rssi.service';
 
@@ -16,44 +13,63 @@ interface LabelOption {
 @Component({
   standalone: true,
   selector: 'app-actions-table',
-  imports: [
-    ReactiveFormsModule,
-    MatButtonModule,
-    MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatTooltipModule,
-  ],
+  imports: [ReactiveFormsModule, MatButtonModule, MatIconModule, MatTooltipModule],
   template: `
     <div>
       <div class="flex flex-wrap items-center gap-3 mb-4">
         <h2 class="text-sm font-semibold text-gray-300 mr-auto">Plan d'actions</h2>
         <!-- Filtres -->
-        <mat-form-field appearance="outline" class="!w-36 !text-sm">
-          <mat-label>Statut</mat-label>
-          <mat-select [value]="statusFilter" (valueChange)="statusFilterChange.emit($event)">
-            <mat-option value="all">Tous</mat-option>
-            @for (s of actionStatuses; track s.value) {
-              <mat-option [value]="s.value">{{ s.label }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-        <mat-form-field appearance="outline" class="!w-36 !text-sm">
-          <mat-label>Priorité</mat-label>
-          <mat-select [value]="priorityFilter" (valueChange)="priorityFilterChange.emit($event)">
-            <mat-option value="all">Toutes</mat-option>
-            @for (p of actionPriorities; track p.value) {
-              <mat-option [value]="p.value">{{ p.label }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+        <div class="w-36">
+          <label class="block text-xs font-medium text-gray-400 mb-1.5">Statut</label>
+          <div class="relative">
+            <select
+              aria-label="Statut"
+              #selStatus
+              (change)="statusFilterChange.emit(selStatus.value)"
+              class="w-full rounded-xl bg-gray-800/60 border border-gray-700 pl-3 pr-9 py-2.5 text-sm text-white outline-none appearance-none transition-all [color-scheme:dark] focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+            >
+              <option value="all" [selected]="statusFilter === 'all'">Tous</option>
+              @for (s of actionStatuses; track s.value) {
+                <option [value]="s.value" [selected]="statusFilter === s.value">
+                  {{ s.label }}
+                </option>
+              }
+            </select>
+            <mat-icon
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 !text-[1.15rem] !w-[1.15rem] !h-[1.15rem] pointer-events-none"
+              >expand_more</mat-icon
+            >
+          </div>
+        </div>
+        <div class="w-36">
+          <label class="block text-xs font-medium text-gray-400 mb-1.5">Priorité</label>
+          <div class="relative">
+            <select
+              aria-label="Priorité"
+              #selPriority
+              (change)="priorityFilterChange.emit(selPriority.value)"
+              class="w-full rounded-xl bg-gray-800/60 border border-gray-700 pl-3 pr-9 py-2.5 text-sm text-white outline-none appearance-none transition-all [color-scheme:dark] focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+            >
+              <option value="all" [selected]="priorityFilter === 'all'">Toutes</option>
+              @for (p of actionPriorities; track p.value) {
+                <option [value]="p.value" [selected]="priorityFilter === p.value">
+                  {{ p.label }}
+                </option>
+              }
+            </select>
+            <mat-icon
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 !text-[1.15rem] !w-[1.15rem] !h-[1.15rem] pointer-events-none"
+              >expand_more</mat-icon
+            >
+          </div>
+        </div>
         <button
           type="button"
           mat-stroked-button
           (click)="exportCsv.emit()"
           [disabled]="exportingCsv"
           matTooltip="Exporter en CSV (compatible Excel)"
+          class="!rounded-xl !border-gray-700 !text-gray-400 !text-sm"
         >
           @if (exportingCsv) {
             <mat-icon class="animate-spin">sync</mat-icon>
@@ -62,7 +78,12 @@ interface LabelOption {
           }
           CSV
         </button>
-        <button type="button" mat-flat-button color="primary" (click)="toggleAddForm.emit()">
+        <button
+          type="button"
+          mat-flat-button
+          (click)="toggleAddForm.emit()"
+          class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-sm"
+        >
           <mat-icon>{{ showAddForm ? 'close' : 'add' }}</mat-icon>
           {{ showAddForm ? 'Annuler' : 'Nouvelle action' }}
         </button>
@@ -71,60 +92,99 @@ interface LabelOption {
       @if (showAddForm) {
         <form
           [formGroup]="addForm"
-          (ngSubmit)="addAction.emit()"
+          (ngSubmit)="submitAdd()"
           class="bg-gray-900 border border-cyan-700/50 rounded-xl p-4 mb-4 grid grid-cols-1 md:grid-cols-3 gap-3"
         >
-          <mat-form-field appearance="outline" class="w-full md:col-span-2">
-            <mat-label>Titre *</mat-label>
-            <input matInput formControlName="title" placeholder="Mettre en place MFA…" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Priorité</mat-label>
-            <mat-select formControlName="priority">
-              @for (p of actionPriorities; track p.value) {
-                <mat-option [value]="p.value">{{ p.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="w-full md:col-span-3">
-            <mat-label>Description</mat-label>
+          <div class="md:col-span-2">
+            <label class="block text-xs font-medium text-gray-400 mb-1.5"
+              >Titre <span class="text-red-400">*</span></label
+            >
+            <input
+              type="text"
+              formControlName="title"
+              placeholder="Mettre en place MFA…"
+              class="w-full rounded-xl bg-gray-800/60 border border-gray-700 px-3 py-2.5 text-sm text-white placeholder-gray-600 outline-none transition-all focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Priorité</label>
+            <div class="relative">
+              <select
+                aria-label="Priorité"
+                formControlName="priority"
+                class="w-full rounded-xl bg-gray-800/60 border border-gray-700 pl-3 pr-9 py-2.5 text-sm text-white outline-none appearance-none transition-all [color-scheme:dark] focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+              >
+                @for (p of actionPriorities; track p.value) {
+                  <option [value]="p.value">{{ p.label }}</option>
+                }
+              </select>
+              <mat-icon
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 !text-[1.15rem] !w-[1.15rem] !h-[1.15rem] pointer-events-none"
+                >expand_more</mat-icon
+              >
+            </div>
+          </div>
+          <div class="md:col-span-3">
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Description</label>
             <textarea
-              matInput
               formControlName="description"
               rows="2"
               placeholder="Détails…"
+              class="w-full rounded-xl bg-gray-800/60 border border-gray-700 px-3 py-2.5 text-sm text-white placeholder-gray-600 outline-none transition-all resize-y focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
             ></textarea>
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Catégorie</mat-label>
-            <mat-select formControlName="category">
-              <mat-option value="">—</mat-option>
-              <mat-option value="governance">Gouvernance</mat-option>
-              <mat-option value="technical">Technique</mat-option>
-              <mat-option value="training">Formation</mat-option>
-              <mat-option value="compliance">Conformité</mat-option>
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Responsable</mat-label>
-            <input matInput formControlName="assigned_to" placeholder="ciso@client.com" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Échéance</mat-label>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Catégorie</label>
+            <div class="relative">
+              <select
+                aria-label="Catégorie"
+                formControlName="category"
+                class="w-full rounded-xl bg-gray-800/60 border border-gray-700 pl-3 pr-9 py-2.5 text-sm text-white outline-none appearance-none transition-all [color-scheme:dark] focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+              >
+                <option value="">—</option>
+                <option value="governance">Gouvernance</option>
+                <option value="technical">Technique</option>
+                <option value="training">Formation</option>
+                <option value="compliance">Conformité</option>
+              </select>
+              <mat-icon
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 !text-[1.15rem] !w-[1.15rem] !h-[1.15rem] pointer-events-none"
+                >expand_more</mat-icon
+              >
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Responsable</label>
             <input
-              matInput
+              type="text"
+              formControlName="assigned_to"
+              placeholder="ciso@client.com"
+              class="w-full rounded-xl bg-gray-800/60 border border-gray-700 px-3 py-2.5 text-sm text-white placeholder-gray-600 outline-none transition-all focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Échéance</label>
+            <input
               type="date"
               formControlName="due_date"
               title="Date d'échéance de l'action"
+              class="w-full rounded-xl bg-gray-800/60 border border-gray-700 px-3 py-2.5 text-sm text-white outline-none transition-all [color-scheme:dark] focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
             />
-          </mat-form-field>
+          </div>
           <div class="md:col-span-3 flex justify-end gap-2">
-            <button type="button" mat-stroked-button (click)="toggleAddForm.emit()">Annuler</button>
+            <button
+              type="button"
+              mat-stroked-button
+              (click)="toggleAddForm.emit()"
+              class="!rounded-xl !border-gray-700 !text-gray-400 !text-sm"
+            >
+              Annuler
+            </button>
             <button
               mat-flat-button
-              color="primary"
               type="submit"
-              [disabled]="addForm.invalid || saving"
+              [disabled]="saving"
+              class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-sm"
             >
               Créer
             </button>
@@ -146,70 +206,116 @@ interface LabelOption {
             @if (editingActionId === a.id) {
               <form
                 [formGroup]="editForm"
-                (ngSubmit)="saveAction.emit(a.id)"
+                (ngSubmit)="submitEdit(a.id)"
                 class="bg-gray-900 border border-cyan-700/50 rounded-xl p-4 grid grid-cols-1 md:grid-cols-3 gap-3"
               >
-                <mat-form-field appearance="outline" class="w-full md:col-span-2">
-                  <mat-label>Titre *</mat-label>
-                  <input matInput formControlName="title" placeholder="Titre de l'action" />
-                </mat-form-field>
-                <mat-form-field appearance="outline" class="w-full">
-                  <mat-label>Statut</mat-label>
-                  <mat-select formControlName="status">
-                    @for (s of actionStatuses; track s.value) {
-                      <mat-option [value]="s.value">{{ s.label }}</mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-                <mat-form-field appearance="outline" class="w-full md:col-span-3">
-                  <mat-label>Description</mat-label>
+                <div class="md:col-span-2">
+                  <label class="block text-xs font-medium text-gray-400 mb-1.5"
+                    >Titre <span class="text-red-400">*</span></label
+                  >
+                  <input
+                    type="text"
+                    formControlName="title"
+                    placeholder="Titre de l'action"
+                    class="w-full rounded-xl bg-gray-800/60 border border-gray-700 px-3 py-2.5 text-sm text-white placeholder-gray-600 outline-none transition-all focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-400 mb-1.5">Statut</label>
+                  <div class="relative">
+                    <select
+                      aria-label="Statut"
+                      formControlName="status"
+                      class="w-full rounded-xl bg-gray-800/60 border border-gray-700 pl-3 pr-9 py-2.5 text-sm text-white outline-none appearance-none transition-all [color-scheme:dark] focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+                    >
+                      @for (s of actionStatuses; track s.value) {
+                        <option [value]="s.value">{{ s.label }}</option>
+                      }
+                    </select>
+                    <mat-icon
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 !text-[1.15rem] !w-[1.15rem] !h-[1.15rem] pointer-events-none"
+                      >expand_more</mat-icon
+                    >
+                  </div>
+                </div>
+                <div class="md:col-span-3">
+                  <label class="block text-xs font-medium text-gray-400 mb-1.5">Description</label>
                   <textarea
-                    matInput
                     formControlName="description"
                     rows="2"
                     placeholder="Détails de l'action…"
+                    class="w-full rounded-xl bg-gray-800/60 border border-gray-700 px-3 py-2.5 text-sm text-white placeholder-gray-600 outline-none transition-all resize-y focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
                   ></textarea>
-                </mat-form-field>
-                <mat-form-field appearance="outline" class="w-full">
-                  <mat-label>Catégorie</mat-label>
-                  <mat-select formControlName="category">
-                    <mat-option value="">—</mat-option>
-                    <mat-option value="governance">Gouvernance</mat-option>
-                    <mat-option value="technical">Technique</mat-option>
-                    <mat-option value="training">Formation</mat-option>
-                    <mat-option value="compliance">Conformité</mat-option>
-                  </mat-select>
-                </mat-form-field>
-                <mat-form-field appearance="outline" class="w-full">
-                  <mat-label>Priorité</mat-label>
-                  <mat-select formControlName="priority">
-                    @for (p of actionPriorities; track p.value) {
-                      <mat-option [value]="p.value">{{ p.label }}</mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-                <mat-form-field appearance="outline" class="w-full">
-                  <mat-label>Responsable</mat-label>
-                  <input matInput formControlName="assigned_to" placeholder="ciso@client.com" />
-                </mat-form-field>
-                <mat-form-field appearance="outline" class="w-full">
-                  <mat-label>Échéance</mat-label>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-400 mb-1.5">Catégorie</label>
+                  <div class="relative">
+                    <select
+                      aria-label="Catégorie"
+                      formControlName="category"
+                      class="w-full rounded-xl bg-gray-800/60 border border-gray-700 pl-3 pr-9 py-2.5 text-sm text-white outline-none appearance-none transition-all [color-scheme:dark] focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+                    >
+                      <option value="">—</option>
+                      <option value="governance">Gouvernance</option>
+                      <option value="technical">Technique</option>
+                      <option value="training">Formation</option>
+                      <option value="compliance">Conformité</option>
+                    </select>
+                    <mat-icon
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 !text-[1.15rem] !w-[1.15rem] !h-[1.15rem] pointer-events-none"
+                      >expand_more</mat-icon
+                    >
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-400 mb-1.5">Priorité</label>
+                  <div class="relative">
+                    <select
+                      aria-label="Priorité"
+                      formControlName="priority"
+                      class="w-full rounded-xl bg-gray-800/60 border border-gray-700 pl-3 pr-9 py-2.5 text-sm text-white outline-none appearance-none transition-all [color-scheme:dark] focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+                    >
+                      @for (p of actionPriorities; track p.value) {
+                        <option [value]="p.value">{{ p.label }}</option>
+                      }
+                    </select>
+                    <mat-icon
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 !text-[1.15rem] !w-[1.15rem] !h-[1.15rem] pointer-events-none"
+                      >expand_more</mat-icon
+                    >
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-400 mb-1.5">Responsable</label>
                   <input
-                    matInput
+                    type="text"
+                    formControlName="assigned_to"
+                    placeholder="ciso@client.com"
+                    class="w-full rounded-xl bg-gray-800/60 border border-gray-700 px-3 py-2.5 text-sm text-white placeholder-gray-600 outline-none transition-all focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-400 mb-1.5">Échéance</label>
+                  <input
                     type="date"
                     formControlName="due_date"
                     title="Date d'échéance de l'action"
+                    class="w-full rounded-xl bg-gray-800/60 border border-gray-700 px-3 py-2.5 text-sm text-white outline-none transition-all [color-scheme:dark] focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
                   />
-                </mat-form-field>
+                </div>
                 <div class="md:col-span-3 flex justify-end gap-2">
-                  <button type="button" mat-stroked-button (click)="cancelEdit.emit()">
+                  <button
+                    type="button"
+                    mat-stroked-button
+                    (click)="cancelEdit.emit()"
+                    class="!rounded-xl !border-gray-700 !text-gray-400 !text-sm"
+                  >
                     Annuler
                   </button>
                   <button
                     mat-flat-button
-                    color="primary"
                     type="submit"
-                    [disabled]="editForm.invalid"
+                    class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-sm"
                   >
                     Enregistrer
                   </button>
@@ -342,6 +448,22 @@ export class ActionsTableComponent {
   @Output() deleteAction = new EventEmitter<number>();
 
   readonly today = new Date().toISOString().slice(0, 10);
+
+  submitAdd(): void {
+    if (this.addForm.invalid) {
+      this.addForm.markAllAsTouched();
+      return;
+    }
+    this.addAction.emit();
+  }
+
+  submitEdit(id: number): void {
+    if (this.editForm.invalid) {
+      this.editForm.markAllAsTouched();
+      return;
+    }
+    this.saveAction.emit(id);
+  }
 
   formatDate(d: string | null): string {
     if (!d) return '—';

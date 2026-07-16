@@ -65,13 +65,22 @@ import { AwarenessService } from '../cyberscan/services/awareness.service';
             </p>
             <mat-form-field appearance="outline" class="w-full">
               <mat-label>Code de vérification</mat-label>
-              <input matInput [(ngModel)]="token" placeholder="Collez votre code ici" />
+              <input
+                matInput
+                [(ngModel)]="token"
+                (ngModelChange)="tokenError.set(false)"
+                placeholder="Collez votre code ici"
+                [class.border-red-500]="tokenError()"
+              />
             </mat-form-field>
+            @if (tokenError()) {
+              <p class="mt-1 text-xs text-red-400">Le code d'accès est requis.</p>
+            }
             <button
               mat-flat-button
               class="w-full !rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white mt-2"
               (click)="verifyToken()"
-              [disabled]="!token.trim() || loading()"
+              [disabled]="loading()"
             >
               @if (loading()) {
                 <mat-spinner diameter="18" />
@@ -94,6 +103,7 @@ export class AwarenessLoginComponent implements OnInit {
   verifying = signal(false);
   loading = signal(false);
   error = signal(false);
+  tokenError = signal(false);
 
   ngOnInit() {
     // If already logged in, redirect
@@ -118,7 +128,11 @@ export class AwarenessLoginComponent implements OnInit {
 
   verifyToken() {
     const t = this.token.trim();
-    if (!t) return;
+    if (!t) {
+      this.tokenError.set(true);
+      return;
+    }
+    this.tokenError.set(false);
     this.loading.set(true);
     this.svc.verifyMagicLink(t).subscribe({
       next: () => this.router.navigate(['/awareness']),

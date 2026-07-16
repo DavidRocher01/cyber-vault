@@ -1,9 +1,12 @@
 from pydantic import BaseModel, EmailStr, field_validator
 
+# Doit rester aligné avec NEED_OPTIONS côté front (contact.component.ts).
 NEED_TYPES = {
+    "rssi-externalise",
     "audit-flash",
     "audit-app",
     "pentest",
+    "audit-nis2",
     "simulation-phishing",
     "abonnement",
     "sensibilisation-nis2",

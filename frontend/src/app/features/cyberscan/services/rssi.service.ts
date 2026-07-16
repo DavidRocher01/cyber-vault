@@ -15,6 +15,7 @@ export interface RssiClient {
   notion_workspace_url: string | null;
   pipedrive_deal_id: string | null;
   pennylane_customer_id: string | null;
+  awareness_organization_id: number | null;
   created_at: string;
   updated_at: string | null;
   sites_count: number;
@@ -269,6 +270,24 @@ export class RssiService {
 
   deleteClient(id: number): Observable<void> {
     return this.http.delete<void>(`${API}/clients/${id}`);
+  }
+
+  inviteClient(
+    id: number
+  ): Observable<{ status: string; email: string; account_created: boolean }> {
+    return this.http.post<{ status: string; email: string; account_created: boolean }>(
+      `${API}/clients/${id}/invite`,
+      {}
+    );
+  }
+
+  enableAwareness(
+    id: number
+  ): Observable<{ id: number; name: string; max_learners: number; already: boolean }> {
+    return this.http.post<{ id: number; name: string; max_learners: number; already: boolean }>(
+      `${API}/clients/${id}/awareness`,
+      {}
+    );
   }
 
   // ── Visits ───────────────────────────────────────────────────────────────────

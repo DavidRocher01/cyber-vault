@@ -79,6 +79,30 @@ async def get_rssi_consultant(
     return current_user
 
 
+async def get_current_rssi_client(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Résout LE client RSSI rattaché au compte connecté (portail client).
+
+    Socle d'isolation : toute requête du portail est scopée au RssiClient dont
+    client_user_id == user courant. 403 si le compte n'est lié à aucun client.
+    Retourne un RssiClient.
+    """
+    from app.models.rssi_client import RssiClient
+
+    result = await db.execute(
+        select(RssiClient).where(RssiClient.client_user_id == current_user.id)
+    )
+    client = result.scalar_one_or_none()
+    if client is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Accès réservé aux clients suivis par un consultant RSSI",
+        )
+    return client
+
+
 def require_min_tier(min_tier: int):
     """Factory de dépendance : autorise la route seulement si le plan actif de
     l'utilisateur a un tier_level >= min_tier, sinon 403.

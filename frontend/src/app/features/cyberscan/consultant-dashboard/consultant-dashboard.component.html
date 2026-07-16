@@ -433,72 +433,112 @@
             </div>
             <form [formGroup]="addForm" (ngSubmit)="addClient()">
               <!-- Identité -->
-              <p class="text-[11px] font-semibold text-gray-600 uppercase tracking-widest mb-3">
+              <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-3">
                 Identité
               </p>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-                <mat-form-field appearance="outline" class="w-full">
-                  <mat-label>Nom du client *</mat-label>
-                  <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1rem] !w-[1rem] !h-[1rem]"
-                    >business</mat-icon
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div>
+                  <label class="block text-xs font-medium text-gray-400 mb-1.5"
+                    >Nom du client <span class="text-red-400">*</span></label
                   >
-                  <input matInput formControlName="name" placeholder="Acme Corp" />
-                </mat-form-field>
-                <mat-form-field appearance="outline" class="w-full">
-                  <mat-label>Email (optionnel)</mat-label>
-                  <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1rem] !w-[1rem] !h-[1rem]"
-                    >mail_outline</mat-icon
-                  >
-                  <input
-                    matInput
-                    formControlName="email"
-                    type="email"
-                    placeholder="contact@acme.fr"
-                  />
-                </mat-form-field>
-                <mat-form-field appearance="outline" class="w-full">
-                  <mat-label>Notes (optionnel)</mat-label>
-                  <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1rem] !w-[1rem] !h-[1rem]"
-                    >notes</mat-icon
-                  >
-                  <input matInput formControlName="description" placeholder="PME, secteur santé…" />
-                </mat-form-field>
+                  <div class="relative">
+                    <mat-icon
+                      class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 !text-[1.05rem] !w-[1.05rem] !h-[1.05rem] pointer-events-none"
+                      >business</mat-icon
+                    >
+                    <input
+                      type="text"
+                      formControlName="name"
+                      placeholder="Acme Corp"
+                      class="w-full rounded-xl bg-gray-800/60 border border-gray-700 pl-10 pr-3 py-2.5 text-sm text-white placeholder-gray-600 outline-none transition-all focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-400 mb-1.5">Email</label>
+                  <div class="relative">
+                    <mat-icon
+                      class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 !text-[1.05rem] !w-[1.05rem] !h-[1.05rem] pointer-events-none"
+                      >mail_outline</mat-icon
+                    >
+                    <input
+                      type="email"
+                      formControlName="email"
+                      placeholder="contact@acme.fr"
+                      class="w-full rounded-xl bg-gray-800/60 border border-gray-700 pl-10 pr-3 py-2.5 text-sm text-white placeholder-gray-600 outline-none transition-all focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-400 mb-1.5">Notes</label>
+                  <div class="relative">
+                    <mat-icon
+                      class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 !text-[1.05rem] !w-[1.05rem] !h-[1.05rem] pointer-events-none"
+                      >notes</mat-icon
+                    >
+                    <input
+                      type="text"
+                      formControlName="description"
+                      placeholder="PME, secteur santé…"
+                      class="w-full rounded-xl bg-gray-800/60 border border-gray-700 pl-10 pr-3 py-2.5 text-sm text-white placeholder-gray-600 outline-none transition-all focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+                    />
+                  </div>
+                </div>
               </div>
               <!-- Contrat -->
-              <p class="text-[11px] font-semibold text-gray-600 uppercase tracking-widest mb-3">
+              <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-3">
                 Contrat
               </p>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-                <mat-form-field appearance="outline" class="w-full">
-                  <mat-label>Formule</mat-label>
-                  <mat-select formControlName="formula">
-                    <mat-option value="">— Sans formule —</mat-option>
-                    @for (f of formulas; track f.value) {
-                      <mat-option [value]="f.value">{{ f.label }}</mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-                <mat-form-field appearance="outline" class="w-full">
-                  <mat-label>Montant mensuel (€)</mat-label>
-                  <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1rem] !w-[1rem] !h-[1rem]"
-                    >euro</mat-icon
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div>
+                  <label for="fc-add-formula" class="block text-xs font-medium text-gray-400 mb-1.5"
+                    >Formule</label
+                  >
+                  <div class="relative">
+                    <select
+                      id="fc-add-formula"
+                      formControlName="formula"
+                      class="w-full rounded-xl bg-gray-800/60 border border-gray-700 pl-3 pr-9 py-2.5 text-sm text-white outline-none appearance-none transition-all [color-scheme:dark] focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+                    >
+                      <option value="">— Sans formule —</option>
+                      @for (f of formulas; track f.value) {
+                        <option [value]="f.value">{{ f.label }}</option>
+                      }
+                    </select>
+                    <mat-icon
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 !text-[1.15rem] !w-[1.15rem] !h-[1.15rem] pointer-events-none"
+                      >expand_more</mat-icon
+                    >
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-400 mb-1.5"
+                    >Montant mensuel (€)</label
+                  >
+                  <div class="relative">
+                    <mat-icon
+                      class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 !text-[1.05rem] !w-[1.05rem] !h-[1.05rem] pointer-events-none"
+                      >euro</mat-icon
+                    >
+                    <input
+                      type="number"
+                      formControlName="monthly_amount"
+                      placeholder="3200"
+                      class="w-full rounded-xl bg-gray-800/60 border border-gray-700 pl-10 pr-3 py-2.5 text-sm text-white placeholder-gray-600 outline-none transition-all focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label for="fc-add-renewal" class="block text-xs font-medium text-gray-400 mb-1.5"
+                    >Renouvellement du contrat</label
                   >
                   <input
-                    matInput
-                    type="number"
-                    formControlName="monthly_amount"
-                    placeholder="3200"
-                  />
-                </mat-form-field>
-                <mat-form-field appearance="outline" class="w-full">
-                  <mat-label>Renouvellement contrat</mat-label>
-                  <input
-                    matInput
+                    id="fc-add-renewal"
                     type="date"
                     formControlName="contract_renewal_at"
-                    title="Date de renouvellement du contrat"
+                    class="w-full rounded-xl bg-gray-800/60 border border-gray-700 px-3 py-2.5 text-sm text-white outline-none transition-all [color-scheme:dark] focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
                   />
-                </mat-form-field>
+                </div>
               </div>
               <div class="flex justify-end gap-3 border-t border-gray-800 pt-4">
                 <button
@@ -572,39 +612,79 @@
                   (ngSubmit)="saveEdit(client.id)"
                   class="flex flex-col gap-3"
                 >
-                  <mat-form-field appearance="outline" class="w-full">
-                    <mat-label>Nom *</mat-label>
-                    <input matInput formControlName="name" />
-                  </mat-form-field>
-                  <mat-form-field appearance="outline" class="w-full">
-                    <mat-label>Email</mat-label>
-                    <input matInput formControlName="email" type="email" />
-                  </mat-form-field>
-                  <mat-form-field appearance="outline" class="w-full">
-                    <mat-label>Notes</mat-label>
-                    <input matInput formControlName="description" />
-                  </mat-form-field>
-                  <mat-form-field appearance="outline" class="w-full">
-                    <mat-label>Formule</mat-label>
-                    <mat-select formControlName="formula">
-                      <mat-option value="">— Sans formule —</mat-option>
+                  <div>
+                    <label for="ec-name" class="block text-xs font-medium text-gray-400 mb-1"
+                      >Nom <span class="text-red-400">*</span></label
+                    >
+                    <input
+                      id="ec-name"
+                      type="text"
+                      formControlName="name"
+                      class="w-full rounded-xl bg-gray-800/60 border border-gray-700 px-3 py-2.5 text-sm text-white outline-none transition-all focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+                    />
+                  </div>
+                  <div>
+                    <label for="ec-email" class="block text-xs font-medium text-gray-400 mb-1"
+                      >Email</label
+                    >
+                    <input
+                      id="ec-email"
+                      type="email"
+                      formControlName="email"
+                      class="w-full rounded-xl bg-gray-800/60 border border-gray-700 px-3 py-2.5 text-sm text-white outline-none transition-all focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+                    />
+                  </div>
+                  <div>
+                    <label for="ec-desc" class="block text-xs font-medium text-gray-400 mb-1"
+                      >Notes</label
+                    >
+                    <input
+                      id="ec-desc"
+                      type="text"
+                      formControlName="description"
+                      class="w-full rounded-xl bg-gray-800/60 border border-gray-700 px-3 py-2.5 text-sm text-white outline-none transition-all focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+                    />
+                  </div>
+                  <div>
+                    <label for="ec-formula" class="block text-xs font-medium text-gray-400 mb-1"
+                      >Formule</label
+                    >
+                    <select
+                      id="ec-formula"
+                      formControlName="formula"
+                      class="w-full rounded-xl bg-gray-800/60 border border-gray-700 px-3 py-2.5 text-sm text-white outline-none transition-all [color-scheme:dark] focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+                    >
+                      <option value="">— Sans formule —</option>
                       @for (f of formulas; track f.value) {
-                        <mat-option [value]="f.value">{{ f.label }}</mat-option>
+                        <option [value]="f.value">{{ f.label }}</option>
                       }
-                    </mat-select>
-                  </mat-form-field>
-                  <mat-form-field appearance="outline" class="w-full">
-                    <mat-label>Montant mensuel (€)</mat-label>
-                    <input matInput type="number" formControlName="monthly_amount" />
-                  </mat-form-field>
-                  <mat-form-field appearance="outline" class="w-full">
-                    <mat-label>Statut</mat-label>
-                    <mat-select formControlName="status">
-                      <mat-option value="active">Actif</mat-option>
-                      <mat-option value="inactive">Inactif</mat-option>
-                      <mat-option value="churned">Churné</mat-option>
-                    </mat-select>
-                  </mat-form-field>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="ec-amount" class="block text-xs font-medium text-gray-400 mb-1"
+                      >Montant mensuel (€)</label
+                    >
+                    <input
+                      id="ec-amount"
+                      type="number"
+                      formControlName="monthly_amount"
+                      class="w-full rounded-xl bg-gray-800/60 border border-gray-700 px-3 py-2.5 text-sm text-white outline-none transition-all focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+                    />
+                  </div>
+                  <div>
+                    <label for="ec-status" class="block text-xs font-medium text-gray-400 mb-1"
+                      >Statut</label
+                    >
+                    <select
+                      id="ec-status"
+                      formControlName="status"
+                      class="w-full rounded-xl bg-gray-800/60 border border-gray-700 px-3 py-2.5 text-sm text-white outline-none transition-all [color-scheme:dark] focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/70"
+                    >
+                      <option value="active">Actif</option>
+                      <option value="inactive">Inactif</option>
+                      <option value="churned">Churné</option>
+                    </select>
+                  </div>
                   <div class="flex gap-2 justify-end pt-1">
                     <button
                       type="button"
@@ -764,52 +844,83 @@
     <!-- ─── AWARENESS TAB ─────────────────────────────────────────────────── -->
     @if (activeTab() === 'awareness') {
       <div class="max-w-3xl">
-        <div class="flex items-center gap-3 mb-6">
-          <div
-            class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0"
-          >
-            <mat-icon class="text-cyan-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">school</mat-icon>
+        <div class="flex items-center justify-between gap-3 mb-6">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0"
+            >
+              <mat-icon class="text-cyan-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]"
+                >school</mat-icon
+              >
+            </div>
+            <div>
+              <h2 class="text-white font-semibold">Sensibilisation NIS2</h2>
+              <p class="text-gray-500 text-xs">
+                Les formations de vos clients — avec ou sans mission RSSI
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 class="text-white font-semibold">Sensibilisation NIS2</h2>
-            <p class="text-gray-500 text-xs">
-              Gérez la formation cybersécurité de vos organisations clientes
+          <a
+            routerLink="/awareness-admin"
+            mat-flat-button
+            class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white shrink-0"
+          >
+            <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">add</mat-icon>
+            Nouvelle organisation
+          </a>
+        </div>
+
+        @if (awarenessOrgs().length === 0) {
+          <div class="text-center py-16 rounded-xl border border-gray-800 bg-gray-900/40">
+            <mat-icon class="text-gray-700 !text-4xl mb-2">school</mat-icon>
+            <p class="text-gray-400 text-sm">Aucune organisation de formation pour l'instant.</p>
+            <p class="text-gray-600 text-xs mt-1">
+              Activez la sensibilisation depuis une fiche client, ou créez une organisation
+              autonome.
             </p>
           </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div class="rounded-xl border border-gray-800 bg-gray-900 p-5 text-center">
-            <mat-icon class="text-cyan-400 !text-[2rem] !w-[2rem] !h-[2rem] mb-2"
-              >business</mat-icon
-            >
-            <p class="text-white font-semibold text-sm">Organisations</p>
-            <p class="text-gray-500 text-xs mt-0.5">Créez et gérez vos clients</p>
+        } @else {
+          <div class="flex flex-col gap-2">
+            @for (org of awarenessOrgs(); track org.id) {
+              <div
+                class="flex items-center gap-4 rounded-xl border border-gray-800 bg-gray-900 px-4 py-3"
+              >
+                <div
+                  class="w-9 h-9 rounded-lg bg-cyan-500/10 flex items-center justify-center shrink-0"
+                >
+                  <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]"
+                    >business</mat-icon
+                  >
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-white text-sm font-medium truncate">{{ org.name }}</p>
+                  <p class="text-gray-500 text-xs">
+                    {{ org.learner_count ?? 0 }}/{{ org.max_learners }} apprenants
+                  </p>
+                </div>
+                @if (orgLinkedClientName(org.id); as clientName) {
+                  <span
+                    class="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-400 border border-cyan-700/30 shrink-0"
+                    [matTooltip]="'Lié au client RSSI : ' + clientName"
+                    >Client RSSI</span
+                  >
+                } @else {
+                  <span
+                    class="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-gray-700/40 text-gray-400 border border-gray-600/40 shrink-0"
+                    >Formation seule</span
+                  >
+                }
+                <a
+                  [routerLink]="['/awareness/org', org.id]"
+                  mat-stroked-button
+                  class="!rounded-lg !border-gray-700 !text-gray-300 !text-xs shrink-0"
+                >
+                  Gérer
+                </a>
+              </div>
+            }
           </div>
-          <div class="rounded-xl border border-gray-800 bg-gray-900 p-5 text-center">
-            <mat-icon class="text-yellow-400 !text-[2rem] !w-[2rem] !h-[2rem] mb-2"
-              >people</mat-icon
-            >
-            <p class="text-white font-semibold text-sm">Learners</p>
-            <p class="text-gray-500 text-xs mt-0.5">Import CSV · Magic-link email</p>
-          </div>
-          <div class="rounded-xl border border-gray-800 bg-gray-900 p-5 text-center">
-            <mat-icon class="text-green-400 !text-[2rem] !w-[2rem] !h-[2rem] mb-2"
-              >verified_user</mat-icon
-            >
-            <p class="text-white font-semibold text-sm">Rapport NIS2</p>
-            <p class="text-gray-500 text-xs mt-0.5">Score conformité · PDF</p>
-          </div>
-        </div>
-
-        <a
-          routerLink="/awareness"
-          mat-flat-button
-          class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white"
-        >
-          <mat-icon>open_in_new</mat-icon>
-          Accéder à la plateforme NIS2
-        </a>
+        }
       </div>
     }
   </div>

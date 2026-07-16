@@ -176,7 +176,11 @@ export class ApiLandingComponent implements OnInit {
   }
 
   submit() {
-    if (this.form.invalid || this.loading()) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    if (this.loading()) return;
     this.loading.set(true);
     this.error.set(null);
     this.http.post<{ count: number }>(`${API}/api-waitlist`, this.form.getRawValue()).subscribe({

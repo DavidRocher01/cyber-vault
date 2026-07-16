@@ -110,6 +110,62 @@ export class LandingComponent implements OnInit, AfterViewInit {
   readonly useCases = USE_CASES;
   readonly cyberStats = CYBER_STATS;
 
+  readonly rssiPillars = [
+    {
+      icon: 'policy',
+      title: 'Audit & conformité',
+      desc: 'État des lieux, diagnostic NIS2 & ISO 27001, analyse des risques.',
+    },
+    {
+      icon: 'checklist',
+      title: "Plan d'action suivi",
+      desc: 'Feuille de route priorisée, tenue à jour à chaque intervention.',
+    },
+    {
+      icon: 'event_available',
+      title: 'Visites régulières',
+      desc: 'Points périodiques, à distance ou sur site selon la formule.',
+    },
+    {
+      icon: 'insights',
+      title: 'Comité de pilotage',
+      desc: 'Reporting trimestriel et tableau de bord de conformité.',
+    },
+  ];
+
+  readonly rssiFormulas = [
+    {
+      name: 'Starter',
+      cadence: '~1 j/mois',
+      target: 'TPE/PME « en règle NIS2 »',
+      highlight: false,
+      includes: [
+        'Audit initial + roadmap NIS2',
+        'Surveillance continue',
+        'Point mensuel + reporting',
+      ],
+    },
+    {
+      name: 'Standard',
+      cadence: '~2 j/mois',
+      target: 'PME avec enjeux clients',
+      highlight: true,
+      includes: [
+        'Tout Starter',
+        'PSSI + procédures',
+        'Sensibilisation des équipes',
+        'Réponse aux questionnaires clients',
+      ],
+    },
+    {
+      name: 'Renforcé',
+      cadence: '~4 j/mois',
+      target: 'ETI / secteur régulé',
+      highlight: false,
+      includes: ['Tout Standard', "PCA/PRA + gestion d'incident", 'Accompagnement ISO 27001'],
+    },
+  ];
+
   counters = [
     { label: 'sites scannés', icon: 'language', target: 500, current: signal(0), suffix: '+' },
     {

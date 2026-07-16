@@ -115,10 +115,10 @@ describe('AdminShellComponent — login()', () => {
     expect(ctx.comp.authError()).toBe('');
   });
 
-  it('clé absente -> verify() appelé avec chaîne vide', () => {
+  it('clé absente -> soumission bloquée, champ marqué touched (erreur révélée)', () => {
     const { comp, auth } = make();
-    auth.verify.mockReturnValue(of({}));
     comp.login();
-    expect(auth.verify).toHaveBeenCalledWith('');
+    expect(auth.verify).not.toHaveBeenCalled();
+    expect(comp.keyForm.get('key')?.touched).toBe(true);
   });
 });

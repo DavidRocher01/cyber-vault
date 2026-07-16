@@ -89,7 +89,10 @@ export class BookingAdminComponent {
   }
 
   addSlot() {
-    if (this.slotForm.invalid) return;
+    if (this.slotForm.invalid) {
+      this.slotForm.markAllAsTouched();
+      return;
+    }
     const { date, time, duration_minutes, label } = this.slotForm.value;
     this.addError.set('');
     this.addSuccess.set('');

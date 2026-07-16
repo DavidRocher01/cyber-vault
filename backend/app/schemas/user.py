@@ -28,6 +28,9 @@ class UserOut(BaseModel):
     is_active: bool
     totp_enabled: bool = False
     is_rssi_consultant: bool = False
+    # True si le compte est rattaché à un RssiClient (client_user_id) — sert au routage
+    # post-connexion vers l'espace client. Calculé dans l'endpoint (pas une colonne).
+    is_portal_client: bool = False
 
     model_config = {"from_attributes": True}
 

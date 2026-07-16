@@ -43,6 +43,7 @@ export class ResetPasswordComponent implements OnInit {
   private route = inject(ActivatedRoute);
 
   token: string | null = null;
+  invite = false;
   showPassword = false;
   loading = false;
   done = false;
@@ -58,6 +59,7 @@ export class ResetPasswordComponent implements OnInit {
 
   ngOnInit() {
     this.token = this.route.snapshot.queryParamMap.get('token');
+    this.invite = this.route.snapshot.queryParamMap.get('invite') === '1';
   }
 
   get passwordStrength(): number {

@@ -24,14 +24,19 @@ import { AdminAuthService } from './admin-auth.service';
             formControlName="key"
             type="password"
             placeholder="Clé admin"
-            class="w-full px-4 py-2.5 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+            class="w-full px-4 py-2.5 rounded-lg bg-gray-900 border text-white text-sm outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+            [class.border-gray-600]="!(keyForm.get('key')?.invalid && keyForm.get('key')?.touched)"
+            [class.border-red-500]="keyForm.get('key')?.invalid && keyForm.get('key')?.touched"
           />
+          @if (keyForm.get('key')?.invalid && keyForm.get('key')?.touched) {
+            <p class="mt-1 text-xs text-red-400">La clé est requise.</p>
+          }
           @if (authError()) {
             <p class="text-red-400 text-sm">{{ authError() }}</p>
           }
           <button
             type="submit"
-            [disabled]="keyForm.invalid || verifying()"
+            [disabled]="verifying()"
             class="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm transition-all disabled:opacity-50"
           >
             {{ verifying() ? 'Vérification...' : 'Connexion' }}
@@ -115,6 +120,10 @@ export class AdminShellComponent {
   ];
 
   login() {
+    if (this.keyForm.invalid) {
+      this.keyForm.markAllAsTouched();
+      return;
+    }
     const key = this.keyForm.value.key ?? '';
     this.authError.set('');
     this.verifying.set(true);

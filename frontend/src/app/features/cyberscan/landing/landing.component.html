@@ -36,6 +36,14 @@
         <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">school</mat-icon>
         Formation NIS2
       </a>
+      <a
+        routerLink="/rssi-externalise"
+        mat-button
+        class="!text-cyan-400 font-medium hidden lg:inline-flex items-center gap-1"
+      >
+        <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">support_agent</mat-icon>
+        RSSI externalisé
+      </a>
       <a routerLink="/reserver" mat-button class="!text-white font-medium hidden lg:inline-flex"
         >Réserver</a
       >
@@ -549,6 +557,98 @@
     <p class="text-center text-gray-500 text-sm mt-8">
       Tarifs indicatifs HT. Devis gratuit sous 24h. Audit réalisé à distance ou sur site.
     </p>
+  </section>
+
+  <!-- RSSI externalisé (accompagnement) -->
+  <section id="rssi" class="px-8 py-20 bg-gray-900 border-t border-gray-800">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-14">
+        <span
+          class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-cyan-400 mb-4"
+        >
+          <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">support_agent</mat-icon>
+          Accompagnement expert
+        </span>
+        <h2 class="text-3xl font-bold mb-3">Votre RSSI, à temps partagé</h2>
+        <p class="text-gray-400 max-w-2xl mx-auto text-sm leading-relaxed">
+          Un expert cybersécurité qui pilote votre conformité NIS2 et votre sécurité au quotidien —
+          sans le coût d'un responsable à temps plein.
+        </p>
+      </div>
+
+      <!-- 4 piliers -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-14">
+        @for (pillar of rssiPillars; track pillar.title) {
+          <div class="rounded-2xl border border-gray-700/60 bg-gray-800/40 p-6">
+            <div
+              class="w-11 h-11 rounded-xl bg-cyan-500/10 border border-cyan-700/40 flex items-center justify-center mb-4"
+            >
+              <mat-icon class="text-cyan-400 !text-[1.3rem] !w-[1.3rem] !h-[1.3rem]">{{
+                pillar.icon
+              }}</mat-icon>
+            </div>
+            <h3 class="font-bold text-white mb-1.5">{{ pillar.title }}</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">{{ pillar.desc }}</p>
+          </div>
+        }
+      </div>
+
+      <!-- 3 formules -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-12">
+        @for (f of rssiFormulas; track f.name) {
+          <div
+            class="rounded-2xl border p-6 flex flex-col"
+            [class]="
+              f.highlight
+                ? 'border-cyan-600/60 bg-cyan-950/20'
+                : 'border-gray-700/60 bg-gray-800/40'
+            "
+          >
+            <div class="flex items-baseline justify-between mb-1">
+              <h3 class="font-bold text-white">{{ f.name }}</h3>
+              <span class="text-xs text-cyan-400 font-semibold">{{ f.cadence }}</span>
+            </div>
+            <p class="text-gray-500 text-xs mb-4">{{ f.target }}</p>
+            <ul class="flex flex-col gap-2 mb-5 flex-1">
+              @for (item of f.includes; track item) {
+                <li class="flex items-start gap-2 text-sm text-gray-300">
+                  <mat-icon
+                    class="text-cyan-500 !text-[1rem] !w-[1rem] !h-[1rem] mt-0.5 flex-shrink-0"
+                    >check_circle</mat-icon
+                  >
+                  {{ item }}
+                </li>
+              }
+            </ul>
+            <p class="text-sm font-semibold text-white">
+              Tarif <span class="text-cyan-400">sur devis</span>
+            </p>
+          </div>
+        }
+      </div>
+
+      <div class="text-center">
+        <div class="flex flex-col sm:flex-row gap-3 justify-center items-center">
+          <a
+            routerLink="/reserver"
+            class="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-all"
+          >
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">event_available</mat-icon>
+            Réserver un diagnostic gratuit
+          </a>
+          <a
+            routerLink="/rssi-externalise"
+            class="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl border border-gray-600 hover:border-cyan-500 text-white font-bold text-sm transition-all"
+          >
+            Découvrir l'offre
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">arrow_forward</mat-icon>
+          </a>
+        </div>
+        <p class="text-xs text-gray-500 mt-3">
+          Échange de 30 min · sans engagement · on évalue votre exposition NIS2.
+        </p>
+      </div>
+    </div>
   </section>
 
   <!-- Pricing -->

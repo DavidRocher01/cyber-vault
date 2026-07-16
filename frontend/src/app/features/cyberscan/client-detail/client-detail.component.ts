@@ -7,9 +7,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Title } from '@angular/platform-browser';
 
@@ -36,9 +33,6 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
     MatTooltipModule,
     NavButtonsComponent,
   ],
@@ -330,6 +324,67 @@ export class ClientDetailComponent implements OnInit {
           this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
         },
       });
+  }
+
+  // ── Portail client : invitation ─────────────────────────────────────────────
+
+  inviting = signal(false);
+
+  inviteClient() {
+    const c = this.client();
+    if (!c) return;
+    if (!c.email) {
+      this.snack.open("Renseignez l'email du client avant de l'inviter.", 'Fermer', {
+        duration: 4000,
+      });
+      return;
+    }
+    this.inviting.set(true);
+    this.rssi.inviteClient(c.id).subscribe({
+      next: res => {
+        this.inviting.set(false);
+        this.snack.open(
+          res.account_created
+            ? `Invitation envoyée à ${res.email} (compte créé).`
+            : `Invitation envoyée à ${res.email}.`,
+          'OK',
+          { duration: 5000 }
+        );
+      },
+      error: err => {
+        this.inviting.set(false);
+        this.snack.open(err.error?.detail || "Erreur lors de l'invitation", 'Fermer', {
+          duration: 4000,
+        });
+      },
+    });
+  }
+
+  // ── Sensibilisation : activation de l'organisation liée ──────────────────────
+
+  enablingAwareness = signal(false);
+
+  enableAwareness() {
+    const c = this.client();
+    if (!c) return;
+    this.enablingAwareness.set(true);
+    this.rssi.enableAwareness(c.id).subscribe({
+      next: org => {
+        this.enablingAwareness.set(false);
+        this.client.set({ ...c, awareness_organization_id: org.id });
+        this.snack.open(
+          org.already ? 'Sensibilisation déjà active' : 'Sensibilisation activée pour ce client',
+          'OK',
+          { duration: 3000 }
+        );
+      },
+      error: err => {
+        this.enablingAwareness.set(false);
+        this.snack.open(err.error?.detail || "Erreur lors de l'activation", 'Fermer', {
+          duration: 4000,
+        });
+      },
+    });
   }
 
   // ── Visits ────────────────────────────────────────────────────────────────

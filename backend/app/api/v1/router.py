@@ -19,6 +19,7 @@ from app.api.v1.endpoints import (
     cost_calc,
     darkweb,
     darkweb_dossier,
+    dev_testing,
     invoices,
     iso27001,
     newsletter,
@@ -27,6 +28,7 @@ from app.api.v1.endpoints import (
     pca,
     phishing,
     plans,
+    portal,
     public_scans,
     quiz,
     quotes,
@@ -68,6 +70,7 @@ api_router.include_router(admin_invoices.router)
 api_router.include_router(admin_quotes.router)
 api_router.include_router(quotes.router)
 api_router.include_router(rssi.router)
+api_router.include_router(portal.router)
 api_router.include_router(training.router)
 api_router.include_router(pca.router)
 api_router.include_router(darkweb.router)
@@ -77,6 +80,7 @@ api_router.include_router(quiz.router)
 api_router.include_router(cost_calc.router)
 api_router.include_router(collab.router)
 api_router.include_router(phishing.router)
+api_router.include_router(dev_testing.router)
 api_router.include_router(api_waitlist.router)
 api_router.include_router(awareness.router)
 api_router.include_router(awareness_verify.router)

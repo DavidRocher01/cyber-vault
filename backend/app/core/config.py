@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     def smtp_from_address(self) -> str:
         return self.SMTP_FROM or self.SMTP_USER
 
+    @property
+    def is_dev_mode(self) -> bool:
+        """True en dev/CI, jamais en prod : autorise les affordances de test
+        (checkout sans Stripe, endpoints /dev pour l'E2E). Meme critere que le
+        DEV_MODE de subscriptions.py."""
+        return self.APP_ENV == "development" and "rochercybersecurite.com" not in self.FRONTEND_URL
+
     # Email transactionnel Resend
     RESEND_API_KEY: str = ""
     RESEND_FROM: str = "Rocher Cybersécurité <no-reply@rochercybersecurite.com>"
