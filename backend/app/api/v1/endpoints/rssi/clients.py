@@ -493,7 +493,12 @@ async def invite_client_to_portal(
         current_user.display_name,
         INVITE_TTL_DAYS,
     )
-    return {"status": "invited", "email": client.email, "account_created": account_created}
+    resp = {"status": "invited", "email": client.email, "account_created": account_created}
+    # DEV_MODE only : expose le lien d'activation (token brut) pour l'E2E — le token
+    # est hache en base, donc irrecuperable autrement. Jamais expose en prod.
+    if settings.is_dev_mode:
+        resp["invite_url"] = invite_url
+    return resp
 
 
 @router.post("/clients/{client_id}/awareness")
