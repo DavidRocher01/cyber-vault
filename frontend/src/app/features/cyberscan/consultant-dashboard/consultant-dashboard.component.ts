@@ -24,6 +24,7 @@ import {
   CalendarEvent,
   DashboardSuggestion,
 } from '../services/rssi.service';
+import { AwarenessService, AwarenessOrganization } from '../services/awareness.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
@@ -49,6 +50,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
 })
 export class ConsultantDashboardComponent implements OnInit {
   private rssi = inject(RssiService);
+  private awareness = inject(AwarenessService);
   private fb = inject(FormBuilder);
   private snack = inject(MatSnackBar);
   private title = inject(Title);
@@ -75,6 +77,14 @@ export class ConsultantDashboardComponent implements OnInit {
   focusedClientName = signal<string | null>(null);
 
   activeTab = signal<'dashboard' | 'clients' | 'awareness'>('dashboard');
+
+  // Sensibilisation : organisations du consultant (liées à un client RSSI ou autonomes)
+  awarenessOrgs = signal<AwarenessOrganization[]>([]);
+
+  /** Nom du client RSSI lié à cette organisation, ou null si formation seule. */
+  orgLinkedClientName(orgId: number): string | null {
+    return this.clients().find(c => c.awareness_organization_id === orgId)?.name ?? null;
+  }
 
   readonly formulas = [
     { value: 'essentiel', label: 'Essentiel' },
@@ -124,6 +134,7 @@ export class ConsultantDashboardComponent implements OnInit {
       alerts: this.rssi.getDashboardAlerts(),
       events: this.rssi.getUpcomingEvents(14),
       suggestions: this.rssi.getSuggestions(),
+      orgs: this.awareness.listOrganizations(),
     }).subscribe({
       next: data => {
         this.clients.set(data.clients);
@@ -132,6 +143,7 @@ export class ConsultantDashboardComponent implements OnInit {
         this.alerts.set(data.alerts);
         this.events.set(data.events);
         this.suggestions.set(data.suggestions);
+        this.awarenessOrgs.set(data.orgs);
         this.loading.set(false);
 
         const focusId = this.focusedClientId();

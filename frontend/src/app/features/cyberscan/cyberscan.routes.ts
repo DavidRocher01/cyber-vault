@@ -103,7 +103,8 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Tarifs Sensibilisation NIS2 — Rocher Cybersécurité',
   },
   {
-    path: 'awareness',
+    // NB: pas 'awareness' — ce chemin est capté par le portail apprenant (app.routes.ts).
+    path: 'awareness-admin',
     loadComponent: () =>
       import('./awareness-admin/awareness-admin.component').then(m => m.AwarenessAdminComponent),
     canActivate: [authGuard],

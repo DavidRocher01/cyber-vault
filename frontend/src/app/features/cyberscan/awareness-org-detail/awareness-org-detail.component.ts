@@ -38,7 +38,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
       <div class="max-w-5xl mx-auto">
         <!-- Back -->
         <a
-          routerLink="/awareness"
+          routerLink="/awareness-admin"
           class="inline-flex items-center gap-1.5 text-gray-400 hover:text-white text-sm mb-6 transition-colors"
         >
           <mat-icon class="!text-base">arrow_back</mat-icon> Mes organisations

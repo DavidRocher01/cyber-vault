@@ -844,52 +844,83 @@
     <!-- ─── AWARENESS TAB ─────────────────────────────────────────────────── -->
     @if (activeTab() === 'awareness') {
       <div class="max-w-3xl">
-        <div class="flex items-center gap-3 mb-6">
-          <div
-            class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0"
-          >
-            <mat-icon class="text-cyan-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">school</mat-icon>
+        <div class="flex items-center justify-between gap-3 mb-6">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0"
+            >
+              <mat-icon class="text-cyan-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]"
+                >school</mat-icon
+              >
+            </div>
+            <div>
+              <h2 class="text-white font-semibold">Sensibilisation NIS2</h2>
+              <p class="text-gray-500 text-xs">
+                Les formations de vos clients — avec ou sans mission RSSI
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 class="text-white font-semibold">Sensibilisation NIS2</h2>
-            <p class="text-gray-500 text-xs">
-              Gérez la formation cybersécurité de vos organisations clientes
+          <a
+            routerLink="/awareness-admin"
+            mat-flat-button
+            class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white shrink-0"
+          >
+            <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">add</mat-icon>
+            Nouvelle organisation
+          </a>
+        </div>
+
+        @if (awarenessOrgs().length === 0) {
+          <div class="text-center py-16 rounded-xl border border-gray-800 bg-gray-900/40">
+            <mat-icon class="text-gray-700 !text-4xl mb-2">school</mat-icon>
+            <p class="text-gray-400 text-sm">Aucune organisation de formation pour l'instant.</p>
+            <p class="text-gray-600 text-xs mt-1">
+              Activez la sensibilisation depuis une fiche client, ou créez une organisation
+              autonome.
             </p>
           </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div class="rounded-xl border border-gray-800 bg-gray-900 p-5 text-center">
-            <mat-icon class="text-cyan-400 !text-[2rem] !w-[2rem] !h-[2rem] mb-2"
-              >business</mat-icon
-            >
-            <p class="text-white font-semibold text-sm">Organisations</p>
-            <p class="text-gray-500 text-xs mt-0.5">Créez et gérez vos clients</p>
+        } @else {
+          <div class="flex flex-col gap-2">
+            @for (org of awarenessOrgs(); track org.id) {
+              <div
+                class="flex items-center gap-4 rounded-xl border border-gray-800 bg-gray-900 px-4 py-3"
+              >
+                <div
+                  class="w-9 h-9 rounded-lg bg-cyan-500/10 flex items-center justify-center shrink-0"
+                >
+                  <mat-icon class="text-cyan-400 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]"
+                    >business</mat-icon
+                  >
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-white text-sm font-medium truncate">{{ org.name }}</p>
+                  <p class="text-gray-500 text-xs">
+                    {{ org.learner_count ?? 0 }}/{{ org.max_learners }} apprenants
+                  </p>
+                </div>
+                @if (orgLinkedClientName(org.id); as clientName) {
+                  <span
+                    class="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-400 border border-cyan-700/30 shrink-0"
+                    [matTooltip]="'Lié au client RSSI : ' + clientName"
+                    >Client RSSI</span
+                  >
+                } @else {
+                  <span
+                    class="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-gray-700/40 text-gray-400 border border-gray-600/40 shrink-0"
+                    >Formation seule</span
+                  >
+                }
+                <a
+                  [routerLink]="['/awareness/org', org.id]"
+                  mat-stroked-button
+                  class="!rounded-lg !border-gray-700 !text-gray-300 !text-xs shrink-0"
+                >
+                  Gérer
+                </a>
+              </div>
+            }
           </div>
-          <div class="rounded-xl border border-gray-800 bg-gray-900 p-5 text-center">
-            <mat-icon class="text-yellow-400 !text-[2rem] !w-[2rem] !h-[2rem] mb-2"
-              >people</mat-icon
-            >
-            <p class="text-white font-semibold text-sm">Learners</p>
-            <p class="text-gray-500 text-xs mt-0.5">Import CSV · Magic-link email</p>
-          </div>
-          <div class="rounded-xl border border-gray-800 bg-gray-900 p-5 text-center">
-            <mat-icon class="text-green-400 !text-[2rem] !w-[2rem] !h-[2rem] mb-2"
-              >verified_user</mat-icon
-            >
-            <p class="text-white font-semibold text-sm">Rapport NIS2</p>
-            <p class="text-gray-500 text-xs mt-0.5">Score conformité · PDF</p>
-          </div>
-        </div>
-
-        <a
-          routerLink="/awareness"
-          mat-flat-button
-          class="!rounded-xl !bg-cyan-600 hover:!bg-cyan-500 !text-white"
-        >
-          <mat-icon>open_in_new</mat-icon>
-          Accéder à la plateforme NIS2
-        </a>
+        }
       </div>
     }
   </div>
