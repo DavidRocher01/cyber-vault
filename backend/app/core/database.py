@@ -12,6 +12,13 @@ engine = create_async_engine(
     pool_pre_ping=True,
     pool_recycle=3600,
     echo=False,
+    # Fixe la timezone de session à UTC sur CHAQUE connexion, indépendamment du
+    # défaut du serveur. RDS est en UTC, mais un Postgres local (ex. Windows) est
+    # souvent en Europe/Paris -> tout `now()`/`CURRENT_DATE` côté base divergerait.
+    # On rend le comportement déterministe partout et on blinde la prod contre une
+    # dérive du paramètre RDS. Les colonnes timestamptz sont déjà en UTC ; ceci
+    # couvre les timestamp naïfs et les fonctions temporelles côté serveur.
+    connect_args={"server_settings": {"timezone": "UTC"}},
 )
 
 AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
