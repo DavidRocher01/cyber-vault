@@ -27,16 +27,23 @@
 
 services:
   postgres:
-    image: postgres:17-alpine
+    # Image Debian (glibc), PAS alpine (musl) : nécessaire pour la collation
+    # en_US.UTF-8 de la prod (RDS). Alpine ne fournit que C.UTF-8.
+    image: postgres:17
     container_name: cybervault_dev_db
     environment:
-      POSTGRES_USER: postgres
+      POSTGRES_USER: postgres # rôle admin (init + healthcheck)
       POSTGRES_PASSWORD: password
       POSTGRES_DB: cybervault
+      # Collation/ctype identiques à la prod (vérifié sur RDS : en_US.UTF-8).
+      # Le tri du texte (ORDER BY name...) diffère sinon du natif Windows.
+      POSTGRES_INITDB_ARGS: "--locale=en_US.UTF-8"
     ports:
       - "5433:5432"
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
+      # Crée le rôle applicatif NON-superuser `cybervault` (comme en prod).
+      - ./infra/dev-db-init.sql:/docker-entrypoint-initdb.d/10-app-role.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -58,7 +65,7 @@ services:
     environment:
       APP_ENV: development
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key-not-for-production-64chars}
-      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/cybervault
+      DATABASE_URL: postgresql+asyncpg://cybervault:${POSTGRES_PASSWORD:-password}@postgres:5432/cybervault
     depends_on:
       postgres:
         condition: service_healthy
@@ -75,7 +82,7 @@ services:
       # est OS/runtime/deps/binaires, pas les flags de sécurité prod (intestables en local).
       APP_ENV: development
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key-not-for-production-64chars}
-      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/cybervault
+      DATABASE_URL: postgresql+asyncpg://cybervault:${POSTGRES_PASSWORD:-password}@postgres:5432/cybervault
       ALLOWED_ORIGINS: '["http://localhost:4200"]'
       FRONTEND_URL: http://localhost:4200
       # PAS de REDIS_URL -> fallback in-memory, comme la prod.
