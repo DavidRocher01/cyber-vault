@@ -14,6 +14,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from typing import Literal
+from urllib.parse import urlparse
 
 from app.core.config import settings
 
@@ -158,8 +159,11 @@ def _purchase_url(domain: str) -> str:
 
 
 def _setup_instructions(domain: str) -> str:
-    base = settings.PHISHING_BASE_URL.rstrip("/")
-    api_host = base.replace("https://", "").replace("http://", "")
+    # Une cible CNAME est un HOSTNAME : ni schema, ni port, ni chemin. Or
+    # PHISHING_BASE_URL contient un chemin (ex. https://rochercybersecurite.com/api/v1),
+    # et un simple replace("https://", "") laissait "rochercybersecurite.com/api/v1" —
+    # une instruction DNS inapplicable. urlparse().hostname isole proprement l'hote.
+    api_host = urlparse(settings.PHISHING_BASE_URL).hostname or settings.PHISHING_BASE_URL
     return (
         f"1. Achetez le domaine '{domain}' (~10 €/an).\n"
         f"2. Dans votre registrar DNS, créez :\n"

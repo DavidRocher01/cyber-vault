@@ -65,9 +65,20 @@ class Settings(BaseSettings):
     HIBP_API_KEY: str = ""
 
     # Phishing simulation engine (homemade, no GoPhish)
-    # Base URL used for tracking pixel / click / landing routes (served by this API)
-    # Set to https://sim.rochercybersecurite.com in prod; https://api.rochercybersecurite.com also works
-    PHISHING_BASE_URL: str = "https://sim.rochercybersecurite.com"
+    # Base URL des routes de tracking phishing (pixel / clic / landing), servies par
+    # CETTE API. Doit donc inclure le prefixe /api/v1 : les URLs sont construites en
+    # f"{PHISHING_BASE_URL}/phishing/t/{id}/px".
+    #
+    # Le defaut vise le DEV LOCAL. La prod l'ecrase via la task definition ECS
+    # (actuellement https://rochercybersecurite.com/api/v1).
+    #
+    # L'ancien defaut etait "https://sim.rochercybersecurite.com" : faux sur deux
+    # plans — ce sous-domaine n'a JAMAIS existe (NXDOMAIN, aucun enregistrement dans
+    # la zone Route53) et il manquait /api/v1. Resultat : tracking mort en local/CI,
+    # et tout deploiement neuf oubliant la variable aurait eu un tracking cassE en
+    # silence (les emails partent, rien ne se track). Un defaut sur localhost echoue
+    # bruyamment, ce qui est le bon mode de defaillance.
+    PHISHING_BASE_URL: str = "http://localhost:8000/api/v1"
     # Sender identity in phishing emails (display name only — actual domain must be Resend-verified)
     PHISHING_FROM_EMAIL: str = ""  # e.g. no-reply@rochercybersecurite.com (Resend verified domain)
     PHISHING_FROM_NAME: str = "Rocher Cybersécurité Exercise"
