@@ -7,7 +7,7 @@
         security check \
         migrate migrate-rollback migrate-new migrate-reset \
         prod-check prod-check-logs docker-down \
-        build clean
+        frontend-check build clean
 
 # ── Couleurs ────────────────────────────────────────────────────────────────────
 CYAN  := \033[0;36m
@@ -136,6 +136,14 @@ docker-down: ## Arrête et supprime le stack de parité prod
 
 build: ## Build le frontend Angular
 	cd frontend && npm run build
+
+frontend-check: ## Build le frontend EXACTEMENT comme la prod (configuration=production)
+	# `ng serve` (dev-server) n'exécute ni les optimisations ni les vérifs de template
+	# du build de prod. Ce build (le même que deploy.yml) attrape ce que le dev cache :
+	# erreurs AOT, directives non importées (ex. *ngIf sans NgIf), budgets dépassés.
+	# À lancer avant un déploiement front. Pour SERVIR l'artefact en iso-prod, voir
+	# le reverse proxy (make edge-*).
+	cd frontend && npm run build -- --configuration=production
 
 # ── Nettoyage ───────────────────────────────────────────────────────────────────
 

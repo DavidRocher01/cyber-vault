@@ -185,9 +185,7 @@
                       revealedPasswords[item.id] !== undefined &&
                       revealedPasswords[item.id] !== null
                     ) {
-                      <ng-container
-                        *ngIf="parseCardData(revealedPasswords[item.id]) as card; else cardRaw"
-                      >
+                      @if (parseCardData(revealedPasswords[item.id]); as card) {
                         <div class="mt-1.5 flex gap-4 text-sm font-mono text-cyan-400">
                           <span>{{ card.number || '—' }}</span>
                           @if (card.expiry) {
@@ -197,12 +195,11 @@
                             <span class="text-gray-500">CVV: {{ card.cvv }}</span>
                           }
                         </div>
-                      </ng-container>
-                      <ng-template #cardRaw>
+                      } @else {
                         <p class="mt-1.5 font-mono text-sm text-cyan-400 break-all">
                           {{ revealedPasswords[item.id] }}
                         </p>
-                      </ng-template>
+                      }
                     }
                   } @else if (item.category === 'note') {
                     <!-- Note : afficher aperçu du contenu -->
