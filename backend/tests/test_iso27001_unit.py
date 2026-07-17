@@ -82,31 +82,31 @@ class TestIso27001Score:
         assert _compute_score({}) == 0
 
     def test_all_compliant_gives_100(self):
-        items = {id_: "compliant" for id_ in ALL_ITEM_IDS}
+        items = dict.fromkeys(ALL_ITEM_IDS, "compliant")
         assert _compute_score(items) == 100
 
     def test_all_non_compliant_gives_0(self):
-        items = {id_: "non_compliant" for id_ in ALL_ITEM_IDS}
+        items = dict.fromkeys(ALL_ITEM_IDS, "non_compliant")
         assert _compute_score(items) == 0
 
     def test_all_partial_gives_50(self):
-        items = {id_: "partial" for id_ in ALL_ITEM_IDS}
+        items = dict.fromkeys(ALL_ITEM_IDS, "partial")
         assert _compute_score(items) == 50
 
     def test_all_na_gives_0(self):
-        items = {id_: "na" for id_ in ALL_ITEM_IDS}
+        items = dict.fromkeys(ALL_ITEM_IDS, "na")
         assert _compute_score(items) == 0
 
     def test_na_excluded_from_denominator(self):
-        items = {id_: "na" for id_ in ALL_ITEM_IDS}
+        items = dict.fromkeys(ALL_ITEM_IDS, "na")
         items["mfa"] = "compliant"
         assert _compute_score(items) == 100
 
     def test_half_compliant_gives_50(self):
         ids = list(ALL_ITEM_IDS)
         half = len(ids) // 2
-        items = {id_: "compliant" for id_ in ids[:half]}
-        items.update({id_: "non_compliant" for id_ in ids[half:]})
+        items = dict.fromkeys(ids[:half], "compliant")
+        items.update(dict.fromkeys(ids[half:], "non_compliant"))
         assert _compute_score(items) == 50
 
     def test_score_is_int(self):

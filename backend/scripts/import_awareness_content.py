@@ -2,6 +2,7 @@
 Charge le contenu YAML/Markdown du module sensibilisation en DB.
 Usage: python scripts/import_awareness_content.py
 """
+
 import asyncio
 import sys
 from pathlib import Path

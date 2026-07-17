@@ -351,7 +351,7 @@ def _subdomain_trick(name: str, tld: str) -> list[LookalikeDomain]:
                 requires_purchase=True,
                 purchase_url=_purchase_url(lure),
                 setup_instructions=(
-                    f"Achetez '{lure}', puis créez un CNAME:\n" f"  {name}{tld}.{lure} → votre API"
+                    f"Achetez '{lure}', puis créez un CNAME:\n  {name}{tld}.{lure} → votre API"
                 ),
                 note="Très réaliste : l'URL commence par le vrai domaine de l'entreprise.",
             )

@@ -46,32 +46,32 @@ def test_map_requirements_all_compliant():
 
 
 def test_map_requirements_all_non_compliant():
-    metrics = {
-        k: 0.0
-        for k in [
+    metrics = dict.fromkeys(
+        [
             "general_completion_pct",
             "overall_completion_pct",
             "learner_participation_pct",
             "incident_module_completion_pct",
             "continuity_module_completion_pct",
-        ]
-    }
+        ],
+        0.0,
+    )
     reqs = map_requirements(metrics)
     assert all(r["status"] == "non_compliant" for r in reqs)
 
 
 def test_map_requirements_partial():
     # 75% of threshold = partial zone
-    metrics = {
-        k: 65.0
-        for k in [
+    metrics = dict.fromkeys(
+        [
             "general_completion_pct",
             "overall_completion_pct",
             "learner_participation_pct",
             "incident_module_completion_pct",
             "continuity_module_completion_pct",
-        ]
-    }
+        ],
+        65.0,
+    )
     reqs = map_requirements(metrics)
     # 65% vs threshold 80% = 65/80 = 81% → partial (≥ 75% of threshold)
     statuses = {r["status"] for r in reqs}
@@ -93,16 +93,16 @@ def test_map_requirements_gap_calculated():
 
 
 def test_map_requirements_returns_5_requirements():
-    metrics = {
-        k: 80.0
-        for k in [
+    metrics = dict.fromkeys(
+        [
             "general_completion_pct",
             "overall_completion_pct",
             "learner_participation_pct",
             "incident_module_completion_pct",
             "continuity_module_completion_pct",
-        ]
-    }
+        ],
+        80.0,
+    )
     reqs = map_requirements(metrics)
     assert len(reqs) == 5
 

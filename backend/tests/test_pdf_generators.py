@@ -463,7 +463,7 @@ def test_generate_iso27001_pdf_ten_domains():
     cats = [
         {
             "id": f"d{i}",
-            "label": f"Domaine {'A' * min(i+1, 26)}",
+            "label": f"Domaine {'A' * min(i + 1, 26)}",
             "items": [
                 {"id": f"d{i}_1", "label": "Control 1", "desc": "Desc"},
                 {"id": f"d{i}_2", "label": "Control 2", "desc": "Desc"},

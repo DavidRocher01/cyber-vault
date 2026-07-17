@@ -177,7 +177,7 @@ def send_monitoring_alert(
     """Send an alert email when monitoring detects new exposed accounts."""
     new_list_html = "".join(f"<li style='color:#fca5a5'>{e}</li>" for e in new_exposed[:10])
     more = (
-        f"<p style='color:#94a3b8;font-size:13px'>+ {len(new_exposed)-10} autres</p>"
+        f"<p style='color:#94a3b8;font-size:13px'>+ {len(new_exposed) - 10} autres</p>"
         if len(new_exposed) > 10
         else ""
     )

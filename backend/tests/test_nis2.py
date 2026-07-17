@@ -81,7 +81,7 @@ async def test_save_assessment_score_100_when_all_compliant():
         # Get all item IDs from the categories
         r_get = await c.get(f"{BASE}/nis2/me", headers=h)
         all_ids = [item["id"] for cat in r_get.json()["categories"] for item in cat["items"]]
-        payload = {"items": {item_id: "compliant" for item_id in all_ids}}
+        payload = {"items": dict.fromkeys(all_ids, "compliant")}
         r = await c.put(f"{BASE}/nis2/me", json=payload, headers=h)
     assert r.status_code == 200
     assert r.json()["score"] == 100
@@ -93,7 +93,7 @@ async def test_save_assessment_score_0_when_all_non_compliant():
         h = await _headers(c, "nis2_score0@test.com")
         r_get = await c.get(f"{BASE}/nis2/me", headers=h)
         all_ids = [item["id"] for cat in r_get.json()["categories"] for item in cat["items"]]
-        payload = {"items": {item_id: "non_compliant" for item_id in all_ids}}
+        payload = {"items": dict.fromkeys(all_ids, "non_compliant")}
         r = await c.put(f"{BASE}/nis2/me", json=payload, headers=h)
     assert r.status_code == 200
     assert r.json()["score"] == 0
@@ -106,7 +106,7 @@ async def test_save_assessment_na_excluded_from_score():
         # All NA → score should be 0 (no scorable items)
         r_get = await c.get(f"{BASE}/nis2/me", headers=h)
         all_ids = [item["id"] for cat in r_get.json()["categories"] for item in cat["items"]]
-        payload = {"items": {item_id: "na" for item_id in all_ids}}
+        payload = {"items": dict.fromkeys(all_ids, "na")}
         r = await c.put(f"{BASE}/nis2/me", json=payload, headers=h)
     assert r.status_code == 200
     assert r.json()["score"] == 0
