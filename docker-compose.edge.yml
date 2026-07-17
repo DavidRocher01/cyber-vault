@@ -1,0 +1,29 @@
+# Reverse proxy local « iso-edge » (Caddy) — voir infra/Caddyfile.
+#
+# Sert le frontend BUILDÉ (`make frontend-check` d'abord) derrière un proxy qui
+# reproduit CloudFront + ALB : https://localhost, split /api, en-têtes forwarded.
+#
+# Usage :
+#   1. make frontend-check          # produit dist/cyber-vault-frontend/browser
+#   2. un backend écoute sur :8000  # natif OU `make prod-check` (recommandé pour l'IP forwarded)
+#   3. make edge                    # -> https://localhost (accepter le cert interne)
+#   4. make edge-down
+#
+# Le montage est relatif à CE fichier, donc pas de souci de chemin Windows.
+
+services:
+  edge:
+    image: caddy:2-alpine
+    container_name: cybervault_edge
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./frontend/dist/cyber-vault-frontend/browser:/srv:ro
+      - caddy_data:/data # persiste l'autorité interne (évite de re-truster le cert)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  caddy_data:

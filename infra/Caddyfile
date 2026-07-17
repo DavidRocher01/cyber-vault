@@ -1,0 +1,39 @@
+# Reverse proxy local « iso-edge » — reproduit CloudFront + ALB devant l'app.
+#
+# En prod, le navigateur ne tape jamais uvicorn en direct : il passe par
+# CloudFront (SPA + split /api) puis l'ALB (X-Forwarded-For/-Proto → l'app lit
+# l'IP client réelle derrière le proxy). En dev natif tu tapes :8000 en direct,
+# donc rien de tout ça n'est exercé. Ce Caddy remet la même chaîne devant :
+#
+#   navigateur --https--> Caddy --> /api/*      => backend :8000 (host)
+#                               \-> tout le reste => SPA BUILDÉ (dist/.../browser)
+#
+# Ce qui devient iso-prod :
+#   - on sert l'ARTEFACT de prod (le vrai bundle optimisé), pas `ng serve`
+#   - le split /api vs SPA (celui qu'on a corrigé côté CloudFront)
+#   - https local (cert interne Caddy)
+#   - X-Forwarded-For/-Proto ajoutés par Caddy → l'app voit l'IP « client »
+#     comme en prod (utile pour le rate-limiter et les quiz). ⚠️ Pour que le
+#     backend HONORE ces en-têtes, il doit tourner avec --forwarded-allow-ips :
+#     c'est le cas du backend `make prod-check` (#1), pas de l'uvicorn natif brut.
+
+{
+	# Dev local : pas d'ACME, HTTPS via l'autorité interne de Caddy.
+	auto_https disable_redirects
+}
+
+localhost {
+	tls internal
+
+	# /api/* → backend. Caddy ajoute X-Forwarded-For / -Proto / -Host par défaut.
+	handle /api/* {
+		reverse_proxy host.docker.internal:8000
+	}
+
+	# Tout le reste = le SPA buildé, avec fallback SPA vers index.html.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

@@ -6,7 +6,8 @@
         typecheck typecheck-backend typecheck-frontend \
         security check \
         migrate migrate-rollback migrate-new migrate-reset \
-        build clean
+        prod-check prod-check-logs docker-down \
+        frontend-check edge edge-down build clean
 
 # ── Couleurs ────────────────────────────────────────────────────────────────────
 CYAN  := \033[0;36m
@@ -111,21 +112,51 @@ migrate-status: ## Affiche le statut des migrations
 check-migrations: ## Vérifie la santé du DAG Alembic (IDs uniques, pas de fantômes, une tête)
 	python scripts/check_migrations.py
 
-# ── Docker ──────────────────────────────────────────────────────────────────────
+# ── Docker : parité prod ──────────────────────────────────────────────────────
+# Backend dans la MÊME image que la prod (Linux, Python 3.14, nmap/bearer),
+# même commande uvicorn, migrations jouées comme en prod. Pas de hot-reload :
+# c'est pour VALIDER avant un déploiement, pas pour le dev quotidien (reste en
+# natif : `make dev-backend`). Base isolée/jetable (port 5433), pas de Redis (= prod).
 
-docker-dev: ## Lance l'environnement de développement (Docker)
-	docker compose -f docker-compose.dev.yml up
+prod-check: ## Parité prod : build l'image, migre, lance le backend et smoke-teste (arrêter l'uvicorn natif d'abord)
+	docker compose -f docker-compose.dev.yml up -d --build
+	@echo "$(CYAN)Attente du backend...$(RESET)"
+	@for i in $$(seq 1 30); do curl -sf http://localhost:8000/health >/dev/null 2>&1 && break || sleep 2; done
+	@curl -sf http://localhost:8000/health >/dev/null && echo "$(GREEN)✓ /health OK$(RESET)" || echo "backend KO"
+	@docker exec cybervault_dev_backend sh -c "command -v nmap >/dev/null && echo '$(GREEN)✓ nmap présent (scans testables)$(RESET)'"
+	@echo "$(CYAN)Front : lance 'make dev-frontend' — il proxie /api vers ce backend.$(RESET)"
 
-docker-dev-build: ## Rebuild et lance l'environnement de développement
-	docker compose -f docker-compose.dev.yml up --build
+prod-check-logs: ## Suit les logs du backend dockerisé
+	docker compose -f docker-compose.dev.yml logs -f backend
 
-docker-down: ## Arrête les conteneurs
+docker-down: ## Arrête et supprime le stack de parité prod
 	docker compose -f docker-compose.dev.yml down
 
 # ── Build ───────────────────────────────────────────────────────────────────────
 
 build: ## Build le frontend Angular
 	cd frontend && npm run build
+
+frontend-check: ## Build le frontend EXACTEMENT comme la prod (configuration=production)
+	# `ng serve` (dev-server) n'exécute ni les optimisations ni les vérifs de template
+	# du build de prod. Ce build (le même que deploy.yml) attrape ce que le dev cache :
+	# erreurs AOT, directives non importées (ex. *ngIf sans NgIf), budgets dépassés.
+	# À lancer avant un déploiement front. Pour SERVIR l'artefact en iso-prod, voir
+	# le reverse proxy (make edge-*).
+	cd frontend && npm run build -- --configuration=production
+
+# ── Edge : reverse proxy iso-prod (Caddy) ──────────────────────────────────────
+# Sert le SPA BUILDÉ derrière un proxy qui reproduit CloudFront+ALB (https, split
+# /api, X-Forwarded-*). Voir infra/Caddyfile. Nécessite un backend sur :8000
+# (`make prod-check` recommandé pour que l'IP forwarded soit honorée).
+
+edge: ## Sert le frontend buildé derrière Caddy (https://localhost, /api -> :8000)
+	@test -d frontend/dist/cyber-vault-frontend/browser || { echo "$(CYAN)Build d'abord : make frontend-check$(RESET)"; exit 1; }
+	docker compose -f docker-compose.edge.yml up -d
+	@echo "$(GREEN)✓ Edge en ligne : https://localhost$(RESET) (accepter le certificat interne au 1er accès)"
+
+edge-down: ## Arrête le reverse proxy edge
+	docker compose -f docker-compose.edge.yml down
 
 # ── Nettoyage ───────────────────────────────────────────────────────────────────
 

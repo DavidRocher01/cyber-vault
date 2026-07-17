@@ -30,7 +30,7 @@ class RssiAction(Base):
     due_date: Mapped[date | None] = mapped_column(Date(), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     source_visit_id: Mapped[int | None] = mapped_column(
-        ForeignKey("rssi_visits.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("rssi_visits.id", ondelete="SET NULL"), nullable=True, index=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
