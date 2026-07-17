@@ -93,6 +93,11 @@ make recette                    # recette post-prod contre la PROD (creds canari
 ## 6b. Config de dev déjà versionnée (rien à faire)
 
 Ces éléments **arrivent avec le `git clone`**, aucune reconfiguration :
+- **VS Code** : `.vscode/settings.json` (formateur ruff, cohérent avec le pre-commit)
+  + `.vscode/extensions.json` (à l'ouverture, VS Code propose d'installer les
+  extensions recommandées : Ruff, Python, Prettier, ESLint, Angular). Le reste de
+  `.vscode/` (perso) reste gitignoré. Interpréteur : sélectionner `backend/.venv`
+  si non auto-détecté (« Python: Select Interpreter »).
 - Configs qualité : ruff / mypy / bandit (backend), ESLint / Prettier (frontend).
 - `.pre-commit-config.yaml` (14 hooks) — activés par `make install`.
 - `docker-compose.dev.yml` (parité prod : `make prod-check`), `docker-compose.edge.yml`
@@ -101,36 +106,7 @@ Ces éléments **arrivent avec le `git clone`**, aucune reconfiguration :
 
 Machine-spécifique / non versionné (à refaire) : `.venv`, `node_modules`,
 navigateurs Playwright (`npx playwright install chromium` pour les E2E/recette UI),
-`.env`, creds AWS/gh, et **la config VS Code** (`.vscode/` est gitignoré — voir ci-dessous).
-
-### VS Code (`.vscode/` est gitignoré → à recréer)
-
-`.vscode/settings.json` recommandé (formateur = **ruff**, cohérent avec le
-pre-commit ; sur Linux/Mac remplacer l'interpréteur par `.venv/bin/python`) :
-
-```jsonc
-{
-  "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
-  "python.terminal.activateEnvironment": true,
-  "python.analysis.extraPaths": ["${workspaceFolder}/backend"],
-  "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff",
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": { "source.fixAll.ruff": "explicit" }
-  },
-  "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode", "editor.formatOnSave": true },
-  "[html]":       { "editor.defaultFormatter": "esbenp.prettier-vscode", "editor.formatOnSave": true },
-  "editor.rulers": [88],
-  "files.exclude": {
-    "**/__pycache__": true, "**/.pytest_cache": true,
-    "**/node_modules": true, "**/.angular": true, "**/dist": true
-  }
-}
-```
-
-Extensions à installer : **Ruff** (`charliermarsh.ruff`), **Python** (`ms-python.python`),
-**Prettier** (`esbenp.prettier-vscode`), **ESLint** (`dbaeumer.vscode-eslint`),
-**Angular Language Service** (`angular.ng-template`).
+`.env`, creds AWS/gh.
 
 ## 7. Repères
 
