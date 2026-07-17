@@ -1,6 +1,24 @@
-requests>=2.32.3
-python-nmap>=0.7.1
-rich>=13.7.0
-urllib3>=2.2.3
-reportlab>=4.0.0
-dnspython>=2.7.0
+# Dépendances du scanner — ÉPINGLÉES (versions exactes).
+#
+# Auparavant en `>=` : chaque build Docker résolvait vers la dernière version
+# publiée, donc deux builds à deux dates n'embarquaient PAS le même scanner
+# (ex. `rich>=13.7.0` résolvait en 15.0.0 — deux versions majeures d'écart).
+# Le build n'était pas reproductible, et une régression amont pouvait atteindre
+# la production sans qu'aucun commit ne la déclenche.
+#
+# Versions figées sur ce qui tourne réellement dans l'image de production.
+#
+# ATTENTION : requests / reportlab / dnspython sont AUSSI dans
+# backend/requirements.prod.txt (le scanner partage le venv de l'image). Garder
+# les deux fichiers alignés — sinon pip échouera au build, ce qui est voulu :
+# mieux vaut une erreur bruyante qu'une dérive silencieuse.
+
+# Partagées avec le backend — garder identiques à backend/requirements.prod.txt
+requests==2.34.2
+reportlab==4.4.10
+dnspython==2.7.0
+
+# Spécifiques au scanner
+python-nmap==0.7.1
+rich==15.0.0
+urllib3==2.7.0
