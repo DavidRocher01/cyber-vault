@@ -4,8 +4,19 @@ name: CI
 on:
   push:
     branches: [main, master, develop]
+    # Un commit qui ne touche que de la doc n'a rien a faire tester (~32 min de
+    # runner economisees a chaque fois). Le code, les workflows et les deps
+    # declenchent toujours la CI.
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - ".gitignore"
   pull_request:
     branches: [main, master, develop]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - ".gitignore"
   workflow_dispatch:
 
 concurrency:
@@ -38,14 +49,20 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: "3.14"
           cache: "pip"
-          cache-dependency-path: backend/requirements.prod.txt
+          # Les deux fichiers comptent : requirements.txt tire requirements.prod.txt.
+          cache-dependency-path: backend/requirements*.txt
 
       - name: Install dependencies
+        # requirements.txt = `-r requirements.prod.txt` (runtime EXACT de la prod)
+        # + les outils de dev/test EPINGLES. On installe donc ici exactement ce que
+        # le venv local a. Auparavant la liste etait ecrite a la main et NON epinglee
+        # (pytest, ruff, mypy... en derniere version) : la CI divergeait du local et
+        # pouvait casser toute seule a la sortie d'une nouvelle version d'outil.
         run: |
           pip install --upgrade pip
-          pip install -r requirements.prod.txt aiosqlite bandit pip-audit pytest pytest-asyncio httpx email-validator pytest-cov "testcontainers[postgres]" ruff mypy
+          pip install -r requirements.txt
         working-directory: backend
 
       - name: Ruff (lint)
@@ -237,7 +254,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: "3.14"
 
       - name: Install reportlab
         run: pip install reportlab
@@ -285,7 +302,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: "3.14"
           cache: "pip"
           cache-dependency-path: backend/requirements.prod.txt
 
