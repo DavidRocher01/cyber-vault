@@ -7,7 +7,7 @@
         security check \
         migrate migrate-rollback migrate-new migrate-reset \
         prod-check prod-check-logs docker-down \
-        frontend-check build clean
+        frontend-check edge edge-down build clean
 
 # ── Couleurs ────────────────────────────────────────────────────────────────────
 CYAN  := \033[0;36m
@@ -144,6 +144,19 @@ frontend-check: ## Build le frontend EXACTEMENT comme la prod (configuration=pro
 	# À lancer avant un déploiement front. Pour SERVIR l'artefact en iso-prod, voir
 	# le reverse proxy (make edge-*).
 	cd frontend && npm run build -- --configuration=production
+
+# ── Edge : reverse proxy iso-prod (Caddy) ──────────────────────────────────────
+# Sert le SPA BUILDÉ derrière un proxy qui reproduit CloudFront+ALB (https, split
+# /api, X-Forwarded-*). Voir infra/Caddyfile. Nécessite un backend sur :8000
+# (`make prod-check` recommandé pour que l'IP forwarded soit honorée).
+
+edge: ## Sert le frontend buildé derrière Caddy (https://localhost, /api -> :8000)
+	@test -d frontend/dist/cyber-vault-frontend/browser || { echo "$(CYAN)Build d'abord : make frontend-check$(RESET)"; exit 1; }
+	docker compose -f docker-compose.edge.yml up -d
+	@echo "$(GREEN)✓ Edge en ligne : https://localhost$(RESET) (accepter le certificat interne au 1er accès)"
+
+edge-down: ## Arrête le reverse proxy edge
+	docker compose -f docker-compose.edge.yml down
 
 # ── Nettoyage ───────────────────────────────────────────────────────────────────
 
