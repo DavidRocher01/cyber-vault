@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -9,6 +9,9 @@ from app.core.database import Base
 
 class BlogPost(Base):
     __tablename__ = "blog_posts"
+    # Index GIN sur tags (JSONB) — présent en prod, déclaré ici pour que
+    # l'autogenerate ne propose pas de le supprimer.
+    __table_args__ = (Index("ix_blog_posts_tags", "tags", postgresql_using="gin"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     slug: Mapped[str] = mapped_column(String(200), unique=True, nullable=False, index=True)

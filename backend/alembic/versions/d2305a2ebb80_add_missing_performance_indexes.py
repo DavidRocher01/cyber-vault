@@ -1,20 +1,16 @@
 """add missing performance indexes
 
-Revision ID: d2305a2ebb80
-Revises: f23062c5b864
-Create Date: 2026-07-17 16:06:25.810580
+Contexte : verification du schema reel (=prod) le 2026-07-17. Un seul index
+declare dans les modeles ORM manquait reellement en base : l'index UNIQUE sur
+public_scans.session_token. Les autres index de perf (scans/url_scans/
+code_scans/subscriptions sur status et colonnes composites) existent deja en
+prod depuis la migration a2b3c4d5e6f7 (2026-04-13) -- il ne faut donc PAS les
+recreer ici, sinon deux migrations gerent le meme index et le downgrade tente
+un double DROP (cf test_migration_cycle).
 
-Contexte : ces 12 index sont declares dans les modeles ORM (Index(...) /
-index=True) mais la migration qui les cree n'a JAMAIS ete generee -> ils sont
-absents de la base (donc de la prod). Les requetes correspondantes ("lister mes
-scans par statut", etc.) font un full-scan a l'echelle. On les cree ici, tant
-que le volume est faible (pre-lancement) : CREATE INDEX est quasi instantane.
-
-Cette migration est CUREE a la main : l'autogenerate voulait AUSSI supprimer des
-index utiles presents en prod mais non declares dans les modeles (gin sur
-blog_posts.tags, rssi_activity, contact_messages...) et renommer des contraintes
-unique. Ces points sont volontairement EXCLUS ici (ils feront l'objet d'une
-reconciliation modeles<->schema separee) pour ne rien casser en prod.
+public_scans.session_token est declare unique dans le modele mais la migration
+de creation de la table (i3j4k5l6m7n8) ne posait pas l'index : verifie sur RDS
+prod qu'il n'y a ni doublon ni NULL avant de poser l'index unique.
 
 """
 
@@ -28,32 +24,13 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
-# (index_name, table, [columns], unique)
-_INDEXES = [
-    ("ix_code_scans_status", "code_scans", ["status"], False),
-    ("ix_code_scans_user_id_created_at", "code_scans", ["user_id", "created_at"], False),
-    ("ix_code_scans_user_id_status", "code_scans", ["user_id", "status"], False),
-    ("ix_public_scans_session_token", "public_scans", ["session_token"], True),
-    ("ix_scans_site_id_finished_at", "scans", ["site_id", "finished_at"], False),
-    ("ix_scans_site_id_status", "scans", ["site_id", "status"], False),
-    ("ix_scans_status", "scans", ["status"], False),
-    ("ix_subscriptions_status", "subscriptions", ["status"], False),
-    ("ix_subscriptions_user_id_status", "subscriptions", ["user_id", "status"], False),
-    ("ix_url_scans_status", "url_scans", ["status"], False),
-    ("ix_url_scans_user_id_created_at", "url_scans", ["user_id", "created_at"], False),
-    ("ix_url_scans_user_id_status", "url_scans", ["user_id", "status"], False),
-]
-
-
 def upgrade() -> None:
-    # IF NOT EXISTS : idempotent, et sans risque si un index avait deja ete pose
-    # a la main sur un environnement.
-    for name, table, cols, unique in _INDEXES:
-        uniq = "UNIQUE " if unique else ""
-        col_list = ", ".join(f'"{c}"' for c in cols)
-        op.execute(f'CREATE {uniq}INDEX IF NOT EXISTS "{name}" ON "{table}" ({col_list})')
+    # IF NOT EXISTS : idempotent (sans risque si l'index a deja ete pose a la main).
+    op.execute(
+        'CREATE UNIQUE INDEX IF NOT EXISTS "ix_public_scans_session_token" '
+        'ON "public_scans" ("session_token")'
+    )
 
 
 def downgrade() -> None:
-    for name, *_ in _INDEXES:
-        op.execute(f'DROP INDEX IF EXISTS "{name}"')
+    op.execute('DROP INDEX IF EXISTS "ix_public_scans_session_token"')
