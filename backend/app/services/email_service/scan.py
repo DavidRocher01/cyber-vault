@@ -207,11 +207,11 @@ Pour ne plus recevoir ce bilan, rendez-vous dans vos préférences de notificati
         crit_color = "#ef4444" if s["critical_count"] > 0 else "#94a3b8"
         site_rows += f"""
         <tr>
-          <td style="padding:12px 16px;border-bottom:1px solid #1e293b;color:#e2e8f0;font-size:14px;">{s['url']}</td>
+          <td style="padding:12px 16px;border-bottom:1px solid #1e293b;color:#e2e8f0;font-size:14px;">{s["url"]}</td>
           <td style="padding:12px 16px;border-bottom:1px solid #1e293b;text-align:center;font-weight:700;color:{status_color};">{status}</td>
-          <td style="padding:12px 16px;border-bottom:1px solid #1e293b;text-align:center;color:#94a3b8;">{s['scans_count']}</td>
-          <td style="padding:12px 16px;border-bottom:1px solid #1e293b;text-align:center;font-weight:700;color:{crit_color};">{s['critical_count']}</td>
-          <td style="padding:12px 16px;border-bottom:1px solid #1e293b;text-align:center;color:#eab308;">{s['warning_count']}</td>
+          <td style="padding:12px 16px;border-bottom:1px solid #1e293b;text-align:center;color:#94a3b8;">{s["scans_count"]}</td>
+          <td style="padding:12px 16px;border-bottom:1px solid #1e293b;text-align:center;font-weight:700;color:{crit_color};">{s["critical_count"]}</td>
+          <td style="padding:12px 16px;border-bottom:1px solid #1e293b;text-align:center;color:#eab308;">{s["warning_count"]}</td>
         </tr>"""
 
     summary_color = "#ef4444" if total_critical > 0 else "#22c55e"

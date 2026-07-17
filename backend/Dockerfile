@@ -48,7 +48,7 @@ RUN GITLEAKS_VERSION=8.30.1 \
 
 
 # ── Stage 2: python-deps — Install Python packages into an isolated venv ──────
-FROM python:3.12-slim AS python-deps
+FROM python:3.14-slim AS python-deps
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -64,7 +64,7 @@ RUN pip install --no-cache-dir -r scanner-requirements.txt
 
 
 # ── Stage 3: final runtime image ──────────────────────────────────────────────
-FROM python:3.12-slim AS final
+FROM python:3.14-slim AS final
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 

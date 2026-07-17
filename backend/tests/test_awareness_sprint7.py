@@ -6,6 +6,7 @@ Couvre :
   - GET /awareness/organizations/{id}/admin-dashboard : funnel, programmes, at-risk vides
   - Sécurité : auth requise, org d'un autre user → 404
 """
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -22,6 +23,7 @@ async def _admin_headers(email: str) -> dict:
 
 
 # ── Consultant dashboard ───────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_consultant_dashboard_requires_auth():
@@ -95,6 +97,7 @@ async def test_consultant_dashboard_summary_counts():
 
 # ── Org Admin dashboard ────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_org_admin_dashboard_requires_auth():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -108,7 +111,9 @@ async def test_org_admin_dashboard_404_other_user():
     h2 = await _admin_headers("dash_other@test.com")
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         org_id = (
-            await c.post(f"{BASE}/awareness/organizations", json={"name": "Private Org"}, headers=h1)
+            await c.post(
+                f"{BASE}/awareness/organizations", json={"name": "Private Org"}, headers=h1
+            )
         ).json()["id"]
         r = await c.get(f"{BASE}/awareness/organizations/{org_id}/admin-dashboard", headers=h2)
     assert r.status_code == 404

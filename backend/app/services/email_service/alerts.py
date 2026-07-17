@@ -42,10 +42,10 @@ L'analyse de l'URL suivante vient de se terminer :
   URL analysée : {scanned_url}
   Verdict      : {verdict_fr} {verdict_emoji}
   Score        : {threat_score}/100
-  Type         : {threat_fr if threat_type else '—'}
+  Type         : {threat_fr if threat_type else "—"}
 
 ━━━ Comportements détectés ━━━
-{findings_lines if findings_lines else '  Aucun comportement suspect détecté.'}
+{findings_lines if findings_lines else "  Aucun comportement suspect détecté."}
 
 ━━━ Actions rapides ━━━
   Accéder au rapport complet : {dashboard_url}
@@ -128,7 +128,7 @@ Rocher Cybersécurité — Simulation de phishing
         </td>
         <td style="padding:16px;text-align:center;">
           <p style="margin:0;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:1px;">Identifiants</p>
-          <p style="margin:6px 0 0;font-size:26px;font-weight:800;color:{'#ef4444' if submitted_count > 0 else '#22c55e'};">{submit_rate}<span style="font-size:14px;color:#94a3b8;">%</span></p>
+          <p style="margin:6px 0 0;font-size:26px;font-weight:800;color:{"#ef4444" if submitted_count > 0 else "#22c55e"};">{submit_rate}<span style="font-size:14px;color:#94a3b8;">%</span></p>
         </td>
       </tr>
     </table>
@@ -177,9 +177,9 @@ def send_contact_email(
 
 Nom     : {name}
 Email   : {email}
-Tél.    : {phone or '—'}
+Tél.    : {phone or "—"}
 Besoin  : {need_label}
-Site    : {site_url or '—'}
+Site    : {site_url or "—"}
 
 Message :
 {message}
@@ -207,11 +207,11 @@ Répondre à : {email}
 </td></tr>
 <tr><td style="padding:8px 0;border-bottom:1px solid #1e293b;">
   <p style="margin:0;color:#64748b;font-size:11px;font-weight:700;letter-spacing:1px;">TÉLÉPHONE</p>
-  <p style="margin:4px 0 0;color:#f8fafc;font-size:15px;">{phone or '—'}</p>
+  <p style="margin:4px 0 0;color:#f8fafc;font-size:15px;">{phone or "—"}</p>
 </td></tr>
 <tr><td style="padding:8px 0;">
   <p style="margin:0;color:#64748b;font-size:11px;font-weight:700;letter-spacing:1px;">SITE / URL</p>
-  <p style="margin:4px 0 0;color:#f8fafc;font-size:15px;">{site_url or '—'}</p>
+  <p style="margin:4px 0 0;color:#f8fafc;font-size:15px;">{site_url or "—"}</p>
 </td></tr>
 </table>
 <p style="color:#64748b;font-size:11px;font-weight:700;letter-spacing:1px;margin:0 0 8px;">MESSAGE</p>
@@ -235,7 +235,7 @@ Votre message a bien été reçu. Je reviendrai vers vous sous 4 h (jours ouvré
 
 Récapitulatif de votre demande :
   Type : {need_label}
-  Site : {site_url or '—'}
+  Site : {site_url or "—"}
 
 ---
 Rocher Cybersécurité
@@ -371,15 +371,15 @@ def send_booking_admin_notification(
 
   Nom      : {name}
   Email    : {email}
-  Tél.     : {phone or '—'}
+  Tél.     : {phone or "—"}
   Date     : {date_label} à {time_label}
   Prestation : {need_label}
-  Message  : {message or '—'}
+  Message  : {message or "—"}
 
 Répondre à : {email}
 """
     html = f"""<p>Nouvelle réservation de <strong>{name}</strong> ({email})<br>
 Le <strong>{date_label} à {time_label}</strong> — {need_label}</p>
-<p>Message : {message or '—'}</p>
+<p>Message : {message or "—"}</p>
 <p><a href="mailto:{email}">Répondre</a></p>"""
     _send(admin_email, subject, html, plain)

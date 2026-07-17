@@ -81,9 +81,9 @@ class TestLoginLimitDeclared:
         item = _route_limit(_LOGIN_KEY)
         assert item.amount == 10, f"login devrait être 10/min, obtenu {item.amount}"
         assert item.multiples == 1
-        assert (
-            item.GRANULARITY.name == "minute"
-        ), f"login devrait être par minute, obtenu {item.GRANULARITY.name}"
+        assert item.GRANULARITY.name == "minute", (
+            f"login devrait être par minute, obtenu {item.GRANULARITY.name}"
+        )
         assert item.GRANULARITY.seconds == 60
 
     def test_login_limit_is_not_absurdly_high(self):
@@ -106,9 +106,9 @@ class TestPublicScanLimitDeclared:
         item = _route_limit(_PUBLIC_SCAN_KEY)
         assert item.amount == 3, f"public-scan devrait être 3/h, obtenu {item.amount}"
         assert item.multiples == 1
-        assert (
-            item.GRANULARITY.name == "hour"
-        ), f"public-scan devrait être par heure, obtenu {item.GRANULARITY.name}"
+        assert item.GRANULARITY.name == "hour", (
+            f"public-scan devrait être par heure, obtenu {item.GRANULARITY.name}"
+        )
         assert item.GRANULARITY.seconds == 3600
 
     def test_public_scan_limit_is_strict(self):

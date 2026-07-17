@@ -755,9 +755,9 @@ def test_run_npm_audit_generates_lockfile_when_missing(tmp_path):
     with patch("app.services.code_scan.runner._run", side_effect=fake_run):
         _run_npm_audit(str(tmp_path))
 
-    assert any(
-        "install" in " ".join(c) for c in calls
-    ), "npm install --package-lock-only should have been called"
+    assert any("install" in " ".join(c) for c in calls), (
+        "npm install --package-lock-only should have been called"
+    )
 
 
 def test_run_npm_audit_severity_critical(tmp_path):

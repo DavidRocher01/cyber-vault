@@ -1,0 +1,23 @@
+sequenceDiagram
+  actor U as Utilisateur
+  participant FE as Frontend
+  participant API as FastAPI /auth
+  participant DB as PostgreSQL
+
+  U->>FE: email + mot de passe
+  FE->>API: POST /auth/login
+  API->>DB: SELECT user
+  Note over API: contrôle locked_until / tentatives
+  API->>API: verify_password (bcrypt, threadpool)
+  alt mauvais mot de passe
+    API->>DB: failed_login_attempts++ (lockout si seuil)
+    API-->>FE: 401
+  else 2FA activée
+    API-->>FE: {requires_2fa: true}
+    U->>FE: code TOTP
+    FE->>API: POST /auth/login (+ totp)
+    API->>API: vérifie TOTP (secret déchiffré Fernet)
+  end
+  API->>API: create_access_token (JWT) + refresh
+  API->>DB: stocke RefreshToken
+  API-->>FE: access_token (JSON) + refresh (cookie httpOnly)

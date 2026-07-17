@@ -1,0 +1,17 @@
+sequenceDiagram
+  actor U as Utilisateur
+  participant FE as VaultStore (navigateur)
+  participant API as FastAPI /vault
+  participant DB as PostgreSQL
+
+  Note over FE: clé dérivée (PBKDF2) du mot de passe maître + crypto_salt<br/>(jamais transmise au serveur)
+  U->>FE: saisir un item (mdp, notes…)
+  FE->>FE: chiffre AES-GCM (title, username, url, notes, password)
+  FE->>API: POST /vault (blobs chiffrés)
+  API->>DB: stocke des blobs OPAQUES
+  Note over API,DB: le backend ne peut PAS déchiffrer
+  U->>FE: ouvrir le coffre
+  FE->>API: GET /vault
+  API->>DB: SELECT WHERE owner_id (indexé)
+  API-->>FE: blobs chiffrés
+  FE->>FE: déchiffre localement avec la clé

@@ -94,9 +94,9 @@ async def test_protected_endpoint_without_token_returns_401():
         ]
         for method, url in endpoints:
             r = await c.request(method, url)
-            assert (
-                r.status_code == 401
-            ), f"{method} {url} devrait retourner 401, got {r.status_code}"
+            assert r.status_code == 401, (
+                f"{method} {url} devrait retourner 401, got {r.status_code}"
+            )
 
 
 @pytest.mark.asyncio
@@ -158,7 +158,7 @@ async def test_nis2_user_isolation_strict():
         all_ids = [i["id"] for cat in r_get.json()["categories"] for i in cat["items"]]
         await c.put(
             f"{BASE}/nis2/me",
-            json={"items": {i: "compliant" for i in all_ids}},
+            json={"items": dict.fromkeys(all_ids, "compliant")},
             headers=h_a,
         )
 

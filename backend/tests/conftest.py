@@ -6,6 +6,7 @@ import os
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-pytest-only")
 
+import bcrypt
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
@@ -20,12 +21,38 @@ from app.main import app
 BASE = "/api/v1"
 
 
+# ── Hachage de mot de passe accelere — TESTS UNIQUEMENT ───────────────────────
+# bcrypt.gensalt() utilise 12 rounds par defaut (~180 ms par hash) : c'est
+# volontaire et indispensable en PRODUCTION. Mais la suite fait ~2200 tests dont
+# beaucoup enchainent register + login = 2 hachages (~360 ms), ce qui represente
+# l'essentiel du temps d'execution (~21 min en CI).
+#
+# Aucun test ne verifie le facteur de cout (ils testent le comportement : hash
+# != clair, bon mot de passe valide, mauvais rejete, unicode...), on descend donc
+# au minimum autorise (4 rounds, ~1 ms). checkpw lit les rounds depuis le hash :
+# la verification redevient rapide automatiquement.
+#
+# Le code de production n'est PAS modifie : ce patch ne vit que sous pytest.
+_ORIG_GENSALT = bcrypt.gensalt
+bcrypt.gensalt = lambda rounds=4, prefix=b"2b": _ORIG_GENSALT(4, prefix)
+
+
 # ── Session-scoped PostgreSQL container + DDL ──────────────────────────────────
 
 
 @pytest.fixture(scope="session")
 def pg_container():
-    with PostgresContainer("postgres:16-alpine") as pg:
+    # Base de test JETABLE (recreee a chaque run) : la durabilite n'a aucun interet.
+    # La fixture setup_db fait un TRUNCATE avant chaque test, et TRUNCATE fsync un
+    # fichier par table -> c'est ~70% du temps de la suite. Desactiver fsync et les
+    # garanties de crash-safety divise ce cout par ~3 (mesure : 481 ms -> 149 ms).
+    # Sans effet sur la production : ce reglage ne vit que dans le conteneur de test.
+    # postgres:17 = meme version majeure que la PROD (RDS 17) et que le service
+    # postgres de la CI. Tester sur 16 alors que la prod tourne en 17 est le genre
+    # d'ecart qui laisse passer un bug jusqu'en production.
+    with PostgresContainer("postgres:17-alpine").with_command(
+        "postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off"
+    ) as pg:
         yield pg
 
 

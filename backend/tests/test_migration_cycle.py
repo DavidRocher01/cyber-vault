@@ -8,10 +8,10 @@ so that create_all from conftest.py doesn't interfere with Alembic DDL.
 """
 
 import pytest
+from alembic.config import Config
 from testcontainers.postgres import PostgresContainer
 
 from alembic import command
-from alembic.config import Config
 
 
 @pytest.fixture(scope="module")

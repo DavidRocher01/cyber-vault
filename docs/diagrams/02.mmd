@@ -1,0 +1,25 @@
+flowchart TB
+    subgraph FE["Frontend — Angular 20 (standalone · signals · SSR prerender)"]
+      direction TB
+      FEfeat["features/ — modules fonctionnels<br/>vault · cyberscan · awareness · rssi · auth"]
+      FEcore["core/ — guards (auth · crypto · rssi) · interceptor JWT · services globaux"]
+      FEshared["shared/ — composants · pipes · directives"]
+      VS["🔐 VaultStore<br/>chiffrement AES-GCM côté client"]
+    end
+
+    subgraph BE["Backend — FastAPI (couches strictes)"]
+      direction TB
+      EP["api/v1/endpoints/ — routing + validation Pydantic<br/>(jamais d'accès DB direct)"]
+      SVC["services/ — logique métier<br/>(ne connaît pas le HTTP)"]
+      MOD["models/ — SQLAlchemy ORM"]
+      CORE["core/ — config · sécurité (JWT · SSRF · rate-limit) · db"]
+    end
+
+    DB[("PostgreSQL")]
+
+    FEfeat --> FEcore --> FEshared
+    VS -.-> FEfeat
+    FE -->|"HTTPS JSON · Bearer JWT"| EP
+    EP --> SVC --> MOD --> DB
+    EP -.->|Depends| CORE
+    SVC -.-> CORE

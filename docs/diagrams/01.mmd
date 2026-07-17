@@ -1,0 +1,52 @@
+flowchart TB
+    U["👤 Utilisateur<br/>(navigateur)"]
+
+    subgraph edge["Edge / CDN"]
+      R53["Route 53<br/>rochercybersecurite.com"]
+      CF["CloudFront E3DFNMKIHVBDO1<br/>TLS · cache · en-têtes sécurité"]
+    end
+
+    S3F["S3<br/>Frontend Angular<br/>(prerendered)"]
+
+    subgraph vpc["VPC — eu-west-3 (Paris)"]
+      ALB["ALB<br/>cybervault-alb"]
+      subgraph ecs["ECS Fargate — cluster cybervault-prod"]
+        API["Backend FastAPI · uvicorn<br/>1 vCPU / 2 Go · taskRole IAM"]
+      end
+      RDS[("RDS PostgreSQL 17<br/>t4g.micro · chiffré · backups 7j")]
+    end
+
+    SM["Secrets Manager<br/>SECRET_KEY · DATABASE_URL · Stripe…"]
+    S3R["S3 livrables RSSI<br/>(privé · chiffré AES256)"]
+
+    subgraph ext["Services externes"]
+      STRIPE["Stripe<br/>paiement + webhook"]
+      RESEND["Resend<br/>email transactionnel"]
+      HIBP["HIBP / LeakCheck<br/>dark web"]
+      SENTRY["Sentry<br/>erreurs"]
+    end
+
+    subgraph obs["Observabilité"]
+      CW["CloudWatch<br/>5 alarmes"]
+      SNS["SNS → email"]
+    end
+
+    subgraph cicd["CI/CD"]
+      GH["GitHub Actions"]
+      ECR["ECR<br/>image Docker"]
+    end
+
+    U --> R53 --> CF
+    CF -->|"/*"| S3F
+    CF -->|"/api/*"| ALB --> API
+    API --> RDS
+    API -->|secrets| SM
+    API -->|presigned URL| S3R
+    API --> STRIPE
+    STRIPE -.->|webhook signé| API
+    API --> RESEND
+    API --> HIBP
+    API --> SENTRY
+    API --> CW --> SNS -.->|alerte| U
+    GH --> ECR --> API
+    GH -->|sync + invalidation| S3F

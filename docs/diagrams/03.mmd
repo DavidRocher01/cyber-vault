@@ -1,0 +1,22 @@
+flowchart LR
+  User["👤 Auth / User"]
+  Bill["💳 Billing<br/>Plan · Subscription · Invoice · Quote"]
+  Scan["🛡️ Scan sécurité<br/>Site · Scan · UrlScan · CodeScan"]
+  Vault["🔐 Vault<br/>VaultItem (zero-knowledge)"]
+  Aware["🎓 Awareness / e-learning<br/>Org · Learner · Program · Module · Enrollment · Certificate · Badge"]
+  RSSI["🧑‍💼 RSSI externalisé<br/>Client · Action · Visite · Livrable"]
+  Dark["🕵️ Dark Web<br/>Dossier · Target · BreachCatalog"]
+  Phish["🎣 Phishing<br/>Campaign · Target"]
+  Comp["📋 Conformité<br/>ISO 27001 · NIS2"]
+  Mkt["📣 Marketing<br/>Newsletter · Blog · Contact · Booking"]
+
+  User --> Bill
+  User --> Scan
+  User --> Vault
+  User --> Aware
+  User --> RSSI
+  User --> Dark
+  User --> Phish
+  User --> Comp
+  User --> Mkt
+  Scan -.->|"Site.rssi_client_id"| RSSI

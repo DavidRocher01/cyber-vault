@@ -9,8 +9,8 @@ def _tpl_ceo_fraud(greeting: str, url: str, pixel: str, ctx: dict) -> str:
     amount, deadline = ctx["ceo_amount"], ctx["ceo_deadline"]
     body = (
         f'<p style="color:#1a1a1a;font-size:15px;line-height:1.6;margin:0 0 14px">Bonjour {greeting},</p>'
-        f'<p style="color:#1a1a1a;font-size:15px;line-height:1.6;margin:0 0 14px">Je vous écris depuis mon téléphone personnel — je suis en réunion externe jusqu\'en fin de matinée. J\'ai besoin de votre aide pour une opération confidentielle.</p>'
-        f'<p style="color:#1a1a1a;font-size:15px;line-height:1.6;margin:0 0 14px">Un virement de <strong>{amount}</strong> doit être exécuté <strong>{deadline}</strong> aujourd\'hui. L\'opération est urgente et ne doit pas être évoquée en interne pour l\'instant.</p>'
+        f"<p style=\"color:#1a1a1a;font-size:15px;line-height:1.6;margin:0 0 14px\">Je vous écris depuis mon téléphone personnel — je suis en réunion externe jusqu'en fin de matinée. J'ai besoin de votre aide pour une opération confidentielle.</p>"
+        f"<p style=\"color:#1a1a1a;font-size:15px;line-height:1.6;margin:0 0 14px\">Un virement de <strong>{amount}</strong> doit être exécuté <strong>{deadline}</strong> aujourd'hui. L'opération est urgente et ne doit pas être évoquée en interne pour l'instant.</p>"
         f'<p style="color:#1a1a1a;font-size:15px;line-height:1.6;margin:0 0 24px">Confirmez-moi votre disponibilité et je vous transmets les coordonnées bancaires.</p>'
         f'{_attachment_badge("Mandat_virement.pdf")}<p><a href="{url}" style="display:inline-block;background:#1a73e8;color:#fff;padding:12px 26px;border-radius:4px;text-decoration:none;font-size:15px;font-weight:600">Confirmer ma disponibilité</a></p>'
         f'<p style="color:#555;font-size:14px;margin:24px 0 0;line-height:1.5">Merci pour votre réactivité,<br><strong>Direction Générale</strong><br><span style="color:#aaa;font-size:12px">Envoyé depuis iPhone</span></p>'
@@ -70,7 +70,7 @@ def _tpl_fake_invoice(greeting: str, url: str, pixel: str, ctx: dict) -> str:
         f'<td style="padding:14px;font-size:14px;color:#e53935">Dépassée</td>'
         f'<td style="padding:14px;font-size:14px;font-weight:700">{amount}</td>'
         f'<td style="padding:14px"><span style="background:#fdecea;color:#e53935;font-size:12px;font-weight:700;padding:3px 8px;border-radius:2px">IMPAYÉE</span></td></tr>'
-        f'</table>'
+        f"</table>"
         f'{_attachment_badge(f"Facture_{ref}.pdf")}<p style="margin:0 0 20px"><a href="{url}" style="display:inline-block;background:#e53935;color:#fff;padding:13px 28px;border-radius:4px;text-decoration:none;font-size:15px;font-weight:600">Accéder au portail de paiement</a></p>'
         f'<p style="color:#777;font-size:13px;margin:0">En cas de litige, contactez-nous par retour de mail en indiquant votre référence.</p>'
         f'<img src="{pixel}" width="1" height="1" style="display:none">'
@@ -194,7 +194,7 @@ def _tpl_invoice_pdf(greeting: str, url: str, pixel: str, ctx: dict) -> str:
         f'<td valign="middle"><p style="margin:0 0 4px;font-size:15px;font-weight:700;color:#333">Document à signer</p>'
         f'<p style="margin:0 0 2px;font-size:13px;color:#777">Référence&nbsp;: <strong>{ref}</strong></p>'
         f'<p style="margin:0;font-size:13px;color:#e65100;font-weight:600">À signer avant {deadline}</p>'
-        f'</td></tr></table>'
+        f"</td></tr></table>"
         f'<p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 20px">Ce document requiert votre signature. Merci de le signer via notre plateforme sécurisée avant la date limite.</p>'
         f'{_attachment_badge(f"{ref}_document.pdf")}<p style="margin:0 0 20px"><a href="{url}" style="display:inline-block;background:#f5a81c;color:#fff;padding:13px 28px;border-radius:4px;text-decoration:none;font-size:15px;font-weight:700">&#9998; Signer le document</a></p>'
         f'<p style="color:#888;font-size:12px;margin:0">Service Administratif · Document confidentiel · Ne pas transférer</p>'
@@ -217,7 +217,7 @@ def _tpl_vpn_update(greeting: str, url: str, pixel: str, ctx: dict) -> str:
         f'<p style="margin:0 0 4px;font-size:14px;color:#333">Identifiant CVE&nbsp;: <strong>{cve}</strong></p>'
         f'<p style="margin:0 0 4px;font-size:14px;color:#333">Score CVSS&nbsp;: <strong style="color:#b71c1c">{cvss}/10 — CRITIQUE</strong></p>'
         f'<p style="margin:0;font-size:13px;color:#555">Exploitation active confirmée dans la nature.</p>'
-        f'</td></tr></table>'
+        f"</td></tr></table>"
         f'<p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 16px">Une faille critique a été découverte dans votre version du client VPN. Des attaquants exploitent activement cette vulnérabilité pour accéder aux réseaux d\'entreprise.</p>'
         f'<p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 20px"><strong>Vous devez installer la mise à jour avant ce soir</strong> pour conserver votre accès aux ressources internes.</p>'
         f'{_attachment_badge(f"VPN_patch_{cve}.exe", "EXE")}<p style="margin:0 0 20px"><a href="{url}" style="display:inline-block;background:#b71c1c;color:#fff;padding:13px 28px;border-radius:4px;text-decoration:none;font-size:15px;font-weight:700">&#128274; Télécharger la mise à jour</a></p>'
@@ -241,7 +241,7 @@ def _tpl_hr_document(greeting: str, url: str, pixel: str, ctx: dict) -> str:
         f'<tr><td><p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#37474f;letter-spacing:1px">&#128274; DOCUMENT CONFIDENTIEL</p>'
         f'<p style="margin:0 0 4px;font-size:14px;color:#333">Contenu&nbsp;: Grille des salaires &amp; revalorisation</p>'
         f'<p style="margin:0;font-size:13px;color:#e65100;font-weight:600">Augmentation moyenne&nbsp;: <strong>{pct}</strong></p>'
-        f'</td></tr></table>'
+        f"</td></tr></table>"
         f'<p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 20px">Ce document est <strong>strictement confidentiel</strong>. Accédez-y via le portail RH sécurisé — il expire dans 72&nbsp;h.</p>'
         f'{_attachment_badge("Grille_rémunération_2025.xlsx", "XLSX")}<p style="margin:0 0 20px"><a href="{url}" style="display:inline-block;background:#37474f;color:#fff;padding:13px 28px;border-radius:4px;text-decoration:none;font-size:15px;font-weight:600">&#128194; Accéder au document</a></p>'
         f'<p style="color:#555;font-size:14px;margin:0;line-height:1.5">Direction des Ressources Humaines</p>'
@@ -380,9 +380,9 @@ _SCENARIO_TEMPLATES: dict[str, dict[str, Any]] = {
             else f"Confidentiel — transfert {ctx['ceo_amount']} {ctx['ceo_deadline']}"
         ),
         "html": _tpl_ceo_fraud,
-        "text": lambda g,
-        url,
-        ctx: f"Bonjour {g}, virement urgent {ctx['ceo_amount']} requis {ctx['ceo_deadline']}. Confirmez : {url}",
+        "text": lambda g, url, ctx: (
+            f"Bonjour {g}, virement urgent {ctx['ceo_amount']} requis {ctx['ceo_deadline']}. Confirmez : {url}"
+        ),
     },
     "o365-credentials": {
         "from_name": "Microsoft 365",
@@ -393,72 +393,86 @@ _SCENARIO_TEMPLATES: dict[str, dict[str, Any]] = {
             else f"Alerte sécurité : accès non autorisé depuis {ctx['o365_device']}"
         ),
         "html": _tpl_o365,
-        "text": lambda g,
-        url,
-        ctx: f"Connexion suspecte depuis {ctx['o365_location']}. Sécurisez votre compte Microsoft 365 : {url}",
+        "text": lambda g, url, ctx: (
+            f"Connexion suspecte depuis {ctx['o365_location']}. Sécurisez votre compte Microsoft 365 : {url}"
+        ),
     },
     "fake-invoice": {
         "from_name": "Service Comptabilité",
         "internal": True,
-        "subject": lambda ctx: f"Facture impayée {ctx['invoice_ref']} — {ctx['invoice_amount']} TTC — relance",
+        "subject": lambda ctx: (
+            f"Facture impayée {ctx['invoice_ref']} — {ctx['invoice_amount']} TTC — relance"
+        ),
         "html": _tpl_fake_invoice,
-        "text": lambda g,
-        url,
-        ctx: f"Bonjour {g}, facture {ctx['invoice_ref']} ({ctx['invoice_amount']}) impayée. Portail de paiement : {url}",
+        "text": lambda g, url, ctx: (
+            f"Bonjour {g}, facture {ctx['invoice_ref']} ({ctx['invoice_amount']}) impayée. Portail de paiement : {url}"
+        ),
     },
     "bank-phishing": {
         "from_name": "Sécurité Bancaire",
         "internal": False,
-        "subject": lambda ctx: f"⚠️ [{ctx['bank_name']}] Transaction suspecte de {ctx['bank_amount']} détectée",
+        "subject": lambda ctx: (
+            f"⚠️ [{ctx['bank_name']}] Transaction suspecte de {ctx['bank_amount']} détectée"
+        ),
         "html": _tpl_bank,
-        "text": lambda g,
-        url,
-        ctx: f"Bonjour {g}, transaction suspecte {ctx['bank_amount']} sur ••••{ctx['bank_last4']}. Bloquez maintenant : {url}",
+        "text": lambda g, url, ctx: (
+            f"Bonjour {g}, transaction suspecte {ctx['bank_amount']} sur ••••{ctx['bank_last4']}. Bloquez maintenant : {url}"
+        ),
     },
     "parcel-tracking": {
         "from_name": "Service Livraison",
         "internal": False,
-        "subject": lambda ctx: f"[{ctx['parcel_carrier']}] Colis {ctx['parcel_ref']} non livré — action requise",
+        "subject": lambda ctx: (
+            f"[{ctx['parcel_carrier']}] Colis {ctx['parcel_ref']} non livré — action requise"
+        ),
         "html": _tpl_parcel,
-        "text": lambda g,
-        url,
-        ctx: f"Colis {ctx['parcel_ref']} non livré. Frais {ctx['parcel_fee']}. Reprogrammez : {url}",
+        "text": lambda g, url, ctx: (
+            f"Colis {ctx['parcel_ref']} non livré. Frais {ctx['parcel_fee']}. Reprogrammez : {url}"
+        ),
     },
     "it-password": {
         "from_name": "Équipe DSI",
         "internal": True,
-        "subject": lambda ctx: f"[DSI{{company_suffix}}] Mot de passe expire dans {ctx['pw_days']} — renouvellement obligatoire",
+        "subject": lambda ctx: (
+            f"[DSI{{company_suffix}}] Mot de passe expire dans {ctx['pw_days']} — renouvellement obligatoire"
+        ),
         "html": _tpl_it_password,
-        "text": lambda g,
-        url,
-        ctx: f"Bonjour {g}, votre mot de passe expire dans {ctx['pw_days']}. Renouveler : {url}",
+        "text": lambda g, url, ctx: (
+            f"Bonjour {g}, votre mot de passe expire dans {ctx['pw_days']}. Renouveler : {url}"
+        ),
     },
     "prize": {
         "from_name": "Service Ressources Humaines",
         "internal": True,
-        "subject": lambda ctx: f"\U0001f381 Félicitations — vous avez gagné une carte cadeau {ctx['prize_amount']} € !",
+        "subject": lambda ctx: (
+            f"\U0001f381 Félicitations — vous avez gagné une carte cadeau {ctx['prize_amount']} € !"
+        ),
         "html": _tpl_prize,
-        "text": lambda g,
-        url,
-        ctx: f"Bonjour {g}, vous avez gagné une carte cadeau Amazon de {ctx['prize_amount']}€. Réclamez-la : {url}",
+        "text": lambda g, url, ctx: (
+            f"Bonjour {g}, vous avez gagné une carte cadeau Amazon de {ctx['prize_amount']}€. Réclamez-la : {url}"
+        ),
     },
     "invoice-pdf": {
         "from_name": "Service Administratif",
         "internal": True,
-        "subject": lambda ctx: f"Document {ctx['doc_ref']} — signature requise avant {ctx['doc_deadline']}",
+        "subject": lambda ctx: (
+            f"Document {ctx['doc_ref']} — signature requise avant {ctx['doc_deadline']}"
+        ),
         "html": _tpl_invoice_pdf,
-        "text": lambda g,
-        url,
-        ctx: f"Bonjour {g}, document {ctx['doc_ref']} à signer avant {ctx['doc_deadline']} : {url}",
+        "text": lambda g, url, ctx: (
+            f"Bonjour {g}, document {ctx['doc_ref']} à signer avant {ctx['doc_deadline']} : {url}"
+        ),
     },
     "vpn-update": {
         "from_name": "Équipe Sécurité IT",
         "internal": True,
-        "subject": lambda ctx: f"[URGENT{{company_suffix}}] {ctx['cve_id']} — mise à jour VPN critique (CVSS {ctx['cvss']}/10)",
+        "subject": lambda ctx: (
+            f"[URGENT{{company_suffix}}] {ctx['cve_id']} — mise à jour VPN critique (CVSS {ctx['cvss']}/10)"
+        ),
         "html": _tpl_vpn_update,
-        "text": lambda g,
-        url,
-        ctx: f"Bonjour {g}, vulnérabilité critique {ctx['cve_id']} (CVSS {ctx['cvss']}). Mettez à jour votre VPN : {url}",
+        "text": lambda g, url, ctx: (
+            f"Bonjour {g}, vulnérabilité critique {ctx['cve_id']} (CVSS {ctx['cvss']}). Mettez à jour votre VPN : {url}"
+        ),
     },
     "hr-document": {
         "from_name": "Ressources Humaines",
@@ -469,9 +483,9 @@ _SCENARIO_TEMPLATES: dict[str, dict[str, Any]] = {
             else f"[RH{{company_suffix}}] Votre augmentation {ctx['salary_pct']} — document disponible"
         ),
         "html": _tpl_hr_document,
-        "text": lambda g,
-        url,
-        ctx: f"Bonjour {g}, nouvelle grille des salaires ({ctx['salary_pct']}) disponible : {url}",
+        "text": lambda g, url, ctx: (
+            f"Bonjour {g}, nouvelle grille des salaires ({ctx['salary_pct']}) disponible : {url}"
+        ),
     },
     "teams-message": {
         "from_name": "Microsoft Teams",
@@ -482,9 +496,9 @@ _SCENARIO_TEMPLATES: dict[str, dict[str, Any]] = {
             else f"💬 Nouveau message Teams de {ctx['teams_sender']} — 1 pièce jointe"
         ),
         "html": _tpl_teams,
-        "text": lambda g,
-        url,
-        ctx: f"Bonjour {g}, {ctx['teams_sender']} vous a envoyé un message dans #{ctx['teams_channel']}. Voir : {url}",
+        "text": lambda g, url, ctx: (
+            f"Bonjour {g}, {ctx['teams_sender']} vous a envoyé un message dans #{ctx['teams_channel']}. Voir : {url}"
+        ),
     },
     "sharepoint-share": {
         "from_name": "Microsoft SharePoint",
@@ -495,9 +509,9 @@ _SCENARIO_TEMPLATES: dict[str, dict[str, Any]] = {
             else f"[SharePoint] Document partagé : {ctx['sp_file']} ({ctx['sp_size']})"
         ),
         "html": _tpl_sharepoint,
-        "text": lambda g,
-        url,
-        ctx: f"Bonjour {g}, {ctx['sp_sender']} a partagé {ctx['sp_file']} avec vous. Ouvrir : {url}",
+        "text": lambda g, url, ctx: (
+            f"Bonjour {g}, {ctx['sp_sender']} a partagé {ctx['sp_file']} avec vous. Ouvrir : {url}"
+        ),
     },
     "it-ticket": {
         "from_name": "Équipe DSI",
@@ -508,8 +522,8 @@ _SCENARIO_TEMPLATES: dict[str, dict[str, Any]] = {
             else f"Ticket HAUTE priorité : {ctx['ticket_subject']} ({ctx['ticket_num']})"
         ),
         "html": _tpl_it_ticket,
-        "text": lambda g,
-        url,
-        ctx: f"Bonjour {g}, ticket {ctx['ticket_num']} : {ctx['ticket_subject']}. Traiter : {url}",
+        "text": lambda g, url, ctx: (
+            f"Bonjour {g}, ticket {ctx['ticket_num']} : {ctx['ticket_subject']}. Traiter : {url}"
+        ),
     },
 }

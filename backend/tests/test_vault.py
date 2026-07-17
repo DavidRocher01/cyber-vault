@@ -221,9 +221,9 @@ async def test_zero_knowledge_sentinel():
         db_item = result.scalar_one()
 
     # Server stores exactly what the client sent
-    assert (
-        db_item.password_encrypted == SENTINEL
-    ), "ZK violation: server must not transform the ciphertext"
+    assert db_item.password_encrypted == SENTINEL, (
+        "ZK violation: server must not transform the ciphertext"
+    )
     # Stored value is not plaintext (contains no recognisable password substring)
     assert "neverplaintext" not in db_item.password_encrypted.replace(
         "c2VudGluZWxjaXBoZXJ0ZXh0X25ldmVycGxhaW50ZXh0", ""

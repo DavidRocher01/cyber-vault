@@ -232,7 +232,7 @@ def send_newsletter_articles(
             (
                 f'<a href="{url}" style="display:block;">'
                 f'<img src="{_safe_url(a["image_url"])}" alt="" width="556" style="display:block;width:100%;max-width:556px;height:200px;object-fit:cover;border-radius:0;">'
-                f'</a>'
+                f"</a>"
             )
             if a.get("image_url")
             else ""
@@ -262,7 +262,7 @@ def send_newsletter_articles(
             f"</td></tr>"
         )
         plain_articles += (
-            f'{i}. [{a["actu_source"]}] {a["actu_title"]}\n   {a["reflex"]}\n   {a["actu_url"]}\n\n'
+            f"{i}. [{a['actu_source']}] {a['actu_title']}\n   {a['reflex']}\n   {a['actu_url']}\n\n"
         )
 
     rows = (

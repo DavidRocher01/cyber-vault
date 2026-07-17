@@ -3,6 +3,7 @@ Endpoint public de vérification des attestations — aucune authentification re
 
 GET /verify-certificate/{public_id}?token=...
 """
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 

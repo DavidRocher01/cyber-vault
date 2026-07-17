@@ -485,16 +485,14 @@ def generate_phishing_report(
         tgt_rows = []
         for t in sorted(
             targets,
-            key=lambda x: (
-                {
-                    "submitted": 0,
-                    "clicked": 1,
-                    "opened": 2,
-                    "email_sent": 3,
-                    "reported": 4,
-                    "pending": 5,
-                }.get(x.status, 5)
-            ),
+            key=lambda x: {
+                "submitted": 0,
+                "clicked": 1,
+                "opened": 2,
+                "email_sent": 3,
+                "reported": 4,
+                "pending": 5,
+            }.get(x.status, 5),
         ):
             tgt_rows.append(
                 [
@@ -523,16 +521,14 @@ def generate_phishing_report(
         for row_i, t in enumerate(
             sorted(
                 targets,
-                key=lambda x: (
-                    {
-                        "submitted": 0,
-                        "clicked": 1,
-                        "opened": 2,
-                        "email_sent": 3,
-                        "reported": 4,
-                        "pending": 5,
-                    }.get(x.status, 5)
-                ),
+                key=lambda x: {
+                    "submitted": 0,
+                    "clicked": 1,
+                    "opened": 2,
+                    "email_sent": 3,
+                    "reported": 4,
+                    "pending": 5,
+                }.get(x.status, 5),
             ),
             start=1,
         ):

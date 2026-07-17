@@ -27,6 +27,7 @@ Engine behaviour:
   - Cooldown: quiz_cooldown_minutes between failed attempts
   - Max attempts: quiz_max_attempts (0 = unlimited)
 """
+
 from __future__ import annotations
 
 import json
@@ -48,6 +49,7 @@ QUESTIONS_PER_ATTEMPT = 5  # number of questions drawn from the pool per attempt
 
 # ── YAML parsing ──────────────────────────────────────────────────────────────
 
+
 def parse_quiz_yaml(raw: str) -> list[dict]:
     """Parse quiz YAML and return the full question pool."""
     data = yaml.safe_load(raw)
@@ -66,10 +68,7 @@ def _sanitize_for_client(question: dict) -> dict:
         "type": question.get("type", "single_choice"),
         "weight": question.get("weight", 1),
         "text": question["text"],
-        "answers": [
-            {"id": a["id"], "text": a["text"]}
-            for a in question.get("answers", [])
-        ],
+        "answers": [{"id": a["id"], "text": a["text"]} for a in question.get("answers", [])],
     }
 
 
@@ -92,6 +91,7 @@ def draw_questions(pool: list[dict], seed: int | None = None) -> list[dict]:
 
 
 # ── Scoring ───────────────────────────────────────────────────────────────────
+
 
 def score_attempt(pool: list[dict], submitted: dict[str, list[str]]) -> tuple[int, list[dict]]:
     """
@@ -118,14 +118,16 @@ def score_attempt(pool: list[dict], submitted: dict[str, list[str]]) -> tuple[in
         is_correct = chosen_set == correct_ids
         points = weight if is_correct else 0
         earned_weight += points
-        details.append({
-            "question_id": q_id,
-            "chosen_answers": list(chosen_set),
-            "correct_answers": list(correct_ids),
-            "is_correct": is_correct,
-            "points_earned": points,
-            "explanation": q.get("explanation"),
-        })
+        details.append(
+            {
+                "question_id": q_id,
+                "chosen_answers": list(chosen_set),
+                "correct_answers": list(correct_ids),
+                "is_correct": is_correct,
+                "points_earned": points,
+                "explanation": q.get("explanation"),
+            }
+        )
 
     if total_weight == 0:
         return 0, details
@@ -134,6 +136,7 @@ def score_attempt(pool: list[dict], submitted: dict[str, list[str]]) -> tuple[in
 
 
 # ── Attempt lifecycle ─────────────────────────────────────────────────────────
+
 
 async def start_quiz(
     db: AsyncSession,
@@ -248,6 +251,7 @@ async def submit_quiz(
     # Auto-complete module if passed
     if result == "passed":
         from app.services.awareness_progression import complete_module
+
         enrollment = await complete_module(db, learner, enrollment_id, module_id, score)
     else:
         await db.commit()
@@ -264,6 +268,7 @@ async def submit_quiz(
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 async def _get_module_or_403(
     db: AsyncSession,

@@ -1,0 +1,40 @@
+erDiagram
+  AWARENESS_ORGANIZATION ||--o{ AWARENESS_LEARNER : "regroupe"
+  AWARENESS_ORGANIZATION ||--o{ AWARENESS_ENROLLMENT : "porte"
+  AWARENESS_PROGRAM ||--o{ AWARENESS_MODULE : "contient"
+  AWARENESS_PROGRAM ||--o{ AWARENESS_ENROLLMENT : "cible"
+  AWARENESS_LEARNER ||--o{ AWARENESS_ENROLLMENT : "inscrit"
+  AWARENESS_ENROLLMENT ||--o{ AWARENESS_PROGRESS : "suit"
+  AWARENESS_MODULE ||--o{ AWARENESS_PROGRESS : "mesuré par"
+  AWARENESS_LEARNER ||--o{ AWARENESS_QUIZ_ATTEMPT : "tente"
+  AWARENESS_MODULE ||--o{ AWARENESS_QUIZ_ATTEMPT : "évalué par"
+  AWARENESS_ENROLLMENT ||--|| AWARENESS_CERTIFICATE : "délivre (1-1)"
+  AWARENESS_LEARNER ||--o{ AWARENESS_LEARNER_BADGE : "gagne"
+  AWARENESS_BADGE ||--o{ AWARENESS_LEARNER_BADGE : "attribué à"
+
+  AWARENESS_LEARNER {
+    int id PK
+    int organization_id FK
+    string email
+    datetime anonymized_at "RGPD"
+  }
+  AWARENESS_ENROLLMENT {
+    int id PK
+    int learner_id FK
+    int program_id FK
+    int organization_id FK
+    float completion_pct
+    int xp_earned
+  }
+  AWARENESS_CERTIFICATE {
+    int id PK
+    int enrollment_id FK "UK (1-1)"
+    string public_id UK
+    string signature_hash
+    string pdf_s3_key
+  }
+  AWARENESS_LEARNER_BADGE {
+    int learner_id FK
+    int badge_id FK
+    datetime earned_at
+  }

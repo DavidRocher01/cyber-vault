@@ -64,7 +64,7 @@ async def test_save_full_34_items_persists_all():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "nis2_full1@test.com")
         ids = await _all_ids(c, h)
-        full = {id_: "partial" for id_ in ids}
+        full = dict.fromkeys(ids, "partial")
         await c.put(f"{BASE}/nis2/me", json={"items": full}, headers=h)
         r = await c.get(f"{BASE}/nis2/me", headers=h)
     saved = r.json()["items"]
@@ -80,7 +80,7 @@ async def test_save_full_34_items_score_is_50_when_all_partial():
         ids = await _all_ids(c, h)
         await c.put(
             f"{BASE}/nis2/me",
-            json={"items": {id_: "partial" for id_ in ids}},
+            json={"items": dict.fromkeys(ids, "partial")},
             headers=h,
         )
         r = await c.get(f"{BASE}/nis2/me", headers=h)
@@ -96,7 +96,7 @@ async def test_save_full_map_then_overwrite_partial():
         # 1ère save : tout compliant
         await c.put(
             f"{BASE}/nis2/me",
-            json={"items": {id_: "compliant" for id_ in ids}},
+            json={"items": dict.fromkeys(ids, "compliant")},
             headers=h,
         )
         # 2ème save : seulement rssi=non_compliant (reset partiel)
@@ -117,8 +117,8 @@ async def test_pdf_generated_after_save_is_non_empty():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "nis2_pdfcons1@test.com")
         ids = await _all_ids(c, h)
-        items = {id_: "compliant" for id_ in ids[:10]}
-        items.update({id_: "non_compliant" for id_ in ids[10:]})
+        items = dict.fromkeys(ids[:10], "compliant")
+        items.update(dict.fromkeys(ids[10:], "non_compliant"))
         await c.put(f"{BASE}/nis2/me", json={"items": items}, headers=h)
         r = await c.get(f"{BASE}/nis2/me/pdf", headers=h)
     assert r.status_code == 200
@@ -131,7 +131,7 @@ async def test_pdf_with_all_na_items_is_valid():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _headers(c, "nis2_pdfna@test.com")
         ids = await _all_ids(c, h)
-        await c.put(f"{BASE}/nis2/me", json={"items": {id_: "na" for id_ in ids}}, headers=h)
+        await c.put(f"{BASE}/nis2/me", json={"items": dict.fromkeys(ids, "na")}, headers=h)
         r = await c.get(f"{BASE}/nis2/me/pdf", headers=h)
     assert r.status_code == 200
     assert r.content[:4] == b"%PDF"

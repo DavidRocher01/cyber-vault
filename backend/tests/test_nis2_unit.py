@@ -67,16 +67,16 @@ class TestComputeScore:
         assert _compute_score({}) == 0
 
     def test_all_non_compliant_gives_0(self):
-        items = {id: "non_compliant" for id in ALL_ITEM_IDS}
+        items = dict.fromkeys(ALL_ITEM_IDS, "non_compliant")
         assert _compute_score(items) == 0
 
     def test_all_compliant_gives_100(self):
-        items = {id: "compliant" for id in ALL_ITEM_IDS}
+        items = dict.fromkeys(ALL_ITEM_IDS, "compliant")
         assert _compute_score(items) == 100
 
     def test_all_na_gives_0(self):
         """Tous NA → aucun item scorable → score 0."""
-        items = {id: "na" for id in ALL_ITEM_IDS}
+        items = dict.fromkeys(ALL_ITEM_IDS, "na")
         assert _compute_score(items) == 0
 
     def test_partial_is_1pt_compliant_is_2pt(self):
@@ -89,20 +89,20 @@ class TestComputeScore:
 
     def test_na_excluded_from_denominator(self):
         """NA exclu du dénominateur — 1 compliant parmi 1 scorable = 100."""
-        items = {id: "na" for id in ALL_ITEM_IDS}
+        items = dict.fromkeys(ALL_ITEM_IDS, "na")
         items["rssi"] = "compliant"
         assert _compute_score(items) == 100
 
     def test_na_does_not_penalize_score(self):
         """2 conformes, reste NA → score 100 (NA non pénalisant)."""
-        items = {id: "na" for id in ALL_ITEM_IDS}
+        items = dict.fromkeys(ALL_ITEM_IDS, "na")
         items["rssi"] = "compliant"
         items["policy"] = "compliant"
         assert _compute_score(items) == 100
 
     def test_mixed_na_and_nc_penalizes(self):
         """2 conformes + 3 non_compliant + reste NA → score < 100."""
-        items = {id: "na" for id in ALL_ITEM_IDS}
+        items = dict.fromkeys(ALL_ITEM_IDS, "na")
         items["rssi"] = "compliant"
         items["policy"] = "compliant"
         # 3 items non_compliant
@@ -120,13 +120,13 @@ class TestComputeScore:
     def test_half_compliant_gives_50(self):
         """17 conformes / 34 = 50%."""
         ids = list(ALL_ITEM_IDS)
-        items = {id_: "compliant" for id_ in ids[:17]}
-        items.update({id_: "non_compliant" for id_ in ids[17:]})
+        items = dict.fromkeys(ids[:17], "compliant")
+        items.update(dict.fromkeys(ids[17:], "non_compliant"))
         assert _compute_score(items) == 50
 
     def test_all_partial_gives_50(self):
         """Tous partiels → 1pt chacun / 2pts max = 50%."""
-        items = {id: "partial" for id in ALL_ITEM_IDS}
+        items = dict.fromkeys(ALL_ITEM_IDS, "partial")
         assert _compute_score(items) == 50
 
     def test_score_rounds_correctly(self):
@@ -136,6 +136,6 @@ class TestComputeScore:
 
     def test_invalid_status_treated_as_0pts(self):
         """Un statut inconnu ne lève pas d'exception — contribue 0 pt."""
-        items = {id: "non_compliant" for id in ALL_ITEM_IDS}
+        items = dict.fromkeys(ALL_ITEM_IDS, "non_compliant")
         items["rssi"] = "unknown_status"
         assert _compute_score(items) == 0
