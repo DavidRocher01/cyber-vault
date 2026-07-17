@@ -12,7 +12,7 @@ class Subscription(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
-    plan_id: Mapped[int] = mapped_column(ForeignKey("plans.id"), nullable=False)
+    plan_id: Mapped[int] = mapped_column(ForeignKey("plans.id"), nullable=False, index=True)
 
     stripe_customer_id: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     stripe_subscription_id: Mapped[str] = mapped_column(String(255), nullable=False, default="")
