@@ -17,12 +17,29 @@ Deux couches complémentaires, toutes deux contre le site déployé :
 | `test_03_read_paths.py` | chemins publics : `/plans`, `/blog/articles` |
 | `test_04_vault_cycle.py` | cycle d'écriture **create → list → get → delete → absent** sur le coffre |
 | `test_05_scan_cycle.py` | lance un url-scan sur notre propre domaine, vérifie que le **worker asynchrone vit** (le scan quitte `pending`), puis nettoie |
+| `test_06_site_scan.py` | **cœur produit** : enregistre notre domaine comme site → lance un scan → vérifie que le pipeline vit → PDF si `done` → soft delete |
+| `test_07_subscription.py` | abonnement actif du canari (`/subscriptions/me`, tier/plan) — chemin droits/facturation |
+| `test_08_rssi.py` | module B2B : create → list → delete d'un client RSSI (**sans** appeler `/invite`, donc sans email) |
+| `test_09_training.py` | sensibilisation e-learning : liste modules → complète `phishing` → relit la progression |
+
+> **Scan de site & limite de fréquence** : la limite est globale par user (un site
+> neuf ne l'évite pas), mais elle est **désactivée** quand `plan.max_sites < 0`. Le
+> canari (business tier, `-1 sites`) passe donc `register→scan→delete` à chaque
+> deploy sans 429.
+>
+> **Awareness multi-tenant hors recette** : l'awareness "org + learner" exige un
+> magic-link **par email** → exclu (contrainte "pas d'effet de bord externe"). La
+> sensibilisation est couverte via le module `training` (per-user, sans email). La
+> progression training n'est pas nettoyable (pas d'endpoint DELETE) mais l'opération
+> est idempotente.
 
 ### 2. Parcours UI — `frontend/e2e/recette/` (Playwright, navigateur réel)
 
 Détecte ce que l'API ne voit pas (bundle JS cassé, routing SPA HS, mauvaise base
-URL d'API côté front) : la vitrine se charge et Angular rend, puis **connexion
-canari via l'UI** → espace authentifié.
+URL d'API côté front) : la vitrine se charge et Angular rend, **connexion canari
+via l'UI** → espace authentifié, puis **rendu des pages authentifiées**
+(`/dashboard`, `/url-scanner`, `/profile`) sans erreur JS ni redirection vers
+`/auth`.
 
 Config dédiée `frontend/playwright.recette.config.ts` (pas de `webServer`, pointe
 `RECETTE_BASE_URL`). La suite E2E locale l'ignore (`testIgnore: **/recette/**`).

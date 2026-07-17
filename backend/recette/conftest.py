@@ -85,7 +85,10 @@ def canary() -> dict:
 
 
 def _wipe_canary(c: httpx.Client) -> None:
-    """Supprime tous les items de coffre et url-scans du canari (clean slate)."""
+    """Fait table rase des donnees mutables du canari (coffre, url-scans, sites,
+    clients RSSI) — filet de securite si un run precedent a crashe avant teardown.
+    NB: la progression training n'est pas nettoyable (pas d'endpoint DELETE) mais
+    reste idempotente."""
     try:
         items = c.get(f"{API}/vault/", params={"limit": 200}).json()
         for it in items:
@@ -96,6 +99,17 @@ def _wipe_canary(c: httpx.Client) -> None:
         page = c.get(f"{API}/url-scans", params={"page": 1, "per_page": 100}).json()
         for s in page.get("items", []):
             c.delete(f"{API}/url-scans/{s['id']}")
+    except Exception:
+        pass
+    try:
+        for site in c.get(f"{API}/sites").json():
+            c.delete(f"{API}/sites/{site['id']}")  # soft delete
+    except Exception:
+        pass
+    try:
+        for cl in c.get(f"{API}/rssi/clients").json():
+            if str(cl.get("name", "")).startswith(MARKER):
+                c.delete(f"{API}/rssi/clients/{cl['id']}")
     except Exception:
         pass
 
