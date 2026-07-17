@@ -1,3 +1,30 @@
+# ── Stack backend "parité prod" ────────────────────────────────────────────────
+#
+# BUT : lancer le backend EXACTEMENT comme en production — la même image Docker
+# (Linux, Python 3.14, binaires du scanner nmap/bearer), la même commande uvicorn
+# (--workers 1 --forwarded-allow-ips), la même version de Postgres (17), et les
+# migrations jouées comme en prod (tâche séparée avant que l'app serve).
+#
+# Ce N'EST PAS l'environnement de dev quotidien : pas de hot-reload (comme en
+# prod, il faut rebuild l'image pour voir un changement de code). Pour itérer vite,
+# reste en natif (`uvicorn --reload`). Ce mode-ci sert à VALIDER avant un déploiement
+# et à tester ce que le natif ne peut pas (les scans, qui exigent nmap/bearer).
+#
+# ⚠️ Base de données ISOLÉE et JETABLE : ce stack a son PROPRE Postgres (port hôte
+# 5433, volume dédié), migré à neuf. Ce n'est PAS ta base de dev native (5432).
+# Ne pas confondre les deux (piège rencontré le 2026-07-16).
+#
+# Pas de Redis : la PROD n'en a pas (limiter + scheduler APScheduler en in-memory).
+# En ajouter ici créerait une divergence avec la prod.
+#
+# Usage :
+#   1. arrêter l'uvicorn natif (il occupe le port 8000)
+#   2. docker compose -f docker-compose.dev.yml up -d --build   # --build = pas de code périmé
+#   3. le front natif (`npm start`) proxie /api -> :8000 -> ce backend dockerisé
+#   4. docker compose -f docker-compose.dev.yml down             # à la fin
+#
+# ─────────────────────────────────────────────────────────────────────────────────
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -16,47 +43,55 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    container_name: cybervault_dev_redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-
-  backend:
+  # Migration jouée AVANT le backend, exactement comme en prod (tâche ECS séparée
+  # `python -m alembic upgrade head`). C'est ce service qui build l'image ; le
+  # backend la réutilise. Il s'exécute puis s'arrête (service_completed_successfully).
+  migrate:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    container_name: cybervault_dev_backend
-    restart: unless-stopped
+    image: cybervault-backend:dev
+    container_name: cybervault_dev_migrate
+    command: ["python", "-m", "alembic", "upgrade", "head"]
     env_file:
       - ./backend/.env
     environment:
       APP_ENV: development
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key-not-for-production-64chars}
       DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/cybervault
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    image: cybervault-backend:dev # réutilise l'image buildée par `migrate`
+    container_name: cybervault_dev_backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      # APP_ENV reste "development" : en "production" les cookies passeraient en
+      # Secure (cassés sur http local) et le DEV_MODE serait bloqué. La parité visée
+      # est OS/runtime/deps/binaires, pas les flags de sécurité prod (intestables en local).
+      APP_ENV: development
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-not-for-production-64chars}
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/cybervault
       ALLOWED_ORIGINS: '["http://localhost:4200"]'
       FRONTEND_URL: http://localhost:4200
-      REDIS_URL: redis://redis:6379/0
+      # PAS de REDIS_URL -> fallback in-memory, comme la prod.
     ports:
       - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 20s
-
 
 volumes:
   postgres_dev_data:
