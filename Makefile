@@ -1,6 +1,6 @@
 .PHONY: help install install-backend install-frontend \
         dev dev-backend dev-frontend \
-        test test-backend test-frontend test-e2e \
+        test test-backend test-frontend test-e2e test-backend-fast recette \
         lint lint-backend lint-frontend \
         format format-backend format-frontend \
         typecheck typecheck-backend typecheck-frontend \
@@ -54,6 +54,15 @@ test-e2e: ## Lance les tests E2E Playwright
 
 test-backend-fast: ## Lance les tests backend sans couverture (plus rapide)
 	cd backend && pytest --no-cov -x
+
+recette: ## Recette post-prod (API + UI) contre RECETTE_BASE_URL (defaut prod). Creds canari depuis Secrets Manager.
+	@CREDS=$$(aws secretsmanager get-secret-value --region eu-west-3 --secret-id cybervault/recette-canary --query SecretString --output text); \
+	export RECETTE_EMAIL=$$(printf '%s' "$$CREDS" | python -c "import sys,json;print(json.load(sys.stdin)['email'])"); \
+	export RECETTE_PASSWORD=$$(printf '%s' "$$CREDS" | python -c "import sys,json;print(json.load(sys.stdin)['password'])"); \
+	export RECETTE_BASE_URL=$${RECETTE_BASE_URL:-https://rochercybersecurite.com}; \
+	printf "$(CYAN)Recette contre %s (canari %s)$(RESET)\n" "$$RECETTE_BASE_URL" "$$RECETTE_EMAIL"; \
+	( cd backend && python -m pytest recette/ -c recette/pytest.ini ) && \
+	( cd frontend && npx playwright test --config=playwright.recette.config.ts )
 
 # ── Qualité code ────────────────────────────────────────────────────────────────
 

@@ -18,6 +18,11 @@ jobs:
   deploy-backend:
     name: Backend → ECR + ECS
     runs-on: ubuntu-latest
+    outputs:
+      # Exposees pour le job `recette` : cible du rollback (revision AVANT ce
+      # deploiement) et revision fraichement deployee.
+      prev_task_def: ${{ steps.deploy.outputs.prev_task_def }}
+      new_task_def: ${{ steps.deploy.outputs.new_task_def }}
     steps:
       - uses: actions/checkout@v6
 
@@ -43,6 +48,7 @@ jobs:
           docker push    $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
       - name: Register task def (new image), run migrations, then deploy
+        id: deploy
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG:    ${{ github.sha }}
@@ -54,6 +60,9 @@ jobs:
           NETWORK_CONFIG=$(aws ecs describe-services             --cluster ${{ secrets.ECS_CLUSTER }}             --services ${{ secrets.ECS_SERVICE }}             --query 'services[0].networkConfiguration'             --output json)
 
           TASK_DEF_ARN=$(aws ecs describe-services             --cluster ${{ secrets.ECS_CLUSTER }}             --services ${{ secrets.ECS_SERVICE }}             --query 'services[0].taskDefinition'             --output text)
+
+          # Cible du rollback : la revision actuellement en service (AVANT deploy).
+          echo "prev_task_def=$TASK_DEF_ARN" >> "$GITHUB_OUTPUT"
 
           # New task definition with the freshly built image + Secrets Manager refs
           NEW_TASK_DEF=$(aws ecs describe-task-definition             --task-definition "$TASK_DEF_ARN"             --query 'taskDefinition'             --output json | jq               --arg IMAGE      "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"               --arg SM_ARN     "$SM_ARN"               --arg PK_LIVE    "$STRIPE_PUBLISHABLE_KEY"               'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)
@@ -92,6 +101,7 @@ jobs:
           # Register the new revision FIRST so migrations run with the NEW image
           NEW_ARN=$(aws ecs register-task-definition             --cli-input-json "$NEW_TASK_DEF"             --query 'taskDefinition.taskDefinitionArn'             --output text)
           echo "New task definition: $NEW_ARN"
+          echo "new_task_def=$NEW_ARN" >> "$GITHUB_OUTPUT"
 
           # Run Alembic migrations one-shot using the NEW image
           TASK_ARN=$(aws ecs run-task             --cluster ${{ secrets.ECS_CLUSTER }}             --task-definition "$NEW_ARN"             --launch-type FARGATE             --network-configuration "$NETWORK_CONFIG"             --overrides '{"containerOverrides":[{"name":"cybervault-backend","command":["python","-m","alembic","upgrade","head"]}]}'             --query 'tasks[0].taskArn'             --output text)
@@ -177,3 +187,89 @@ jobs:
           aws cloudfront create-invalidation \
             --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
             --paths "/*"
+
+  # ── Recette post-prod : gate fonctionnel + rollback ECS auto ────────────────
+  # Tourne APRES que le backend et le frontend soient deployes et stables. Valide
+  # de vrais parcours (auth, coffre, scan, UI) contre la PROD avec un compte
+  # canari dedie. Si la recette echoue -> rollback automatique du backend vers la
+  # task def precedente.
+  #
+  # IMPORTANT — le rollback ne concerne QUE le backend (task def ECS) :
+  #   * Il ne rejoue PAS les migrations a l'envers (le downgrade DB n'est jamais
+  #     execute en prod). Les migrations DOIVENT donc rester retro-compatibles :
+  #     l'image precedente doit tourner contre le schema deja migre (expand puis
+  #     contract sur un deploiement ULTERIEUR). Une migration destructive-immediate
+  #     casserait le rollback.
+  #   * Il ne rollback PAS le frontend (S3/CloudFront) : le sync a deja remplace
+  #     les assets. En cas d'echec purement front, corriger et redeployer.
+  recette:
+    name: Recette post-prod (gate + rollback)
+    needs: [deploy-backend, deploy-frontend]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      RECETTE_BASE_URL: ${{ secrets.RECETTE_BASE_URL }}
+      RECETTE_EMAIL:    ${{ secrets.RECETTE_EMAIL }}
+      RECETTE_PASSWORD: ${{ secrets.RECETTE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region:     ${{ env.AWS_REGION }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install recette deps
+        run: pip install -r backend/recette/requirements.txt
+
+      - name: Recette API (auth, coffre, scan, cleanup)
+        run: python -m pytest recette/ -c recette/pytest.ini
+        working-directory: backend
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend deps + Playwright
+        run: npm ci --legacy-peer-deps && npx playwright install --with-deps chromium
+        working-directory: frontend
+
+      - name: Recette UI (Playwright vs prod)
+        run: npx playwright test --config=playwright.recette.config.ts
+        working-directory: frontend
+
+      - name: Rollback ECS si la recette echoue
+        if: failure()
+        env:
+          PREV: ${{ needs.deploy-backend.outputs.prev_task_def }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PREV:-}" ] || [ "$PREV" = "None" ]; then
+            echo "::error::Recette KO mais task def precedente inconnue — rollback impossible, intervention manuelle requise (voir CloudWatch /ecs/cybervault-backend)."
+            exit 1
+          fi
+          echo "::warning::Recette post-prod ECHOUEE -> rollback ECS backend vers $PREV"
+          aws ecs update-service \
+            --cluster ${{ secrets.ECS_CLUSTER }} \
+            --service ${{ secrets.ECS_SERVICE }} \
+            --task-definition "$PREV"
+          aws ecs wait services-stable \
+            --cluster ${{ secrets.ECS_CLUSTER }} \
+            --services ${{ secrets.ECS_SERVICE }} || true
+          RUNNING=$(aws ecs describe-services \
+            --cluster ${{ secrets.ECS_CLUSTER }} \
+            --services ${{ secrets.ECS_SERVICE }} \
+            --query 'services[0].taskDefinition' --output text)
+          echo "::error::Recette echouee. Backend rollback vers $RUNNING. Le frontend (S3/CloudFront) N'EST PAS rollback automatiquement — verifier et redeployer si besoin."
+          exit 1

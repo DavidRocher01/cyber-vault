@@ -1,0 +1,4 @@
+# Dependances minimales de la recette post-prod (installees isolement en CI,
+# sans tirer tout requirements.txt du backend). Tests boite noire = HTTP only.
+httpx>=0.27
+pytest>=8.0

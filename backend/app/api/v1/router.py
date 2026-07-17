@@ -20,6 +20,7 @@ from app.api.v1.endpoints import (
     darkweb,
     darkweb_dossier,
     dev_testing,
+    health,
     invoices,
     iso27001,
     newsletter,
@@ -44,6 +45,7 @@ from app.api.v1.endpoints import (
 )
 
 api_router = APIRouter(prefix="/api/v1")
+api_router.include_router(health.router)
 api_router.include_router(auth.router)
 api_router.include_router(vault.router)
 api_router.include_router(plans.router)
