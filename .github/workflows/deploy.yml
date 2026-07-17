@@ -156,22 +156,21 @@ jobs:
             s3://${{ secrets.S3_BUCKET_NAME }}/index.html \
             --cache-control "no-cache, no-store, must-revalidate"
 
-      - name: Configure CloudFront SPA error pages (403/404 → index.html)
-        run: |
-          DIST_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}"
-          CONFIG=$(aws cloudfront get-distribution-config --id "$DIST_ID")
-          ETAG=$(echo "$CONFIG" | jq -r '.ETag')
-          UPDATED=$(echo "$CONFIG" | jq '.DistributionConfig | .CustomErrorResponses = {
-            "Quantity": 2,
-            "Items": [
-              {"ErrorCode": 403, "ResponsePagePath": "/index.html", "ResponseCode": "200", "ErrorCachingMinTTL": 300},
-              {"ErrorCode": 404, "ResponsePagePath": "/index.html", "ResponseCode": "200", "ErrorCachingMinTTL": 300}
-            ]
-          }')
-          aws cloudfront update-distribution \
-            --id "$DIST_ID" \
-            --distribution-config "$UPDATED" \
-            --if-match "$ETAG"
+      # NOTE — le routage SPA ne passe PLUS par les CustomErrorResponses.
+      #
+      # Cette etape posait, a chaque deploiement :
+      #   403 -> /index.html (200)   et   404 -> /index.html (200)
+      # Or les CustomErrorResponses sont GLOBALES a la distribution : elles
+      # s'appliquaient donc aussi aux comportements /api/* (origine ALB), et
+      # transformaient tous les 403/404 de l'API en "200 + index.html". Un client
+      # d'API (ou le front lui-meme) recevait du HTML avec un code 200 au lieu d'un
+      # vrai 404/403 JSON.
+      #
+      # Le routage SPA est desormais assure par la CloudFront Function
+      # `redirect-cyberscanapp-to-rocher` (viewer-request, attachee au comportement
+      # par defaut uniquement) : elle reecrit vers /index.html les chemins sans
+      # extension de fichier, et laisse /api/* intact. L'API renvoie donc ses vrais
+      # codes. Ne pas reintroduire de CustomErrorResponses ici.
 
       - name: Invalidate CloudFront
         run: |
