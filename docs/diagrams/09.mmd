@@ -1,0 +1,14 @@
+sequenceDiagram
+  actor U as Utilisateur
+  participant API as FastAPI /scans
+  participant DB as PostgreSQL
+  participant SC as Scanner (cyber-scanner)
+
+  U->>API: POST /scans/trigger/{site}
+  API->>API: assert_no_ssrf(site.url)
+  API->>DB: contrôle quota (plan) + verrou anti-course
+  API->>DB: crée Scan (pending)
+  API-->>U: 202 Accepted
+  API->>SC: run_scan (tâche de fond)
+  SC->>SC: modules — SSL · en-têtes · DNS · IP/DNSBL · WAF · CMS…
+  SC->>DB: Scan → done (overall_status, results_json, PDF)

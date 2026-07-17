@@ -1,0 +1,60 @@
+erDiagram
+  USER ||--o{ REFRESH_TOKEN : "a"
+  USER ||--o{ PASSWORD_RESET_TOKEN : "a"
+  USER ||--o{ SUBSCRIPTION : "souscrit"
+  PLAN ||--o{ SUBSCRIPTION : "propose"
+  USER ||--o{ SITE : "possède"
+  SITE ||--o{ SCAN : "génère"
+  USER ||--o{ VAULT_ITEM : "possède"
+  USER ||--o{ NOTIFICATION : "reçoit"
+  USER ||--o{ INVOICE : "facturé"
+  USER ||--o{ QUOTE : "devis"
+  RSSI_CLIENT ||--o{ SITE : "supervise"
+
+  USER {
+    int id PK
+    string email UK
+    string hashed_password
+    bytes crypto_salt
+    string totp_secret "chiffré Fernet"
+    bool totp_enabled
+    int failed_login_attempts
+    datetime locked_until
+    bool is_rssi_consultant
+  }
+  SUBSCRIPTION {
+    int id PK
+    int user_id FK
+    int plan_id FK
+    string stripe_subscription_id
+    string status
+    int extra_sites
+  }
+  PLAN {
+    int id PK
+    string name UK
+    int price_eur "centimes"
+    int max_sites
+    int scan_interval_days
+  }
+  SITE {
+    int id PK
+    int user_id FK
+    int rssi_client_id FK "nullable"
+    string url
+    bool is_active
+  }
+  SCAN {
+    int id PK
+    int site_id FK
+    string status
+    string overall_status "OK/WARNING/CRITICAL"
+    text results_json
+  }
+  VAULT_ITEM {
+    int id PK
+    int owner_id FK
+    bytes password_encrypted "AES-GCM (opaque)"
+    bytes title_encrypted
+    bytes notes_encrypted
+  }

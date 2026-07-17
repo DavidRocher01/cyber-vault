@@ -1,0 +1,16 @@
+sequenceDiagram
+  actor U as Utilisateur
+  participant FE as Frontend
+  participant API as FastAPI
+  participant ST as Stripe
+  participant DB as PostgreSQL
+
+  U->>FE: choisir un plan
+  FE->>API: POST /subscriptions/checkout/{plan}
+  API->>ST: crée Checkout Session
+  ST-->>FE: URL de paiement hébergée
+  U->>ST: paie (page Stripe)
+  ST-->>API: webhook checkout.session.completed (signé)
+  API->>API: vérifie signature + idempotence (ProcessedStripeEvent)
+  API->>DB: Subscription → active (plan, période, ids Stripe)
+  ST-->>FE: redirection succès

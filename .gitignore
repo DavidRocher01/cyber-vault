@@ -36,6 +36,9 @@ frontend/test-results/
 docs/test-reports/
 reports/
 
+# Doc d'architecture generee depuis docs/diagrams/*.mmd (regenerable, ~450 Ko)
+docs/architecture.html
+
 # OS
 .DS_Store
 Thumbs.db
