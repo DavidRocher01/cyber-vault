@@ -38,8 +38,8 @@ alembic upgrade head               # applique le schéma sur la base locale
 uvicorn app.main:app --reload      # http://localhost:8000
 ```
 
-`.env` local minimal (⚠️ secrets **jamais** dans git — les vraies valeurs prod sont
-dans AWS Secrets Manager `cybervault/prod`) :
+`.env` local **minimal pour démarrer** (⚠️ secrets **jamais** dans git — les vraies
+valeurs prod sont dans AWS Secrets Manager `cybervault/prod`) :
 
 ```env
 APP_ENV=development                # active is_dev_mode (endpoints /dev/*, checkout test)
@@ -50,6 +50,15 @@ FRONTEND_URL=http://localhost:4200
 ADMIN_API_KEY=<openssl rand -hex 32>
 # REDIS_URL vide => APScheduler/limiter in-memory (comme la prod, mono-instance)
 ```
+
+Ces 6 variables suffisent à **booter** l'app et lancer les tests. **`backend/.env.example`
+est la référence complète (34 variables)** : les fonctionnalités suivantes ne
+marchent que si tu renseignes leurs clés (sinon elles sont inertes ou en mode dev) :
+- **Stripe** (`STRIPE_*`, addons) — paiement/checkout (en dev, checkout mock via `is_dev_mode`).
+- **Email** : `RESEND_API_KEY` (+ `RESEND_FROM`) ou `SMTP_*` — invitations RSSI, resets, contact.
+- **Dark Web** : `HIBP_API_KEY` — scans HIBP (payant).
+- **Phishing** : `PHISHING_BASE_URL` (doit inclure `/api/v1`), `PHISHING_FROM_*`.
+- **Sentry** : `SENTRY_DSN` (laisser vide en dev).
 
 Créer la base au préalable (Postgres natif) : une base `cybervault` + un rôle
 `cybervault`. Pour une **parité exacte** avec la prod (collation `en_US.UTF-8`,
@@ -80,6 +89,20 @@ cd frontend && npm test         # tests front (Vitest)
 make prod-check                 # OPTIONNEL : backend en image prod + smoke (avant un deploy sensible)
 make recette                    # recette post-prod contre la PROD (creds canari depuis Secrets Manager)
 ```
+
+## 6b. Config de dev déjà versionnée (rien à faire)
+
+Ces éléments **arrivent avec le `git clone`**, aucune reconfiguration :
+- `.vscode/settings.json` (réglages éditeur), `.editorconfig` le cas échéant.
+- Configs qualité : ruff / mypy / bandit (backend), ESLint / Prettier (frontend).
+- `.pre-commit-config.yaml` (14 hooks) — activés par `make install`.
+- `docker-compose.dev.yml` (parité prod : `make prod-check`), `docker-compose.edge.yml`
+  (reverse proxy iso-edge : `make edge`), `infra/dev-db-init.sql` (rôle/collation).
+- `Makefile` = hub des commandes → `make help` liste tout.
+
+Machine-spécifique / non versionné (à refaire) : `.venv`, `node_modules`,
+navigateurs Playwright (`npx playwright install chromium` pour les E2E/recette UI),
+`.env`, creds AWS/gh.
 
 ## 7. Repères
 
