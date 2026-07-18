@@ -1406,12 +1406,15 @@ async def _make_consultant_with_client(client: AsyncClient) -> int:
 
 class TestCampaignGating:
     @pytest.mark.asyncio
-    async def test_company_without_subscription_is_403(self, auth_client: AsyncClient):
+    async def test_company_create_is_free(self, auth_client: AsyncClient):
+        # La création/config d'un brouillon n'est PAS gatée : le plan est requis
+        # au LANCEMENT (cf. test_phishing_coverage.py::test_launch_without_plan_is_403).
         r = await auth_client.post(
             "/api/v1/phishing/campaigns",
-            json={"name": "No Plan", "plan_tier": "standard"},
+            json={"name": "Free Draft", "plan_tier": "standard"},
         )
-        assert r.status_code == 403
+        assert r.status_code == 201
+        assert r.json()["rssi_client_id"] is None
 
     @pytest.mark.asyncio
     async def test_non_consultant_passing_client_id_is_403(self, phishing_client: AsyncClient):

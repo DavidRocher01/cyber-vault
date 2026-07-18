@@ -19,7 +19,16 @@ from app.models.phishing import (
     PhishingDomainVerification,
 )
 from app.services import phishing_service
-from tests.conftest import register_and_login
+from tests.conftest import create_plan_and_subscription, register_and_login
+
+
+async def _grant_pro(client: AsyncClient) -> None:
+    """Abonnement Pro (tier 3) pour le user courant — requis pour LANCER une
+    campagne en mode entreprise directe (le gating par plan est au lancement)."""
+    await create_plan_and_subscription(
+        client, {"Authorization": client.headers["Authorization"]}, tier=3
+    )
+
 
 BASE = "/api/v1/phishing"
 
@@ -308,6 +317,7 @@ class TestLaunchValidations:
         self, auth_client: AsyncClient, db_session: AsyncSession
     ):
         cid = await _create_campaign(auth_client)
+        await _grant_pro(auth_client)
         files = _csv_file(["a@corp.com,A"])
         await auth_client.post(f"{BASE}/campaigns/{cid}/targets", files=files)
         await auth_client.patch(f"{BASE}/campaigns/{cid}", json={"scenario_keys": ["ceo-fraud"]})
@@ -332,6 +342,7 @@ class TestLaunchValidations:
         self, auth_client: AsyncClient, db_session: AsyncSession
     ):
         cid = await _create_campaign(auth_client)
+        await _grant_pro(auth_client)
         files = _csv_file(["a@corp.com,A"])
         await auth_client.post(f"{BASE}/campaigns/{cid}/targets", files=files)
         await auth_client.patch(
@@ -359,6 +370,7 @@ class TestLaunchValidations:
         self, auth_client: AsyncClient, db_session: AsyncSession
     ):
         cid = await _create_campaign(auth_client)
+        await _grant_pro(auth_client)
         files = _csv_file(["a@corp.com,A"])
         await auth_client.post(f"{BASE}/campaigns/{cid}/targets", files=files)
         await auth_client.patch(
@@ -378,6 +390,7 @@ class TestLaunchValidations:
         self, auth_client: AsyncClient, db_session: AsyncSession
     ):
         cid = await _create_campaign(auth_client)
+        await _grant_pro(auth_client)
         files = _csv_file(["a@corp.com,A"])
         await auth_client.post(f"{BASE}/campaigns/{cid}/targets", files=files)
         await auth_client.patch(
@@ -393,6 +406,22 @@ class TestLaunchValidations:
         assert r.status_code == 502
         # Raw exception detail must not leak
         assert "unexpected internal" not in r.json()["detail"]
+
+    async def test_launch_without_plan_is_403(
+        self, auth_client: AsyncClient, db_session: AsyncSession
+    ):
+        # Campagne entreprise ENTIEREMENT configurée mais SANS abonnement Pro :
+        # le lancement (l'envoi réel) est gaté par le plan.
+        cid = await _create_campaign(auth_client)
+        files = _csv_file(["a@corp.com,A"])
+        await auth_client.post(f"{BASE}/campaigns/{cid}/targets", files=files)
+        await auth_client.patch(
+            f"{BASE}/campaigns/{cid}",
+            json={"scenario_keys": ["ceo-fraud"], "cgu_accepted": True},
+        )
+        r = await auth_client.post(f"{BASE}/campaigns/{cid}/launch")
+        assert r.status_code == 403
+        assert "abonnement" in r.json()["detail"].lower()
 
 
 # ---------------------------------------------------------------------------

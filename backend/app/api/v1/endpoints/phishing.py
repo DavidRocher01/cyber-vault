@@ -205,33 +205,25 @@ async def _get_owned(campaign_id: int, user_id: int, db: AsyncSession) -> Phishi
 # ---------------------------------------------------------------------------
 
 
-async def _authorize_campaign_context(
+async def _resolve_client_attribution(
     rssi_client_id: int | None, current_user: User, db: AsyncSession
 ) -> int | None:
-    """Contrôle d'accès selon l'opérateur :
-    - mode consultant (rssi_client_id fourni) : exige is_rssi_consultant + ownership
-      du client (404 sinon, pour ne pas révéler son existence) ;
-    - mode entreprise directe (NULL) : exige un plan actif >= _PHISHING_MIN_TIER.
-    Retourne le rssi_client_id validé (ou None).
+    """Valide l'attribution d'une campagne à un client RSSI (mode consultant).
+
+    Le gating par PLAN se fait au LANCEMENT (cf. launch_campaign), PAS ici : on peut
+    créer et configurer un brouillon librement. Ici on ne valide que le contexte
+    consultant : exige is_rssi_consultant + ownership du client (404 sinon, pour ne
+    pas révéler son existence). Mode entreprise directe (NULL) : rien à valider.
     """
-    if rssi_client_id is not None:
-        if not current_user.is_rssi_consultant:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Accès réservé aux consultants RSSI.",
-            )
-        await _get_client_or_404(rssi_client_id, current_user.id, db)
-        return rssi_client_id
-
-    from app.services.subscription_service import get_active_tier
-
-    tier = await get_active_tier(db, current_user.id)
-    if tier < _PHISHING_MIN_TIER:
+    if rssi_client_id is None:
+        return None
+    if not current_user.is_rssi_consultant:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="La simulation de phishing nécessite un abonnement Pro ou supérieur.",
+            detail="Accès réservé aux consultants RSSI.",
         )
-    return None
+    await _get_client_or_404(rssi_client_id, current_user.id, db)
+    return rssi_client_id
 
 
 @router.get("/campaigns")
@@ -263,7 +255,7 @@ async def create_campaign(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    rssi_client_id = await _authorize_campaign_context(payload.rssi_client_id, current_user, db)
+    rssi_client_id = await _resolve_client_attribution(payload.rssi_client_id, current_user, db)
     campaign = await phishing_service.create_campaign(
         current_user.id, payload.name, payload.plan_tier, db, rssi_client_id=rssi_client_id
     )
@@ -425,6 +417,17 @@ async def launch_campaign(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Vous devez accepter les conditions générales avant de lancer la campagne.",
         )
+
+    # Gating par plan AU LANCEMENT (l'envoi réel) et seulement en mode entreprise
+    # directe : le consultant lance via sa prestation (campagne rattachée à un client).
+    if campaign.rssi_client_id is None:
+        from app.services.subscription_service import get_active_tier
+
+        if await get_active_tier(db, current_user.id) < _PHISHING_MIN_TIER:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="La simulation de phishing nécessite un abonnement Pro ou supérieur.",
+            )
 
     try:
         await phishing_service.launch_campaign(campaign, db)
