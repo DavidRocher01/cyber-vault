@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createAndLogin, login } from './helpers';
+import { createAndLogin, login, upgradeToPlan } from './helpers';
 
 // Force strictly serial execution across all describe blocks in this file.
 // Playwright otherwise starts the next describe's beforeAll while the current
@@ -325,6 +325,8 @@ async function setupAndLaunchCampaign(browser: import('@playwright/test').Browse
     const page = await browser.newPage();
     try {
       launchEmail = await createAndLogin(page);
+      // Le lancement (envoi réel) est gaté par un plan Pro (mode entreprise directe).
+      await upgradeToPlan(page, 'pro');
 
       await page.goto('/phishing/new');
       await page.getByRole('button', { name: /Continuer/i }).click();
