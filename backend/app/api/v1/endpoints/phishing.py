@@ -705,6 +705,7 @@ async def tracking_landing(request: Request, tracking_id: str, db: AsyncSession 
     )
     target = result.scalar_one_or_none()
     scenario_key = phishing_service._DEFAULT_SCENARIO_KEY
+    landing_base: str | None = None
     if target:
         campaign_result = await db.execute(
             select(PhishingCampaign).where(PhishingCampaign.id == target.campaign_id)
@@ -713,10 +714,14 @@ async def tracking_landing(request: Request, tracking_id: str, db: AsyncSession 
         if campaign:
             if phishing_service._is_campaign_expired(campaign):
                 return HTMLResponse(content=phishing_service.get_expired_html())
+            # Le formulaire doit poster sur le même host que celui de la campagne.
+            landing_base = phishing_service._tracking_base(campaign)
             keys = json.loads(campaign.scenario_keys or "[]")
             if keys:
                 scenario_key = keys[0]
-    return HTMLResponse(content=phishing_service.get_landing_html(tracking_id, scenario_key))
+    return HTMLResponse(
+        content=phishing_service.get_landing_html(tracking_id, scenario_key, landing_base)
+    )
 
 
 @router.post("/t/{tracking_id}/s", response_class=HTMLResponse, include_in_schema=False)

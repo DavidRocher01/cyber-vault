@@ -750,8 +750,13 @@ def get_pixel_gif() -> bytes:
     return _PIXEL_GIF
 
 
-def get_landing_html(tracking_id: str, scenario_key: str = _DEFAULT_SCENARIO_KEY) -> str:
-    base = settings.PHISHING_BASE_URL.rstrip("/")
+def get_landing_html(
+    tracking_id: str, scenario_key: str = _DEFAULT_SCENARIO_KEY, base: str | None = None
+) -> str:
+    # La landing doit poster sur le MÊME host que celui qui l'a servie (le domaine
+    # look-alike si la campagne en a un, sinon PHISHING_BASE_URL) — sinon un
+    # formulaire servi depuis le look-alike posterait vers un autre host.
+    base = (base or settings.PHISHING_BASE_URL).rstrip("/")
     action = f"{base}/phishing/t/{tracking_id}/s"
     template_name = _SCENARIO_LANDING.get(scenario_key, "microsoft")
     html = _LANDING_TEMPLATES.get(template_name, _LANDING_MICROSOFT)

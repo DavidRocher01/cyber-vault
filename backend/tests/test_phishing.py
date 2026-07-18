@@ -1658,3 +1658,48 @@ class TestCancelAndCadence:
 
         await db_session.refresh(campaign)
         assert campaign.emails_sent == 1  # cadence = 1 email par tick
+
+
+# ---------------------------------------------------------------------------
+# Landing cross-host : le formulaire poste sur le host de la campagne (Lot 5a)
+# ---------------------------------------------------------------------------
+
+
+class TestLandingCrossHost:
+    def test_landing_uses_provided_base(self):
+        html = phishing_service.get_landing_html("tid", base="https://secure-acme.com")
+        assert "https://secure-acme.com/phishing/t/tid/s" in html
+
+    def test_landing_defaults_to_base_url_when_none(self):
+        from app.core.config import settings
+
+        html = phishing_service.get_landing_html("tid")
+        assert f"{settings.PHISHING_BASE_URL.rstrip('/')}/phishing/t/tid/s" in html
+
+    @pytest.mark.asyncio
+    async def test_landing_endpoint_posts_to_lookalike_host(
+        self, db_session: AsyncSession, http_client: AsyncClient
+    ):
+        user = User(email="ll_landing@test.com", hashed_password=hash_password("p"))
+        db_session.add(user)
+        await db_session.flush()
+        campaign = PhishingCampaign(
+            user_id=user.id,
+            name="LL",
+            plan_tier="standard",
+            status="active",
+            lookalike_domain="secure-acme.com",
+            scenario_keys='["o365-credentials"]',
+            cgu_accepted=True,
+        )
+        db_session.add(campaign)
+        await db_session.flush()
+        target = PhishingTarget(
+            campaign_id=campaign.id, email="v@x.com", tracking_id="ll-1", status="clicked"
+        )
+        db_session.add(target)
+        await db_session.commit()
+
+        r = await http_client.get("/api/v1/phishing/t/ll-1/l")
+        assert r.status_code == 200
+        assert "https://secure-acme.com/phishing/t/ll-1/s" in r.text
