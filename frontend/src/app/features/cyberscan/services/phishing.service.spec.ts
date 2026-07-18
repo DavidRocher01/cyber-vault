@@ -17,14 +17,11 @@ function makeService(httpOverrides: Partial<{ get: any; post: any; patch: any }>
   return { service, http };
 }
 
-describe('PhishingService — getPdfUrl()', () => {
-  it("retourne l'URL correcte pour un id donné", () => {
-    const { service } = makeService();
-    expect(service.getPdfUrl(42)).toBe(`${BASE}/campaigns/42/pdf`);
-  });
-  it("fonctionne pour l'id 1", () => {
-    const { service } = makeService();
-    expect(service.getPdfUrl(1)).toContain('/campaigns/1/pdf');
+describe('PhishingService — downloadPdfBlob()', () => {
+  it('appelle GET /campaigns/{id}/pdf en responseType blob (Bearer via intercepteur)', () => {
+    const { service, http } = makeService();
+    service.downloadPdfBlob(42).subscribe();
+    expect(http.get).toHaveBeenCalledWith(`${BASE}/campaigns/42/pdf`, { responseType: 'blob' });
   });
 });
 

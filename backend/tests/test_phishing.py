@@ -1315,3 +1315,48 @@ class TestTrackingExpiry:
         await _seed(db_session, tracking_id="rl-sub-001", status="clicked")
         r = await http_client.post("/api/v1/phishing/t/rl-sub-001/s")
         assert r.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# Validation de domaine (anti-SSRF / anti-injection sur domain & lookalike_domain)
+# ---------------------------------------------------------------------------
+
+
+class TestNormalizeDomain:
+    """_normalize_domain valide le format sans résolution réseau (Lot 0 refonte)."""
+
+    def test_accepts_bare_domain(self):
+        from app.api.v1.endpoints.phishing import _normalize_domain
+
+        assert _normalize_domain("connexion-entreprise.com") == "connexion-entreprise.com"
+
+    def test_strips_https_prefix(self):
+        from app.api.v1.endpoints.phishing import _normalize_domain
+
+        assert _normalize_domain("https://acme.fr") == "acme.fr"
+
+    def test_none_and_empty_pass_through(self):
+        from app.api.v1.endpoints.phishing import _normalize_domain
+
+        assert _normalize_domain(None) is None
+        assert _normalize_domain("   ") is None
+
+    @pytest.mark.parametrize(
+        "bad",
+        [
+            "javascript:alert(1)",
+            "http://acme.com",  # schéma non-https
+            "data:text/html,x",
+            "acme.com/login",  # chemin
+            "acme.com:8080",  # port
+            "localhost",  # pas de TLD
+            "127.0.0.1",  # IP littérale
+            "192.168.1.10",
+            "a b.com",  # espace
+        ],
+    )
+    def test_rejects_dangerous_values(self, bad):
+        from app.api.v1.endpoints.phishing import _normalize_domain
+
+        with pytest.raises(ValueError):
+            _normalize_domain(bad)

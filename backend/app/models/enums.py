@@ -11,9 +11,14 @@ class ScanStatus(StrEnum):
 
 
 class CampaignStatus(StrEnum):
+    # Cycle de vie réel d'une campagne de phishing (aligné sur le runtime) :
+    # draft -> [pending_verification -> ready] -> scheduled -> sending -> active -> completed
+    # (cancelled possible depuis un état non terminal).
     DRAFT = "draft"
     PENDING_VERIFICATION = "pending_verification"
     READY = "ready"
+    SCHEDULED = "scheduled"
+    SENDING = "sending"
     ACTIVE = "active"
     COMPLETED = "completed"
     CANCELLED = "cancelled"

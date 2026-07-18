@@ -143,7 +143,6 @@ export class PhishingCampaignDetailComponent implements OnInit {
       opened: 'Ouvert',
       clicked: 'Cliqué',
       submitted: 'Identifiants saisis',
-      reported: 'Signalé',
     };
     return m[status] ?? status;
   }
@@ -158,8 +157,6 @@ export class PhishingCampaignDetailComponent implements OnInit {
         return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
       case 'email_sent':
         return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
-      case 'reported':
-        return 'text-green-400 bg-green-500/10 border-green-500/30';
       default:
         return 'text-gray-500 bg-gray-500/10 border-gray-500/30';
     }
@@ -186,7 +183,20 @@ export class PhishingCampaignDetailComponent implements OnInit {
 
   downloadPdf() {
     this.downloadingPdf.set(true);
-    window.open(this.phishingService.getPdfUrl(this.campaignId), '_blank');
-    setTimeout(() => this.downloadingPdf.set(false), 2000);
+    this.phishingService.downloadPdfBlob(this.campaignId).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `phishing_rapport_${this.campaignId}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.downloadingPdf.set(false);
+      },
+      error: () => {
+        console.error('Erreur téléchargement PDF');
+        this.downloadingPdf.set(false);
+      },
+    });
   }
 }

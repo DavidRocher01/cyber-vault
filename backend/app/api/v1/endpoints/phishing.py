@@ -23,12 +23,13 @@ Public tracking routes (no auth — called by email clients / browsers):
 
 import asyncio
 import json
+import re
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
@@ -68,6 +69,35 @@ _VALID_TIERS = set(_MAX_TARGETS.keys())
 # Schemas
 # ---------------------------------------------------------------------------
 
+# Domaine = labels ASCII + TLD alpha. Rejette IP littérales (TLD alpha), ports,
+# chemins. Validé côté format UNIQUEMENT (pas de résolution DNS) : un domaine
+# look-alike premium fraîchement enregistré peut ne pas encore résoudre.
+_HOSTNAME_RE = re.compile(
+    r"^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$",
+    re.IGNORECASE,
+)
+
+
+def _normalize_domain(value: str | None) -> str | None:
+    """Valide un domaine fourni par l'utilisateur et renvoie le host nu.
+
+    Anti-SSRF/anti-injection : tolère un préfixe https:// (le seul), rejette tout
+    autre schéma (javascript:/data:/file:/http:...), port, chemin, espace,
+    localhost et IP littérale. Ne fait AUCUNE requête réseau.
+    """
+    if value is None:
+        return None
+    v = value.strip()
+    if not v:
+        return None
+    if v.lower().startswith("https://"):
+        v = v[len("https://") :]
+    if "://" in v or "/" in v or ":" in v or any(c.isspace() for c in v):
+        raise ValueError("Indiquer un domaine seul (https accepté, sans port ni chemin)")
+    if not _HOSTNAME_RE.match(v):
+        raise ValueError("Domaine invalide (ex : connexion-entreprise.com)")
+    return v
+
 
 class CampaignCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
@@ -82,13 +112,28 @@ class CampaignUpdate(BaseModel):
     cgu_accepted: bool | None = None
     scheduled_at: datetime | None = None
 
+    @field_validator("domain", "lookalike_domain")
+    @classmethod
+    def _validate_domains(cls, v: str | None) -> str | None:
+        return _normalize_domain(v)
+
 
 class DomainVerifyRequest(BaseModel):
     domain: str = Field(..., min_length=3, max_length=255)
 
+    @field_validator("domain")
+    @classmethod
+    def _validate_domain(cls, v: str) -> str:
+        return _normalize_domain(v)  # type: ignore[return-value]
+
 
 class DomainCheckRequest(BaseModel):
     domain: str
+
+    @field_validator("domain")
+    @classmethod
+    def _validate_domain(cls, v: str) -> str:
+        return _normalize_domain(v)  # type: ignore[return-value]
 
 
 # ---------------------------------------------------------------------------

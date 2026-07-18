@@ -15,7 +15,8 @@ class PhishingCampaign(Base):
     )
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    # draft | pending_verification | ready | active | completed | cancelled
+    # Valeurs = CampaignStatus (models/enums.py) :
+    # draft | pending_verification | ready | scheduled | sending | active | completed | cancelled
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="draft", index=True)
     # express | standard | premium | quarterly | monthly
     plan_tier: Mapped[str] = mapped_column(String(50), nullable=False, default="standard")
@@ -83,7 +84,7 @@ class PhishingTarget(Base):
     # Scenario sent to this target — assigned at send time
     scenario_key: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
-    # pending | email_sent | opened | clicked | submitted | reported
+    # pending | email_sent | opened | clicked | submitted
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
 
     # Per-event timestamps

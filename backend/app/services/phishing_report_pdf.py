@@ -150,7 +150,7 @@ def generate_phishing_report(
         if key not in scenario_perf:
             scenario_perf[key] = {"total": 0, "opened": 0, "clicked": 0, "submitted": 0}
         scenario_perf[key]["total"] += 1
-        if t.status in ("opened", "clicked", "submitted", "reported"):
+        if t.status in ("opened", "clicked", "submitted"):
             scenario_perf[key]["opened"] += 1
         if t.status in ("clicked", "submitted"):
             scenario_perf[key]["clicked"] += 1
@@ -473,13 +473,11 @@ def generate_phishing_report(
             "opened": "Ouvert",
             "clicked": "Cliqué",
             "submitted": "Identifiants saisis",
-            "reported": "Signalé",
         }
         _STATUS_COLORS = {
             "submitted": _RED,
             "clicked": colors.HexColor("#f97316"),
             "opened": _YELLOW,
-            "reported": _GREEN,
         }
         tgt_header = [["Email", "Prénom", "Département", "Scénario", "Statut"]]
         tgt_rows = []
@@ -490,8 +488,7 @@ def generate_phishing_report(
                 "clicked": 1,
                 "opened": 2,
                 "email_sent": 3,
-                "reported": 4,
-                "pending": 5,
+                "pending": 4,
             }.get(x.status, 5),
         ):
             tgt_rows.append(

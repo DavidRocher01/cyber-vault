@@ -159,7 +159,12 @@ export class PhishingService {
     );
   }
 
-  getPdfUrl(id: number): string {
-    return `${this.base}/campaigns/${id}/pdf`;
+  /**
+   * Télécharge le PDF via HttpClient (responseType blob) pour que
+   * l'intercepteur d'auth ajoute le Bearer — un window.open ne le ferait pas
+   * (navigation navigateur sans header → 401).
+   */
+  downloadPdfBlob(id: number): Observable<Blob> {
+    return this.http.get(`${this.base}/campaigns/${id}/pdf`, { responseType: 'blob' });
   }
 }
