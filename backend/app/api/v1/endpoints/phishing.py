@@ -163,9 +163,17 @@ _EDITABLE_TARGET_STATUSES = ("draft", "pending_verification", "ready")
 # ---------------------------------------------------------------------------
 
 
+def _sending_domain(c: PhishingCampaign) -> str:
+    """Host depuis lequel partent les liens de la campagne (transparence UI).
+    Sous-domaine maîtrisé par défaut ; look-alike si un jour renseigné."""
+    base = phishing_service._tracking_base(c)  # ex: https://rochercybersecurite.com/api/v1
+    return base.split("://", 1)[-1].split("/", 1)[0]
+
+
 def _serialize_campaign(c: PhishingCampaign) -> dict:
     return {
         "id": c.id,
+        "sending_domain": _sending_domain(c),
         "name": c.name,
         "status": c.status,
         "plan_tier": c.plan_tier,

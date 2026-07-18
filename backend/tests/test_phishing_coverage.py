@@ -76,6 +76,9 @@ class TestCreateCampaignValidation:
         assert data["status"] == "draft"
         assert data["targets_count"] == 0
         assert data["click_rate"] == 0
+        # Lot 5 opt1 : le domaine d'envoi (host) est exposé (transparence UI).
+        assert data["sending_domain"]
+        assert "://" not in data["sending_domain"] and "/" not in data["sending_domain"]
 
 
 # ---------------------------------------------------------------------------

@@ -181,11 +181,31 @@
           }
         </div>
 
-        <!-- Domain -->
+        <!-- Domaine d'envoi (host des liens de tracking) -->
+        <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
+          <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            Domaine d'envoi
+          </h2>
+          <div class="flex items-center gap-3">
+            <mat-icon class="text-gray-500">alternate_email</mat-icon>
+            <span class="font-mono text-sm text-gray-300">{{ c.sending_domain }}</span>
+            <span
+              class="text-[0.7rem] font-semibold px-2 py-0.5 rounded-full border text-emerald-400 bg-emerald-500/10 border-emerald-500/30"
+            >
+              Sous-domaine maîtrisé
+            </span>
+          </div>
+          <p class="text-xs text-gray-600 mt-2">
+            Les liens de la simulation partent de ce domaine (délivrabilité vérifiée). Un domaine
+            look-alike personnalisé, plus réaliste, sera proposé ultérieurement (option premium).
+          </p>
+        </div>
+
+        <!-- Domaine de l'entreprise cible (personnalisation) -->
         @if (c.domain) {
           <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
             <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-              Domaine d'envoi
+              Domaine de l'entreprise cible
             </h2>
             <div class="flex items-center gap-3">
               <mat-icon class="text-gray-500">dns</mat-icon>

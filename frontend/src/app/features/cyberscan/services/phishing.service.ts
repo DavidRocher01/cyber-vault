@@ -17,6 +17,7 @@ export interface PhishingCampaign {
     | 'cancelled';
   plan_tier: string;
   rssi_client_id: number | null;
+  sending_domain: string;
   training_on_fail: boolean;
   training_trigger: 'click' | 'submit';
   batch_size: number | null;
