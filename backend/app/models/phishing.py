@@ -48,6 +48,10 @@ class PhishingCampaign(Base):
         String(20), nullable=False, server_default="click"
     )
 
+    # Cadence : nombre d'emails envoyés par tick de scheduler (toutes les 15 min).
+    # NULL = repli sur le global settings.PHISHING_BATCH_SIZE.
+    batch_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
     # Stats
     targets_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     emails_sent: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

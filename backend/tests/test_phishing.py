@@ -1564,3 +1564,97 @@ class TestTrainingOnFail:
         # Un 2e record_click ne re-crée pas d'enrôlement (enroll_learner idempotent).
         await phishing_service.record_click("tof-1", db_session)
         assert await _enrollment_count(db_session, learner.id) == 1
+
+
+# ---------------------------------------------------------------------------
+# Annulation + cadence par campagne (Lot 3 refonte)
+# ---------------------------------------------------------------------------
+
+
+class TestCancelAndCadence:
+    @pytest.mark.asyncio
+    async def test_cancel_draft_campaign(self, auth_client: AsyncClient):
+        cid = (
+            await auth_client.post(
+                "/api/v1/phishing/campaigns", json={"name": "To Cancel", "plan_tier": "standard"}
+            )
+        ).json()["id"]
+        r = await auth_client.post(f"/api/v1/phishing/campaigns/{cid}/cancel")
+        assert r.status_code == 200
+        assert r.json()["status"] == "cancelled"
+
+    @pytest.mark.asyncio
+    async def test_cannot_cancel_completed(
+        self, auth_client: AsyncClient, db_session: AsyncSession
+    ):
+        cid = (
+            await auth_client.post(
+                "/api/v1/phishing/campaigns", json={"name": "Done", "plan_tier": "standard"}
+            )
+        ).json()["id"]
+        camp = (
+            await db_session.execute(select(PhishingCampaign).where(PhishingCampaign.id == cid))
+        ).scalar_one()
+        camp.status = "completed"
+        await db_session.commit()
+        r = await auth_client.post(f"/api/v1/phishing/campaigns/{cid}/cancel")
+        assert r.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_cancelled_campaign_not_sent_by_batch(self, db_session: AsyncSession):
+        import unittest.mock as mock
+
+        user = User(email="cancel_batch@test.com", hashed_password=hash_password("p"))
+        db_session.add(user)
+        await db_session.flush()
+        campaign = PhishingCampaign(
+            user_id=user.id,
+            name="Cancelled",
+            plan_tier="standard",
+            status="cancelled",
+            cgu_accepted=True,
+            scenario_keys='["o365-credentials"]',
+            targets_count=2,
+        )
+        db_session.add(campaign)
+        await db_session.flush()
+        for i in range(2):
+            db_session.add(
+                PhishingTarget(campaign_id=campaign.id, email=f"c{i}@x.com", status="pending")
+            )
+        await db_session.commit()
+
+        with mock.patch.object(phishing_service, "_send_phishing_email") as mock_send:
+            await phishing_service.send_pending_batch()
+        assert mock_send.call_count == 0
+
+    @pytest.mark.asyncio
+    async def test_batch_respects_per_campaign_batch_size(self, db_session: AsyncSession):
+        import unittest.mock as mock
+
+        user = User(email="cadence@test.com", hashed_password=hash_password("p"))
+        db_session.add(user)
+        await db_session.flush()
+        campaign = PhishingCampaign(
+            user_id=user.id,
+            name="Cadence",
+            plan_tier="standard",
+            status="sending",
+            cgu_accepted=True,
+            scenario_keys='["o365-credentials"]',
+            targets_count=3,
+            batch_size=1,
+        )
+        db_session.add(campaign)
+        await db_session.flush()
+        for i in range(3):
+            db_session.add(
+                PhishingTarget(campaign_id=campaign.id, email=f"k{i}@x.com", status="pending")
+            )
+        await db_session.commit()
+
+        with mock.patch.object(phishing_service, "_send_phishing_email"):
+            await phishing_service.send_pending_batch()
+
+        await db_session.refresh(campaign)
+        assert campaign.emails_sent == 1  # cadence = 1 email par tick

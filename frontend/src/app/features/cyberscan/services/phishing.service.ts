@@ -19,6 +19,7 @@ export interface PhishingCampaign {
   rssi_client_id: number | null;
   training_on_fail: boolean;
   training_trigger: 'click' | 'submit';
+  batch_size: number | null;
   domain: string | null;
   domain_verified: boolean;
   lookalike_domain: string | null;
@@ -137,9 +138,15 @@ export class PhishingService {
       scheduled_at: string;
       training_on_fail: boolean;
       training_trigger: 'click' | 'submit';
+      batch_size: number;
     }>
   ): Observable<PhishingCampaign> {
     return this.http.patch<PhishingCampaign>(`${this.base}/campaigns/${id}`, patch);
+  }
+
+  /** Annule une campagne (statut "cancelled") : plus aucun email ne partira. */
+  cancelCampaign(id: number): Observable<PhishingCampaign> {
+    return this.http.post<PhishingCampaign>(`${this.base}/campaigns/${id}/cancel`, {});
   }
 
   getLookalikeDomains(domain: string): Observable<LookalikeDomainsResult> {

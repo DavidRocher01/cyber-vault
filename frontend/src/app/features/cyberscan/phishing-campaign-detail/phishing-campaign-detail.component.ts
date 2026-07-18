@@ -40,6 +40,13 @@ export class PhishingCampaignDetailComponent implements OnInit {
   campaign = signal<PhishingCampaign | null>(null);
   loading = signal(true);
   downloadingPdf = signal(false);
+  cancelling = signal(false);
+
+  private readonly CANCELLABLE = ['draft', 'pending_verification', 'ready', 'scheduled', 'sending'];
+  canCancel(): boolean {
+    const s = this.campaign()?.status;
+    return !!s && this.CANCELLABLE.includes(s);
+  }
 
   readonly scenarios = PHISHING_SCENARIOS;
 
@@ -196,6 +203,25 @@ export class PhishingCampaignDetailComponent implements OnInit {
       error: () => {
         console.error('Erreur téléchargement PDF');
         this.downloadingPdf.set(false);
+      },
+    });
+  }
+
+  cancel() {
+    if (this.cancelling() || !this.canCancel()) return;
+    if (!confirm('Annuler cette campagne ? Plus aucun email ne sera envoyé.')) return;
+    this.cancelling.set(true);
+    this.phishingService.cancelCampaign(this.campaignId).subscribe({
+      next: c => {
+        this.campaign.set(c);
+        this.cancelling.set(false);
+        this.snack.open('Campagne annulée', 'OK', { duration: 3000 });
+      },
+      error: err => {
+        this.cancelling.set(false);
+        this.snack.open(err.error?.detail || "Erreur lors de l'annulation", 'Fermer', {
+          duration: 4000,
+        });
       },
     });
   }

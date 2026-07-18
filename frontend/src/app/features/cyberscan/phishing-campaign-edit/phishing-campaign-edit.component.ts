@@ -60,6 +60,7 @@ export class PhishingCampaignEditComponent implements OnInit {
     cgu_accepted: [false, Validators.requiredTrue],
     scheduled_at: [''],
     training_on_fail: [false],
+    batch_size: [null as number | null, [Validators.min(1), Validators.max(1000)]],
   });
 
   ngOnInit() {
@@ -91,6 +92,7 @@ export class PhishingCampaignEditComponent implements OnInit {
           cgu_accepted: c.cgu_accepted,
           scheduled_at: scheduledLocal,
           training_on_fail: c.training_on_fail,
+          batch_size: c.batch_size,
         });
         this.selectedScenarios.set(new Set(c.scenario_keys));
         this.loading.set(false);
@@ -166,6 +168,7 @@ export class PhishingCampaignEditComponent implements OnInit {
         cgu_accepted: this.form.value.cgu_accepted ?? false,
         scheduled_at: this.scheduledAtIso,
         training_on_fail: this.form.value.training_on_fail ?? false,
+        ...(this.form.value.batch_size ? { batch_size: this.form.value.batch_size } : {}),
       })
       .subscribe({
         next: c => {
@@ -192,6 +195,7 @@ export class PhishingCampaignEditComponent implements OnInit {
         cgu_accepted: true,
         scheduled_at: this.scheduledAtIso,
         training_on_fail: this.form.value.training_on_fail ?? false,
+        ...(this.form.value.batch_size ? { batch_size: this.form.value.batch_size } : {}),
       })
       .subscribe({
         next: () => {

@@ -175,6 +175,7 @@ async def update_campaign(
     status: str | None = None,
     training_on_fail: bool | None = None,
     training_trigger: str | None = None,
+    batch_size: int | None = None,
     db: AsyncSession,
 ) -> PhishingCampaign:
     if name is not None:
@@ -193,10 +194,22 @@ async def update_campaign(
         campaign.training_on_fail = training_on_fail
     if training_trigger is not None:
         campaign.training_trigger = training_trigger
+    if batch_size is not None:
+        campaign.batch_size = batch_size
     if scheduled_at is not None:
         campaign.scheduled_at = scheduled_at
     if status is not None:
         campaign.status = status
+    campaign.updated_at = datetime.now(UTC)
+    await db.flush()
+    return campaign
+
+
+async def cancel_campaign(campaign: PhishingCampaign, db: AsyncSession) -> PhishingCampaign:
+    """Annule une campagne : le statut "cancelled" l'exclut du batch (qui ne
+    traite que scheduled/active/sending) — plus aucun email ne partira."""
+    campaign.status = "cancelled"
+    campaign.finished_at = datetime.now(UTC)
     campaign.updated_at = datetime.now(UTC)
     await db.flush()
     return campaign
@@ -363,13 +376,14 @@ async def send_pending_batch() -> None:
                 if not scenario_keys:
                     scenario_keys = [_DEFAULT_SCENARIO_KEY]
 
+                batch_size = campaign.batch_size or settings.PHISHING_BATCH_SIZE
                 pending_result = await db.execute(
                     select(PhishingTarget)
                     .where(
                         PhishingTarget.campaign_id == campaign.id,
                         PhishingTarget.status == "pending",
                     )
-                    .limit(settings.PHISHING_BATCH_SIZE)
+                    .limit(batch_size)
                 )
                 pending = list(pending_result.scalars().all())
 

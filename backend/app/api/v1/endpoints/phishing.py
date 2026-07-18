@@ -121,6 +121,7 @@ class CampaignUpdate(BaseModel):
     scheduled_at: datetime | None = None
     training_on_fail: bool | None = None
     training_trigger: str | None = Field(None, pattern="^(click|submit)$")
+    batch_size: int | None = Field(None, ge=1, le=1000)
 
     @field_validator("domain", "lookalike_domain")
     @classmethod
@@ -160,6 +161,7 @@ def _serialize_campaign(c: PhishingCampaign) -> dict:
         "rssi_client_id": c.rssi_client_id,
         "training_on_fail": c.training_on_fail,
         "training_trigger": c.training_trigger,
+        "batch_size": c.batch_size,
         "domain": c.domain,
         "domain_verified": c.domain_verified,
         "lookalike_domain": c.lookalike_domain,
@@ -323,6 +325,7 @@ async def update_campaign(
         scheduled_at=payload.scheduled_at,
         training_on_fail=payload.training_on_fail,
         training_trigger=payload.training_trigger,
+        batch_size=payload.batch_size,
         db=db,
     )
     await db.commit()
@@ -454,6 +457,28 @@ async def launch_campaign(
     _background_tasks.add(task)
     task.add_done_callback(_background_tasks.discard)
     return {"status": "sending", "campaign_id": campaign_id}
+
+
+# États depuis lesquels une campagne peut être annulée (avant/pendant l'envoi ;
+# pas depuis "active" (envoi terminé, phase résultats), "completed" ou "cancelled").
+_CANCELLABLE_STATUSES = ("draft", "pending_verification", "ready", "scheduled", "sending")
+
+
+@router.post("/campaigns/{campaign_id}/cancel")
+async def cancel_campaign(
+    campaign_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    campaign = await _get_owned(campaign_id, current_user.id, db)
+    if campaign.status not in _CANCELLABLE_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Seule une campagne en préparation ou en cours d'envoi peut être annulée.",
+        )
+    updated = await phishing_service.cancel_campaign(campaign, db)
+    await db.commit()
+    return _serialize_campaign(updated)
 
 
 @router.get("/campaigns/{campaign_id}/pdf")
