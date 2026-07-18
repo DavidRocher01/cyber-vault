@@ -173,6 +173,8 @@ async def update_campaign(
     cgu_accepted: bool | None = None,
     scheduled_at: datetime | None = None,
     status: str | None = None,
+    training_on_fail: bool | None = None,
+    training_trigger: str | None = None,
     db: AsyncSession,
 ) -> PhishingCampaign:
     if name is not None:
@@ -187,6 +189,10 @@ async def update_campaign(
         campaign.scenario_keys = json.dumps(scenario_keys)
     if cgu_accepted is not None:
         campaign.cgu_accepted = cgu_accepted
+    if training_on_fail is not None:
+        campaign.training_on_fail = training_on_fail
+    if training_trigger is not None:
+        campaign.training_trigger = training_trigger
     if scheduled_at is not None:
         campaign.scheduled_at = scheduled_at
     if status is not None:
@@ -478,6 +484,74 @@ async def launch_campaign(campaign: PhishingCampaign, db: AsyncSession) -> None:
 # ---------------------------------------------------------------------------
 
 
+async def _enroll_target_in_remediation(
+    campaign: PhishingCampaign, target: PhishingTarget, db: AsyncSession
+) -> None:
+    """Training-on-fail : inscrit la cible piégée dans un module de remédiation
+    awareness. BEST-EFFORT — ne doit JAMAIS casser le flux de tracking.
+
+    Périmètre Lot 4 : mode consultant uniquement (l'org awareness vient du client
+    RSSI) et learner DÉJÀ existant dans l'org (pas d'auto-création -> pas d'email).
+    Company directe (pas d'org) et auto-création de learner = follow-up.
+    """
+    if not campaign.training_on_fail or campaign.rssi_client_id is None:
+        return
+    try:
+        from app.models.awareness_learner import AwarenessLearner
+        from app.models.awareness_program import AwarenessProgram
+        from app.models.rssi_client import RssiClient
+        from app.services.awareness_progression import enroll_learner
+
+        client = (
+            await db.execute(select(RssiClient).where(RssiClient.id == campaign.rssi_client_id))
+        ).scalar_one_or_none()
+        if client is None or client.awareness_organization_id is None:
+            return
+
+        learner = (
+            await db.execute(
+                select(AwarenessLearner).where(
+                    AwarenessLearner.email == target.email,
+                    AwarenessLearner.organization_id == client.awareness_organization_id,
+                    AwarenessLearner.is_active.is_(True),
+                )
+            )
+        ).scalar_one_or_none()
+        if learner is None:
+            return
+
+        # Programme de remédiation dédié si présent (slug ~ "remediation"), sinon
+        # 1er programme actif en repli (ex. nis2-essentiel) pour rester fonctionnel
+        # tant qu'aucun contenu de remédiation dédié n'est seedé.
+        program = (
+            await db.execute(
+                select(AwarenessProgram)
+                .where(
+                    AwarenessProgram.is_active.is_(True),
+                    AwarenessProgram.slug.contains("remediation"),
+                )
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if program is None:
+            program = (
+                await db.execute(
+                    select(AwarenessProgram).where(AwarenessProgram.is_active.is_(True)).limit(1)
+                )
+            ).scalar_one_or_none()
+        if program is None:
+            return
+
+        await enroll_learner(db, learner, program.id)
+        await db.commit()
+        logger.info(
+            f"training-on-fail: learner {learner.id} enrolled in program {program.id} "
+            f"(campaign {campaign.id}, target {target.id})"
+        )
+    except Exception as exc:  # best-effort : on n'interrompt jamais le tracking
+        logger.warning(f"training-on-fail enrollment skipped (campaign {campaign.id}): {exc}")
+
+
 async def record_open(tracking_id: str, db: AsyncSession) -> None:
     result = await db.execute(
         select(PhishingTarget).where(PhishingTarget.tracking_id == tracking_id)
@@ -515,6 +589,8 @@ async def record_click(tracking_id: str, db: AsyncSession) -> bool:
             campaign.clicked_count += 1
             campaign.updated_at = datetime.now(UTC)
             await db.commit()
+            if campaign.training_trigger == "click":
+                await _enroll_target_in_remediation(campaign, target, db)
     return True
 
 
@@ -543,6 +619,8 @@ async def record_submit(tracking_id: str, db: AsyncSession) -> str:
                 campaign.submitted_count += 1
                 campaign.updated_at = datetime.now(UTC)
                 await db.commit()
+                if campaign.training_trigger == "submit":
+                    await _enroll_target_in_remediation(campaign, target, db)
         elif target.status != "submitted":
             target.status = "submitted"
             await db.commit()

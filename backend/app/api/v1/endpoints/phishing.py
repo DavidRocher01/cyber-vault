@@ -119,6 +119,8 @@ class CampaignUpdate(BaseModel):
     scenario_keys: list[str] | None = None
     cgu_accepted: bool | None = None
     scheduled_at: datetime | None = None
+    training_on_fail: bool | None = None
+    training_trigger: str | None = Field(None, pattern="^(click|submit)$")
 
     @field_validator("domain", "lookalike_domain")
     @classmethod
@@ -156,6 +158,8 @@ def _serialize_campaign(c: PhishingCampaign) -> dict:
         "status": c.status,
         "plan_tier": c.plan_tier,
         "rssi_client_id": c.rssi_client_id,
+        "training_on_fail": c.training_on_fail,
+        "training_trigger": c.training_trigger,
         "domain": c.domain,
         "domain_verified": c.domain_verified,
         "lookalike_domain": c.lookalike_domain,
@@ -317,6 +321,8 @@ async def update_campaign(
         scenario_keys=payload.scenario_keys,
         cgu_accepted=payload.cgu_accepted,
         scheduled_at=payload.scheduled_at,
+        training_on_fail=payload.training_on_fail,
+        training_trigger=payload.training_trigger,
         db=db,
     )
     await db.commit()

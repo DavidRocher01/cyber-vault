@@ -40,6 +40,14 @@ class PhishingCampaign(Base):
     # Scenarios: JSON array of scenario IDs, e.g. '["ceo-fraud","o365-credentials"]'
     scenario_keys: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Training-on-fail : inscrire automatiquement la cible piégée dans un module de
+    # remédiation awareness (mode consultant : org awareness du client). training_trigger
+    # = quand déclencher : "click" (au clic) ou "submit" (à la soumission d'identifiants).
+    training_on_fail: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    training_trigger: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default="click"
+    )
+
     # Stats
     targets_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     emails_sent: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

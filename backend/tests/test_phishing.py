@@ -22,6 +22,7 @@ from types import SimpleNamespace
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
@@ -1452,3 +1453,114 @@ class TestCampaignGating:
             json={"name": "Foreign", "plan_tier": "standard", "rssi_client_id": 999999},
         )
         assert r.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Training-on-fail : enrôlement awareness sur clic (Lot 4 refonte)
+# ---------------------------------------------------------------------------
+
+
+async def _setup_training(
+    db: AsyncSession,
+    *,
+    training_on_fail: bool = True,
+    with_client: bool = True,
+    with_learner: bool = True,
+):
+    """Chaîne complète : consultant + org awareness + programme + learner + client
+    RSSI lié + campagne rattachée + cible. Retourne (program, learner)."""
+    from app.models.awareness_learner import AwarenessLearner
+    from app.models.awareness_organization import AwarenessOrganization
+    from app.models.awareness_program import AwarenessProgram
+    from app.models.rssi_client import RssiClient
+
+    consultant = User(
+        email="consultant_tof@t.com", hashed_password=hash_password("x"), is_rssi_consultant=True
+    )
+    db.add(consultant)
+    await db.flush()
+
+    org = AwarenessOrganization(owner_user_id=consultant.id, name="Org TOF", max_learners=10)
+    db.add(org)
+    await db.flush()
+
+    program = AwarenessProgram(slug="remediation-post-clic", title="Remédiation", is_active=True)
+    db.add(program)
+    await db.flush()
+
+    learner = None
+    if with_learner:
+        learner = AwarenessLearner(organization_id=org.id, email="victim@corp.com", is_active=True)
+        db.add(learner)
+        await db.flush()
+
+    client = RssiClient(
+        consultant_user_id=consultant.id, name="Client TOF", awareness_organization_id=org.id
+    )
+    db.add(client)
+    await db.flush()
+
+    campaign = PhishingCampaign(
+        user_id=consultant.id,
+        rssi_client_id=client.id if with_client else None,
+        name="Camp TOF",
+        plan_tier="standard",
+        status="active",
+        scenario_keys='["ceo-fraud"]',
+        cgu_accepted=True,
+        training_on_fail=training_on_fail,
+        training_trigger="click",
+    )
+    db.add(campaign)
+    await db.flush()
+
+    target = PhishingTarget(
+        campaign_id=campaign.id, email="victim@corp.com", tracking_id="tof-1", status="email_sent"
+    )
+    db.add(target)
+    await db.commit()
+    return program, learner
+
+
+async def _enrollment_count(db: AsyncSession, learner_id: int) -> int:
+    from app.models.awareness_enrollment import AwarenessEnrollment
+
+    rows = (
+        (
+            await db.execute(
+                select(AwarenessEnrollment).where(AwarenessEnrollment.learner_id == learner_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return len(list(rows))
+
+
+class TestTrainingOnFail:
+    @pytest.mark.asyncio
+    async def test_click_enrolls_learner_when_enabled(self, db_session: AsyncSession):
+        program, learner = await _setup_training(db_session)
+        await phishing_service.record_click("tof-1", db_session)
+        assert await _enrollment_count(db_session, learner.id) == 1
+
+    @pytest.mark.asyncio
+    async def test_no_enroll_when_disabled(self, db_session: AsyncSession):
+        _, learner = await _setup_training(db_session, training_on_fail=False)
+        await phishing_service.record_click("tof-1", db_session)
+        assert await _enrollment_count(db_session, learner.id) == 0
+
+    @pytest.mark.asyncio
+    async def test_no_enroll_for_company_campaign(self, db_session: AsyncSession):
+        # Campagne entreprise directe (rssi_client_id NULL) -> pas d'org -> no-op.
+        _, learner = await _setup_training(db_session, with_client=False)
+        await phishing_service.record_click("tof-1", db_session)
+        assert await _enrollment_count(db_session, learner.id) == 0
+
+    @pytest.mark.asyncio
+    async def test_idempotent_double_click(self, db_session: AsyncSession):
+        program, learner = await _setup_training(db_session)
+        await phishing_service.record_click("tof-1", db_session)
+        # Un 2e record_click ne re-crée pas d'enrôlement (enroll_learner idempotent).
+        await phishing_service.record_click("tof-1", db_session)
+        assert await _enrollment_count(db_session, learner.id) == 1

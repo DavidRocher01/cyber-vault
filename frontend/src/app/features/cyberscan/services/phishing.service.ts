@@ -17,6 +17,8 @@ export interface PhishingCampaign {
     | 'cancelled';
   plan_tier: string;
   rssi_client_id: number | null;
+  training_on_fail: boolean;
+  training_trigger: 'click' | 'submit';
   domain: string | null;
   domain_verified: boolean;
   lookalike_domain: string | null;
@@ -133,6 +135,8 @@ export class PhishingService {
       scenario_keys: string[];
       cgu_accepted: boolean;
       scheduled_at: string;
+      training_on_fail: boolean;
+      training_trigger: 'click' | 'submit';
     }>
   ): Observable<PhishingCampaign> {
     return this.http.patch<PhishingCampaign>(`${this.base}/campaigns/${id}`, patch);
