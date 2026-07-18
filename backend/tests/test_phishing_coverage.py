@@ -19,7 +19,16 @@ from app.models.phishing import (
     PhishingDomainVerification,
 )
 from app.services import phishing_service
-from tests.conftest import register_and_login
+from tests.conftest import create_plan_and_subscription, register_and_login
+
+
+async def _grant_pro(client: AsyncClient) -> None:
+    """Abonnement Pro (tier 3) pour le user courant — requis pour LANCER une
+    campagne en mode entreprise directe (le gating par plan est au lancement)."""
+    await create_plan_and_subscription(
+        client, {"Authorization": client.headers["Authorization"]}, tier=3
+    )
+
 
 BASE = "/api/v1/phishing"
 
@@ -67,6 +76,9 @@ class TestCreateCampaignValidation:
         assert data["status"] == "draft"
         assert data["targets_count"] == 0
         assert data["click_rate"] == 0
+        # Lot 5 opt1 : le domaine d'envoi (host) est exposé (transparence UI).
+        assert data["sending_domain"]
+        assert "://" not in data["sending_domain"] and "/" not in data["sending_domain"]
 
 
 # ---------------------------------------------------------------------------
@@ -308,6 +320,7 @@ class TestLaunchValidations:
         self, auth_client: AsyncClient, db_session: AsyncSession
     ):
         cid = await _create_campaign(auth_client)
+        await _grant_pro(auth_client)
         files = _csv_file(["a@corp.com,A"])
         await auth_client.post(f"{BASE}/campaigns/{cid}/targets", files=files)
         await auth_client.patch(f"{BASE}/campaigns/{cid}", json={"scenario_keys": ["ceo-fraud"]})
@@ -332,6 +345,7 @@ class TestLaunchValidations:
         self, auth_client: AsyncClient, db_session: AsyncSession
     ):
         cid = await _create_campaign(auth_client)
+        await _grant_pro(auth_client)
         files = _csv_file(["a@corp.com,A"])
         await auth_client.post(f"{BASE}/campaigns/{cid}/targets", files=files)
         await auth_client.patch(
@@ -359,6 +373,7 @@ class TestLaunchValidations:
         self, auth_client: AsyncClient, db_session: AsyncSession
     ):
         cid = await _create_campaign(auth_client)
+        await _grant_pro(auth_client)
         files = _csv_file(["a@corp.com,A"])
         await auth_client.post(f"{BASE}/campaigns/{cid}/targets", files=files)
         await auth_client.patch(
@@ -378,6 +393,7 @@ class TestLaunchValidations:
         self, auth_client: AsyncClient, db_session: AsyncSession
     ):
         cid = await _create_campaign(auth_client)
+        await _grant_pro(auth_client)
         files = _csv_file(["a@corp.com,A"])
         await auth_client.post(f"{BASE}/campaigns/{cid}/targets", files=files)
         await auth_client.patch(
@@ -393,6 +409,22 @@ class TestLaunchValidations:
         assert r.status_code == 502
         # Raw exception detail must not leak
         assert "unexpected internal" not in r.json()["detail"]
+
+    async def test_launch_without_plan_is_403(
+        self, auth_client: AsyncClient, db_session: AsyncSession
+    ):
+        # Campagne entreprise ENTIEREMENT configurée mais SANS abonnement Pro :
+        # le lancement (l'envoi réel) est gaté par le plan.
+        cid = await _create_campaign(auth_client)
+        files = _csv_file(["a@corp.com,A"])
+        await auth_client.post(f"{BASE}/campaigns/{cid}/targets", files=files)
+        await auth_client.patch(
+            f"{BASE}/campaigns/{cid}",
+            json={"scenario_keys": ["ceo-fraud"], "cgu_accepted": True},
+        )
+        r = await auth_client.post(f"{BASE}/campaigns/{cid}/launch")
+        assert r.status_code == 403
+        assert "abonnement" in r.json()["detail"].lower()
 
 
 # ---------------------------------------------------------------------------
@@ -528,3 +560,105 @@ class TestAuthRequired:
     async def test_domain_verify_requires_auth(self, http_client: AsyncClient):
         r = await http_client.post(f"{BASE}/domain-verify", json={"domain": "x.com"})
         assert r.status_code in (401, 403)
+
+
+# ---------------------------------------------------------------------------
+# Cibles non destructives : merge/dédup CSV + ajout/suppression unitaire (Lot 2)
+# ---------------------------------------------------------------------------
+
+
+class TestTargetsNonDestructive:
+    async def test_csv_merge_does_not_wipe(self, auth_client: AsyncClient):
+        cid = await _create_campaign(auth_client)
+        await auth_client.post(
+            f"{BASE}/campaigns/{cid}/targets", files=_csv_file(["a@x.com,A", "b@x.com,B"])
+        )
+        r = await auth_client.post(
+            f"{BASE}/campaigns/{cid}/targets", files=_csv_file(["b@x.com,B", "c@x.com,C"])
+        )
+        assert r.status_code == 200
+        body = r.json()
+        assert body["targets_added"] == 1
+        assert body["targets_skipped"] == 1
+        assert body["targets_total"] == 3
+        listed = (await auth_client.get(f"{BASE}/campaigns/{cid}/targets")).json()
+        assert len(listed) == 3
+
+    async def test_csv_replace_wipes(self, auth_client: AsyncClient):
+        cid = await _create_campaign(auth_client)
+        await auth_client.post(
+            f"{BASE}/campaigns/{cid}/targets", files=_csv_file(["a@x.com,A", "b@x.com,B"])
+        )
+        r = await auth_client.post(
+            f"{BASE}/campaigns/{cid}/targets?replace=true", files=_csv_file(["z@x.com,Z"])
+        )
+        assert r.status_code == 200
+        assert r.json()["targets_total"] == 1
+        listed = (await auth_client.get(f"{BASE}/campaigns/{cid}/targets")).json()
+        assert [t["email"] for t in listed] == ["z@x.com"]
+
+    async def test_add_single_target(self, auth_client: AsyncClient):
+        cid = await _create_campaign(auth_client)
+        r = await auth_client.post(
+            f"{BASE}/campaigns/{cid}/targets/single",
+            json={"email": "new@x.com", "first_name": "New"},
+        )
+        assert r.status_code == 201
+        assert r.json()["email"] == "new@x.com"
+        listed = (await auth_client.get(f"{BASE}/campaigns/{cid}/targets")).json()
+        assert len(listed) == 1
+
+    async def test_add_duplicate_is_409(self, auth_client: AsyncClient):
+        cid = await _create_campaign(auth_client)
+        await auth_client.post(
+            f"{BASE}/campaigns/{cid}/targets/single", json={"email": "dup@x.com"}
+        )
+        r = await auth_client.post(
+            f"{BASE}/campaigns/{cid}/targets/single", json={"email": "dup@x.com"}
+        )
+        assert r.status_code == 409
+
+    async def test_delete_target(self, auth_client: AsyncClient):
+        cid = await _create_campaign(auth_client)
+        add = await auth_client.post(
+            f"{BASE}/campaigns/{cid}/targets/single", json={"email": "del@x.com"}
+        )
+        tid = add.json()["id"]
+        r = await auth_client.delete(f"{BASE}/campaigns/{cid}/targets/{tid}")
+        assert r.status_code == 204
+        listed = (await auth_client.get(f"{BASE}/campaigns/{cid}/targets")).json()
+        assert len(listed) == 0
+
+    async def test_delete_missing_target_404(self, auth_client: AsyncClient):
+        cid = await _create_campaign(auth_client)
+        r = await auth_client.delete(f"{BASE}/campaigns/{cid}/targets/999999")
+        assert r.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Suppression de campagne (Lot 6)
+# ---------------------------------------------------------------------------
+
+
+class TestDeleteCampaign:
+    async def test_delete_campaign(self, auth_client: AsyncClient):
+        cid = await _create_campaign(auth_client)
+        r = await auth_client.delete(f"{BASE}/campaigns/{cid}")
+        assert r.status_code == 204
+        assert (await auth_client.get(f"{BASE}/campaigns/{cid}")).status_code == 404
+
+    async def test_delete_cascades_targets(self, auth_client: AsyncClient):
+        cid = await _create_campaign(auth_client)
+        await auth_client.post(f"{BASE}/campaigns/{cid}/targets", files=_csv_file(["a@x.com,A"]))
+        r = await auth_client.delete(f"{BASE}/campaigns/{cid}")
+        assert r.status_code == 204
+
+    async def test_delete_other_user_campaign_404(self, http_client: AsyncClient):
+        h1 = await register_and_login(http_client, "owner_del@test.com")
+        r = await http_client.post(
+            f"{BASE}/campaigns", json={"name": "Owned", "plan_tier": "standard"}, headers=h1
+        )
+        cid = r.json()["id"]
+        h2 = await register_and_login(http_client, "intruder_del@test.com")
+        r2 = await http_client.delete(f"{BASE}/campaigns/{cid}", headers=h2)
+        assert r2.status_code == 404

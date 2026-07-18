@@ -127,16 +127,85 @@
               </span>
             </label>
             <span class="text-xs text-gray-600"
-              >Colonnes : email, first_name, last_name, department</span
+              >Colonnes : email, first_name, last_name, department — l'import complète la liste
+              (sans écraser, doublons ignorés)</span
             >
           </div>
+
+          <!-- Ajout unitaire -->
+          <div class="flex items-center gap-2 mt-4">
+            <input
+              type="email"
+              [value]="newTargetEmail()"
+              (input)="newTargetEmail.set($any($event.target).value)"
+              (keyup.enter)="addTarget()"
+              placeholder="email@entreprise.com"
+              aria-label="Ajouter une cible par email"
+              class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
+            />
+            <button
+              type="button"
+              (click)="addTarget()"
+              [disabled]="addingTarget() || !newTargetEmail().trim()"
+              class="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium disabled:opacity-50 shrink-0"
+            >
+              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">add</mat-icon>
+              Ajouter
+            </button>
+          </div>
+
+          <!-- Liste des cibles -->
+          @if (targets().length) {
+            <div
+              class="mt-4 max-h-64 overflow-y-auto divide-y divide-gray-800 rounded-lg border border-gray-800"
+            >
+              @for (t of targets(); track t.id) {
+                <div class="flex items-center justify-between px-3 py-2 text-sm">
+                  <div class="min-w-0 truncate">
+                    <span class="text-gray-200">{{ t.email }}</span>
+                    @if (t.first_name) {
+                      <span class="text-gray-500 ml-2">{{ t.first_name }}</span>
+                    }
+                  </div>
+                  <button
+                    type="button"
+                    (click)="removeTarget(t.id)"
+                    class="text-gray-500 hover:text-red-400 shrink-0 ml-2"
+                    aria-label="Supprimer la cible"
+                  >
+                    <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">delete</mat-icon>
+                  </button>
+                </div>
+              }
+            </div>
+          }
         </div>
 
-        <!-- Domain -->
+        <!-- Domaine d'envoi (host des liens de tracking) -->
+        <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
+          <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            Domaine d'envoi
+          </h2>
+          <div class="flex items-center gap-3">
+            <mat-icon class="text-gray-500">alternate_email</mat-icon>
+            <span class="font-mono text-sm text-gray-300">{{ c.sending_domain }}</span>
+            <span
+              class="text-[0.7rem] font-semibold px-2 py-0.5 rounded-full border text-emerald-400 bg-emerald-500/10 border-emerald-500/30"
+            >
+              Sous-domaine maîtrisé
+            </span>
+          </div>
+          <p class="text-xs text-gray-600 mt-2">
+            Les liens de la simulation partent de ce domaine (délivrabilité vérifiée). Un domaine
+            look-alike personnalisé, plus réaliste, sera proposé ultérieurement (option premium).
+          </p>
+        </div>
+
+        <!-- Domaine de l'entreprise cible (personnalisation) -->
         @if (c.domain) {
           <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
             <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-              Domaine d'envoi
+              Domaine de l'entreprise cible
             </h2>
             <div class="flex items-center gap-3">
               <mat-icon class="text-gray-500">dns</mat-icon>
@@ -180,6 +249,29 @@
           </label>
         </div>
 
+        <!-- Training-on-fail -->
+        <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] text-gray-400">school</mat-icon>
+            <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Formation de remédiation
+            </h2>
+            <span class="text-xs text-gray-600 ml-1">(optionnel)</span>
+          </div>
+          <label class="flex items-start gap-3 cursor-pointer">
+            <mat-checkbox
+              formControlName="training_on_fail"
+              color="primary"
+              class="mt-0.5 flex-shrink-0"
+            ></mat-checkbox>
+            <span class="text-sm text-gray-300 leading-relaxed">
+              Inscrire automatiquement un employé piégé (qui clique) dans un module de
+              sensibilisation de remédiation. Nécessite que la sensibilisation soit activée pour le
+              client et que l'employé y soit déjà inscrit.
+            </span>
+          </label>
+        </div>
+
         <!-- Scheduled send -->
         <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
           <div class="flex items-center gap-2 mb-3">
@@ -208,6 +300,30 @@
               Cliquez sur "Planifier l'envoi" pour confirmer cette date.
             </p>
           }
+        </div>
+
+        <!-- Cadence d'envoi -->
+        <div class="rounded-xl border border-gray-800 bg-gray-900 p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] text-gray-400">speed</mat-icon>
+            <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Cadence d'envoi
+            </h2>
+            <span class="text-xs text-gray-600 ml-1">(optionnel)</span>
+          </div>
+          <input
+            formControlName="batch_size"
+            type="number"
+            min="1"
+            max="1000"
+            placeholder="Emails par cycle (défaut)"
+            aria-label="Nombre d'emails envoyés par cycle de 15 minutes"
+            class="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors w-full sm:w-64"
+          />
+          <p class="text-xs text-gray-600 mt-2">
+            Nombre d'emails envoyés toutes les 15 min. Baisser la valeur étale l'envoi et réduit le
+            risque de détection anti-spam. Vide = cadence par défaut.
+          </p>
         </div>
 
         <!-- Actions -->

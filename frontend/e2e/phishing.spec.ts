@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createAndLogin, login } from './helpers';
+import { createAndLogin, login, upgradeToPlan } from './helpers';
 
 // Force strictly serial execution across all describe blocks in this file.
 // Playwright otherwise starts the next describe's beforeAll while the current
@@ -325,6 +325,8 @@ async function setupAndLaunchCampaign(browser: import('@playwright/test').Browse
     const page = await browser.newPage();
     try {
       launchEmail = await createAndLogin(page);
+      // Le lancement (envoi réel) est gaté par un plan Pro (mode entreprise directe).
+      await upgradeToPlan(page, 'pro');
 
       await page.goto('/phishing/new');
       await page.getByRole('button', { name: /Continuer/i }).click();
@@ -487,5 +489,44 @@ test.describe('Phishing — rapport PDF', () => {
     expect(r.headers()['content-type']).toContain('application/pdf');
     const body = await r.body();
     expect(body.slice(0, 4).toString()).toBe('%PDF');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 9. Suppression d'une campagne depuis la liste (Lot 6)
+// ─────────────────────────────────────────────────────────────────────────────
+test.describe('Phishing — suppression campagne', () => {
+  test('supprime une campagne draft depuis la liste', async ({ page }) => {
+    await createAndLogin(page);
+
+    // Créer un brouillon via l'assistant
+    await page.goto('/phishing/new');
+    await page.getByRole('button', { name: /Continuer/i }).click();
+    await page.getByText(/Informations de la campagne/i).waitFor({ timeout: 8_000 });
+    const name = `Delete E2E ${Date.now()}`;
+    const createResponse = page.waitForResponse(
+      r => r.url().includes('/phishing/campaigns') && r.request().method() === 'POST',
+      { timeout: 12_000 },
+    );
+    await page.locator('input[placeholder*="Simulation"]').fill(name);
+    await page.getByRole('button', { name: /Continuer/i }).click();
+    await createResponse;
+
+    // Liste — nouvel utilisateur => une seule campagne, un seul bouton supprimer
+    await page.goto('/phishing/campaigns');
+    await expect(page.getByText(name)).toBeVisible({ timeout: 8_000 });
+
+    // Accepter la confirmation navigateur puis supprimer
+    page.once('dialog', d => d.accept());
+    const deleteResponse = page.waitForResponse(
+      r => /\/phishing\/campaigns\/\d+$/.test(r.url()) && r.request().method() === 'DELETE',
+      { timeout: 10_000 },
+    );
+    await page.getByRole('button', { name: 'Supprimer la campagne' }).click();
+    const del = await deleteResponse;
+    expect(del.status()).toBe(204);
+
+    // La campagne disparaît de la liste
+    await expect(page.getByText(name)).toHaveCount(0, { timeout: 8_000 });
   });
 });

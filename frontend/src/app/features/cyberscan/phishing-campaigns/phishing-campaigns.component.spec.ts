@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { signal } from '@angular/core';
+import { of } from 'rxjs';
 import { PhishingCampaignsComponent } from './phishing-campaigns.component';
 import type { PhishingCampaign } from '../services/phishing.service';
 
@@ -223,5 +224,35 @@ describe('PhishingCampaignsComponent — formatDate()', () => {
     expect(result).toContain('2024');
     expect(result).toContain('03');
     expect(result).toContain('15');
+  });
+});
+
+describe('PhishingCampaignsComponent — deleteCampaign()', () => {
+  function evt() {
+    return { stopPropagation: vi.fn(), preventDefault: vi.fn() } as unknown as Event;
+  }
+
+  it('supprime après confirmation et retire la campagne de la liste', () => {
+    const comp = make();
+    (comp as any).campaigns.set([campaign({ id: 1 }), campaign({ id: 2 })]);
+    (comp as any).phishingService = { deleteCampaign: vi.fn().mockReturnValue(of(undefined)) };
+    (comp as any).snack = { open: vi.fn() };
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    comp.deleteCampaign(1, 'Test', evt());
+
+    expect((comp as any).phishingService.deleteCampaign).toHaveBeenCalledWith(1);
+    expect(comp.campaigns().map(c => c.id)).toEqual([2]);
+  });
+
+  it('ne supprime pas si la confirmation est annulée', () => {
+    const comp = make();
+    (comp as any).phishingService = { deleteCampaign: vi.fn() };
+    (comp as any).snack = { open: vi.fn() };
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    comp.deleteCampaign(1, 'Test', evt());
+
+    expect((comp as any).phishingService.deleteCampaign).not.toHaveBeenCalled();
   });
 });

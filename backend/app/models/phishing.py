@@ -10,12 +10,21 @@ class PhishingCampaign(Base):
     __tablename__ = "phishing_campaigns"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    # Propriétaire = le compte qui lance la campagne (consultant OU entreprise).
+    # L'ownership (get/patch/launch) se fait TOUJOURS sur user_id.
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    # Attribution : campagne rattachée à un client RSSI (mode consultant) ou NULL
+    # (mode entreprise directe). Ne sert PAS au contrôle d'accès, seulement à
+    # l'affichage sur la fiche client + à l'org awareness du client (training-on-fail).
+    rssi_client_id: Mapped[int | None] = mapped_column(
+        ForeignKey("rssi_clients.id", ondelete="CASCADE"), nullable=True, index=True
+    )
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    # draft | pending_verification | ready | active | completed | cancelled
+    # Valeurs = CampaignStatus (models/enums.py) :
+    # draft | pending_verification | ready | scheduled | sending | active | completed | cancelled
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="draft", index=True)
     # express | standard | premium | quarterly | monthly
     plan_tier: Mapped[str] = mapped_column(String(50), nullable=False, default="standard")
@@ -30,6 +39,18 @@ class PhishingCampaign(Base):
 
     # Scenarios: JSON array of scenario IDs, e.g. '["ceo-fraud","o365-credentials"]'
     scenario_keys: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Training-on-fail : inscrire automatiquement la cible piégée dans un module de
+    # remédiation awareness (mode consultant : org awareness du client). training_trigger
+    # = quand déclencher : "click" (au clic) ou "submit" (à la soumission d'identifiants).
+    training_on_fail: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    training_trigger: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default="click"
+    )
+
+    # Cadence : nombre d'emails envoyés par tick de scheduler (toutes les 15 min).
+    # NULL = repli sur le global settings.PHISHING_BATCH_SIZE.
+    batch_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Stats
     targets_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -83,7 +104,7 @@ class PhishingTarget(Base):
     # Scenario sent to this target — assigned at send time
     scenario_key: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
-    # pending | email_sent | opened | clicked | submitted | reported
+    # pending | email_sent | opened | clicked | submitted
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
 
     # Per-event timestamps

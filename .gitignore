@@ -28,8 +28,10 @@ playwright-report/
 test-results/
 frontend/test-results/
 
-# VS Code
-.vscode/
+# VS Code — on versionne la config partagee, on ignore le reste (perso/local)
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 *.code-workspace
 
 # Test reports / generated PDFs

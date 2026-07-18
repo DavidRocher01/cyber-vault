@@ -16,6 +16,11 @@ export interface PhishingCampaign {
     | 'completed'
     | 'cancelled';
   plan_tier: string;
+  rssi_client_id: number | null;
+  sending_domain: string;
+  training_on_fail: boolean;
+  training_trigger: 'click' | 'submit';
+  batch_size: number | null;
   domain: string | null;
   domain_verified: boolean;
   lookalike_domain: string | null;
@@ -101,16 +106,26 @@ export class PhishingService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/phishing`;
 
-  getCampaigns(): Observable<PhishingCampaign[]> {
-    return this.http.get<PhishingCampaign[]>(`${this.base}/campaigns`);
+  /** rssiClientId renseigné => campagnes d'un client (mode consultant) ;
+   *  sinon => campagnes de l'entreprise en direct (sans client rattaché). */
+  getCampaigns(rssiClientId?: number): Observable<PhishingCampaign[]> {
+    const q = rssiClientId != null ? `?rssi_client_id=${rssiClientId}` : '';
+    return this.http.get<PhishingCampaign[]>(`${this.base}/campaigns${q}`);
   }
 
   getCampaign(id: number): Observable<PhishingCampaign> {
     return this.http.get<PhishingCampaign>(`${this.base}/campaigns/${id}`);
   }
 
-  createCampaign(name: string, plan_tier: string): Observable<PhishingCampaign> {
-    return this.http.post<PhishingCampaign>(`${this.base}/campaigns`, { name, plan_tier });
+  /** rssiClientId rattache la campagne à un client RSSI (mode consultant). */
+  createCampaign(
+    name: string,
+    plan_tier: string,
+    rssiClientId?: number
+  ): Observable<PhishingCampaign> {
+    const body: { name: string; plan_tier: string; rssi_client_id?: number } = { name, plan_tier };
+    if (rssiClientId != null) body.rssi_client_id = rssiClientId;
+    return this.http.post<PhishingCampaign>(`${this.base}/campaigns`, body);
   }
 
   updateCampaign(
@@ -122,9 +137,22 @@ export class PhishingService {
       scenario_keys: string[];
       cgu_accepted: boolean;
       scheduled_at: string;
+      training_on_fail: boolean;
+      training_trigger: 'click' | 'submit';
+      batch_size: number;
     }>
   ): Observable<PhishingCampaign> {
     return this.http.patch<PhishingCampaign>(`${this.base}/campaigns/${id}`, patch);
+  }
+
+  /** Annule une campagne (statut "cancelled") : plus aucun email ne partira. */
+  cancelCampaign(id: number): Observable<PhishingCampaign> {
+    return this.http.post<PhishingCampaign>(`${this.base}/campaigns/${id}/cancel`, {});
+  }
+
+  /** Supprime définitivement une campagne (et ses cibles). */
+  deleteCampaign(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/campaigns/${id}`);
   }
 
   getLookalikeDomains(domain: string): Observable<LookalikeDomainsResult> {
@@ -133,10 +161,36 @@ export class PhishingService {
     });
   }
 
-  uploadTargets(id: number, file: File): Observable<{ targets_added: number }> {
+  /** Import CSV. replace=false (défaut) = merge/dédup (n'écrase pas les cibles
+   *  existantes) ; replace=true = remplace tout. */
+  uploadTargets(
+    id: number,
+    file: File,
+    replace = false
+  ): Observable<{ targets_added: number; targets_skipped: number; targets_total: number }> {
     const form = new FormData();
     form.append('file', file);
-    return this.http.post<{ targets_added: number }>(`${this.base}/campaigns/${id}/targets`, form);
+    const q = replace ? '?replace=true' : '';
+    return this.http.post<{
+      targets_added: number;
+      targets_skipped: number;
+      targets_total: number;
+    }>(`${this.base}/campaigns/${id}/targets${q}`, form);
+  }
+
+  getTargets(id: number): Observable<PhishingTarget[]> {
+    return this.http.get<PhishingTarget[]>(`${this.base}/campaigns/${id}/targets`);
+  }
+
+  addTarget(
+    id: number,
+    target: { email: string; first_name?: string; last_name?: string; department?: string }
+  ): Observable<PhishingTarget> {
+    return this.http.post<PhishingTarget>(`${this.base}/campaigns/${id}/targets/single`, target);
+  }
+
+  deleteTarget(id: number, targetId: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/campaigns/${id}/targets/${targetId}`);
   }
 
   launchCampaign(id: number): Observable<{ status: string; campaign_id: number }> {
@@ -159,7 +213,12 @@ export class PhishingService {
     );
   }
 
-  getPdfUrl(id: number): string {
-    return `${this.base}/campaigns/${id}/pdf`;
+  /**
+   * Télécharge le PDF via HttpClient (responseType blob) pour que
+   * l'intercepteur d'auth ajoute le Bearer — un window.open ne le ferait pas
+   * (navigation navigateur sans header → 401).
+   */
+  downloadPdfBlob(id: number): Observable<Blob> {
+    return this.http.get(`${this.base}/campaigns/${id}/pdf`, { responseType: 'blob' });
   }
 }

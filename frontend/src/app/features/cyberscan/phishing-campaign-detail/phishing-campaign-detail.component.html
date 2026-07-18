@@ -46,6 +46,18 @@
             {{ downloadingPdf() ? 'Génération…' : 'Rapport PDF' }}
           </button>
         }
+        @if (canCancel()) {
+          <button
+            type="button"
+            mat-stroked-button
+            class="!rounded-xl flex-shrink-0 !border-red-500/40 !text-red-400"
+            [disabled]="cancelling()"
+            (click)="cancel()"
+          >
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] mr-1">cancel</mat-icon>
+            {{ cancelling() ? 'Annulation…' : 'Annuler' }}
+          </button>
+        }
       </div>
 
       <!-- Scheduled banner -->

@@ -169,6 +169,11 @@
             },
             { key: 'sites', label: 'Sites (' + sites().length + ')', icon: 'language' },
             { key: 'activite', label: 'Activité', icon: 'history' },
+            {
+              key: 'phishing',
+              label: 'Phishing (' + campaigns().length + ')',
+              icon: 'phishing',
+            },
           ];
           track tab.key
         ) {
@@ -1566,6 +1571,55 @@
                     formatDateTime(entry.performed_at)
                   }}</span>
                 </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ─── PHISHING TAB ───────────────────────────────────────────────── -->
+      @if (activeTab() === 'phishing') {
+        <div class="space-y-4">
+          <div class="flex items-center justify-between gap-3">
+            <p class="text-sm text-gray-400">
+              Campagnes de simulation de phishing rattachées à ce client.
+            </p>
+            <button
+              type="button"
+              (click)="newPhishingCampaign()"
+              [disabled]="creatingCampaign()"
+              class="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium disabled:opacity-50 shrink-0"
+            >
+              <mat-icon style="font-size: 18px; height: 18px; width: 18px">add</mat-icon>
+              {{ creatingCampaign() ? 'Création…' : 'Nouvelle campagne' }}
+            </button>
+          </div>
+
+          @if (campaigns().length === 0) {
+            <div
+              class="text-center py-12 text-gray-500 border border-dashed border-gray-700 rounded-lg"
+            >
+              Aucune campagne pour ce client.
+            </div>
+          } @else {
+            <div class="space-y-2">
+              @for (c of campaigns(); track c.id) {
+                <a
+                  [routerLink]="['/phishing/campaigns', c.id]"
+                  class="flex items-center justify-between p-3 rounded-lg bg-gray-800/50 border border-gray-700 hover:border-cyan-500/50 transition-colors"
+                >
+                  <div class="min-w-0">
+                    <p class="text-sm font-medium text-gray-200 truncate">{{ c.name }}</p>
+                    <p class="text-xs text-gray-500">
+                      {{ c.targets_count }} cible(s) · {{ c.clicked_count }} clic(s)
+                    </p>
+                  </div>
+                  <span
+                    class="text-xs px-2 py-1 rounded-full bg-gray-700 text-gray-300 shrink-0 ml-2"
+                  >
+                    {{ c.status }}
+                  </span>
+                </a>
               }
             </div>
           }

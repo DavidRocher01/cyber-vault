@@ -162,7 +162,8 @@ export type ActivityActionType =
   | 'create_action'
   | 'update_action'
   | 'create_visit'
-  | 'update_visit';
+  | 'update_visit'
+  | 'create_phishing_campaign';
 
 export interface RssiSite {
   id: number;

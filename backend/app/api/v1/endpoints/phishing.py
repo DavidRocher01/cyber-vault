@@ -23,16 +23,18 @@ Public tracking routes (no auth — called by email clients / browsers):
 
 import asyncio
 import json
+import re
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
+from app.api.v1.endpoints.rssi._shared import _get_client_or_404
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.limiter import limiter
@@ -63,15 +65,51 @@ _MAX_TARGETS = {
 
 _VALID_TIERS = set(_MAX_TARGETS.keys())
 
+# Mode entreprise directe : tier minimum requis pour lancer une campagne
+# (1=Gratuit, 2=Starter, 3=Pro, 4=Business). Le mode consultant y accède via sa
+# prestation (ownership du client), pas via ce gate.
+_PHISHING_MIN_TIER = 3
+
 
 # ---------------------------------------------------------------------------
 # Schemas
 # ---------------------------------------------------------------------------
 
+# Domaine = labels ASCII + TLD alpha. Rejette IP littérales (TLD alpha), ports,
+# chemins. Validé côté format UNIQUEMENT (pas de résolution DNS) : un domaine
+# look-alike premium fraîchement enregistré peut ne pas encore résoudre.
+_HOSTNAME_RE = re.compile(
+    r"^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$",
+    re.IGNORECASE,
+)
+
+
+def _normalize_domain(value: str | None) -> str | None:
+    """Valide un domaine fourni par l'utilisateur et renvoie le host nu.
+
+    Anti-SSRF/anti-injection : tolère un préfixe https:// (le seul), rejette tout
+    autre schéma (javascript:/data:/file:/http:...), port, chemin, espace,
+    localhost et IP littérale. Ne fait AUCUNE requête réseau.
+    """
+    if value is None:
+        return None
+    v = value.strip()
+    if not v:
+        return None
+    if v.lower().startswith("https://"):
+        v = v[len("https://") :]
+    if "://" in v or "/" in v or ":" in v or any(c.isspace() for c in v):
+        raise ValueError("Indiquer un domaine seul (https accepté, sans port ni chemin)")
+    if not _HOSTNAME_RE.match(v):
+        raise ValueError("Domaine invalide (ex : connexion-entreprise.com)")
+    return v
+
 
 class CampaignCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
     plan_tier: str = Field(..., pattern="^(express|standard|premium|quarterly|monthly)$")
+    # Mode consultant : rattache la campagne à un client RSSI. NULL = entreprise directe.
+    rssi_client_id: int | None = None
 
 
 class CampaignUpdate(BaseModel):
@@ -81,14 +119,43 @@ class CampaignUpdate(BaseModel):
     scenario_keys: list[str] | None = None
     cgu_accepted: bool | None = None
     scheduled_at: datetime | None = None
+    training_on_fail: bool | None = None
+    training_trigger: str | None = Field(None, pattern="^(click|submit)$")
+    batch_size: int | None = Field(None, ge=1, le=1000)
+
+    @field_validator("domain", "lookalike_domain")
+    @classmethod
+    def _validate_domains(cls, v: str | None) -> str | None:
+        return _normalize_domain(v)
 
 
 class DomainVerifyRequest(BaseModel):
     domain: str = Field(..., min_length=3, max_length=255)
 
+    @field_validator("domain")
+    @classmethod
+    def _validate_domain(cls, v: str) -> str:
+        return _normalize_domain(v)  # type: ignore[return-value]
+
 
 class DomainCheckRequest(BaseModel):
     domain: str
+
+    @field_validator("domain")
+    @classmethod
+    def _validate_domain(cls, v: str) -> str:
+        return _normalize_domain(v)  # type: ignore[return-value]
+
+
+class TargetAdd(BaseModel):
+    email: EmailStr
+    first_name: str | None = Field(None, max_length=100)
+    last_name: str | None = Field(None, max_length=100)
+    department: str | None = Field(None, max_length=100)
+
+
+# Statuts depuis lesquels on peut modifier les cibles (avant lancement).
+_EDITABLE_TARGET_STATUSES = ("draft", "pending_verification", "ready")
 
 
 # ---------------------------------------------------------------------------
@@ -96,12 +163,24 @@ class DomainCheckRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+def _sending_domain(c: PhishingCampaign) -> str:
+    """Host depuis lequel partent les liens de la campagne (transparence UI).
+    Sous-domaine maîtrisé par défaut ; look-alike si un jour renseigné."""
+    base = phishing_service._tracking_base(c)  # ex: https://rochercybersecurite.com/api/v1
+    return base.split("://", 1)[-1].split("/", 1)[0]
+
+
 def _serialize_campaign(c: PhishingCampaign) -> dict:
     return {
         "id": c.id,
+        "sending_domain": _sending_domain(c),
         "name": c.name,
         "status": c.status,
         "plan_tier": c.plan_tier,
+        "rssi_client_id": c.rssi_client_id,
+        "training_on_fail": c.training_on_fail,
+        "training_trigger": c.training_trigger,
+        "batch_size": c.batch_size,
         "domain": c.domain,
         "domain_verified": c.domain_verified,
         "lookalike_domain": c.lookalike_domain,
@@ -151,12 +230,47 @@ async def _get_owned(campaign_id: int, user_id: int, db: AsyncSession) -> Phishi
 # ---------------------------------------------------------------------------
 
 
+async def _resolve_client_attribution(
+    rssi_client_id: int | None, current_user: User, db: AsyncSession
+) -> int | None:
+    """Valide l'attribution d'une campagne à un client RSSI (mode consultant).
+
+    Le gating par PLAN se fait au LANCEMENT (cf. launch_campaign), PAS ici : on peut
+    créer et configurer un brouillon librement. Ici on ne valide que le contexte
+    consultant : exige is_rssi_consultant + ownership du client (404 sinon, pour ne
+    pas révéler son existence). Mode entreprise directe (NULL) : rien à valider.
+    """
+    if rssi_client_id is None:
+        return None
+    if not current_user.is_rssi_consultant:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Accès réservé aux consultants RSSI.",
+        )
+    await _get_client_or_404(rssi_client_id, current_user.id, db)
+    return rssi_client_id
+
+
 @router.get("/campaigns")
 async def list_campaigns(
+    rssi_client_id: int | None = Query(None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    campaigns = await phishing_service.get_campaigns(current_user.id, db)
+    if rssi_client_id is not None:
+        # Mode consultant : campagnes d'un client (ownership vérifié).
+        if not current_user.is_rssi_consultant:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Accès réservé aux consultants RSSI.",
+            )
+        await _get_client_or_404(rssi_client_id, current_user.id, db)
+        campaigns = await phishing_service.get_campaigns(
+            current_user.id, db, rssi_client_id=rssi_client_id
+        )
+    else:
+        # Mode entreprise directe : campagnes sans client rattaché.
+        campaigns = await phishing_service.get_campaigns(current_user.id, db, company_only=True)
     return [_serialize_campaign(c) for c in campaigns]
 
 
@@ -166,8 +280,9 @@ async def create_campaign(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    rssi_client_id = await _resolve_client_attribution(payload.rssi_client_id, current_user, db)
     campaign = await phishing_service.create_campaign(
-        current_user.id, payload.name, payload.plan_tier, db
+        current_user.id, payload.name, payload.plan_tier, db, rssi_client_id=rssi_client_id
     )
     await db.commit()
     return _serialize_campaign(campaign)
@@ -227,6 +342,9 @@ async def update_campaign(
         scenario_keys=payload.scenario_keys,
         cgu_accepted=payload.cgu_accepted,
         scheduled_at=payload.scheduled_at,
+        training_on_fail=payload.training_on_fail,
+        training_trigger=payload.training_trigger,
+        batch_size=payload.batch_size,
         db=db,
     )
     await db.commit()
@@ -237,6 +355,7 @@ async def update_campaign(
 async def upload_targets(
     campaign_id: int,
     file: UploadFile = File(...),
+    replace: bool = Query(False),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -269,21 +388,26 @@ async def upload_targets(
             detail=f"Le plan {campaign.plan_tier} est limité à {max_targets} cibles.",
         )
 
-    count = await phishing_service.upload_targets_csv(campaign, csv_content, db)
+    result = await phishing_service.upload_targets_csv(campaign, csv_content, db, replace=replace)
 
-    if count > max_targets:
-        raise HTTPException(
+    if result["total"] > max_targets:
+        raise HTTPException(  # non commité -> le flush est annulé par get_db
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Le plan {campaign.plan_tier} est limité à {max_targets} cibles ({count} trouvées).",
+            detail=f"Le plan {campaign.plan_tier} est limité à {max_targets} cibles "
+            f"({result['total']} au total).",
         )
-    if count == 0:
+    if result["added"] == 0 and result["skipped"] == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Aucune adresse email valide trouvée dans le fichier.",
         )
 
     await db.commit()
-    return {"targets_added": count}
+    return {
+        "targets_added": result["added"],
+        "targets_skipped": result["skipped"],
+        "targets_total": result["total"],
+    }
 
 
 @router.get("/campaigns/{campaign_id}/targets")
@@ -297,6 +421,63 @@ async def list_targets(
         select(PhishingTarget).where(PhishingTarget.campaign_id == campaign_id)
     )
     return [_serialize_target(t) for t in result.scalars().all()]
+
+
+@router.post("/campaigns/{campaign_id}/targets/single", status_code=status.HTTP_201_CREATED)
+async def add_single_target(
+    campaign_id: int,
+    payload: TargetAdd,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    campaign = await _get_owned(campaign_id, current_user.id, db)
+    if campaign.status not in _EDITABLE_TARGET_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Impossible de modifier les cibles d'une campagne active ou terminée.",
+        )
+    max_targets = _MAX_TARGETS.get(campaign.plan_tier, 50)
+    if campaign.targets_count >= max_targets:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Le plan {campaign.plan_tier} est limité à {max_targets} cibles.",
+        )
+    target = await phishing_service.add_target(
+        campaign,
+        email=str(payload.email),
+        first_name=payload.first_name or "",
+        last_name=payload.last_name,
+        department=payload.department,
+        db=db,
+    )
+    if target is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cette adresse email est déjà une cible de la campagne.",
+        )
+    await db.commit()
+    return _serialize_target(target)
+
+
+@router.delete(
+    "/campaigns/{campaign_id}/targets/{target_id}", status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_single_target(
+    campaign_id: int,
+    target_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    campaign = await _get_owned(campaign_id, current_user.id, db)
+    if campaign.status not in _EDITABLE_TARGET_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Impossible de modifier les cibles d'une campagne active ou terminée.",
+        )
+    ok = await phishing_service.delete_target(campaign, target_id, db)
+    if not ok:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cible introuvable.")
+    await db.commit()
 
 
 @router.post("/campaigns/{campaign_id}/launch", status_code=status.HTTP_202_ACCEPTED)
@@ -328,6 +509,17 @@ async def launch_campaign(
             detail="Vous devez accepter les conditions générales avant de lancer la campagne.",
         )
 
+    # Gating par plan AU LANCEMENT (l'envoi réel) et seulement en mode entreprise
+    # directe : le consultant lance via sa prestation (campagne rattachée à un client).
+    if campaign.rssi_client_id is None:
+        from app.services.subscription_service import get_active_tier
+
+        if await get_active_tier(db, current_user.id) < _PHISHING_MIN_TIER:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="La simulation de phishing nécessite un abonnement Pro ou supérieur.",
+            )
+
     try:
         await phishing_service.launch_campaign(campaign, db)
     except (ValueError, RuntimeError) as exc:
@@ -347,6 +539,40 @@ async def launch_campaign(
     _background_tasks.add(task)
     task.add_done_callback(_background_tasks.discard)
     return {"status": "sending", "campaign_id": campaign_id}
+
+
+# États depuis lesquels une campagne peut être annulée (avant/pendant l'envoi ;
+# pas depuis "active" (envoi terminé, phase résultats), "completed" ou "cancelled").
+_CANCELLABLE_STATUSES = ("draft", "pending_verification", "ready", "scheduled", "sending")
+
+
+@router.post("/campaigns/{campaign_id}/cancel")
+async def cancel_campaign(
+    campaign_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    campaign = await _get_owned(campaign_id, current_user.id, db)
+    if campaign.status not in _CANCELLABLE_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Seule une campagne en préparation ou en cours d'envoi peut être annulée.",
+        )
+    updated = await phishing_service.cancel_campaign(campaign, db)
+    await db.commit()
+    return _serialize_campaign(updated)
+
+
+@router.delete("/campaigns/{campaign_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_campaign(
+    campaign_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Supprime définitivement une campagne du propriétaire (cibles en cascade)."""
+    campaign = await _get_owned(campaign_id, current_user.id, db)
+    await db.delete(campaign)
+    await db.commit()
 
 
 @router.get("/campaigns/{campaign_id}/pdf")
@@ -499,6 +725,7 @@ async def tracking_landing(request: Request, tracking_id: str, db: AsyncSession 
     )
     target = result.scalar_one_or_none()
     scenario_key = phishing_service._DEFAULT_SCENARIO_KEY
+    landing_base: str | None = None
     if target:
         campaign_result = await db.execute(
             select(PhishingCampaign).where(PhishingCampaign.id == target.campaign_id)
@@ -507,10 +734,14 @@ async def tracking_landing(request: Request, tracking_id: str, db: AsyncSession 
         if campaign:
             if phishing_service._is_campaign_expired(campaign):
                 return HTMLResponse(content=phishing_service.get_expired_html())
+            # Le formulaire doit poster sur le même host que celui de la campagne.
+            landing_base = phishing_service._tracking_base(campaign)
             keys = json.loads(campaign.scenario_keys or "[]")
             if keys:
                 scenario_key = keys[0]
-    return HTMLResponse(content=phishing_service.get_landing_html(tracking_id, scenario_key))
+    return HTMLResponse(
+        content=phishing_service.get_landing_html(tracking_id, scenario_key, landing_base)
+    )
 
 
 @router.post("/t/{tracking_id}/s", response_class=HTMLResponse, include_in_schema=False)

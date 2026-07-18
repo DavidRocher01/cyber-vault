@@ -20,13 +20,27 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
 from app.models.phishing import PhishingCampaign, PhishingTarget
 from app.models.user import User
 from app.services import phishing_service
+from tests.conftest import create_plan_and_subscription
+
+
+@pytest_asyncio.fixture
+async def phishing_client(auth_client: AsyncClient):
+    """auth_client + abonnement Pro (tier 3) : requis pour créer une campagne en
+    mode entreprise directe (gating _PHISHING_MIN_TIER = 3)."""
+    await create_plan_and_subscription(
+        auth_client, {"Authorization": auth_client.headers["Authorization"]}, tier=3
+    )
+    return auth_client
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -720,8 +734,8 @@ class TestCampaignCrud:
         assert r.json() == []
 
     @pytest.mark.asyncio
-    async def test_create_campaign(self, auth_client: AsyncClient):
-        r = await auth_client.post(
+    async def test_create_campaign(self, phishing_client: AsyncClient):
+        r = await phishing_client.post(
             "/api/v1/phishing/campaigns",
             json={
                 "name": "Q2 2025",
@@ -733,10 +747,11 @@ class TestCampaignCrud:
         assert data["name"] == "Q2 2025"
         assert data["status"] == "draft"
         assert data["lookalike_domain"] is None
+        assert data["rssi_client_id"] is None
 
     @pytest.mark.asyncio
-    async def test_get_campaign(self, auth_client: AsyncClient):
-        r = await auth_client.post(
+    async def test_get_campaign(self, phishing_client: AsyncClient):
+        r = await phishing_client.post(
             "/api/v1/phishing/campaigns",
             json={
                 "name": "Get Test",
@@ -744,13 +759,13 @@ class TestCampaignCrud:
             },
         )
         cid = r.json()["id"]
-        r2 = await auth_client.get(f"/api/v1/phishing/campaigns/{cid}")
+        r2 = await phishing_client.get(f"/api/v1/phishing/campaigns/{cid}")
         assert r2.status_code == 200
         assert r2.json()["id"] == cid
 
     @pytest.mark.asyncio
-    async def test_patch_name(self, auth_client: AsyncClient):
-        r = await auth_client.post(
+    async def test_patch_name(self, phishing_client: AsyncClient):
+        r = await phishing_client.post(
             "/api/v1/phishing/campaigns",
             json={
                 "name": "Old Name",
@@ -758,13 +773,15 @@ class TestCampaignCrud:
             },
         )
         cid = r.json()["id"]
-        r2 = await auth_client.patch(f"/api/v1/phishing/campaigns/{cid}", json={"name": "New Name"})
+        r2 = await phishing_client.patch(
+            f"/api/v1/phishing/campaigns/{cid}", json={"name": "New Name"}
+        )
         assert r2.status_code == 200
         assert r2.json()["name"] == "New Name"
 
     @pytest.mark.asyncio
-    async def test_patch_lookalike_domain(self, auth_client: AsyncClient):
-        r = await auth_client.post(
+    async def test_patch_lookalike_domain(self, phishing_client: AsyncClient):
+        r = await phishing_client.post(
             "/api/v1/phishing/campaigns",
             json={
                 "name": "Look-alike test",
@@ -772,7 +789,7 @@ class TestCampaignCrud:
             },
         )
         cid = r.json()["id"]
-        r2 = await auth_client.patch(
+        r2 = await phishing_client.patch(
             f"/api/v1/phishing/campaigns/{cid}",
             json={
                 "lookalike_domain": "secure-acme.com",
@@ -1315,3 +1332,374 @@ class TestTrackingExpiry:
         await _seed(db_session, tracking_id="rl-sub-001", status="clicked")
         r = await http_client.post("/api/v1/phishing/t/rl-sub-001/s")
         assert r.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# Validation de domaine (anti-SSRF / anti-injection sur domain & lookalike_domain)
+# ---------------------------------------------------------------------------
+
+
+class TestNormalizeDomain:
+    """_normalize_domain valide le format sans résolution réseau (Lot 0 refonte)."""
+
+    def test_accepts_bare_domain(self):
+        from app.api.v1.endpoints.phishing import _normalize_domain
+
+        assert _normalize_domain("connexion-entreprise.com") == "connexion-entreprise.com"
+
+    def test_strips_https_prefix(self):
+        from app.api.v1.endpoints.phishing import _normalize_domain
+
+        assert _normalize_domain("https://acme.fr") == "acme.fr"
+
+    def test_none_and_empty_pass_through(self):
+        from app.api.v1.endpoints.phishing import _normalize_domain
+
+        assert _normalize_domain(None) is None
+        assert _normalize_domain("   ") is None
+
+    @pytest.mark.parametrize(
+        "bad",
+        [
+            "javascript:alert(1)",
+            "http://acme.com",  # schéma non-https
+            "data:text/html,x",
+            "acme.com/login",  # chemin
+            "acme.com:8080",  # port
+            "localhost",  # pas de TLD
+            "127.0.0.1",  # IP littérale
+            "192.168.1.10",
+            "a b.com",  # espace
+        ],
+    )
+    def test_rejects_dangerous_values(self, bad):
+        from app.api.v1.endpoints.phishing import _normalize_domain
+
+        with pytest.raises(ValueError):
+            _normalize_domain(bad)
+
+
+# ---------------------------------------------------------------------------
+# Gating à la création selon l'opérateur (Lot 1 refonte)
+# ---------------------------------------------------------------------------
+
+
+async def _make_consultant_with_client(client: AsyncClient) -> int:
+    """Passe l'utilisateur courant consultant RSSI + crée un client, renvoie son id."""
+    from sqlalchemy import select as _select
+
+    import app.core.database as _db
+    from app.core.security import decode_access_token
+    from app.models.user import User as _User
+
+    uid = int(decode_access_token(client.headers["Authorization"].removeprefix("Bearer ").strip()))
+    async with _db.AsyncSessionLocal() as db:
+        user = (await db.execute(_select(_User).where(_User.id == uid))).scalar_one()
+        user.is_rssi_consultant = True
+        await db.commit()
+    r = await client.post(
+        "/api/v1/rssi/clients",
+        json={"name": "Acme", "email": "acme@example.com", "formula": "essentiel"},
+    )
+    assert r.status_code == 201, r.text
+    return r.json()["id"]
+
+
+class TestCampaignGating:
+    @pytest.mark.asyncio
+    async def test_company_create_is_free(self, auth_client: AsyncClient):
+        # La création/config d'un brouillon n'est PAS gatée : le plan est requis
+        # au LANCEMENT (cf. test_phishing_coverage.py::test_launch_without_plan_is_403).
+        r = await auth_client.post(
+            "/api/v1/phishing/campaigns",
+            json={"name": "Free Draft", "plan_tier": "standard"},
+        )
+        assert r.status_code == 201
+        assert r.json()["rssi_client_id"] is None
+
+    @pytest.mark.asyncio
+    async def test_non_consultant_passing_client_id_is_403(self, phishing_client: AsyncClient):
+        # A un plan Pro mais n'est pas consultant : fournir rssi_client_id -> 403.
+        r = await phishing_client.post(
+            "/api/v1/phishing/campaigns",
+            json={"name": "Not Consultant", "plan_tier": "standard", "rssi_client_id": 1},
+        )
+        assert r.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_consultant_creates_for_owned_client(self, auth_client: AsyncClient):
+        client_id = await _make_consultant_with_client(auth_client)
+        # Consultant SANS plan : le gate tier ne s'applique pas au mode consultant.
+        r = await auth_client.post(
+            "/api/v1/phishing/campaigns",
+            json={"name": "For Client", "plan_tier": "standard", "rssi_client_id": client_id},
+        )
+        assert r.status_code == 201, r.text
+        assert r.json()["rssi_client_id"] == client_id
+
+        # Vue entreprise (sans param) : ne voit PAS la campagne rattachée à un client.
+        r_company = await auth_client.get("/api/v1/phishing/campaigns")
+        assert all(c["rssi_client_id"] is None for c in r_company.json())
+
+        # Vue client : voit la campagne.
+        r_client = await auth_client.get(f"/api/v1/phishing/campaigns?rssi_client_id={client_id}")
+        assert any(c["rssi_client_id"] == client_id for c in r_client.json())
+
+    @pytest.mark.asyncio
+    async def test_consultant_with_foreign_client_is_404(self, auth_client: AsyncClient):
+        await _make_consultant_with_client(auth_client)
+        r = await auth_client.post(
+            "/api/v1/phishing/campaigns",
+            json={"name": "Foreign", "plan_tier": "standard", "rssi_client_id": 999999},
+        )
+        assert r.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Training-on-fail : enrôlement awareness sur clic (Lot 4 refonte)
+# ---------------------------------------------------------------------------
+
+
+async def _setup_training(
+    db: AsyncSession,
+    *,
+    training_on_fail: bool = True,
+    with_client: bool = True,
+    with_learner: bool = True,
+):
+    """Chaîne complète : consultant + org awareness + programme + learner + client
+    RSSI lié + campagne rattachée + cible. Retourne (program, learner)."""
+    from app.models.awareness_learner import AwarenessLearner
+    from app.models.awareness_organization import AwarenessOrganization
+    from app.models.awareness_program import AwarenessProgram
+    from app.models.rssi_client import RssiClient
+
+    consultant = User(
+        email="consultant_tof@t.com", hashed_password=hash_password("x"), is_rssi_consultant=True
+    )
+    db.add(consultant)
+    await db.flush()
+
+    org = AwarenessOrganization(owner_user_id=consultant.id, name="Org TOF", max_learners=10)
+    db.add(org)
+    await db.flush()
+
+    program = AwarenessProgram(slug="remediation-post-clic", title="Remédiation", is_active=True)
+    db.add(program)
+    await db.flush()
+
+    learner = None
+    if with_learner:
+        learner = AwarenessLearner(organization_id=org.id, email="victim@corp.com", is_active=True)
+        db.add(learner)
+        await db.flush()
+
+    client = RssiClient(
+        consultant_user_id=consultant.id, name="Client TOF", awareness_organization_id=org.id
+    )
+    db.add(client)
+    await db.flush()
+
+    campaign = PhishingCampaign(
+        user_id=consultant.id,
+        rssi_client_id=client.id if with_client else None,
+        name="Camp TOF",
+        plan_tier="standard",
+        status="active",
+        scenario_keys='["ceo-fraud"]',
+        cgu_accepted=True,
+        training_on_fail=training_on_fail,
+        training_trigger="click",
+    )
+    db.add(campaign)
+    await db.flush()
+
+    target = PhishingTarget(
+        campaign_id=campaign.id, email="victim@corp.com", tracking_id="tof-1", status="email_sent"
+    )
+    db.add(target)
+    await db.commit()
+    return program, learner
+
+
+async def _enrollment_count(db: AsyncSession, learner_id: int) -> int:
+    from app.models.awareness_enrollment import AwarenessEnrollment
+
+    rows = (
+        (
+            await db.execute(
+                select(AwarenessEnrollment).where(AwarenessEnrollment.learner_id == learner_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return len(list(rows))
+
+
+class TestTrainingOnFail:
+    @pytest.mark.asyncio
+    async def test_click_enrolls_learner_when_enabled(self, db_session: AsyncSession):
+        program, learner = await _setup_training(db_session)
+        await phishing_service.record_click("tof-1", db_session)
+        assert await _enrollment_count(db_session, learner.id) == 1
+
+    @pytest.mark.asyncio
+    async def test_no_enroll_when_disabled(self, db_session: AsyncSession):
+        _, learner = await _setup_training(db_session, training_on_fail=False)
+        await phishing_service.record_click("tof-1", db_session)
+        assert await _enrollment_count(db_session, learner.id) == 0
+
+    @pytest.mark.asyncio
+    async def test_no_enroll_for_company_campaign(self, db_session: AsyncSession):
+        # Campagne entreprise directe (rssi_client_id NULL) -> pas d'org -> no-op.
+        _, learner = await _setup_training(db_session, with_client=False)
+        await phishing_service.record_click("tof-1", db_session)
+        assert await _enrollment_count(db_session, learner.id) == 0
+
+    @pytest.mark.asyncio
+    async def test_idempotent_double_click(self, db_session: AsyncSession):
+        program, learner = await _setup_training(db_session)
+        await phishing_service.record_click("tof-1", db_session)
+        # Un 2e record_click ne re-crée pas d'enrôlement (enroll_learner idempotent).
+        await phishing_service.record_click("tof-1", db_session)
+        assert await _enrollment_count(db_session, learner.id) == 1
+
+
+# ---------------------------------------------------------------------------
+# Annulation + cadence par campagne (Lot 3 refonte)
+# ---------------------------------------------------------------------------
+
+
+class TestCancelAndCadence:
+    @pytest.mark.asyncio
+    async def test_cancel_draft_campaign(self, auth_client: AsyncClient):
+        cid = (
+            await auth_client.post(
+                "/api/v1/phishing/campaigns", json={"name": "To Cancel", "plan_tier": "standard"}
+            )
+        ).json()["id"]
+        r = await auth_client.post(f"/api/v1/phishing/campaigns/{cid}/cancel")
+        assert r.status_code == 200
+        assert r.json()["status"] == "cancelled"
+
+    @pytest.mark.asyncio
+    async def test_cannot_cancel_completed(
+        self, auth_client: AsyncClient, db_session: AsyncSession
+    ):
+        cid = (
+            await auth_client.post(
+                "/api/v1/phishing/campaigns", json={"name": "Done", "plan_tier": "standard"}
+            )
+        ).json()["id"]
+        camp = (
+            await db_session.execute(select(PhishingCampaign).where(PhishingCampaign.id == cid))
+        ).scalar_one()
+        camp.status = "completed"
+        await db_session.commit()
+        r = await auth_client.post(f"/api/v1/phishing/campaigns/{cid}/cancel")
+        assert r.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_cancelled_campaign_not_sent_by_batch(self, db_session: AsyncSession):
+        import unittest.mock as mock
+
+        user = User(email="cancel_batch@test.com", hashed_password=hash_password("p"))
+        db_session.add(user)
+        await db_session.flush()
+        campaign = PhishingCampaign(
+            user_id=user.id,
+            name="Cancelled",
+            plan_tier="standard",
+            status="cancelled",
+            cgu_accepted=True,
+            scenario_keys='["o365-credentials"]',
+            targets_count=2,
+        )
+        db_session.add(campaign)
+        await db_session.flush()
+        for i in range(2):
+            db_session.add(
+                PhishingTarget(campaign_id=campaign.id, email=f"c{i}@x.com", status="pending")
+            )
+        await db_session.commit()
+
+        with mock.patch.object(phishing_service, "_send_phishing_email") as mock_send:
+            await phishing_service.send_pending_batch()
+        assert mock_send.call_count == 0
+
+    @pytest.mark.asyncio
+    async def test_batch_respects_per_campaign_batch_size(self, db_session: AsyncSession):
+        import unittest.mock as mock
+
+        user = User(email="cadence@test.com", hashed_password=hash_password("p"))
+        db_session.add(user)
+        await db_session.flush()
+        campaign = PhishingCampaign(
+            user_id=user.id,
+            name="Cadence",
+            plan_tier="standard",
+            status="sending",
+            cgu_accepted=True,
+            scenario_keys='["o365-credentials"]',
+            targets_count=3,
+            batch_size=1,
+        )
+        db_session.add(campaign)
+        await db_session.flush()
+        for i in range(3):
+            db_session.add(
+                PhishingTarget(campaign_id=campaign.id, email=f"k{i}@x.com", status="pending")
+            )
+        await db_session.commit()
+
+        with mock.patch.object(phishing_service, "_send_phishing_email"):
+            await phishing_service.send_pending_batch()
+
+        await db_session.refresh(campaign)
+        assert campaign.emails_sent == 1  # cadence = 1 email par tick
+
+
+# ---------------------------------------------------------------------------
+# Landing cross-host : le formulaire poste sur le host de la campagne (Lot 5a)
+# ---------------------------------------------------------------------------
+
+
+class TestLandingCrossHost:
+    def test_landing_uses_provided_base(self):
+        html = phishing_service.get_landing_html("tid", base="https://secure-acme.com")
+        assert "https://secure-acme.com/phishing/t/tid/s" in html
+
+    def test_landing_defaults_to_base_url_when_none(self):
+        from app.core.config import settings
+
+        html = phishing_service.get_landing_html("tid")
+        assert f"{settings.PHISHING_BASE_URL.rstrip('/')}/phishing/t/tid/s" in html
+
+    @pytest.mark.asyncio
+    async def test_landing_endpoint_posts_to_lookalike_host(
+        self, db_session: AsyncSession, http_client: AsyncClient
+    ):
+        user = User(email="ll_landing@test.com", hashed_password=hash_password("p"))
+        db_session.add(user)
+        await db_session.flush()
+        campaign = PhishingCampaign(
+            user_id=user.id,
+            name="LL",
+            plan_tier="standard",
+            status="active",
+            lookalike_domain="secure-acme.com",
+            scenario_keys='["o365-credentials"]',
+            cgu_accepted=True,
+        )
+        db_session.add(campaign)
+        await db_session.flush()
+        target = PhishingTarget(
+            campaign_id=campaign.id, email="v@x.com", tracking_id="ll-1", status="clicked"
+        )
+        db_session.add(target)
+        await db_session.commit()
+
+        r = await http_client.get("/api/v1/phishing/t/ll-1/l")
+        assert r.status_code == 200
+        assert "https://secure-acme.com/phishing/t/ll-1/s" in r.text

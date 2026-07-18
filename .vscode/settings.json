@@ -1,0 +1,28 @@
+{
+  // Interpreteur Python : VS Code detecte backend/.venv automatiquement.
+  // Sinon : "Python: Select Interpreter" -> backend/.venv (portable Windows/Linux/Mac).
+  "python.terminal.activateEnvironment": true,
+  "python.analysis.extraPaths": ["${workspaceFolder}/backend"],
+  "[python]": {
+    // Formateur = ruff (coherent avec le pre-commit ; ruff remplace black + isort).
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": { "source.fixAll.ruff": "explicit" }
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "editor.rulers": [88],
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/node_modules": true,
+    "**/.angular": true,
+    "**/dist": true
+  }
+}

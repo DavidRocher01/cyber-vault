@@ -79,9 +79,10 @@ class Settings(BaseSettings):
     # silence (les emails partent, rien ne se track). Un defaut sur localhost echoue
     # bruyamment, ce qui est le bon mode de defaillance.
     PHISHING_BASE_URL: str = "http://localhost:8000/api/v1"
-    # Sender identity in phishing emails (display name only — actual domain must be Resend-verified)
+    # Sender identity in phishing emails (actual domain must be Resend-verified).
+    # NB : le display-name vient du template de scenario (_build_email), pas d'un
+    # setting global — d'ou l'absence de PHISHING_FROM_NAME.
     PHISHING_FROM_EMAIL: str = ""  # e.g. no-reply@rochercybersecurite.com (Resend verified domain)
-    PHISHING_FROM_NAME: str = "Rocher Cybersécurité Exercise"
     # Batch size: emails sent per scheduler tick (every 15 min) to avoid spam detection
     PHISHING_BATCH_SIZE: int = 20
     # How many days tracking links remain active after campaign launch (then events are silently dropped)

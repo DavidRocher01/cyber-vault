@@ -24,7 +24,7 @@ from datetime import UTC, datetime
 
 import resend
 from loguru import logger
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -110,12 +110,24 @@ async def check_domain_verification(record: PhishingDomainVerification, db: Asyn
 # ---------------------------------------------------------------------------
 
 
-async def get_campaigns(user_id: int, db: AsyncSession) -> list[PhishingCampaign]:
-    result = await db.execute(
-        select(PhishingCampaign)
-        .where(PhishingCampaign.user_id == user_id)
-        .order_by(PhishingCampaign.created_at.desc())
-    )
+async def get_campaigns(
+    user_id: int,
+    db: AsyncSession,
+    *,
+    rssi_client_id: int | None = None,
+    company_only: bool = False,
+) -> list[PhishingCampaign]:
+    """Campagnes du propriétaire, filtrées par mode :
+    - rssi_client_id renseigné → campagnes de ce client (mode consultant) ;
+    - company_only=True → campagnes sans client (mode entreprise directe) ;
+    - sinon → toutes celles du propriétaire.
+    """
+    query = select(PhishingCampaign).where(PhishingCampaign.user_id == user_id)
+    if rssi_client_id is not None:
+        query = query.where(PhishingCampaign.rssi_client_id == rssi_client_id)
+    elif company_only:
+        query = query.where(PhishingCampaign.rssi_client_id.is_(None))
+    result = await db.execute(query.order_by(PhishingCampaign.created_at.desc()))
     return list(result.scalars().all())
 
 
@@ -130,9 +142,20 @@ async def get_campaign(campaign_id: int, user_id: int, db: AsyncSession) -> Phis
 
 
 async def create_campaign(
-    user_id: int, name: str, plan_tier: str, db: AsyncSession
+    user_id: int,
+    name: str,
+    plan_tier: str,
+    db: AsyncSession,
+    *,
+    rssi_client_id: int | None = None,
 ) -> PhishingCampaign:
-    campaign = PhishingCampaign(user_id=user_id, name=name, plan_tier=plan_tier, status="draft")
+    campaign = PhishingCampaign(
+        user_id=user_id,
+        name=name,
+        plan_tier=plan_tier,
+        status="draft",
+        rssi_client_id=rssi_client_id,
+    )
     db.add(campaign)
     await db.flush()
     await db.refresh(campaign)
@@ -150,6 +173,9 @@ async def update_campaign(
     cgu_accepted: bool | None = None,
     scheduled_at: datetime | None = None,
     status: str | None = None,
+    training_on_fail: bool | None = None,
+    training_trigger: str | None = None,
+    batch_size: int | None = None,
     db: AsyncSession,
 ) -> PhishingCampaign:
     if name is not None:
@@ -164,6 +190,12 @@ async def update_campaign(
         campaign.scenario_keys = json.dumps(scenario_keys)
     if cgu_accepted is not None:
         campaign.cgu_accepted = cgu_accepted
+    if training_on_fail is not None:
+        campaign.training_on_fail = training_on_fail
+    if training_trigger is not None:
+        campaign.training_trigger = training_trigger
+    if batch_size is not None:
+        campaign.batch_size = batch_size
     if scheduled_at is not None:
         campaign.scheduled_at = scheduled_at
     if status is not None:
@@ -173,39 +205,143 @@ async def update_campaign(
     return campaign
 
 
-async def upload_targets_csv(campaign: PhishingCampaign, csv_content: str, db: AsyncSession) -> int:
-    existing = await db.execute(
-        select(PhishingTarget).where(PhishingTarget.campaign_id == campaign.id)
-    )
-    for t in existing.scalars().all():
-        await db.delete(t)
+async def cancel_campaign(campaign: PhishingCampaign, db: AsyncSession) -> PhishingCampaign:
+    """Annule une campagne : le statut "cancelled" l'exclut du batch (qui ne
+    traite que scheduled/active/sending) — plus aucun email ne partira."""
+    campaign.status = "cancelled"
+    campaign.finished_at = datetime.now(UTC)
+    campaign.updated_at = datetime.now(UTC)
+    await db.flush()
+    return campaign
+
+
+async def _recount_targets(campaign: PhishingCampaign, db: AsyncSession) -> int:
+    """Resynchronise campaign.targets_count avec le nombre réel de cibles."""
+    total = (
+        await db.execute(
+            select(func.count(PhishingTarget.id)).where(PhishingTarget.campaign_id == campaign.id)
+        )
+    ).scalar() or 0
+    campaign.targets_count = total
+    campaign.updated_at = datetime.now(UTC)
+    await db.flush()
+    return total
+
+
+async def upload_targets_csv(
+    campaign: PhishingCampaign, csv_content: str, db: AsyncSession, *, replace: bool = False
+) -> dict:
+    """Importe des cibles depuis un CSV.
+
+    - replace=False (défaut) : MERGE — ajoute les nouvelles cibles sans écraser
+      les existantes, en ignorant les doublons d'email (dédup insensible à la casse).
+    - replace=True : remplace toutes les cibles (ancien comportement, sur demande explicite).
+
+    Retourne {"added", "skipped", "total"}.
+    """
+    if replace:
+        existing = await db.execute(
+            select(PhishingTarget).where(PhishingTarget.campaign_id == campaign.id)
+        )
+        for t in existing.scalars().all():
+            await db.delete(t)
+        await db.flush()
+        seen: set[str] = set()
+    else:
+        rows = (
+            (
+                await db.execute(
+                    select(PhishingTarget.email).where(PhishingTarget.campaign_id == campaign.id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        seen = {e.lower() for e in rows}
 
     reader = csv.DictReader(io.StringIO(csv_content))
-    count = 0
+    added = 0
+    skipped = 0
     for row in reader:
         email = (row.get("email") or row.get("Email") or "").strip()
         if not email or "@" not in email:
             continue
-        target = PhishingTarget(
-            campaign_id=campaign.id,
-            email=email,
-            first_name=(
-                row.get("first_name") or row.get("prenom") or row.get("Prénom") or ""
-            ).strip(),
-            last_name=(row.get("last_name") or row.get("nom") or row.get("Nom") or "").strip()
-            or None,
-            department=(
-                row.get("department") or row.get("departement") or row.get("Département") or ""
-            ).strip()
-            or None,
+        if email.lower() in seen:
+            skipped += 1
+            continue
+        seen.add(email.lower())
+        db.add(
+            PhishingTarget(
+                campaign_id=campaign.id,
+                email=email,
+                first_name=(
+                    row.get("first_name") or row.get("prenom") or row.get("Prénom") or ""
+                ).strip(),
+                last_name=(row.get("last_name") or row.get("nom") or row.get("Nom") or "").strip()
+                or None,
+                department=(
+                    row.get("department") or row.get("departement") or row.get("Département") or ""
+                ).strip()
+                or None,
+            )
         )
-        db.add(target)
-        count += 1
+        added += 1
 
-    campaign.targets_count = count
-    campaign.updated_at = datetime.now(UTC)
     await db.flush()
-    return count
+    total = await _recount_targets(campaign, db)
+    return {"added": added, "skipped": skipped, "total": total}
+
+
+async def add_target(
+    campaign: PhishingCampaign,
+    *,
+    email: str,
+    first_name: str = "",
+    last_name: str | None = None,
+    department: str | None = None,
+    db: AsyncSession,
+) -> PhishingTarget | None:
+    """Ajoute une cible unique. Retourne None si l'email existe déjà (dédup)."""
+    exists = (
+        await db.execute(
+            select(PhishingTarget).where(
+                PhishingTarget.campaign_id == campaign.id,
+                func.lower(PhishingTarget.email) == email.lower(),
+            )
+        )
+    ).scalar_one_or_none()
+    if exists:
+        return None
+    target = PhishingTarget(
+        campaign_id=campaign.id,
+        email=email,
+        first_name=first_name or "",
+        last_name=last_name or None,
+        department=department or None,
+    )
+    db.add(target)
+    await db.flush()
+    await _recount_targets(campaign, db)
+    await db.refresh(target)
+    return target
+
+
+async def delete_target(campaign: PhishingCampaign, target_id: int, db: AsyncSession) -> bool:
+    """Supprime une cible. Retourne False si introuvable pour cette campagne."""
+    target = (
+        await db.execute(
+            select(PhishingTarget).where(
+                PhishingTarget.id == target_id,
+                PhishingTarget.campaign_id == campaign.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if target is None:
+        return False
+    await db.delete(target)
+    await db.flush()
+    await _recount_targets(campaign, db)
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -334,13 +470,14 @@ async def send_pending_batch() -> None:
                 if not scenario_keys:
                     scenario_keys = [_DEFAULT_SCENARIO_KEY]
 
+                batch_size = campaign.batch_size or settings.PHISHING_BATCH_SIZE
                 pending_result = await db.execute(
                     select(PhishingTarget)
                     .where(
                         PhishingTarget.campaign_id == campaign.id,
                         PhishingTarget.status == "pending",
                     )
-                    .limit(settings.PHISHING_BATCH_SIZE)
+                    .limit(batch_size)
                 )
                 pending = list(pending_result.scalars().all())
 
@@ -455,6 +592,74 @@ async def launch_campaign(campaign: PhishingCampaign, db: AsyncSession) -> None:
 # ---------------------------------------------------------------------------
 
 
+async def _enroll_target_in_remediation(
+    campaign: PhishingCampaign, target: PhishingTarget, db: AsyncSession
+) -> None:
+    """Training-on-fail : inscrit la cible piégée dans un module de remédiation
+    awareness. BEST-EFFORT — ne doit JAMAIS casser le flux de tracking.
+
+    Périmètre Lot 4 : mode consultant uniquement (l'org awareness vient du client
+    RSSI) et learner DÉJÀ existant dans l'org (pas d'auto-création -> pas d'email).
+    Company directe (pas d'org) et auto-création de learner = follow-up.
+    """
+    if not campaign.training_on_fail or campaign.rssi_client_id is None:
+        return
+    try:
+        from app.models.awareness_learner import AwarenessLearner
+        from app.models.awareness_program import AwarenessProgram
+        from app.models.rssi_client import RssiClient
+        from app.services.awareness_progression import enroll_learner
+
+        client = (
+            await db.execute(select(RssiClient).where(RssiClient.id == campaign.rssi_client_id))
+        ).scalar_one_or_none()
+        if client is None or client.awareness_organization_id is None:
+            return
+
+        learner = (
+            await db.execute(
+                select(AwarenessLearner).where(
+                    AwarenessLearner.email == target.email,
+                    AwarenessLearner.organization_id == client.awareness_organization_id,
+                    AwarenessLearner.is_active.is_(True),
+                )
+            )
+        ).scalar_one_or_none()
+        if learner is None:
+            return
+
+        # Programme de remédiation dédié si présent (slug ~ "remediation"), sinon
+        # 1er programme actif en repli (ex. nis2-essentiel) pour rester fonctionnel
+        # tant qu'aucun contenu de remédiation dédié n'est seedé.
+        program = (
+            await db.execute(
+                select(AwarenessProgram)
+                .where(
+                    AwarenessProgram.is_active.is_(True),
+                    AwarenessProgram.slug.contains("remediation"),
+                )
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if program is None:
+            program = (
+                await db.execute(
+                    select(AwarenessProgram).where(AwarenessProgram.is_active.is_(True)).limit(1)
+                )
+            ).scalar_one_or_none()
+        if program is None:
+            return
+
+        await enroll_learner(db, learner, program.id)
+        await db.commit()
+        logger.info(
+            f"training-on-fail: learner {learner.id} enrolled in program {program.id} "
+            f"(campaign {campaign.id}, target {target.id})"
+        )
+    except Exception as exc:  # best-effort : on n'interrompt jamais le tracking
+        logger.warning(f"training-on-fail enrollment skipped (campaign {campaign.id}): {exc}")
+
+
 async def record_open(tracking_id: str, db: AsyncSession) -> None:
     result = await db.execute(
         select(PhishingTarget).where(PhishingTarget.tracking_id == tracking_id)
@@ -492,6 +697,8 @@ async def record_click(tracking_id: str, db: AsyncSession) -> bool:
             campaign.clicked_count += 1
             campaign.updated_at = datetime.now(UTC)
             await db.commit()
+            if campaign.training_trigger == "click":
+                await _enroll_target_in_remediation(campaign, target, db)
     return True
 
 
@@ -520,6 +727,8 @@ async def record_submit(tracking_id: str, db: AsyncSession) -> str:
                 campaign.submitted_count += 1
                 campaign.updated_at = datetime.now(UTC)
                 await db.commit()
+                if campaign.training_trigger == "submit":
+                    await _enroll_target_in_remediation(campaign, target, db)
         elif target.status != "submitted":
             target.status = "submitted"
             await db.commit()
@@ -541,8 +750,13 @@ def get_pixel_gif() -> bytes:
     return _PIXEL_GIF
 
 
-def get_landing_html(tracking_id: str, scenario_key: str = _DEFAULT_SCENARIO_KEY) -> str:
-    base = settings.PHISHING_BASE_URL.rstrip("/")
+def get_landing_html(
+    tracking_id: str, scenario_key: str = _DEFAULT_SCENARIO_KEY, base: str | None = None
+) -> str:
+    # La landing doit poster sur le MÊME host que celui qui l'a servie (le domaine
+    # look-alike si la campagne en a un, sinon PHISHING_BASE_URL) — sinon un
+    # formulaire servi depuis le look-alike posterait vers un autre host.
+    base = (base or settings.PHISHING_BASE_URL).rstrip("/")
     action = f"{base}/phishing/t/{tracking_id}/s"
     template_name = _SCENARIO_LANDING.get(scenario_key, "microsoft")
     html = _LANDING_TEMPLATES.get(template_name, _LANDING_MICROSOFT)

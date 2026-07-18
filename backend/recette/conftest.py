@@ -112,6 +112,12 @@ def _wipe_canary(c: httpx.Client) -> None:
                 c.delete(f"{API}/rssi/clients/{cl['id']}")
     except Exception:
         pass
+    try:
+        for camp in c.get(f"{API}/phishing/campaigns").json():
+            if str(camp.get("name", "")).startswith(MARKER):
+                c.delete(f"{API}/phishing/campaigns/{camp['id']}")
+    except Exception:
+        pass
 
 
 def poll_until(fn, predicate, timeout_s: float, interval_s: float = 3.0):
