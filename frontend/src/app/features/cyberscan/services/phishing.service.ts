@@ -150,6 +150,11 @@ export class PhishingService {
     return this.http.post<PhishingCampaign>(`${this.base}/campaigns/${id}/cancel`, {});
   }
 
+  /** Supprime définitivement une campagne (et ses cibles). */
+  deleteCampaign(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/campaigns/${id}`);
+  }
+
   getLookalikeDomains(domain: string): Observable<LookalikeDomainsResult> {
     return this.http.get<LookalikeDomainsResult>(`${this.base}/lookalike-domains`, {
       params: { domain },

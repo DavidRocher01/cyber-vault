@@ -58,6 +58,22 @@ export class PhishingCampaignsComponent implements OnInit {
     });
   }
 
+  deleteCampaign(id: number, name: string, event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
+    if (!confirm(`Supprimer définitivement la campagne « ${name} » ?`)) return;
+    this.phishingService.deleteCampaign(id).subscribe({
+      next: () => {
+        this.campaigns.update(list => list.filter(c => c.id !== id));
+        this.snack.open('Campagne supprimée', 'OK', { duration: 3000 });
+      },
+      error: err =>
+        this.snack.open(err.error?.detail || 'Suppression impossible', 'Fermer', {
+          duration: 4000,
+        }),
+    });
+  }
+
   statusLabel(status: string): string {
     const labels: Record<string, string> = {
       draft: 'Brouillon',

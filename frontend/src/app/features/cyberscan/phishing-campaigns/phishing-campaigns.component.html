@@ -236,6 +236,15 @@
                     Résultats
                   </a>
                 }
+                <button
+                  type="button"
+                  (click)="deleteCampaign(c.id, c.name, $event)"
+                  title="Supprimer la campagne"
+                  aria-label="Supprimer la campagne"
+                  class="text-gray-500 hover:text-red-400 p-1.5 rounded-lg transition-colors"
+                >
+                  <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">delete</mat-icon>
+                </button>
               </div>
             </div>
 

@@ -633,3 +633,32 @@ class TestTargetsNonDestructive:
         cid = await _create_campaign(auth_client)
         r = await auth_client.delete(f"{BASE}/campaigns/{cid}/targets/999999")
         assert r.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Suppression de campagne (Lot 6)
+# ---------------------------------------------------------------------------
+
+
+class TestDeleteCampaign:
+    async def test_delete_campaign(self, auth_client: AsyncClient):
+        cid = await _create_campaign(auth_client)
+        r = await auth_client.delete(f"{BASE}/campaigns/{cid}")
+        assert r.status_code == 204
+        assert (await auth_client.get(f"{BASE}/campaigns/{cid}")).status_code == 404
+
+    async def test_delete_cascades_targets(self, auth_client: AsyncClient):
+        cid = await _create_campaign(auth_client)
+        await auth_client.post(f"{BASE}/campaigns/{cid}/targets", files=_csv_file(["a@x.com,A"]))
+        r = await auth_client.delete(f"{BASE}/campaigns/{cid}")
+        assert r.status_code == 204
+
+    async def test_delete_other_user_campaign_404(self, http_client: AsyncClient):
+        h1 = await register_and_login(http_client, "owner_del@test.com")
+        r = await http_client.post(
+            f"{BASE}/campaigns", json={"name": "Owned", "plan_tier": "standard"}, headers=h1
+        )
+        cid = r.json()["id"]
+        h2 = await register_and_login(http_client, "intruder_del@test.com")
+        r2 = await http_client.delete(f"{BASE}/campaigns/{cid}", headers=h2)
+        assert r2.status_code == 404

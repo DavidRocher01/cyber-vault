@@ -155,4 +155,10 @@ describe('PhishingService — cibles (Lot 2) + cancel (Lot 3)', () => {
     service.cancelCampaign(7).subscribe();
     expect(http.post).toHaveBeenCalledWith(`${BASE}/campaigns/7/cancel`, {});
   });
+
+  it('deleteCampaign appelle DELETE /campaigns/{id}', () => {
+    const { service, http } = makeService();
+    service.deleteCampaign(7).subscribe();
+    expect(http.delete).toHaveBeenCalledWith(`${BASE}/campaigns/7`);
+  });
 });
