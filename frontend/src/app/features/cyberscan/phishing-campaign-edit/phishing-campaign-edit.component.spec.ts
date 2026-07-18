@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { signal } from '@angular/core';
+import { of } from 'rxjs';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { PhishingCampaignEditComponent } from './phishing-campaign-edit.component';
 import type { PhishingCampaign } from '../services/phishing.service';
@@ -208,4 +209,62 @@ describe('PhishingCampaignEditComponent — difficultyColor()', () => {
   it('red pour Difficile', () => expect(make().difficultyColor('Difficile')).toContain('red'));
   it('yellow pour Moyen', () => expect(make().difficultyColor('Moyen')).toContain('yellow'));
   it('green pour Facile', () => expect(make().difficultyColor('Facile')).toContain('green'));
+});
+
+describe('PhishingCampaignEditComponent — gestion des cibles (Lot 2)', () => {
+  function withTargets(c: PhishingCampaignEditComponent) {
+    (c as any).targets = signal<any[]>([]);
+    (c as any).newTargetEmail = signal('');
+    (c as any).addingTarget = signal(false);
+    (c as any).campaignId = 1;
+    return c;
+  }
+
+  it('reloadTargets charge la liste et resynchronise targets_count', () => {
+    const comp = withTargets(make(campaign()));
+    (comp as any).phishingService = {
+      getTargets: vi.fn().mockReturnValue(
+        of([
+          { id: 1, email: 'a@x.com' },
+          { id: 2, email: 'b@x.com' },
+        ])
+      ),
+    };
+    (comp as any).reloadTargets();
+    expect(comp.targets().length).toBe(2);
+    expect(comp.campaign()?.targets_count).toBe(2);
+  });
+
+  it('addTarget appelle le service et vide le champ, puis recharge', () => {
+    const comp = withTargets(make(campaign()));
+    comp.newTargetEmail.set('new@x.com');
+    const getTargets = vi.fn().mockReturnValue(of([{ id: 1, email: 'new@x.com' }]));
+    (comp as any).phishingService = {
+      addTarget: vi.fn().mockReturnValue(of({ id: 1, email: 'new@x.com' })),
+      getTargets,
+    };
+    comp.addTarget();
+    expect((comp as any).phishingService.addTarget).toHaveBeenCalledWith(1, { email: 'new@x.com' });
+    expect(comp.newTargetEmail()).toBe('');
+    expect(getTargets).toHaveBeenCalled();
+  });
+
+  it('addTarget ne fait rien si le champ est vide', () => {
+    const comp = withTargets(make(campaign()));
+    (comp as any).phishingService = { addTarget: vi.fn() };
+    comp.addTarget();
+    expect((comp as any).phishingService.addTarget).not.toHaveBeenCalled();
+  });
+
+  it('removeTarget appelle deleteTarget puis recharge', () => {
+    const comp = withTargets(make(campaign()));
+    const getTargets = vi.fn().mockReturnValue(of([]));
+    (comp as any).phishingService = {
+      deleteTarget: vi.fn().mockReturnValue(of(undefined)),
+      getTargets,
+    };
+    comp.removeTarget(5);
+    expect((comp as any).phishingService.deleteTarget).toHaveBeenCalledWith(1, 5);
+    expect(getTargets).toHaveBeenCalled();
+  });
 });
