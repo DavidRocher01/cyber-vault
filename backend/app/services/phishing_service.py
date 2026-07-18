@@ -24,7 +24,7 @@ from datetime import UTC, datetime
 
 import resend
 from loguru import logger
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -215,39 +215,133 @@ async def cancel_campaign(campaign: PhishingCampaign, db: AsyncSession) -> Phish
     return campaign
 
 
-async def upload_targets_csv(campaign: PhishingCampaign, csv_content: str, db: AsyncSession) -> int:
-    existing = await db.execute(
-        select(PhishingTarget).where(PhishingTarget.campaign_id == campaign.id)
-    )
-    for t in existing.scalars().all():
-        await db.delete(t)
+async def _recount_targets(campaign: PhishingCampaign, db: AsyncSession) -> int:
+    """Resynchronise campaign.targets_count avec le nombre réel de cibles."""
+    total = (
+        await db.execute(
+            select(func.count(PhishingTarget.id)).where(PhishingTarget.campaign_id == campaign.id)
+        )
+    ).scalar() or 0
+    campaign.targets_count = total
+    campaign.updated_at = datetime.now(UTC)
+    await db.flush()
+    return total
+
+
+async def upload_targets_csv(
+    campaign: PhishingCampaign, csv_content: str, db: AsyncSession, *, replace: bool = False
+) -> dict:
+    """Importe des cibles depuis un CSV.
+
+    - replace=False (défaut) : MERGE — ajoute les nouvelles cibles sans écraser
+      les existantes, en ignorant les doublons d'email (dédup insensible à la casse).
+    - replace=True : remplace toutes les cibles (ancien comportement, sur demande explicite).
+
+    Retourne {"added", "skipped", "total"}.
+    """
+    if replace:
+        existing = await db.execute(
+            select(PhishingTarget).where(PhishingTarget.campaign_id == campaign.id)
+        )
+        for t in existing.scalars().all():
+            await db.delete(t)
+        await db.flush()
+        seen: set[str] = set()
+    else:
+        rows = (
+            (
+                await db.execute(
+                    select(PhishingTarget.email).where(PhishingTarget.campaign_id == campaign.id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        seen = {e.lower() for e in rows}
 
     reader = csv.DictReader(io.StringIO(csv_content))
-    count = 0
+    added = 0
+    skipped = 0
     for row in reader:
         email = (row.get("email") or row.get("Email") or "").strip()
         if not email or "@" not in email:
             continue
-        target = PhishingTarget(
-            campaign_id=campaign.id,
-            email=email,
-            first_name=(
-                row.get("first_name") or row.get("prenom") or row.get("Prénom") or ""
-            ).strip(),
-            last_name=(row.get("last_name") or row.get("nom") or row.get("Nom") or "").strip()
-            or None,
-            department=(
-                row.get("department") or row.get("departement") or row.get("Département") or ""
-            ).strip()
-            or None,
+        if email.lower() in seen:
+            skipped += 1
+            continue
+        seen.add(email.lower())
+        db.add(
+            PhishingTarget(
+                campaign_id=campaign.id,
+                email=email,
+                first_name=(
+                    row.get("first_name") or row.get("prenom") or row.get("Prénom") or ""
+                ).strip(),
+                last_name=(row.get("last_name") or row.get("nom") or row.get("Nom") or "").strip()
+                or None,
+                department=(
+                    row.get("department") or row.get("departement") or row.get("Département") or ""
+                ).strip()
+                or None,
+            )
         )
-        db.add(target)
-        count += 1
+        added += 1
 
-    campaign.targets_count = count
-    campaign.updated_at = datetime.now(UTC)
     await db.flush()
-    return count
+    total = await _recount_targets(campaign, db)
+    return {"added": added, "skipped": skipped, "total": total}
+
+
+async def add_target(
+    campaign: PhishingCampaign,
+    *,
+    email: str,
+    first_name: str = "",
+    last_name: str | None = None,
+    department: str | None = None,
+    db: AsyncSession,
+) -> PhishingTarget | None:
+    """Ajoute une cible unique. Retourne None si l'email existe déjà (dédup)."""
+    exists = (
+        await db.execute(
+            select(PhishingTarget).where(
+                PhishingTarget.campaign_id == campaign.id,
+                func.lower(PhishingTarget.email) == email.lower(),
+            )
+        )
+    ).scalar_one_or_none()
+    if exists:
+        return None
+    target = PhishingTarget(
+        campaign_id=campaign.id,
+        email=email,
+        first_name=first_name or "",
+        last_name=last_name or None,
+        department=department or None,
+    )
+    db.add(target)
+    await db.flush()
+    await _recount_targets(campaign, db)
+    await db.refresh(target)
+    return target
+
+
+async def delete_target(campaign: PhishingCampaign, target_id: int, db: AsyncSession) -> bool:
+    """Supprime une cible. Retourne False si introuvable pour cette campagne."""
+    target = (
+        await db.execute(
+            select(PhishingTarget).where(
+                PhishingTarget.id == target_id,
+                PhishingTarget.campaign_id == campaign.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if target is None:
+        return False
+    await db.delete(target)
+    await db.flush()
+    await _recount_targets(campaign, db)
+    return True
 
 
 # ---------------------------------------------------------------------------

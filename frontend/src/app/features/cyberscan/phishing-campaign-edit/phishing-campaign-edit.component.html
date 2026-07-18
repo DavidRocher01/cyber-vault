@@ -127,9 +127,58 @@
               </span>
             </label>
             <span class="text-xs text-gray-600"
-              >Colonnes : email, first_name, last_name, department</span
+              >Colonnes : email, first_name, last_name, department — l'import complète la liste
+              (sans écraser, doublons ignorés)</span
             >
           </div>
+
+          <!-- Ajout unitaire -->
+          <div class="flex items-center gap-2 mt-4">
+            <input
+              type="email"
+              [value]="newTargetEmail()"
+              (input)="newTargetEmail.set($any($event.target).value)"
+              (keyup.enter)="addTarget()"
+              placeholder="email@entreprise.com"
+              aria-label="Ajouter une cible par email"
+              class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
+            />
+            <button
+              type="button"
+              (click)="addTarget()"
+              [disabled]="addingTarget() || !newTargetEmail().trim()"
+              class="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium disabled:opacity-50 shrink-0"
+            >
+              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">add</mat-icon>
+              Ajouter
+            </button>
+          </div>
+
+          <!-- Liste des cibles -->
+          @if (targets().length) {
+            <div
+              class="mt-4 max-h-64 overflow-y-auto divide-y divide-gray-800 rounded-lg border border-gray-800"
+            >
+              @for (t of targets(); track t.id) {
+                <div class="flex items-center justify-between px-3 py-2 text-sm">
+                  <div class="min-w-0 truncate">
+                    <span class="text-gray-200">{{ t.email }}</span>
+                    @if (t.first_name) {
+                      <span class="text-gray-500 ml-2">{{ t.first_name }}</span>
+                    }
+                  </div>
+                  <button
+                    type="button"
+                    (click)="removeTarget(t.id)"
+                    class="text-gray-500 hover:text-red-400 shrink-0 ml-2"
+                    aria-label="Supprimer la cible"
+                  >
+                    <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem]">delete</mat-icon>
+                  </button>
+                </div>
+              }
+            </div>
+          }
         </div>
 
         <!-- Domain -->

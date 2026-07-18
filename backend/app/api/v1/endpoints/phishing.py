@@ -29,7 +29,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from loguru import logger
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
@@ -145,6 +145,17 @@ class DomainCheckRequest(BaseModel):
     @classmethod
     def _validate_domain(cls, v: str) -> str:
         return _normalize_domain(v)  # type: ignore[return-value]
+
+
+class TargetAdd(BaseModel):
+    email: EmailStr
+    first_name: str | None = Field(None, max_length=100)
+    last_name: str | None = Field(None, max_length=100)
+    department: str | None = Field(None, max_length=100)
+
+
+# Statuts depuis lesquels on peut modifier les cibles (avant lancement).
+_EDITABLE_TARGET_STATUSES = ("draft", "pending_verification", "ready")
 
 
 # ---------------------------------------------------------------------------
@@ -336,6 +347,7 @@ async def update_campaign(
 async def upload_targets(
     campaign_id: int,
     file: UploadFile = File(...),
+    replace: bool = Query(False),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -368,21 +380,26 @@ async def upload_targets(
             detail=f"Le plan {campaign.plan_tier} est limité à {max_targets} cibles.",
         )
 
-    count = await phishing_service.upload_targets_csv(campaign, csv_content, db)
+    result = await phishing_service.upload_targets_csv(campaign, csv_content, db, replace=replace)
 
-    if count > max_targets:
-        raise HTTPException(
+    if result["total"] > max_targets:
+        raise HTTPException(  # non commité -> le flush est annulé par get_db
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Le plan {campaign.plan_tier} est limité à {max_targets} cibles ({count} trouvées).",
+            detail=f"Le plan {campaign.plan_tier} est limité à {max_targets} cibles "
+            f"({result['total']} au total).",
         )
-    if count == 0:
+    if result["added"] == 0 and result["skipped"] == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Aucune adresse email valide trouvée dans le fichier.",
         )
 
     await db.commit()
-    return {"targets_added": count}
+    return {
+        "targets_added": result["added"],
+        "targets_skipped": result["skipped"],
+        "targets_total": result["total"],
+    }
 
 
 @router.get("/campaigns/{campaign_id}/targets")
@@ -396,6 +413,63 @@ async def list_targets(
         select(PhishingTarget).where(PhishingTarget.campaign_id == campaign_id)
     )
     return [_serialize_target(t) for t in result.scalars().all()]
+
+
+@router.post("/campaigns/{campaign_id}/targets/single", status_code=status.HTTP_201_CREATED)
+async def add_single_target(
+    campaign_id: int,
+    payload: TargetAdd,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    campaign = await _get_owned(campaign_id, current_user.id, db)
+    if campaign.status not in _EDITABLE_TARGET_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Impossible de modifier les cibles d'une campagne active ou terminée.",
+        )
+    max_targets = _MAX_TARGETS.get(campaign.plan_tier, 50)
+    if campaign.targets_count >= max_targets:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Le plan {campaign.plan_tier} est limité à {max_targets} cibles.",
+        )
+    target = await phishing_service.add_target(
+        campaign,
+        email=str(payload.email),
+        first_name=payload.first_name or "",
+        last_name=payload.last_name,
+        department=payload.department,
+        db=db,
+    )
+    if target is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cette adresse email est déjà une cible de la campagne.",
+        )
+    await db.commit()
+    return _serialize_target(target)
+
+
+@router.delete(
+    "/campaigns/{campaign_id}/targets/{target_id}", status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_single_target(
+    campaign_id: int,
+    target_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    campaign = await _get_owned(campaign_id, current_user.id, db)
+    if campaign.status not in _EDITABLE_TARGET_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Impossible de modifier les cibles d'une campagne active ou terminée.",
+        )
+    ok = await phishing_service.delete_target(campaign, target_id, db)
+    if not ok:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cible introuvable.")
+    await db.commit()
 
 
 @router.post("/campaigns/{campaign_id}/launch", status_code=status.HTTP_202_ACCEPTED)

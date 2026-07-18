@@ -10,7 +10,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { Title } from '@angular/platform-browser';
 
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
-import { PhishingService, PhishingCampaign } from '../services/phishing.service';
+import { PhishingService, PhishingCampaign, PhishingTarget } from '../services/phishing.service';
 import { PHISHING_SCENARIOS } from '../phishing/phishing.component';
 
 const MAX_SCENARIOS_BY_PLAN: Record<string, number> = {
@@ -51,6 +51,9 @@ export class PhishingCampaignEditComponent implements OnInit {
   saving = signal(false);
   launching = signal(false);
   uploadingTargets = signal(false);
+  targets = signal<PhishingTarget[]>([]);
+  newTargetEmail = signal('');
+  addingTarget = signal(false);
 
   readonly allScenarios = PHISHING_SCENARIOS;
   selectedScenarios = signal<Set<string>>(new Set());
@@ -95,6 +98,7 @@ export class PhishingCampaignEditComponent implements OnInit {
           batch_size: c.batch_size,
         });
         this.selectedScenarios.set(new Set(c.scenario_keys));
+        this.reloadTargets();
         this.loading.set(false);
       },
       error: () => {
@@ -224,21 +228,67 @@ export class PhishingCampaignEditComponent implements OnInit {
   }
 
   onFileChange(event: Event) {
-    const file = (event.target as HTMLInputElement).files?.[0];
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
     if (!file) return;
     this.uploadingTargets.set(true);
+    // Merge par défaut : n'écrase pas les cibles déjà présentes.
     this.phishingService.uploadTargets(this.campaignId, file).subscribe({
       next: res => {
         this.uploadingTargets.set(false);
-        this.snack.open(`${res.targets_added} cibles ajoutées`, 'OK', { duration: 3000 });
-        this.load();
+        input.value = '';
+        const skipped = res.targets_skipped ? ` (${res.targets_skipped} doublon(s) ignoré(s))` : '';
+        this.snack.open(`${res.targets_added} cible(s) ajoutée(s)${skipped}`, 'OK', {
+          duration: 3500,
+        });
+        this.reloadTargets();
       },
       error: err => {
         this.uploadingTargets.set(false);
+        input.value = '';
         this.snack.open(err.error?.detail || "Erreur lors de l'import", 'Fermer', {
           duration: 4000,
         });
       },
+    });
+  }
+
+  private reloadTargets() {
+    this.phishingService.getTargets(this.campaignId).subscribe({
+      next: list => {
+        this.targets.set(list);
+        const c = this.campaign();
+        if (c) this.campaign.set({ ...c, targets_count: list.length });
+      },
+    });
+  }
+
+  addTarget() {
+    const email = this.newTargetEmail().trim();
+    if (!email || this.addingTarget()) return;
+    this.addingTarget.set(true);
+    this.phishingService.addTarget(this.campaignId, { email }).subscribe({
+      next: () => {
+        this.addingTarget.set(false);
+        this.newTargetEmail.set('');
+        this.reloadTargets();
+      },
+      error: err => {
+        this.addingTarget.set(false);
+        this.snack.open(err.error?.detail || "Impossible d'ajouter la cible", 'Fermer', {
+          duration: 4000,
+        });
+      },
+    });
+  }
+
+  removeTarget(targetId: number) {
+    this.phishingService.deleteTarget(this.campaignId, targetId).subscribe({
+      next: () => this.reloadTargets(),
+      error: err =>
+        this.snack.open(err.error?.detail || 'Suppression impossible', 'Fermer', {
+          duration: 4000,
+        }),
     });
   }
 

@@ -155,10 +155,36 @@ export class PhishingService {
     });
   }
 
-  uploadTargets(id: number, file: File): Observable<{ targets_added: number }> {
+  /** Import CSV. replace=false (défaut) = merge/dédup (n'écrase pas les cibles
+   *  existantes) ; replace=true = remplace tout. */
+  uploadTargets(
+    id: number,
+    file: File,
+    replace = false
+  ): Observable<{ targets_added: number; targets_skipped: number; targets_total: number }> {
     const form = new FormData();
     form.append('file', file);
-    return this.http.post<{ targets_added: number }>(`${this.base}/campaigns/${id}/targets`, form);
+    const q = replace ? '?replace=true' : '';
+    return this.http.post<{
+      targets_added: number;
+      targets_skipped: number;
+      targets_total: number;
+    }>(`${this.base}/campaigns/${id}/targets${q}`, form);
+  }
+
+  getTargets(id: number): Observable<PhishingTarget[]> {
+    return this.http.get<PhishingTarget[]>(`${this.base}/campaigns/${id}/targets`);
+  }
+
+  addTarget(
+    id: number,
+    target: { email: string; first_name?: string; last_name?: string; department?: string }
+  ): Observable<PhishingTarget> {
+    return this.http.post<PhishingTarget>(`${this.base}/campaigns/${id}/targets/single`, target);
+  }
+
+  deleteTarget(id: number, targetId: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/campaigns/${id}/targets/${targetId}`);
   }
 
   launchCampaign(id: number): Observable<{ status: string; campaign_id: number }> {
