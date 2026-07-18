@@ -20,6 +20,7 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +28,18 @@ from app.core.security import hash_password
 from app.models.phishing import PhishingCampaign, PhishingTarget
 from app.models.user import User
 from app.services import phishing_service
+from tests.conftest import create_plan_and_subscription
+
+
+@pytest_asyncio.fixture
+async def phishing_client(auth_client: AsyncClient):
+    """auth_client + abonnement Pro (tier 3) : requis pour créer une campagne en
+    mode entreprise directe (gating _PHISHING_MIN_TIER = 3)."""
+    await create_plan_and_subscription(
+        auth_client, {"Authorization": auth_client.headers["Authorization"]}, tier=3
+    )
+    return auth_client
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -720,8 +733,8 @@ class TestCampaignCrud:
         assert r.json() == []
 
     @pytest.mark.asyncio
-    async def test_create_campaign(self, auth_client: AsyncClient):
-        r = await auth_client.post(
+    async def test_create_campaign(self, phishing_client: AsyncClient):
+        r = await phishing_client.post(
             "/api/v1/phishing/campaigns",
             json={
                 "name": "Q2 2025",
@@ -733,10 +746,11 @@ class TestCampaignCrud:
         assert data["name"] == "Q2 2025"
         assert data["status"] == "draft"
         assert data["lookalike_domain"] is None
+        assert data["rssi_client_id"] is None
 
     @pytest.mark.asyncio
-    async def test_get_campaign(self, auth_client: AsyncClient):
-        r = await auth_client.post(
+    async def test_get_campaign(self, phishing_client: AsyncClient):
+        r = await phishing_client.post(
             "/api/v1/phishing/campaigns",
             json={
                 "name": "Get Test",
@@ -744,13 +758,13 @@ class TestCampaignCrud:
             },
         )
         cid = r.json()["id"]
-        r2 = await auth_client.get(f"/api/v1/phishing/campaigns/{cid}")
+        r2 = await phishing_client.get(f"/api/v1/phishing/campaigns/{cid}")
         assert r2.status_code == 200
         assert r2.json()["id"] == cid
 
     @pytest.mark.asyncio
-    async def test_patch_name(self, auth_client: AsyncClient):
-        r = await auth_client.post(
+    async def test_patch_name(self, phishing_client: AsyncClient):
+        r = await phishing_client.post(
             "/api/v1/phishing/campaigns",
             json={
                 "name": "Old Name",
@@ -758,13 +772,15 @@ class TestCampaignCrud:
             },
         )
         cid = r.json()["id"]
-        r2 = await auth_client.patch(f"/api/v1/phishing/campaigns/{cid}", json={"name": "New Name"})
+        r2 = await phishing_client.patch(
+            f"/api/v1/phishing/campaigns/{cid}", json={"name": "New Name"}
+        )
         assert r2.status_code == 200
         assert r2.json()["name"] == "New Name"
 
     @pytest.mark.asyncio
-    async def test_patch_lookalike_domain(self, auth_client: AsyncClient):
-        r = await auth_client.post(
+    async def test_patch_lookalike_domain(self, phishing_client: AsyncClient):
+        r = await phishing_client.post(
             "/api/v1/phishing/campaigns",
             json={
                 "name": "Look-alike test",
@@ -772,7 +788,7 @@ class TestCampaignCrud:
             },
         )
         cid = r.json()["id"]
-        r2 = await auth_client.patch(
+        r2 = await phishing_client.patch(
             f"/api/v1/phishing/campaigns/{cid}",
             json={
                 "lookalike_domain": "secure-acme.com",
@@ -1360,3 +1376,76 @@ class TestNormalizeDomain:
 
         with pytest.raises(ValueError):
             _normalize_domain(bad)
+
+
+# ---------------------------------------------------------------------------
+# Gating à la création selon l'opérateur (Lot 1 refonte)
+# ---------------------------------------------------------------------------
+
+
+async def _make_consultant_with_client(client: AsyncClient) -> int:
+    """Passe l'utilisateur courant consultant RSSI + crée un client, renvoie son id."""
+    from sqlalchemy import select as _select
+
+    import app.core.database as _db
+    from app.core.security import decode_access_token
+    from app.models.user import User as _User
+
+    uid = int(decode_access_token(client.headers["Authorization"].removeprefix("Bearer ").strip()))
+    async with _db.AsyncSessionLocal() as db:
+        user = (await db.execute(_select(_User).where(_User.id == uid))).scalar_one()
+        user.is_rssi_consultant = True
+        await db.commit()
+    r = await client.post(
+        "/api/v1/rssi/clients",
+        json={"name": "Acme", "email": "acme@example.com", "formula": "essentiel"},
+    )
+    assert r.status_code == 201, r.text
+    return r.json()["id"]
+
+
+class TestCampaignGating:
+    @pytest.mark.asyncio
+    async def test_company_without_subscription_is_403(self, auth_client: AsyncClient):
+        r = await auth_client.post(
+            "/api/v1/phishing/campaigns",
+            json={"name": "No Plan", "plan_tier": "standard"},
+        )
+        assert r.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_non_consultant_passing_client_id_is_403(self, phishing_client: AsyncClient):
+        # A un plan Pro mais n'est pas consultant : fournir rssi_client_id -> 403.
+        r = await phishing_client.post(
+            "/api/v1/phishing/campaigns",
+            json={"name": "Not Consultant", "plan_tier": "standard", "rssi_client_id": 1},
+        )
+        assert r.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_consultant_creates_for_owned_client(self, auth_client: AsyncClient):
+        client_id = await _make_consultant_with_client(auth_client)
+        # Consultant SANS plan : le gate tier ne s'applique pas au mode consultant.
+        r = await auth_client.post(
+            "/api/v1/phishing/campaigns",
+            json={"name": "For Client", "plan_tier": "standard", "rssi_client_id": client_id},
+        )
+        assert r.status_code == 201, r.text
+        assert r.json()["rssi_client_id"] == client_id
+
+        # Vue entreprise (sans param) : ne voit PAS la campagne rattachée à un client.
+        r_company = await auth_client.get("/api/v1/phishing/campaigns")
+        assert all(c["rssi_client_id"] is None for c in r_company.json())
+
+        # Vue client : voit la campagne.
+        r_client = await auth_client.get(f"/api/v1/phishing/campaigns?rssi_client_id={client_id}")
+        assert any(c["rssi_client_id"] == client_id for c in r_client.json())
+
+    @pytest.mark.asyncio
+    async def test_consultant_with_foreign_client_is_404(self, auth_client: AsyncClient):
+        await _make_consultant_with_client(auth_client)
+        r = await auth_client.post(
+            "/api/v1/phishing/campaigns",
+            json={"name": "Foreign", "plan_tier": "standard", "rssi_client_id": 999999},
+        )
+        assert r.status_code == 404

@@ -34,6 +34,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
+from app.api.v1.endpoints.rssi._shared import _get_client_or_404
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.limiter import limiter
@@ -63,6 +64,11 @@ _MAX_TARGETS = {
 }
 
 _VALID_TIERS = set(_MAX_TARGETS.keys())
+
+# Mode entreprise directe : tier minimum requis pour lancer une campagne
+# (1=Gratuit, 2=Starter, 3=Pro, 4=Business). Le mode consultant y accède via sa
+# prestation (ownership du client), pas via ce gate.
+_PHISHING_MIN_TIER = 3
 
 
 # ---------------------------------------------------------------------------
@@ -102,6 +108,8 @@ def _normalize_domain(value: str | None) -> str | None:
 class CampaignCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
     plan_tier: str = Field(..., pattern="^(express|standard|premium|quarterly|monthly)$")
+    # Mode consultant : rattache la campagne à un client RSSI. NULL = entreprise directe.
+    rssi_client_id: int | None = None
 
 
 class CampaignUpdate(BaseModel):
@@ -147,6 +155,7 @@ def _serialize_campaign(c: PhishingCampaign) -> dict:
         "name": c.name,
         "status": c.status,
         "plan_tier": c.plan_tier,
+        "rssi_client_id": c.rssi_client_id,
         "domain": c.domain,
         "domain_verified": c.domain_verified,
         "lookalike_domain": c.lookalike_domain,
@@ -196,12 +205,55 @@ async def _get_owned(campaign_id: int, user_id: int, db: AsyncSession) -> Phishi
 # ---------------------------------------------------------------------------
 
 
+async def _authorize_campaign_context(
+    rssi_client_id: int | None, current_user: User, db: AsyncSession
+) -> int | None:
+    """Contrôle d'accès selon l'opérateur :
+    - mode consultant (rssi_client_id fourni) : exige is_rssi_consultant + ownership
+      du client (404 sinon, pour ne pas révéler son existence) ;
+    - mode entreprise directe (NULL) : exige un plan actif >= _PHISHING_MIN_TIER.
+    Retourne le rssi_client_id validé (ou None).
+    """
+    if rssi_client_id is not None:
+        if not current_user.is_rssi_consultant:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Accès réservé aux consultants RSSI.",
+            )
+        await _get_client_or_404(rssi_client_id, current_user.id, db)
+        return rssi_client_id
+
+    from app.services.subscription_service import get_active_tier
+
+    tier = await get_active_tier(db, current_user.id)
+    if tier < _PHISHING_MIN_TIER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="La simulation de phishing nécessite un abonnement Pro ou supérieur.",
+        )
+    return None
+
+
 @router.get("/campaigns")
 async def list_campaigns(
+    rssi_client_id: int | None = Query(None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    campaigns = await phishing_service.get_campaigns(current_user.id, db)
+    if rssi_client_id is not None:
+        # Mode consultant : campagnes d'un client (ownership vérifié).
+        if not current_user.is_rssi_consultant:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Accès réservé aux consultants RSSI.",
+            )
+        await _get_client_or_404(rssi_client_id, current_user.id, db)
+        campaigns = await phishing_service.get_campaigns(
+            current_user.id, db, rssi_client_id=rssi_client_id
+        )
+    else:
+        # Mode entreprise directe : campagnes sans client rattaché.
+        campaigns = await phishing_service.get_campaigns(current_user.id, db, company_only=True)
     return [_serialize_campaign(c) for c in campaigns]
 
 
@@ -211,8 +263,9 @@ async def create_campaign(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    rssi_client_id = await _authorize_campaign_context(payload.rssi_client_id, current_user, db)
     campaign = await phishing_service.create_campaign(
-        current_user.id, payload.name, payload.plan_tier, db
+        current_user.id, payload.name, payload.plan_tier, db, rssi_client_id=rssi_client_id
     )
     await db.commit()
     return _serialize_campaign(campaign)

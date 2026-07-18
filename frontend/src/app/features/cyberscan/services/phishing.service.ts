@@ -16,6 +16,7 @@ export interface PhishingCampaign {
     | 'completed'
     | 'cancelled';
   plan_tier: string;
+  rssi_client_id: number | null;
   domain: string | null;
   domain_verified: boolean;
   lookalike_domain: string | null;
@@ -101,16 +102,26 @@ export class PhishingService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/phishing`;
 
-  getCampaigns(): Observable<PhishingCampaign[]> {
-    return this.http.get<PhishingCampaign[]>(`${this.base}/campaigns`);
+  /** rssiClientId renseigné => campagnes d'un client (mode consultant) ;
+   *  sinon => campagnes de l'entreprise en direct (sans client rattaché). */
+  getCampaigns(rssiClientId?: number): Observable<PhishingCampaign[]> {
+    const q = rssiClientId != null ? `?rssi_client_id=${rssiClientId}` : '';
+    return this.http.get<PhishingCampaign[]>(`${this.base}/campaigns${q}`);
   }
 
   getCampaign(id: number): Observable<PhishingCampaign> {
     return this.http.get<PhishingCampaign>(`${this.base}/campaigns/${id}`);
   }
 
-  createCampaign(name: string, plan_tier: string): Observable<PhishingCampaign> {
-    return this.http.post<PhishingCampaign>(`${this.base}/campaigns`, { name, plan_tier });
+  /** rssiClientId rattache la campagne à un client RSSI (mode consultant). */
+  createCampaign(
+    name: string,
+    plan_tier: string,
+    rssiClientId?: number
+  ): Observable<PhishingCampaign> {
+    const body: { name: string; plan_tier: string; rssi_client_id?: number } = { name, plan_tier };
+    if (rssiClientId != null) body.rssi_client_id = rssiClientId;
+    return this.http.post<PhishingCampaign>(`${this.base}/campaigns`, body);
   }
 
   updateCampaign(

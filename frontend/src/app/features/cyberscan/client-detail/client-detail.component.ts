@@ -20,6 +20,7 @@ import {
   RssiSite,
   UnlinkedSite,
 } from '../services/rssi.service';
+import { PhishingService, PhishingCampaign } from '../services/phishing.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
@@ -40,6 +41,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
 })
 export class ClientDetailComponent implements OnInit {
   private rssi = inject(RssiService);
+  private phishing = inject(PhishingService);
   private fb = inject(FormBuilder);
   private snack = inject(MatSnackBar);
   private route = inject(ActivatedRoute);
@@ -56,10 +58,14 @@ export class ClientDetailComponent implements OnInit {
   deliverables = signal<RssiDeliverable[]>([]);
   sites = signal<RssiSite[]>([]);
   unlinkedSites = signal<UnlinkedSite[]>([]);
+  campaigns = signal<PhishingCampaign[]>([]);
+  creatingCampaign = signal(false);
   showLinkSitePicker = signal(false);
   selectedSiteId = signal<number | null>(null);
 
-  activeTab = signal<'infos' | 'visites' | 'actions' | 'livrables' | 'sites' | 'activite'>('infos');
+  activeTab = signal<
+    'infos' | 'visites' | 'actions' | 'livrables' | 'sites' | 'activite' | 'phishing'
+  >('infos');
   saving = signal(false);
   generatingReport = signal(false);
   editingVisitId = signal<number | null>(null);
@@ -213,6 +219,7 @@ export class ClientDetailComponent implements OnInit {
       deliverables: this.rssi.getDeliverables(this.clientId),
       sites: this.rssi.getClientSites(this.clientId),
       unlinked: this.rssi.getUnlinkedSites(),
+      campaigns: this.phishing.getCampaigns(this.clientId),
     }).subscribe({
       next: data => {
         this.client.set(data.client);
@@ -222,6 +229,7 @@ export class ClientDetailComponent implements OnInit {
         this.deliverables.set(data.deliverables);
         this.sites.set(data.sites);
         this.unlinkedSites.set(data.unlinked);
+        this.campaigns.set(data.campaigns);
         this.title.setTitle(`${data.client.name} — RSSI Rocher Cybersécurité`);
         this._patchInfoForm(data.client);
         this.loading.set(false);
@@ -229,6 +237,26 @@ export class ClientDetailComponent implements OnInit {
       error: () => {
         this.loading.set(false);
         this.router.navigate(['/consultant']);
+      },
+    });
+  }
+
+  /** Crée une campagne de phishing rattachée à ce client puis ouvre sa config. */
+  newPhishingCampaign() {
+    const client = this.client();
+    if (!client || this.creatingCampaign()) return;
+    this.creatingCampaign.set(true);
+    this.phishing.createCampaign(`Campagne ${client.name}`, 'standard', this.clientId).subscribe({
+      next: c => {
+        this.creatingCampaign.set(false);
+        this.rssi
+          .logActivity(this.clientId, { action_type: 'create_phishing_campaign' })
+          .subscribe();
+        this.router.navigate(['/phishing/campaigns', c.id, 'edit']);
+      },
+      error: () => {
+        this.creatingCampaign.set(false);
+        this.snack.open('Création de la campagne impossible.', 'Fermer', { duration: 4000 });
       },
     });
   }

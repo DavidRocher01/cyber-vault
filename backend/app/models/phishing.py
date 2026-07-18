@@ -10,8 +10,16 @@ class PhishingCampaign(Base):
     __tablename__ = "phishing_campaigns"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    # Propriétaire = le compte qui lance la campagne (consultant OU entreprise).
+    # L'ownership (get/patch/launch) se fait TOUJOURS sur user_id.
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # Attribution : campagne rattachée à un client RSSI (mode consultant) ou NULL
+    # (mode entreprise directe). Ne sert PAS au contrôle d'accès, seulement à
+    # l'affichage sur la fiche client + à l'org awareness du client (training-on-fail).
+    rssi_client_id: Mapped[int | None] = mapped_column(
+        ForeignKey("rssi_clients.id", ondelete="CASCADE"), nullable=True, index=True
     )
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)

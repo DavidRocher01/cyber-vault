@@ -110,12 +110,24 @@ async def check_domain_verification(record: PhishingDomainVerification, db: Asyn
 # ---------------------------------------------------------------------------
 
 
-async def get_campaigns(user_id: int, db: AsyncSession) -> list[PhishingCampaign]:
-    result = await db.execute(
-        select(PhishingCampaign)
-        .where(PhishingCampaign.user_id == user_id)
-        .order_by(PhishingCampaign.created_at.desc())
-    )
+async def get_campaigns(
+    user_id: int,
+    db: AsyncSession,
+    *,
+    rssi_client_id: int | None = None,
+    company_only: bool = False,
+) -> list[PhishingCampaign]:
+    """Campagnes du propriétaire, filtrées par mode :
+    - rssi_client_id renseigné → campagnes de ce client (mode consultant) ;
+    - company_only=True → campagnes sans client (mode entreprise directe) ;
+    - sinon → toutes celles du propriétaire.
+    """
+    query = select(PhishingCampaign).where(PhishingCampaign.user_id == user_id)
+    if rssi_client_id is not None:
+        query = query.where(PhishingCampaign.rssi_client_id == rssi_client_id)
+    elif company_only:
+        query = query.where(PhishingCampaign.rssi_client_id.is_(None))
+    result = await db.execute(query.order_by(PhishingCampaign.created_at.desc()))
     return list(result.scalars().all())
 
 
@@ -130,9 +142,20 @@ async def get_campaign(campaign_id: int, user_id: int, db: AsyncSession) -> Phis
 
 
 async def create_campaign(
-    user_id: int, name: str, plan_tier: str, db: AsyncSession
+    user_id: int,
+    name: str,
+    plan_tier: str,
+    db: AsyncSession,
+    *,
+    rssi_client_id: int | None = None,
 ) -> PhishingCampaign:
-    campaign = PhishingCampaign(user_id=user_id, name=name, plan_tier=plan_tier, status="draft")
+    campaign = PhishingCampaign(
+        user_id=user_id,
+        name=name,
+        plan_tier=plan_tier,
+        status="draft",
+        rssi_client_id=rssi_client_id,
+    )
     db.add(campaign)
     await db.flush()
     await db.refresh(campaign)

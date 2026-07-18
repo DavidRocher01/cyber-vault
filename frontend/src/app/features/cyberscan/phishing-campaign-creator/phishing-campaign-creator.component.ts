@@ -162,9 +162,13 @@ export class PhishingCampaignCreatorComponent implements OnInit {
           this.next();
         }
       },
-      error: () => {
+      error: err => {
         this.submitting.set(false);
-        this.snack.open('Erreur lors de la création', 'Fermer', { duration: 3000 });
+        const msg =
+          err?.status === 403
+            ? 'La simulation de phishing nécessite un abonnement Pro ou supérieur.'
+            : 'Erreur lors de la création';
+        this.snack.open(msg, 'Fermer', { duration: 5000 });
       },
     });
   }
