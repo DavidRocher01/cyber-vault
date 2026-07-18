@@ -4,11 +4,14 @@ import { PhishingService } from './phishing.service';
 
 const BASE = '/api/v1/phishing';
 
-function makeService(httpOverrides: Partial<{ get: any; post: any; patch: any }> = {}) {
+function makeService(
+  httpOverrides: Partial<{ get: any; post: any; patch: any; delete: any }> = {}
+) {
   const http = {
     get: vi.fn().mockReturnValue(of({})),
     post: vi.fn().mockReturnValue(of({})),
     patch: vi.fn().mockReturnValue(of({})),
+    delete: vi.fn().mockReturnValue(of(undefined)),
     ...httpOverrides,
   };
   const service = Object.create(PhishingService.prototype) as PhishingService;
@@ -108,5 +111,48 @@ describe('PhishingService — checkDomainVerify()', () => {
     const { service, http } = makeService();
     service.checkDomainVerify('acme.fr').subscribe();
     expect(http.post).toHaveBeenCalledWith(`${BASE}/domain-verify/check`, { domain: 'acme.fr' });
+  });
+});
+
+describe('PhishingService — cibles (Lot 2) + cancel (Lot 3)', () => {
+  it('getTargets appelle GET /campaigns/{id}/targets', () => {
+    const { service, http } = makeService();
+    service.getTargets(7).subscribe();
+    expect(http.get).toHaveBeenCalledWith(`${BASE}/campaigns/7/targets`);
+  });
+
+  it('addTarget appelle POST /campaigns/{id}/targets/single', () => {
+    const { service, http } = makeService();
+    service.addTarget(7, { email: 'a@x.com' }).subscribe();
+    expect(http.post).toHaveBeenCalledWith(`${BASE}/campaigns/7/targets/single`, {
+      email: 'a@x.com',
+    });
+  });
+
+  it('deleteTarget appelle DELETE /campaigns/{id}/targets/{tid}', () => {
+    const { service, http } = makeService();
+    service.deleteTarget(7, 3).subscribe();
+    expect(http.delete).toHaveBeenCalledWith(`${BASE}/campaigns/7/targets/3`);
+  });
+
+  it('uploadTargets en merge (défaut) : pas de query replace', () => {
+    const { service, http } = makeService();
+    service.uploadTargets(7, new File([''], 't.csv')).subscribe();
+    expect(http.post).toHaveBeenCalledWith(`${BASE}/campaigns/7/targets`, expect.any(FormData));
+  });
+
+  it('uploadTargets(replace=true) ajoute ?replace=true', () => {
+    const { service, http } = makeService();
+    service.uploadTargets(7, new File([''], 't.csv'), true).subscribe();
+    expect(http.post).toHaveBeenCalledWith(
+      `${BASE}/campaigns/7/targets?replace=true`,
+      expect.any(FormData)
+    );
+  });
+
+  it('cancelCampaign appelle POST /campaigns/{id}/cancel', () => {
+    const { service, http } = makeService();
+    service.cancelCampaign(7).subscribe();
+    expect(http.post).toHaveBeenCalledWith(`${BASE}/campaigns/7/cancel`, {});
   });
 });
