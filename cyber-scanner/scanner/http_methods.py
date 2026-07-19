@@ -7,7 +7,7 @@ No API key required.
 
 from typing import Any
 
-import requests
+from scanner import safe_http as requests
 import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)

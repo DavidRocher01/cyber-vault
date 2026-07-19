@@ -8,7 +8,7 @@ import re
 from typing import Any
 from urllib.parse import urlencode, urlparse
 
-import requests
+from scanner import safe_http as requests
 import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)

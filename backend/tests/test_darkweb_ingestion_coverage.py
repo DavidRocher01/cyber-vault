@@ -328,8 +328,9 @@ async def test_process_dossier_sets_next_monitor_when_active(db_session):
 
 
 async def test_process_dossier_failure_sets_failed_status(db_session):
-    """If check_email_breaches raises, the top-level except records the error
-    and marks the dossier failed (finished_at set)."""
+    """If check_email_breaches raises, the top-level except marks the dossier
+    failed (finished_at set) and stores a GENERIC message — the raw exception
+    detail must never leak into error_message (logged server-side only)."""
     user = await _seed_user(db_session, "proc-fail@test.com")
     dossier_id = await _seed_dossier(db_session, user.id, ["boom@acme.fr"])
 
@@ -343,7 +344,9 @@ async def test_process_dossier_failure_sets_failed_status(db_session):
 
     dossier = await _reload_dossier(dossier_id)
     assert dossier.status == "failed"
-    assert "provider exploded" in (dossier.error_message or "")
+    # Message générique stocké ; le détail brut de l'exception NE doit PAS fuiter.
+    assert dossier.error_message
+    assert "provider exploded" not in dossier.error_message
     assert dossier.finished_at is not None
 
 

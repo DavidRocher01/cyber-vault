@@ -11,12 +11,20 @@ from app.core.config import settings
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 
 
+def _bcrypt_bytes(password: str) -> bytes:
+    # bcrypt >= 4/5 lève ValueError si le mot de passe dépasse 72 octets, alors que
+    # les versions historiques tronquaient silencieusement. On tronque à 72 octets
+    # pour éviter un 500 sur les mots de passe longs ET rester compatible avec les
+    # hash déjà en base (calculés sur les 72 premiers octets par l'ancien bcrypt).
+    return password.encode()[:72]
+
+
 def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    return bcrypt.hashpw(_bcrypt_bytes(password), bcrypt.gensalt()).decode()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
+    return bcrypt.checkpw(_bcrypt_bytes(plain_password), hashed_password.encode())
 
 
 def create_access_token(subject: str) -> str:

@@ -4,7 +4,7 @@ Detects dangerous CORS misconfigurations by sending crafted Origin headers
 and analysing Access-Control-Allow-Origin / Access-Control-Allow-Credentials.
 """
 
-import requests
+from scanner import safe_http as requests
 import urllib3
 from typing import Any
 

@@ -16,6 +16,8 @@ import {
   Scan,
   PaginatedScans,
   FindingStatus,
+  SiteDomainStatus,
+  SiteDomainVerify,
 } from '../services/cyberscan.service';
 import { CollabService, Collaborator } from '../services/collab.service';
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
@@ -147,8 +149,56 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
         this.loadScans(1);
         this.loadFindingStatuses(id);
         this.loadCollaborators(id);
+        if (found) this.loadDomainStatus(id);
       },
       error: () => this.loading.set(false),
+    });
+  }
+
+  // ── Vérification de propriété du domaine (débloque l'analyse de ports) ──
+  domainStatus = signal<SiteDomainStatus | null>(null);
+  verifyInfo = signal<SiteDomainVerify | null>(null);
+  verifying = signal(false);
+  showVerifyPanel = signal(false);
+
+  loadDomainStatus(id: number) {
+    this.cyberscan.getSiteDomainStatus(id).subscribe({
+      next: s => this.domainStatus.set(s),
+      error: () => this.domainStatus.set(null),
+    });
+  }
+
+  startVerify() {
+    this.showVerifyPanel.set(true);
+    if (this.verifyInfo()) return;
+    this.cyberscan.requestSiteDomainVerify(this.siteId()).subscribe({
+      next: v => this.verifyInfo.set(v),
+      error: () =>
+        this.snack.open('Erreur lors de la demande de vérification', 'Fermer', { duration: 3000 }),
+    });
+  }
+
+  checkVerify() {
+    this.verifying.set(true);
+    this.cyberscan.checkSiteDomainVerify(this.siteId()).subscribe({
+      next: s => {
+        this.verifying.set(false);
+        this.domainStatus.set(s);
+        if (s.verified) {
+          this.showVerifyPanel.set(false);
+          this.snack.open('Domaine vérifié — analyse de ports débloquée', 'OK', { duration: 4000 });
+        } else {
+          this.snack.open(
+            'Enregistrement TXT pas encore visible (propagation DNS en cours ?)',
+            'Fermer',
+            { duration: 4000 }
+          );
+        }
+      },
+      error: () => {
+        this.verifying.set(false);
+        this.snack.open('Vérification impossible', 'Fermer', { duration: 3000 });
+      },
     });
   }
 

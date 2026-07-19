@@ -117,9 +117,12 @@ async def process_dossier(dossier_id: int, api_key: str) -> None:
                 dossier.next_monitor_at = now + timedelta(days=_MONITOR_INTERVAL_DAYS)
             await db.commit()
 
-        except Exception as exc:
+        except Exception:
+            # Détail complet côté serveur uniquement ; message générique en base
+            # (restitué au client) pour ne pas exposer d'info interne.
+            logger.exception(f"Darkweb dossier {dossier.id} ingestion failed")
             dossier.status = "failed"
-            dossier.error_message = str(exc)
+            dossier.error_message = "Le traitement a échoué. Réessayez ou contactez le support."
             dossier.finished_at = datetime.now(UTC)
             await db.commit()
 

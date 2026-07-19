@@ -143,6 +143,9 @@ async def test_run_scan_sets_started_at_on_site_found():
         MagicMock(scalar_one_or_none=MagicMock(return_value=scan)),
         MagicMock(scalar_one_or_none=MagicMock(return_value=site)),
         MagicMock(scalar_one_or_none=MagicMock(return_value=plan_mock)),
+        MagicMock(
+            scalar_one_or_none=MagicMock(return_value=None)
+        ),  # is_domain_verified -> non vérifié
     ]
     db.execute = AsyncMock(side_effect=results)
 
@@ -194,6 +197,9 @@ async def test_run_scan_exception_marks_scan_failed():
         MagicMock(scalar_one_or_none=MagicMock(return_value=scan)),
         MagicMock(scalar_one_or_none=MagicMock(return_value=site)),
         MagicMock(scalar_one_or_none=MagicMock(return_value=plan_mock)),
+        MagicMock(
+            scalar_one_or_none=MagicMock(return_value=None)
+        ),  # is_domain_verified -> non vérifié
     ]
     db.execute = AsyncMock(side_effect=results)
 
@@ -248,6 +254,9 @@ async def test_run_scan_overall_status_critical_when_any_critical():
         MagicMock(scalar_one_or_none=MagicMock(return_value=scan)),
         MagicMock(scalar_one_or_none=MagicMock(return_value=site)),
         MagicMock(scalar_one_or_none=MagicMock(return_value=plan_mock)),
+        MagicMock(
+            scalar_one_or_none=MagicMock(return_value=None)
+        ),  # is_domain_verified -> non vérifié
     ]
     db.execute = AsyncMock(side_effect=results)
 
@@ -322,6 +331,9 @@ async def test_run_scan_overall_status_ok_when_all_ok():
         MagicMock(scalar_one_or_none=MagicMock(return_value=scan)),
         MagicMock(scalar_one_or_none=MagicMock(return_value=site)),
         MagicMock(scalar_one_or_none=MagicMock(return_value=plan_mock)),
+        MagicMock(
+            scalar_one_or_none=MagicMock(return_value=None)
+        ),  # is_domain_verified -> non vérifié
     ]
     db.execute = AsyncMock(side_effect=results)
 
@@ -596,6 +608,7 @@ async def test_run_scan_uses_run_in_executor():
             MagicMock(scalar_one_or_none=MagicMock(return_value=scan)),
             MagicMock(scalar_one_or_none=MagicMock(return_value=site)),
             MagicMock(scalar_one_or_none=MagicMock(return_value=plan_mock)),
+            MagicMock(scalar_one_or_none=MagicMock(return_value=None)),  # is_domain_verified
         ]
     )
 
@@ -660,6 +673,7 @@ async def test_run_scan_executor_exception_marks_failed():
             MagicMock(scalar_one_or_none=MagicMock(return_value=scan)),
             MagicMock(scalar_one_or_none=MagicMock(return_value=site)),
             MagicMock(scalar_one_or_none=MagicMock(return_value=plan_mock)),
+            MagicMock(scalar_one_or_none=MagicMock(return_value=None)),  # is_domain_verified
         ]
     )
 
@@ -676,3 +690,39 @@ async def test_run_scan_executor_exception_marks_failed():
     assert scan.status == "failed"
     assert "network timeout" in (scan.error_message or "")
     db.commit.assert_called()
+
+
+# ── H2a : gate scan actif (vérification de propriété du domaine) ────────────────
+
+
+@pytest.mark.asyncio
+async def test_active_scan_allowed_reflects_domain_verification():
+    """_active_scan_allowed suit le statut de vérification du domaine."""
+    from unittest.mock import AsyncMock, patch
+
+    from app.services import scan_service
+
+    db = AsyncMock()
+    with patch(
+        "app.services.phishing_service.is_domain_verified", new_callable=AsyncMock
+    ) as mock_verif:
+        mock_verif.return_value = False
+        assert await scan_service._active_scan_allowed(1, "https://acme.com", db) is False
+        mock_verif.return_value = True
+        assert await scan_service._active_scan_allowed(1, "https://acme.com", db) is True
+
+
+@pytest.mark.asyncio
+async def test_active_scan_allowed_www_falls_back_to_apex():
+    """Vérifier l'apex (acme.com) autorise aussi www.acme.com."""
+    from unittest.mock import patch
+
+    from app.services import scan_service
+
+    async def fake(uid, domain, db):
+        return domain == "acme.com"
+
+    db = MagicMock()
+    with patch("app.services.phishing_service.is_domain_verified", side_effect=fake):
+        assert await scan_service._active_scan_allowed(1, "https://www.acme.com", db) is True
+        assert await scan_service._active_scan_allowed(1, "https://other.com", db) is False

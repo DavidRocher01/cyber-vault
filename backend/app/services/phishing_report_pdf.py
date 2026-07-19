@@ -6,6 +6,7 @@ Uses ReportLab (already in requirements).
 import io
 import json
 from datetime import UTC, datetime
+from xml.sax.saxutils import escape
 
 from loguru import logger
 from reportlab.lib import colors
@@ -185,7 +186,11 @@ def generate_phishing_report(
     # ── Header ──────────────────────────────────────────────────────────────
     story.append(Paragraph("Rocher Cybersécurité", brand_style))
     story.append(Paragraph("Rapport de simulation de phishing", title_style))
-    story.append(Paragraph(campaign.name, subtitle_style))
+    # XML-escape : campaign.name est fourni par l'utilisateur et interprété comme
+    # markup par ReportLab (Paragraph) — sans échappement, `<img src=...>` déclenche
+    # une requête (SSRF vers l'infra interne). Les cellules de tableau, elles, sont
+    # rendues littéralement (pas de markup) donc sûres.
+    story.append(Paragraph(escape(campaign.name), subtitle_style))
     story.append(HRFlowable(width="100%", thickness=1, color=_CYAN, spaceAfter=10))
 
     # ── Campaign meta ────────────────────────────────────────────────────────

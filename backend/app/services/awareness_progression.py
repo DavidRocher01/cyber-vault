@@ -18,6 +18,7 @@ from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.utils import mask_email
 from app.models.awareness_enrollment import AwarenessEnrollment
 from app.models.awareness_learner import AwarenessLearner
 from app.models.awareness_module import AwarenessModule
@@ -274,7 +275,7 @@ async def complete_module(
                     certificate_url=certificate_url,
                 )
         except Exception as e:
-            logger.warning(f"Envoi email complétion échoué pour {learner.email}: {e}")
+            logger.warning(f"Envoi email complétion échoué pour {mask_email(learner.email)}: {e}")
 
     return enrollment
 

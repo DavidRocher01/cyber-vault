@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 import pyotp
 import qrcode
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.limiter import limiter
 from app.core.security import hash_password, verify_password
 from app.core.totp_crypto import decrypt_totp_secret, encrypt_totp_secret
 from app.models.scan import Scan
@@ -298,7 +299,9 @@ async def get_my_badges(
 
 
 @router.post("/me/2fa/setup", response_model=TwoFactorSetupOut)
+@limiter.limit("5/minute")
 async def setup_2fa(
+    request: Request,
     payload: TwoFactorSetupIn,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -330,7 +333,9 @@ async def setup_2fa(
 
 
 @router.post("/me/2fa/enable", response_model=UserOut)
+@limiter.limit("5/minute")
 async def enable_2fa(
+    request: Request,
     payload: TwoFactorVerifyIn,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -348,7 +353,9 @@ async def enable_2fa(
 
 
 @router.post("/me/2fa/disable", response_model=UserOut)
+@limiter.limit("5/minute")
 async def disable_2fa(
+    request: Request,
     payload: TwoFactorDisableIn,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

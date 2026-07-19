@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.utils import mask_email
 from app.models.awareness_learner import AwarenessLearner
 from app.models.awareness_organization import AwarenessOrganization
 from app.models.user import User
@@ -103,7 +104,7 @@ async def create_learner(
                 login_url=login_url,
             )
     except Exception as e:
-        logger.warning(f"Envoi email magic-link échoué pour {payload.email}: {e}")
+        logger.warning(f"Envoi email magic-link échoué pour {mask_email(payload.email)}: {e}")
 
     return AwarenessLearnerOut.model_validate(learner)
 
@@ -176,7 +177,7 @@ async def request_magic_link(
             login_url=login_url,
         )
     except Exception as e:
-        logger.warning(f"Envoi magic-link échoué pour {learner.email}: {e}")
+        logger.warning(f"Envoi magic-link échoué pour {mask_email(learner.email)}: {e}")
 
     return {"message": "Si l'email existe, un lien de connexion vous a été envoyé."}
 

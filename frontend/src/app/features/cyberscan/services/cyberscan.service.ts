@@ -40,6 +40,21 @@ export interface SiteCreate {
   name: string;
 }
 
+export interface SiteDomainStatus {
+  domain: string;
+  verified: boolean;
+}
+
+export interface SiteDomainVerify {
+  domain: string;
+  verified: boolean;
+  verification_token: string;
+  dns_record_name: string;
+  dns_record_type: string;
+  dns_record_value: string;
+  instructions: string;
+}
+
 export interface Scan {
   id: number;
   site_id: number;
@@ -242,6 +257,19 @@ export class CyberscanService {
       `${API}/scans/trigger/${siteId}`,
       {}
     );
+  }
+
+  // ── Vérification de propriété du domaine (débloque l'analyse de ports) ──
+  getSiteDomainStatus(siteId: number): Observable<SiteDomainStatus> {
+    return this.http.get<SiteDomainStatus>(`${API}/sites/${siteId}/domain`);
+  }
+
+  requestSiteDomainVerify(siteId: number): Observable<SiteDomainVerify> {
+    return this.http.post<SiteDomainVerify>(`${API}/sites/${siteId}/domain/verify`, {});
+  }
+
+  checkSiteDomainVerify(siteId: number): Observable<SiteDomainStatus> {
+    return this.http.post<SiteDomainStatus>(`${API}/sites/${siteId}/domain/verify/check`, {});
   }
 
   getSiteScans(siteId: number, page = 1, perPage = 10): Observable<PaginatedScans> {
