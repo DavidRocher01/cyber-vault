@@ -26,8 +26,10 @@ import resend
 from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.core.config import settings
+from app.models.enums import CampaignStatus, TargetStatus
 from app.models.phishing import (
     PhishingCampaign,
     PhishingDomainVerification,
@@ -36,13 +38,20 @@ from app.models.phishing import (
 from app.models.user import User
 from app.services.phishing_templates import (
     _DEFAULT_SCENARIO_KEY,
-    _LANDING_MICROSOFT,
-    _LANDING_TEMPLATES,
-    _PIXEL_GIF,
-    _SCENARIO_AWARENESS,
-    _SCENARIO_LANDING,
     _SCENARIO_TEMPLATES,
     _dynamic_ctx,
+)
+from app.services.phishing_templates import (
+    get_awareness_html as get_awareness_html,  # re-export (facade service)
+)
+from app.services.phishing_templates import (
+    get_expired_html as get_expired_html,
+)
+from app.services.phishing_templates import (
+    get_landing_html as get_landing_html,
+)
+from app.services.phishing_templates import (
+    get_pixel_gif as get_pixel_gif,
 )
 
 # Prevents two concurrent batch runs from double-sending (APScheduler + create_task on launch)
@@ -82,8 +91,6 @@ async def request_domain_verification(
 async def check_domain_verification(record: PhishingDomainVerification, db: AsyncSession) -> bool:
     if record.verified:
         return True
-    from app.core.config import settings
-
     if settings.APP_ENV == "development":
         record.verified = True
         record.verified_at = datetime.now(UTC)
@@ -103,6 +110,31 @@ async def check_domain_verification(record: PhishingDomainVerification, db: Asyn
     except Exception as exc:
         logger.debug(f"DNS TXT check failed for {record.domain}: {exc}")
     return False
+
+
+async def get_domain_verification(
+    user_id: int, domain: str, db: AsyncSession
+) -> PhishingDomainVerification | None:
+    """Retourne la demande de vérification d'un domaine pour un utilisateur (ou None)."""
+    result = await db.execute(
+        select(PhishingDomainVerification).where(
+            PhishingDomainVerification.user_id == user_id,
+            PhishingDomainVerification.domain == domain,
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def is_domain_verified(user_id: int, domain: str, db: AsyncSession) -> bool:
+    """True si l'utilisateur possède une vérification RÉUSSIE pour ce domaine."""
+    result = await db.execute(
+        select(PhishingDomainVerification.id).where(
+            PhishingDomainVerification.user_id == user_id,
+            PhishingDomainVerification.domain == domain,
+            PhishingDomainVerification.verified.is_(True),
+        )
+    )
+    return result.scalar_one_or_none() is not None
 
 
 # ---------------------------------------------------------------------------
@@ -141,6 +173,21 @@ async def get_campaign(campaign_id: int, user_id: int, db: AsyncSession) -> Phis
     return result.scalar_one_or_none()
 
 
+async def get_targets(campaign_id: int, db: AsyncSession) -> list[PhishingTarget]:
+    """Cibles d'une campagne (ordre d'insertion)."""
+    result = await db.execute(
+        select(PhishingTarget)
+        .where(PhishingTarget.campaign_id == campaign_id)
+        .order_by(PhishingTarget.id)
+    )
+    return list(result.scalars().all())
+
+
+async def delete_campaign(campaign: PhishingCampaign, db: AsyncSession) -> None:
+    """Supprime la campagne (cibles supprimées en cascade via la relation ORM)."""
+    await db.delete(campaign)
+
+
 async def create_campaign(
     user_id: int,
     name: str,
@@ -153,7 +200,7 @@ async def create_campaign(
         user_id=user_id,
         name=name,
         plan_tier=plan_tier,
-        status="draft",
+        status=CampaignStatus.DRAFT,
         rssi_client_id=rssi_client_id,
     )
     db.add(campaign)
@@ -208,7 +255,7 @@ async def update_campaign(
 async def cancel_campaign(campaign: PhishingCampaign, db: AsyncSession) -> PhishingCampaign:
     """Annule une campagne : le statut "cancelled" l'exclut du batch (qui ne
     traite que scheduled/active/sending) — plus aucun email ne partira."""
-    campaign.status = "cancelled"
+    campaign.status = CampaignStatus.CANCELLED
     campaign.finished_at = datetime.now(UTC)
     campaign.updated_at = datetime.now(UTC)
     await db.flush()
@@ -432,6 +479,108 @@ def _send_phishing_email(
     resend.Emails.send(payload)
 
 
+async def _activate_due_campaigns(db: AsyncSession) -> None:
+    """Passe en 'sending' les campagnes planifiées dont l'heure d'envoi est arrivée."""
+    now = datetime.now(UTC)
+    due_result = await db.execute(
+        select(PhishingCampaign).where(
+            PhishingCampaign.status == CampaignStatus.SCHEDULED,
+            PhishingCampaign.scheduled_at <= now,
+        )
+    )
+    for due in due_result.scalars().all():
+        due.status = CampaignStatus.SENDING
+        due.started_at = now
+        due.updated_at = now
+        logger.info(f"Phishing batch: activating scheduled campaign {due.id}")
+    await db.commit()
+
+
+async def _finalize_campaign(campaign: PhishingCampaign, db: AsyncSession) -> None:
+    """Toutes les cibles envoyées : passe la campagne en 'active' (phase résultats)
+    et notifie le propriétaire par email (best-effort, n'interrompt jamais le batch)."""
+    campaign.status = CampaignStatus.ACTIVE
+    campaign.finished_at = datetime.now(UTC)
+    campaign.updated_at = datetime.now(UTC)
+    await db.flush()
+    user_result = await db.execute(select(User).where(User.id == campaign.user_id))
+    user = user_result.scalar_one_or_none()
+    if not user:
+        return
+    try:
+        from app.services.email_service import send_campaign_complete
+
+        await asyncio.to_thread(
+            send_campaign_complete,
+            user.email,
+            campaign.name,
+            campaign.id,
+            campaign.targets_count,
+            campaign.emails_sent,
+            campaign.opened_count,
+            campaign.clicked_count,
+            campaign.submitted_count,
+        )
+    except Exception as exc:
+        logger.warning(
+            f"Failed to send campaign complete notification (campaign_id={campaign.id}): {exc}"
+        )
+
+
+async def _send_campaign_batch(campaign: PhishingCampaign, db: AsyncSession) -> None:
+    """Envoie un lot (batch_size) d'emails en attente d'une campagne. Si plus aucune
+    cible en attente et que la campagne était en envoi, la finalise."""
+    scenario_keys: list[str] = json.loads(campaign.scenario_keys or "[]")
+    if not scenario_keys:
+        scenario_keys = [_DEFAULT_SCENARIO_KEY]
+
+    batch_size = campaign.batch_size or settings.PHISHING_BATCH_SIZE
+    pending_result = await db.execute(
+        select(PhishingTarget)
+        .where(
+            PhishingTarget.campaign_id == campaign.id,
+            PhishingTarget.status == TargetStatus.PENDING,
+        )
+        .limit(batch_size)
+    )
+    pending = list(pending_result.scalars().all())
+
+    if not pending:
+        if campaign.status == CampaignStatus.SENDING:
+            await _finalize_campaign(campaign, db)
+        return
+
+    sent_count = 0
+    for target in pending:
+        # Round-robin scenario assignment across targets
+        scenario_key = scenario_keys[target.id % len(scenario_keys)]
+        tracking_id = str(uuid.uuid4())
+        from_addr, subject, html, text, reply_to = _build_email(
+            campaign, target, tracking_id, scenario_key
+        )
+        try:
+            await asyncio.to_thread(
+                _send_phishing_email,
+                target.email,
+                from_addr,
+                subject,
+                html,
+                text,
+                reply_to,
+            )
+            target.tracking_id = tracking_id
+            target.scenario_key = scenario_key
+            target.status = TargetStatus.EMAIL_SENT
+            target.email_sent_at = datetime.now(UTC)
+            campaign.emails_sent += 1
+            sent_count += 1
+        except Exception as exc:
+            logger.warning(f"Failed to send phishing email (target_id={target.id}): {exc}")
+
+    campaign.updated_at = datetime.now(UTC)
+    logger.info(f"Phishing batch: sent {sent_count} emails for campaign {campaign.id}")
+
+
 async def send_pending_batch() -> None:
     """
     Called by APScheduler every 15 min and immediately on campaign launch.
@@ -445,108 +594,15 @@ async def send_pending_batch() -> None:
         from app.core.database import AsyncSessionLocal
 
         async with AsyncSessionLocal() as db:
-            # Activate any scheduled campaigns whose send time has arrived
-            now = datetime.now(UTC)
-            due_result = await db.execute(
-                select(PhishingCampaign).where(
-                    PhishingCampaign.status == "scheduled",
-                    PhishingCampaign.scheduled_at <= now,
-                )
-            )
-            for due in due_result.scalars().all():
-                due.status = "sending"
-                due.started_at = now
-                due.updated_at = now
-                logger.info(f"Phishing batch: activating scheduled campaign {due.id}")
-            await db.commit()
+            await _activate_due_campaigns(db)
 
             campaigns_result = await db.execute(
-                select(PhishingCampaign).where(PhishingCampaign.status.in_(["active", "sending"]))
-            )
-            campaigns = list(campaigns_result.scalars().all())
-
-            for campaign in campaigns:
-                scenario_keys: list[str] = json.loads(campaign.scenario_keys or "[]")
-                if not scenario_keys:
-                    scenario_keys = [_DEFAULT_SCENARIO_KEY]
-
-                batch_size = campaign.batch_size or settings.PHISHING_BATCH_SIZE
-                pending_result = await db.execute(
-                    select(PhishingTarget)
-                    .where(
-                        PhishingTarget.campaign_id == campaign.id,
-                        PhishingTarget.status == "pending",
-                    )
-                    .limit(batch_size)
+                select(PhishingCampaign).where(
+                    PhishingCampaign.status.in_([CampaignStatus.ACTIVE, CampaignStatus.SENDING])
                 )
-                pending = list(pending_result.scalars().all())
-
-                if not pending:
-                    # All emails sent — move to 'active' results phase
-                    if campaign.status == "sending":
-                        campaign.status = "active"
-                        campaign.finished_at = datetime.now(UTC)
-                        campaign.updated_at = datetime.now(UTC)
-                        await db.flush()
-                        # Notify campaign owner
-                        user_result = await db.execute(
-                            select(User).where(User.id == campaign.user_id)
-                        )
-                        user = user_result.scalar_one_or_none()
-                        if user:
-                            try:
-                                from app.services.email_service import (
-                                    send_campaign_complete,
-                                )
-
-                                await asyncio.to_thread(
-                                    send_campaign_complete,
-                                    user.email,
-                                    campaign.name,
-                                    campaign.id,
-                                    campaign.targets_count,
-                                    campaign.emails_sent,
-                                    campaign.opened_count,
-                                    campaign.clicked_count,
-                                    campaign.submitted_count,
-                                )
-                            except Exception as exc:
-                                logger.warning(
-                                    f"Failed to send campaign complete notification (campaign_id={campaign.id}): {exc}"
-                                )
-                    continue
-
-                sent_count = 0
-                for target in pending:
-                    # Round-robin scenario assignment across targets
-                    scenario_key = scenario_keys[target.id % len(scenario_keys)]
-                    tracking_id = str(uuid.uuid4())
-                    from_addr, subject, html, text, reply_to = _build_email(
-                        campaign, target, tracking_id, scenario_key
-                    )
-                    try:
-                        await asyncio.to_thread(
-                            _send_phishing_email,
-                            target.email,
-                            from_addr,
-                            subject,
-                            html,
-                            text,
-                            reply_to,
-                        )
-                        target.tracking_id = tracking_id
-                        target.scenario_key = scenario_key
-                        target.status = "email_sent"
-                        target.email_sent_at = datetime.now(UTC)
-                        campaign.emails_sent += 1
-                        sent_count += 1
-                    except Exception as exc:
-                        logger.warning(
-                            f"Failed to send phishing email (target_id={target.id}): {exc}"
-                        )
-
-                campaign.updated_at = datetime.now(UTC)
-                logger.info(f"Phishing batch: sent {sent_count} emails for campaign {campaign.id}")
+            )
+            for campaign in campaigns_result.scalars().all():
+                await _send_campaign_batch(campaign, db)
 
             await db.commit()
 
@@ -577,11 +633,11 @@ async def launch_campaign(campaign: PhishingCampaign, db: AsyncSession) -> None:
 
     now = datetime.now(UTC)
     if campaign.scheduled_at and campaign.scheduled_at > now:
-        campaign.status = "scheduled"
+        campaign.status = CampaignStatus.SCHEDULED
         campaign.updated_at = now
         logger.info(f"Campaign {campaign.id} scheduled for {campaign.scheduled_at.isoformat()}")
     else:
-        campaign.status = "sending"
+        campaign.status = CampaignStatus.SENDING
         campaign.started_at = now
         campaign.updated_at = now
     await db.flush()
@@ -660,164 +716,95 @@ async def _enroll_target_in_remediation(
         logger.warning(f"training-on-fail enrollment skipped (campaign {campaign.id}): {exc}")
 
 
-async def record_open(tracking_id: str, db: AsyncSession) -> None:
+async def _resolve_target_and_campaign(
+    tracking_id: str, db: AsyncSession
+) -> tuple[PhishingTarget | None, PhishingCampaign | None]:
+    """Charge la cible (par tracking_id) ET sa campagne en UNE requête (joinedload).
+    Remplace le double SELECT dupliqué dans les handlers de tracking."""
     result = await db.execute(
-        select(PhishingTarget).where(PhishingTarget.tracking_id == tracking_id)
+        select(PhishingTarget)
+        .options(joinedload(PhishingTarget.campaign))
+        .where(PhishingTarget.tracking_id == tracking_id)
     )
     target = result.scalar_one_or_none()
-    if target and target.status == "email_sent":
-        campaign_result = await db.execute(
-            select(PhishingCampaign).where(PhishingCampaign.id == target.campaign_id)
-        )
-        campaign = campaign_result.scalar_one_or_none()
-        if campaign and not _is_campaign_expired(campaign):
-            target.status = "opened"
-            target.opened_at = datetime.now(UTC)
-            campaign.opened_count += 1
-            campaign.updated_at = datetime.now(UTC)
-            await db.commit()
+    return target, (target.campaign if target else None)
+
+
+async def record_open(tracking_id: str, db: AsyncSession) -> None:
+    target, campaign = await _resolve_target_and_campaign(tracking_id, db)
+    if (
+        target
+        and campaign
+        and target.status == TargetStatus.EMAIL_SENT
+        and not _is_campaign_expired(campaign)
+    ):
+        target.status = TargetStatus.OPENED
+        target.opened_at = datetime.now(UTC)
+        campaign.opened_count += 1
+        campaign.updated_at = datetime.now(UTC)
+        await db.commit()
 
 
 async def record_click(tracking_id: str, db: AsyncSession) -> bool:
     """Record link click. Returns False if campaign has expired (endpoint should serve expiry page)."""
-    result = await db.execute(
-        select(PhishingTarget).where(PhishingTarget.tracking_id == tracking_id)
-    )
-    target = result.scalar_one_or_none()
-    if target and target.status in ("email_sent", "opened"):
-        campaign_result = await db.execute(
-            select(PhishingCampaign).where(PhishingCampaign.id == target.campaign_id)
-        )
-        campaign = campaign_result.scalar_one_or_none()
-        if campaign:
-            if _is_campaign_expired(campaign):
-                return False
-            target.status = "clicked"
-            target.clicked_at = datetime.now(UTC)
-            campaign.clicked_count += 1
-            campaign.updated_at = datetime.now(UTC)
-            await db.commit()
-            if campaign.training_trigger == "click":
-                await _enroll_target_in_remediation(campaign, target, db)
+    target, campaign = await _resolve_target_and_campaign(tracking_id, db)
+    if target and campaign and target.status in (TargetStatus.EMAIL_SENT, TargetStatus.OPENED):
+        if _is_campaign_expired(campaign):
+            return False
+        target.status = TargetStatus.CLICKED
+        target.clicked_at = datetime.now(UTC)
+        campaign.clicked_count += 1
+        campaign.updated_at = datetime.now(UTC)
+        await db.commit()
+        if campaign.training_trigger == "click":
+            await _enroll_target_in_remediation(campaign, target, db)
     return True
 
 
 async def record_submit(tracking_id: str, db: AsyncSession) -> str:
     """Records submission and returns the scenario_key for the awareness page.
     Always returns a scenario_key so the awareness page is shown even after expiry."""
-    result = await db.execute(
-        select(PhishingTarget).where(PhishingTarget.tracking_id == tracking_id)
-    )
-    target = result.scalar_one_or_none()
+    target, campaign = await _resolve_target_and_campaign(tracking_id, db)
     scenario_key = _DEFAULT_SCENARIO_KEY
-    if target:
-        campaign_result = await db.execute(
-            select(PhishingCampaign).where(PhishingCampaign.id == target.campaign_id)
-        )
-        campaign = campaign_result.scalar_one_or_none()
-        if campaign:
-            keys = json.loads(campaign.scenario_keys or "[]")
-            if target.scenario_key:
-                scenario_key = target.scenario_key
-            elif keys:
-                scenario_key = keys[0]
-            if not _is_campaign_expired(campaign) and target.status != "submitted":
-                target.status = "submitted"
-                target.submitted_at = datetime.now(UTC)
-                campaign.submitted_count += 1
-                campaign.updated_at = datetime.now(UTC)
-                await db.commit()
-                if campaign.training_trigger == "submit":
-                    await _enroll_target_in_remediation(campaign, target, db)
-        elif target.status != "submitted":
-            target.status = "submitted"
+    if target and campaign:
+        keys = json.loads(campaign.scenario_keys or "[]")
+        if target.scenario_key:
+            scenario_key = target.scenario_key
+        elif keys:
+            scenario_key = keys[0]
+        if not _is_campaign_expired(campaign) and target.status != TargetStatus.SUBMITTED:
+            target.status = TargetStatus.SUBMITTED
+            target.submitted_at = datetime.now(UTC)
+            campaign.submitted_count += 1
+            campaign.updated_at = datetime.now(UTC)
             await db.commit()
+            if campaign.training_trigger == "submit":
+                await _enroll_target_in_remediation(campaign, target, db)
+    elif target and target.status != TargetStatus.SUBMITTED:
+        target.status = TargetStatus.SUBMITTED
+        await db.commit()
     return scenario_key
+
+
+async def get_landing_context(tracking_id: str, db: AsyncSession) -> tuple[str, str | None, bool]:
+    """Contexte pour servir la landing page : (scenario_key, landing_base, expired).
+    landing_base = host de la campagne (le formulaire doit poster sur le même host)."""
+    _target, campaign = await _resolve_target_and_campaign(tracking_id, db)
+    if not campaign:
+        return _DEFAULT_SCENARIO_KEY, None, False
+    if _is_campaign_expired(campaign):
+        return _DEFAULT_SCENARIO_KEY, None, True
+    keys = json.loads(campaign.scenario_keys or "[]")
+    scenario_key = keys[0] if keys else _DEFAULT_SCENARIO_KEY
+    return scenario_key, _tracking_base(campaign), False
 
 
 def _is_campaign_expired(campaign: PhishingCampaign) -> bool:
     """Return True when tracking events should no longer be recorded."""
-    if campaign.status == "completed":
+    if campaign.status == CampaignStatus.COMPLETED:
         return True
     if campaign.started_at is not None:
         age = datetime.now(UTC) - campaign.started_at
         if age.days >= settings.PHISHING_TRACKING_TTL_DAYS:
             return True
     return False
-
-
-def get_pixel_gif() -> bytes:
-    return _PIXEL_GIF
-
-
-def get_landing_html(
-    tracking_id: str, scenario_key: str = _DEFAULT_SCENARIO_KEY, base: str | None = None
-) -> str:
-    # La landing doit poster sur le MÊME host que celui qui l'a servie (le domaine
-    # look-alike si la campagne en a un, sinon PHISHING_BASE_URL) — sinon un
-    # formulaire servi depuis le look-alike posterait vers un autre host.
-    base = (base or settings.PHISHING_BASE_URL).rstrip("/")
-    action = f"{base}/phishing/t/{tracking_id}/s"
-    template_name = _SCENARIO_LANDING.get(scenario_key, "microsoft")
-    html = _LANDING_TEMPLATES.get(template_name, _LANDING_MICROSOFT)
-    return html.replace("ACTION_URL", action)
-
-
-_AWARENESS_TPL = '<!DOCTYPE html>\n<html lang="fr">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>Exercice de cybersécurité — Rocher Cybersécurité</title>\n<style>\n*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}\nbody{\n  background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%);\n  min-height:100vh;display:flex;flex-direction:column;\n  align-items:center;justify-content:center;\n  font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Arial,sans-serif;\n  padding:24px;\n}\n.top-banner{\n  width:100%;max-width:640px;\n  background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);\n  border-radius:10px 10px 0 0;padding:10px 20px;\n  display:flex;align-items:center;gap:10px;\n}\n.top-banner svg{flex-shrink:0}\n.top-banner span{font-size:13px;font-weight:600;color:#fca5a5;letter-spacing:.3px}\n.card{\n  background:#1e293b;border:1px solid #334155;border-top:none;\n  border-radius:0 0 16px 16px;max-width:640px;width:100%;overflow:hidden;\n}\n.hero{\n  background:linear-gradient(180deg,#0f172a 0%,#1e293b 100%);\n  padding:40px 40px 32px;text-align:center;border-bottom:1px solid #334155;\n}\n.scenario-chip{\n  display:inline-flex;align-items:center;gap:6px;\n  background:rgba(37,99,235,0.15);border:1px solid rgba(59,130,246,0.4);\n  color:#93c5fd;font-size:12px;font-weight:600;padding:5px 14px;\n  border-radius:999px;margin-bottom:20px;letter-spacing:.4px;text-transform:uppercase;\n}\n.emoji-wrap{\n  font-size:64px;line-height:1;margin-bottom:20px;\n  filter:drop-shadow(0 0 24px rgba(245,158,11,0.3));\n}\nh1{font-size:26px;font-weight:800;color:#f1f5f9;margin-bottom:10px;line-height:1.2}\nh1 span{color:#f59e0b}\n.subtitle{font-size:15px;color:#94a3b8;line-height:1.6;max-width:480px;margin:0 auto}\n.no-data-badge{\n  display:inline-flex;align-items:center;gap:6px;\n  background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);\n  color:#6ee7b7;font-size:12px;font-weight:600;padding:5px 14px;\n  border-radius:999px;margin-top:18px;\n}\n.body{padding:32px 40px}\n.section-title{\n  font-size:11px;font-weight:700;color:#64748b;letter-spacing:1.2px;\n  text-transform:uppercase;margin-bottom:16px;\n  display:flex;align-items:center;gap:8px;\n}\n.section-title::after{content:\'\';flex:1;height:1px;border-top:1px solid #334155}\n.flags-list{display:flex;flex-direction:column;gap:12px}\n.flag-row{\n  display:flex;align-items:flex-start;gap:14px;background:#0f172a;\n  border:1px solid #334155;border-left:3px solid #f59e0b;\n  border-radius:8px;padding:14px 16px;\n}\n.flag-icon{flex-shrink:0;margin-top:2px}\n.flag-text{font-size:14px;color:#cbd5e1;line-height:1.55}\n.tip-box{\n  margin-top:24px;background:rgba(14,116,144,0.1);\n  border:1px solid rgba(14,116,144,0.3);border-radius:10px;\n  padding:18px 20px;display:flex;gap:14px;align-items:flex-start;\n}\n.tip-box svg{flex-shrink:0;margin-top:2px}\n.tip-box p{font-size:13px;color:#a5f3fc;line-height:1.6}\n.tip-box strong{color:#22d3ee}\n.footer{\n  border-top:1px solid #334155;padding:18px 40px;\n  display:flex;align-items:center;justify-content:space-between;\n}\n.logo{display:flex;align-items:center;gap:8px}\n.logo-icon{\n  width:28px;height:28px;\n  background:linear-gradient(135deg,#2563eb,#7c3aed);\n  border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;\n}\n.logo-text{font-size:13px;font-weight:700;color:#94a3b8}\n.footer-right{font-size:12px;color:#475569}\n</style>\n</head>\n<body>\n\n<div class="top-banner">\n  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">\n    <circle cx="12" cy="12" r="10"/>\n    <line x1="12" y1="8" x2="12" y2="12"/>\n    <line x1="12" y1="16" x2="12.01" y2="16"/>\n  </svg>\n  <span>ALERTE — Vous venez de cliquer sur un lien de simulation de phishing</span>\n</div>\n\n<div class="card">\n  <div class="hero">\n    <div class="scenario-chip">\n      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>\n      Scénario : __LABEL__\n    </div>\n    <div class="emoji-wrap">__ICON__</div>\n    <h1>Vous êtes tombé(e) dans le piège<br>\n      <span>d&rsquo;__LABEL__ __ACCORD__</span>\n    </h1>\n    <p class="subtitle">\n      Cet email faisait partie d&rsquo;un exercice de sensibilisation organisé\n      par votre entreprise en partenariat avec\n      <strong style="color:#e2e8f0">Rocher Cybersécurité</strong>.\n    </p>\n    <div class="no-data-badge">\n      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">\n        <polyline points="20 6 9 17 4 12"/>\n      </svg>\n      Aucune donnée réelle capturée ni stockée\n    </div>\n  </div>\n\n  <div class="body">\n    <p class="section-title">Signaux d&rsquo;alerte que vous auriez pu repérer</p>\n    <div class="flags-list">\n      __FLAGS__\n    </div>\n\n    <div class="tip-box">\n      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n        <circle cx="12" cy="12" r="10"/>\n        <line x1="12" y1="16" x2="12" y2="12"/>\n        <line x1="12" y1="8" x2="12.01" y2="8"/>\n      </svg>\n      <p>En cas de doute sur un email réel, <strong>ne cliquez jamais</strong> sur les liens\n      &mdash; contactez directement votre équipe IT ou signalez l&rsquo;email via le bouton\n      &laquo;&nbsp;Signaler un phishing&nbsp;&raquo; de votre messagerie.</p>\n    </div>\n  </div>\n\n  <div class="footer">\n    <div class="logo">\n      <div class="logo-icon">🛡️</div>\n      <span class="logo-text">Rocher Cybersécurité</span>\n    </div>\n    <span class="footer-right">Simulation de phishing — Exercice interne</span>\n  </div>\n</div>\n\n</body>\n</html>'
-
-_FLAG_ROW_TPL = '<div class="flag-row"><div class="flag-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><p class="flag-text">__TEXT__</p></div>'
-
-_EXPIRED_HTML = (
-    '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">'
-    '<meta name="viewport" content="width=device-width,initial-scale=1">'
-    "<title>Exercice terminé — Rocher Cybersécurité</title>"
-    "<style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}"
-    "body{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%);"
-    "min-height:100vh;display:flex;align-items:center;justify-content:center;"
-    "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;padding:24px}"
-    ".card{background:#1e293b;border:1px solid #334155;border-radius:16px;"
-    "padding:48px 40px;max-width:440px;width:100%;text-align:center}"
-    ".icon{font-size:48px;margin-bottom:20px}"
-    "h1{font-size:20px;font-weight:700;color:#f1f5f9;margin:0 0 12px}"
-    "p{font-size:14px;color:#94a3b8;line-height:1.6;margin:0}"
-    ".badge{display:inline-flex;align-items:center;gap:6px;"
-    "background:rgba(14,116,144,.15);color:#67e8f9;"
-    "font-size:12px;font-weight:600;padding:5px 14px;border-radius:999px;margin-top:24px}"
-    "</style></head><body>"
-    '<div class="card">'
-    '<div class="icon">\U0001f6e1️</div>'
-    "<h1>Cet exercice de phishing a expiré</h1>"
-    "<p>Le lien que vous avez suivi faisait partie d'une simulation de phishing. "
-    "L'exercice est maintenant terminé — aucune donnée n'a été transmise.</p>"
-    '<div class="badge">Rocher Cybersécurité — Simulation termin\xe9e</div>'
-    "</div></body></html>"
-)
-
-
-def get_expired_html() -> str:
-    return _EXPIRED_HTML
-
-
-def get_awareness_html(scenario_key: str = _DEFAULT_SCENARIO_KEY) -> str:
-    _fallback = {
-        "label": "un email de phishing",
-        "icon": "\u26a0\ufe0f",
-        "red_flags": [
-            "L\u2019exp\xe9diteur n\u2019\xe9tait pas celui qu\u2019il pr\xe9tendait \xeatre",
-            "Le lien ne pointait pas vers le domaine officiel attendu",
-            "Une urgence artificielle vous poussait \xe0 agir sans r\xe9fl\xe9chir",
-        ],
-    }
-    sc = _SCENARIO_AWARENESS.get(scenario_key, _fallback)
-    label = sc["label"]
-    icon = sc["icon"]
-    flags = sc["red_flags"]
-    accord = "simul\xe9e" if label.startswith("une ") else "simul\xe9"
-
-    flag_rows = "".join(_FLAG_ROW_TPL.replace("__TEXT__", f) for f in flags)
-    return (
-        _AWARENESS_TPL.replace("__LABEL__", label)
-        .replace("__ACCORD__", accord)
-        .replace("__ICON__", icon)
-        .replace("__FLAGS__", flag_rows)
-    )

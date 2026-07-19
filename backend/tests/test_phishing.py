@@ -402,13 +402,17 @@ class TestAwarenessHtml:
             assert "simulé" in html, f"Expected 'simulé' in awareness page for {key}"
 
     def test_all_13_scenarios_produce_awareness_html(self):
-        for key in phishing_service._SCENARIO_AWARENESS:
+        from app.services.phishing_templates import _SCENARIO_AWARENESS
+
+        for key in _SCENARIO_AWARENESS:
             html = phishing_service.get_awareness_html(key)
             assert html, f"Empty awareness HTML for {key}"
             assert "phishing" in html.lower(), f"No 'phishing' mention in {key}"
 
     def test_awareness_contains_no_raw_placeholder(self):
-        for key in phishing_service._SCENARIO_AWARENESS:
+        from app.services.phishing_templates import _SCENARIO_AWARENESS
+
+        for key in _SCENARIO_AWARENESS:
             html = phishing_service.get_awareness_html(key)
             assert "__LABEL__" not in html
             assert "__ACCORD__" not in html

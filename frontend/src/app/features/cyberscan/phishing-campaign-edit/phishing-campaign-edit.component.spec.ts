@@ -189,20 +189,38 @@ describe('PhishingCampaignEditComponent — canLaunch', () => {
   });
 });
 
-describe('PhishingCampaignEditComponent — statusLabel()', () => {
-  it('retourne Brouillon pour draft', () => expect(make().statusLabel('draft')).toBe('Brouillon'));
-  it('retourne Prête pour ready', () => expect(make().statusLabel('ready')).toBe('Prête'));
-  it('retourne Vérification pour pending_verification', () => {
-    expect(make().statusLabel('pending_verification')).toBe('Vérification');
-  });
-  it('retourne la valeur brute pour un statut inconnu', () => {
-    expect(make().statusLabel('unknown')).toBe('unknown');
-  });
-});
+describe('PhishingCampaignEditComponent — planification', () => {
+  function withSchedule(value: string | null): PhishingCampaignEditComponent {
+    const comp = make();
+    (comp as any).form.addControl('scheduled_at', new FormControl(value));
+    return comp;
+  }
 
-describe('PhishingCampaignEditComponent — statusColor()', () => {
-  it('blue pour ready', () => expect(make().statusColor('ready')).toContain('blue'));
-  it('gray par défaut pour draft', () => expect(make().statusColor('draft')).toContain('gray'));
+  it('isScheduled = false sans date', () => expect(withSchedule(null).isScheduled).toBe(false));
+  it('isScheduled = true pour une date future', () => {
+    const future = new Date(Date.now() + 86_400_000).toISOString().slice(0, 16);
+    expect(withSchedule(future).isScheduled).toBe(true);
+  });
+  it('isScheduled = false pour une date passée', () => {
+    const past = new Date(Date.now() - 86_400_000).toISOString().slice(0, 16);
+    expect(withSchedule(past).isScheduled).toBe(false);
+  });
+
+  it('scheduledAtIso = undefined sans date', () =>
+    expect(withSchedule(null).scheduledAtIso).toBeUndefined());
+  it('scheduledAtIso = undefined pour une date invalide', () =>
+    expect(withSchedule('pas-une-date').scheduledAtIso).toBeUndefined());
+  it('scheduledAtIso renvoie un ISO pour une date valide', () => {
+    const iso = withSchedule('2030-06-15T12:00').scheduledAtIso;
+    expect(iso).toBeDefined();
+    expect(iso).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it('minScheduledAt = chaîne datetime-local valide (format input)', () => {
+    const v = make().minScheduledAt;
+    expect(v).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+    expect(Number.isNaN(new Date(v).getTime())).toBe(false);
+  });
 });
 
 describe('PhishingCampaignEditComponent — difficultyColor()', () => {

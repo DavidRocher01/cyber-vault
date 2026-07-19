@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { of } from 'rxjs';
-import { PhishingService } from './phishing.service';
+import { PhishingService, planMaxScenarios, planMaxTargets } from './phishing.service';
 
 const BASE = '/api/v1/phishing';
 
@@ -160,5 +160,45 @@ describe('PhishingService — cibles (Lot 2) + cancel (Lot 3)', () => {
     const { service, http } = makeService();
     service.deleteCampaign(7).subscribe();
     expect(http.delete).toHaveBeenCalledWith(`${BASE}/campaigns/7`);
+  });
+});
+
+describe('PhishingService — launchWithCgu() (R4)', () => {
+  it('PATCH avec cgu_accepted:true puis POST /launch', () => {
+    const { service, http } = makeService();
+    service.launchWithCgu(9, { name: 'X' }).subscribe();
+    expect(http.patch).toHaveBeenCalledWith(`${BASE}/campaigns/9`, {
+      name: 'X',
+      cgu_accepted: true,
+    });
+    expect(http.post).toHaveBeenCalledWith(`${BASE}/campaigns/9/launch`, {});
+  });
+
+  it('accepte un patch vide (juste cgu_accepted)', () => {
+    const { service, http } = makeService();
+    service.launchWithCgu(9).subscribe();
+    expect(http.patch).toHaveBeenCalledWith(`${BASE}/campaigns/9`, { cgu_accepted: true });
+  });
+});
+
+describe('PhishingService — plafonds de plan (PHISHING_PLAN_CONFIG)', () => {
+  it('planMaxScenarios : valeurs par plan', () => {
+    expect(planMaxScenarios('express')).toBe(2);
+    expect(planMaxScenarios('standard')).toBe(5);
+    expect(planMaxScenarios('premium')).toBe(10);
+    expect(planMaxScenarios('quarterly')).toBe(3);
+    expect(planMaxScenarios('monthly')).toBe(7);
+  });
+  it('planMaxScenarios : repli à 2 (inconnu / null)', () => {
+    expect(planMaxScenarios('unknown')).toBe(2);
+    expect(planMaxScenarios(null)).toBe(2);
+    expect(planMaxScenarios(undefined)).toBe(2);
+  });
+  it('planMaxTargets : valeurs par plan + repli à 50', () => {
+    expect(planMaxTargets('express')).toBe(50);
+    expect(planMaxTargets('premium')).toBe(500);
+    expect(planMaxTargets('monthly')).toBe(300);
+    expect(planMaxTargets('unknown')).toBe(50);
+    expect(planMaxTargets(null)).toBe(50);
   });
 });

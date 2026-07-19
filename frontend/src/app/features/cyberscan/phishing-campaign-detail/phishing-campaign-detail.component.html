@@ -19,12 +19,7 @@
           </a>
           <div class="flex items-center gap-3 flex-wrap">
             <h1 class="text-2xl font-bold">{{ c.name }}</h1>
-            <span
-              class="text-[0.7rem] font-semibold px-2 py-0.5 rounded-full border"
-              [class]="statusColor(c.status)"
-            >
-              {{ statusLabel(c.status) }}
-            </span>
+            <app-phishing-status-badge [status]="c.status" />
           </div>
           <p class="text-sm text-gray-500 mt-1">
             {{ c.plan_tier | titlecase }} · Créé le {{ formatDate(c.created_at) }}

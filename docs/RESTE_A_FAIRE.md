@@ -27,7 +27,8 @@
 - **Divergence FastAPI dev/prod** : alignée (dev 0.111→0.115.14 = prod).
 - **`extra='forbid'`** : ajouté aux schémas d'entrée publics (auth, contact,
   newsletter subscribe, public-scan, api-waitlist).
-- **Webhook `/internal/phishing-click`** : protégé par `require_admin`.
+- **Webhook `/internal/phishing-click`** : supprimé (code mort sans appelant,
+  remplacé par `phishing_service._enroll_target_in_remediation`).
 
 ---
 

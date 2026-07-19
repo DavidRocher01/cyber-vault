@@ -12,6 +12,9 @@ import {
   PhishingService,
   PhishingCampaign,
   LOOKALIKE_TECHNIQUE_LABELS,
+  PHISHING_PLAN_CONFIG,
+  planMaxScenarios,
+  planMaxTargets,
 } from '../services/phishing.service';
 import { PHISHING_SCENARIOS } from '../phishing/phishing.component';
 
@@ -27,29 +30,31 @@ export const STEP_LABELS: Record<WizardStep, string> = {
   review: 'Validation',
 };
 
+// Plans one-shot proposés dans l'assistant. Les plafonds (maxTargets/scenarios)
+// proviennent de la source unique PHISHING_PLAN_CONFIG — pas de valeurs en dur.
 export const PLAN_OPTIONS = [
   {
     id: 'express',
     label: 'Phishing Express',
     price: '990 € HT',
-    maxTargets: 50,
-    scenarios: 2,
+    maxTargets: PHISHING_PLAN_CONFIG['express'].maxTargets,
+    scenarios: PHISHING_PLAN_CONFIG['express'].maxScenarios,
     highlight: false,
   },
   {
     id: 'standard',
     label: 'Phishing Standard',
     price: '1 890 € HT',
-    maxTargets: 200,
-    scenarios: 5,
+    maxTargets: PHISHING_PLAN_CONFIG['standard'].maxTargets,
+    scenarios: PHISHING_PLAN_CONFIG['standard'].maxScenarios,
     highlight: true,
   },
   {
     id: 'premium',
     label: 'Phishing Premium',
     price: '2 990 € HT',
-    maxTargets: 500,
-    scenarios: 10,
+    maxTargets: PHISHING_PLAN_CONFIG['premium'].maxTargets,
+    scenarios: PHISHING_PLAN_CONFIG['premium'].maxScenarios,
     highlight: false,
   },
 ];
@@ -107,10 +112,10 @@ export class PhishingCampaignCreatorComponent implements OnInit {
     return STEPS.indexOf(this.currentStep());
   }
   get maxScenarios(): number {
-    return PLAN_OPTIONS.find(p => p.id === this.selectedPlan())?.scenarios ?? 2;
+    return planMaxScenarios(this.selectedPlan());
   }
   get maxTargets(): number {
-    return PLAN_OPTIONS.find(p => p.id === this.selectedPlan())?.maxTargets ?? 50;
+    return planMaxTargets(this.selectedPlan());
   }
 
   ngOnInit() {
@@ -234,20 +239,16 @@ export class PhishingCampaignCreatorComponent implements OnInit {
     const c = this.campaign();
     if (!c) return;
     this.launching.set(true);
-    this.service.updateCampaign(c.id, { cgu_accepted: true }).subscribe({
-      next: updated => {
-        this.service.launchCampaign(updated.id).subscribe({
-          next: () => {
-            this.launching.set(false);
-            this.snack.open('Campagne lancée !', 'Fermer', { duration: 3000 });
-            this.router.navigate(['/phishing/campaigns']);
-          },
-          error: err => {
-            this.launching.set(false);
-            const msg = err?.error?.detail ?? 'Erreur lors du lancement';
-            this.snack.open(msg, 'Fermer', { duration: 5000 });
-          },
-        });
+    this.service.launchWithCgu(c.id).subscribe({
+      next: () => {
+        this.launching.set(false);
+        this.snack.open('Campagne lancée !', 'Fermer', { duration: 3000 });
+        this.router.navigate(['/phishing/campaigns']);
+      },
+      error: err => {
+        this.launching.set(false);
+        const msg = err?.error?.detail ?? 'Erreur lors du lancement';
+        this.snack.open(msg, 'Fermer', { duration: 5000 });
       },
     });
   }

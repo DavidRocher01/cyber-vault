@@ -10,16 +10,14 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { Title } from '@angular/platform-browser';
 
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
-import { PhishingService, PhishingCampaign, PhishingTarget } from '../services/phishing.service';
+import { PhishingStatusBadgeComponent } from '../phishing-status-badge/phishing-status-badge.component';
+import {
+  PhishingService,
+  PhishingCampaign,
+  PhishingTarget,
+  planMaxScenarios,
+} from '../services/phishing.service';
 import { PHISHING_SCENARIOS } from '../phishing/phishing.component';
-
-const MAX_SCENARIOS_BY_PLAN: Record<string, number> = {
-  express: 2,
-  standard: 5,
-  premium: 10,
-  quarterly: 3,
-  monthly: 7,
-};
 
 @Component({
   standalone: true,
@@ -34,6 +32,7 @@ const MAX_SCENARIOS_BY_PLAN: Record<string, number> = {
     MatSnackBarModule,
     MatCheckboxModule,
     NavButtonsComponent,
+    PhishingStatusBadgeComponent,
   ],
   templateUrl: './phishing-campaign-edit.component.html',
 })
@@ -110,7 +109,7 @@ export class PhishingCampaignEditComponent implements OnInit {
   }
 
   get maxScenarios(): number {
-    return MAX_SCENARIOS_BY_PLAN[this.campaign()?.plan_tier ?? 'express'] ?? 2;
+    return planMaxScenarios(this.campaign()?.plan_tier);
   }
 
   toggleScenario(id: string) {
@@ -191,36 +190,25 @@ export class PhishingCampaignEditComponent implements OnInit {
 
   launch() {
     this.launching.set(true);
-    // Save first, then launch
+    // Sauvegarde (CGU incluses) puis lancement, en un seul flux.
     this.phishingService
-      .updateCampaign(this.campaignId, {
+      .launchWithCgu(this.campaignId, {
         name: this.form.value.name!,
         scenario_keys: Array.from(this.selectedScenarios()),
-        cgu_accepted: true,
         scheduled_at: this.scheduledAtIso,
         training_on_fail: this.form.value.training_on_fail ?? false,
         ...(this.form.value.batch_size ? { batch_size: this.form.value.batch_size } : {}),
       })
       .subscribe({
         next: () => {
-          this.phishingService.launchCampaign(this.campaignId).subscribe({
-            next: () => {
-              this.launching.set(false);
-              const msg = this.isScheduled ? 'Envoi planifié !' : 'Campagne lancée !';
-              this.snack.open(msg, 'Voir', { duration: 5000 });
-              this.router.navigate(['/phishing/campaigns', this.campaignId]);
-            },
-            error: err => {
-              this.launching.set(false);
-              this.snack.open(err.error?.detail || 'Erreur au lancement', 'Fermer', {
-                duration: 4000,
-              });
-            },
-          });
+          this.launching.set(false);
+          const msg = this.isScheduled ? 'Envoi planifié !' : 'Campagne lancée !';
+          this.snack.open(msg, 'Voir', { duration: 5000 });
+          this.router.navigate(['/phishing/campaigns', this.campaignId]);
         },
         error: err => {
           this.launching.set(false);
-          this.snack.open(err.error?.detail || 'Erreur lors de la sauvegarde', 'Fermer', {
+          this.snack.open(err.error?.detail || 'Erreur au lancement', 'Fermer', {
             duration: 4000,
           });
         },
@@ -290,27 +278,6 @@ export class PhishingCampaignEditComponent implements OnInit {
           duration: 4000,
         }),
     });
-  }
-
-  statusLabel(status: string): string {
-    const m: Record<string, string> = {
-      draft: 'Brouillon',
-      pending_verification: 'Vérification',
-      ready: 'Prête',
-      scheduled: 'Planifiée',
-    };
-    return m[status] ?? status;
-  }
-
-  statusColor(status: string): string {
-    switch (status) {
-      case 'ready':
-        return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
-      case 'scheduled':
-        return 'text-purple-400 bg-purple-500/10 border-purple-500/30';
-      default:
-        return 'text-gray-400 bg-gray-500/10 border-gray-500/30';
-    }
   }
 
   difficultyColor(d: string): string {
