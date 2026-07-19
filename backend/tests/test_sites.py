@@ -273,3 +273,55 @@ async def test_get_site_subdomains_no_scan_returns_empty():
     assert data["subdomains"] == []
     assert data["zone_transfer"] is None
     assert data["scan_date"] is None
+
+
+# ── H2b : vérification de propriété du domaine (débloque le scan de ports) ──────
+
+
+async def _create_site(c: AsyncClient, h: dict, url: str = "https://mysite.com") -> int:
+    with patch("app.api.v1.endpoints.sites.get_effective_max_sites", new=AsyncMock(return_value=3)):
+        r = await c.post(f"{BASE}/sites", json={"url": url, "name": "S"}, headers=h)
+    return r.json()["id"]
+
+
+@pytest.mark.asyncio
+async def test_site_domain_status_unverified_by_default():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        h = await _headers(c, "dv1@test.com")
+        site_id = await _create_site(c, h)
+        r = await c.get(f"{BASE}/sites/{site_id}/domain", headers=h)
+    assert r.status_code == 200
+    assert r.json() == {"domain": "mysite.com", "verified": False}
+
+
+@pytest.mark.asyncio
+async def test_request_site_domain_verify_returns_txt_record():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        h = await _headers(c, "dv2@test.com")
+        site_id = await _create_site(c, h)
+        r = await c.post(f"{BASE}/sites/{site_id}/domain/verify", headers=h)
+    assert r.status_code == 201
+    body = r.json()
+    assert body["dns_record_name"] == "_rocher-verify.mysite.com"
+    assert body["dns_record_type"] == "TXT"
+    assert body["verification_token"] == body["dns_record_value"]
+    assert body["verified"] is False
+
+
+@pytest.mark.asyncio
+async def test_check_site_domain_verify_without_request_returns_404():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        h = await _headers(c, "dv3@test.com")
+        site_id = await _create_site(c, h)
+        r = await c.post(f"{BASE}/sites/{site_id}/domain/verify/check", headers=h)
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_site_domain_endpoints_enforce_ownership():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        h1 = await _headers(c, "dv4a@test.com")
+        site_id = await _create_site(c, h1)
+        h2 = await _headers(c, "dv4b@test.com")
+        r = await c.get(f"{BASE}/sites/{site_id}/domain", headers=h2)
+    assert r.status_code == 404
