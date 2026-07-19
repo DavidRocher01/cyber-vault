@@ -16,6 +16,7 @@ from loguru import logger
 from sqlalchemy import func, select
 
 from app.core.database import AsyncSessionLocal
+from app.core.utils import mask_email
 from app.models.app_setting import AppSetting
 from app.models.newsletter_subscriber import NewsletterSubscriber
 from app.models.plan import Plan
@@ -125,7 +126,9 @@ async def _schedule_due_scans() -> None:
                             pdf_path=scan.pdf_path,
                         )
                     except Exception as exc:
-                        logger.warning(f"Scan report email failed for {user.email}: {exc}")
+                        logger.warning(
+                            f"Scan report email failed for {mask_email(user.email)}: {exc}"
+                        )
 
 
 _SSL_THRESHOLDS = [7, 14, 30]
@@ -299,7 +302,7 @@ async def _send_biweekly_newsletter() -> None:
                 legal_body=legal_body,
             )
         except Exception as exc:
-            logger.warning(f"Newsletter send failed for {sub.email}: {exc}")
+            logger.warning(f"Newsletter send failed for {mask_email(sub.email)}: {exc}")
 
     logger.info(f"Newsletter édition #{edition} envoyée à {len(subscribers)} abonné(s)")
 
@@ -416,7 +419,7 @@ async def _send_monthly_digest_job() -> None:
                 dashboard_url=dashboard_url,
             )
         except Exception as exc:
-            logger.warning(f"Monthly digest email failed for {user.email}: {exc}")
+            logger.warning(f"Monthly digest email failed for {mask_email(user.email)}: {exc}")
 
 
 async def _run_darkweb_monitoring() -> None:

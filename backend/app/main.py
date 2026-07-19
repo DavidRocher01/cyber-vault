@@ -304,8 +304,8 @@ async def health_deep(db: AsyncSession = Depends(get_db)):
     try:
         await db.execute(text("SELECT 1"))
         checks["database"] = "ok"
-    except Exception as exc:
-        checks["database"] = f"error: {str(exc)[:100]}"
+    except Exception:
+        checks["database"] = "error"
 
     # Stripe
     if settings.STRIPE_SECRET_KEY:
@@ -315,8 +315,8 @@ async def health_deep(db: AsyncSession = Depends(get_db)):
             _stripe.api_key = settings.STRIPE_SECRET_KEY
             await _asyncio.to_thread(_stripe.Balance.retrieve)
             checks["stripe"] = "ok"
-        except Exception as exc:
-            checks["stripe"] = f"error: {str(exc)[:100]}"
+        except Exception:
+            checks["stripe"] = "error"
 
     # Resend
     if settings.RESEND_API_KEY:
@@ -326,8 +326,8 @@ async def health_deep(db: AsyncSession = Depends(get_db)):
             _resend.api_key = settings.RESEND_API_KEY
             await _asyncio.to_thread(_resend.Domains.list)
             checks["resend"] = "ok"
-        except Exception as exc:
-            checks["resend"] = f"error: {str(exc)[:100]}"
+        except Exception:
+            checks["resend"] = "error"
 
     # S3
     if settings.S3_BUCKET_NAME:
@@ -337,8 +337,8 @@ async def health_deep(db: AsyncSession = Depends(get_db)):
             client = _boto3.client("s3", region_name=settings.AWS_REGION)
             await _asyncio.to_thread(client.head_bucket, Bucket=settings.S3_BUCKET_NAME)
             checks["s3"] = "ok"
-        except Exception as exc:
-            checks["s3"] = f"error: {str(exc)[:100]}"
+        except Exception:
+            checks["s3"] = "error"
 
     all_ok = all(v == "ok" for v in checks.values())
     return {
