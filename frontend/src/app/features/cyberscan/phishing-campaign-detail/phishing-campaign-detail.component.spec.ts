@@ -106,37 +106,6 @@ describe('PhishingCampaignDetailComponent — riskLevel()', () => {
   });
 });
 
-describe('PhishingCampaignDetailComponent — statusLabel()', () => {
-  const cases: [string, string][] = [
-    ['draft', 'Brouillon'],
-    ['pending_verification', 'Vérification'],
-    ['ready', 'Prête'],
-    ['sending', 'Envoi en cours'],
-    ['active', 'En cours'],
-    ['completed', 'Terminée'],
-    ['cancelled', 'Annulée'],
-  ];
-  for (const [status, label] of cases) {
-    it(`retourne "${label}" pour "${status}"`, () => {
-      expect(make().statusLabel(status)).toBe(label);
-    });
-  }
-  it('retourne la valeur brute pour un statut inconnu', () => {
-    expect(make().statusLabel('unknown')).toBe('unknown');
-  });
-});
-
-describe('PhishingCampaignDetailComponent — statusColor()', () => {
-  it('cyan pour active', () => expect(make().statusColor('active')).toContain('cyan'));
-  it('cyan pour sending', () => expect(make().statusColor('sending')).toContain('cyan'));
-  it('green pour completed', () => expect(make().statusColor('completed')).toContain('green'));
-  it('gray pour draft', () => expect(make().statusColor('draft')).toContain('gray'));
-  it('blue pour ready', () => expect(make().statusColor('ready')).toContain('blue'));
-  it('red pour cancelled', () => expect(make().statusColor('cancelled')).toContain('red'));
-  it('yellow par défaut', () =>
-    expect(make().statusColor('pending_verification')).toContain('yellow'));
-});
-
 describe('PhishingCampaignDetailComponent — targetStatusLabel()', () => {
   const cases: [string, string][] = [
     ['pending', 'En attente'],

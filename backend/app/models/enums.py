@@ -24,6 +24,16 @@ class CampaignStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+class TargetStatus(StrEnum):
+    # Cycle de vie d'une cible dans une campagne de phishing :
+    # pending -> email_sent -> opened -> clicked -> submitted
+    PENDING = "pending"
+    EMAIL_SENT = "email_sent"
+    OPENED = "opened"
+    CLICKED = "clicked"
+    SUBMITTED = "submitted"
+
+
 class SubscriptionStatus(StrEnum):
     # Valeurs alignées sur celles renvoyées par Stripe et stockées en base
     # (orthographe US "canceled" à 1 L, contrairement à CampaignStatus interne "cancelled").

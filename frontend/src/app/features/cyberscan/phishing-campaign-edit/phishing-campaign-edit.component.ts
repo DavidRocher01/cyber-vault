@@ -10,6 +10,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { Title } from '@angular/platform-browser';
 
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { PhishingStatusBadgeComponent } from '../phishing-status-badge/phishing-status-badge.component';
 import { PhishingService, PhishingCampaign, PhishingTarget } from '../services/phishing.service';
 import { PHISHING_SCENARIOS } from '../phishing/phishing.component';
 
@@ -34,6 +35,7 @@ const MAX_SCENARIOS_BY_PLAN: Record<string, number> = {
     MatSnackBarModule,
     MatCheckboxModule,
     NavButtonsComponent,
+    PhishingStatusBadgeComponent,
   ],
   templateUrl: './phishing-campaign-edit.component.html',
 })
@@ -290,27 +292,6 @@ export class PhishingCampaignEditComponent implements OnInit {
           duration: 4000,
         }),
     });
-  }
-
-  statusLabel(status: string): string {
-    const m: Record<string, string> = {
-      draft: 'Brouillon',
-      pending_verification: 'Vérification',
-      ready: 'Prête',
-      scheduled: 'Planifiée',
-    };
-    return m[status] ?? status;
-  }
-
-  statusColor(status: string): string {
-    switch (status) {
-      case 'ready':
-        return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
-      case 'scheduled':
-        return 'text-purple-400 bg-purple-500/10 border-purple-500/30';
-      default:
-        return 'text-gray-400 bg-gray-500/10 border-gray-500/30';
-    }
   }
 
   difficultyColor(d: string): string {

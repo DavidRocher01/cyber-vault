@@ -39,6 +39,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.limiter import limiter
 from app.core.utils import safe_json_load
+from app.models.enums import CampaignStatus
 from app.models.phishing import (
     PhishingCampaign,
     PhishingDomainVerification,
@@ -154,8 +155,31 @@ class TargetAdd(BaseModel):
     department: str | None = Field(None, max_length=100)
 
 
-# Statuts depuis lesquels on peut modifier les cibles (avant lancement).
-_EDITABLE_TARGET_STATUSES = ("draft", "pending_verification", "ready")
+# Groupes de statuts de campagne — source unique (évite les tuples magiques
+# dupliqués et divergents). Tous typés sur CampaignStatus.
+# Modifier les cibles : uniquement avant lancement.
+_EDITABLE_TARGET_STATUSES = (
+    CampaignStatus.DRAFT,
+    CampaignStatus.PENDING_VERIFICATION,
+    CampaignStatus.READY,
+)
+# Modifier / lancer la campagne : idem + planifiée.
+_EDITABLE_CAMPAIGN_STATUSES = (*_EDITABLE_TARGET_STATUSES, CampaignStatus.SCHEDULED)
+# Annuler : avant/pendant l'envoi (pas depuis active/completed/cancelled, états terminaux).
+_CANCELLABLE_STATUSES = (*_EDITABLE_CAMPAIGN_STATUSES, CampaignStatus.SENDING)
+# Rapport PDF : uniquement quand l'envoi est terminé.
+_REPORTABLE_STATUSES = (CampaignStatus.ACTIVE, CampaignStatus.COMPLETED)
+
+# Message partagé (édition des cibles refusée hors des statuts éditables).
+_TARGETS_LOCKED_DETAIL = "Impossible de modifier les cibles d'une campagne active ou terminée."
+
+
+def _require_status(
+    campaign: PhishingCampaign, allowed: tuple[CampaignStatus, ...], detail: str
+) -> None:
+    """Lève un 400 si la campagne n'est pas dans l'un des statuts autorisés."""
+    if campaign.status not in allowed:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
 
 
 # ---------------------------------------------------------------------------
@@ -314,11 +338,11 @@ async def update_campaign(
 ):
     campaign = await _get_owned(campaign_id, current_user.id, db)
 
-    if campaign.status not in ("draft", "pending_verification", "ready", "scheduled"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Une campagne active ou terminée ne peut pas être modifiée.",
-        )
+    _require_status(
+        campaign,
+        _EDITABLE_CAMPAIGN_STATUSES,
+        "Une campagne active ou terminée ne peut pas être modifiée.",
+    )
 
     # Check domain verification if domain changed
     domain_verified: bool | None = None
@@ -361,11 +385,7 @@ async def upload_targets(
 ):
     campaign = await _get_owned(campaign_id, current_user.id, db)
 
-    if campaign.status not in ("draft", "pending_verification", "ready"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Impossible de modifier les cibles d'une campagne active ou terminée.",
-        )
+    _require_status(campaign, _EDITABLE_TARGET_STATUSES, _TARGETS_LOCKED_DETAIL)
 
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(
@@ -431,11 +451,7 @@ async def add_single_target(
     db: AsyncSession = Depends(get_db),
 ):
     campaign = await _get_owned(campaign_id, current_user.id, db)
-    if campaign.status not in _EDITABLE_TARGET_STATUSES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Impossible de modifier les cibles d'une campagne active ou terminée.",
-        )
+    _require_status(campaign, _EDITABLE_TARGET_STATUSES, _TARGETS_LOCKED_DETAIL)
     max_targets = _MAX_TARGETS.get(campaign.plan_tier, 50)
     if campaign.targets_count >= max_targets:
         raise HTTPException(
@@ -469,11 +485,7 @@ async def delete_single_target(
     db: AsyncSession = Depends(get_db),
 ):
     campaign = await _get_owned(campaign_id, current_user.id, db)
-    if campaign.status not in _EDITABLE_TARGET_STATUSES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Impossible de modifier les cibles d'une campagne active ou terminée.",
-        )
+    _require_status(campaign, _EDITABLE_TARGET_STATUSES, _TARGETS_LOCKED_DETAIL)
     ok = await phishing_service.delete_target(campaign, target_id, db)
     if not ok:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cible introuvable.")
@@ -488,11 +500,11 @@ async def launch_campaign(
 ):
     campaign = await _get_owned(campaign_id, current_user.id, db)
 
-    if campaign.status not in ("draft", "pending_verification", "ready", "scheduled"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Une campagne active ou terminée ne peut pas être relancée.",
-        )
+    _require_status(
+        campaign,
+        _EDITABLE_CAMPAIGN_STATUSES,
+        "Une campagne active ou terminée ne peut pas être relancée.",
+    )
     if campaign.targets_count == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -541,11 +553,6 @@ async def launch_campaign(
     return {"status": "sending", "campaign_id": campaign_id}
 
 
-# États depuis lesquels une campagne peut être annulée (avant/pendant l'envoi ;
-# pas depuis "active" (envoi terminé, phase résultats), "completed" ou "cancelled").
-_CANCELLABLE_STATUSES = ("draft", "pending_verification", "ready", "scheduled", "sending")
-
-
 @router.post("/campaigns/{campaign_id}/cancel")
 async def cancel_campaign(
     campaign_id: int,
@@ -553,11 +560,11 @@ async def cancel_campaign(
     db: AsyncSession = Depends(get_db),
 ):
     campaign = await _get_owned(campaign_id, current_user.id, db)
-    if campaign.status not in _CANCELLABLE_STATUSES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Seule une campagne en préparation ou en cours d'envoi peut être annulée.",
-        )
+    _require_status(
+        campaign,
+        _CANCELLABLE_STATUSES,
+        "Seule une campagne en préparation ou en cours d'envoi peut être annulée.",
+    )
     updated = await phishing_service.cancel_campaign(campaign, db)
     await db.commit()
     return _serialize_campaign(updated)
@@ -583,11 +590,11 @@ async def download_report_pdf(
 ):
     campaign = await _get_owned(campaign_id, current_user.id, db)
 
-    if campaign.status not in ("completed", "active"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Le rapport PDF n'est disponible que pour les campagnes actives ou terminées.",
-        )
+    _require_status(
+        campaign,
+        _REPORTABLE_STATUSES,
+        "Le rapport PDF n'est disponible que pour les campagnes actives ou terminées.",
+    )
 
     targets_result = await db.execute(
         select(PhishingTarget).where(PhishingTarget.campaign_id == campaign_id)

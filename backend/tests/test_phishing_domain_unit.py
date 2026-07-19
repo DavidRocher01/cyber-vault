@@ -178,7 +178,7 @@ class TestCheckDomainVerificationDevMode:
         record = await _seed_verification(db_session, user.id, "devdomain.com", verified=False)
         await db_session.commit()
 
-        with patch("app.core.config.settings") as mock_settings:
+        with patch("app.services.phishing_service.settings") as mock_settings:
             mock_settings.APP_ENV = "development"
             result = await phishing_service.check_domain_verification(record, db_session)
 
@@ -192,7 +192,7 @@ class TestCheckDomainVerificationDevMode:
         record = await _seed_verification(db_session, user.id, "ts.com", verified=False)
         await db_session.commit()
 
-        with patch("app.core.config.settings") as mock_settings:
+        with patch("app.services.phishing_service.settings") as mock_settings:
             mock_settings.APP_ENV = "development"
             await phishing_service.check_domain_verification(record, db_session)
 
@@ -225,7 +225,7 @@ class TestCheckDomainVerificationDnsMatch:
         answers = self._make_dns_answer(token)
 
         with (
-            patch("app.core.config.settings") as mock_settings,
+            patch("app.services.phishing_service.settings") as mock_settings,
             patch("dns.resolver.resolve", return_value=answers),
         ):
             mock_settings.APP_ENV = "production"
@@ -246,7 +246,7 @@ class TestCheckDomainVerificationDnsMatch:
         answers = self._make_dns_answer(token)
 
         with (
-            patch("app.core.config.settings") as mock_settings,
+            patch("app.services.phishing_service.settings") as mock_settings,
             patch("dns.resolver.resolve", return_value=answers),
         ):
             mock_settings.APP_ENV = "production"
@@ -267,7 +267,7 @@ class TestCheckDomainVerificationDnsMatch:
         answers = self._make_dns_answer(token)
 
         with (
-            patch("app.core.config.settings") as mock_settings,
+            patch("app.services.phishing_service.settings") as mock_settings,
             patch("dns.resolver.resolve", return_value=answers) as mock_resolve,
         ):
             mock_settings.APP_ENV = "production"
@@ -298,7 +298,7 @@ class TestCheckDomainVerificationDnsMismatch:
         answers.__iter__ = MagicMock(return_value=iter([rdata]))
 
         with (
-            patch("app.core.config.settings") as mock_settings,
+            patch("app.services.phishing_service.settings") as mock_settings,
             patch("dns.resolver.resolve", return_value=answers),
         ):
             mock_settings.APP_ENV = "production"
@@ -321,7 +321,7 @@ class TestCheckDomainVerificationDnsMismatch:
         answers.__iter__ = MagicMock(return_value=iter([rdata]))
 
         with (
-            patch("app.core.config.settings") as mock_settings,
+            patch("app.services.phishing_service.settings") as mock_settings,
             patch("dns.resolver.resolve", return_value=answers),
         ):
             mock_settings.APP_ENV = "production"
@@ -347,7 +347,7 @@ class TestCheckDomainVerificationDnsFailure:
         await db_session.commit()
 
         with (
-            patch("app.core.config.settings") as mock_settings,
+            patch("app.services.phishing_service.settings") as mock_settings,
             patch("dns.resolver.resolve", side_effect=dns.resolver.NXDOMAIN()),
         ):
             mock_settings.APP_ENV = "production"
@@ -367,7 +367,7 @@ class TestCheckDomainVerificationDnsFailure:
         await db_session.commit()
 
         with (
-            patch("app.core.config.settings") as mock_settings,
+            patch("app.services.phishing_service.settings") as mock_settings,
             patch("dns.resolver.resolve", side_effect=dns.exception.Timeout()),
         ):
             mock_settings.APP_ENV = "production"
@@ -384,7 +384,7 @@ class TestCheckDomainVerificationDnsFailure:
         await db_session.commit()
 
         with (
-            patch("app.core.config.settings") as mock_settings,
+            patch("app.services.phishing_service.settings") as mock_settings,
             patch("dns.resolver.resolve", side_effect=Exception("network error")),
         ):
             mock_settings.APP_ENV = "production"

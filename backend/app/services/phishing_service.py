@@ -28,6 +28,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.models.enums import CampaignStatus, TargetStatus
 from app.models.phishing import (
     PhishingCampaign,
     PhishingDomainVerification,
@@ -151,7 +152,7 @@ async def create_campaign(
         user_id=user_id,
         name=name,
         plan_tier=plan_tier,
-        status="draft",
+        status=CampaignStatus.DRAFT,
         rssi_client_id=rssi_client_id,
     )
     db.add(campaign)
@@ -206,7 +207,7 @@ async def update_campaign(
 async def cancel_campaign(campaign: PhishingCampaign, db: AsyncSession) -> PhishingCampaign:
     """Annule une campagne : le statut "cancelled" l'exclut du batch (qui ne
     traite que scheduled/active/sending) — plus aucun email ne partira."""
-    campaign.status = "cancelled"
+    campaign.status = CampaignStatus.CANCELLED
     campaign.finished_at = datetime.now(UTC)
     campaign.updated_at = datetime.now(UTC)
     await db.flush()
@@ -447,19 +448,21 @@ async def send_pending_batch() -> None:
             now = datetime.now(UTC)
             due_result = await db.execute(
                 select(PhishingCampaign).where(
-                    PhishingCampaign.status == "scheduled",
+                    PhishingCampaign.status == CampaignStatus.SCHEDULED,
                     PhishingCampaign.scheduled_at <= now,
                 )
             )
             for due in due_result.scalars().all():
-                due.status = "sending"
+                due.status = CampaignStatus.SENDING
                 due.started_at = now
                 due.updated_at = now
                 logger.info(f"Phishing batch: activating scheduled campaign {due.id}")
             await db.commit()
 
             campaigns_result = await db.execute(
-                select(PhishingCampaign).where(PhishingCampaign.status.in_(["active", "sending"]))
+                select(PhishingCampaign).where(
+                    PhishingCampaign.status.in_([CampaignStatus.ACTIVE, CampaignStatus.SENDING])
+                )
             )
             campaigns = list(campaigns_result.scalars().all())
 
@@ -473,7 +476,7 @@ async def send_pending_batch() -> None:
                     select(PhishingTarget)
                     .where(
                         PhishingTarget.campaign_id == campaign.id,
-                        PhishingTarget.status == "pending",
+                        PhishingTarget.status == TargetStatus.PENDING,
                     )
                     .limit(batch_size)
                 )
@@ -481,8 +484,8 @@ async def send_pending_batch() -> None:
 
                 if not pending:
                     # All emails sent — move to 'active' results phase
-                    if campaign.status == "sending":
-                        campaign.status = "active"
+                    if campaign.status == CampaignStatus.SENDING:
+                        campaign.status = CampaignStatus.ACTIVE
                         campaign.finished_at = datetime.now(UTC)
                         campaign.updated_at = datetime.now(UTC)
                         await db.flush()
@@ -534,7 +537,7 @@ async def send_pending_batch() -> None:
                         )
                         target.tracking_id = tracking_id
                         target.scenario_key = scenario_key
-                        target.status = "email_sent"
+                        target.status = TargetStatus.EMAIL_SENT
                         target.email_sent_at = datetime.now(UTC)
                         campaign.emails_sent += 1
                         sent_count += 1
@@ -575,11 +578,11 @@ async def launch_campaign(campaign: PhishingCampaign, db: AsyncSession) -> None:
 
     now = datetime.now(UTC)
     if campaign.scheduled_at and campaign.scheduled_at > now:
-        campaign.status = "scheduled"
+        campaign.status = CampaignStatus.SCHEDULED
         campaign.updated_at = now
         logger.info(f"Campaign {campaign.id} scheduled for {campaign.scheduled_at.isoformat()}")
     else:
-        campaign.status = "sending"
+        campaign.status = CampaignStatus.SENDING
         campaign.started_at = now
         campaign.updated_at = now
     await db.flush()
@@ -663,13 +666,13 @@ async def record_open(tracking_id: str, db: AsyncSession) -> None:
         select(PhishingTarget).where(PhishingTarget.tracking_id == tracking_id)
     )
     target = result.scalar_one_or_none()
-    if target and target.status == "email_sent":
+    if target and target.status == TargetStatus.EMAIL_SENT:
         campaign_result = await db.execute(
             select(PhishingCampaign).where(PhishingCampaign.id == target.campaign_id)
         )
         campaign = campaign_result.scalar_one_or_none()
         if campaign and not _is_campaign_expired(campaign):
-            target.status = "opened"
+            target.status = TargetStatus.OPENED
             target.opened_at = datetime.now(UTC)
             campaign.opened_count += 1
             campaign.updated_at = datetime.now(UTC)
@@ -682,7 +685,7 @@ async def record_click(tracking_id: str, db: AsyncSession) -> bool:
         select(PhishingTarget).where(PhishingTarget.tracking_id == tracking_id)
     )
     target = result.scalar_one_or_none()
-    if target and target.status in ("email_sent", "opened"):
+    if target and target.status in (TargetStatus.EMAIL_SENT, TargetStatus.OPENED):
         campaign_result = await db.execute(
             select(PhishingCampaign).where(PhishingCampaign.id == target.campaign_id)
         )
@@ -690,7 +693,7 @@ async def record_click(tracking_id: str, db: AsyncSession) -> bool:
         if campaign:
             if _is_campaign_expired(campaign):
                 return False
-            target.status = "clicked"
+            target.status = TargetStatus.CLICKED
             target.clicked_at = datetime.now(UTC)
             campaign.clicked_count += 1
             campaign.updated_at = datetime.now(UTC)
@@ -719,23 +722,23 @@ async def record_submit(tracking_id: str, db: AsyncSession) -> str:
                 scenario_key = target.scenario_key
             elif keys:
                 scenario_key = keys[0]
-            if not _is_campaign_expired(campaign) and target.status != "submitted":
-                target.status = "submitted"
+            if not _is_campaign_expired(campaign) and target.status != TargetStatus.SUBMITTED:
+                target.status = TargetStatus.SUBMITTED
                 target.submitted_at = datetime.now(UTC)
                 campaign.submitted_count += 1
                 campaign.updated_at = datetime.now(UTC)
                 await db.commit()
                 if campaign.training_trigger == "submit":
                     await _enroll_target_in_remediation(campaign, target, db)
-        elif target.status != "submitted":
-            target.status = "submitted"
+        elif target.status != TargetStatus.SUBMITTED:
+            target.status = TargetStatus.SUBMITTED
             await db.commit()
     return scenario_key
 
 
 def _is_campaign_expired(campaign: PhishingCampaign) -> bool:
     """Return True when tracking events should no longer be recorded."""
-    if campaign.status == "completed":
+    if campaign.status == CampaignStatus.COMPLETED:
         return True
     if campaign.started_at is not None:
         age = datetime.now(UTC) - campaign.started_at

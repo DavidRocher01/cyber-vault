@@ -174,12 +174,7 @@
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2 flex-wrap">
                     <span class="font-semibold text-white truncate">{{ c.name }}</span>
-                    <span
-                      class="text-[0.7rem] font-semibold px-2 py-0.5 rounded-full border"
-                      [class]="statusColor(c.status)"
-                    >
-                      {{ statusLabel(c.status) }}
-                    </span>
+                    <app-phishing-status-badge [status]="c.status" />
                   </div>
                   <div class="text-xs text-gray-500 mt-0.5">
                     {{ c.plan_tier | titlecase }} · {{ formatDate(c.created_at) }}

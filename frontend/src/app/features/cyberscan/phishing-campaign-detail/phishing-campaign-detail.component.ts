@@ -11,6 +11,7 @@ import { interval, EMPTY } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { PhishingStatusBadgeComponent } from '../phishing-status-badge/phishing-status-badge.component';
 import { PhishingService, PhishingCampaign } from '../services/phishing.service';
 import { PHISHING_SCENARIOS } from '../phishing/phishing.component';
 
@@ -25,6 +26,7 @@ import { PHISHING_SCENARIOS } from '../phishing/phishing.component';
     MatProgressSpinnerModule,
     MatSnackBarModule,
     NavButtonsComponent,
+    PhishingStatusBadgeComponent,
   ],
   templateUrl: './phishing-campaign-detail.component.html',
 })
@@ -107,40 +109,6 @@ export class PhishingCampaignDetailComponent implements OnInit {
     if (r >= 15) return { label: 'Risque modéré', color: 'text-yellow-400' };
     if (r > 0) return { label: 'Risque faible', color: 'text-green-400' };
     return { label: '—', color: 'text-gray-500' };
-  }
-
-  statusLabel(status: string): string {
-    const m: Record<string, string> = {
-      draft: 'Brouillon',
-      pending_verification: 'Vérification',
-      ready: 'Prête',
-      scheduled: 'Planifiée',
-      sending: 'Envoi en cours',
-      active: 'En cours',
-      completed: 'Terminée',
-      cancelled: 'Annulée',
-    };
-    return m[status] ?? status;
-  }
-
-  statusColor(status: string): string {
-    switch (status) {
-      case 'active':
-      case 'sending':
-        return 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30';
-      case 'completed':
-        return 'text-green-400 bg-green-500/10 border-green-500/30';
-      case 'draft':
-        return 'text-gray-400 bg-gray-500/10 border-gray-500/30';
-      case 'ready':
-        return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
-      case 'scheduled':
-        return 'text-purple-400 bg-purple-500/10 border-purple-500/30';
-      case 'cancelled':
-        return 'text-red-400 bg-red-500/10 border-red-500/30';
-      default:
-        return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
-    }
   }
 
   targetStatusLabel(status: string): string {
