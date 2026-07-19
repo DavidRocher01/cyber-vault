@@ -26,6 +26,7 @@ import resend
 from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.core.config import settings
 from app.models.enums import CampaignStatus, TargetStatus
@@ -104,6 +105,31 @@ async def check_domain_verification(record: PhishingDomainVerification, db: Asyn
     return False
 
 
+async def get_domain_verification(
+    user_id: int, domain: str, db: AsyncSession
+) -> PhishingDomainVerification | None:
+    """Retourne la demande de vérification d'un domaine pour un utilisateur (ou None)."""
+    result = await db.execute(
+        select(PhishingDomainVerification).where(
+            PhishingDomainVerification.user_id == user_id,
+            PhishingDomainVerification.domain == domain,
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def is_domain_verified(user_id: int, domain: str, db: AsyncSession) -> bool:
+    """True si l'utilisateur possède une vérification RÉUSSIE pour ce domaine."""
+    result = await db.execute(
+        select(PhishingDomainVerification.id).where(
+            PhishingDomainVerification.user_id == user_id,
+            PhishingDomainVerification.domain == domain,
+            PhishingDomainVerification.verified.is_(True),
+        )
+    )
+    return result.scalar_one_or_none() is not None
+
+
 # ---------------------------------------------------------------------------
 # Campaign CRUD
 # ---------------------------------------------------------------------------
@@ -138,6 +164,21 @@ async def get_campaign(campaign_id: int, user_id: int, db: AsyncSession) -> Phis
         )
     )
     return result.scalar_one_or_none()
+
+
+async def get_targets(campaign_id: int, db: AsyncSession) -> list[PhishingTarget]:
+    """Cibles d'une campagne (ordre d'insertion)."""
+    result = await db.execute(
+        select(PhishingTarget)
+        .where(PhishingTarget.campaign_id == campaign_id)
+        .order_by(PhishingTarget.id)
+    )
+    return list(result.scalars().all())
+
+
+async def delete_campaign(campaign: PhishingCampaign, db: AsyncSession) -> None:
+    """Supprime la campagne (cibles supprimées en cascade via la relation ORM)."""
+    await db.delete(campaign)
 
 
 async def create_campaign(
@@ -661,79 +702,87 @@ async def _enroll_target_in_remediation(
         logger.warning(f"training-on-fail enrollment skipped (campaign {campaign.id}): {exc}")
 
 
-async def record_open(tracking_id: str, db: AsyncSession) -> None:
+async def _resolve_target_and_campaign(
+    tracking_id: str, db: AsyncSession
+) -> tuple[PhishingTarget | None, PhishingCampaign | None]:
+    """Charge la cible (par tracking_id) ET sa campagne en UNE requête (joinedload).
+    Remplace le double SELECT dupliqué dans les handlers de tracking."""
     result = await db.execute(
-        select(PhishingTarget).where(PhishingTarget.tracking_id == tracking_id)
+        select(PhishingTarget)
+        .options(joinedload(PhishingTarget.campaign))
+        .where(PhishingTarget.tracking_id == tracking_id)
     )
     target = result.scalar_one_or_none()
-    if target and target.status == TargetStatus.EMAIL_SENT:
-        campaign_result = await db.execute(
-            select(PhishingCampaign).where(PhishingCampaign.id == target.campaign_id)
-        )
-        campaign = campaign_result.scalar_one_or_none()
-        if campaign and not _is_campaign_expired(campaign):
-            target.status = TargetStatus.OPENED
-            target.opened_at = datetime.now(UTC)
-            campaign.opened_count += 1
-            campaign.updated_at = datetime.now(UTC)
-            await db.commit()
+    return target, (target.campaign if target else None)
+
+
+async def record_open(tracking_id: str, db: AsyncSession) -> None:
+    target, campaign = await _resolve_target_and_campaign(tracking_id, db)
+    if (
+        target
+        and campaign
+        and target.status == TargetStatus.EMAIL_SENT
+        and not _is_campaign_expired(campaign)
+    ):
+        target.status = TargetStatus.OPENED
+        target.opened_at = datetime.now(UTC)
+        campaign.opened_count += 1
+        campaign.updated_at = datetime.now(UTC)
+        await db.commit()
 
 
 async def record_click(tracking_id: str, db: AsyncSession) -> bool:
     """Record link click. Returns False if campaign has expired (endpoint should serve expiry page)."""
-    result = await db.execute(
-        select(PhishingTarget).where(PhishingTarget.tracking_id == tracking_id)
-    )
-    target = result.scalar_one_or_none()
-    if target and target.status in (TargetStatus.EMAIL_SENT, TargetStatus.OPENED):
-        campaign_result = await db.execute(
-            select(PhishingCampaign).where(PhishingCampaign.id == target.campaign_id)
-        )
-        campaign = campaign_result.scalar_one_or_none()
-        if campaign:
-            if _is_campaign_expired(campaign):
-                return False
-            target.status = TargetStatus.CLICKED
-            target.clicked_at = datetime.now(UTC)
-            campaign.clicked_count += 1
-            campaign.updated_at = datetime.now(UTC)
-            await db.commit()
-            if campaign.training_trigger == "click":
-                await _enroll_target_in_remediation(campaign, target, db)
+    target, campaign = await _resolve_target_and_campaign(tracking_id, db)
+    if target and campaign and target.status in (TargetStatus.EMAIL_SENT, TargetStatus.OPENED):
+        if _is_campaign_expired(campaign):
+            return False
+        target.status = TargetStatus.CLICKED
+        target.clicked_at = datetime.now(UTC)
+        campaign.clicked_count += 1
+        campaign.updated_at = datetime.now(UTC)
+        await db.commit()
+        if campaign.training_trigger == "click":
+            await _enroll_target_in_remediation(campaign, target, db)
     return True
 
 
 async def record_submit(tracking_id: str, db: AsyncSession) -> str:
     """Records submission and returns the scenario_key for the awareness page.
     Always returns a scenario_key so the awareness page is shown even after expiry."""
-    result = await db.execute(
-        select(PhishingTarget).where(PhishingTarget.tracking_id == tracking_id)
-    )
-    target = result.scalar_one_or_none()
+    target, campaign = await _resolve_target_and_campaign(tracking_id, db)
     scenario_key = _DEFAULT_SCENARIO_KEY
-    if target:
-        campaign_result = await db.execute(
-            select(PhishingCampaign).where(PhishingCampaign.id == target.campaign_id)
-        )
-        campaign = campaign_result.scalar_one_or_none()
-        if campaign:
-            keys = json.loads(campaign.scenario_keys or "[]")
-            if target.scenario_key:
-                scenario_key = target.scenario_key
-            elif keys:
-                scenario_key = keys[0]
-            if not _is_campaign_expired(campaign) and target.status != TargetStatus.SUBMITTED:
-                target.status = TargetStatus.SUBMITTED
-                target.submitted_at = datetime.now(UTC)
-                campaign.submitted_count += 1
-                campaign.updated_at = datetime.now(UTC)
-                await db.commit()
-                if campaign.training_trigger == "submit":
-                    await _enroll_target_in_remediation(campaign, target, db)
-        elif target.status != TargetStatus.SUBMITTED:
+    if target and campaign:
+        keys = json.loads(campaign.scenario_keys or "[]")
+        if target.scenario_key:
+            scenario_key = target.scenario_key
+        elif keys:
+            scenario_key = keys[0]
+        if not _is_campaign_expired(campaign) and target.status != TargetStatus.SUBMITTED:
             target.status = TargetStatus.SUBMITTED
+            target.submitted_at = datetime.now(UTC)
+            campaign.submitted_count += 1
+            campaign.updated_at = datetime.now(UTC)
             await db.commit()
+            if campaign.training_trigger == "submit":
+                await _enroll_target_in_remediation(campaign, target, db)
+    elif target and target.status != TargetStatus.SUBMITTED:
+        target.status = TargetStatus.SUBMITTED
+        await db.commit()
     return scenario_key
+
+
+async def get_landing_context(tracking_id: str, db: AsyncSession) -> tuple[str, str | None, bool]:
+    """Contexte pour servir la landing page : (scenario_key, landing_base, expired).
+    landing_base = host de la campagne (le formulaire doit poster sur le même host)."""
+    _target, campaign = await _resolve_target_and_campaign(tracking_id, db)
+    if not campaign:
+        return _DEFAULT_SCENARIO_KEY, None, False
+    if _is_campaign_expired(campaign):
+        return _DEFAULT_SCENARIO_KEY, None, True
+    keys = json.loads(campaign.scenario_keys or "[]")
+    scenario_key = keys[0] if keys else _DEFAULT_SCENARIO_KEY
+    return scenario_key, _tracking_base(campaign), False
 
 
 def _is_campaign_expired(campaign: PhishingCampaign) -> bool:

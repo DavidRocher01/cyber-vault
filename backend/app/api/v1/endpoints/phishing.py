@@ -22,7 +22,6 @@ Public tracking routes (no auth — called by email clients / browsers):
 """
 
 import asyncio
-import json
 import re
 from datetime import datetime
 
@@ -30,7 +29,6 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, 
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from loguru import logger
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
@@ -42,7 +40,6 @@ from app.core.utils import safe_json_load
 from app.models.enums import CampaignStatus
 from app.models.phishing import (
     PhishingCampaign,
-    PhishingDomainVerification,
     PhishingTarget,
 )
 from app.models.user import User
@@ -319,10 +316,7 @@ async def get_campaign(
     db: AsyncSession = Depends(get_db),
 ):
     campaign = await _get_owned(campaign_id, current_user.id, db)
-    targets_result = await db.execute(
-        select(PhishingTarget).where(PhishingTarget.campaign_id == campaign_id)
-    )
-    targets = list(targets_result.scalars().all())
+    targets = await phishing_service.get_targets(campaign_id, db)
     return {
         **_serialize_campaign(campaign),
         "targets": [_serialize_target(t) for t in targets],
@@ -347,15 +341,9 @@ async def update_campaign(
     # Check domain verification if domain changed
     domain_verified: bool | None = None
     if payload.domain and payload.domain != campaign.domain:
-        result = await db.execute(
-            select(PhishingDomainVerification).where(
-                PhishingDomainVerification.user_id == current_user.id,
-                PhishingDomainVerification.domain == payload.domain.lower().strip(),
-                PhishingDomainVerification.verified == True,  # noqa: E712
-            )
+        domain_verified = await phishing_service.is_domain_verified(
+            current_user.id, payload.domain.lower().strip(), db
         )
-        already_verified = result.scalar_one_or_none()
-        domain_verified = already_verified is not None
 
     updated = await phishing_service.update_campaign(
         campaign,
@@ -437,10 +425,8 @@ async def list_targets(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_owned(campaign_id, current_user.id, db)
-    result = await db.execute(
-        select(PhishingTarget).where(PhishingTarget.campaign_id == campaign_id)
-    )
-    return [_serialize_target(t) for t in result.scalars().all()]
+    targets = await phishing_service.get_targets(campaign_id, db)
+    return [_serialize_target(t) for t in targets]
 
 
 @router.post("/campaigns/{campaign_id}/targets/single", status_code=status.HTTP_201_CREATED)
@@ -578,7 +564,7 @@ async def delete_campaign(
 ):
     """Supprime définitivement une campagne du propriétaire (cibles en cascade)."""
     campaign = await _get_owned(campaign_id, current_user.id, db)
-    await db.delete(campaign)
+    await phishing_service.delete_campaign(campaign, db)
     await db.commit()
 
 
@@ -596,10 +582,7 @@ async def download_report_pdf(
         "Le rapport PDF n'est disponible que pour les campagnes actives ou terminées.",
     )
 
-    targets_result = await db.execute(
-        select(PhishingTarget).where(PhishingTarget.campaign_id == campaign_id)
-    )
-    targets = list(targets_result.scalars().all())
+    targets = await phishing_service.get_targets(campaign_id, db)
 
     pdf_bytes = generate_phishing_report(campaign, targets)
     filename = f"rapport-phishing-{campaign_id}.pdf"
@@ -649,13 +632,7 @@ async def check_domain_verification(
     db: AsyncSession = Depends(get_db),
 ):
     domain = payload.domain.lower().strip()
-    result = await db.execute(
-        select(PhishingDomainVerification).where(
-            PhishingDomainVerification.user_id == current_user.id,
-            PhishingDomainVerification.domain == domain,
-        )
-    )
-    record = result.scalar_one_or_none()
+    record = await phishing_service.get_domain_verification(current_user.id, domain, db)
     if not record:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -727,25 +704,11 @@ async def tracking_click(request: Request, tracking_id: str, db: AsyncSession = 
 @limiter.limit("15/minute")
 async def tracking_landing(request: Request, tracking_id: str, db: AsyncSession = Depends(get_db)):
     """Serve the scenario-specific credential-harvesting landing page, or expiry page."""
-    result = await db.execute(
-        select(PhishingTarget).where(PhishingTarget.tracking_id == tracking_id)
+    scenario_key, landing_base, expired = await phishing_service.get_landing_context(
+        tracking_id, db
     )
-    target = result.scalar_one_or_none()
-    scenario_key = phishing_service._DEFAULT_SCENARIO_KEY
-    landing_base: str | None = None
-    if target:
-        campaign_result = await db.execute(
-            select(PhishingCampaign).where(PhishingCampaign.id == target.campaign_id)
-        )
-        campaign = campaign_result.scalar_one_or_none()
-        if campaign:
-            if phishing_service._is_campaign_expired(campaign):
-                return HTMLResponse(content=phishing_service.get_expired_html())
-            # Le formulaire doit poster sur le même host que celui de la campagne.
-            landing_base = phishing_service._tracking_base(campaign)
-            keys = json.loads(campaign.scenario_keys or "[]")
-            if keys:
-                scenario_key = keys[0]
+    if expired:
+        return HTMLResponse(content=phishing_service.get_expired_html())
     return HTMLResponse(
         content=phishing_service.get_landing_html(tracking_id, scenario_key, landing_base)
     )
