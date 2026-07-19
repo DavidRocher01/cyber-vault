@@ -31,11 +31,17 @@ async def _get_plan_tier(db: AsyncSession, user_id: int) -> int:
     return await get_active_tier(db, user_id)
 
 
-def _run_scan_sync(url: str, tier: int, scan_id: int, hibp_key: str) -> dict:
+def _run_scan_sync(
+    url: str, tier: int, scan_id: int, hibp_key: str, allow_active: bool = True
+) -> dict:
     """
     All blocking scanner calls, executed in a thread pool executor so the
     asyncio event loop stays free to serve API requests during the scan.
     Returns a dict with keys: results, overall, pdf_path.
+
+    allow_active : si False, on saute le scan de ports nmap (module INTRUSIF).
+    Réservé aux domaines dont l'utilisateur a prouvé la propriété (anti-scan de
+    tiers non consentants). Les autres modules (GET/DNS/TLS) restent passifs.
     """
     from urllib.parse import urlparse
 
@@ -62,7 +68,8 @@ def _run_scan_sync(url: str, tier: int, scan_id: int, hibp_key: str) -> dict:
     dns_result = scan_subdomains(hostname)
     cms_result = detect_cms(url)
     waf_result = detect_waf(url)
-    port_result = scan_ports(hostname)
+    # Scan de ports nmap = INTRUSIF : uniquement si le domaine est vérifié.
+    port_result = scan_ports(hostname) if allow_active else {}
 
     breach_result: dict = {}
     if hibp_key:
@@ -108,7 +115,7 @@ def _run_scan_sync(url: str, tier: int, scan_id: int, hibp_key: str) -> dict:
         ssl_result=ssl_result,
         headers_result=headers_result,
         port_result=port_result,
-        ports_skipped=False,
+        ports_skipped=not allow_active,
         sca_result={},
         sca_skipped=True,
         email_result=email_result,
@@ -240,6 +247,25 @@ def _run_scan_sync(url: str, tier: int, scan_id: int, hibp_key: str) -> dict:
     return {"results": results, "overall": overall, "pdf_path": pdf_path}
 
 
+async def _active_scan_allowed(user_id: int, url: str, db: AsyncSession) -> bool:
+    """True si l'utilisateur a prouvé la propriété du domaine (scan nmap autorisé).
+    Couvre l'hôte exact et l'apex sans préfixe 'www.' (vérifier l'apex vaut pour www)."""
+    from urllib.parse import urlparse
+
+    from app.services import phishing_service
+
+    host = (urlparse(url).hostname or "").lower()
+    if not host:
+        return False
+    candidates = {host}
+    if host.startswith("www."):
+        candidates.add(host[4:])
+    for domain in candidates:
+        if await phishing_service.is_domain_verified(user_id, domain, db):
+            return True
+    return False
+
+
 async def run_scan(scan_id: int, db: AsyncSession) -> None:
     """
     Execute a full scan for the given scan_id.
@@ -273,11 +299,17 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
 
     hibp_key = settings.HIBP_API_KEY
 
+    # Scan de ports nmap (intrusif) uniquement si l'utilisateur a prouvé la
+    # propriété du domaine (niveau 2 : passif libre / intrusif vérifié).
+    allow_active = await _active_scan_allowed(site.user_id, url, db)
+
     try:
         # Run all blocking scanner calls in a thread pool so the asyncio event
         # loop stays free to serve other API requests during the scan.
         loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(None, _run_scan_sync, url, tier, scan_id, hibp_key)
+        result = await loop.run_in_executor(
+            None, _run_scan_sync, url, tier, scan_id, hibp_key, allow_active
+        )
 
         scan.status = "done"
         scan.overall_status = result["overall"]
