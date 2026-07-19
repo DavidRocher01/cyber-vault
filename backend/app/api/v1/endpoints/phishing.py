@@ -574,7 +574,9 @@ async def delete_campaign(
 
 
 @router.get("/campaigns/{campaign_id}/pdf")
+@limiter.limit("10/minute")
 async def download_report_pdf(
+    request: Request,
     campaign_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -589,7 +591,9 @@ async def download_report_pdf(
 
     targets = await phishing_service.get_targets(campaign_id, db)
 
-    pdf_bytes = generate_phishing_report(campaign, targets)
+    # Rendu ReportLab déporté en thread : ne bloque plus l'event loop (une
+    # campagne de 500 cibles gelait le worker pendant tout le rendu).
+    pdf_bytes = await asyncio.to_thread(generate_phishing_report, campaign, targets)
     filename = f"rapport-phishing-{campaign_id}.pdf"
     return Response(
         content=pdf_bytes,
