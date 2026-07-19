@@ -16,7 +16,7 @@ import {
   planMaxScenarios,
   planMaxTargets,
 } from '../services/phishing.service';
-import { PHISHING_SCENARIOS } from '../phishing/phishing.component';
+import { PHISHING_SCENARIOS } from '../services/phishing-scenarios';
 
 export type WizardStep = 'plan' | 'info' | 'targets' | 'scenarios' | 'review';
 

@@ -28,7 +28,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from loguru import logger
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
@@ -104,6 +104,7 @@ def _normalize_domain(value: str | None) -> str | None:
 
 
 class CampaignCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     name: str = Field(..., min_length=2, max_length=100)
     plan_tier: str = Field(..., pattern="^(express|standard|premium|quarterly|monthly)$")
     # Mode consultant : rattache la campagne à un client RSSI. NULL = entreprise directe.
@@ -111,6 +112,7 @@ class CampaignCreate(BaseModel):
 
 
 class CampaignUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     name: str | None = Field(None, min_length=2, max_length=100)
     domain: str | None = Field(None, max_length=255)
     lookalike_domain: str | None = Field(None, max_length=255)
@@ -128,6 +130,7 @@ class CampaignUpdate(BaseModel):
 
 
 class DomainVerifyRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     domain: str = Field(..., min_length=3, max_length=255)
 
     @field_validator("domain")
@@ -137,6 +140,7 @@ class DomainVerifyRequest(BaseModel):
 
 
 class DomainCheckRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     domain: str
 
     @field_validator("domain")
@@ -146,6 +150,7 @@ class DomainCheckRequest(BaseModel):
 
 
 class TargetAdd(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     email: EmailStr
     first_name: str | None = Field(None, max_length=100)
     last_name: str | None = Field(None, max_length=100)
