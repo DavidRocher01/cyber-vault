@@ -82,8 +82,6 @@ async def request_domain_verification(
 async def check_domain_verification(record: PhishingDomainVerification, db: AsyncSession) -> bool:
     if record.verified:
         return True
-    from app.core.config import settings
-
     if settings.APP_ENV == "development":
         record.verified = True
         record.verified_at = datetime.now(UTC)

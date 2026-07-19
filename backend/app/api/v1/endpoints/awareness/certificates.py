@@ -1,5 +1,5 @@
-"""Endpoints attestations, dashboards multi-tenancy, rapports NIS2 et webhook phishing
-(Sprints 5, 7, 8, 9)."""
+"""Endpoints attestations, dashboards multi-tenancy, rapports NIS2
+(Sprints 5, 7, 8)."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_learner, get_current_user, require_admin
+from app.core.deps import get_current_learner, get_current_user
 from app.models.awareness_learner import AwarenessLearner
 from app.models.user import User
 from app.schemas.awareness import (
@@ -165,58 +165,3 @@ async def download_nis2_report_pdf(
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
-
-
-# ── Webhook phishing (Sprint 9) ────────────────────────────────────────────────
-
-
-@router.post("/internal/phishing-click", status_code=202, dependencies=[Depends(require_admin)])
-async def phishing_click_webhook(
-    learner_email: str,
-    organization_id: int,
-    db: AsyncSession = Depends(get_db),
-) -> dict:
-    """
-    Webhook interne déclenché quand un learner clique sur un lien de simulation phishing.
-    Auto-enrôle le learner dans le module de remédiation post-clic (bienveillant, 3 min).
-    Protégé par X-Admin-Key (require_admin) — appelé par le module phishing interne
-    avec le secret partagé, jamais exposé publiquement.
-    """
-    from app.models.awareness_program import AwarenessProgram
-
-    learner = (
-        await db.execute(
-            select(AwarenessLearner).where(
-                AwarenessLearner.email == learner_email,
-                AwarenessLearner.organization_id == organization_id,
-                AwarenessLearner.is_active == True,
-            )
-        )
-    ).scalar_one_or_none()
-
-    if learner is None:
-        return {"enrolled": False, "reason": "learner not found"}
-
-    # Find a remediation program (slug contains "remediation" or "post-clic")
-    remediation_prog = (
-        await db.execute(
-            select(AwarenessProgram)
-            .where(
-                AwarenessProgram.is_active == True,
-                AwarenessProgram.slug.contains("remediation"),
-            )
-            .limit(1)
-        )
-    ).scalar_one_or_none()
-
-    if remediation_prog is None:
-        return {"enrolled": False, "reason": "no remediation program configured"}
-
-    from app.services.awareness_progression import enroll_learner
-
-    enrollment = await enroll_learner(db, learner, remediation_prog.id)
-    return {
-        "enrolled": True,
-        "enrollment_id": enrollment.id,
-        "program_title": remediation_prog.title,
-    }

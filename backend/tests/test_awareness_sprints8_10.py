@@ -1,5 +1,5 @@
 """
-Tests — Awareness Sprints 8-10 : NIS2 rapport, phishing webhook, observabilité.
+Tests — Awareness Sprints 8-10 : NIS2 rapport, observabilité.
 
 Sprint 8 — NIS2 compliance :
   - compute_nis2_metrics : structure retournée
@@ -7,10 +7,6 @@ Sprint 8 — NIS2 compliance :
   - compute_global_score : 100% si tout compliant, 0% si tout non_compliant
   - generate_nis2_report_pdf : PDF valide
   - Endpoints GET /nis2-report et /nis2-report/pdf (auth requise)
-
-Sprint 9 — Phishing webhook :
-  - POST /internal/phishing-click : learner inconnu → enrolled:False
-  - POST /internal/phishing-click : pas de programme remédiation → enrolled:False
 
 Sprint 10 — Observabilité :
   - Scheduler job enregistré
@@ -284,36 +280,6 @@ async def test_nis2_report_pdf_returns_pdf_bytes():
     assert r.status_code == 200
     assert r.headers["content-type"] == "application/pdf"
     assert r.content[:4] == b"%PDF"
-
-
-# ── Phishing webhook ───────────────────────────────────────────────────────────
-
-
-@pytest.mark.asyncio
-async def test_phishing_click_unknown_learner():
-    from unittest.mock import patch
-
-    with patch("app.core.deps.settings") as mock_settings:
-        mock_settings.ADMIN_API_KEY = "test-admin-key"
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.post(
-                f"{BASE}/awareness/internal/phishing-click",
-                params={"learner_email": "ghost@nowhere.com", "organization_id": 9999},
-                headers={"x-admin-key": "test-admin-key"},
-            )
-    assert r.status_code == 202
-    assert r.json()["enrolled"] is False
-
-
-@pytest.mark.asyncio
-async def test_phishing_click_requires_admin_key():
-    """Sans X-Admin-Key valide, le webhook interne doit être refusé (403)."""
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        r = await c.post(
-            f"{BASE}/awareness/internal/phishing-click",
-            params={"learner_email": "ghost@nowhere.com", "organization_id": 9999},
-        )
-    assert r.status_code == 403
 
 
 # ── Scheduler Sprint 10 ────────────────────────────────────────────────────────
