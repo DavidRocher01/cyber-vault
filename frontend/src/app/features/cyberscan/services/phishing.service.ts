@@ -140,6 +140,12 @@ export function planMaxTargets(plan: string | null | undefined): number {
   return PHISHING_PLAN_CONFIG[plan ?? '']?.maxTargets ?? 50;
 }
 
+export interface UploadTargetsResult {
+  targets_added: number;
+  targets_skipped: number;
+  targets_total: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PhishingService {
   private http = inject(HttpClient);
@@ -203,19 +209,11 @@ export class PhishingService {
 
   /** Import CSV. replace=false (défaut) = merge/dédup (n'écrase pas les cibles
    *  existantes) ; replace=true = remplace tout. */
-  uploadTargets(
-    id: number,
-    file: File,
-    replace = false
-  ): Observable<{ targets_added: number; targets_skipped: number; targets_total: number }> {
+  uploadTargets(id: number, file: File, replace = false): Observable<UploadTargetsResult> {
     const form = new FormData();
     form.append('file', file);
     const q = replace ? '?replace=true' : '';
-    return this.http.post<{
-      targets_added: number;
-      targets_skipped: number;
-      targets_total: number;
-    }>(`${this.base}/campaigns/${id}/targets${q}`, form);
+    return this.http.post<UploadTargetsResult>(`${this.base}/campaigns/${id}/targets${q}`, form);
   }
 
   getTargets(id: number): Observable<PhishingTarget[]> {

@@ -13,7 +13,7 @@ import { switchMap } from 'rxjs/operators';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { PhishingStatusBadgeComponent } from '../phishing-status-badge/phishing-status-badge.component';
 import { PhishingService, PhishingCampaign } from '../services/phishing.service';
-import { PHISHING_SCENARIOS } from '../phishing/phishing.component';
+import { PHISHING_SCENARIOS } from '../services/phishing-scenarios';
 
 @Component({
   standalone: true,

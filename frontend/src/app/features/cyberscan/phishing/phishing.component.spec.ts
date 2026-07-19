@@ -2,13 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { signal } from '@angular/core';
 import {
   PhishingComponent,
-  PHISHING_SCENARIOS,
   PRICING_TIERS,
   SUBSCRIPTION_TIERS,
   METHOD_STEPS,
   FAQ_ITEMS,
   USE_CASES,
 } from './phishing.component';
+import { PHISHING_SCENARIOS } from '../services/phishing-scenarios';
 
 function make(): PhishingComponent {
   const comp = Object.create(PhishingComponent.prototype) as PhishingComponent;

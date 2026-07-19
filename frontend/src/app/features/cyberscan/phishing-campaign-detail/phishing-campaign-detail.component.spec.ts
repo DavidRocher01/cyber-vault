@@ -3,7 +3,7 @@ import { signal } from '@angular/core';
 import { of } from 'rxjs';
 import { PhishingCampaignDetailComponent } from './phishing-campaign-detail.component';
 import type { PhishingCampaign } from '../services/phishing.service';
-import { PHISHING_SCENARIOS } from '../phishing/phishing.component';
+import { PHISHING_SCENARIOS } from '../services/phishing-scenarios';
 
 function make(): PhishingCampaignDetailComponent {
   const comp = Object.create(

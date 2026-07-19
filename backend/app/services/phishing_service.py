@@ -396,13 +396,25 @@ async def delete_target(campaign: PhishingCampaign, target_id: int, db: AsyncSes
 # ---------------------------------------------------------------------------
 
 
+def _lookalike_host(campaign: PhishingCampaign) -> str | None:
+    """Host nu du domaine look-alike (sans schéma ni slash final), ou None.
+    Source unique du nettoyage — utilisé par _tracking_base ET _build_email."""
+    raw = campaign.lookalike_domain
+    if not raw:
+        return None
+    raw = raw.strip()
+    for scheme in ("https://", "http://"):
+        if raw.startswith(scheme):
+            raw = raw[len(scheme) :]
+            break
+    return raw.rstrip("/") or None
+
+
 def _tracking_base(campaign: PhishingCampaign) -> str:
     """Determine the base URL for tracking links (look-alike or default)."""
-    if campaign.lookalike_domain:
-        domain = campaign.lookalike_domain.rstrip("/")
-        if not domain.startswith("http"):
-            domain = f"https://{domain}"
-        return domain
+    host = _lookalike_host(campaign)
+    if host:
+        return f"https://{host}"
     return settings.PHISHING_BASE_URL.rstrip("/")
 
 
@@ -447,14 +459,10 @@ def _build_email(
     from_email = settings.PHISHING_FROM_EMAIL or settings.RESEND_FROM
     from_addr = f"{from_name} <{from_email}>"
     reply_to: str | None = None
-    if campaign.lookalike_domain and tpl.get("internal"):
-        raw = campaign.lookalike_domain
-        if raw.startswith("https://"):
-            raw = raw[8:]
-        elif raw.startswith("http://"):
-            raw = raw[7:]
-        raw = raw.rstrip("/")
-        reply_to = f"{from_name} <noreply@{raw}>"
+    if tpl.get("internal"):
+        host = _lookalike_host(campaign)
+        if host:
+            reply_to = f"{from_name} <noreply@{host}>"
     return from_addr, subject, html, text, reply_to
 
 
