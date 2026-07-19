@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 
 export interface PhishingCampaign {
@@ -101,6 +102,44 @@ export interface DomainVerifyResult {
   instructions: string;
 }
 
+export type PhishingCampaignPatch = Partial<{
+  name: string;
+  domain: string;
+  lookalike_domain: string;
+  scenario_keys: string[];
+  cgu_accepted: boolean;
+  scheduled_at: string;
+  training_on_fail: boolean;
+  training_trigger: 'click' | 'submit';
+  batch_size: number;
+}>;
+
+export interface PhishingPlanConfig {
+  maxScenarios: number;
+  maxTargets: number;
+}
+
+/**
+ * Source UNIQUE des plafonds par plan (scénarios + cibles). Aligné sur le
+ * backend `_MAX_TARGETS`. Auparavant dupliqué et divergent entre le créateur
+ * (PLAN_OPTIONS) et l'édition (MAX_SCENARIOS_BY_PLAN).
+ */
+export const PHISHING_PLAN_CONFIG: Record<string, PhishingPlanConfig> = {
+  express: { maxScenarios: 2, maxTargets: 50 },
+  standard: { maxScenarios: 5, maxTargets: 200 },
+  premium: { maxScenarios: 10, maxTargets: 500 },
+  quarterly: { maxScenarios: 3, maxTargets: 100 },
+  monthly: { maxScenarios: 7, maxTargets: 300 },
+};
+
+export function planMaxScenarios(plan: string | null | undefined): number {
+  return PHISHING_PLAN_CONFIG[plan ?? '']?.maxScenarios ?? 2;
+}
+
+export function planMaxTargets(plan: string | null | undefined): number {
+  return PHISHING_PLAN_CONFIG[plan ?? '']?.maxTargets ?? 50;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PhishingService {
   private http = inject(HttpClient);
@@ -128,21 +167,22 @@ export class PhishingService {
     return this.http.post<PhishingCampaign>(`${this.base}/campaigns`, body);
   }
 
-  updateCampaign(
-    id: number,
-    patch: Partial<{
-      name: string;
-      domain: string;
-      lookalike_domain: string;
-      scenario_keys: string[];
-      cgu_accepted: boolean;
-      scheduled_at: string;
-      training_on_fail: boolean;
-      training_trigger: 'click' | 'submit';
-      batch_size: number;
-    }>
-  ): Observable<PhishingCampaign> {
+  updateCampaign(id: number, patch: PhishingCampaignPatch): Observable<PhishingCampaign> {
     return this.http.patch<PhishingCampaign>(`${this.base}/campaigns/${id}`, patch);
+  }
+
+  /**
+   * Sauvegarde (patch + acceptation des CGU) PUIS lance la campagne, en un seul
+   * flux — remplace les subscribe imbriqués updateCampaign→launchCampaign des
+   * composants créateur et édition.
+   */
+  launchWithCgu(
+    id: number,
+    patch: PhishingCampaignPatch = {}
+  ): Observable<{ status: string; campaign_id: number }> {
+    return this.updateCampaign(id, { ...patch, cgu_accepted: true }).pipe(
+      switchMap(() => this.launchCampaign(id))
+    );
   }
 
   /** Annule une campagne (statut "cancelled") : plus aucun email ne partira. */
