@@ -380,3 +380,23 @@ describe('CyberscanService', () => {
     expect(http.post).not.toHaveBeenCalled();
   });
 });
+
+describe('CyberscanService — vérification de domaine (H2b)', () => {
+  it('getSiteDomainStatus appelle GET /sites/:id/domain', () => {
+    const { service, http } = makeService();
+    service.getSiteDomainStatus(7).subscribe();
+    expect(http.get).toHaveBeenCalledWith(`${API}/sites/7/domain`);
+  });
+
+  it('requestSiteDomainVerify appelle POST /sites/:id/domain/verify', () => {
+    const { service, http } = makeService();
+    service.requestSiteDomainVerify(7).subscribe();
+    expect(http.post).toHaveBeenCalledWith(`${API}/sites/7/domain/verify`, {});
+  });
+
+  it('checkSiteDomainVerify appelle POST /sites/:id/domain/verify/check', () => {
+    const { service, http } = makeService();
+    service.checkSiteDomainVerify(7).subscribe();
+    expect(http.post).toHaveBeenCalledWith(`${API}/sites/7/domain/verify/check`, {});
+  });
+});

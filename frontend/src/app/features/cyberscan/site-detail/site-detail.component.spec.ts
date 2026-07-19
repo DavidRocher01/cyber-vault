@@ -1,4 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { signal } from '@angular/core';
+import { of } from 'rxjs';
 import { SiteDetailComponent } from './site-detail.component';
 
 function make(): SiteDetailComponent {
@@ -75,5 +77,66 @@ describe('SiteDetailComponent — toggleFinding()', () => {
     c.toggleFinding('ssl');
     expect(c.flippedFindings.has('ssl')).toBe(false);
     expect(c.flippedFindings.has('headers')).toBe(true);
+  });
+});
+
+describe('SiteDetailComponent — vérification de domaine (H2b)', () => {
+  function makeComp(): SiteDetailComponent {
+    const c = Object.create(SiteDetailComponent.prototype) as SiteDetailComponent;
+    (c as any).domainStatus = signal(null);
+    (c as any).verifyInfo = signal(null);
+    (c as any).verifying = signal(false);
+    (c as any).showVerifyPanel = signal(false);
+    (c as any).siteId = signal(7);
+    (c as any).snack = { open: vi.fn() };
+    return c;
+  }
+
+  it('loadDomainStatus stocke le statut renvoyé', () => {
+    const c = makeComp();
+    (c as any).cyberscan = {
+      getSiteDomainStatus: vi.fn().mockReturnValue(of({ domain: 'a.com', verified: false })),
+    };
+    c.loadDomainStatus(7);
+    expect(c.domainStatus()).toEqual({ domain: 'a.com', verified: false });
+  });
+
+  it('startVerify ouvre le panneau et récupère le TXT', () => {
+    const c = makeComp();
+    const info = {
+      domain: 'a.com',
+      verified: false,
+      verification_token: 't',
+      dns_record_name: '_rocher-verify.a.com',
+      dns_record_type: 'TXT',
+      dns_record_value: 't',
+      instructions: '',
+    };
+    (c as any).cyberscan = { requestSiteDomainVerify: vi.fn().mockReturnValue(of(info)) };
+    c.startVerify();
+    expect(c.showVerifyPanel()).toBe(true);
+    expect(c.verifyInfo()).toEqual(info);
+  });
+
+  it('checkVerify vérifié -> ferme le panneau + met à jour le statut', () => {
+    const c = makeComp();
+    (c as any).showVerifyPanel.set(true);
+    (c as any).cyberscan = {
+      checkSiteDomainVerify: vi.fn().mockReturnValue(of({ domain: 'a.com', verified: true })),
+    };
+    c.checkVerify();
+    expect(c.domainStatus()?.verified).toBe(true);
+    expect(c.showVerifyPanel()).toBe(false);
+  });
+
+  it('checkVerify non vérifié -> garde le panneau ouvert', () => {
+    const c = makeComp();
+    (c as any).showVerifyPanel.set(true);
+    (c as any).cyberscan = {
+      checkSiteDomainVerify: vi.fn().mockReturnValue(of({ domain: 'a.com', verified: false })),
+    };
+    c.checkVerify();
+    expect(c.domainStatus()?.verified).toBe(false);
+    expect(c.showVerifyPanel()).toBe(true);
   });
 });
