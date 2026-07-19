@@ -8,7 +8,7 @@ No API key required.
 import socket
 from typing import Any
 
-import requests
+from scanner import safe_http as requests
 import urllib3
 
 try:

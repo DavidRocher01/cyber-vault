@@ -4,7 +4,7 @@ Checks Set-Cookie headers for missing security flags:
 HttpOnly, Secure, SameSite.
 """
 
-import requests
+from scanner import safe_http as requests
 import urllib3
 from typing import Any
 

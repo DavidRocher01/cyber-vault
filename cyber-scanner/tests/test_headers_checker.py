@@ -31,14 +31,14 @@ def _mock_response(status_code: int = 200, headers: dict | None = None) -> Magic
 class TestCheckHeadersReturnShape:
     def test_returns_expected_keys_on_success(self):
         mock_resp = _mock_response(200, {})
-        with patch("requests.get", return_value=mock_resp):
+        with patch("scanner.headers_checker.requests.get", return_value=mock_resp):
             result = check_headers("https://example.com")
 
         expected_keys = {"status_code", "headers_found", "headers_missing", "score", "status", "error"}
         assert set(result.keys()) == expected_keys
 
     def test_returns_expected_keys_on_error(self):
-        with patch("requests.get", side_effect=requests.exceptions.ConnectionError("refused")):
+        with patch("scanner.headers_checker.requests.get", side_effect=requests.exceptions.ConnectionError("refused")):
             result = check_headers("https://nonexistent.invalid")
 
         expected_keys = {"status_code", "headers_found", "headers_missing", "score", "status", "error"}
@@ -51,7 +51,7 @@ class TestCheckHeadersReturnShape:
 
 class TestCheckHeadersErrorPath:
     def test_connection_error_sets_error_key(self):
-        with patch("requests.get", side_effect=requests.exceptions.ConnectionError("refused")):
+        with patch("scanner.headers_checker.requests.get", side_effect=requests.exceptions.ConnectionError("refused")):
             result = check_headers("https://nonexistent.invalid")
 
         assert result["error"] is not None
@@ -59,14 +59,14 @@ class TestCheckHeadersErrorPath:
         assert result["status"] == "CRITICAL"
 
     def test_timeout_sets_error_key(self):
-        with patch("requests.get", side_effect=requests.exceptions.Timeout()):
+        with patch("scanner.headers_checker.requests.get", side_effect=requests.exceptions.Timeout()):
             result = check_headers("https://example.com")
 
         assert result["error"] is not None
         assert result["status"] == "CRITICAL"
 
     def test_too_many_redirects_sets_error_key(self):
-        with patch("requests.get", side_effect=requests.exceptions.TooManyRedirects()):
+        with patch("scanner.headers_checker.requests.get", side_effect=requests.exceptions.TooManyRedirects()):
             result = check_headers("https://example.com")
 
         assert result["error"] is not None
@@ -80,7 +80,7 @@ class TestCheckHeadersErrorPath:
 class TestCheckHeadersScoreLogic:
     def test_no_headers_present_score_zero_status_critical(self):
         mock_resp = _mock_response(200, {})
-        with patch("requests.get", return_value=mock_resp):
+        with patch("scanner.headers_checker.requests.get", return_value=mock_resp):
             result = check_headers("https://example.com")
 
         assert result["score"] == 0
@@ -91,7 +91,7 @@ class TestCheckHeadersScoreLogic:
     def test_all_headers_present_score_six_status_ok(self):
         all_headers = {h: "value" for h in SECURITY_HEADERS}
         mock_resp = _mock_response(200, all_headers)
-        with patch("requests.get", return_value=mock_resp):
+        with patch("scanner.headers_checker.requests.get", return_value=mock_resp):
             result = check_headers("https://example.com")
 
         assert result["score"] == 6
@@ -102,7 +102,7 @@ class TestCheckHeadersScoreLogic:
     def test_four_headers_present_status_warning(self):
         partial_headers = {h: "value" for h in SECURITY_HEADERS[:4]}
         mock_resp = _mock_response(200, partial_headers)
-        with patch("requests.get", return_value=mock_resp):
+        with patch("scanner.headers_checker.requests.get", return_value=mock_resp):
             result = check_headers("https://example.com")
 
         assert result["score"] == 4
@@ -112,7 +112,7 @@ class TestCheckHeadersScoreLogic:
         # Headers returned in uppercase should still be detected
         uppercased = {h.upper(): "value" for h in SECURITY_HEADERS}
         mock_resp = _mock_response(200, uppercased)
-        with patch("requests.get", return_value=mock_resp):
+        with patch("scanner.headers_checker.requests.get", return_value=mock_resp):
             result = check_headers("https://example.com")
 
         assert result["score"] == 6
@@ -120,7 +120,7 @@ class TestCheckHeadersScoreLogic:
 
     def test_status_code_is_recorded(self):
         mock_resp = _mock_response(403, {})
-        with patch("requests.get", return_value=mock_resp):
+        with patch("scanner.headers_checker.requests.get", return_value=mock_resp):
             result = check_headers("https://example.com")
 
         assert result["status_code"] == 403
