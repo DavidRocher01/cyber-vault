@@ -10,41 +10,49 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /tools
 
-RUN GITLEAKS_VERSION=8.30.1 \
-    && curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
-       | tar -xz -C /tools gitleaks \
-    # trivy
-    && TRIVY_VERSION=0.69.3 \
-    && curl -sSfL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
-       | tar -xz -C /tools trivy \
-    # trufflehog
-    && TRUFFLEHOG_VERSION=3.88.1 \
-    && curl -sSfL "https://github.com/trufflesecurity/trufflehog/releases/download/v${TRUFFLEHOG_VERSION}/trufflehog_${TRUFFLEHOG_VERSION}_linux_amd64.tar.gz" \
-       | tar -xz -C /tools trufflehog \
-    # grype
-    && GRYPE_VERSION=0.90.0 \
-    && curl -sSfL "https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}/grype_${GRYPE_VERSION}_linux_amd64.tar.gz" \
-       | tar -xz -C /tools grype \
-    # osv-scanner
-    && OSV_VERSION=1.9.2 \
-    && curl -sSfL "https://github.com/google/osv-scanner/releases/download/v${OSV_VERSION}/osv-scanner_linux_amd64" \
-       -o /tools/osv-scanner && chmod +x /tools/osv-scanner \
-    # hadolint
-    && HADOLINT_VERSION=2.12.0 \
-    && curl -sSfL "https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/hadolint-Linux-x86_64" \
-       -o /tools/hadolint && chmod +x /tools/hadolint \
-    # tfsec
-    && TFSEC_VERSION=1.28.11 \
-    && curl -sSfL "https://github.com/aquasecurity/tfsec/releases/download/v${TFSEC_VERSION}/tfsec-linux-amd64" \
-       -o /tools/tfsec && chmod +x /tools/tfsec \
-    # gosec
-    && GOSEC_VERSION=2.22.4 \
-    && curl -sSfL "https://github.com/securego/gosec/releases/download/v${GOSEC_VERSION}/gosec_${GOSEC_VERSION}_linux_amd64.tar.gz" \
-       | tar -xz -C /tools gosec \
-    # bearer
-    && BEARER_VERSION=1.48.0 \
-    && curl -sSfL "https://github.com/bearer/bearer/releases/download/v${BEARER_VERSION}/bearer_${BEARER_VERSION}_linux_amd64.tar.gz" \
-       | tar -xz -C /tools bearer
+# Binaires d'outils de scan épinglés + VÉRIFIÉS par SHA256 (supply-chain) :
+# on télécharge dans un fichier, on contrôle l'empreinte, puis on extrait.
+# Un binaire altéré en amont/en transit fait échouer le build (sha256sum -c).
+# Empreintes issues des checksums officiels de chaque release (ou calculées sur
+# l'artefact exact). À mettre à jour en même temps que la version.
+RUN set -eux; \
+    dl() { curl -sSfL --retry 3 "$1" -o "$2"; echo "$3  $2" | sha256sum -c -; }; \
+    # gitleaks 8.30.1
+    dl "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz" gitleaks.tgz \
+       "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"; \
+    tar -xzf gitleaks.tgz gitleaks; rm gitleaks.tgz; \
+    # trivy 0.69.3
+    dl "https://github.com/aquasecurity/trivy/releases/download/v0.69.3/trivy_0.69.3_Linux-64bit.tar.gz" trivy.tgz \
+       "1816b632dfe529869c740c0913e36bd1629cb7688bd5634f4a858c1d57c88b75"; \
+    tar -xzf trivy.tgz trivy; rm trivy.tgz; \
+    # trufflehog 3.88.1
+    dl "https://github.com/trufflesecurity/trufflehog/releases/download/v3.88.1/trufflehog_3.88.1_linux_amd64.tar.gz" th.tgz \
+       "0de286551c75b2f890f2c577ca97d761510641ecf3cabfdcdf4897c2c9901794"; \
+    tar -xzf th.tgz trufflehog; rm th.tgz; \
+    # grype 0.90.0
+    dl "https://github.com/anchore/grype/releases/download/v0.90.0/grype_0.90.0_linux_amd64.tar.gz" grype.tgz \
+       "48430d83f6bd75066ba936fb9e98543194b092cf68dc971ae8ab68b7ff05f8d1"; \
+    tar -xzf grype.tgz grype; rm grype.tgz; \
+    # osv-scanner 1.9.2 (binaire brut)
+    dl "https://github.com/google/osv-scanner/releases/download/v1.9.2/osv-scanner_linux_amd64" osv-scanner \
+       "d6af4b67fa5de658598bd2d445efb99e90d1734b3146962418719c4350ecb74b"; \
+    chmod +x osv-scanner; \
+    # hadolint 2.12.0 (binaire brut)
+    dl "https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64" hadolint \
+       "56de6d5e5ec427e17b74fa48d51271c7fc0d61244bf5c90e828aab8362d55010"; \
+    chmod +x hadolint; \
+    # tfsec 1.28.11 (binaire brut)
+    dl "https://github.com/aquasecurity/tfsec/releases/download/v1.28.11/tfsec-linux-amd64" tfsec \
+       "18e2f947a4f0ec74bf6db07245fc81f83930835ef1b5d51d2d5152a6548b5e45"; \
+    chmod +x tfsec; \
+    # gosec 2.22.4
+    dl "https://github.com/securego/gosec/releases/download/v2.22.4/gosec_2.22.4_linux_amd64.tar.gz" gosec.tgz \
+       "2a7f67f720c20cb6922857fb474c095872ce4ec0364d1783347800bf0d5f22bf"; \
+    tar -xzf gosec.tgz gosec; rm gosec.tgz; \
+    # bearer 1.48.0
+    dl "https://github.com/bearer/bearer/releases/download/v1.48.0/bearer_1.48.0_linux_amd64.tar.gz" bearer.tgz \
+       "1fae001d04f00fe4dc3fb35b38295d33606d6bc59a3b8f8df1715dda8c7817cd"; \
+    tar -xzf bearer.tgz bearer; rm bearer.tgz
 
 
 # ── Stage 2: python-deps — Install Python packages into an isolated venv ──────
