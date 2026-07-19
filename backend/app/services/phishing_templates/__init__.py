@@ -37,6 +37,10 @@ from .landings import (
     _PIXEL_GIF,
     _SCENARIO_AWARENESS,
     _SCENARIO_LANDING,
+    get_awareness_html,
+    get_expired_html,
+    get_landing_html,
+    get_pixel_gif,
 )
 
 __all__ = [
@@ -58,6 +62,10 @@ __all__ = [
     "_attachment_badge",
     "_dynamic_ctx",
     "_email_wrap",
+    "get_awareness_html",
+    "get_expired_html",
+    "get_landing_html",
+    "get_pixel_gif",
     "_tpl_bank",
     "_tpl_ceo_fraud",
     "_tpl_fake_invoice",
