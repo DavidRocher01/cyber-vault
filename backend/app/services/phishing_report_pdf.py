@@ -5,6 +5,7 @@ Uses ReportLab (already in requirements).
 
 import io
 import json
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from xml.sax.saxutils import escape
 
@@ -61,55 +62,31 @@ def _global_risk(click_rate: float, submit_rate: float) -> tuple[str, colors.Col
     return "FAIBLE", _GREEN
 
 
-def _footer(canvas, doc):
-    canvas.saveState()
-    canvas.setFont("Helvetica", 7)
-    canvas.setFillColor(_GRAY)
-    page_num = f"Page {doc.page}"
-    canvas.drawRightString(_PAGE_W - 20 * mm, 12 * mm, page_num)
-    canvas.drawString(20 * mm, 12 * mm, "Rocher Cybersécurité — Rapport confidentiel")
-    canvas.restoreState()
+@dataclass
+class ReportStats:
+    """Statistiques calculees d'une campagne, decouplees du rendu ReportLab.
+
+    Couche de calcul pure -> testable isolement, sans generer de PDF.
+    """
+
+    click_rate: float
+    open_rate: float
+    submit_rate: float
+    global_risk_label: str
+    global_risk_color: colors.Color
+    dept_stats: dict[str, dict[str, int]]
+    scenario_perf: dict[str, dict[str, int]]
+    has_scenario_perf: bool
+    compromised: list[PhishingTarget]
+    scenario_keys: list[str]
+    median_click_str: str | None
 
 
-def generate_phishing_report(
-    campaign: PhishingCampaign,
-    targets: list[PhishingTarget],
-) -> bytes:
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        leftMargin=20 * mm,
-        rightMargin=20 * mm,
-        topMargin=20 * mm,
-        bottomMargin=22 * mm,
-    )
+def _compute_report_stats(campaign: PhishingCampaign, targets: list[PhishingTarget]) -> ReportStats:
+    """Agrege les statistiques d'une campagne (taux, par departement, par scenario,
 
-    title_style = ParagraphStyle(
-        "ReportTitle",
-        fontName="Helvetica-Bold",
-        fontSize=22,
-        textColor=_DARK,
-        spaceAfter=4,
-    )
-    subtitle_style = ParagraphStyle(
-        "Subtitle", fontName="Helvetica", fontSize=12, textColor=_GRAY, spaceAfter=10
-    )
-    section_style = ParagraphStyle(
-        "Section",
-        fontName="Helvetica-Bold",
-        fontSize=13,
-        textColor=_DARK,
-        spaceBefore=14,
-        spaceAfter=6,
-    )
-    body_style = ParagraphStyle(
-        "Body", fontName="Helvetica", fontSize=10, textColor=_DARK, spaceAfter=4
-    )
-    small_style = ParagraphStyle("Small", fontName="Helvetica", fontSize=8, textColor=_GRAY)
-    brand_style = ParagraphStyle("Brand", fontName="Helvetica-Bold", fontSize=11, textColor=_CYAN)
-
-    # ── Compute stats ────────────────────────────────────────────────────────
+    comptes compromis, delai median de clic). Aucune dependance au rendu.
+    """
     n = campaign.targets_count or len(targets) or 1
     click_rate = campaign.clicked_count / n
     open_rate = campaign.opened_count / n
@@ -165,6 +142,83 @@ def generate_phishing_report(
         sorted_d = sorted(click_delays_h)
         mh = sorted_d[len(sorted_d) // 2]
         median_click_str = f"{int(mh)}h{int((mh % 1) * 60):02d}min"
+
+    return ReportStats(
+        click_rate=click_rate,
+        open_rate=open_rate,
+        submit_rate=submit_rate,
+        global_risk_label=global_risk_label,
+        global_risk_color=global_risk_color,
+        dept_stats=dept_stats,
+        scenario_perf=scenario_perf,
+        has_scenario_perf=has_scenario_perf,
+        compromised=compromised,
+        scenario_keys=scenario_keys,
+        median_click_str=median_click_str,
+    )
+
+
+def _footer(canvas, doc):
+    canvas.saveState()
+    canvas.setFont("Helvetica", 7)
+    canvas.setFillColor(_GRAY)
+    page_num = f"Page {doc.page}"
+    canvas.drawRightString(_PAGE_W - 20 * mm, 12 * mm, page_num)
+    canvas.drawString(20 * mm, 12 * mm, "Rocher Cybersécurité — Rapport confidentiel")
+    canvas.restoreState()
+
+
+def generate_phishing_report(
+    campaign: PhishingCampaign,
+    targets: list[PhishingTarget],
+) -> bytes:
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=20 * mm,
+        rightMargin=20 * mm,
+        topMargin=20 * mm,
+        bottomMargin=22 * mm,
+    )
+
+    title_style = ParagraphStyle(
+        "ReportTitle",
+        fontName="Helvetica-Bold",
+        fontSize=22,
+        textColor=_DARK,
+        spaceAfter=4,
+    )
+    subtitle_style = ParagraphStyle(
+        "Subtitle", fontName="Helvetica", fontSize=12, textColor=_GRAY, spaceAfter=10
+    )
+    section_style = ParagraphStyle(
+        "Section",
+        fontName="Helvetica-Bold",
+        fontSize=13,
+        textColor=_DARK,
+        spaceBefore=14,
+        spaceAfter=6,
+    )
+    body_style = ParagraphStyle(
+        "Body", fontName="Helvetica", fontSize=10, textColor=_DARK, spaceAfter=4
+    )
+    small_style = ParagraphStyle("Small", fontName="Helvetica", fontSize=8, textColor=_GRAY)
+    brand_style = ParagraphStyle("Brand", fontName="Helvetica-Bold", fontSize=11, textColor=_CYAN)
+
+    # ── Compute stats (couche de calcul pure, testable) ──────────────────────
+    stats = _compute_report_stats(campaign, targets)
+    click_rate = stats.click_rate
+    open_rate = stats.open_rate
+    submit_rate = stats.submit_rate
+    global_risk_label = stats.global_risk_label
+    global_risk_color = stats.global_risk_color
+    dept_stats = stats.dept_stats
+    scenario_perf = stats.scenario_perf
+    has_scenario_perf = stats.has_scenario_perf
+    compromised = stats.compromised
+    scenario_keys = stats.scenario_keys
+    median_click_str = stats.median_click_str
 
     story = []
 
