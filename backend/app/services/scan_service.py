@@ -155,33 +155,60 @@ def _run_scan_sync(
         output_path=pdf_path,
     )
 
-    all_statuses = [
-        ssl_result.get("status"),
-        headers_result.get("status"),
-        email_result.get("status"),
-        cookie_result.get("status"),
-        cors_result.get("status"),
-        ip_result.get("status"),
-        dns_result.get("status"),
-        cms_result.get("status"),
-        waf_result.get("status"),
-        port_result.get("status"),
-        breach_result.get("status") if breach_result and not breach_result.get("error") else None,
-    ]
-    if tier >= 3:
-        all_statuses += [
-            tech_result.get("status"),
-            tls_result.get("status"),
-            ti_result.get("status"),
-            methods_result.get("status"),
-        ]
-    if tier >= 4:
-        all_statuses += [
-            redirect_result.get("status"),
-            clickjacking_result.get("status"),
-            dirlist_result.get("status"),
-            jwt_result.get("status"),
-        ]
+    # Source unique des résultats par module : le dict `results` ET le calcul du
+    # statut global en dérivent, évitant toute divergence (un module présent dans
+    # `results` mais oublié dans l'agrégation faussait silencieusement le verdict).
+    module_results: dict[str, dict] = {
+        "ssl": ssl_result,
+        "headers": headers_result,
+        "email": email_result,
+        "cookies": cookie_result,
+        "cors": cors_result,
+        "ip": ip_result,
+        "dns": dns_result,
+        "cms": cms_result,
+        "waf": waf_result,
+        "ports": port_result,
+        "breach": breach_result,
+        "tech": tech_result,
+        "tls": tls_result,
+        "takeover": takeover_result,
+        "threat_intel": ti_result,
+        "http_methods": methods_result,
+        "open_redirect": redirect_result,
+        "clickjacking": clickjacking_result,
+        "directory_listing": dirlist_result,
+        "robots": robots_result,
+        "jwt": jwt_result,
+    }
+
+    # Modules contribuant au verdict global. `takeover` et `robots` en sont
+    # volontairement exclus ; `breach` a sa propre garde d'erreur (ci-dessous).
+    # Les modules non joués pour le tier sont un dict vide -> .get("status") =
+    # None, sans effet sur le verdict.
+    status_keys = {
+        "ssl",
+        "headers",
+        "email",
+        "cookies",
+        "cors",
+        "ip",
+        "dns",
+        "cms",
+        "waf",
+        "ports",
+        "tech",
+        "tls",
+        "threat_intel",
+        "http_methods",
+        "open_redirect",
+        "clickjacking",
+        "directory_listing",
+        "jwt",
+    }
+    all_statuses = [r.get("status") for k, r in module_results.items() if k in status_keys]
+    if breach_result and not breach_result.get("error"):
+        all_statuses.append(breach_result.get("status"))
 
     if "CRITICAL" in all_statuses:
         overall = "CRITICAL"
@@ -216,27 +243,7 @@ def _run_scan_sync(
         remediation_paths = {}
 
     results = {
-        "ssl": ssl_result,
-        "headers": headers_result,
-        "email": email_result,
-        "cookies": cookie_result,
-        "cors": cors_result,
-        "ip": ip_result,
-        "dns": dns_result,
-        "cms": cms_result,
-        "waf": waf_result,
-        "ports": port_result,
-        "breach": breach_result,
-        "tech": tech_result,
-        "tls": tls_result,
-        "takeover": takeover_result,
-        "threat_intel": ti_result,
-        "http_methods": methods_result,
-        "open_redirect": redirect_result,
-        "clickjacking": clickjacking_result,
-        "directory_listing": dirlist_result,
-        "robots": robots_result,
-        "jwt": jwt_result,
+        **module_results,
         "_meta": {
             "tier": tier,
             "url": url,
