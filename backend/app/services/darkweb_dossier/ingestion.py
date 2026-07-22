@@ -15,6 +15,7 @@ from loguru import logger
 from sqlalchemy import select
 
 import app.core.database as _db_module
+from app.core.utils import mask_email
 from app.models.darkweb_dossier import DarkwebDossier, DarkwebDossierTarget
 from app.services.darkweb_service import check_email_breaches, enrich_breaches_from_catalog
 from app.services.email_service import _send
@@ -214,7 +215,7 @@ Le monitoring Dark Web de <strong style="color:#f8fafc;">{company_name}</strong>
     try:
         _send(to_email, subject, html, plain)
     except Exception as exc:
-        logger.warning(f"Dark web monitoring alert email failed for {to_email}: {exc}")
+        logger.warning(f"Dark web monitoring alert email failed for {mask_email(to_email)}: {exc}")
 
 
 # Backward-compatible alias used by scheduler.py
