@@ -1,8 +1,6 @@
-from datetime import UTC, date, datetime
-from typing import Literal
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,87 +11,23 @@ from app.models.scan import Scan
 from app.models.site import Site
 from app.models.user import User
 
+# Schemas deplaces dans schemas/rssi_client.py ; re-exportes ici pour ne pas
+# casser les imports existants (rssi/__init__.py, tests).
+from app.schemas.rssi_client import (
+    ClientFormula,  # noqa: F401
+    ClientStatus,  # noqa: F401
+    RssiClientCreate,
+    RssiClientOut,
+    RssiClientUpdate,
+    RssiSiteOut,
+    UnlinkedSiteOut,  # noqa: F401
+)
+
 from ._shared import _get_client_or_404
 
 router = APIRouter()
 
 STATUS_ORDER = {"CRITICAL": 0, "WARNING": 1, "OK": 2}
-
-ClientFormula = Literal["essentiel", "premium", "excellence"]
-ClientStatus = Literal["active", "inactive", "churned"]
-
-
-# ── Schemas ────────────────────────────────────────────────────────────────────
-
-
-class RssiClientCreate(BaseModel):
-    name: str
-    email: str | None = None
-    description: str | None = None
-    formula: ClientFormula | None = None
-    monthly_amount: float | None = None
-    contract_start_date: date | None = None
-    contract_renewal_at: date | None = None
-    notion_workspace_url: str | None = None
-    pipedrive_deal_id: str | None = None
-    pennylane_customer_id: str | None = None
-
-
-class RssiClientUpdate(BaseModel):
-    name: str | None = None
-    email: str | None = None
-    description: str | None = None
-    formula: ClientFormula | None = None
-    monthly_amount: float | None = None
-    contract_start_date: date | None = None
-    contract_renewal_at: date | None = None
-    status: ClientStatus | None = None
-    notion_workspace_url: str | None = None
-    pipedrive_deal_id: str | None = None
-    pennylane_customer_id: str | None = None
-
-
-class RssiClientOut(BaseModel):
-    id: int
-    name: str
-    email: str | None
-    description: str | None
-    formula: str | None
-    monthly_amount: float | None
-    contract_start_date: date | None
-    contract_renewal_at: date | None
-    status: str
-    notion_workspace_url: str | None
-    pipedrive_deal_id: str | None
-    pennylane_customer_id: str | None
-    awareness_organization_id: int | None
-    created_at: datetime
-    updated_at: datetime | None
-    sites_count: int
-    worst_status: str | None
-    last_scan_at: datetime | None
-
-    model_config = {"from_attributes": False}
-
-
-class RssiSiteOut(BaseModel):
-    id: int
-    url: str
-    name: str
-    is_active: bool
-    created_at: datetime
-    latest_scan_status: str | None
-    last_scan_at: datetime | None
-
-    model_config = {"from_attributes": False}
-
-
-class UnlinkedSiteOut(BaseModel):
-    id: int
-    url: str
-    name: str
-
-    model_config = {"from_attributes": True}
 
 
 # ── Aggregation helpers ────────────────────────────────────────────────────────
@@ -240,28 +174,13 @@ async def update_client(
 ):
     client = await _get_client_or_404(client_id, current_user.id, db)
 
-    if payload.name is not None:
-        client.name = payload.name.strip()
-    if payload.email is not None:
-        client.email = payload.email
-    if payload.description is not None:
-        client.description = payload.description
-    if payload.formula is not None:
-        client.formula = payload.formula
-    if payload.monthly_amount is not None:
-        client.monthly_amount = payload.monthly_amount
-    if payload.contract_start_date is not None:
-        client.contract_start_date = payload.contract_start_date
-    if payload.contract_renewal_at is not None:
-        client.contract_renewal_at = payload.contract_renewal_at
-    if payload.status is not None:
-        client.status = payload.status
-    if payload.notion_workspace_url is not None:
-        client.notion_workspace_url = payload.notion_workspace_url
-    if payload.pipedrive_deal_id is not None:
-        client.pipedrive_deal_id = payload.pipedrive_deal_id
-    if payload.pennylane_customer_id is not None:
-        client.pennylane_customer_id = payload.pennylane_customer_id
+    # Patch partiel : seuls les champs fournis non-nuls sont appliques (memes
+    # semantiques que l'ancienne cascade de `if payload.x is not None`).
+    updates = payload.model_dump(exclude_none=True)
+    if "name" in updates:
+        updates["name"] = updates["name"].strip()
+    for field, value in updates.items():
+        setattr(client, field, value)
 
     client.updated_at = datetime.now(UTC)
     await db.commit()
