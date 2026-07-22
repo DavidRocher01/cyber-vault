@@ -17,6 +17,31 @@ const KONAMI = [
 ];
 const SECRET_WORD = 'cyberscan';
 
+// Trusted Types : les overlays d'easter-egg écrivent du HTML via innerHTML. Ce
+// HTML est 100 % STATIQUE (littéraux hardcodés ci-dessous, jamais d'entrée
+// utilisateur). Sous une CSP `require-trusted-types-for 'script'`, innerHTML
+// n'accepte plus une string brute → on passe par une policy dédiée à ce contenu
+// connu-sûr. Feature-détectée : no-op (retourne la string) si Trusted Types
+// n'est pas disponible/enforced. NE JAMAIS y faire transiter de donnée user.
+let _staticHtmlPolicy: { createHTML: (s: string) => string } | null | undefined;
+export function trustStaticHtml(html: string): string {
+  const tt = (
+    globalThis as unknown as {
+      trustedTypes?: {
+        createPolicy: (n: string, r: object) => { createHTML: (s: string) => string };
+      };
+    }
+  ).trustedTypes;
+  if (tt && _staticHtmlPolicy === undefined) {
+    try {
+      _staticHtmlPolicy = tt.createPolicy('app-easter-egg', { createHTML: (s: string) => s });
+    } catch {
+      _staticHtmlPolicy = null; // policy déjà enregistrée ou refusée
+    }
+  }
+  return (_staticHtmlPolicy ? _staticHtmlPolicy.createHTML(html) : html) as string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class EasterEggService implements OnDestroy {
   private router = inject(Router);
@@ -80,7 +105,7 @@ export class EasterEggService implements OnDestroy {
       font-family:'JetBrains Mono',monospace;color:#ff0040;
       animation:fadeIn 0.3s ease;
     `;
-    overlay.innerHTML = `
+    overlay.innerHTML = trustStaticHtml(`
       <style>@keyframes fadeIn{from{opacity:0}to{opacity:1}}</style>
       <div style="font-size:clamp(1.5rem,4vw,3rem);font-weight:700;letter-spacing:0.15em;text-shadow:0 0 20px #ff0040,0 0 40px #ff0040;animation:pulse 0.5s infinite alternate">
         ⚠ SYSTEM BREACH DETECTED ⚠
@@ -92,7 +117,7 @@ export class EasterEggService implements OnDestroy {
         jk, tu es des nôtres 🤝
       </div>
       <style>@keyframes pulse{from{opacity:0.7}to{opacity:1}}</style>
-    `;
+    `);
     overlay.addEventListener('click', () => overlay.remove());
     document.body.appendChild(overlay);
     setTimeout(() => overlay.remove(), 4000);
@@ -128,10 +153,10 @@ export class EasterEggService implements OnDestroy {
       box-shadow:0 0 20px #00ff9d40;
       animation:slideUp 0.4s ease;
     `;
-    overlay.innerHTML = `
+    overlay.innerHTML = trustStaticHtml(`
       <style>@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}</style>
       > GLITCH_OVERRIDE confirmed — you found a hidden path.
-    `;
+    `);
     document.body.appendChild(overlay);
     setTimeout(() => overlay.remove(), 3000);
   }
