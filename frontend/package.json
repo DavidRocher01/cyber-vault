@@ -50,7 +50,7 @@
     "@angular-eslint/eslint-plugin": "^17.5.3",
     "@angular-eslint/eslint-plugin-template": "^17.5.3",
     "@angular-eslint/template-parser": "^17.5.3",
-    "@angular/cli": "^20.3.26",
+    "@angular/cli": "^21.0.4",
     "@angular/compiler-cli": "^20.3.23",
     "@playwright/test": "^1.59.1",
     "@storybook/addon-a11y": "^8.0.0",
