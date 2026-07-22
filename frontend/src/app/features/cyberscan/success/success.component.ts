@@ -2,7 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { Title } from '@angular/platform-browser';
-import { CyberscanService } from '../services/cyberscan.service';
+import { BillingService } from '../services/billing.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
@@ -111,13 +111,13 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
   `,
 })
 export class CheckoutSuccessComponent implements OnInit {
-  private cyberscan = inject(CyberscanService);
+  private billing = inject(BillingService);
   private title = inject(Title);
   planName = '';
 
   ngOnInit() {
     this.title.setTitle('Abonnement activé — Rocher Cybersécurité');
-    this.cyberscan.getMySubscription().subscribe({
+    this.billing.getMySubscription().subscribe({
       next: sub => {
         this.planName = sub?.plan?.display_name ?? '';
       },

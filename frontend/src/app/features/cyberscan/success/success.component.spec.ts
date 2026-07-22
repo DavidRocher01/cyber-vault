@@ -10,7 +10,7 @@ function make(): CheckoutSuccessComponent {
   const comp = Object.create(CheckoutSuccessComponent.prototype) as CheckoutSuccessComponent;
   comp.planName = '';
   (comp as any).title = { setTitle: vi.fn() };
-  (comp as any).cyberscan = { getMySubscription: vi.fn(() => of(null)) };
+  (comp as any).cyberscan = (comp as any).billing = { getMySubscription: vi.fn(() => of(null)) };
   return comp;
 }
 

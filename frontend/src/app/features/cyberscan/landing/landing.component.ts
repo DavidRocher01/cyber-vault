@@ -20,7 +20,8 @@ import { MatInputModule } from '@angular/material/input';
 import { environment } from '../../../../environments/environment';
 import { formatScanFrequency } from '../../../shared/plan-features';
 
-import { CyberscanService, Plan } from '../services/cyberscan.service';
+import { Plan } from '../services/cyberscan.service';
+import { BillingService } from '../services/billing.service';
 import { GlobeComponent } from '../../../shared/globe/globe.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
@@ -69,7 +70,7 @@ import {
 export class LandingComponent implements OnInit, AfterViewInit {
   @ViewChild(AuthModalComponent) authModal!: AuthModalComponent;
 
-  private cyberscan = inject(CyberscanService);
+  private billing = inject(BillingService);
   readonly auth = inject(AuthService);
   readonly easterEgg = inject(EasterEggService);
   private route = inject(ActivatedRoute);
@@ -300,7 +301,7 @@ export class LandingComponent implements OnInit, AfterViewInit {
     });
     this._setCanonical('https://rochercybersecurite.com');
     this.themeService.apply();
-    this.cyberscan.getPlans().subscribe({
+    this.billing.getPlans().subscribe({
       next: plans => {
         this.plans = plans;
         this.loading = false;
@@ -375,7 +376,7 @@ export class LandingComponent implements OnInit, AfterViewInit {
       return;
     }
     this.checkoutLoading = plan.id;
-    this.cyberscan.createCheckout(plan.id).subscribe({
+    this.billing.createCheckout(plan.id).subscribe({
       next: res => {
         window.location.href = res.checkout_url;
       },

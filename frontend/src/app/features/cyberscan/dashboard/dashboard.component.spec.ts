@@ -798,7 +798,7 @@ describe('DashboardComponent — loadNotifications()', () => {
     const c = make();
     (c as any).notifications = signal([]);
     (c as any).unreadCount = signal(0);
-    (c as any).cyberscan = {
+    (c as any).cyberscan = (c as any).billing = {
       getNotifications: vi.fn().mockReturnValue(of({ items: [{ id: 1 }], unread_count: 3 })),
     };
     c.loadNotifications();
@@ -813,7 +813,7 @@ describe('DashboardComponent — handleNotifClick()', () => {
     const notif = { id: 1, read: false, link: null } as any;
     (c as any).notifications = signal([notif]);
     (c as any).unreadCount = signal(2);
-    (c as any).cyberscan = {
+    (c as any).cyberscan = (c as any).billing = {
       markNotificationRead: vi.fn().mockReturnValue(of({ id: 1, read: true })),
     };
     c.handleNotifClick(notif);
@@ -824,7 +824,7 @@ describe('DashboardComponent — handleNotifClick()', () => {
   it('ne marque pas si déjà lue mais navigue si lien', () => {
     const c = make();
     const notif = { id: 1, read: true, link: '/cible' } as any;
-    (c as any).cyberscan = { markNotificationRead: vi.fn() };
+    (c as any).cyberscan = (c as any).billing = { markNotificationRead: vi.fn() };
     (c as any).router = { navigateByUrl: vi.fn() };
     (c as any).showNotifPanel = signal(true);
     c.handleNotifClick(notif);
@@ -842,7 +842,9 @@ describe('DashboardComponent — markAllRead()', () => {
       { id: 2, read: false },
     ]);
     (c as any).unreadCount = signal(2);
-    (c as any).cyberscan = { markAllNotificationsRead: vi.fn().mockReturnValue(of({})) };
+    (c as any).cyberscan = (c as any).billing = {
+      markAllNotificationsRead: vi.fn().mockReturnValue(of({})),
+    };
     c.markAllRead();
     expect(c.notifications().every(n => n.read)).toBe(true);
     expect(c.unreadCount()).toBe(0);
@@ -854,7 +856,9 @@ describe('DashboardComponent — dismissNotif()', () => {
     const c = make();
     (c as any).notifications = signal([{ id: 1, read: false }]);
     (c as any).unreadCount = signal(1);
-    (c as any).cyberscan = { deleteNotification: vi.fn().mockReturnValue(of({})) };
+    (c as any).cyberscan = (c as any).billing = {
+      deleteNotification: vi.fn().mockReturnValue(of({})),
+    };
     const event = { stopPropagation: vi.fn() } as any;
     c.dismissNotif(event, 1);
     expect(event.stopPropagation).toHaveBeenCalled();
@@ -865,7 +869,9 @@ describe('DashboardComponent — dismissNotif()', () => {
     const c = make();
     (c as any).notifications = signal([{ id: 1, read: true }]);
     (c as any).unreadCount = signal(0);
-    (c as any).cyberscan = { deleteNotification: vi.fn().mockReturnValue(of({})) };
+    (c as any).cyberscan = (c as any).billing = {
+      deleteNotification: vi.fn().mockReturnValue(of({})),
+    };
     c.dismissNotif({ stopPropagation: vi.fn() } as any, 1);
     expect(c.notifications()).toHaveLength(0);
     expect(c.unreadCount()).toBe(0);
@@ -880,7 +886,7 @@ describe('DashboardComponent — loadScans()', () => {
     (c as any).scansMap = signal({});
     (c as any).pollingMap = {};
     const data = { items: [], total: 0, page: 1, per_page: 10, pages: 0 };
-    (c as any).cyberscan = { getSiteScans: vi.fn().mockReturnValue(of(data)) };
+    (c as any).cyberscan = (c as any).billing = { getSiteScans: vi.fn().mockReturnValue(of(data)) };
     c.loadScans(1, 1);
     expect((c as any).cyberscan.getSiteScans).toHaveBeenCalledWith(1, 1);
     expect(c.scansMap()[1]).toEqual(data);
@@ -902,7 +908,7 @@ describe('DashboardComponent — addSite()', () => {
   it('ne fait rien si le formulaire est invalide', () => {
     const c = make();
     (c as any).siteForm = { invalid: true };
-    (c as any).cyberscan = { createSite: vi.fn() };
+    (c as any).cyberscan = (c as any).billing = { createSite: vi.fn() };
     c.addSite();
     expect((c as any).cyberscan.createSite).not.toHaveBeenCalled();
   });
@@ -917,7 +923,9 @@ describe('DashboardComponent — addSite()', () => {
     (c as any).addingSite = signal(false);
     (c as any).showAddForm = signal(true);
     (c as any).snack = { open: vi.fn() };
-    (c as any).cyberscan = { createSite: vi.fn().mockReturnValue(of({ id: 7, name: 'x' })) };
+    (c as any).cyberscan = (c as any).billing = {
+      createSite: vi.fn().mockReturnValue(of({ id: 7, name: 'x' })),
+    };
     (c as any).loadScans = vi.fn();
     c.addSite();
     expect(c.sites()).toHaveLength(1);
@@ -937,7 +945,7 @@ describe('DashboardComponent — addSite()', () => {
     (c as any).addingSite = signal(true);
     (c as any).showAddForm = signal(true);
     (c as any).snack = { open: vi.fn() };
-    (c as any).cyberscan = {
+    (c as any).cyberscan = (c as any).billing = {
       createSite: vi.fn().mockReturnValue(throwError(() => ({ error: { detail: 'boom' } }))),
     };
     c.addSite();
@@ -951,7 +959,7 @@ describe('DashboardComponent — triggerScan()', () => {
     const c = make();
     (c as any).triggeringScans = signal({});
     (c as any).snack = { open: vi.fn() };
-    (c as any).cyberscan = { triggerScan: vi.fn().mockReturnValue(of({})) };
+    (c as any).cyberscan = (c as any).billing = { triggerScan: vi.fn().mockReturnValue(of({})) };
     (c as any).loadScans = vi.fn();
     (c as any).forceStartPolling = vi.fn();
     c.triggerScan(3);
@@ -964,7 +972,7 @@ describe('DashboardComponent — triggerScan()', () => {
     const c = make();
     (c as any).triggeringScans = signal({ 3: true });
     (c as any).snack = { open: vi.fn() };
-    (c as any).cyberscan = {
+    (c as any).cyberscan = (c as any).billing = {
       triggerScan: vi.fn().mockReturnValue(throwError(() => ({ error: {} }))),
     };
     c.triggerScan(3);
@@ -982,7 +990,9 @@ describe('DashboardComponent — openPlansModal()', () => {
     const c = make();
     (c as any).showPlansModal = signal(false);
     (c as any).plans = signal([]);
-    (c as any).cyberscan = { getPlans: vi.fn().mockReturnValue(of([{ id: 1 }])) };
+    (c as any).cyberscan = (c as any).billing = {
+      getPlans: vi.fn().mockReturnValue(of([{ id: 1 }])),
+    };
     c.openPlansModal();
     expect(c.showPlansModal()).toBe(true);
     expect(c.plans()).toHaveLength(1);
@@ -991,7 +1001,7 @@ describe('DashboardComponent — openPlansModal()', () => {
     const c = make();
     (c as any).showPlansModal = signal(false);
     (c as any).plans = signal([{ id: 1 }]);
-    (c as any).cyberscan = { getPlans: vi.fn() };
+    (c as any).cyberscan = (c as any).billing = { getPlans: vi.fn() };
     c.openPlansModal();
     expect((c as any).cyberscan.getPlans).not.toHaveBeenCalled();
   });
@@ -1002,7 +1012,7 @@ describe('DashboardComponent — selectPlan()', () => {
     const c = make();
     (c as any).checkoutLoading = signal(null);
     (c as any).router = { navigateByUrl: vi.fn() };
-    (c as any).cyberscan = {
+    (c as any).cyberscan = (c as any).billing = {
       invalidateSubscriptionCache: vi.fn(),
       createCheckout: vi.fn().mockReturnValue(of({ checkout_url: '/paiement' })),
     };
@@ -1014,7 +1024,7 @@ describe('DashboardComponent — selectPlan()', () => {
   it('réinitialise checkoutLoading en cas d’erreur', () => {
     const c = make();
     (c as any).checkoutLoading = signal(null);
-    (c as any).cyberscan = {
+    (c as any).cyberscan = (c as any).billing = {
       invalidateSubscriptionCache: vi.fn(),
       createCheckout: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
     };
@@ -1028,7 +1038,7 @@ describe('DashboardComponent — purchaseExtraSites()', () => {
     const c = make();
     (c as any).buyingExtraSites = signal(false);
     (c as any).router = { navigateByUrl: vi.fn() };
-    (c as any).cyberscan = {
+    (c as any).cyberscan = (c as any).billing = {
       purchaseExtraSites: vi.fn().mockReturnValue(of({ checkout_url: '/extra' })),
     };
     c.purchaseExtraSites();
@@ -1039,7 +1049,7 @@ describe('DashboardComponent — purchaseExtraSites()', () => {
     const c = make();
     (c as any).buyingExtraSites = signal(true);
     (c as any).snack = { open: vi.fn() };
-    (c as any).cyberscan = {
+    (c as any).cyberscan = (c as any).billing = {
       purchaseExtraSites: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
     };
     c.purchaseExtraSites();
@@ -1054,7 +1064,7 @@ describe('DashboardComponent — confirmDeleteSite()', () => {
     (c as any).sites = signal([{ id: 1, name: 'a' }]);
     (c as any).snack = { open: vi.fn() };
     (c as any).dialog = { open: vi.fn().mockReturnValue({ afterClosed: () => of(true) }) };
-    (c as any).cyberscan = { deleteSite: vi.fn().mockReturnValue(of({})) };
+    (c as any).cyberscan = (c as any).billing = { deleteSite: vi.fn().mockReturnValue(of({})) };
     c.confirmDeleteSite({ id: 1, name: 'a' } as any);
     expect((c as any).cyberscan.deleteSite).toHaveBeenCalledWith(1);
     expect(c.sites()).toHaveLength(0);
@@ -1063,7 +1073,7 @@ describe('DashboardComponent — confirmDeleteSite()', () => {
     const c = make();
     (c as any).sites = signal([{ id: 1, name: 'a' }]);
     (c as any).dialog = { open: vi.fn().mockReturnValue({ afterClosed: () => of(false) }) };
-    (c as any).cyberscan = { deleteSite: vi.fn() };
+    (c as any).cyberscan = (c as any).billing = { deleteSite: vi.fn() };
     c.confirmDeleteSite({ id: 1, name: 'a' } as any);
     expect((c as any).cyberscan.deleteSite).not.toHaveBeenCalled();
     expect(c.sites()).toHaveLength(1);
@@ -1074,7 +1084,7 @@ describe('DashboardComponent — downloadPdf()', () => {
   it('déclenche le téléchargement du blob', () => {
     const c = make();
     (c as any).snack = { open: vi.fn() };
-    (c as any).cyberscan = {
+    (c as any).cyberscan = (c as any).billing = {
       downloadPdfBlob: vi.fn().mockReturnValue(of(new Blob(['data']))),
     };
     const createSpy = vi.fn(() => 'blob:x');
@@ -1089,7 +1099,7 @@ describe('DashboardComponent — downloadPdf()', () => {
   it('affiche une erreur en cas d’échec', () => {
     const c = make();
     (c as any).snack = { open: vi.fn() };
-    (c as any).cyberscan = {
+    (c as any).cyberscan = (c as any).billing = {
       downloadPdfBlob: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
     };
     c.downloadPdf(9);

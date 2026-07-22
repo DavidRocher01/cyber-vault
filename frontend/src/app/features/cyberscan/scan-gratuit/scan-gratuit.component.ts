@@ -10,6 +10,7 @@ import { Subscription, interval } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 
 import { CyberscanService, PublicScanResult } from '../services/cyberscan.service';
+import { BillingService } from '../services/billing.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
@@ -41,6 +42,7 @@ interface Module {
 })
 export class ScanGratuitComponent implements OnInit, OnDestroy {
   private cyberscan = inject(CyberscanService);
+  private billing = inject(BillingService);
   private auth = inject(AuthService);
   private http = inject(HttpClient);
   private router = inject(Router);
@@ -128,14 +130,14 @@ export class ScanGratuitComponent implements OnInit, OnDestroy {
       return;
     }
     this.checkoutLoading = true;
-    this.cyberscan.getPlans().subscribe({
+    this.billing.getPlans().subscribe({
       next: plans => {
         if (!plans.length) {
           this.checkoutLoading = false;
           return;
         }
         const starter = plans.reduce((a, b) => (a.price_eur < b.price_eur ? a : b));
-        this.cyberscan.createCheckout(starter.id).subscribe({
+        this.billing.createCheckout(starter.id).subscribe({
           next: res => {
             window.location.href = res.checkout_url;
           },

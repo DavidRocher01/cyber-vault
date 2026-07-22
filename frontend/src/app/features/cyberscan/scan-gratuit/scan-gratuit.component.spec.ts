@@ -235,7 +235,7 @@ describe('ScanGratuitComponent — submit()', () => {
   it('ne fait rien si le champ url est invalide', () => {
     const c = makeSubmit();
     (c as any).form.controls.url.invalid = true;
-    (c as any).cyberscan = { createPublicScan: vi.fn() };
+    (c as any).cyberscan = (c as any).billing = { createPublicScan: vi.fn() };
     c.submit();
     expect((c as any).cyberscan.createPublicScan).not.toHaveBeenCalled();
   });
@@ -243,14 +243,14 @@ describe('ScanGratuitComponent — submit()', () => {
   it('ne fait rien si déjà en cours de soumission', () => {
     const c = makeSubmit();
     (c as any).submitting.set(true);
-    (c as any).cyberscan = { createPublicScan: vi.fn() };
+    (c as any).cyberscan = (c as any).billing = { createPublicScan: vi.fn() };
     c.submit();
     expect((c as any).cyberscan.createPublicScan).not.toHaveBeenCalled();
   });
 
   it('trim l’URL et navigue vers /demo-result au succès', () => {
     const c = makeSubmit();
-    (c as any).cyberscan = {
+    (c as any).cyberscan = (c as any).billing = {
       createPublicScan: vi.fn().mockReturnValue(of({ token: 'tok123' })),
     };
     c.submit();
@@ -266,7 +266,7 @@ describe('ScanGratuitComponent — submit()', () => {
         getRawValue: () => ({ url: 'http://x.com', email: 'a@b.com', consent: true }),
       },
     });
-    (c as any).cyberscan = {
+    (c as any).cyberscan = (c as any).billing = {
       createPublicScan: vi.fn().mockReturnValue(of({ token: 'tok' })),
     };
     c.submit();
@@ -285,7 +285,7 @@ describe('ScanGratuitComponent — submit()', () => {
         getRawValue: () => ({ url: 'http://x.com', email: 'a@b.com', consent: false }),
       },
     });
-    (c as any).cyberscan = {
+    (c as any).cyberscan = (c as any).billing = {
       createPublicScan: vi.fn().mockReturnValue(of({ token: 'tok' })),
     };
     c.submit();
@@ -294,7 +294,7 @@ describe('ScanGratuitComponent — submit()', () => {
 
   it('met un message d’erreur en cas d’échec', () => {
     const c = makeSubmit();
-    (c as any).cyberscan = {
+    (c as any).cyberscan = (c as any).billing = {
       createPublicScan: vi.fn().mockReturnValue(throwError(() => ({ error: { detail: 'Boom' } }))),
     };
     c.submit();
@@ -304,7 +304,7 @@ describe('ScanGratuitComponent — submit()', () => {
 
   it('utilise un message par défaut si pas de detail', () => {
     const c = makeSubmit();
-    (c as any).cyberscan = {
+    (c as any).cyberscan = (c as any).billing = {
       createPublicScan: vi.fn().mockReturnValue(throwError(() => ({}))),
     };
     c.submit();
@@ -323,7 +323,7 @@ describe('ScanGratuitComponent — openCheckout()', () => {
 
   it('redirige vers l’inscription si non authentifié', () => {
     const c = makeCheckout(false);
-    (c as any).cyberscan = { getPlans: vi.fn() };
+    (c as any).cyberscan = (c as any).billing = { getPlans: vi.fn() };
     c.openCheckout();
     expect((c as any).router.navigate).toHaveBeenCalledWith(['/'], {
       queryParams: { action: 'register' },
@@ -335,7 +335,7 @@ describe('ScanGratuitComponent — openCheckout()', () => {
     const c = makeCheckout(true);
     const originalHref = window.location.href;
     const created = vi.fn().mockReturnValue(of({ checkout_url: 'https://pay/x' }));
-    (c as any).cyberscan = {
+    (c as any).cyberscan = (c as any).billing = {
       getPlans: vi.fn().mockReturnValue(
         of([
           { id: 1, price_eur: 99 },
@@ -362,14 +362,14 @@ describe('ScanGratuitComponent — openCheckout()', () => {
 
   it('arrête le chargement si aucun plan', () => {
     const c = makeCheckout(true);
-    (c as any).cyberscan = { getPlans: vi.fn().mockReturnValue(of([])) };
+    (c as any).cyberscan = (c as any).billing = { getPlans: vi.fn().mockReturnValue(of([])) };
     c.openCheckout();
     expect((c as any).checkoutLoading).toBe(false);
   });
 
   it('arrête le chargement en cas d’erreur getPlans', () => {
     const c = makeCheckout(true);
-    (c as any).cyberscan = {
+    (c as any).cyberscan = (c as any).billing = {
       getPlans: vi.fn().mockReturnValue(throwError(() => new Error('net'))),
     };
     c.openCheckout();

@@ -42,7 +42,7 @@ function make(): OnboardingComponent {
     name: [''],
   });
 
-  (comp as any).cyberscan = {
+  (comp as any).cyberscan = (comp as any).billing = {
     getPlans: vi.fn(() => of([])),
     getMySubscription: vi.fn(() => of(null)),
     createCheckout: vi.fn(() => of({ checkout_url: '/dashboard' })),

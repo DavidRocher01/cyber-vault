@@ -32,6 +32,7 @@ import {
   Plan,
   AppNotification,
 } from '../services/cyberscan.service';
+import { BillingService } from '../services/billing.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -86,6 +87,7 @@ interface PaginatedScans {
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   private cyberscan = inject(CyberscanService);
+  private billing = inject(BillingService);
   private authService = inject(AuthService);
   private fb = inject(FormBuilder);
   private snack = inject(MatSnackBar);
@@ -174,7 +176,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   loadDashboard() {
     this.loading.set(true);
-    this.cyberscan
+    this.billing
       .getMySubscription()
       .pipe(
         takeUntilDestroyed(this.destroyRef),
@@ -365,14 +367,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
   openPlansModal() {
     this.showPlansModal.set(true);
     if (this.plans().length === 0) {
-      this.cyberscan.getPlans().subscribe({ next: p => this.plans.set(p) });
+      this.billing.getPlans().subscribe({ next: p => this.plans.set(p) });
     }
   }
 
   selectPlan(plan: Plan) {
     this.checkoutLoading.set(plan.id);
-    this.cyberscan.invalidateSubscriptionCache();
-    this.cyberscan.createCheckout(plan.id).subscribe({
+    this.billing.invalidateSubscriptionCache();
+    this.billing.createCheckout(plan.id).subscribe({
       next: res => {
         const url = res.checkout_url;
         try {
@@ -391,7 +393,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   openBillingPortal() {
-    this.cyberscan.getBillingPortal().subscribe({
+    this.billing.getBillingPortal().subscribe({
       next: res => {
         try {
           const parsed = new URL(res.checkout_url);
@@ -558,7 +560,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   purchaseExtraSites() {
     this.buyingExtraSites.set(true);
-    this.cyberscan.purchaseExtraSites().subscribe({
+    this.billing.purchaseExtraSites().subscribe({
       next: res => {
         this.buyingExtraSites.set(false);
         try {
