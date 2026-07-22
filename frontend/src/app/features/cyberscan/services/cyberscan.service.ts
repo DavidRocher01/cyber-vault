@@ -194,6 +194,14 @@ export interface SubdomainResult {
   scan_date: string | null;
 }
 
+/** Réponse des endpoints d'auto-évaluation de conformité (NIS2 / ISO 27001). */
+export interface ComplianceAssessment {
+  items: Record<string, string>;
+  score: number;
+  updated_at: string | null;
+  categories?: unknown[];
+}
+
 const API = '/api/v1';
 
 @Injectable({ providedIn: 'root' })
@@ -357,12 +365,12 @@ export class CyberscanService {
 
   // ── NIS2 ──────────────────────────────────────────────────────────────
 
-  getNis2Assessment(): Observable<any> {
-    return this.http.get<any>(`${API}/nis2/me`);
+  getNis2Assessment(): Observable<ComplianceAssessment> {
+    return this.http.get<ComplianceAssessment>(`${API}/nis2/me`);
   }
 
-  saveNis2Assessment(items: Record<string, string>): Observable<any> {
-    return this.http.put<any>(`${API}/nis2/me`, { items });
+  saveNis2Assessment(items: Record<string, string>): Observable<ComplianceAssessment> {
+    return this.http.put<ComplianceAssessment>(`${API}/nis2/me`, { items });
   }
 
   downloadNis2PdfBlob(): Observable<Blob> {
@@ -375,12 +383,12 @@ export class CyberscanService {
 
   // ── ISO 27001 ──────────────────────────────────────────────────────────
 
-  getIso27001Assessment(): Observable<any> {
-    return this.http.get<any>(`${API}/iso27001/me`);
+  getIso27001Assessment(): Observable<ComplianceAssessment> {
+    return this.http.get<ComplianceAssessment>(`${API}/iso27001/me`);
   }
 
-  saveIso27001Assessment(items: Record<string, string>): Observable<any> {
-    return this.http.put<any>(`${API}/iso27001/me`, { items });
+  saveIso27001Assessment(items: Record<string, string>): Observable<ComplianceAssessment> {
+    return this.http.put<ComplianceAssessment>(`${API}/iso27001/me`, { items });
   }
 
   downloadIso27001PdfBlob(): Observable<Blob> {

@@ -72,8 +72,10 @@ export class Iso27001Component implements OnInit {
     });
     this.cyberscan.getIso27001Assessment().subscribe({
       next: data => {
-        this.categories.set(data.categories ?? []);
-        this.items.set(data.items ?? {});
+        // Narrowing au bord de l'API : le backend renvoie des chaînes/objets
+        // generiques dont les valeurs sont garanties valides pour ces types.
+        this.categories.set((data.categories ?? []) as Iso27001Category[]);
+        this.items.set((data.items ?? {}) as Record<string, Iso27001Status>);
         this.score.set(data.score ?? 0);
         this.updatedAt.set(data.updated_at ?? null);
         this.loading.set(false);
