@@ -5,6 +5,7 @@ preload status, and validates certificate chain details.
 Uses stdlib ssl + socket only — no external API key required.
 """
 
+import re
 import socket
 import ssl
 from typing import Any
@@ -102,7 +103,7 @@ def _check_hsts(hostname: str) -> dict[str, Any]:
         hsts = resp.headers.get("Strict-Transport-Security", "")
         if hsts:
             result["present"] = True
-            ma = __import__("re").search(r"max-age=(\d+)", hsts)
+            ma = re.search(r"max-age=(\d+)", hsts)
             result["max_age"] = int(ma.group(1)) if ma else 0
             result["preload"] = "preload" in hsts.lower()
             result["include_subdomains"] = "includesubdomains" in hsts.lower()

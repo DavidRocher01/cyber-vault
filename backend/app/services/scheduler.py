@@ -151,8 +151,6 @@ _SSL_THRESHOLDS = [7, 14, 30]
 
 async def _check_ssl_alerts() -> None:
     """Daily job: send SSL expiry alerts when cert expires within 30/14/7 days."""
-    import json
-
     from app.core.config import settings
 
     async with AsyncSessionLocal() as db:
@@ -238,7 +236,6 @@ _DEFAULT_NEWSLETTER_CONTENT = {
 
 async def _send_biweekly_newsletter() -> None:
     """Send the Radar Cyber newsletter to all active subscribers."""
-    import json as _json
 
     from loguru import logger
 
@@ -259,7 +256,7 @@ async def _send_biweekly_newsletter() -> None:
         content = _DEFAULT_NEWSLETTER_CONTENT
         if content_setting and content_setting.value_text:
             try:
-                content = _json.loads(content_setting.value_text)
+                content = json.loads(content_setting.value_text)
             except json.JSONDecodeError as exc:
                 logger.warning(
                     "Contenu newsletter en base illisible (JSON), fallback defaut : {}", exc
@@ -319,7 +316,6 @@ _MONTHS_FR = [
 
 async def _send_monthly_digest_job() -> None:
     """1st of each month: send a security digest to every paying user."""
-    import json as _json
     from calendar import monthrange
 
     from app.core.config import settings
@@ -382,7 +378,7 @@ async def _send_monthly_digest_job() -> None:
             warning_count = 0
             if latest and latest.results_json:
                 try:
-                    results = _json.loads(latest.results_json)
+                    results = json.loads(latest.results_json)
                     for module in results.values():
                         if isinstance(module, dict):
                             s = module.get("status")

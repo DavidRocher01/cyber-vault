@@ -81,9 +81,6 @@ def check_cookies(url: str) -> dict[str, Any]:
     try:
         response = requests.get(url, timeout=10, verify=False, allow_redirects=True)  # nosec B501 nosemgrep: python.requests.security.verify-disabled
 
-        raw_cookies = response.headers.getlist("Set-Cookie") if hasattr(response.headers, "getlist") \
-            else [v for k, v in response.headers.items() if k.lower() == "set-cookie"]
-
         # requests merges duplicate headers — use raw response headers
         raw_cookies = []
         for k, v in response.raw.headers.items():
