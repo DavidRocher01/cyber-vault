@@ -4,6 +4,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RssiAction } from '../../../services/rssi.service';
+import {
+  priorityClass as priorityClassFn,
+  actionStatusClass as actionStatusClassFn,
+  actionStatusLabel as actionStatusLabelFn,
+} from '../../../shared/rssi-action-labels';
 
 interface LabelOption {
   value: string;
@@ -475,41 +480,14 @@ export class ActionsTableComponent {
   }
 
   priorityClass(p: string): string {
-    switch (p) {
-      case 'critical':
-        return 'text-red-400 bg-red-500/10 border-red-600/30';
-      case 'high':
-        return 'text-orange-400 bg-orange-500/10 border-orange-600/30';
-      case 'medium':
-        return 'text-yellow-400 bg-yellow-500/10 border-yellow-600/30';
-      default:
-        return 'text-gray-400 bg-gray-700/20 border-gray-600/30';
-    }
+    return priorityClassFn(p);
   }
 
   actionStatusClass(s: string): string {
-    switch (s) {
-      case 'done':
-        return 'text-green-400 bg-green-500/10 border-green-600/30';
-      case 'in_progress':
-        return 'text-blue-400 bg-blue-500/10 border-blue-600/30';
-      case 'cancelled':
-        return 'text-gray-500 bg-gray-700/20 border-gray-600/30';
-      case 'postponed':
-        return 'text-yellow-400 bg-yellow-500/10 border-yellow-600/30';
-      default:
-        return 'text-white bg-gray-700/30 border-gray-600/40';
-    }
+    return actionStatusClassFn(s);
   }
 
   actionStatusLabel(s: string): string {
-    const map: Record<string, string> = {
-      open: 'Ouverte',
-      in_progress: 'En cours',
-      done: 'Terminée',
-      cancelled: 'Annulée',
-      postponed: 'Reportée',
-    };
-    return map[s] ?? s;
+    return actionStatusLabelFn(s);
   }
 }
