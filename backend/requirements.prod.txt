@@ -47,4 +47,4 @@ boto3==1.35.0
 
 # 2FA
 pyotp==2.9.0
-qrcode[pil]==7.4.2
+qrcode[pil]==8.2
