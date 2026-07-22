@@ -60,7 +60,7 @@
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
-    "@vitest/coverage-v8": "^4.1.7",
+    "@vitest/coverage-v8": "^4.1.9",
     "autoprefixer": "^10.4.19",
     "axe-core": "^4.9.0",
     "eslint": "^8.57.0",
