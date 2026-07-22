@@ -12,6 +12,7 @@ export default defineConfig({
       include: ['src/app/**/*.ts'],
       exclude: [
         'src/app/app.config.ts',
+        'src/app/app.config.server.ts',
         'src/app/app.routes.ts',
         'src/app/app.component.ts',
         'src/app/**/*.routes.ts',
@@ -21,6 +22,9 @@ export default defineConfig({
         'src/app/core/services/clipboard.service.ts',
         'src/app/core/services/i18n.service.ts',
         'src/app/core/guards/crypto.guard.ts',
+        // Non testable unitairement : rendu WebGL/canvas (globe 3D interactif,
+        // ~490 lignes de logique three.js/animation). Testé visuellement, pas en unit.
+        'src/app/shared/globe/**',
       ],
       // Ratchet : ces planchers ne doivent que MONTER. Relevés le 2026-07-05
       // après la couverture des composants (parcours paiement, auth, formulaires).
