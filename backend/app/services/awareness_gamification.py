@@ -19,6 +19,8 @@ Badges (20) — vérifiés après chaque action significative.
 
 from __future__ import annotations
 
+from datetime import UTC, date, datetime, timedelta
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -86,6 +88,42 @@ async def compute_total_xp(db: AsyncSession, learner_id: int) -> int:
 # ── Badge award ────────────────────────────────────────────────────────────────
 
 
+async def _max_activity_streak_days(db: AsyncSession, learner_id: int) -> int:
+    """Plus longue serie de jours (UTC) consecutifs avec au moins une activite :
+    un module complete ou une tentative de quiz."""
+    days: set[date] = set()
+    prog = await db.execute(
+        select(AwarenessProgress.completed_at)
+        .join(AwarenessEnrollment, AwarenessProgress.enrollment_id == AwarenessEnrollment.id)
+        .where(
+            AwarenessEnrollment.learner_id == learner_id,
+            AwarenessProgress.completed_at.is_not(None),
+        )
+    )
+    att = await db.execute(
+        select(AwarenessQuizAttempt.completed_at).where(
+            AwarenessQuizAttempt.learner_id == learner_id,
+            AwarenessQuizAttempt.completed_at.is_not(None),
+        )
+    )
+    for (dt,) in list(prog.all()) + list(att.all()):
+        if dt is not None:
+            days.add(dt.date())
+    return _longest_consecutive_run(days)
+
+
+def _longest_consecutive_run(days: set[date]) -> int:
+    """Plus longue serie de jours consecutifs dans un ensemble de dates."""
+    if not days:
+        return 0
+    ordered = sorted(days)
+    best = run = 1
+    for prev, cur in zip(ordered, ordered[1:], strict=False):
+        run = run + 1 if (cur - prev).days == 1 else 1
+        best = max(best, run)
+    return best
+
+
 async def _has_badge(db: AsyncSession, learner_id: int, slug: str) -> bool:
     badge = (
         await db.execute(select(AwarenessBadge).where(AwarenessBadge.slug == slug))
@@ -139,6 +177,10 @@ async def check_and_award_badges(
         lb = await _award_badge(db, learner.id, slug)
         if lb:
             earned.append(slug)
+            # Applique le bonus d'XP du badge (auparavant defini mais jamais credite).
+            bonus = _BADGE_XP_BONUS.get(slug, 0)
+            if bonus:
+                await award_xp(db, learner, enrollment, bonus)
 
     # ── first_step : first module ever completed ───────────────────────────────
     total_completed = (
@@ -220,6 +262,69 @@ async def check_and_award_badges(
     ).scalar_one()
     if completed_programs >= 3:
         await try_award("shield")
+
+    now = datetime.now(UTC)
+
+    # ── veteran : compte cree il y a >= 6 mois ────────────────────────────────
+    if learner.created_at and learner.created_at <= now - timedelta(days=180):
+        await try_award("veteran")
+
+    # ── noctambule / early_bird : activite tard le soir / tot le matin (UTC) ──
+    if now.hour >= 22:
+        await try_award("noctambule")
+    elif now.hour < 8:
+        await try_award("early_bird")
+
+    # ── fast_learner : 5 modules completes sur les 7 derniers jours ───────────
+    recent_modules = (
+        await db.execute(
+            select(func.count(AwarenessProgress.id))
+            .join(AwarenessEnrollment, AwarenessProgress.enrollment_id == AwarenessEnrollment.id)
+            .where(
+                AwarenessEnrollment.learner_id == learner.id,
+                AwarenessProgress.status == "completed",
+                AwarenessProgress.completed_at >= now - timedelta(days=7),
+            )
+        )
+    ).scalar_one()
+    if recent_modules >= 5:
+        await try_award("fast_learner")
+
+    # ── top_scorer : 3 quiz parfaits (100%) ───────────────────────────────────
+    perfect_quizzes = (
+        await db.execute(
+            select(func.count(AwarenessQuizAttempt.id)).where(
+                AwarenessQuizAttempt.learner_id == learner.id,
+                AwarenessQuizAttempt.score == 100,
+            )
+        )
+    ).scalar_one()
+    if perfect_quizzes >= 3:
+        await try_award("top_scorer")
+
+    # ── overachiever : score moyen > 90% sur >= 3 quiz ────────────────────────
+    avg_row = (
+        await db.execute(
+            select(
+                func.count(AwarenessQuizAttempt.id),
+                func.avg(AwarenessQuizAttempt.score),
+            ).where(AwarenessQuizAttempt.learner_id == learner.id)
+        )
+    ).one()
+    quiz_count, avg_score = avg_row
+    if quiz_count and quiz_count >= 3 and avg_score is not None and avg_score > 90:
+        await try_award("overachiever")
+
+    # ── streak_7 / consistent : jours consecutifs d'activite ──────────────────
+    streak = await _max_activity_streak_days(db, learner.id)
+    if streak >= 7:
+        await try_award("streak_7")
+    if streak >= 5:
+        await try_award("consistent")
+
+    # NOTE : "monthly_champion" (1er du classement mensuel) et "mentor" (partage
+    # de certificat) necessitent des declencheurs dedies (job mensuel / hook de
+    # partage) hors de ce point de completion — a cabler separement.
 
     await db.flush()
     return earned
@@ -440,6 +545,10 @@ BADGE_CATALOG: list[dict] = [
         "description": "Score parfait 3 fois",
     },
 ]
+
+
+# Bonus d'XP par slug de badge, derive du catalogue (source unique).
+_BADGE_XP_BONUS: dict[str, int] = {b["slug"]: b["xp_bonus"] for b in BADGE_CATALOG}
 
 
 async def seed_badges(db: AsyncSession) -> int:
