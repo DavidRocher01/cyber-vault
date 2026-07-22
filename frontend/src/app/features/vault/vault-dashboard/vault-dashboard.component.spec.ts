@@ -430,6 +430,292 @@ describe('VaultDashboardComponent — delete() & logout()', () => {
   });
 });
 
+describe('VaultDashboardComponent — passwordStrength (paliers intermédiaires)', () => {
+  it('score 2 -> Moyen', () => {
+    const { comp } = make();
+    comp.form.controls.password_encrypted.setValue('abcdefghijklmnop'); // long, minuscules only
+    expect(comp.passwordStrength.label).toBe('Moyen');
+  });
+
+  it('score 3 -> Bon', () => {
+    const { comp } = make();
+    comp.form.controls.password_encrypted.setValue('Abcdefgh1'); // len>=8 + maj + chiffre
+    expect(comp.passwordStrength.label).toBe('Bon');
+  });
+
+  it('score 4 -> Fort', () => {
+    const { comp } = make();
+    comp.form.controls.password_encrypted.setValue('Abcdefgh1!'); // len>=8 + maj + chiffre + spécial
+    expect(comp.passwordStrength.label).toBe('Fort');
+    expect(comp.passwordStrength.width).toBe('85%');
+  });
+});
+
+describe('VaultDashboardComponent — onExpiryInput (suppression)', () => {
+  it("en suppression sous 2 chiffres, ne ré-insère pas le '/'", () => {
+    const { comp } = make();
+    const input = { value: '1' } as HTMLInputElement;
+    (input as any)._prevExpiry = '12'; // saisie précédente plus longue -> suppression
+    comp.onExpiryInput({ target: input } as unknown as Event);
+    expect(comp.form.controls.cardExpiry.value).toBe('1');
+    expect(input.value).toBe('1');
+  });
+});
+
+describe('VaultDashboardComponent — cardErrors (mois invalide)', () => {
+  it('mois 00 -> "Mois invalide"', () => {
+    const { comp } = make();
+    comp.form.controls.cardExpiry.setValue('00/30');
+    expect(comp.cardErrors.expiry).toBe('Mois invalide (01–12)');
+  });
+});
+
+describe('VaultDashboardComponent — _luhn (chiffre doublé > 9)', () => {
+  it('accepte un numéro Mastercard test valide (branche n>9)', () => {
+    const { comp } = make();
+    comp.form.controls.cardNumber.setValue('5555 5555 5555 4444');
+    expect(comp.cardErrors.number).toBeUndefined();
+  });
+});
+
+describe('VaultDashboardComponent — parseCardData / maskCardNumber (branches)', () => {
+  it('parseCardData: JSON valide sans clés carte -> null', () => {
+    expect(make().comp.parseCardData(JSON.stringify({ foo: 'bar' }))).toBeNull();
+  });
+
+  it('parseCardData: complète les champs manquants par des chaînes vides', () => {
+    const parsed = make().comp.parseCardData(JSON.stringify({ number: '4111' }));
+    expect(parsed).toEqual({ number: '4111', cvv: '', expiry: '' });
+  });
+
+  it('maskCardNumber: numéro de moins de 4 chiffres reste tel quel', () => {
+    expect(make().comp.maskCardNumber('12')).toBe('•••• •••• •••• 12');
+  });
+});
+
+describe('VaultDashboardComponent — filteredItems (username null)', () => {
+  it('gère un username null lors de la recherche par titre', () => {
+    const { comp, items$ } = make();
+    items$.next([item({ id: 1, title: 'Gmail', username: null as any })]);
+    comp.searchQuery.set('gmail');
+    expect(comp.filteredItems().map(i => i.id)).toEqual([1]);
+  });
+});
+
+describe('VaultDashboardComponent — submit() (branches restantes)', () => {
+  it('création sans titre -> aucun appel au store', () => {
+    const { comp, store } = make();
+    comp.form.patchValue({ title: '', category: 'login', password_encrypted: 'pw' });
+    comp.submit();
+    expect(store.createItem).not.toHaveBeenCalled();
+  });
+
+  it('création carte sans numéro -> aucun appel au store', () => {
+    const { comp, store } = make();
+    comp.form.patchValue({ title: 'Visa', category: 'card', cardNumber: '' });
+    comp.submit();
+    expect(store.createItem).not.toHaveBeenCalled();
+  });
+
+  it("création note -> secret vide et pas d'exigence de mot de passe", () => {
+    const { comp, store } = make();
+    comp.form.patchValue({ title: 'Note', category: 'note', notes: 'contenu' });
+    comp.submit();
+    expect(store.createItem).toHaveBeenCalledTimes(1);
+    expect(store.createItem.mock.calls[0][0].password_encrypted).toBe('');
+    expect(comp.showForm()).toBe(false);
+  });
+
+  it('édition sans nouveau secret -> updateItem sans champ password_encrypted', () => {
+    const { comp, store } = make();
+    comp.openEdit(item({ id: 3, title: 'X', category: 'login', password_encrypted: 'OLD' }));
+    // password_encrypted du formulaire vidé par openEdit -> pas réécrit
+    comp.submit();
+    const payload = store.updateItem.mock.calls[0][0];
+    expect(payload.id).toBe(3);
+    expect('password_encrypted' in payload).toBe(false);
+  });
+});
+
+describe('VaultDashboardComponent — toggleReveal()', () => {
+  it('déjà révélé -> masque (supprime la clé)', async () => {
+    const { comp } = make();
+    comp.revealedPasswords[1] = 'clair';
+    await comp.toggleReveal(item({ id: 1, password_encrypted: 'ENC' }));
+    expect(comp.revealedPasswords[1]).toBeUndefined();
+  });
+
+  it('sans secret chiffré -> chaîne vide sans déchiffrement', async () => {
+    const { comp, crypto } = make();
+    await comp.toggleReveal(item({ id: 2, password_encrypted: '' }));
+    expect(comp.revealedPasswords[2]).toBe('');
+    expect(crypto.decrypt).not.toHaveBeenCalled();
+  });
+
+  it('déchiffrement OK -> stocke le clair', async () => {
+    const { comp, crypto } = make();
+    crypto.decrypt.mockResolvedValue('motdepasse');
+    await comp.toggleReveal(item({ id: 3, password_encrypted: 'ENC' }));
+    expect(comp.revealedPasswords[3]).toBe('motdepasse');
+  });
+
+  it('échec de déchiffrement -> null + toast erreur', async () => {
+    const { comp, crypto } = make();
+    crypto.decrypt.mockRejectedValue(new Error('boom'));
+    const toast = (comp as any).toast;
+    await comp.toggleReveal(item({ id: 4, password_encrypted: 'ENC' }));
+    expect(comp.revealedPasswords[4]).toBeNull();
+    expect(toast.error).toHaveBeenCalledWith('Erreur de déchiffrement');
+  });
+});
+
+describe('VaultDashboardComponent — copyPassword()', () => {
+  it('sans secret -> avertit et ne copie rien', async () => {
+    const { comp } = make();
+    const toast = (comp as any).toast;
+    const clip = (comp as any).clipboardService;
+    await comp.copyPassword(item({ id: 1, password_encrypted: '' }));
+    expect(toast.warning).toHaveBeenCalledWith('Aucun secret à copier');
+    expect(clip.copy).not.toHaveBeenCalled();
+  });
+
+  it('login -> copie le clair et marque copiedId', async () => {
+    const { comp, crypto } = make();
+    crypto.decrypt.mockResolvedValue('secret42');
+    const clip = (comp as any).clipboardService;
+    const toast = (comp as any).toast;
+    await comp.copyPassword(item({ id: 5, category: 'login', password_encrypted: 'ENC' }));
+    expect(clip.copy).toHaveBeenCalledWith('secret42');
+    expect(comp.copiedId).toBe(5);
+    expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('Mot de passe copié'));
+  });
+
+  it('réinitialise copiedId après le délai (30s presse-papiers)', async () => {
+    vi.useFakeTimers();
+    try {
+      const { comp, crypto } = make();
+      crypto.decrypt.mockResolvedValue('secret42');
+      await comp.copyPassword(item({ id: 9, category: 'login', password_encrypted: 'ENC' }));
+      expect(comp.copiedId).toBe(9);
+      vi.advanceTimersByTime(2000);
+      expect(comp.copiedId).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('carte -> copie uniquement le numéro extrait du JSON', async () => {
+    const { comp, crypto } = make();
+    crypto.decrypt.mockResolvedValue(JSON.stringify({ number: '4111 1111 1111 1111', cvv: '123' }));
+    const clip = (comp as any).clipboardService;
+    const toast = (comp as any).toast;
+    await comp.copyPassword(item({ id: 6, category: 'card', password_encrypted: 'ENC' }));
+    expect(clip.copy).toHaveBeenCalledWith('4111 1111 1111 1111');
+    expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('Numéro de carte copié'));
+  });
+
+  it('carte avec clair non-JSON -> copie le clair brut', async () => {
+    const { comp, crypto } = make();
+    crypto.decrypt.mockResolvedValue('pas-du-json');
+    const clip = (comp as any).clipboardService;
+    await comp.copyPassword(item({ id: 7, category: 'card', password_encrypted: 'ENC' }));
+    expect(clip.copy).toHaveBeenCalledWith('pas-du-json');
+  });
+
+  it('échec de déchiffrement -> toast erreur, pas de copie', async () => {
+    const { comp, crypto } = make();
+    crypto.decrypt.mockRejectedValue(new Error('boom'));
+    const clip = (comp as any).clipboardService;
+    const toast = (comp as any).toast;
+    await comp.copyPassword(item({ id: 8, category: 'login', password_encrypted: 'ENC' }));
+    expect(clip.copy).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('Erreur de déchiffrement');
+  });
+});
+
+describe('VaultDashboardComponent — exportVault()', () => {
+  const flush = async () => {
+    await Promise.resolve();
+    await new Promise(r => setTimeout(r, 0));
+    await new Promise(r => setTimeout(r, 0));
+  };
+
+  it('déchiffre chaque secret et déclenche le téléchargement blob', async () => {
+    const { comp, crypto, items$ } = make();
+    crypto.decrypt.mockResolvedValue('clair');
+    items$.next([
+      item({ id: 1, title: 'A', password_encrypted: 'ENC' }),
+      item({ id: 2, title: 'B', password_encrypted: '' }),
+    ]);
+    const anchor = { href: '', download: '', click: vi.fn() };
+    const createSpy = vi
+      .spyOn(document, 'createElement')
+      .mockReturnValue(anchor as unknown as HTMLAnchorElement);
+    (URL as any).createObjectURL = vi.fn(() => 'blob:x');
+    (URL as any).revokeObjectURL = vi.fn();
+    const toast = (comp as any).toast;
+
+    await comp.exportVault();
+    await flush();
+
+    expect(crypto.decrypt).toHaveBeenCalledTimes(1); // seul l'item avec secret
+    expect(anchor.click).toHaveBeenCalled();
+    expect((URL as any).revokeObjectURL).toHaveBeenCalledWith('blob:x');
+    expect(toast.success).toHaveBeenCalledWith('Export téléchargé');
+    createSpy.mockRestore();
+  });
+
+  it('un secret indéchiffrable est exporté avec password null (pas de crash)', async () => {
+    const { comp, crypto, items$ } = make();
+    crypto.decrypt.mockRejectedValue(new Error('boom'));
+    items$.next([item({ id: 1, title: 'A', password_encrypted: 'ENC' })]);
+    const anchor = { href: '', download: '', click: vi.fn() };
+    const createSpy = vi
+      .spyOn(document, 'createElement')
+      .mockReturnValue(anchor as unknown as HTMLAnchorElement);
+    (URL as any).createObjectURL = vi.fn(() => 'blob:y');
+    (URL as any).revokeObjectURL = vi.fn();
+    const toast = (comp as any).toast;
+
+    await comp.exportVault();
+    await flush();
+
+    expect(anchor.click).toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalledWith('Export téléchargé');
+    createSpy.mockRestore();
+  });
+});
+
+describe('VaultDashboardComponent — ngOnInit / openCreate (effets différés)', () => {
+  it('ngOnInit charge les items et efface le titulaire en catégorie carte', () => {
+    vi.useFakeTimers();
+    try {
+      const { comp, store } = make();
+      comp.ngOnInit();
+      expect(store.loadItems).toHaveBeenCalled();
+      comp.form.controls.username.setValue('AUTOFILL');
+      comp.form.controls.category.setValue('card');
+      vi.advanceTimersByTime(60);
+      expect(comp.form.controls.username.value).toBe('');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('openCreate efface le titulaire après le tick de rendu', () => {
+    vi.useFakeTimers();
+    try {
+      const { comp } = make();
+      comp.openCreate();
+      comp.form.controls.username.setValue('AUTOFILL');
+      vi.advanceTimersByTime(60);
+      expect(comp.form.controls.username.value).toBe('');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe('VaultDashboardComponent — métadonnées statiques', () => {
   it('categories couvre toutes les catégories + "Tout"', () => {
     const ids = make().comp.categories.map(c => c.id);
