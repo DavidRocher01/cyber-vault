@@ -37,3 +37,8 @@ async def toggle_rssi_consultant(db: AsyncSession, user: User) -> User:
     user.is_rssi_consultant = not user.is_rssi_consultant
     await db.commit()
     return user
+
+
+async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
+    result = await db.execute(select(User).where(User.email == email))
+    return result.scalar_one_or_none()

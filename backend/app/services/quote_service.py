@@ -36,6 +36,7 @@ async def create_quote(
     items: list[dict],
     validity_days: int = 30,
     issue_date: date | None = None,
+    commit: bool = False,
 ) -> Quote:
     today = issue_date or datetime.now(UTC).date()
     year = today.year
@@ -61,6 +62,9 @@ async def create_quote(
     )
     db.add(quote)
     await db.flush()
+    if commit:
+        await db.commit()
+        await db.refresh(quote)
     return quote
 
 
@@ -157,3 +161,15 @@ async def mark_quote_rejected(db: AsyncSession, quote: Quote) -> None:
     quote.status = "rejected"
     quote.rejected_at = datetime.now(UTC)
     await db.commit()
+
+
+async def list_all_quotes(db: AsyncSession) -> list[Quote]:
+    """Tous les devis (admin), plus récents d'abord."""
+    result = await db.execute(select(Quote).order_by(Quote.created_at.desc()))
+    return list(result.scalars().all())
+
+
+async def get_quote_by_id(db: AsyncSession, quote_id: int) -> Quote | None:
+    """Devis par id (admin), sinon None."""
+    result = await db.execute(select(Quote).where(Quote.id == quote_id))
+    return result.scalar_one_or_none()

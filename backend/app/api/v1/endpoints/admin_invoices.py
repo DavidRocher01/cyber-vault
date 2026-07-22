@@ -12,13 +12,12 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 from pydantic import BaseModel, EmailStr
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import require_admin
 from app.models.invoice import Invoice
-from app.models.user import User
+from app.services import invoice_service, user_admin_service
 from app.services.invoice_pdf import generate_invoice_pdf
 from app.services.invoice_service import create_invoice
 
@@ -44,8 +43,7 @@ async def admin_create_invoice(
 ):
     user_id: int | None = None
     if body.user_email:
-        result = await db.execute(select(User).where(User.email == body.user_email))
-        user = result.scalar_one_or_none()
+        user = await user_admin_service.get_user_by_email(db, body.user_email)
         if user:
             user_id = user.id
 
@@ -60,9 +58,8 @@ async def admin_create_invoice(
         amount_cents=body.amount_cents,
         status="paid",
         issue_date=body.issue_date,
+        commit=True,
     )
-    await db.commit()
-    await db.refresh(invoice)
     return _serialize(invoice)
 
 
@@ -72,13 +69,8 @@ async def admin_list_invoices(
     offset: int = 0,
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(Invoice)
-        .order_by(Invoice.issue_date.desc(), Invoice.id.desc())
-        .offset(offset)
-        .limit(limit)
-    )
-    return [_serialize(inv) for inv in result.scalars().all()]
+    invoices = await invoice_service.list_all_invoices(db, limit=limit, offset=offset)
+    return [_serialize(inv) for inv in invoices]
 
 
 @router.get(
@@ -121,8 +113,7 @@ async def admin_download_pdf(
 
 
 async def _get_by_id(invoice_id: int, db: AsyncSession) -> Invoice:
-    result = await db.execute(select(Invoice).where(Invoice.id == invoice_id))
-    inv = result.scalar_one_or_none()
+    inv = await invoice_service.get_invoice_by_id(db, invoice_id)
     if not inv:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Facture introuvable")
     return inv

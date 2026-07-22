@@ -12,13 +12,12 @@ from datetime import date
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, status
 from fastapi.responses import Response
 from pydantic import BaseModel, EmailStr, field_validator
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.quote import Quote
-from app.models.user import User
+from app.services import quote_service, user_admin_service
 from app.services.quote_pdf import generate_quote_pdf
 from app.services.quote_service import create_quote, send_quote_by_email
 
@@ -116,8 +115,7 @@ async def admin_create_quote(
 ):
     user_id: int | None = None
     if body.user_email:
-        result = await db.execute(select(User).where(User.email == body.user_email))
-        user = result.scalar_one_or_none()
+        user = await user_admin_service.get_user_by_email(db, body.user_email)
         if user:
             user_id = user.id
 
@@ -131,9 +129,8 @@ async def admin_create_quote(
         items=[item.model_dump() for item in body.items],
         validity_days=body.validity_days,
         issue_date=body.issue_date,
+        commit=True,
     )
-    await db.commit()
-    await db.refresh(quote)
 
     background_tasks.add_task(send_quote_by_email, quote)
 
@@ -142,8 +139,8 @@ async def admin_create_quote(
 
 @router.get("", dependencies=[Depends(_require_admin)], summary="[Admin] Lister les devis")
 async def admin_list_quotes(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Quote).order_by(Quote.created_at.desc()))
-    return [_serialize(q) for q in result.scalars().all()]
+    quotes = await quote_service.list_all_quotes(db)
+    return [_serialize(q) for q in quotes]
 
 
 @router.get(
@@ -155,8 +152,7 @@ async def admin_download_quote_pdf(
     quote_id: int,
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Quote).where(Quote.id == quote_id))
-    quote = result.scalar_one_or_none()
+    quote = await quote_service.get_quote_by_id(db, quote_id)
     if not quote:
         raise HTTPException(status_code=404, detail="Devis introuvable")
 

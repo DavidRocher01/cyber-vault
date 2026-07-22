@@ -34,6 +34,7 @@ async def create_invoice(
     status: str = "paid",
     stripe_invoice_id: str | None = None,
     issue_date: date | None = None,
+    commit: bool = False,
 ) -> Invoice:
     today = issue_date or datetime.now(UTC).date()
     year = today.year
@@ -57,6 +58,9 @@ async def create_invoice(
     )
     db.add(invoice)
     await db.flush()  # populate id without committing
+    if commit:
+        await db.commit()
+        await db.refresh(invoice)
     return invoice
 
 
@@ -84,4 +88,21 @@ async def get_owned_invoice(db: AsyncSession, invoice_id: int, user_id: int) -> 
     result = await db.execute(
         select(Invoice).where(Invoice.id == invoice_id, Invoice.user_id == user_id)
     )
+    return result.scalar_one_or_none()
+
+
+async def list_all_invoices(db: AsyncSession, *, limit: int, offset: int) -> list[Invoice]:
+    """Toutes les factures (admin), plus récentes d'abord."""
+    result = await db.execute(
+        select(Invoice)
+        .order_by(Invoice.issue_date.desc(), Invoice.id.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    return list(result.scalars().all())
+
+
+async def get_invoice_by_id(db: AsyncSession, invoice_id: int) -> Invoice | None:
+    """Facture par id (admin), sinon None."""
+    result = await db.execute(select(Invoice).where(Invoice.id == invoice_id))
     return result.scalar_one_or_none()
