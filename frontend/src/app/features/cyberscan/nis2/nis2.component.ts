@@ -7,6 +7,14 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { CyberscanService } from '../services/cyberscan.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import {
+  complianceStatusLabel,
+  complianceStatusIcon,
+  complianceStatusClass,
+  complianceStatusColor,
+  complianceScoreColor,
+  complianceScoreLabel,
+} from '../shared/compliance-status.util';
 
 export type Nis2Status = 'compliant' | 'partial' | 'non_compliant' | 'na';
 
@@ -198,55 +206,27 @@ export class Nis2Component implements OnInit {
   // ── Helpers ────────────────────────────────────────────────────────────
 
   statusLabel(s: string): string {
-    const map: Record<string, string> = {
-      compliant: 'Conforme',
-      partial: 'Partiel',
-      non_compliant: 'Non conforme',
-      na: 'N/A',
-    };
-    return map[s] ?? s;
+    return complianceStatusLabel(s);
   }
 
   statusIcon(s: string): string {
-    const map: Record<string, string> = {
-      compliant: 'check_circle',
-      partial: 'pending',
-      non_compliant: 'cancel',
-      na: 'remove_circle_outline',
-    };
-    return map[s] ?? 'help_outline';
+    return complianceStatusIcon(s);
   }
 
   statusClass(s: string): string {
-    const map: Record<string, string> = {
-      compliant: 'text-green-400 bg-green-400/10 border-green-700',
-      partial: 'text-yellow-400 bg-yellow-400/10 border-yellow-700',
-      non_compliant: 'text-red-400 bg-red-400/10 border-red-700',
-      na: 'text-gray-400 bg-gray-700/30 border-gray-600',
-    };
-    return map[s] ?? 'text-gray-400 bg-gray-700/30 border-gray-600';
+    return complianceStatusClass(s);
   }
 
   statusColor(s: string): string {
-    const map: Record<string, string> = {
-      compliant: '#4ade80',
-      partial: '#facc15',
-      non_compliant: '#f87171',
-      na: '#6b7280',
-    };
-    return map[s] ?? '#6b7280';
+    return complianceStatusColor(s);
   }
 
   scoreColor(n: number): string {
-    if (n >= 80) return '#4ade80';
-    if (n >= 50) return '#facc15';
-    return '#f87171';
+    return complianceScoreColor(n);
   }
 
   scoreLabel(n: number): string {
-    if (n >= 80) return 'Conforme';
-    if (n >= 50) return 'En cours';
-    return 'Non conforme';
+    return complianceScoreLabel(n);
   }
 
   catCompliance(cat: Nis2Category): {
