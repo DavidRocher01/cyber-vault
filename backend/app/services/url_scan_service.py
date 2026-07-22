@@ -522,6 +522,8 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
             logger.warning(f"URL scan alert email failed: {exc}")
 
     except Exception as exc:
+        # Ne pas avaler l'echec en silence : trace complete -> CloudWatch + Sentry.
+        logger.exception(f"URL scan {url_scan.id} failed: {exc}")
         url_scan.status = "error"
         url_scan.finished_at = datetime.now(UTC)
         url_scan.error_message = str(exc)[:500]

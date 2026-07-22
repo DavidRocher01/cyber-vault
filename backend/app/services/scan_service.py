@@ -344,6 +344,8 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
                 logger.warning(f"Scan report email failed: {exc}")
 
     except Exception as exc:
+        # Ne pas avaler l'echec en silence : trace complete -> CloudWatch + Sentry.
+        logger.exception(f"Scan {scan.id} failed: {exc}")
         scan.status = "failed"
         scan.error_message = str(exc)[:500]
         scan.finished_at = datetime.now(UTC)
