@@ -110,3 +110,11 @@ async def run_public_scan(public_scan_id: int, db: AsyncSession) -> None:
         scan.finished_at = datetime.now(UTC)
 
     await db.commit()
+
+
+async def list_recent_public_scans(db: AsyncSession, limit: int = 50) -> list[PublicScan]:
+    """Retourne les scans publics les plus recents (ordre anti-chronologique)."""
+    result = await db.execute(
+        select(PublicScan).order_by(PublicScan.created_at.desc()).limit(limit)
+    )
+    return list(result.scalars().all())

@@ -1,0 +1,102 @@
+"""Garde-fou d'architecture : les endpoints ne doivent pas accéder à la DB
+directement — ils délèguent aux services (règle CLAUDE.md).
+
+On ne peut pas corriger les ~48 fichiers historiques d'un coup, alors ce test
+agit en **ratchet** : la liste `_BASELINE` gèle les fichiers qui violent
+encore la règle aujourd'hui. Le test échoue si :
+  - un NOUVEAU fichier d'endpoint introduit un accès DB direct (dérive), OU
+  - un fichier de la baseline a été nettoyé mais pas retiré de la liste
+    (la baseline doit rétrécir au fil des migrations, jamais mentir).
+
+Un accès DB direct = usage de `db.execute/add/commit/...` ou d'un `select(...)`
+SQLAlchemy dans le module d'endpoint. Le simple fait de recevoir
+`db: AsyncSession` et de le passer à un service n'est PAS un accès direct.
+"""
+
+import re
+from pathlib import Path
+
+_ENDPOINTS_DIR = Path(__file__).resolve().parents[1] / "app" / "api" / "v1" / "endpoints"
+
+_DB_ACCESS = re.compile(
+    r"\bdb\.(?:execute|add|commit|delete|refresh|scalar|scalars|flush|get)\b"
+    r"|(?:^|\W)select\("
+)
+
+# Fichiers qui violent ENCORE la règle (dette héritée). Cette liste ne doit que
+# RÉTRÉCIR : migrer un endpoint vers un service -> le retirer d'ici.
+_BASELINE: set[str] = {
+    "admin_invoices.py",
+    "admin_quotes.py",
+    "admin_stats.py",
+    "admin_users.py",
+    "api_waitlist.py",
+    "auth.py",
+    "awareness/badges.py",
+    "awareness/certificates.py",
+    "awareness/enrollments.py",
+    "awareness/helpers.py",
+    "awareness/learners.py",
+    "awareness/organizations.py",
+    "awareness/programs.py",
+    "blog.py",
+    "bookings.py",
+    "brand.py",
+    "code_scans.py",
+    "collab.py",
+    "contact.py",
+    "darkweb.py",
+    "darkweb_dossier.py",
+    "dev_testing.py",
+    "health.py",
+    "invoices.py",
+    "iso27001.py",
+    "newsletter.py",
+    "nis2.py",
+    "notifications.py",
+    "phishing.py",
+    "portal.py",
+    "public_scans.py",
+    "quotes.py",
+    "rssi/_shared.py",
+    "rssi/actions.py",
+    "rssi/activity.py",
+    "rssi/clients.py",
+    "rssi/deliverables.py",
+    "rssi/profile.py",
+    "rssi/report.py",
+    "rssi/visits.py",
+    "scans.py",
+    "sites.py",
+    "subscriptions.py",
+    "training.py",
+    "url_scans.py",
+    "users.py",
+    "vault.py",
+    "webhooks.py",
+}
+
+
+def _current_offenders() -> set[str]:
+    offenders: set[str] = set()
+    for path in _ENDPOINTS_DIR.rglob("*.py"):
+        if path.name == "__init__.py":
+            continue
+        if _DB_ACCESS.search(path.read_text(encoding="utf-8")):
+            offenders.add(path.relative_to(_ENDPOINTS_DIR).as_posix())
+    return offenders
+
+
+def test_no_new_endpoint_db_access():
+    offenders = _current_offenders()
+
+    new = offenders - _BASELINE
+    assert not new, (
+        f"Nouveaux endpoints avec accès DB direct (déléguer aux services) : {sorted(new)}"
+    )
+
+    stale = _BASELINE - offenders
+    assert not stale, (
+        "Ces fichiers ne violent plus la règle : retirez-les de _BASELINE "
+        f"pour garder le garde-fou honnête : {sorted(stale)}"
+    )
