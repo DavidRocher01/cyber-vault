@@ -342,6 +342,22 @@ def _section_header(num: str | int, title: str, styles: dict[str, Any]) -> list:
 # ---------------------------------------------------------------------------
 # Cover page
 # ---------------------------------------------------------------------------
+def _kv_styles(suffix):
+    """Styles (en-tete, cellule) standards d'un tableau cle/valeur de section."""
+    return (
+        ParagraphStyle(f"th{suffix}", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY),
+        ParagraphStyle(f"td{suffix}", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT),
+    )
+
+
+def _not_scanned_table(head_style, cell_style, col_w):
+    """Tableau 'Non scanne' affiche quand un module est saute/absent."""
+    return Table(
+        [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné", cell_style)]],
+        colWidths=[col_w],
+    )
+
+
 def _build_cover(
     target_url: str,
     report_date: str,
@@ -666,8 +682,7 @@ def _build_ssl_section(ssl_result: dict[str, Any], styles: dict[str, Any], page_
     story = []
     story += _section_header(2, "SSL / TLS", styles)
 
-    head_style = ParagraphStyle("th2", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
-    cell_style = ParagraphStyle("td2", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
+    head_style, cell_style = _kv_styles("2")
 
     if ssl_result.get("error"):
         rows = [
@@ -714,8 +729,7 @@ def _build_headers_section(headers_result: dict[str, Any], styles: dict[str, Any
     story = []
     story += _section_header(3, "Headers HTTP", styles)
 
-    head_style = ParagraphStyle("th3", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
-    cell_style = ParagraphStyle("td3", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
+    head_style, cell_style = _kv_styles("3")
 
     if headers_result.get("error"):
         rows = [
@@ -762,8 +776,7 @@ def _build_ports_section(port_result: dict[str, Any], styles: dict[str, Any], pa
     story = []
     story += _section_header(4, "Ports réseau", styles)
 
-    head_style = ParagraphStyle("th4", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
-    cell_style = ParagraphStyle("td4", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
+    head_style, cell_style = _kv_styles("4")
     col_w = page_w - 4 * cm
 
     if skipped or port_result is None:
@@ -829,8 +842,7 @@ def _build_sca_section(sca_result: dict[str, Any], styles: dict[str, Any], page_
     story = []
     story += _section_header(5, "SCA — Analyse des dépendances", styles)
 
-    head_style = ParagraphStyle("th5", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
-    cell_style = ParagraphStyle("td5", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
+    head_style, cell_style = _kv_styles("5")
     col_w = page_w - 4 * cm
 
     if skipped or not sca_result:
@@ -915,13 +927,11 @@ def _build_email_section(email_result: dict[str, Any], styles: dict[str, Any], p
     story = []
     story += _section_header(6, "Email Security (SPF / DKIM / DMARC)", styles)
 
-    head_style = ParagraphStyle("th6", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
-    cell_style = ParagraphStyle("td6", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
+    head_style, cell_style = _kv_styles("6")
     col_w = page_w - 4 * cm
 
     if skipped or not email_result:
-        rows = [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné", cell_style)]]
-        t = Table(rows, colWidths=[col_w])
+        t = _not_scanned_table(head_style, cell_style, col_w)
     elif email_result.get("error"):
         rows = [
             [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
@@ -963,13 +973,11 @@ def _build_cookie_section(cookie_result: dict[str, Any], styles: dict[str, Any],
     story = []
     story += _section_header(7, "Cookie Security", styles)
 
-    head_style = ParagraphStyle("th7", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
-    cell_style = ParagraphStyle("td7", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
+    head_style, cell_style = _kv_styles("7")
     col_w = page_w - 4 * cm
 
     if skipped or not cookie_result:
-        rows = [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné", cell_style)]]
-        t = Table(rows, colWidths=[col_w])
+        t = _not_scanned_table(head_style, cell_style, col_w)
     elif cookie_result.get("error"):
         rows = [
             [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
@@ -1013,13 +1021,11 @@ def _build_cors_section(cors_result: dict[str, Any], styles: dict[str, Any], pag
     story = []
     story += _section_header(8, "CORS", styles)
 
-    head_style = ParagraphStyle("th8", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
-    cell_style = ParagraphStyle("td8", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
+    head_style, cell_style = _kv_styles("8")
     col_w = page_w - 4 * cm
 
     if skipped or not cors_result:
-        rows = [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné", cell_style)]]
-        t = Table(rows, colWidths=[col_w])
+        t = _not_scanned_table(head_style, cell_style, col_w)
     elif cors_result.get("error"):
         rows = [
             [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
@@ -1056,13 +1062,11 @@ def _build_ip_reputation_section(ip_result: dict[str, Any], styles: dict[str, An
     story = []
     story += _section_header(9, "IP Réputation (DNSBL)", styles)
 
-    head_style = ParagraphStyle("th9", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
-    cell_style = ParagraphStyle("td9", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
+    head_style, cell_style = _kv_styles("9")
     col_w = page_w - 4 * cm
 
     if skipped or not ip_result:
-        rows = [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné", cell_style)]]
-        t = Table(rows, colWidths=[col_w])
+        t = _not_scanned_table(head_style, cell_style, col_w)
     elif ip_result.get("error") and not ip_result.get("ip"):
         rows = [
             [Paragraph("Propriété", head_style), Paragraph("Valeur", head_style)],
@@ -1099,13 +1103,11 @@ def _build_dns_section(dns_result: dict[str, Any], styles: dict[str, Any], page_
     story = []
     story += _section_header(10, "DNS & Subdomains", styles)
 
-    head_style = ParagraphStyle("th10", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
-    cell_style = ParagraphStyle("td10", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
+    head_style, cell_style = _kv_styles("10")
     col_w = page_w - 4 * cm
 
     if skipped or not dns_result:
-        rows = [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné", cell_style)]]
-        t = Table(rows, colWidths=[col_w])
+        t = _not_scanned_table(head_style, cell_style, col_w)
     else:
         zt = dns_result.get("zone_transfer", {})
         zt_style = ParagraphStyle("zt10", fontName="Helvetica-Bold", fontSize=10,
@@ -1138,13 +1140,11 @@ def _build_cms_section(cms_result: dict[str, Any], styles: dict[str, Any], page_
     story = []
     story += _section_header(11, "CMS Detection", styles)
 
-    head_style = ParagraphStyle("th11", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
-    cell_style = ParagraphStyle("td11", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
+    head_style, cell_style = _kv_styles("11")
     col_w = page_w - 4 * cm
 
     if skipped or not cms_result:
-        rows = [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné", cell_style)]]
-        t = Table(rows, colWidths=[col_w])
+        t = _not_scanned_table(head_style, cell_style, col_w)
     else:
         cms = cms_result.get("cms", "Unknown")
         version = cms_result.get("version")
@@ -1175,13 +1175,11 @@ def _build_waf_section(waf_result: dict[str, Any], styles: dict[str, Any], page_
     story = []
     story += _section_header(12, "WAF Detection", styles)
 
-    head_style = ParagraphStyle("th12", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
-    cell_style = ParagraphStyle("td12", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
+    head_style, cell_style = _kv_styles("12")
     col_w = page_w - 4 * cm
 
     if skipped or not waf_result:
-        rows = [[Paragraph("Résultat", head_style)], [Paragraph("Non scanné", cell_style)]]
-        t = Table(rows, colWidths=[col_w])
+        t = _not_scanned_table(head_style, cell_style, col_w)
     else:
         detected = waf_result.get("detected", False)
         det_style = ParagraphStyle("det12", fontName="Helvetica-Bold", fontSize=10,
@@ -1212,8 +1210,7 @@ def _build_breach_section(breach_result: dict[str, Any], styles: dict[str, Any],
     story = []
     story += _section_header(13, "Data Breach (HIBP)", styles)
 
-    head_style = ParagraphStyle("th13", fontName="Helvetica-Bold", fontSize=10, textColor=COLOR_PRIMARY)
-    cell_style = ParagraphStyle("td13", fontName="Helvetica", fontSize=10, textColor=COLOR_TEXT)
+    head_style, cell_style = _kv_styles("13")
     col_w = page_w - 4 * cm
 
     if skipped or not breach_result:
@@ -1822,52 +1819,42 @@ def generate_report(
 
     styles = _build_styles()
 
+    # Registre unique des modules de scan : (cle_statut, resultat, skipped,
+    # builder, statut_par_defaut). skipped=None => module toujours actif (ssl,
+    # headers), rendu sans argument `skipped`. Ce registre est la SEULE source
+    # de verite pour le calcul des statuts ET l'assemblage du rapport, evitant
+    # les 3 structures paralleles a maintenir a la main.
+    probes: list[tuple[str, dict | None, bool | None, Any, str]] = [
+        ("ssl", ssl_result, None, _build_ssl_section, "CRITICAL"),
+        ("headers", headers_result, None, _build_headers_section, "CRITICAL"),
+        ("ports", port_result, ports_skipped, _build_ports_section, "OK"),
+        ("sca", sca_result, sca_skipped, _build_sca_section, "OK"),
+        ("email", email_result, email_skipped, _build_email_section, "OK"),
+        ("cookies", cookie_result, cookie_skipped, _build_cookie_section, "OK"),
+        ("cors", cors_result, cors_skipped, _build_cors_section, "OK"),
+        ("ip_rep", ip_result, ip_skipped, _build_ip_reputation_section, "OK"),
+        ("dns", dns_result, dns_skipped, _build_dns_section, "OK"),
+        ("cms", cms_result, cms_skipped, _build_cms_section, "OK"),
+        ("waf", waf_result, waf_skipped, _build_waf_section, "OK"),
+        ("breach", breach_result, breach_skipped, _build_breach_section, "OK"),
+        ("tech", tech_result, tech_skipped, _build_tech_section, "OK"),
+        ("tls", tls_result, tls_skipped, _build_tls_section, "OK"),
+        ("takeover", takeover_result, takeover_skipped, _build_takeover_section, "OK"),
+        ("threat_intel", ti_result, ti_skipped, _build_threat_intel_section, "OK"),
+        ("http_methods", methods_result, methods_skipped, _build_http_methods_section, "OK"),
+        ("open_redirect", redirect_result, redirect_skipped, _build_open_redirect_section, "OK"),
+        ("clickjacking", clickjacking_result, clickjacking_skipped, _build_clickjacking_section, "OK"),
+        ("dir_listing", dirlist_result, dirlist_skipped, _build_dirlist_section, "OK"),
+        ("robots", robots_result, robots_skipped, _build_robots_section, "OK"),
+        ("jwt", jwt_result, jwt_skipped, _build_jwt_section, "OK"),
+    ]
+
     # Compute statuses for summary
     statuses: dict[str, str] = {}
-    if ssl_result:
-        statuses["ssl"] = ssl_result.get("status", "CRITICAL")
-    if headers_result:
-        statuses["headers"] = headers_result.get("status", "CRITICAL")
-    if not ports_skipped and port_result:
-        statuses["ports"] = port_result.get("status", "OK")
-    if not sca_skipped and sca_result:
-        statuses["sca"] = sca_result.get("status", "OK")
-    if not email_skipped and email_result:
-        statuses["email"] = email_result.get("status", "OK")
-    if not cookie_skipped and cookie_result:
-        statuses["cookies"] = cookie_result.get("status", "OK")
-    if not cors_skipped and cors_result:
-        statuses["cors"] = cors_result.get("status", "OK")
-    if not ip_skipped and ip_result:
-        statuses["ip_rep"] = ip_result.get("status", "OK")
-    if not dns_skipped and dns_result:
-        statuses["dns"] = dns_result.get("status", "OK")
-    if not cms_skipped and cms_result:
-        statuses["cms"] = cms_result.get("status", "OK")
-    if not waf_skipped and waf_result:
-        statuses["waf"] = waf_result.get("status", "OK")
-    if not breach_skipped and breach_result:
-        statuses["breach"] = breach_result.get("status", "OK")
-    if not tech_skipped and tech_result:
-        statuses["tech"] = tech_result.get("status", "OK")
-    if not tls_skipped and tls_result:
-        statuses["tls"] = tls_result.get("status", "OK")
-    if not takeover_skipped and takeover_result:
-        statuses["takeover"] = takeover_result.get("status", "OK")
-    if not ti_skipped and ti_result:
-        statuses["threat_intel"] = ti_result.get("status", "OK")
-    if not methods_skipped and methods_result:
-        statuses["http_methods"] = methods_result.get("status", "OK")
-    if not redirect_skipped and redirect_result:
-        statuses["open_redirect"] = redirect_result.get("status", "OK")
-    if not clickjacking_skipped and clickjacking_result:
-        statuses["clickjacking"] = clickjacking_result.get("status", "OK")
-    if not dirlist_skipped and dirlist_result:
-        statuses["dir_listing"] = dirlist_result.get("status", "OK")
-    if not robots_skipped and robots_result:
-        statuses["robots"] = robots_result.get("status", "OK")
-    if not jwt_skipped and jwt_result:
-        statuses["jwt"] = jwt_result.get("status", "OK")
+    for status_key, result, skipped, _build_fn, default_status in probes:
+        active = bool(result) if skipped is None else (not skipped and bool(result))
+        if active:
+            statuses[status_key] = result.get("status", default_status)
 
     all_status_values = list(statuses.values())
     if "CRITICAL" in all_status_values:
@@ -1879,33 +1866,26 @@ def generate_report(
 
     usable_w = page_w - 4 * cm  # leftMargin + rightMargin = 4 cm
 
+    section_w = usable_w + 4 * cm
     story: list = []
     story += _build_cover(target_url, report_date, styles, usable_w, page_h, overall_status=overall)
     story += _build_toc(styles)
-    story += _build_executive_summary(overall, statuses, styles, usable_w + 4 * cm)
-    story += _build_ssl_section(ssl_result or {}, styles, usable_w + 4 * cm)
-    story += _build_headers_section(headers_result or {}, styles, usable_w + 4 * cm)
-    story += _build_ports_section(port_result or {}, styles, usable_w + 4 * cm, skipped=ports_skipped)
-    story += _build_sca_section(sca_result or {}, styles, usable_w + 4 * cm, skipped=sca_skipped)
-    story += _build_email_section(email_result or {}, styles, usable_w + 4 * cm, skipped=email_skipped)
-    story += _build_cookie_section(cookie_result or {}, styles, usable_w + 4 * cm, skipped=cookie_skipped)
-    story += _build_cors_section(cors_result or {}, styles, usable_w + 4 * cm, skipped=cors_skipped)
-    story += _build_ip_reputation_section(ip_result or {}, styles, usable_w + 4 * cm, skipped=ip_skipped)
-    story += _build_dns_section(dns_result or {}, styles, usable_w + 4 * cm, skipped=dns_skipped)
-    story += _build_cms_section(cms_result or {}, styles, usable_w + 4 * cm, skipped=cms_skipped)
-    story += _build_waf_section(waf_result or {}, styles, usable_w + 4 * cm, skipped=waf_skipped)
-    story += _build_breach_section(breach_result or {}, styles, usable_w + 4 * cm, skipped=breach_skipped)
-    story += _build_tech_section(tech_result or {}, styles, usable_w + 4 * cm, skipped=tech_skipped)
-    story += _build_tls_section(tls_result or {}, styles, usable_w + 4 * cm, skipped=tls_skipped)
-    story += _build_takeover_section(takeover_result or {}, styles, usable_w + 4 * cm, skipped=takeover_skipped)
-    story += _build_threat_intel_section(ti_result or {}, styles, usable_w + 4 * cm, skipped=ti_skipped)
-    story += _build_http_methods_section(methods_result or {}, styles, usable_w + 4 * cm, skipped=methods_skipped)
-    story += _build_open_redirect_section(redirect_result or {}, styles, usable_w + 4 * cm, skipped=redirect_skipped)
-    story += _build_clickjacking_section(clickjacking_result or {}, styles, usable_w + 4 * cm, skipped=clickjacking_skipped)
-    story += _build_dirlist_section(dirlist_result or {}, styles, usable_w + 4 * cm, skipped=dirlist_skipped)
-    story += _build_robots_section(robots_result or {}, styles, usable_w + 4 * cm, skipped=robots_skipped)
-    story += _build_jwt_section(jwt_result or {}, styles, usable_w + 4 * cm, skipped=jwt_skipped)
-    story += _build_recommendations(ssl_result or {}, headers_result or {}, port_result or {}, styles, usable_w + 4 * cm, ports_skipped=ports_skipped, sca_result=sca_result or {}, sca_skipped=sca_skipped)
+    story += _build_executive_summary(overall, statuses, styles, section_w)
+    for _status_key, result, skipped, build_fn, _default in probes:
+        if skipped is None:
+            story += build_fn(result or {}, styles, section_w)
+        else:
+            story += build_fn(result or {}, styles, section_w, skipped=skipped)
+    story += _build_recommendations(
+        ssl_result or {},
+        headers_result or {},
+        port_result or {},
+        styles,
+        section_w,
+        ports_skipped=ports_skipped,
+        sca_result=sca_result or {},
+        sca_skipped=sca_skipped,
+    )
 
     doc.build(story)
     return output_path
