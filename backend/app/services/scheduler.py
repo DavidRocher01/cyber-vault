@@ -417,7 +417,9 @@ async def _send_monthly_digest_job() -> None:
 
 
 async def _run_darkweb_monitoring() -> None:
-    """Monthly job: re-scan active monitored dossiers and send alerts on new exposures."""
+    """Daily job (03:00 UTC) : re-scanne les dossiers surveilles dont next_monitor_at
+    est echu (cadence effective ~mensuelle par dossier) et alerte sur les nouvelles
+    expositions."""
     from app.core.config import settings
     from app.models.darkweb_dossier import DarkwebDossier, DarkwebDossierTarget
     from app.models.user import User
@@ -448,33 +450,12 @@ async def _run_darkweb_monitoring() -> None:
             )
             prev_exposed = {t.email for t in prev_result.scalars().all()}
 
-        # Reset and re-process
-        async with AsyncSessionLocal() as db:
-            dossier = (
-                await db.execute(select(DarkwebDossier).where(DarkwebDossier.id == d.id))
-            ).scalar_one_or_none()
-            if not dossier:
-                continue
-            await db.execute(
-                DarkwebDossierTarget.__table__.update()
-                .where(DarkwebDossierTarget.dossier_id == d.id)
-                .values(
-                    status="pending",
-                    total_breaches=0,
-                    breach_sources_json=None,
-                    checked_at=None,
-                )
-            )
-            dossier.status = "pending"
-            dossier.started_at = None
-            dossier.finished_at = None
-            dossier.risk_score = None
-            dossier.severity_score = None
-            dossier.exposed_emails = 0
-            dossier.total_breach_instances = 0
-            dossier.top_sources_json = None
-            await db.commit()
-
+        # Re-scan NON destructif : process_dossier re-scanne toutes les cibles en
+        # place, recalcule les agregats a la fin, et en cas d'echec passe le dossier
+        # en "failed" SANS effacer les donnees precedentes (il attrape ses propres
+        # exceptions, donc n'interrompt pas la boucle). On ne reinitialise donc plus
+        # le dossier a "pending" avant le scan (ancienne fenetre de perte de donnees
+        # si le re-scan echouait, et reset de toute facon redondant).
         await process_dossier(d.id, settings.HIBP_API_KEY)
 
         # Check for new exposures and alert
