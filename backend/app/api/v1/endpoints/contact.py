@@ -1,16 +1,13 @@
-from datetime import UTC, datetime
-
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import require_admin
 from app.core.limiter import limiter
-from app.models.contact_message import ContactMessage
 from app.schemas.contact import ContactIn
+from app.services import contact_service
 from app.services.email_service import send_contact_email
 
 router = APIRouter(prefix="/contact", tags=["contact"])
@@ -43,18 +40,15 @@ async def submit_contact(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
-    msg = ContactMessage(
+    await contact_service.create_contact_message(
+        db,
         name=payload.name,
         email=str(payload.email),
         phone=payload.phone,
         need_type=payload.need_type,
         site_url=payload.site_url,
         message=payload.message,
-        status="new",
-        created_at=datetime.now(UTC),
     )
-    db.add(msg)
-    await db.commit()
     background_tasks.add_task(
         send_contact_email,
         name=payload.name,
@@ -75,8 +69,7 @@ async def submit_contact(
     summary="[Admin] Lister les messages de contact",
 )
 async def admin_list_messages(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(ContactMessage).order_by(ContactMessage.created_at.desc()))
-    msgs = result.scalars().all()
+    msgs = await contact_service.list_contact_messages(db)
     return [
         ContactMessageOut(
             id=m.id,
@@ -108,10 +101,8 @@ async def admin_update_status(
     new_status = body.get("status", "")
     if new_status not in allowed:
         raise HTTPException(status_code=422, detail=f"Statut invalide. Valeurs : {allowed}")
-    result = await db.execute(select(ContactMessage).where(ContactMessage.id == msg_id))
-    msg = result.scalar_one_or_none()
+    msg = await contact_service.get_contact_message(db, msg_id)
     if not msg:
         raise HTTPException(status_code=404, detail="Message introuvable")
-    msg.status = new_status
-    await db.commit()
+    await contact_service.set_message_status(db, msg, new_status)
     return {"message": "Statut mis à jour."}

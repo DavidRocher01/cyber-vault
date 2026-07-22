@@ -50,8 +50,6 @@ _BASELINE: set[str] = {
     "bookings.py",
     "code_scans.py",
     "collab.py",
-    "contact.py",
-    "darkweb.py",
     "darkweb_dossier.py",
     "iso27001.py",
     "newsletter.py",
