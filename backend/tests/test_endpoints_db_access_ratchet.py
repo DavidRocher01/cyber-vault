@@ -23,6 +23,17 @@ _DB_ACCESS = re.compile(
     r"|(?:^|\W)select\("
 )
 
+# Exceptions LÉGITIMES : ces endpoints accèdent volontairement à la DB et ne
+# doivent PAS être migrés vers un service. Documenter chaque cas ici.
+#   - health.py : sonde de liveness (SELECT 1 / alembic_version) — c'est le rôle
+#     même de l'endpoint, aucune logique métier à déléguer.
+#   - dev_testing.py : affordance E2E réservée au dev (flip d'un flag + commit),
+#     jamais montée en prod.
+_LEGIT_EXCEPTIONS: set[str] = {
+    "health.py",
+    "dev_testing.py",
+}
+
 # Fichiers qui violent ENCORE la règle (dette héritée). Cette liste ne doit que
 # RÉTRÉCIR : migrer un endpoint vers un service -> le retirer d'ici.
 _BASELINE: set[str] = {
@@ -31,7 +42,6 @@ _BASELINE: set[str] = {
     "admin_stats.py",
     "api_waitlist.py",
     "auth.py",
-    "awareness/badges.py",
     "awareness/certificates.py",
     "awareness/enrollments.py",
     "awareness/helpers.py",
@@ -46,15 +56,12 @@ _BASELINE: set[str] = {
     "contact.py",
     "darkweb.py",
     "darkweb_dossier.py",
-    "dev_testing.py",
-    "health.py",
     "iso27001.py",
     "newsletter.py",
     "nis2.py",
     "notifications.py",
     "phishing.py",
     "portal.py",
-    "rssi/_shared.py",
     "rssi/actions.py",
     "rssi/clients.py",
     "rssi/deliverables.py",
@@ -76,8 +83,11 @@ def _current_offenders() -> set[str]:
     for path in _ENDPOINTS_DIR.rglob("*.py"):
         if path.name == "__init__.py":
             continue
+        rel = path.relative_to(_ENDPOINTS_DIR).as_posix()
+        if rel in _LEGIT_EXCEPTIONS:
+            continue
         if _DB_ACCESS.search(path.read_text(encoding="utf-8")):
-            offenders.add(path.relative_to(_ENDPOINTS_DIR).as_posix())
+            offenders.add(rel)
     return offenders
 
 

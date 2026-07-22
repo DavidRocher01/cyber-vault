@@ -569,3 +569,16 @@ async def seed_badges(db: AsyncSession) -> int:
             existing.description = b["description"]
     await db.commit()
     return created
+
+
+async def list_learner_badges(
+    db: AsyncSession, learner_id: int
+) -> list[tuple[AwarenessLearnerBadge, AwarenessBadge]]:
+    """Badges gagnés par un learner (plus récents d'abord), avec leur définition."""
+    result = await db.execute(
+        select(AwarenessLearnerBadge, AwarenessBadge)
+        .join(AwarenessBadge, AwarenessBadge.id == AwarenessLearnerBadge.badge_id)
+        .where(AwarenessLearnerBadge.learner_id == learner_id)
+        .order_by(AwarenessLearnerBadge.earned_at.desc())
+    )
+    return list(result.all())
