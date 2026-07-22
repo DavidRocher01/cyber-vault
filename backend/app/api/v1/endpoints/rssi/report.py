@@ -1,14 +1,11 @@
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_rssi_consultant
-from app.models.rssi_action import RssiAction
-from app.models.rssi_deliverable import RssiDeliverable
-from app.models.rssi_visit import RssiVisit
 from app.models.user import User
+from app.services import rssi_report_service
 
 from ._shared import _get_client_or_404
 
@@ -26,21 +23,9 @@ async def get_client_report(
 
     client = await _get_client_or_404(client_id, current_user.id, db)
 
-    visits_result = await db.execute(
-        select(RssiVisit)
-        .where(RssiVisit.client_id == client_id)
-        .order_by(RssiVisit.scheduled_date.desc())
-    )
-    actions_result = await db.execute(
-        select(RssiAction)
-        .where(RssiAction.client_id == client_id)
-        .order_by(RssiAction.created_at.desc())
-    )
-    deliverables_result = await db.execute(
-        select(RssiDeliverable)
-        .where(RssiDeliverable.client_id == client_id)
-        .order_by(RssiDeliverable.delivered_at.desc())
-    )
+    visits = await rssi_report_service.list_client_visits(db, client_id)
+    actions = await rssi_report_service.list_client_actions(db, client_id)
+    deliverables = await rssi_report_service.list_client_deliverables(db, client_id)
 
     client_dict = {
         "name": client.name,
@@ -65,7 +50,7 @@ async def get_client_report(
             "assigned_to": a.assigned_to,
             "category": a.category,
         }
-        for a in actions_result.scalars().all()
+        for a in actions
     ]
     visits_list = [
         {
@@ -76,7 +61,7 @@ async def get_client_report(
             "duration_hours": float(v.duration_hours) if v.duration_hours else None,
             "actual_date": str(v.actual_date) if v.actual_date else None,
         }
-        for v in visits_result.scalars().all()
+        for v in visits
     ]
     deliverables_list = [
         {
@@ -86,7 +71,7 @@ async def get_client_report(
             "file_url": d.file_url,
             "notes": d.notes,
         }
-        for d in deliverables_result.scalars().all()
+        for d in deliverables
     ]
 
     consultant_dict = {
