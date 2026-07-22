@@ -56,39 +56,54 @@ scheduler = _make_scheduler()
 _NEWSLETTER_EDITION_KEY = "newsletter_edition"
 
 
+async def _load_active_sites_with_last_scan(db):
+    """Charge les sites actifs (abonnement actif) + leur dernier scan 'done' et
+    leur propriétaire, en 3 requêtes (pas de N+1).
+
+    Renvoie ``(rows, last_scan_map, user_map)`` où ``rows`` est une liste de
+    tuples ``(Site, Plan)``. Bloc partagé entre les jobs scans-dus et
+    alertes-SSL (évite la dérive d'un fix d'index/filtre applique a un seul).
+    """
+    from app.models.user import User
+
+    result = await db.execute(
+        select(Site, Plan)
+        .join(Subscription, Subscription.user_id == Site.user_id)
+        .join(Plan, Plan.id == Subscription.plan_id)
+        .where(
+            Site.is_active == True,
+            Subscription.status == "active",
+        )
+    )
+    rows = result.all()
+    if not rows:
+        return [], {}, {}
+
+    # Batch load last done scan per site — single query, no N+1
+    site_ids = [site.id for site, _ in rows]
+    subq = (
+        select(func.max(Scan.id).label("max_id"))
+        .where(Scan.site_id.in_(site_ids), Scan.status == "done")
+        .group_by(Scan.site_id)
+        .subquery()
+    )
+    last_scans_result = await db.execute(select(Scan).where(Scan.id.in_(select(subq.c.max_id))))
+    last_scan_map: dict[int, Scan] = {s.site_id: s for s in last_scans_result.scalars().all()}
+
+    # Batch load users
+    user_ids = list({site.user_id for site, _ in rows})
+    users_result = await db.execute(select(User).where(User.id.in_(user_ids)))
+    user_map: dict[int, User] = {u.id: u for u in users_result.scalars().all()}
+
+    return rows, last_scan_map, user_map
+
+
 async def _schedule_due_scans() -> None:
     """Check all active sites and trigger a scan if due."""
     async with AsyncSessionLocal() as db:
-        result = await db.execute(
-            select(Site, Plan)
-            .join(Subscription, Subscription.user_id == Site.user_id)
-            .join(Plan, Plan.id == Subscription.plan_id)
-            .where(
-                Site.is_active == True,
-                Subscription.status == "active",
-            )
-        )
-        rows = result.all()
+        rows, last_scan_map, user_map = await _load_active_sites_with_last_scan(db)
         if not rows:
             return
-
-        # Batch load last done scan per site — single query, no N+1
-        site_ids = [site.id for site, _ in rows]
-        subq = (
-            select(func.max(Scan.id).label("max_id"))
-            .where(Scan.site_id.in_(site_ids), Scan.status == "done")
-            .group_by(Scan.site_id)
-            .subquery()
-        )
-        last_scans_result = await db.execute(select(Scan).where(Scan.id.in_(select(subq.c.max_id))))
-        last_scan_map: dict[int, Scan] = {s.site_id: s for s in last_scans_result.scalars().all()}
-
-        # Batch load users
-        from app.models.user import User
-
-        user_ids = list({site.user_id for site, _ in rows})
-        users_result = await db.execute(select(User).where(User.id.in_(user_ids)))
-        user_map: dict[int, User] = {u.id: u for u in users_result.scalars().all()}
 
         now = datetime.now(UTC)
         for site, plan in rows:
@@ -139,32 +154,11 @@ async def _check_ssl_alerts() -> None:
     import json
 
     from app.core.config import settings
-    from app.models.user import User
 
     async with AsyncSessionLocal() as db:
-        result = await db.execute(
-            select(Site, Plan)
-            .join(Subscription, Subscription.user_id == Site.user_id)
-            .join(Plan, Plan.id == Subscription.plan_id)
-            .where(Site.is_active == True, Subscription.status == "active")
-        )
-        rows = result.all()
+        rows, last_scan_map, user_map = await _load_active_sites_with_last_scan(db)
         if not rows:
             return
-
-        site_ids = [site.id for site, _ in rows]
-        subq = (
-            select(func.max(Scan.id).label("max_id"))
-            .where(Scan.site_id.in_(site_ids), Scan.status == "done")
-            .group_by(Scan.site_id)
-            .subquery()
-        )
-        last_scans_result = await db.execute(select(Scan).where(Scan.id.in_(select(subq.c.max_id))))
-        last_scan_map: dict[int, Scan] = {s.site_id: s for s in last_scans_result.scalars().all()}
-
-        user_ids = list({site.user_id for site, _ in rows})
-        users_result = await db.execute(select(User).where(User.id.in_(user_ids)))
-        user_map: dict[int, User] = {u.id: u for u in users_result.scalars().all()}
 
         for site, _ in rows:
             user = user_map.get(site.user_id)
