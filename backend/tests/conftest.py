@@ -50,10 +50,23 @@ def pg_container():
     # postgres:17 = meme version majeure que la PROD (RDS 17) et que le service
     # postgres de la CI. Tester sur 16 alors que la prod tourne en 17 est le genre
     # d'ecart qui laisse passer un bug jusqu'en production.
-    with PostgresContainer("postgres:17-alpine").with_command(
+    container = PostgresContainer("postgres:17-alpine").with_command(
         "postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off"
-    ) as pg:
-        yield pg
+    )
+    container.start()
+    try:
+        yield container
+    finally:
+        # Le retrait du conteneur (docker rm) timeout parfois sous charge CI
+        # (urllib3 ReadTimeout 60 s sur le socket Docker) et faisait echouer TOUTE
+        # la suite alors que tous les tests passent (echec au seul teardown du
+        # dernier test). Le runner CI est ephemere -> ce cleanup est best-effort,
+        # on ne fait pas echouer le build dessus. En local, stop() reussit
+        # normalement (pas de timeout) et le conteneur est bien supprime.
+        try:
+            container.stop()
+        except Exception as exc:  # noqa: BLE001
+            print(f"[conftest] testcontainer teardown ignore (best-effort): {exc}")
 
 
 @pytest.fixture(scope="session")
