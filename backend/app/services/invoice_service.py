@@ -58,3 +58,30 @@ async def create_invoice(
     db.add(invoice)
     await db.flush()  # populate id without committing
     return invoice
+
+
+async def list_user_invoices(
+    db: AsyncSession, user_id: int, *, offset: int, limit: int
+) -> tuple[int, list[Invoice]]:
+    """Total + page des factures d'un utilisateur (anti-chronologique)."""
+    total = (
+        await db.execute(
+            select(func.count()).select_from(Invoice).where(Invoice.user_id == user_id)
+        )
+    ).scalar_one()
+    result = await db.execute(
+        select(Invoice)
+        .where(Invoice.user_id == user_id)
+        .order_by(Invoice.issue_date.desc(), Invoice.id.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    return total, list(result.scalars().all())
+
+
+async def get_owned_invoice(db: AsyncSession, invoice_id: int, user_id: int) -> Invoice | None:
+    """Facture appartenant a l'utilisateur, ou None."""
+    result = await db.execute(
+        select(Invoice).where(Invoice.id == invoice_id, Invoice.user_id == user_id)
+    )
+    return result.scalar_one_or_none()
