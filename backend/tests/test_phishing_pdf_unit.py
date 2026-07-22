@@ -220,3 +220,21 @@ def test_generate_report_target_no_department():
     t = _target("anon@corp.fr", "Anon", None, "clicked")
     pdf = generate_phishing_report(camp, [t])
     assert pdf[:4] == b"%PDF"
+
+
+def test_scenario_labels_match_registry():
+    """Les libelles PDF DOIVENT couvrir exactement le registre de scenarios.
+
+    Garde-fou anti-derive : toute cle ajoutee/retiree dans _SCENARIO_TEMPLATES
+    sans mise a jour de SCENARIO_LABELS (ou l'inverse) casse ce test.
+    """
+    from app.services.phishing_templates import (
+        _SCENARIO_TEMPLATES,
+        SCENARIO_LABELS,
+    )
+
+    assert set(SCENARIO_LABELS) == set(_SCENARIO_TEMPLATES), (
+        "SCENARIO_LABELS desynchronise du registre : "
+        f"en trop={set(SCENARIO_LABELS) - set(_SCENARIO_TEMPLATES)}, "
+        f"manquants={set(_SCENARIO_TEMPLATES) - set(SCENARIO_LABELS)}"
+    )

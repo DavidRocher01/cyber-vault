@@ -527,3 +527,22 @@ _SCENARIO_TEMPLATES: dict[str, dict[str, Any]] = {
         ),
     },
 }
+
+# Libelles FR affichables des scenarios - source unique, co-localisee avec le
+# registre ci-dessus. Toute consommation (rapport PDF, UI...) doit deriver d'ici.
+# Les cles DOIVENT rester alignees sur _SCENARIO_TEMPLATES (test dedie le garantit).
+SCENARIO_LABELS: dict[str, str] = {
+    "ceo-fraud": "Fraude au Président",
+    "o365-credentials": "Credentials Microsoft 365",
+    "fake-invoice": "Fausse relance comptable",
+    "bank-phishing": "Fausse alerte bancaire",
+    "parcel-tracking": "Faux avis de livraison",
+    "it-password": "Expiration mot de passe DSI",
+    "prize": "Fausse carte cadeau",
+    "invoice-pdf": "Document à signer",
+    "vpn-update": "Fausse alerte sécurité VPN",
+    "hr-document": "Document RH confidentiel",
+    "teams-message": "Message Microsoft Teams",
+    "sharepoint-share": "Partage SharePoint",
+    "it-ticket": "Ticket Helpdesk DSI",
+}

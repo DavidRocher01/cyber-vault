@@ -23,6 +23,7 @@ from reportlab.platypus import (
 )
 
 from app.models.phishing import PhishingCampaign, PhishingTarget
+from app.services.phishing_templates import SCENARIO_LABELS
 
 _DARK = colors.HexColor("#0f172a")
 _CYAN = colors.HexColor("#06b6d4")
@@ -32,22 +33,6 @@ _GREEN = colors.HexColor("#22c55e")
 _GRAY = colors.HexColor("#94a3b8")
 _LIGHT_BG = colors.HexColor("#f8fafc")
 _PAGE_W, _PAGE_H = A4
-
-_SCENARIO_LABELS: dict[str, str] = {
-    "ceo-fraud": "Fraude au Président",
-    "o365-credentials": "Credentials Microsoft 365",
-    "fake-invoice": "Fausse relance comptable",
-    "bank-alert": "Fausse alerte bancaire",
-    "parcel-delivery": "Faux avis de livraison",
-    "it-helpdesk": "Faux email DSI / Helpdesk",
-    "hr-notification": "Fausse notification RH",
-    "docusign": "Fausse demande DocuSign",
-    "vpn-alert": "Fausse alerte sécurité VPN",
-    "hr-document": "Document RH confidentiel",
-    "teams-notification": "Notification Microsoft Teams",
-    "sharepoint-share": "Partage SharePoint",
-    "it-ticket": "Ticket Helpdesk DSI",
-}
 
 
 def _risk_color(rate: float) -> colors.Color:
@@ -303,7 +288,7 @@ def generate_phishing_report(
             orr = s["opened"] / (s["total"] or 1)
             sc_perf_rows.append(
                 [
-                    _SCENARIO_LABELS.get(key, key),
+                    SCENARIO_LABELS.get(key, key),
                     str(s["total"]),
                     str(s["opened"]),
                     f"{orr:.0%}",
@@ -358,7 +343,7 @@ def generate_phishing_report(
                 [
                     str(i),
                     key,
-                    _SCENARIO_LABELS.get(key, key),
+                    SCENARIO_LABELS.get(key, key),
                 ]
             )
         sc_table = Table(scenario_rows, colWidths=[8 * mm, 50 * mm, None])
@@ -501,7 +486,7 @@ def generate_phishing_report(
                     t.email,
                     t.first_name or "—",
                     t.department or "—",
-                    _SCENARIO_LABELS.get(t.scenario_key or "", t.scenario_key or "—"),
+                    SCENARIO_LABELS.get(t.scenario_key or "", t.scenario_key or "—"),
                     _STATUS_LABELS.get(t.status, t.status),
                 ]
             )
