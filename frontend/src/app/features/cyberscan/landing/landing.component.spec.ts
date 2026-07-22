@@ -1,7 +1,9 @@
 /**
  * LandingComponent — tests des méthodes utilitaires pures + non-régression données statiques.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { signal } from '@angular/core';
+import { of, throwError } from 'rxjs';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { LandingComponent } from './landing.component';
@@ -544,5 +546,294 @@ describe('LandingComponent — navbar (liens pages publiques)', () => {
   it('Blog est présent dans le nav', () => {
     const navBlock = html.match(/<nav[\s\S]*?<\/nav>/)?.[0] ?? '';
     expect(navBlock).toContain('/blog');
+  });
+});
+
+// ── toggleFaq() ────────────────────────────────────────────────────────────────
+
+describe('LandingComponent — toggleFaq()', () => {
+  function makeComp(): LandingComponent {
+    const c = make();
+    (c as any).openFaqIndex = signal<number | null>(null);
+    return c;
+  }
+
+  it('ouvre une FAQ fermée', () => {
+    const c = makeComp();
+    c.toggleFaq(2);
+    expect(c.openFaqIndex()).toBe(2);
+  });
+
+  it('referme la FAQ si on reclique dessus', () => {
+    const c = makeComp();
+    c.toggleFaq(2);
+    c.toggleFaq(2);
+    expect(c.openFaqIndex()).toBeNull();
+  });
+
+  it('bascule vers une autre FAQ', () => {
+    const c = makeComp();
+    c.toggleFaq(1);
+    c.toggleFaq(3);
+    expect(c.openFaqIndex()).toBe(3);
+  });
+
+  it("ouvre la FAQ d'index 0", () => {
+    const c = makeComp();
+    c.toggleFaq(0);
+    expect(c.openFaqIndex()).toBe(0);
+  });
+});
+
+// ── getPlanFeatures() — branches sites (singulier / pluriel / illimité) ─────────
+
+describe('LandingComponent — getPlanFeatures() sites', () => {
+  it('affiche "Sites illimités" quand max_sites < 0 (plan gratuit)', () => {
+    const plan: any = { max_sites: -1, scan_interval_days: 0, tier_level: 1 };
+    expect(
+      make()
+        .getPlanFeatures(plan)
+        .some(f => f.label === 'Sites illimités')
+    ).toBe(true);
+  });
+
+  it('utilise le singulier pour 1 site (site surveillé)', () => {
+    const plan: any = { max_sites: 1, scan_interval_days: 30, tier_level: 1 };
+    const label = make()
+      .getPlanFeatures(plan)
+      .find(f => f.label.includes('site'))!.label;
+    expect(label).toContain('1 site surveillé');
+    expect(label).not.toContain('sites');
+  });
+
+  it('utilise le pluriel pour plusieurs sites (sites surveillés)', () => {
+    const plan: any = { max_sites: 5, scan_interval_days: 7, tier_level: 1 };
+    const label = make()
+      .getPlanFeatures(plan)
+      .find(f => f.label.includes('site'))!.label;
+    expect(label).toContain('5 sites surveillés');
+  });
+
+  it('ajoute "Analyse de code (SAST/SCA)" si tier_level >= 2', () => {
+    const plan: any = { max_sites: 3, scan_interval_days: 7, tier_level: 2 };
+    expect(
+      make()
+        .getPlanFeatures(plan)
+        .some(f => f.label.includes('SAST/SCA'))
+    ).toBe(true);
+  });
+
+  it("n'ajoute pas l'analyse de code si tier_level < 2", () => {
+    const plan: any = { max_sites: 1, scan_interval_days: 30, tier_level: 1 };
+    expect(
+      make()
+        .getPlanFeatures(plan)
+        .some(f => f.label.includes('SAST/SCA'))
+    ).toBe(false);
+  });
+
+  it('ajoute la surveillance Dark Web à partir du tier_level 3', () => {
+    const plan: any = { max_sites: 5, scan_interval_days: 7, tier_level: 3 };
+    expect(
+      make()
+        .getPlanFeatures(plan)
+        .some(f => f.label.includes('Dark Web'))
+    ).toBe(true);
+  });
+});
+
+// ── getters isLoggedIn / userInitials ──────────────────────────────────────────
+
+describe('LandingComponent — isLoggedIn', () => {
+  it('retourne true quand authentifié', () => {
+    const c = make();
+    (c as any).auth = { isAuthenticated: () => true };
+    expect(c.isLoggedIn).toBe(true);
+  });
+
+  it('retourne false quand non authentifié', () => {
+    const c = make();
+    (c as any).auth = { isAuthenticated: () => false };
+    expect(c.isLoggedIn).toBe(false);
+  });
+});
+
+describe('LandingComponent — userInitials', () => {
+  it('retourne les 2 premières lettres en majuscules', () => {
+    const c = make();
+    (c as any).auth = { getCurrentEmail: () => 'sophie@exemple.fr' };
+    expect(c.userInitials).toBe('SO');
+  });
+
+  it('retourne une chaîne vide quand aucun email', () => {
+    const c = make();
+    (c as any).auth = { getCurrentEmail: () => null };
+    expect(c.userInitials).toBe('');
+  });
+});
+
+// ── logout() / openAuth() ──────────────────────────────────────────────────────
+
+describe('LandingComponent — logout()', () => {
+  it('délègue à auth.logout()', () => {
+    const c = make();
+    const logout = vi.fn();
+    (c as any).auth = { logout };
+    c.logout();
+    expect(logout).toHaveBeenCalledOnce();
+  });
+});
+
+describe('LandingComponent — openAuth()', () => {
+  it('ouvre la modale en mode login', () => {
+    const c = make();
+    const open = vi.fn();
+    (c as any).authModal = { open };
+    c.openAuth('login');
+    expect(open).toHaveBeenCalledWith('login');
+  });
+
+  it('ouvre la modale en mode register', () => {
+    const c = make();
+    const open = vi.fn();
+    (c as any).authModal = { open };
+    c.openAuth('register');
+    expect(open).toHaveBeenCalledWith('register');
+  });
+});
+
+// ── subscribe(plan) ────────────────────────────────────────────────────────────
+
+describe('LandingComponent — subscribe()', () => {
+  it("ouvre la modale d'inscription si non authentifié et ne lance pas de checkout", () => {
+    const c = make();
+    const open = vi.fn();
+    const createCheckout = vi.fn();
+    (c as any).auth = { isAuthenticated: () => false };
+    (c as any).authModal = { open };
+    (c as any).cyberscan = { createCheckout };
+    c.subscribe({ id: 1 } as any);
+    expect(open).toHaveBeenCalledWith('register');
+    expect(createCheckout).not.toHaveBeenCalled();
+  });
+
+  it('lance le checkout et positionne checkoutLoading si authentifié', () => {
+    const c = make();
+    const createCheckout = vi.fn().mockReturnValue({ subscribe: vi.fn() });
+    (c as any).auth = { isAuthenticated: () => true };
+    (c as any).cyberscan = { createCheckout };
+    c.subscribe({ id: 42 } as any);
+    expect(createCheckout).toHaveBeenCalledWith(42);
+    expect(c.checkoutLoading).toBe(42);
+  });
+
+  it("réinitialise checkoutLoading à null en cas d'erreur de checkout", () => {
+    const c = make();
+    (c as any).auth = { isAuthenticated: () => true };
+    (c as any).cyberscan = {
+      createCheckout: vi.fn().mockReturnValue(throwError(() => ({ status: 500 }))),
+    };
+    c.subscribe({ id: 7 } as any);
+    expect(c.checkoutLoading).toBeNull();
+  });
+});
+
+// ── subscribeNewsletter() ──────────────────────────────────────────────────────
+
+describe('LandingComponent — subscribeNewsletter()', () => {
+  function makeComp(invalid: boolean): LandingComponent {
+    const c = make();
+    (c as any).newsletterForm = {
+      invalid,
+      getRawValue: () => ({ email: 'test@exemple.fr' }),
+    };
+    c.newsletterLoading = false;
+    c.newsletterSent = false;
+    c.newsletterError = null;
+    return c;
+  }
+
+  it("n'appelle pas le backend si le formulaire est invalide", () => {
+    const c = makeComp(true);
+    const post = vi.fn();
+    (c as any).http = { post };
+    c.subscribeNewsletter();
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it('marque newsletterSent au succès', () => {
+    const c = makeComp(false);
+    (c as any).http = { post: vi.fn().mockReturnValue(of({})) };
+    c.subscribeNewsletter();
+    expect(c.newsletterSent).toBe(true);
+    expect(c.newsletterLoading).toBe(false);
+  });
+
+  it('affiche un message dédié si déjà abonné (HTTP 409)', () => {
+    const c = makeComp(false);
+    (c as any).http = { post: vi.fn().mockReturnValue(throwError(() => ({ status: 409 }))) };
+    c.subscribeNewsletter();
+    expect(c.newsletterError).toContain('déjà abonné');
+    expect(c.newsletterLoading).toBe(false);
+  });
+
+  it('affiche un message générique pour les autres erreurs', () => {
+    const c = makeComp(false);
+    (c as any).http = { post: vi.fn().mockReturnValue(throwError(() => ({ status: 500 }))) };
+    c.subscribeNewsletter();
+    expect(c.newsletterError).toContain('erreur');
+    expect(c.newsletterError).not.toContain('déjà abonné');
+  });
+});
+
+// ── scrollToPricing() ──────────────────────────────────────────────────────────
+
+describe('LandingComponent — scrollToPricing()', () => {
+  it('empêche le comportement par défaut et scrolle vers #pricing', () => {
+    const c = make();
+    const scrollIntoView = vi.fn();
+    const getElementById = vi.fn().mockReturnValue({ scrollIntoView });
+    (c as any).doc = { getElementById };
+    const event = { preventDefault: vi.fn() } as any;
+    c.scrollToPricing(event);
+    expect(event.preventDefault).toHaveBeenCalledOnce();
+    expect(getElementById).toHaveBeenCalledWith('pricing');
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth' });
+  });
+
+  it('ne plante pas si la section pricing est absente', () => {
+    const c = make();
+    (c as any).doc = { getElementById: vi.fn().mockReturnValue(null) };
+    const event = { preventDefault: vi.fn() } as any;
+    expect(() => c.scrollToPricing(event)).not.toThrow();
+    expect(event.preventDefault).toHaveBeenCalledOnce();
+  });
+});
+
+// ── animateCounters() ──────────────────────────────────────────────────────────
+
+describe('LandingComponent — animateCounters()', () => {
+  it("incrémente chaque compteur jusqu'à sa cible", () => {
+    vi.useFakeTimers();
+    const c = make();
+    (c as any).counters = [
+      { target: 100, current: signal(0) },
+      { target: 60, current: signal(0) },
+    ];
+    c.animateCounters();
+    vi.advanceTimersByTime(30 * 61);
+    vi.useRealTimers();
+    expect((c as any).counters[0].current()).toBe(100);
+    expect((c as any).counters[1].current()).toBe(60);
+  });
+
+  it('ne dépasse jamais la cible', () => {
+    vi.useFakeTimers();
+    const c = make();
+    (c as any).counters = [{ target: 99, current: signal(0) }];
+    c.animateCounters();
+    vi.advanceTimersByTime(30 * 200);
+    vi.useRealTimers();
+    expect((c as any).counters[0].current()).toBe(99);
   });
 });

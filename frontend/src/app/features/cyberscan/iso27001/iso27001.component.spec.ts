@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { signal, computed } from '@angular/core';
+import { of, throwError } from 'rxjs';
 import { Iso27001Component, Iso27001Status, Iso27001Category } from './iso27001.component';
 
 function makeCategory(id: string, itemIds: string[]): Iso27001Category {
@@ -331,5 +332,155 @@ describe('Iso27001Component — computed signals', () => {
     (comp as any).categories.set([makeCategory('c1', ['i1'])]);
     comp.setStatus('i1', 'na');
     expect((comp as any).naCount()).toBe(1);
+  });
+});
+
+function makeService(): Iso27001Component {
+  const comp = make();
+  (comp as any).loading = signal(true);
+  (comp as any).saving = signal(false);
+  (comp as any).exporting = signal(false);
+  (comp as any).snack = { open: vi.fn() };
+  (comp as any).titleService = { setTitle: vi.fn() };
+  (comp as any).meta = { updateTag: vi.fn() };
+  return comp;
+}
+
+describe('Iso27001Component — ngOnInit()', () => {
+  it('charge les données et arrête le loading', () => {
+    const comp = makeService();
+    (comp as any).cyberscan = {
+      getIso27001Assessment: vi.fn().mockReturnValue(
+        of({
+          categories: [makeCategory('c1', ['i1'])],
+          items: { i1: 'compliant' },
+          score: 42,
+          updated_at: '2024-01-01T00:00:00Z',
+        })
+      ),
+    };
+    comp.ngOnInit();
+    expect((comp as any).loading()).toBe(false);
+    expect((comp as any).score()).toBe(42);
+    expect((comp as any).updatedAt()).toBe('2024-01-01T00:00:00Z');
+    expect(comp.getStatus('i1')).toBe('compliant');
+  });
+
+  it('positionne le titre et la meta description', () => {
+    const comp = makeService();
+    (comp as any).cyberscan = {
+      getIso27001Assessment: vi.fn().mockReturnValue(of({})),
+    };
+    comp.ngOnInit();
+    expect((comp as any).titleService.setTitle).toHaveBeenCalled();
+    expect((comp as any).meta.updateTag).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'description' })
+    );
+  });
+
+  it('utilise les valeurs par défaut si data vide', () => {
+    const comp = makeService();
+    (comp as any).cyberscan = {
+      getIso27001Assessment: vi.fn().mockReturnValue(of({})),
+    };
+    comp.ngOnInit();
+    expect((comp as any).categories()).toEqual([]);
+    expect((comp as any).items()).toEqual({});
+    expect((comp as any).score()).toBe(0);
+    expect((comp as any).updatedAt()).toBe(null);
+    expect((comp as any).loading()).toBe(false);
+  });
+
+  it("affiche une erreur et arrête le loading en cas d'échec", () => {
+    const comp = makeService();
+    (comp as any).cyberscan = {
+      getIso27001Assessment: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
+    };
+    comp.ngOnInit();
+    expect((comp as any).loading()).toBe(false);
+    expect((comp as any).snack.open).toHaveBeenCalled();
+  });
+});
+
+describe('Iso27001Component — save()', () => {
+  it('met à jour score/updatedAt, arrête saving et notifie', () => {
+    const comp = makeService();
+    (comp as any).categories.set([makeCategory('c1', ['i1'])]);
+    (comp as any).cyberscan = {
+      saveIso27001Assessment: vi
+        .fn()
+        .mockReturnValue(of({ score: 77, updated_at: '2024-02-02T00:00:00Z' })),
+    };
+    comp.save();
+    expect((comp as any).score()).toBe(77);
+    expect((comp as any).updatedAt()).toBe('2024-02-02T00:00:00Z');
+    expect((comp as any).saving()).toBe(false);
+    expect((comp as any).snack.open).toHaveBeenCalled();
+  });
+
+  it('envoie tous les items (avec défaut non_compliant) au service', () => {
+    const comp = makeService();
+    (comp as any).categories.set([makeCategory('c1', ['i1', 'i2'])]);
+    comp.setStatus('i1', 'compliant');
+    const spy = vi.fn().mockReturnValue(of({ score: 0, updated_at: null }));
+    (comp as any).cyberscan = { saveIso27001Assessment: spy };
+    comp.save();
+    expect(spy).toHaveBeenCalledWith({ i1: 'compliant', i2: 'non_compliant' });
+  });
+
+  it('en erreur: arrête saving et notifie', () => {
+    const comp = makeService();
+    (comp as any).cyberscan = {
+      saveIso27001Assessment: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
+    };
+    comp.save();
+    expect((comp as any).saving()).toBe(false);
+    expect((comp as any).snack.open).toHaveBeenCalled();
+  });
+});
+
+describe('Iso27001Component — exportPdf()', () => {
+  it('sauvegarde puis télécharge le PDF', () => {
+    const comp = makeService();
+    const clickSpy = vi.fn();
+    vi.spyOn(document, 'createElement').mockReturnValue({
+      href: '',
+      download: '',
+      click: clickSpy,
+    } as any);
+    (globalThis as any).URL.createObjectURL = vi.fn().mockReturnValue('blob:x');
+    (globalThis as any).URL.revokeObjectURL = vi.fn();
+    (comp as any).cyberscan = {
+      saveIso27001Assessment: vi
+        .fn()
+        .mockReturnValue(of({ score: 60, updated_at: '2024-03-03T00:00:00Z' })),
+      downloadIso27001PdfBlob: vi.fn().mockReturnValue(of(new Blob(['pdf']))),
+    };
+    comp.exportPdf();
+    expect((comp as any).score()).toBe(60);
+    expect(clickSpy).toHaveBeenCalled();
+    expect((comp as any).exporting()).toBe(false);
+    vi.restoreAllMocks();
+  });
+
+  it('erreur de sauvegarde -> exporting false + snack', () => {
+    const comp = makeService();
+    (comp as any).cyberscan = {
+      saveIso27001Assessment: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
+    };
+    comp.exportPdf();
+    expect((comp as any).exporting()).toBe(false);
+    expect((comp as any).snack.open).toHaveBeenCalled();
+  });
+
+  it('erreur de téléchargement -> exporting false + snack', () => {
+    const comp = makeService();
+    (comp as any).cyberscan = {
+      saveIso27001Assessment: vi.fn().mockReturnValue(of({ score: 60, updated_at: 'x' })),
+      downloadIso27001PdfBlob: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
+    };
+    comp.exportPdf();
+    expect((comp as any).exporting()).toBe(false);
+    expect((comp as any).snack.open).toHaveBeenCalled();
   });
 });

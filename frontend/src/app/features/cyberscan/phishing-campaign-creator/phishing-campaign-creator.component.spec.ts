@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { signal } from '@angular/core';
+import { of, throwError } from 'rxjs';
 import {
   PhishingCampaignCreatorComponent,
   PLAN_OPTIONS,
@@ -164,5 +165,263 @@ describe('PhishingCampaignCreatorComponent — toggleScenario()', () => {
     c.toggleScenario('fake-invoice'); // should be ignored
     expect(c.selectedScenarios().size).toBe(2);
     expect(c.selectedScenarios().has('fake-invoice')).toBe(false);
+  });
+});
+
+// ── ngOnInit ───────────────────────────────────────────────────────────────
+describe('PhishingCampaignCreatorComponent — ngOnInit()', () => {
+  it('définit le titre de la page', () => {
+    const c = make();
+    const setTitle = vi.fn();
+    (c as any).title = { setTitle };
+    c.ngOnInit();
+    expect(setTitle).toHaveBeenCalledWith(expect.stringContaining('phishing'));
+  });
+});
+
+// ── createAndNext() ──────────────────────────────────────────────────────────
+describe('PhishingCampaignCreatorComponent — createAndNext()', () => {
+  function makeInfo(overrides: Partial<{ name: string; domain: string }> = {}) {
+    const c = make();
+    (c as any).infoForm = {
+      invalid: false,
+      getRawValue: () => ({ name: 'Camp', domain: '', ...overrides }),
+    };
+    (c as any).snack = { open: vi.fn() };
+    return c;
+  }
+
+  it('ne fait rien si le formulaire est invalide', () => {
+    const c = makeInfo();
+    (c as any).infoForm.invalid = true;
+    const createCampaign = vi.fn();
+    (c as any).service = { createCampaign };
+    c.createAndNext();
+    expect(createCampaign).not.toHaveBeenCalled();
+    expect(c.submitting()).toBe(false);
+  });
+
+  it('ne fait rien si déjà en soumission', () => {
+    const c = makeInfo();
+    (c as any).submitting.set(true);
+    const createCampaign = vi.fn();
+    (c as any).service = { createCampaign };
+    c.createAndNext();
+    expect(createCampaign).not.toHaveBeenCalled();
+  });
+
+  it('sans domaine : crée la campagne et avance', () => {
+    const c = makeInfo();
+    const camp = { id: 42, name: 'Camp' };
+    (c as any).service = { createCampaign: vi.fn().mockReturnValue(of(camp)) };
+    c.createAndNext();
+    expect(c.campaign()).toEqual(camp);
+    expect(c.submitting()).toBe(false);
+    expect(c.currentStep()).toBe('info');
+  });
+
+  it('avec domaine : patch le domaine puis avance', () => {
+    const c = makeInfo({ domain: '  exemple.fr  ' });
+    const camp = { id: 42, name: 'Camp' };
+    const updated = { id: 42, name: 'Camp', domain: 'exemple.fr' };
+    const updateCampaign = vi.fn().mockReturnValue(of(updated));
+    (c as any).service = {
+      createCampaign: vi.fn().mockReturnValue(of(camp)),
+      updateCampaign,
+    };
+    c.createAndNext();
+    expect(updateCampaign).toHaveBeenCalledWith(42, { domain: 'exemple.fr' });
+    expect(c.campaign()).toEqual(updated);
+    expect(c.currentStep()).toBe('info');
+  });
+
+  it('avec domaine : si le patch échoue, garde la campagne créée et avance', () => {
+    const c = makeInfo({ domain: 'exemple.fr' });
+    const camp = { id: 42, name: 'Camp' };
+    (c as any).service = {
+      createCampaign: vi.fn().mockReturnValue(of(camp)),
+      updateCampaign: vi.fn().mockReturnValue(throwError(() => new Error('boom'))),
+    };
+    c.createAndNext();
+    expect(c.campaign()).toEqual(camp);
+    expect(c.submitting()).toBe(false);
+    expect(c.currentStep()).toBe('info');
+  });
+
+  it('erreur de création : snackbar et reste sur place', () => {
+    const c = makeInfo();
+    (c as any).service = {
+      createCampaign: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
+    };
+    c.createAndNext();
+    expect(c.submitting()).toBe(false);
+    expect(c.currentStep()).toBe('plan');
+    expect((c as any).snack.open).toHaveBeenCalled();
+  });
+});
+
+// ── onFileChange() ───────────────────────────────────────────────────────────
+describe('PhishingCampaignCreatorComponent — onFileChange()', () => {
+  it('stocke le fichier sélectionné', () => {
+    const c = make();
+    const file = new File(['a'], 'cibles.csv');
+    const event = { target: { files: [file] } } as unknown as Event;
+    c.onFileChange(event);
+    expect(c.uploadedFile()).toBe(file);
+  });
+
+  it('ne fait rien si aucun fichier', () => {
+    const c = make();
+    const event = { target: { files: [] } } as unknown as Event;
+    c.onFileChange(event);
+    expect(c.uploadedFile()).toBeNull();
+  });
+});
+
+// ── uploadTargets() ──────────────────────────────────────────────────────────
+describe('PhishingCampaignCreatorComponent — uploadTargets()', () => {
+  function makeUpload() {
+    const c = make();
+    (c as any).snack = { open: vi.fn() };
+    return c;
+  }
+
+  it('ne fait rien sans fichier', () => {
+    const c = makeUpload();
+    (c as any).campaign.set({ id: 1 });
+    const uploadTargets = vi.fn();
+    (c as any).service = { uploadTargets };
+    c.uploadTargets();
+    expect(uploadTargets).not.toHaveBeenCalled();
+  });
+
+  it('ne fait rien sans campagne', () => {
+    const c = makeUpload();
+    (c as any).uploadedFile.set(new File(['a'], 'x.csv'));
+    const uploadTargets = vi.fn();
+    (c as any).service = { uploadTargets };
+    c.uploadTargets();
+    expect(uploadTargets).not.toHaveBeenCalled();
+  });
+
+  it('succès : maj du compte de cibles, snackbar et avance', () => {
+    const c = makeUpload();
+    (c as any).uploadedFile.set(new File(['a'], 'x.csv'));
+    (c as any).campaign.set({ id: 1, targets_count: 0 });
+    (c as any).service = {
+      uploadTargets: vi.fn().mockReturnValue(of({ targets_added: 12 })),
+    };
+    c.uploadTargets();
+    expect(c.uploading()).toBe(false);
+    expect(c.campaign()?.targets_count).toBe(12);
+    expect(c.currentStep()).toBe('info');
+    expect((c as any).snack.open).toHaveBeenCalled();
+  });
+
+  it('erreur : affiche le détail renvoyé par le backend', () => {
+    const c = makeUpload();
+    (c as any).uploadedFile.set(new File(['a'], 'x.csv'));
+    (c as any).campaign.set({ id: 1 });
+    (c as any).service = {
+      uploadTargets: vi
+        .fn()
+        .mockReturnValue(throwError(() => ({ error: { detail: 'CSV invalide' } }))),
+    };
+    c.uploadTargets();
+    expect(c.uploading()).toBe(false);
+    expect((c as any).snack.open).toHaveBeenCalledWith('CSV invalide', 'Fermer', expect.anything());
+  });
+});
+
+// ── saveScenarios() ──────────────────────────────────────────────────────────
+describe('PhishingCampaignCreatorComponent — saveScenarios()', () => {
+  it('ne fait rien sans campagne', () => {
+    const c = make();
+    c.toggleScenario('ceo-fraud');
+    const updateCampaign = vi.fn();
+    (c as any).service = { updateCampaign };
+    c.saveScenarios();
+    expect(updateCampaign).not.toHaveBeenCalled();
+  });
+
+  it('ne fait rien si aucun scénario sélectionné', () => {
+    const c = make();
+    (c as any).campaign.set({ id: 1 });
+    const updateCampaign = vi.fn();
+    (c as any).service = { updateCampaign };
+    c.saveScenarios();
+    expect(updateCampaign).not.toHaveBeenCalled();
+  });
+
+  it('succès : enregistre les scénarios et avance', () => {
+    const c = make();
+    (c as any).campaign.set({ id: 1 });
+    c.toggleScenario('ceo-fraud');
+    const updated = { id: 1, scenario_keys: ['ceo-fraud'] };
+    const updateCampaign = vi.fn().mockReturnValue(of(updated));
+    (c as any).service = { updateCampaign };
+    c.saveScenarios();
+    expect(updateCampaign).toHaveBeenCalledWith(1, { scenario_keys: ['ceo-fraud'] });
+    expect(c.campaign()).toEqual(updated);
+    expect(c.currentStep()).toBe('info');
+  });
+});
+
+// ── launch() ─────────────────────────────────────────────────────────────────
+describe('PhishingCampaignCreatorComponent — launch()', () => {
+  function makeLaunch() {
+    const c = make();
+    (c as any).reviewForm = { invalid: false };
+    (c as any).snack = { open: vi.fn() };
+    (c as any).router = { navigate: vi.fn() };
+    return c;
+  }
+
+  it('ne fait rien si les CGU ne sont pas acceptées', () => {
+    const c = makeLaunch();
+    (c as any).reviewForm.invalid = true;
+    (c as any).campaign.set({ id: 1 });
+    const launchWithCgu = vi.fn();
+    (c as any).service = { launchWithCgu };
+    c.launch();
+    expect(launchWithCgu).not.toHaveBeenCalled();
+  });
+
+  it('ne fait rien sans campagne', () => {
+    const c = makeLaunch();
+    const launchWithCgu = vi.fn();
+    (c as any).service = { launchWithCgu };
+    c.launch();
+    expect(launchWithCgu).not.toHaveBeenCalled();
+  });
+
+  it('succès : snackbar et redirection vers la liste', () => {
+    const c = makeLaunch();
+    (c as any).campaign.set({ id: 7 });
+    (c as any).service = {
+      launchWithCgu: vi.fn().mockReturnValue(of({ status: 'active', campaign_id: 7 })),
+    };
+    c.launch();
+    expect(c.launching()).toBe(false);
+    expect((c as any).snack.open).toHaveBeenCalled();
+    expect((c as any).router.navigate).toHaveBeenCalledWith(['/phishing/campaigns']);
+  });
+
+  it('erreur : affiche le détail et ne redirige pas', () => {
+    const c = makeLaunch();
+    (c as any).campaign.set({ id: 7 });
+    (c as any).service = {
+      launchWithCgu: vi
+        .fn()
+        .mockReturnValue(throwError(() => ({ error: { detail: 'Domaine non vérifié' } }))),
+    };
+    c.launch();
+    expect(c.launching()).toBe(false);
+    expect((c as any).snack.open).toHaveBeenCalledWith(
+      'Domaine non vérifié',
+      'Fermer',
+      expect.anything()
+    );
+    expect((c as any).router.navigate).not.toHaveBeenCalled();
   });
 });
