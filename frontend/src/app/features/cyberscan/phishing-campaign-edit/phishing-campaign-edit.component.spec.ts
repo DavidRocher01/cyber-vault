@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { signal } from '@angular/core';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { PhishingCampaignEditComponent } from './phishing-campaign-edit.component';
 import type { PhishingCampaign } from '../services/phishing.service';
@@ -284,5 +284,271 @@ describe('PhishingCampaignEditComponent — gestion des cibles (Lot 2)', () => {
     comp.removeTarget(5);
     expect((comp as any).phishingService.deleteTarget).toHaveBeenCalledWith(1, 5);
     expect(getTargets).toHaveBeenCalled();
+  });
+
+  it('addTarget ne fait rien si un ajout est déjà en cours', () => {
+    const comp = withTargets(make(campaign()));
+    comp.newTargetEmail.set('new@x.com');
+    (comp as any).addingTarget.set(true);
+    (comp as any).phishingService = { addTarget: vi.fn() };
+    comp.addTarget();
+    expect((comp as any).phishingService.addTarget).not.toHaveBeenCalled();
+  });
+
+  it('addTarget trim les espaces autour de l’email', () => {
+    const comp = withTargets(make(campaign()));
+    comp.newTargetEmail.set('  spaced@x.com  ');
+    (comp as any).phishingService = {
+      addTarget: vi.fn().mockReturnValue(of({ id: 1 })),
+      getTargets: vi.fn().mockReturnValue(of([])),
+    };
+    comp.addTarget();
+    expect((comp as any).phishingService.addTarget).toHaveBeenCalledWith(1, {
+      email: 'spaced@x.com',
+    });
+  });
+
+  it('addTarget en erreur remet addingTarget à false et ouvre un snack', () => {
+    const comp = withTargets(make(campaign()));
+    comp.newTargetEmail.set('new@x.com');
+    (comp as any).phishingService = {
+      addTarget: vi.fn().mockReturnValue(throwError(() => ({ error: { detail: 'déjà pris' } }))),
+    };
+    comp.addTarget();
+    expect(comp.addingTarget()).toBe(false);
+    expect((comp as any).snack.open).toHaveBeenCalledWith('déjà pris', 'Fermer', expect.anything());
+  });
+
+  it('removeTarget en erreur ouvre un snack', () => {
+    const comp = withTargets(make(campaign()));
+    (comp as any).phishingService = {
+      deleteTarget: vi.fn().mockReturnValue(throwError(() => ({ error: {} }))),
+    };
+    comp.removeTarget(5);
+    expect((comp as any).snack.open).toHaveBeenCalledWith(
+      'Suppression impossible',
+      'Fermer',
+      expect.anything()
+    );
+  });
+});
+
+describe('PhishingCampaignEditComponent — load()', () => {
+  function loadComp(routeId = '1'): PhishingCampaignEditComponent {
+    const c = make(campaign());
+    (c as any).targets = signal<any[]>([]);
+    (c as any).campaignId = Number(routeId);
+    (c as any).route = { snapshot: { paramMap: { get: () => routeId } } };
+    (c as any).router = { navigate: vi.fn() };
+    (c as any).title = { setTitle: vi.fn() };
+    return c;
+  }
+
+  it('charge la campagne, patche le formulaire et remplit les scénarios', () => {
+    const c = loadComp();
+    const camp = campaign({ name: 'Ma campagne', scenario_keys: ['ceo-fraud', 'fake-invoice'] });
+    (c as any).phishingService = {
+      getCampaign: vi.fn().mockReturnValue(of(camp)),
+      getTargets: vi.fn().mockReturnValue(of([])),
+    };
+    c.load();
+    expect(c.campaign()?.name).toBe('Ma campagne');
+    expect(c.selectedScenarios().has('ceo-fraud')).toBe(true);
+    expect(c.selectedScenarios().has('fake-invoice')).toBe(true);
+    expect(c.loading()).toBe(false);
+    expect((c as any).title.setTitle).toHaveBeenCalled();
+  });
+
+  it('redirige vers le détail si la campagne est active', () => {
+    const c = loadComp();
+    (c as any).phishingService = {
+      getCampaign: vi.fn().mockReturnValue(of(campaign({ status: 'active' }))),
+    };
+    c.load();
+    expect((c as any).router.navigate).toHaveBeenCalledWith(['/phishing/campaigns', 1]);
+    expect(c.campaign()?.status).not.toBe('active');
+  });
+
+  it('redirige aussi pour completed, sending et cancelled', () => {
+    for (const status of ['completed', 'sending', 'cancelled'] as const) {
+      const c = loadComp();
+      (c as any).phishingService = {
+        getCampaign: vi.fn().mockReturnValue(of(campaign({ status }))),
+      };
+      c.load();
+      expect((c as any).router.navigate).toHaveBeenCalledWith(['/phishing/campaigns', 1]);
+    }
+  });
+
+  it('en erreur affiche un snack et redirige vers la liste', () => {
+    const c = loadComp();
+    (c as any).phishingService = {
+      getCampaign: vi.fn().mockReturnValue(throwError(() => ({ error: {} }))),
+    };
+    c.load();
+    expect(c.loading()).toBe(false);
+    expect((c as any).snack.open).toHaveBeenCalledWith(
+      'Campagne introuvable',
+      'Fermer',
+      expect.anything()
+    );
+    expect((c as any).router.navigate).toHaveBeenCalledWith(['/phishing/campaigns']);
+  });
+});
+
+describe('PhishingCampaignEditComponent — save()', () => {
+  function saveComp(): PhishingCampaignEditComponent {
+    const c = make(campaign());
+    (c as any).campaignId = 1;
+    return c;
+  }
+
+  it('ne fait rien si le nom est invalide', () => {
+    const c = saveComp();
+    (c as any).form.get('name')!.setValue('');
+    (c as any).phishingService = { updateCampaign: vi.fn() };
+    c.save();
+    expect((c as any).phishingService.updateCampaign).not.toHaveBeenCalled();
+    expect(c.saving()).toBe(false);
+  });
+
+  it('enregistre la campagne et affiche un snack de succès', () => {
+    const c = saveComp();
+    const updated = campaign({ name: 'MàJ' });
+    (c as any).phishingService = { updateCampaign: vi.fn().mockReturnValue(of(updated)) };
+    c.save();
+    expect((c as any).phishingService.updateCampaign).toHaveBeenCalled();
+    expect(c.campaign()?.name).toBe('MàJ');
+    expect(c.saving()).toBe(false);
+    expect((c as any).snack.open).toHaveBeenCalledWith(
+      'Campagne enregistrée',
+      'OK',
+      expect.anything()
+    );
+  });
+
+  it('en erreur affiche le détail renvoyé par le backend', () => {
+    const c = saveComp();
+    (c as any).phishingService = {
+      updateCampaign: vi.fn().mockReturnValue(throwError(() => ({ error: { detail: 'boom' } }))),
+    };
+    c.save();
+    expect(c.saving()).toBe(false);
+    expect((c as any).snack.open).toHaveBeenCalledWith('boom', 'Fermer', expect.anything());
+  });
+});
+
+describe('PhishingCampaignEditComponent — launch()', () => {
+  function launchComp(): PhishingCampaignEditComponent {
+    const c = make(campaign());
+    (c as any).campaignId = 1;
+    (c as any).router = { navigate: vi.fn() };
+    return c;
+  }
+
+  it('lance la campagne (immédiat) puis navigue vers le détail', () => {
+    const c = launchComp();
+    (c as any).phishingService = { launchWithCgu: vi.fn().mockReturnValue(of({})) };
+    c.launch();
+    expect((c as any).phishingService.launchWithCgu).toHaveBeenCalled();
+    expect(c.launching()).toBe(false);
+    expect((c as any).snack.open).toHaveBeenCalledWith(
+      'Campagne lancée !',
+      'Voir',
+      expect.anything()
+    );
+    expect((c as any).router.navigate).toHaveBeenCalledWith(['/phishing/campaigns', 1]);
+  });
+
+  it('affiche "Envoi planifié" quand une date future est renseignée', () => {
+    const c = launchComp();
+    const future = new Date(Date.now() + 86_400_000).toISOString().slice(0, 16);
+    (c as any).form.addControl('scheduled_at', new FormControl(future));
+    (c as any).phishingService = { launchWithCgu: vi.fn().mockReturnValue(of({})) };
+    c.launch();
+    expect((c as any).snack.open).toHaveBeenCalledWith(
+      'Envoi planifié !',
+      'Voir',
+      expect.anything()
+    );
+  });
+
+  it('en erreur remet launching à false et affiche un snack', () => {
+    const c = launchComp();
+    (c as any).phishingService = {
+      launchWithCgu: vi.fn().mockReturnValue(throwError(() => ({ error: { detail: 'refusé' } }))),
+    };
+    c.launch();
+    expect(c.launching()).toBe(false);
+    expect((c as any).snack.open).toHaveBeenCalledWith('refusé', 'Fermer', expect.anything());
+    expect((c as any).router.navigate).not.toHaveBeenCalled();
+  });
+});
+
+describe('PhishingCampaignEditComponent — onFileChange()', () => {
+  function fileEvent(file: File | null): Event {
+    return {
+      target: { files: file ? [file] : [], value: 'x' },
+    } as unknown as Event;
+  }
+
+  function fileComp(): PhishingCampaignEditComponent {
+    const c = make(campaign());
+    (c as any).campaignId = 1;
+    (c as any).targets = signal<any[]>([]);
+    return c;
+  }
+
+  it('ne fait rien sans fichier', () => {
+    const c = fileComp();
+    (c as any).phishingService = { uploadTargets: vi.fn() };
+    c.onFileChange(fileEvent(null));
+    expect((c as any).phishingService.uploadTargets).not.toHaveBeenCalled();
+    expect(c.uploadingTargets()).toBe(false);
+  });
+
+  it('importe le fichier et affiche le nombre de cibles ajoutées', () => {
+    const c = fileComp();
+    const file = new File(['a@x.com'], 'targets.csv');
+    (c as any).phishingService = {
+      uploadTargets: vi.fn().mockReturnValue(of({ targets_added: 3, targets_skipped: 0 })),
+      getTargets: vi.fn().mockReturnValue(of([])),
+    };
+    c.onFileChange(fileEvent(file));
+    expect((c as any).phishingService.uploadTargets).toHaveBeenCalledWith(1, file);
+    expect(c.uploadingTargets()).toBe(false);
+    expect((c as any).snack.open).toHaveBeenCalledWith(
+      '3 cible(s) ajoutée(s)',
+      'OK',
+      expect.anything()
+    );
+  });
+
+  it('mentionne les doublons ignorés quand il y en a', () => {
+    const c = fileComp();
+    const file = new File(['a@x.com'], 'targets.csv');
+    (c as any).phishingService = {
+      uploadTargets: vi.fn().mockReturnValue(of({ targets_added: 2, targets_skipped: 1 })),
+      getTargets: vi.fn().mockReturnValue(of([])),
+    };
+    c.onFileChange(fileEvent(file));
+    expect((c as any).snack.open).toHaveBeenCalledWith(
+      '2 cible(s) ajoutée(s) (1 doublon(s) ignoré(s))',
+      'OK',
+      expect.anything()
+    );
+  });
+
+  it('en erreur remet uploadingTargets à false et affiche un snack', () => {
+    const c = fileComp();
+    const file = new File(['a@x.com'], 'targets.csv');
+    (c as any).phishingService = {
+      uploadTargets: vi
+        .fn()
+        .mockReturnValue(throwError(() => ({ error: { detail: 'CSV invalide' } }))),
+    };
+    c.onFileChange(fileEvent(file));
+    expect(c.uploadingTargets()).toBe(false);
+    expect((c as any).snack.open).toHaveBeenCalledWith('CSV invalide', 'Fermer', expect.anything());
   });
 });

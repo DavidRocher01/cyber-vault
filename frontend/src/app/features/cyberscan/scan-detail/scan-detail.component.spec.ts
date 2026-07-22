@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { signal } from '@angular/core';
+import { of } from 'rxjs';
 import { ScanDetailComponent } from './scan-detail.component';
 
 function make(): ScanDetailComponent {
@@ -289,5 +290,255 @@ describe('ScanDetailComponent — toggleFlip()', () => {
     c.toggleFlip('ssl');
     expect(c.flippedCards.has('ssl')).toBe(false);
     expect(c.flippedCards.has('headers')).toBe(true);
+  });
+});
+
+describe('ScanDetailComponent — CTA getters (ctaIconWrapperClass / ctaIconClass)', () => {
+  it('ctaIconWrapperClass contient bg-red pour CRITICAL', () => {
+    expect(makeWithStatus('CRITICAL').ctaIconWrapperClass).toContain('bg-red');
+  });
+  it('ctaIconWrapperClass contient bg-yellow pour WARNING', () => {
+    expect(makeWithStatus('WARNING').ctaIconWrapperClass).toContain('bg-yellow');
+  });
+  it('ctaIconWrapperClass contient bg-cyan par défaut', () => {
+    expect(makeWithStatus('OK').ctaIconWrapperClass).toContain('bg-cyan');
+  });
+
+  it('ctaIconClass contient text-red pour CRITICAL', () => {
+    expect(makeWithStatus('CRITICAL').ctaIconClass).toContain('text-red');
+  });
+  it('ctaIconClass contient text-yellow pour WARNING', () => {
+    expect(makeWithStatus('WARNING').ctaIconClass).toContain('text-yellow');
+  });
+  it('ctaIconClass contient text-cyan par défaut', () => {
+    expect(makeWithStatus('OK').ctaIconClass).toContain('text-cyan');
+  });
+  it('gère un overall_status inconnu comme défaut', () => {
+    expect(makeWithStatus('WEIRD').ctaIconClass).toContain('text-cyan');
+    expect(makeWithStatus('WEIRD').ctaWrapperClass).toContain('border-cyan');
+  });
+});
+
+describe('ScanDetailComponent — findings', () => {
+  it('retourne un tableau vide si scan null', () => {
+    expect(makeWithScan(null).findings).toHaveLength(0);
+  });
+  it('retourne un finding par module (19) pour un scan tier 4', () => {
+    expect(makeWithScan(TIER4_SCAN).findings).toHaveLength(19);
+  });
+  it('marque les modules absents comme skipped pour un scan tier 2', () => {
+    const findings = makeWithScan(TIER2_SCAN).findings;
+    const tech = findings.find(f => f.key === 'tech');
+    expect(tech?.skipped).toBe(true);
+    const ssl = findings.find(f => f.key === 'ssl');
+    expect(ssl?.skipped).toBe(false);
+    expect(ssl?.status).toBe('OK');
+  });
+});
+
+describe('ScanDetailComponent — score / grade / scoreColor', () => {
+  it('score null si scan null', () => {
+    expect(makeWithScan(null).score).toBeNull();
+  });
+  it('score = 100 pour un scan tout OK', () => {
+    expect(makeWithScan(TIER4_SCAN).score).toBe(100);
+  });
+  it('grade = "—" si score null', () => {
+    expect(makeWithScan(null).grade).toBe('—');
+  });
+  it('grade = "A" pour un score de 100', () => {
+    expect(makeWithScan(TIER4_SCAN).grade).toBe('A');
+  });
+  it('scoreColor gris par défaut si score null', () => {
+    expect(makeWithScan(null).scoreColor).toBe('#6b7280');
+  });
+  it('scoreColor renvoie une couleur pour un score valide', () => {
+    expect(makeWithScan(TIER4_SCAN).scoreColor).toMatch(/^#/);
+  });
+});
+
+describe('ScanDetailComponent — radar', () => {
+  it('radarLabels renvoie les libellés des catégories', () => {
+    const labels = make().radarLabels;
+    expect(labels).toContain('SSL/TLS');
+    expect(labels).toContain('Headers');
+    expect(labels.length).toBeGreaterThan(0);
+  });
+  it('radarScores renvoie un score par catégorie', () => {
+    const scores = makeWithScan(TIER4_SCAN).radarScores;
+    expect(scores.length).toBe(make().radarLabels.length);
+    expect(scores.every(s => s === 100)).toBe(true);
+  });
+  it('radarScores tout à 0 si scan null', () => {
+    const scores = makeWithScan(null).radarScores;
+    expect(scores.every(s => s === 0)).toBe(true);
+  });
+});
+
+describe('ScanDetailComponent — remediationScripts', () => {
+  it('retourne un tableau vide si scan null', () => {
+    expect(makeWithScan(null).remediationScripts).toHaveLength(0);
+  });
+  it('retourne un tableau vide si JSON invalide', () => {
+    expect(makeWithScan('not-json').remediationScripts).toHaveLength(0);
+  });
+  it('retourne un tableau vide si pas de _meta.remediation_scripts', () => {
+    expect(makeWithScan('{"ssl":{"status":"OK"}}').remediationScripts).toHaveLength(0);
+  });
+  it('mappe les scripts connus et ignore les clés inconnues', () => {
+    const json = JSON.stringify({
+      _meta: { remediation_scripts: { ufw: {}, ssh: {}, cle_inconnue: {} } },
+    });
+    const scripts = makeWithScan(json).remediationScripts;
+    expect(scripts).toHaveLength(2);
+    const keys = scripts.map(s => s.key);
+    expect(keys).toContain('ufw');
+    expect(keys).toContain('ssh');
+    expect(keys).not.toContain('cle_inconnue');
+    const ufw = scripts.find(s => s.key === 'ufw');
+    expect(ufw?.label).toBeTruthy();
+    expect(ufw?.icon).toBeTruthy();
+  });
+});
+
+describe('ScanDetailComponent — loadScan()', () => {
+  function makeComp(): ScanDetailComponent {
+    const c = Object.create(ScanDetailComponent.prototype) as ScanDetailComponent;
+    (c as any).scan = signal<any>(null);
+    (c as any).loading = signal(true);
+    (c as any).error = signal<string | null>(null);
+    return c;
+  }
+
+  it('stocke le scan et arrête le chargement en cas de succès', () => {
+    const c = makeComp();
+    (c as any).cyberscan = {
+      getScan: vi.fn().mockReturnValue(of({ id: 1, status: 'done' })),
+    };
+    c.loadScan(1);
+    expect(c.scan()).toEqual({ id: 1, status: 'done' });
+    expect(c.loading()).toBe(false);
+    expect(c.error()).toBeNull();
+  });
+
+  it('déclenche le polling si le scan est pending', () => {
+    const c = makeComp();
+    (c as any).cyberscan = {
+      getScan: vi.fn().mockReturnValue(of({ id: 2, status: 'pending' })),
+    };
+    const spy = vi.spyOn(c, 'startPolling').mockImplementation(() => {});
+    c.loadScan(2);
+    expect(spy).toHaveBeenCalledWith(2);
+  });
+
+  it('ne déclenche pas le polling si le scan est terminé', () => {
+    const c = makeComp();
+    (c as any).cyberscan = {
+      getScan: vi.fn().mockReturnValue(of({ id: 3, status: 'done' })),
+    };
+    const spy = vi.spyOn(c, 'startPolling').mockImplementation(() => {});
+    c.loadScan(3);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('positionne une erreur si le service échoue', () => {
+    const c = makeComp();
+    (c as any).cyberscan = {
+      getScan: vi.fn().mockReturnValue({
+        subscribe: (obs: any) => obs.error(new Error('boom')),
+      }),
+    };
+    c.loadScan(9);
+    expect(c.error()).toBe('Scan introuvable');
+    expect(c.loading()).toBe(false);
+  });
+});
+
+describe('ScanDetailComponent — downloads', () => {
+  function withDom() {
+    const anchor: any = { href: '', download: '', click: vi.fn() };
+    const createSpy = vi.spyOn(document, 'createElement').mockReturnValue(anchor);
+    (globalThis.URL as any).createObjectURL = vi.fn(() => 'blob:fake');
+    (globalThis.URL as any).revokeObjectURL = vi.fn();
+    return { anchor, createSpy };
+  }
+
+  it('downloadPdf ne fait rien si scan null', () => {
+    const c = make();
+    (c as any).scan = signal<any>(null);
+    (c as any).cyberscan = { downloadPdfBlob: vi.fn() };
+    c.downloadPdf();
+    expect((c as any).cyberscan.downloadPdfBlob).not.toHaveBeenCalled();
+  });
+
+  it('downloadPdf télécharge un fichier nommé avec l’id', () => {
+    const { anchor, createSpy } = withDom();
+    const c = make();
+    (c as any).scan = signal<any>({ id: 42 });
+    (c as any).cyberscan = { downloadPdfBlob: vi.fn().mockReturnValue(of(new Blob(['x']))) };
+    c.downloadPdf();
+    expect((c as any).cyberscan.downloadPdfBlob).toHaveBeenCalledWith(42);
+    expect(anchor.download).toBe('cyberscan_rapport_42.pdf');
+    expect(anchor.click).toHaveBeenCalled();
+    createSpy.mockRestore();
+  });
+
+  it('downloadBrandedPdf remet downloadingBranded à false après succès', () => {
+    const { createSpy } = withDom();
+    const c = make();
+    (c as any).scan = signal<any>({ id: 7 });
+    (c as any).downloadingBranded = signal(false);
+    (c as any).cyberscan = {
+      downloadBrandedPdfBlob: vi.fn().mockReturnValue(of(new Blob(['x']))),
+    };
+    c.downloadBrandedPdf();
+    expect(c.downloadingBranded()).toBe(false);
+    expect((c as any).cyberscan.downloadBrandedPdfBlob).toHaveBeenCalledWith(7);
+    createSpy.mockRestore();
+  });
+
+  it('downloadBrandedPdf remet downloadingBranded à false en cas d’erreur', () => {
+    const c = make();
+    (c as any).scan = signal<any>({ id: 7 });
+    (c as any).downloadingBranded = signal(false);
+    (c as any).cyberscan = {
+      downloadBrandedPdfBlob: vi.fn().mockReturnValue({
+        subscribe: (obs: any) => obs.error(new Error('x')),
+      }),
+    };
+    c.downloadBrandedPdf();
+    expect(c.downloadingBranded()).toBe(false);
+  });
+
+  it('downloadRemediation utilise l’extension .py pour fastapi', () => {
+    const { anchor, createSpy } = withDom();
+    const c = make();
+    (c as any).scan = signal<any>({ id: 5 });
+    (c as any).cyberscan = {
+      downloadRemediationBlob: vi.fn().mockReturnValue(of(new Blob(['x']))),
+    };
+    c.downloadRemediation('fastapi');
+    expect(anchor.download).toBe('cyberscan_fastapi_5.py');
+    createSpy.mockRestore();
+  });
+
+  it('downloadRemediation utilise l’extension .sh pour les autres scripts', () => {
+    const { anchor, createSpy } = withDom();
+    const c = make();
+    (c as any).scan = signal<any>({ id: 5 });
+    (c as any).cyberscan = {
+      downloadRemediationBlob: vi.fn().mockReturnValue(of(new Blob(['x']))),
+    };
+    c.downloadRemediation('ufw');
+    expect(anchor.download).toBe('cyberscan_ufw_5.sh');
+    createSpy.mockRestore();
+  });
+
+  it('downloadRemediation ne fait rien si scan null', () => {
+    const c = make();
+    (c as any).scan = signal<any>(null);
+    (c as any).cyberscan = { downloadRemediationBlob: vi.fn() };
+    c.downloadRemediation('ufw');
+    expect((c as any).cyberscan.downloadRemediationBlob).not.toHaveBeenCalled();
   });
 });

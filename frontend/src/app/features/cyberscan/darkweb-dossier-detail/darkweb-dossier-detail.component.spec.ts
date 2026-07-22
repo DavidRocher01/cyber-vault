@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { signal } from '@angular/core';
+import { of, throwError } from 'rxjs';
 import { DarkwebDossierDetailComponent } from './darkweb-dossier-detail.component';
 import {
   DarkwebDossierService,
@@ -442,4 +443,138 @@ describe('DarkwebDossierDetailComponent — checkStatusClass()', () => {
     expect(make().checkStatusClass('api_error')).toContain('yellow'));
   it('contient gray pour pending', () =>
     expect(make().checkStatusClass('pending')).toContain('gray'));
+});
+
+// ── rescan ────────────────────────────────────────────────────────────────────
+
+describe('DarkwebDossierDetailComponent — rescan()', () => {
+  function makeRescan() {
+    const comp = make();
+    (comp as any).rescanning = signal(false);
+    (comp as any).pollInterval = 1; // évite de créer un vrai setInterval dans startPolling
+    (comp as any).snack = { open: vi.fn() };
+    return comp;
+  }
+
+  it('ne fait rien si dossier est null', () => {
+    const comp = makeRescan();
+    (comp as any).service.rescan = vi.fn();
+    comp.rescan();
+    expect((comp as any).service.rescan).not.toHaveBeenCalled();
+    expect((comp as any).rescanning()).toBe(false);
+  });
+
+  it('ne relance pas si un rescan est déjà en cours', () => {
+    const comp = makeRescan();
+    (comp as any).dossier.set(dossier({ id: 5 }));
+    (comp as any).rescanning.set(true);
+    (comp as any).service.rescan = vi.fn();
+    comp.rescan();
+    expect((comp as any).service.rescan).not.toHaveBeenCalled();
+  });
+
+  it('cas nominal : appelle le service, met à jour le dossier et affiche un snack', () => {
+    const comp = makeRescan();
+    (comp as any).dossier.set(dossier({ id: 5, status: 'completed' }));
+    const updated = dossier({ id: 5, status: 'processing' });
+    (comp as any).service.rescan = vi.fn().mockReturnValue(of(updated));
+    comp.rescan();
+    expect((comp as any).service.rescan).toHaveBeenCalledWith(5);
+    expect(comp.dossier()?.status).toBe('processing');
+    expect((comp as any).rescanning()).toBe(true);
+    expect((comp as any).snack.open).toHaveBeenCalled();
+  });
+
+  it('cas erreur : réinitialise rescanning et affiche le détail de l’erreur', () => {
+    const comp = makeRescan();
+    (comp as any).dossier.set(dossier({ id: 5 }));
+    (comp as any).service.rescan = vi
+      .fn()
+      .mockReturnValue(throwError(() => ({ error: { detail: 'Trop de rescans' } })));
+    comp.rescan();
+    expect((comp as any).rescanning()).toBe(false);
+    expect((comp as any).snack.open).toHaveBeenCalledWith(
+      'Trop de rescans',
+      'Fermer',
+      expect.anything()
+    );
+  });
+
+  it('cas erreur sans détail : affiche un message générique', () => {
+    const comp = makeRescan();
+    (comp as any).dossier.set(dossier({ id: 5 }));
+    (comp as any).service.rescan = vi.fn().mockReturnValue(throwError(() => ({})));
+    comp.rescan();
+    expect((comp as any).rescanning()).toBe(false);
+    expect((comp as any).snack.open).toHaveBeenCalledWith(
+      'Erreur lors du rescan',
+      'Fermer',
+      expect.anything()
+    );
+  });
+});
+
+// ── toggleMonitor ─────────────────────────────────────────────────────────────
+
+describe('DarkwebDossierDetailComponent — toggleMonitor()', () => {
+  function makeToggle() {
+    const comp = make();
+    (comp as any).togglingMonitor = signal(false);
+    (comp as any).snack = { open: vi.fn() };
+    return comp;
+  }
+
+  it('ne fait rien si dossier est null', () => {
+    const comp = makeToggle();
+    (comp as any).service.toggleMonitor = vi.fn();
+    comp.toggleMonitor();
+    expect((comp as any).service.toggleMonitor).not.toHaveBeenCalled();
+  });
+
+  it('ne fait rien si un toggle est déjà en cours', () => {
+    const comp = makeToggle();
+    (comp as any).dossier.set(dossier({ id: 3 }));
+    (comp as any).togglingMonitor.set(true);
+    (comp as any).service.toggleMonitor = vi.fn();
+    comp.toggleMonitor();
+    expect((comp as any).service.toggleMonitor).not.toHaveBeenCalled();
+  });
+
+  it('cas nominal (activation) : met à jour le dossier et affiche un snack', () => {
+    const comp = makeToggle();
+    (comp as any).dossier.set(dossier({ id: 3, monitor_active: false }));
+    (comp as any).service.toggleMonitor = vi
+      .fn()
+      .mockReturnValue(of({ monitor_active: true, next_monitor_at: '2024-02-01T00:00:00Z' }));
+    comp.toggleMonitor();
+    expect((comp as any).service.toggleMonitor).toHaveBeenCalledWith(3);
+    expect(comp.dossier()?.monitor_active).toBe(true);
+    expect(comp.dossier()?.next_monitor_at).toBe('2024-02-01T00:00:00Z');
+    expect((comp as any).togglingMonitor()).toBe(false);
+    expect((comp as any).snack.open).toHaveBeenCalled();
+  });
+
+  it('cas nominal (désactivation) : monitor_active repasse à false', () => {
+    const comp = makeToggle();
+    (comp as any).dossier.set(dossier({ id: 3, monitor_active: true }));
+    (comp as any).service.toggleMonitor = vi
+      .fn()
+      .mockReturnValue(of({ monitor_active: false, next_monitor_at: null }));
+    comp.toggleMonitor();
+    expect(comp.dossier()?.monitor_active).toBe(false);
+    expect(comp.dossier()?.next_monitor_at).toBeNull();
+  });
+
+  it('cas erreur : réinitialise togglingMonitor et affiche un snack', () => {
+    const comp = makeToggle();
+    (comp as any).dossier.set(dossier({ id: 3 }));
+    (comp as any).service.toggleMonitor = vi.fn().mockReturnValue(throwError(() => ({})));
+    comp.toggleMonitor();
+    expect((comp as any).togglingMonitor()).toBe(false);
+    expect((comp as any).snack.open).toHaveBeenCalledWith(
+      'Erreur lors du changement de monitoring',
+      'Fermer',
+      expect.anything()
+    );
+  });
 });

@@ -9,8 +9,9 @@
  *  - Getter _fullItems (34 items complets)
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { signal, computed } from '@angular/core';
+import { of, throwError } from 'rxjs';
 import { Nis2Component, Nis2Category, Nis2Status } from './nis2.component';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -540,5 +541,222 @@ describe('_fullItems (getter privé)', () => {
     c.resetAll();
     const full = (c as any)._fullItems;
     expect(Object.values(full).every(v => v === 'non_compliant')).toBe(true);
+  });
+});
+
+// ── ngOnInit() ────────────────────────────────────────────────────────────────
+
+describe('ngOnInit()', () => {
+  it('cas nominal : hydrate categories/items/score/updatedAt et coupe loading', () => {
+    const c = make();
+    (c as any).loading = signal(true);
+    const cat = makeCat('a', 2);
+    (c as any).cyberscan = {
+      getNis2Assessment: vi.fn().mockReturnValue(
+        of({
+          categories: [cat],
+          items: { a_item0: 'compliant' },
+          score: 42,
+          updated_at: '2024-06-15T10:00:00Z',
+        })
+      ),
+    };
+    (c as any).snack = { open: vi.fn() };
+    c.ngOnInit();
+    expect((c as any).categories()).toEqual([cat]);
+    expect((c as any).items()).toEqual({ a_item0: 'compliant' });
+    expect((c as any).score()).toBe(42);
+    expect((c as any).updatedAt()).toBe('2024-06-15T10:00:00Z');
+    expect((c as any).loading()).toBe(false);
+  });
+
+  it('réponse partielle : applique les valeurs par défaut', () => {
+    const c = make();
+    (c as any).loading = signal(true);
+    (c as any).cyberscan = { getNis2Assessment: vi.fn().mockReturnValue(of({})) };
+    (c as any).snack = { open: vi.fn() };
+    c.ngOnInit();
+    expect((c as any).categories()).toEqual([]);
+    expect((c as any).items()).toEqual({});
+    expect((c as any).score()).toBe(0);
+    expect((c as any).updatedAt()).toBe(null);
+    expect((c as any).loading()).toBe(false);
+  });
+
+  it('erreur : coupe loading et affiche un snack', () => {
+    const c = make();
+    (c as any).loading = signal(true);
+    (c as any).cyberscan = {
+      getNis2Assessment: vi.fn().mockReturnValue(throwError(() => new Error('boom'))),
+    };
+    const snack = { open: vi.fn() };
+    (c as any).snack = snack;
+    c.ngOnInit();
+    expect((c as any).loading()).toBe(false);
+    expect(snack.open).toHaveBeenCalledWith('Erreur lors du chargement', 'Fermer', {
+      duration: 4000,
+    });
+  });
+});
+
+// ── save() ────────────────────────────────────────────────────────────────────
+
+describe('save()', () => {
+  it('cas nominal : envoie _fullItems, met à jour score/updatedAt, snack succès', () => {
+    const c = makeWithCats(2);
+    (c as any).saving = signal(false);
+    const saveMock = vi.fn().mockReturnValue(of({ score: 88, updated_at: '2024-07-01T12:00:00Z' }));
+    (c as any).cyberscan = { saveNis2Assessment: saveMock };
+    const snack = { open: vi.fn() };
+    (c as any).snack = snack;
+    c.save();
+    // _fullItems : 2 items non renseignés → non_compliant
+    expect(saveMock).toHaveBeenCalledWith({
+      cat0_item0: 'non_compliant',
+      cat0_item1: 'non_compliant',
+    });
+    expect((c as any).score()).toBe(88);
+    expect((c as any).updatedAt()).toBe('2024-07-01T12:00:00Z');
+    expect((c as any).saving()).toBe(false);
+    expect(snack.open).toHaveBeenCalledWith('Évaluation sauvegardée', 'OK', { duration: 3000 });
+  });
+
+  it('erreur : coupe saving et affiche un snack erreur', () => {
+    const c = makeWithCats(1);
+    (c as any).saving = signal(false);
+    (c as any).cyberscan = {
+      saveNis2Assessment: vi.fn().mockReturnValue(throwError(() => new Error('nope'))),
+    };
+    const snack = { open: vi.fn() };
+    (c as any).snack = snack;
+    c.save();
+    expect((c as any).saving()).toBe(false);
+    expect(snack.open).toHaveBeenCalledWith('Erreur lors de la sauvegarde', 'Fermer', {
+      duration: 4000,
+    });
+  });
+});
+
+// ── exportPdf() ───────────────────────────────────────────────────────────────
+
+describe('exportPdf()', () => {
+  beforeEach(() => {
+    (URL as any).createObjectURL = vi.fn().mockReturnValue('blob:fake');
+    (URL as any).revokeObjectURL = vi.fn();
+    vi.spyOn(document, 'createElement').mockReturnValue({
+      href: '',
+      download: '',
+      click: vi.fn(),
+    } as any);
+  });
+
+  it('cas nominal : sauvegarde puis télécharge le blob', () => {
+    const c = makeWithCats(1);
+    (c as any).exporting = signal(false);
+    (c as any).cyberscan = {
+      saveNis2Assessment: vi.fn().mockReturnValue(of({ score: 10, updated_at: 'd' })),
+      downloadNis2PdfBlob: vi.fn().mockReturnValue(of(new Blob(['x']))),
+    };
+    (c as any).snack = { open: vi.fn() };
+    c.exportPdf();
+    expect((c as any).score()).toBe(10);
+    expect((c as any).updatedAt()).toBe('d');
+    expect((c as any).exporting()).toBe(false);
+    expect((URL as any).createObjectURL).toHaveBeenCalled();
+  });
+
+  it('erreur de sauvegarde : coupe exporting et snack', () => {
+    const c = makeWithCats(1);
+    (c as any).exporting = signal(false);
+    (c as any).cyberscan = {
+      saveNis2Assessment: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
+      downloadNis2PdfBlob: vi.fn(),
+    };
+    const snack = { open: vi.fn() };
+    (c as any).snack = snack;
+    c.exportPdf();
+    expect((c as any).exporting()).toBe(false);
+    expect(snack.open).toHaveBeenCalledWith('Erreur lors de la sauvegarde avant export', 'Fermer', {
+      duration: 4000,
+    });
+  });
+
+  it('erreur de téléchargement : coupe exporting et snack export PDF', () => {
+    const c = makeWithCats(1);
+    (c as any).exporting = signal(false);
+    (c as any).cyberscan = {
+      saveNis2Assessment: vi.fn().mockReturnValue(of({ score: 10, updated_at: 'd' })),
+      downloadNis2PdfBlob: vi.fn().mockReturnValue(throwError(() => new Error('dl'))),
+    };
+    const snack = { open: vi.fn() };
+    (c as any).snack = snack;
+    c.exportPdf();
+    expect((c as any).exporting()).toBe(false);
+    expect(snack.open).toHaveBeenCalledWith("Erreur lors de l'export PDF", 'Fermer', {
+      duration: 4000,
+    });
+  });
+});
+
+// ── exportAuditorPdf() ────────────────────────────────────────────────────────
+
+describe('exportAuditorPdf()', () => {
+  beforeEach(() => {
+    (URL as any).createObjectURL = vi.fn().mockReturnValue('blob:fake');
+    (URL as any).revokeObjectURL = vi.fn();
+    vi.spyOn(document, 'createElement').mockReturnValue({
+      href: '',
+      download: '',
+      click: vi.fn(),
+    } as any);
+  });
+
+  it('cas nominal : sauvegarde puis télécharge le document officiel', () => {
+    const c = makeWithCats(1);
+    (c as any).exportingAuditor = signal(false);
+    (c as any).cyberscan = {
+      saveNis2Assessment: vi.fn().mockReturnValue(of({ score: 20, updated_at: 'e' })),
+      downloadNis2AuditorPdfBlob: vi.fn().mockReturnValue(of(new Blob(['y']))),
+    };
+    (c as any).snack = { open: vi.fn() };
+    c.exportAuditorPdf();
+    expect((c as any).score()).toBe(20);
+    expect((c as any).updatedAt()).toBe('e');
+    expect((c as any).exportingAuditor()).toBe(false);
+    expect((URL as any).createObjectURL).toHaveBeenCalled();
+  });
+
+  it('erreur de sauvegarde : coupe exportingAuditor et snack', () => {
+    const c = makeWithCats(1);
+    (c as any).exportingAuditor = signal(false);
+    (c as any).cyberscan = {
+      saveNis2Assessment: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
+      downloadNis2AuditorPdfBlob: vi.fn(),
+    };
+    const snack = { open: vi.fn() };
+    (c as any).snack = snack;
+    c.exportAuditorPdf();
+    expect((c as any).exportingAuditor()).toBe(false);
+    expect(snack.open).toHaveBeenCalledWith('Erreur lors de la sauvegarde avant export', 'Fermer', {
+      duration: 4000,
+    });
+  });
+
+  it('erreur de téléchargement : coupe exportingAuditor et snack document officiel', () => {
+    const c = makeWithCats(1);
+    (c as any).exportingAuditor = signal(false);
+    (c as any).cyberscan = {
+      saveNis2Assessment: vi.fn().mockReturnValue(of({ score: 20, updated_at: 'e' })),
+      downloadNis2AuditorPdfBlob: vi.fn().mockReturnValue(throwError(() => new Error('dl'))),
+    };
+    const snack = { open: vi.fn() };
+    (c as any).snack = snack;
+    c.exportAuditorPdf();
+    expect((c as any).exportingAuditor()).toBe(false);
+    expect(snack.open).toHaveBeenCalledWith(
+      "Erreur lors de l'export du document officiel",
+      'Fermer',
+      { duration: 4000 }
+    );
   });
 });

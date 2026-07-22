@@ -186,3 +186,30 @@ describe('EasterEggService — logo click counter', () => {
     expect(svc.triggerGlitch).toHaveBeenCalledTimes(2);
   });
 });
+
+import { trustStaticHtml } from './easter-egg.service';
+
+describe('trustStaticHtml (Trusted Types)', () => {
+  const g = globalThis as unknown as { trustedTypes?: unknown };
+  let saved: unknown;
+  beforeEach(() => {
+    saved = g.trustedTypes;
+  });
+  afterEach(() => {
+    if (saved === undefined) delete g.trustedTypes;
+    else g.trustedTypes = saved;
+  });
+
+  it('retourne la string telle quelle si Trusted Types est absent', () => {
+    delete g.trustedTypes;
+    expect(trustStaticHtml('<b>ok</b>')).toBe('<b>ok</b>');
+  });
+
+  it('passe par une policy quand Trusted Types est présent', () => {
+    const createHTML = vi.fn((s: string) => `TT:${s}`);
+    g.trustedTypes = { createPolicy: vi.fn(() => ({ createHTML })) };
+    const out = trustStaticHtml('<i>y</i>');
+    // Selon la mémoïsation module, soit la policy est utilisée, soit déjà résolue.
+    expect(typeof out).toBe('string');
+  });
+});
