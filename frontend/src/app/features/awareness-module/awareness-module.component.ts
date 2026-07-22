@@ -654,8 +654,14 @@ export class AwarenessModuleComponent implements OnInit, OnDestroy {
   }
 
   renderMarkdown(md: string): string {
-    // Simple Markdown → HTML (headings, bold, lists, hr)
+    // Simple Markdown → HTML (headings, bold, lists, hr).
+    // On échappe d'abord `&` puis `<` du contenu brut pour qu'aucune balise
+    // fournie dans le markdown ne puisse être injectée dans le [innerHTML]
+    // (défense en profondeur, en plus du sanitizer Angular). `>` reste intact
+    // pour la syntaxe de citation `> ...`.
     return md
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
       .replace(/^### (.+)$/gm, '<h3 class="text-white font-semibold text-base mt-5 mb-2">$1</h3>')
       .replace(
         /^## (.+)$/gm,
