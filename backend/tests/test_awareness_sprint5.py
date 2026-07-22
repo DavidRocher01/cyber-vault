@@ -34,7 +34,11 @@ def test_public_id_format():
     parts = pid.split("-")
     assert len(parts) == 3
     assert len(parts[2]) == 6
-    assert parts[2].isupper()
+    # Hex majuscule : ne doit contenir aucune minuscule. NB : `.isupper()` renvoie
+    # False sur un suffixe tout-chiffres (aucun caractère casse) -> ~6% de flake ;
+    # on vérifie donc l'invariant réel (== upper) au lieu de isupper().
+    assert parts[2] == parts[2].upper()
+    assert all(c in "0123456789ABCDEF" for c in parts[2])
 
 
 def test_public_id_unique():
