@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import get_rssi_consultant
 from app.models.user import User
+from app.services import consultant_service
 
 router = APIRouter()
 
@@ -42,14 +43,13 @@ async def update_consultant_profile(
     current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
-    if payload.display_name is not None:
-        current_user.display_name = payload.display_name.strip() or None
-    if payload.company_name is not None:
-        current_user.company_name = payload.company_name.strip() or None
-    if payload.phone is not None:
-        current_user.phone = payload.phone.strip() or None
-    await db.commit()
-    await db.refresh(current_user)
+    await consultant_service.update_consultant_profile(
+        db,
+        current_user,
+        display_name=payload.display_name,
+        company_name=payload.company_name,
+        phone=payload.phone,
+    )
     return ConsultantProfileOut(
         email=current_user.email,
         display_name=current_user.display_name,

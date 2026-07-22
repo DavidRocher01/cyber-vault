@@ -139,3 +139,21 @@ async def send_quote_by_email(quote: Quote) -> None:
             headers={"Authorization": f"Bearer {api_key}"},
             json=payload,
         )
+
+
+async def get_quote_by_token(db: AsyncSession, token: str) -> Quote | None:
+    """Retourne le devis correspondant au token d'acceptation, ou None."""
+    result = await db.execute(select(Quote).where(Quote.acceptance_token == token))
+    return result.scalar_one_or_none()
+
+
+async def mark_quote_accepted(db: AsyncSession, quote: Quote) -> None:
+    quote.status = "accepted"
+    quote.accepted_at = datetime.now(UTC)
+    await db.commit()
+
+
+async def mark_quote_rejected(db: AsyncSession, quote: Quote) -> None:
+    quote.status = "rejected"
+    quote.rejected_at = datetime.now(UTC)
+    await db.commit()

@@ -4,14 +4,13 @@ Rate limited to 3 scans/hour per IP to prevent abuse.
 """
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal, get_db
 from app.core.limiter import limiter
 from app.core.ssrf import assert_no_ssrf
-from app.models.public_scan import PublicScan
 from app.schemas.public_scan import PublicScanCreate, PublicScanOut
+from app.services import public_scan_service
 from app.services.public_scan_service import run_public_scan
 
 router = APIRouter(prefix="/public-scans", tags=["public-scans"])
@@ -39,11 +38,7 @@ async def create_public_scan(
     except ValueError:
         raise HTTPException(status_code=422, detail="URL non autorisée")
 
-    scan = PublicScan(target_url=url, status="pending")
-    db.add(scan)
-    await db.commit()
-    await db.refresh(scan)
-
+    scan = await public_scan_service.create_public_scan(db, url)
     background_tasks.add_task(_run_background, scan.id)
     return PublicScanOut.from_orm_obj(scan)
 
@@ -53,8 +48,7 @@ async def get_public_scan(
     token: str,
     db: AsyncSession = Depends(get_db),
 ) -> PublicScanOut:
-    result = await db.execute(select(PublicScan).where(PublicScan.session_token == token))
-    scan = result.scalar_one_or_none()
+    scan = await public_scan_service.get_public_scan_by_token(db, token)
     if not scan:
         raise HTTPException(status_code=404, detail="Scan introuvable")
     return PublicScanOut.from_orm_obj(scan)

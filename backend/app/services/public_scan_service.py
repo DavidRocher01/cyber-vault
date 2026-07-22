@@ -118,3 +118,18 @@ async def list_recent_public_scans(db: AsyncSession, limit: int = 50) -> list[Pu
         select(PublicScan).order_by(PublicScan.created_at.desc()).limit(limit)
     )
     return list(result.scalars().all())
+
+
+async def create_public_scan(db: AsyncSession, target_url: str) -> PublicScan:
+    """Cree un scan public en attente et le renvoie (rafraichi)."""
+    scan = PublicScan(target_url=target_url, status="pending")
+    db.add(scan)
+    await db.commit()
+    await db.refresh(scan)
+    return scan
+
+
+async def get_public_scan_by_token(db: AsyncSession, token: str) -> PublicScan | None:
+    """Retourne le scan public correspondant au token de session, ou None."""
+    result = await db.execute(select(PublicScan).where(PublicScan.session_token == token))
+    return result.scalar_one_or_none()
