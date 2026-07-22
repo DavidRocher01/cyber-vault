@@ -9,7 +9,8 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { Subscription as RxSubscription } from 'rxjs';
 import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 
-import { CyberscanService, UrlScan, PaginatedUrlScans } from '../services/cyberscan.service';
+import { UrlScan, PaginatedUrlScans } from '../services/cyberscan.service';
+import { UrlScanApiService } from '../services/url-scan-api.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { extractApiError } from '../../../core/http-error';
 
@@ -51,7 +52,7 @@ interface UrlScanResults {
   templateUrl: './url-scanner.component.html',
 })
 export class UrlScannerComponent implements OnInit, OnDestroy {
-  private cyberscan = inject(CyberscanService);
+  private urlScanApi = inject(UrlScanApiService);
   private fb = inject(FormBuilder);
   private snack = inject(MatSnackBar);
   private pollSubs: RxSubscription[] = [];
@@ -77,7 +78,7 @@ export class UrlScannerComponent implements OnInit, OnDestroy {
   loadHistory(page: number) {
     this.loadingHistory.set(true);
     this.currentPage.set(page);
-    this.cyberscan.getUrlScans(page, 20).subscribe({
+    this.urlScanApi.getUrlScans(page, 20).subscribe({
       next: data => {
         this.history.set(data);
         this.loadingHistory.set(false);
@@ -98,7 +99,7 @@ export class UrlScannerComponent implements OnInit, OnDestroy {
     if (this.form.invalid) return;
     this.submitting.set(true);
 
-    this.cyberscan.triggerUrlScan(this.form.getRawValue().url).subscribe({
+    this.urlScanApi.triggerUrlScan(this.form.getRawValue().url).subscribe({
       next: scan => {
         this.submitting.set(false);
         this.form.reset();
@@ -120,7 +121,7 @@ export class UrlScannerComponent implements OnInit, OnDestroy {
 
   startPolling(scanId: number) {
     const sub = pollWithBackoff(
-      () => this.cyberscan.getUrlScan(scanId),
+      () => this.urlScanApi.getUrlScan(scanId),
       s => s.status !== 'pending' && s.status !== 'running'
     ).subscribe(scan => {
       // Update history
@@ -140,7 +141,7 @@ export class UrlScannerComponent implements OnInit, OnDestroy {
   }
 
   downloadPdf(scan: UrlScan) {
-    this.cyberscan.downloadUrlScanPdfBlob(scan.id).subscribe({
+    this.urlScanApi.downloadUrlScanPdfBlob(scan.id).subscribe({
       next: blob => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -155,7 +156,7 @@ export class UrlScannerComponent implements OnInit, OnDestroy {
   }
 
   deleteScan(scan: UrlScan) {
-    this.cyberscan.deleteUrlScan(scan.id).subscribe({
+    this.urlScanApi.deleteUrlScan(scan.id).subscribe({
       next: () => {
         this.history.update(h =>
           h ? { ...h, items: h.items.filter(s => s.id !== scan.id), total: h.total - 1 } : h

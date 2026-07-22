@@ -5,7 +5,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { CyberscanService } from '../services/cyberscan.service';
+import { ComplianceApiService } from '../services/compliance-api.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import {
   complianceStatusLabel,
@@ -46,7 +46,7 @@ export interface Nis2Category {
   styleUrl: './nis2.component.css',
 })
 export class Nis2Component implements OnInit {
-  private cyberscan = inject(CyberscanService);
+  private complianceApi = inject(ComplianceApiService);
   private snack = inject(MatSnackBar);
 
   loading = signal(true);
@@ -64,7 +64,7 @@ export class Nis2Component implements OnInit {
   readonly STATUS_LIST: Nis2Status[] = ['compliant', 'partial', 'non_compliant', 'na'];
 
   ngOnInit() {
-    this.cyberscan.getNis2Assessment().subscribe({
+    this.complianceApi.getNis2Assessment().subscribe({
       next: data => {
         // Narrowing au bord de l'API : le backend renvoie des chaînes/objets
         // generiques dont les valeurs sont garanties valides pour ces types.
@@ -126,7 +126,7 @@ export class Nis2Component implements OnInit {
 
   save() {
     this.saving.set(true);
-    this.cyberscan.saveNis2Assessment(this._fullItems).subscribe({
+    this.complianceApi.saveNis2Assessment(this._fullItems).subscribe({
       next: data => {
         this.score.set(data.score);
         this.updatedAt.set(data.updated_at);
@@ -143,7 +143,7 @@ export class Nis2Component implements OnInit {
   exportPdf() {
     this.exporting.set(true);
     // Sauvegarde automatique avant export pour garantir la cohérence PDF/app
-    this.cyberscan.saveNis2Assessment(this._fullItems).subscribe({
+    this.complianceApi.saveNis2Assessment(this._fullItems).subscribe({
       next: data => {
         this.score.set(data.score);
         this.updatedAt.set(data.updated_at);
@@ -157,7 +157,7 @@ export class Nis2Component implements OnInit {
   }
 
   private _downloadPdf() {
-    this.cyberscan.downloadNis2PdfBlob().subscribe({
+    this.complianceApi.downloadNis2PdfBlob().subscribe({
       next: blob => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -176,11 +176,11 @@ export class Nis2Component implements OnInit {
 
   exportAuditorPdf() {
     this.exportingAuditor.set(true);
-    this.cyberscan.saveNis2Assessment(this._fullItems).subscribe({
+    this.complianceApi.saveNis2Assessment(this._fullItems).subscribe({
       next: data => {
         this.score.set(data.score);
         this.updatedAt.set(data.updated_at);
-        this.cyberscan.downloadNis2AuditorPdfBlob().subscribe({
+        this.complianceApi.downloadNis2AuditorPdfBlob().subscribe({
           next: blob => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');

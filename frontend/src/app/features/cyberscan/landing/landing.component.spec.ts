@@ -711,7 +711,16 @@ describe('LandingComponent — subscribe()', () => {
     const createCheckout = vi.fn();
     (c as any).auth = { isAuthenticated: () => false };
     (c as any).authModal = { open };
-    (c as any).cyberscan = (c as any).billing = { createCheckout };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+      (c as any).billing =
+        { createCheckout };
     c.subscribe({ id: 1 } as any);
     expect(open).toHaveBeenCalledWith('register');
     expect(createCheckout).not.toHaveBeenCalled();
@@ -721,7 +730,16 @@ describe('LandingComponent — subscribe()', () => {
     const c = make();
     const createCheckout = vi.fn().mockReturnValue({ subscribe: vi.fn() });
     (c as any).auth = { isAuthenticated: () => true };
-    (c as any).cyberscan = (c as any).billing = { createCheckout };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+      (c as any).billing =
+        { createCheckout };
     c.subscribe({ id: 42 } as any);
     expect(createCheckout).toHaveBeenCalledWith(42);
     expect(c.checkoutLoading).toBe(42);
@@ -730,9 +748,18 @@ describe('LandingComponent — subscribe()', () => {
   it("réinitialise checkoutLoading à null en cas d'erreur de checkout", () => {
     const c = make();
     (c as any).auth = { isAuthenticated: () => true };
-    (c as any).cyberscan = (c as any).billing = {
-      createCheckout: vi.fn().mockReturnValue(throwError(() => ({ status: 500 }))),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+      (c as any).billing =
+        {
+          createCheckout: vi.fn().mockReturnValue(throwError(() => ({ status: 500 }))),
+        };
     c.subscribe({ id: 7 } as any);
     expect(c.checkoutLoading).toBeNull();
   });

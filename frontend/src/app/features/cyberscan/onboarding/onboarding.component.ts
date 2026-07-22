@@ -7,7 +7,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Title } from '@angular/platform-browser';
 
-import { CyberscanService, Plan } from '../services/cyberscan.service';
+import { Plan } from '../services/cyberscan.service';
+import { ScanApiService } from '../services/scan-api.service';
+import { SiteApiService } from '../services/site-api.service';
 import { BillingService } from '../services/billing.service';
 import { formatScanFrequency } from '../../../shared/plan-features';
 import { extractApiError } from '../../../core/http-error';
@@ -27,7 +29,8 @@ import { extractApiError } from '../../../core/http-error';
   styleUrl: './onboarding.component.css',
 })
 export class OnboardingComponent implements OnInit {
-  private cyberscan = inject(CyberscanService);
+  private scanApi = inject(ScanApiService);
+  private siteApi = inject(SiteApiService);
   private billing = inject(BillingService);
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -93,11 +96,11 @@ export class OnboardingComponent implements OnInit {
     this.addingSite.set(true);
     const { url, name } = this.siteForm.getRawValue();
     const fullUrl = url.startsWith('http') ? url : `https://${url}`;
-    this.cyberscan.createSite({ url: fullUrl, name }).subscribe({
+    this.siteApi.createSite({ url: fullUrl, name }).subscribe({
       next: site => {
         this.addingSite.set(false);
         this.currentStep.set(3);
-        this.cyberscan.triggerScan(site.id).subscribe({
+        this.scanApi.triggerScan(site.id).subscribe({
           error: () =>
             this.snack.open('Erreur lors du lancement du scan', 'Fermer', { duration: 4000 }),
         });

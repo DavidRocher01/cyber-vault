@@ -7,7 +7,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Subscription, interval } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 
-import { CyberscanService, PublicScanResult } from '../services/cyberscan.service';
+import { PublicScanResult } from '../services/cyberscan.service';
+import { PublicScanApiService } from '../services/public-scan-api.service';
 import { BillingService } from '../services/billing.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
@@ -38,7 +39,7 @@ interface ModuleResult {
 export class DemoResultComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private cyberscan = inject(CyberscanService);
+  private publicScanApi = inject(PublicScanApiService);
   private billing = inject(BillingService);
   private auth = inject(AuthService);
   private titleService = inject(Title);
@@ -62,7 +63,7 @@ export class DemoResultComponent implements OnInit, OnDestroy {
 
     this.pollSub = interval(3000)
       .pipe(
-        switchMap(() => this.cyberscan.getPublicScan(token)),
+        switchMap(() => this.publicScanApi.getPublicScan(token)),
         takeWhile(s => s.status === 'pending' || s.status === 'running', true)
       )
       .subscribe({
@@ -77,7 +78,7 @@ export class DemoResultComponent implements OnInit, OnDestroy {
         },
       });
 
-    this.cyberscan.getPublicScan(token).subscribe({
+    this.publicScanApi.getPublicScan(token).subscribe({
       next: s => {
         this.scan.set(s);
         this.loading.set(false);

@@ -42,13 +42,22 @@ function make(): OnboardingComponent {
     name: [''],
   });
 
-  (comp as any).cyberscan = (comp as any).billing = {
-    getPlans: vi.fn(() => of([])),
-    getMySubscription: vi.fn(() => of(null)),
-    createCheckout: vi.fn(() => of({ checkout_url: '/dashboard' })),
-    createSite: vi.fn(() => of({ id: 42 })),
-    triggerScan: vi.fn(() => of({ scan_id: 7, message: 'ok' })),
-  };
+  (comp as any).cyberscan =
+    (comp as any).complianceApi =
+    (comp as any).publicScanApi =
+    (comp as any).notifApi =
+    (comp as any).codeScanApi =
+    (comp as any).urlScanApi =
+    (comp as any).scanApi =
+    (comp as any).siteApi =
+    (comp as any).billing =
+      {
+        getPlans: vi.fn(() => of([])),
+        getMySubscription: vi.fn(() => of(null)),
+        createCheckout: vi.fn(() => of({ checkout_url: '/dashboard' })),
+        createSite: vi.fn(() => of({ id: 42 })),
+        triggerScan: vi.fn(() => of({ scan_id: 7, message: 'ok' })),
+      };
   (comp as any).router = { navigate: vi.fn(), navigateByUrl: vi.fn() };
   (comp as any).snack = { open: vi.fn() };
   (comp as any).title = { setTitle: vi.fn() };

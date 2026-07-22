@@ -5,7 +5,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 
-import { CyberscanService, Scan } from '../services/cyberscan.service';
+import { Scan } from '../services/cyberscan.service';
+import { ScanApiService } from '../services/scan-api.service';
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
 import { RadarChartComponent } from '../../../shared/radar-chart/radar-chart.component';
 import {
@@ -48,7 +49,7 @@ const PRO_MODULE_DESCRIPTIONS: Record<string, string> = {
 })
 export class ScanDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
-  private cyberscan = inject(CyberscanService);
+  private scanApi = inject(ScanApiService);
 
   scan = signal<Scan | null>(null);
   loading = signal(true);
@@ -67,7 +68,7 @@ export class ScanDetailComponent implements OnInit {
   }
 
   loadScan(id: number) {
-    this.cyberscan.getScan(id).subscribe({
+    this.scanApi.getScan(id).subscribe({
       next: scan => {
         this.scan.set(scan);
         this.loading.set(false);
@@ -84,7 +85,7 @@ export class ScanDetailComponent implements OnInit {
 
   startPolling(id: number) {
     pollWithBackoff(
-      () => this.cyberscan.getScan(id),
+      () => this.scanApi.getScan(id),
       s => s.status !== 'pending' && s.status !== 'running'
     ).subscribe(scan => this.scan.set(scan));
   }
@@ -92,7 +93,7 @@ export class ScanDetailComponent implements OnInit {
   downloadPdf() {
     const s = this.scan();
     if (!s) return;
-    this.cyberscan.downloadPdfBlob(s.id).subscribe({
+    this.scanApi.downloadPdfBlob(s.id).subscribe({
       next: blob => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -109,7 +110,7 @@ export class ScanDetailComponent implements OnInit {
     const s = this.scan();
     if (!s) return;
     this.downloadingBranded.set(true);
-    this.cyberscan.downloadBrandedPdfBlob(s.id).subscribe({
+    this.scanApi.downloadBrandedPdfBlob(s.id).subscribe({
       next: blob => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -128,7 +129,7 @@ export class ScanDetailComponent implements OnInit {
     if (!s) return;
     const ext = scriptKey === 'fastapi' ? '.py' : '.sh';
     const filename = `cyberscan_${scriptKey}_${s.id}${ext}`;
-    this.cyberscan.downloadRemediationBlob(s.id, scriptKey).subscribe({
+    this.scanApi.downloadRemediationBlob(s.id, scriptKey).subscribe({
       next: blob => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

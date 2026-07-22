@@ -349,16 +349,24 @@ function makeService(): Iso27001Component {
 describe('Iso27001Component — ngOnInit()', () => {
   it('charge les données et arrête le loading', () => {
     const comp = makeService();
-    (comp as any).cyberscan = {
-      getIso27001Assessment: vi.fn().mockReturnValue(
-        of({
-          categories: [makeCategory('c1', ['i1'])],
-          items: { i1: 'compliant' },
-          score: 42,
-          updated_at: '2024-01-01T00:00:00Z',
-        })
-      ),
-    };
+    (comp as any).cyberscan =
+      (comp as any).complianceApi =
+      (comp as any).publicScanApi =
+      (comp as any).notifApi =
+      (comp as any).codeScanApi =
+      (comp as any).urlScanApi =
+      (comp as any).scanApi =
+      (comp as any).siteApi =
+        {
+          getIso27001Assessment: vi.fn().mockReturnValue(
+            of({
+              categories: [makeCategory('c1', ['i1'])],
+              items: { i1: 'compliant' },
+              score: 42,
+              updated_at: '2024-01-01T00:00:00Z',
+            })
+          ),
+        };
     comp.ngOnInit();
     expect((comp as any).loading()).toBe(false);
     expect((comp as any).score()).toBe(42);
@@ -368,9 +376,17 @@ describe('Iso27001Component — ngOnInit()', () => {
 
   it('positionne le titre et la meta description', () => {
     const comp = makeService();
-    (comp as any).cyberscan = {
-      getIso27001Assessment: vi.fn().mockReturnValue(of({})),
-    };
+    (comp as any).cyberscan =
+      (comp as any).complianceApi =
+      (comp as any).publicScanApi =
+      (comp as any).notifApi =
+      (comp as any).codeScanApi =
+      (comp as any).urlScanApi =
+      (comp as any).scanApi =
+      (comp as any).siteApi =
+        {
+          getIso27001Assessment: vi.fn().mockReturnValue(of({})),
+        };
     comp.ngOnInit();
     expect((comp as any).titleService.setTitle).toHaveBeenCalled();
     expect((comp as any).meta.updateTag).toHaveBeenCalledWith(
@@ -380,9 +396,17 @@ describe('Iso27001Component — ngOnInit()', () => {
 
   it('utilise les valeurs par défaut si data vide', () => {
     const comp = makeService();
-    (comp as any).cyberscan = {
-      getIso27001Assessment: vi.fn().mockReturnValue(of({})),
-    };
+    (comp as any).cyberscan =
+      (comp as any).complianceApi =
+      (comp as any).publicScanApi =
+      (comp as any).notifApi =
+      (comp as any).codeScanApi =
+      (comp as any).urlScanApi =
+      (comp as any).scanApi =
+      (comp as any).siteApi =
+        {
+          getIso27001Assessment: vi.fn().mockReturnValue(of({})),
+        };
     comp.ngOnInit();
     expect((comp as any).categories()).toEqual([]);
     expect((comp as any).items()).toEqual({});
@@ -393,9 +417,17 @@ describe('Iso27001Component — ngOnInit()', () => {
 
   it("affiche une erreur et arrête le loading en cas d'échec", () => {
     const comp = makeService();
-    (comp as any).cyberscan = {
-      getIso27001Assessment: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
-    };
+    (comp as any).cyberscan =
+      (comp as any).complianceApi =
+      (comp as any).publicScanApi =
+      (comp as any).notifApi =
+      (comp as any).codeScanApi =
+      (comp as any).urlScanApi =
+      (comp as any).scanApi =
+      (comp as any).siteApi =
+        {
+          getIso27001Assessment: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
+        };
     comp.ngOnInit();
     expect((comp as any).loading()).toBe(false);
     expect((comp as any).snack.open).toHaveBeenCalled();
@@ -406,11 +438,19 @@ describe('Iso27001Component — save()', () => {
   it('met à jour score/updatedAt, arrête saving et notifie', () => {
     const comp = makeService();
     (comp as any).categories.set([makeCategory('c1', ['i1'])]);
-    (comp as any).cyberscan = {
-      saveIso27001Assessment: vi
-        .fn()
-        .mockReturnValue(of({ score: 77, updated_at: '2024-02-02T00:00:00Z' })),
-    };
+    (comp as any).cyberscan =
+      (comp as any).complianceApi =
+      (comp as any).publicScanApi =
+      (comp as any).notifApi =
+      (comp as any).codeScanApi =
+      (comp as any).urlScanApi =
+      (comp as any).scanApi =
+      (comp as any).siteApi =
+        {
+          saveIso27001Assessment: vi
+            .fn()
+            .mockReturnValue(of({ score: 77, updated_at: '2024-02-02T00:00:00Z' })),
+        };
     comp.save();
     expect((comp as any).score()).toBe(77);
     expect((comp as any).updatedAt()).toBe('2024-02-02T00:00:00Z');
@@ -423,16 +463,32 @@ describe('Iso27001Component — save()', () => {
     (comp as any).categories.set([makeCategory('c1', ['i1', 'i2'])]);
     comp.setStatus('i1', 'compliant');
     const spy = vi.fn().mockReturnValue(of({ score: 0, updated_at: null }));
-    (comp as any).cyberscan = { saveIso27001Assessment: spy };
+    (comp as any).cyberscan =
+      (comp as any).complianceApi =
+      (comp as any).publicScanApi =
+      (comp as any).notifApi =
+      (comp as any).codeScanApi =
+      (comp as any).urlScanApi =
+      (comp as any).scanApi =
+      (comp as any).siteApi =
+        { saveIso27001Assessment: spy };
     comp.save();
     expect(spy).toHaveBeenCalledWith({ i1: 'compliant', i2: 'non_compliant' });
   });
 
   it('en erreur: arrête saving et notifie', () => {
     const comp = makeService();
-    (comp as any).cyberscan = {
-      saveIso27001Assessment: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
-    };
+    (comp as any).cyberscan =
+      (comp as any).complianceApi =
+      (comp as any).publicScanApi =
+      (comp as any).notifApi =
+      (comp as any).codeScanApi =
+      (comp as any).urlScanApi =
+      (comp as any).scanApi =
+      (comp as any).siteApi =
+        {
+          saveIso27001Assessment: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
+        };
     comp.save();
     expect((comp as any).saving()).toBe(false);
     expect((comp as any).snack.open).toHaveBeenCalled();
@@ -450,12 +506,20 @@ describe('Iso27001Component — exportPdf()', () => {
     } as any);
     (globalThis as any).URL.createObjectURL = vi.fn().mockReturnValue('blob:x');
     (globalThis as any).URL.revokeObjectURL = vi.fn();
-    (comp as any).cyberscan = {
-      saveIso27001Assessment: vi
-        .fn()
-        .mockReturnValue(of({ score: 60, updated_at: '2024-03-03T00:00:00Z' })),
-      downloadIso27001PdfBlob: vi.fn().mockReturnValue(of(new Blob(['pdf']))),
-    };
+    (comp as any).cyberscan =
+      (comp as any).complianceApi =
+      (comp as any).publicScanApi =
+      (comp as any).notifApi =
+      (comp as any).codeScanApi =
+      (comp as any).urlScanApi =
+      (comp as any).scanApi =
+      (comp as any).siteApi =
+        {
+          saveIso27001Assessment: vi
+            .fn()
+            .mockReturnValue(of({ score: 60, updated_at: '2024-03-03T00:00:00Z' })),
+          downloadIso27001PdfBlob: vi.fn().mockReturnValue(of(new Blob(['pdf']))),
+        };
     comp.exportPdf();
     expect((comp as any).score()).toBe(60);
     expect(clickSpy).toHaveBeenCalled();
@@ -465,9 +529,17 @@ describe('Iso27001Component — exportPdf()', () => {
 
   it('erreur de sauvegarde -> exporting false + snack', () => {
     const comp = makeService();
-    (comp as any).cyberscan = {
-      saveIso27001Assessment: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
-    };
+    (comp as any).cyberscan =
+      (comp as any).complianceApi =
+      (comp as any).publicScanApi =
+      (comp as any).notifApi =
+      (comp as any).codeScanApi =
+      (comp as any).urlScanApi =
+      (comp as any).scanApi =
+      (comp as any).siteApi =
+        {
+          saveIso27001Assessment: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
+        };
     comp.exportPdf();
     expect((comp as any).exporting()).toBe(false);
     expect((comp as any).snack.open).toHaveBeenCalled();
@@ -475,10 +547,18 @@ describe('Iso27001Component — exportPdf()', () => {
 
   it('erreur de téléchargement -> exporting false + snack', () => {
     const comp = makeService();
-    (comp as any).cyberscan = {
-      saveIso27001Assessment: vi.fn().mockReturnValue(of({ score: 60, updated_at: 'x' })),
-      downloadIso27001PdfBlob: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
-    };
+    (comp as any).cyberscan =
+      (comp as any).complianceApi =
+      (comp as any).publicScanApi =
+      (comp as any).notifApi =
+      (comp as any).codeScanApi =
+      (comp as any).urlScanApi =
+      (comp as any).scanApi =
+      (comp as any).siteApi =
+        {
+          saveIso27001Assessment: vi.fn().mockReturnValue(of({ score: 60, updated_at: 'x' })),
+          downloadIso27001PdfBlob: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
+        };
     comp.exportPdf();
     expect((comp as any).exporting()).toBe(false);
     expect((comp as any).snack.open).toHaveBeenCalled();

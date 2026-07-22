@@ -94,9 +94,17 @@ describe('SiteDetailComponent — vérification de domaine (H2b)', () => {
 
   it('loadDomainStatus stocke le statut renvoyé', () => {
     const c = makeComp();
-    (c as any).cyberscan = {
-      getSiteDomainStatus: vi.fn().mockReturnValue(of({ domain: 'a.com', verified: false })),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          getSiteDomainStatus: vi.fn().mockReturnValue(of({ domain: 'a.com', verified: false })),
+        };
     c.loadDomainStatus(7);
     expect(c.domainStatus()).toEqual({ domain: 'a.com', verified: false });
   });
@@ -112,7 +120,15 @@ describe('SiteDetailComponent — vérification de domaine (H2b)', () => {
       dns_record_value: 't',
       instructions: '',
     };
-    (c as any).cyberscan = { requestSiteDomainVerify: vi.fn().mockReturnValue(of(info)) };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { requestSiteDomainVerify: vi.fn().mockReturnValue(of(info)) };
     c.startVerify();
     expect(c.showVerifyPanel()).toBe(true);
     expect(c.verifyInfo()).toEqual(info);
@@ -121,9 +137,17 @@ describe('SiteDetailComponent — vérification de domaine (H2b)', () => {
   it('checkVerify vérifié -> ferme le panneau + met à jour le statut', () => {
     const c = makeComp();
     (c as any).showVerifyPanel.set(true);
-    (c as any).cyberscan = {
-      checkSiteDomainVerify: vi.fn().mockReturnValue(of({ domain: 'a.com', verified: true })),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          checkSiteDomainVerify: vi.fn().mockReturnValue(of({ domain: 'a.com', verified: true })),
+        };
     c.checkVerify();
     expect(c.domainStatus()?.verified).toBe(true);
     expect(c.showVerifyPanel()).toBe(false);
@@ -132,9 +156,17 @@ describe('SiteDetailComponent — vérification de domaine (H2b)', () => {
   it('checkVerify non vérifié -> garde le panneau ouvert', () => {
     const c = makeComp();
     (c as any).showVerifyPanel.set(true);
-    (c as any).cyberscan = {
-      checkSiteDomainVerify: vi.fn().mockReturnValue(of({ domain: 'a.com', verified: false })),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          checkSiteDomainVerify: vi.fn().mockReturnValue(of({ domain: 'a.com', verified: false })),
+        };
     c.checkVerify();
     expect(c.domainStatus()?.verified).toBe(false);
     expect(c.showVerifyPanel()).toBe(true);
@@ -240,21 +272,37 @@ describe('SiteDetailComponent — statuts de failles', () => {
 
   it('loadFindingStatuses transforme la liste en map module_key -> status', () => {
     const c = makeComp();
-    (c as any).cyberscan = {
-      getFindingStatuses: vi.fn().mockReturnValue(
-        of([
-          { module_key: 'ssl', status: 'resolved' },
-          { module_key: 'headers', status: 'todo' },
-        ])
-      ),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          getFindingStatuses: vi.fn().mockReturnValue(
+            of([
+              { module_key: 'ssl', status: 'resolved' },
+              { module_key: 'headers', status: 'todo' },
+            ])
+          ),
+        };
     c.loadFindingStatuses(7);
     expect(c.findingStatuses()).toEqual({ ssl: 'resolved', headers: 'todo' });
   });
 
   it('setFindingStatus met à jour la map de façon optimiste', () => {
     const c = makeComp();
-    (c as any).cyberscan = { updateFindingStatus: vi.fn().mockReturnValue(of(void 0)) };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { updateFindingStatus: vi.fn().mockReturnValue(of(void 0)) };
     c.setFindingStatus('ssl', 'in_progress');
     expect(c.findingStatuses()).toEqual({ ssl: 'in_progress' });
     expect((c as any).cyberscan.updateFindingStatus).toHaveBeenCalledWith(7, 'ssl', 'in_progress');
@@ -263,9 +311,17 @@ describe('SiteDetailComponent — statuts de failles', () => {
   it("setFindingStatus rollback en cas d'erreur", () => {
     const c = makeComp();
     (c as any).findingStatuses.set({ ssl: 'todo' });
-    (c as any).cyberscan = {
-      updateFindingStatus: vi.fn().mockReturnValue({ subscribe: (h: any) => h.error() }),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          updateFindingStatus: vi.fn().mockReturnValue({ subscribe: (h: any) => h.error() }),
+        };
     c.setFindingStatus('ssl', 'resolved');
     expect(c.findingStatuses()).toEqual({ ssl: 'todo' });
   });
@@ -286,7 +342,15 @@ describe('SiteDetailComponent — scans & pagination', () => {
   it('loadScans stocke les données et arrête le loader', () => {
     const c = makeComp();
     const data = { items: [], total: 0, page: 2, page_size: 20, total_pages: 0 };
-    (c as any).cyberscan = { getSiteScans: vi.fn().mockReturnValue(of(data)) };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { getSiteScans: vi.fn().mockReturnValue(of(data)) };
     c.loadScans(2);
     expect(c.scans()).toEqual(data);
     expect(c.loadingScans()).toBe(false);
@@ -295,9 +359,17 @@ describe('SiteDetailComponent — scans & pagination', () => {
 
   it("loadScans arrête le loader en cas d'erreur", () => {
     const c = makeComp();
-    (c as any).cyberscan = {
-      getSiteScans: vi.fn().mockReturnValue({ subscribe: (h: any) => h.error() }),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          getSiteScans: vi.fn().mockReturnValue({ subscribe: (h: any) => h.error() }),
+        };
     c.loadScans(1);
     expect(c.loadingScans()).toBe(false);
   });
@@ -318,7 +390,15 @@ describe('SiteDetailComponent — scans & pagination', () => {
   it('triggerScan happy path relance la liste et notifie', () => {
     const c = makeComp();
     const spy = vi.spyOn(c, 'loadScans').mockImplementation(() => {});
-    (c as any).cyberscan = { triggerScan: vi.fn().mockReturnValue(of(void 0)) };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { triggerScan: vi.fn().mockReturnValue(of(void 0)) };
     c.triggerScan();
     expect(c.triggering()).toBe(false);
     expect(spy).toHaveBeenCalledWith(1);
@@ -327,11 +407,19 @@ describe('SiteDetailComponent — scans & pagination', () => {
 
   it("triggerScan affiche le détail de l'erreur serveur", () => {
     const c = makeComp();
-    (c as any).cyberscan = {
-      triggerScan: vi.fn().mockReturnValue({
-        subscribe: (h: any) => h.error({ error: { detail: 'quota atteint' } }),
-      }),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          triggerScan: vi.fn().mockReturnValue({
+            subscribe: (h: any) => h.error({ error: { detail: 'quota atteint' } }),
+          }),
+        };
     c.triggerScan();
     expect(c.triggering()).toBe(false);
     expect((c as any).snack.open).toHaveBeenCalledWith(
@@ -355,9 +443,17 @@ describe('SiteDetailComponent — téléchargement PDF', () => {
     const revokeSpy = vi.fn();
     (URL as any).createObjectURL = createSpy;
     (URL as any).revokeObjectURL = revokeSpy;
-    (c as any).cyberscan = {
-      downloadPdfBlob: vi.fn().mockReturnValue(of(new Blob(['pdf']))),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          downloadPdfBlob: vi.fn().mockReturnValue(of(new Blob(['pdf']))),
+        };
     c.downloadPdf(42);
     expect(createSpy).toHaveBeenCalled();
     expect(revokeSpy).toHaveBeenCalledWith('blob:x');
@@ -365,9 +461,17 @@ describe('SiteDetailComponent — téléchargement PDF', () => {
 
   it("downloadPdf notifie en cas d'erreur", () => {
     const c = makeComp();
-    (c as any).cyberscan = {
-      downloadPdfBlob: vi.fn().mockReturnValue({ subscribe: (h: any) => h.error() }),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          downloadPdfBlob: vi.fn().mockReturnValue({ subscribe: (h: any) => h.error() }),
+        };
     c.downloadPdf(42);
     expect((c as any).snack.open).toHaveBeenCalled();
   });

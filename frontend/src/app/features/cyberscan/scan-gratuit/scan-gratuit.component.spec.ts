@@ -235,7 +235,16 @@ describe('ScanGratuitComponent — submit()', () => {
   it('ne fait rien si le champ url est invalide', () => {
     const c = makeSubmit();
     (c as any).form.controls.url.invalid = true;
-    (c as any).cyberscan = (c as any).billing = { createPublicScan: vi.fn() };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+      (c as any).billing =
+        { createPublicScan: vi.fn() };
     c.submit();
     expect((c as any).cyberscan.createPublicScan).not.toHaveBeenCalled();
   });
@@ -243,16 +252,34 @@ describe('ScanGratuitComponent — submit()', () => {
   it('ne fait rien si déjà en cours de soumission', () => {
     const c = makeSubmit();
     (c as any).submitting.set(true);
-    (c as any).cyberscan = (c as any).billing = { createPublicScan: vi.fn() };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+      (c as any).billing =
+        { createPublicScan: vi.fn() };
     c.submit();
     expect((c as any).cyberscan.createPublicScan).not.toHaveBeenCalled();
   });
 
   it('trim l’URL et navigue vers /demo-result au succès', () => {
     const c = makeSubmit();
-    (c as any).cyberscan = (c as any).billing = {
-      createPublicScan: vi.fn().mockReturnValue(of({ token: 'tok123' })),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+      (c as any).billing =
+        {
+          createPublicScan: vi.fn().mockReturnValue(of({ token: 'tok123' })),
+        };
     c.submit();
     expect((c as any).cyberscan.createPublicScan).toHaveBeenCalledWith('http://x.com');
     expect((c as any).router.navigate).toHaveBeenCalledWith(['/demo-result', 'tok123']);
@@ -266,9 +293,18 @@ describe('ScanGratuitComponent — submit()', () => {
         getRawValue: () => ({ url: 'http://x.com', email: 'a@b.com', consent: true }),
       },
     });
-    (c as any).cyberscan = (c as any).billing = {
-      createPublicScan: vi.fn().mockReturnValue(of({ token: 'tok' })),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+      (c as any).billing =
+        {
+          createPublicScan: vi.fn().mockReturnValue(of({ token: 'tok' })),
+        };
     c.submit();
     expect((c as any).http.post).toHaveBeenCalledWith(
       expect.stringContaining('/newsletter/subscribe'),
@@ -285,18 +321,38 @@ describe('ScanGratuitComponent — submit()', () => {
         getRawValue: () => ({ url: 'http://x.com', email: 'a@b.com', consent: false }),
       },
     });
-    (c as any).cyberscan = (c as any).billing = {
-      createPublicScan: vi.fn().mockReturnValue(of({ token: 'tok' })),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+      (c as any).billing =
+        {
+          createPublicScan: vi.fn().mockReturnValue(of({ token: 'tok' })),
+        };
     c.submit();
     expect((c as any).http.post).not.toHaveBeenCalled();
   });
 
   it('met un message d’erreur en cas d’échec', () => {
     const c = makeSubmit();
-    (c as any).cyberscan = (c as any).billing = {
-      createPublicScan: vi.fn().mockReturnValue(throwError(() => ({ error: { detail: 'Boom' } }))),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+      (c as any).billing =
+        {
+          createPublicScan: vi
+            .fn()
+            .mockReturnValue(throwError(() => ({ error: { detail: 'Boom' } }))),
+        };
     c.submit();
     expect((c as any).error()).toBe('Boom');
     expect((c as any).submitting()).toBe(false);
@@ -304,9 +360,18 @@ describe('ScanGratuitComponent — submit()', () => {
 
   it('utilise un message par défaut si pas de detail', () => {
     const c = makeSubmit();
-    (c as any).cyberscan = (c as any).billing = {
-      createPublicScan: vi.fn().mockReturnValue(throwError(() => ({}))),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+      (c as any).billing =
+        {
+          createPublicScan: vi.fn().mockReturnValue(throwError(() => ({}))),
+        };
     c.submit();
     expect((c as any).error()).toContain('Erreur');
   });
@@ -323,7 +388,16 @@ describe('ScanGratuitComponent — openCheckout()', () => {
 
   it('redirige vers l’inscription si non authentifié', () => {
     const c = makeCheckout(false);
-    (c as any).cyberscan = (c as any).billing = { getPlans: vi.fn() };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+      (c as any).billing =
+        { getPlans: vi.fn() };
     c.openCheckout();
     expect((c as any).router.navigate).toHaveBeenCalledWith(['/'], {
       queryParams: { action: 'register' },
@@ -335,16 +409,25 @@ describe('ScanGratuitComponent — openCheckout()', () => {
     const c = makeCheckout(true);
     const originalHref = window.location.href;
     const created = vi.fn().mockReturnValue(of({ checkout_url: 'https://pay/x' }));
-    (c as any).cyberscan = (c as any).billing = {
-      getPlans: vi.fn().mockReturnValue(
-        of([
-          { id: 1, price_eur: 99 },
-          { id: 2, price_eur: 29 },
-          { id: 3, price_eur: 59 },
-        ])
-      ),
-      createCheckout: created,
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+      (c as any).billing =
+        {
+          getPlans: vi.fn().mockReturnValue(
+            of([
+              { id: 1, price_eur: 99 },
+              { id: 2, price_eur: 29 },
+              { id: 3, price_eur: 59 },
+            ])
+          ),
+          createCheckout: created,
+        };
     // window.location.href non testable de façon fiable en jsdom -> on vérifie l'appel createCheckout
     try {
       c.openCheckout();
@@ -362,16 +445,34 @@ describe('ScanGratuitComponent — openCheckout()', () => {
 
   it('arrête le chargement si aucun plan', () => {
     const c = makeCheckout(true);
-    (c as any).cyberscan = (c as any).billing = { getPlans: vi.fn().mockReturnValue(of([])) };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+      (c as any).billing =
+        { getPlans: vi.fn().mockReturnValue(of([])) };
     c.openCheckout();
     expect((c as any).checkoutLoading).toBe(false);
   });
 
   it('arrête le chargement en cas d’erreur getPlans', () => {
     const c = makeCheckout(true);
-    (c as any).cyberscan = (c as any).billing = {
-      getPlans: vi.fn().mockReturnValue(throwError(() => new Error('net'))),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+      (c as any).billing =
+        {
+          getPlans: vi.fn().mockReturnValue(throwError(() => new Error('net'))),
+        };
     c.openCheckout();
     expect((c as any).checkoutLoading).toBe(false);
   });

@@ -11,7 +11,6 @@ import { Subscription as RxSubscription } from 'rxjs';
 import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 
 import {
-  CyberscanService,
   Site,
   Scan,
   PaginatedScans,
@@ -19,6 +18,8 @@ import {
   SiteDomainStatus,
   SiteDomainVerify,
 } from '../services/cyberscan.service';
+import { ScanApiService } from '../services/scan-api.service';
+import { SiteApiService } from '../services/site-api.service';
 import { CollabService, Collaborator } from '../services/collab.service';
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
 import { computeScore, getGrade, getScoreColor } from '../../../shared/score-utils';
@@ -51,7 +52,8 @@ import {
 })
 export class SiteDetailComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
-  private cyberscan = inject(CyberscanService);
+  private scanApi = inject(ScanApiService);
+  private siteApi = inject(SiteApiService);
   private collabService = inject(CollabService);
   private snack = inject(MatSnackBar);
   private pollingSubscription?: RxSubscription;
@@ -142,7 +144,7 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
 
   loadSite(id: number) {
     this.loading.set(true);
-    this.cyberscan.getMySites().subscribe({
+    this.siteApi.getMySites().subscribe({
       next: sites => {
         const found = sites.find(s => s.id === id) ?? null;
         this.site.set(found);
@@ -163,7 +165,7 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
   showVerifyPanel = signal(false);
 
   loadDomainStatus(id: number) {
-    this.cyberscan.getSiteDomainStatus(id).subscribe({
+    this.siteApi.getSiteDomainStatus(id).subscribe({
       next: s => this.domainStatus.set(s),
       error: () => this.domainStatus.set(null),
     });
@@ -172,7 +174,7 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
   startVerify() {
     this.showVerifyPanel.set(true);
     if (this.verifyInfo()) return;
-    this.cyberscan.requestSiteDomainVerify(this.siteId()).subscribe({
+    this.siteApi.requestSiteDomainVerify(this.siteId()).subscribe({
       next: v => this.verifyInfo.set(v),
       error: () =>
         this.snack.open('Erreur lors de la demande de vérification', 'Fermer', { duration: 3000 }),
@@ -181,7 +183,7 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
 
   checkVerify() {
     this.verifying.set(true);
-    this.cyberscan.checkSiteDomainVerify(this.siteId()).subscribe({
+    this.siteApi.checkSiteDomainVerify(this.siteId()).subscribe({
       next: s => {
         this.verifying.set(false);
         this.domainStatus.set(s);
@@ -204,7 +206,7 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
   }
 
   loadFindingStatuses(id: number) {
-    this.cyberscan.getFindingStatuses(id).subscribe({
+    this.scanApi.getFindingStatuses(id).subscribe({
       next: list => {
         const map: Record<string, string> = {};
         list.forEach(fs => {
@@ -218,7 +220,7 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
   setFindingStatus(key: string, status: string) {
     const prev = this.findingStatuses();
     this.findingStatuses.set({ ...prev, [key]: status });
-    this.cyberscan.updateFindingStatus(this.siteId(), key, status).subscribe({
+    this.scanApi.updateFindingStatus(this.siteId(), key, status).subscribe({
       error: () => this.findingStatuses.set(prev),
     });
   }
@@ -226,7 +228,7 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
   loadScans(page: number) {
     this.loadingScans.set(true);
     this.currentPage.set(page);
-    this.cyberscan.getSiteScans(this.siteId(), page, 20).subscribe({
+    this.scanApi.getSiteScans(this.siteId(), page, 20).subscribe({
       next: data => {
         this.scans.set(data);
         this.loadingScans.set(false);
@@ -244,7 +246,7 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
     const hasActive = items.some(s => s.status === 'pending' || s.status === 'running');
     if (!hasActive || this.pollingSubscription) return;
     this.pollingSubscription = pollWithBackoff(
-      () => this.cyberscan.getSiteScans(this.siteId(), this.currentPage(), 20),
+      () => this.scanApi.getSiteScans(this.siteId(), this.currentPage(), 20),
       d => !d.items.some(s => s.status === 'pending' || s.status === 'running')
     ).subscribe(data => {
       this.scans.set(data);
@@ -257,7 +259,7 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
 
   triggerScan() {
     this.triggering.set(true);
-    this.cyberscan.triggerScan(this.siteId()).subscribe({
+    this.scanApi.triggerScan(this.siteId()).subscribe({
       next: () => {
         this.triggering.set(false);
         this.snack.open('Scan lancé — mise à jour automatique en cours', 'OK', { duration: 5000 });
@@ -273,7 +275,7 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
   }
 
   downloadPdf(scanId: number) {
-    this.cyberscan.downloadPdfBlob(scanId).subscribe({
+    this.scanApi.downloadPdfBlob(scanId).subscribe({
       next: blob => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

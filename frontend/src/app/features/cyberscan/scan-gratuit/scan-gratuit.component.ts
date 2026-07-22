@@ -9,7 +9,8 @@ import { HttpClient } from '@angular/common/http';
 import { Subscription, interval } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 
-import { CyberscanService, PublicScanResult } from '../services/cyberscan.service';
+import { PublicScanResult } from '../services/cyberscan.service';
+import { PublicScanApiService } from '../services/public-scan-api.service';
 import { BillingService } from '../services/billing.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
@@ -41,7 +42,7 @@ interface Module {
   templateUrl: './scan-gratuit.component.html',
 })
 export class ScanGratuitComponent implements OnInit, OnDestroy {
-  private cyberscan = inject(CyberscanService);
+  private publicScanApi = inject(PublicScanApiService);
   private billing = inject(BillingService);
   private auth = inject(AuthService);
   private http = inject(HttpClient);
@@ -94,7 +95,7 @@ export class ScanGratuitComponent implements OnInit, OnDestroy {
     this.error.set(null);
     this.scan.set(null);
 
-    this.cyberscan.createPublicScan(trimmedUrl).subscribe({
+    this.publicScanApi.createPublicScan(trimmedUrl).subscribe({
       next: result => {
         this.submitting.set(false);
         if (email && consent) {
@@ -115,7 +116,7 @@ export class ScanGratuitComponent implements OnInit, OnDestroy {
     this.pollSub?.unsubscribe();
     this.pollSub = interval(3000)
       .pipe(
-        switchMap(() => this.cyberscan.getPublicScan(token)),
+        switchMap(() => this.publicScanApi.getPublicScan(token)),
         takeWhile(s => s.status === 'pending' || s.status === 'running', true)
       )
       .subscribe({

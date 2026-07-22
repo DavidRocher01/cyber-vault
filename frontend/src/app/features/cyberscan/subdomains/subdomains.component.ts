@@ -5,7 +5,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { CyberscanService, SubdomainResult, SubdomainEntry } from '../services/cyberscan.service';
+import { SubdomainResult, SubdomainEntry } from '../services/cyberscan.service';
+import { SiteApiService } from '../services/site-api.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
@@ -23,7 +24,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
 })
 export class SubdomainsComponent implements OnInit {
   private route = inject(ActivatedRoute);
-  private cyberscan = inject(CyberscanService);
+  private siteApi = inject(SiteApiService);
 
   siteId = signal<number>(0);
   result = signal<SubdomainResult | null>(null);
@@ -34,7 +35,7 @@ export class SubdomainsComponent implements OnInit {
   ngOnInit() {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.siteId.set(id);
-    this.cyberscan.getSiteSubdomains(id).subscribe({
+    this.siteApi.getSiteSubdomains(id).subscribe({
       next: r => {
         this.result.set(r);
         this.loading.set(false);

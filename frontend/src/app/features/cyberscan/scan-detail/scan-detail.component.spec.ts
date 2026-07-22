@@ -412,9 +412,17 @@ describe('ScanDetailComponent — loadScan()', () => {
 
   it('stocke le scan et arrête le chargement en cas de succès', () => {
     const c = makeComp();
-    (c as any).cyberscan = {
-      getScan: vi.fn().mockReturnValue(of({ id: 1, status: 'done' })),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          getScan: vi.fn().mockReturnValue(of({ id: 1, status: 'done' })),
+        };
     c.loadScan(1);
     expect(c.scan()).toEqual({ id: 1, status: 'done' });
     expect(c.loading()).toBe(false);
@@ -423,9 +431,17 @@ describe('ScanDetailComponent — loadScan()', () => {
 
   it('déclenche le polling si le scan est pending', () => {
     const c = makeComp();
-    (c as any).cyberscan = {
-      getScan: vi.fn().mockReturnValue(of({ id: 2, status: 'pending' })),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          getScan: vi.fn().mockReturnValue(of({ id: 2, status: 'pending' })),
+        };
     const spy = vi.spyOn(c, 'startPolling').mockImplementation(() => {});
     c.loadScan(2);
     expect(spy).toHaveBeenCalledWith(2);
@@ -433,9 +449,17 @@ describe('ScanDetailComponent — loadScan()', () => {
 
   it('ne déclenche pas le polling si le scan est terminé', () => {
     const c = makeComp();
-    (c as any).cyberscan = {
-      getScan: vi.fn().mockReturnValue(of({ id: 3, status: 'done' })),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          getScan: vi.fn().mockReturnValue(of({ id: 3, status: 'done' })),
+        };
     const spy = vi.spyOn(c, 'startPolling').mockImplementation(() => {});
     c.loadScan(3);
     expect(spy).not.toHaveBeenCalled();
@@ -443,11 +467,19 @@ describe('ScanDetailComponent — loadScan()', () => {
 
   it('positionne une erreur si le service échoue', () => {
     const c = makeComp();
-    (c as any).cyberscan = {
-      getScan: vi.fn().mockReturnValue({
-        subscribe: (obs: any) => obs.error(new Error('boom')),
-      }),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          getScan: vi.fn().mockReturnValue({
+            subscribe: (obs: any) => obs.error(new Error('boom')),
+          }),
+        };
     c.loadScan(9);
     expect(c.error()).toBe('Scan introuvable');
     expect(c.loading()).toBe(false);
@@ -466,7 +498,15 @@ describe('ScanDetailComponent — downloads', () => {
   it('downloadPdf ne fait rien si scan null', () => {
     const c = make();
     (c as any).scan = signal<any>(null);
-    (c as any).cyberscan = { downloadPdfBlob: vi.fn() };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { downloadPdfBlob: vi.fn() };
     c.downloadPdf();
     expect((c as any).cyberscan.downloadPdfBlob).not.toHaveBeenCalled();
   });
@@ -475,7 +515,15 @@ describe('ScanDetailComponent — downloads', () => {
     const { anchor, createSpy } = withDom();
     const c = make();
     (c as any).scan = signal<any>({ id: 42 });
-    (c as any).cyberscan = { downloadPdfBlob: vi.fn().mockReturnValue(of(new Blob(['x']))) };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { downloadPdfBlob: vi.fn().mockReturnValue(of(new Blob(['x']))) };
     c.downloadPdf();
     expect((c as any).cyberscan.downloadPdfBlob).toHaveBeenCalledWith(42);
     expect(anchor.download).toBe('cyberscan_rapport_42.pdf');
@@ -488,9 +536,17 @@ describe('ScanDetailComponent — downloads', () => {
     const c = make();
     (c as any).scan = signal<any>({ id: 7 });
     (c as any).downloadingBranded = signal(false);
-    (c as any).cyberscan = {
-      downloadBrandedPdfBlob: vi.fn().mockReturnValue(of(new Blob(['x']))),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          downloadBrandedPdfBlob: vi.fn().mockReturnValue(of(new Blob(['x']))),
+        };
     c.downloadBrandedPdf();
     expect(c.downloadingBranded()).toBe(false);
     expect((c as any).cyberscan.downloadBrandedPdfBlob).toHaveBeenCalledWith(7);
@@ -501,11 +557,19 @@ describe('ScanDetailComponent — downloads', () => {
     const c = make();
     (c as any).scan = signal<any>({ id: 7 });
     (c as any).downloadingBranded = signal(false);
-    (c as any).cyberscan = {
-      downloadBrandedPdfBlob: vi.fn().mockReturnValue({
-        subscribe: (obs: any) => obs.error(new Error('x')),
-      }),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          downloadBrandedPdfBlob: vi.fn().mockReturnValue({
+            subscribe: (obs: any) => obs.error(new Error('x')),
+          }),
+        };
     c.downloadBrandedPdf();
     expect(c.downloadingBranded()).toBe(false);
   });
@@ -514,9 +578,17 @@ describe('ScanDetailComponent — downloads', () => {
     const { anchor, createSpy } = withDom();
     const c = make();
     (c as any).scan = signal<any>({ id: 5 });
-    (c as any).cyberscan = {
-      downloadRemediationBlob: vi.fn().mockReturnValue(of(new Blob(['x']))),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          downloadRemediationBlob: vi.fn().mockReturnValue(of(new Blob(['x']))),
+        };
     c.downloadRemediation('fastapi');
     expect(anchor.download).toBe('cyberscan_fastapi_5.py');
     createSpy.mockRestore();
@@ -526,9 +598,17 @@ describe('ScanDetailComponent — downloads', () => {
     const { anchor, createSpy } = withDom();
     const c = make();
     (c as any).scan = signal<any>({ id: 5 });
-    (c as any).cyberscan = {
-      downloadRemediationBlob: vi.fn().mockReturnValue(of(new Blob(['x']))),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          downloadRemediationBlob: vi.fn().mockReturnValue(of(new Blob(['x']))),
+        };
     c.downloadRemediation('ufw');
     expect(anchor.download).toBe('cyberscan_ufw_5.sh');
     createSpy.mockRestore();
@@ -537,7 +617,15 @@ describe('ScanDetailComponent — downloads', () => {
   it('downloadRemediation ne fait rien si scan null', () => {
     const c = make();
     (c as any).scan = signal<any>(null);
-    (c as any).cyberscan = { downloadRemediationBlob: vi.fn() };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { downloadRemediationBlob: vi.fn() };
     c.downloadRemediation('ufw');
     expect((c as any).cyberscan.downloadRemediationBlob).not.toHaveBeenCalled();
   });

@@ -6,7 +6,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Title, Meta } from '@angular/platform-browser';
 
-import { CyberscanService } from '../services/cyberscan.service';
+import { ComplianceApiService } from '../services/compliance-api.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import {
   complianceStatusLabel,
@@ -46,7 +46,7 @@ export interface Iso27001Category {
   templateUrl: './iso27001.component.html',
 })
 export class Iso27001Component implements OnInit {
-  private cyberscan = inject(CyberscanService);
+  private complianceApi = inject(ComplianceApiService);
   private snack = inject(MatSnackBar);
   private titleService = inject(Title);
   private meta = inject(Meta);
@@ -70,7 +70,7 @@ export class Iso27001Component implements OnInit {
       content:
         'Évaluez votre niveau de conformité à la norme ISO/IEC 27001:2022 avec Rocher Cybersécurité.',
     });
-    this.cyberscan.getIso27001Assessment().subscribe({
+    this.complianceApi.getIso27001Assessment().subscribe({
       next: data => {
         // Narrowing au bord de l'API : le backend renvoie des chaînes/objets
         // generiques dont les valeurs sont garanties valides pour ces types.
@@ -129,7 +129,7 @@ export class Iso27001Component implements OnInit {
 
   save() {
     this.saving.set(true);
-    this.cyberscan.saveIso27001Assessment(this._fullItems).subscribe({
+    this.complianceApi.saveIso27001Assessment(this._fullItems).subscribe({
       next: data => {
         this.score.set(data.score);
         this.updatedAt.set(data.updated_at);
@@ -145,7 +145,7 @@ export class Iso27001Component implements OnInit {
 
   exportPdf() {
     this.exporting.set(true);
-    this.cyberscan.saveIso27001Assessment(this._fullItems).subscribe({
+    this.complianceApi.saveIso27001Assessment(this._fullItems).subscribe({
       next: data => {
         this.score.set(data.score);
         this.updatedAt.set(data.updated_at);
@@ -159,7 +159,7 @@ export class Iso27001Component implements OnInit {
   }
 
   private _downloadPdf() {
-    this.cyberscan.downloadIso27001PdfBlob().subscribe({
+    this.complianceApi.downloadIso27001PdfBlob().subscribe({
       next: blob => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

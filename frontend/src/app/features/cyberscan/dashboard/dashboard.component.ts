@@ -25,13 +25,15 @@ import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 import { formatScanFrequency } from '../../../shared/plan-features';
 
 import {
-  CyberscanService,
   Site,
   Scan,
   Subscription as UserSubscription,
   Plan,
   AppNotification,
 } from '../services/cyberscan.service';
+import { NotificationApiService } from '../services/notification-api.service';
+import { ScanApiService } from '../services/scan-api.service';
+import { SiteApiService } from '../services/site-api.service';
 import { BillingService } from '../services/billing.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
@@ -86,7 +88,9 @@ interface PaginatedScans {
   styleUrl: './dashboard.component.css',
 })
 export class DashboardComponent implements OnInit, OnDestroy {
-  private cyberscan = inject(CyberscanService);
+  private notifApi = inject(NotificationApiService);
+  private scanApi = inject(ScanApiService);
+  private siteApi = inject(SiteApiService);
   private billing = inject(BillingService);
   private authService = inject(AuthService);
   private fb = inject(FormBuilder);
@@ -187,7 +191,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
             this.router.navigate(['/onboarding']);
             return EMPTY;
           }
-          return this.cyberscan.getMySites();
+          return this.siteApi.getMySites();
         })
       )
       .subscribe({
@@ -205,7 +209,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   loadNotifications() {
-    this.cyberscan.getNotifications().subscribe({
+    this.notifApi.getNotifications().subscribe({
       next: data => {
         this.notifications.set(data.items);
         this.unreadCount.set(data.unread_count);
@@ -221,7 +225,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   handleNotifClick(notif: AppNotification) {
     if (!notif.read) {
-      this.cyberscan.markNotificationRead(notif.id).subscribe({
+      this.notifApi.markNotificationRead(notif.id).subscribe({
         next: updated => {
           this.notifications.update(list => list.map(n => (n.id === notif.id ? updated : n)));
           this.unreadCount.update(c => Math.max(0, c - 1));
@@ -236,7 +240,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   markAllRead() {
-    this.cyberscan.markAllNotificationsRead().subscribe({
+    this.notifApi.markAllNotificationsRead().subscribe({
       next: () => {
         this.notifications.update(list => list.map(n => ({ ...n, read: true })));
         this.unreadCount.set(0);
@@ -247,7 +251,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   dismissNotif(event: MouseEvent, id: number) {
     event.stopPropagation();
-    this.cyberscan.deleteNotification(id).subscribe({
+    this.notifApi.deleteNotification(id).subscribe({
       next: () => {
         const notif = this.notifications().find(n => n.id === id);
         this.notifications.update(list => list.filter(n => n.id !== id));
@@ -260,7 +264,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   loadScans(siteId: number, page: number) {
     this.loadingScans.update(m => ({ ...m, [siteId]: true }));
     this.pageMap.update(m => ({ ...m, [siteId]: page }));
-    this.cyberscan.getSiteScans(siteId, page).subscribe({
+    this.scanApi.getSiteScans(siteId, page).subscribe({
       next: data => {
         this.scansMap.update(m => ({ ...m, [siteId]: data }));
         this.loadingScans.update(m => ({ ...m, [siteId]: false }));
@@ -284,7 +288,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private forceStartPolling(siteId: number) {
     this.pollingMap[siteId]?.unsubscribe();
     this.pollingMap[siteId] = pollWithBackoff(
-      () => this.cyberscan.getSiteScans(siteId, this.pageMap()[siteId] ?? 1),
+      () => this.scanApi.getSiteScans(siteId, this.pageMap()[siteId] ?? 1),
       d => !d.items.some(x => x.status === 'pending' || x.status === 'running')
     ).subscribe(data => {
       this.scansMap.update(m => ({ ...m, [siteId]: data }));
@@ -305,7 +309,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   addSite() {
     if (this.siteForm.invalid) return;
     this.addingSite.set(true);
-    this.cyberscan.createSite(this.siteForm.getRawValue()).subscribe({
+    this.siteApi.createSite(this.siteForm.getRawValue()).subscribe({
       next: site => {
         this.sites.update(s => [...s, site]);
         this.siteForm.reset();
@@ -335,7 +339,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
     ref.afterClosed().subscribe(ok => {
       if (!ok) return;
-      this.cyberscan.deleteSite(site.id).subscribe({
+      this.siteApi.deleteSite(site.id).subscribe({
         next: () => {
           this.sites.update(s => s.filter(x => x.id !== site.id));
           this.snack.open('Site supprimé', 'OK', { duration: 3000 });
@@ -346,7 +350,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   triggerScan(siteId: number) {
     this.triggeringScans.update(m => ({ ...m, [siteId]: true }));
-    this.cyberscan.triggerScan(siteId).subscribe({
+    this.scanApi.triggerScan(siteId).subscribe({
       next: () => {
         this.triggeringScans.update(m => ({ ...m, [siteId]: false }));
         this.snack.open('Scan lancé — mise à jour automatique en cours', 'OK', { duration: 5000 });
@@ -415,7 +419,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   downloadPdf(scanId: number) {
-    this.cyberscan.downloadPdfBlob(scanId).subscribe({
+    this.scanApi.downloadPdfBlob(scanId).subscribe({
       next: blob => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

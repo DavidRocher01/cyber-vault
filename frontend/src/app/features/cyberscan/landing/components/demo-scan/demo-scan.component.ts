@@ -3,8 +3,8 @@ import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
-import { CyberscanService } from '../../../services/cyberscan.service';
 import { extractApiError } from '../../../../../core/http-error';
+import { PublicScanApiService } from '../../../services/public-scan-api.service';
 
 @Component({
   standalone: true,
@@ -69,7 +69,7 @@ import { extractApiError } from '../../../../../core/http-error';
   `,
 })
 export class DemoScanComponent {
-  private cyberscan = inject(CyberscanService);
+  private publicScanApi = inject(PublicScanApiService);
   private router = inject(Router);
 
   demoUrl = signal('');
@@ -84,7 +84,7 @@ export class DemoScanComponent {
     }
     this.demoLoading.set(true);
     this.demoError.set(null);
-    this.cyberscan.createPublicScan(url).subscribe({
+    this.publicScanApi.createPublicScan(url).subscribe({
       next: res => {
         this.demoLoading.set(false);
         this.router.navigate(['/demo-result', res.token]);

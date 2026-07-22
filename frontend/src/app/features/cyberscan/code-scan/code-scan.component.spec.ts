@@ -666,7 +666,15 @@ describe('CodeScanComponent — loadHistory()', () => {
   it('stocke les données paginées et coupe le chargement', () => {
     const c = makeComp();
     const data = { items: [{ id: 1, status: 'done' }], total: 1, page: 2, size: 10, pages: 1 };
-    (c as any).cyberscan = { getCodeScans: vi.fn().mockReturnValue(of(data)) };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { getCodeScans: vi.fn().mockReturnValue(of(data)) };
     c.loadHistory(2);
     expect((c as any).currentPage()).toBe(2);
     expect((c as any).history()).toEqual(data);
@@ -701,7 +709,15 @@ describe('CodeScanComponent — deleteScan()', () => {
 
   it("retire le scan de l'historique et décrémente le total", () => {
     const c = makeComp();
-    (c as any).cyberscan = { deleteCodeScan: vi.fn().mockReturnValue(of(void 0)) };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { deleteCodeScan: vi.fn().mockReturnValue(of(void 0)) };
     c.deleteScan({ id: 1 } as any);
     expect((c as any).history().items.map((s: any) => s.id)).toEqual([2]);
     expect((c as any).history().total).toBe(1);
@@ -710,7 +726,15 @@ describe('CodeScanComponent — deleteScan()', () => {
   it("efface le scan actif s'il correspond à celui supprimé", () => {
     const c = makeComp();
     (c as any).activeScan.set({ id: 1 });
-    (c as any).cyberscan = { deleteCodeScan: vi.fn().mockReturnValue(of(void 0)) };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { deleteCodeScan: vi.fn().mockReturnValue(of(void 0)) };
     c.deleteScan({ id: 1 } as any);
     expect((c as any).activeScan()).toBeNull();
   });
@@ -718,7 +742,15 @@ describe('CodeScanComponent — deleteScan()', () => {
   it("conserve le scan actif s'il ne correspond pas", () => {
     const c = makeComp();
     (c as any).activeScan.set({ id: 2 });
-    (c as any).cyberscan = { deleteCodeScan: vi.fn().mockReturnValue(of(void 0)) };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { deleteCodeScan: vi.fn().mockReturnValue(of(void 0)) };
     c.deleteScan({ id: 1 } as any);
     expect((c as any).activeScan()).toEqual({ id: 2 });
   });
@@ -741,7 +773,15 @@ describe('CodeScanComponent — refreshScan()', () => {
   it("met à jour le scan dans l'historique", () => {
     const c = makeComp();
     const updated = { id: 1, status: 'done' };
-    (c as any).cyberscan = { getCodeScan: vi.fn().mockReturnValue(of(updated)) };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { getCodeScan: vi.fn().mockReturnValue(of(updated)) };
     (c as any).startPolling = vi.fn();
     c.refreshScan(1);
     expect((c as any).history().items[0]).toEqual(updated);
@@ -752,7 +792,15 @@ describe('CodeScanComponent — refreshScan()', () => {
     const c = makeComp();
     (c as any).activeScan.set({ id: 1, status: 'running' });
     const updated = { id: 1, status: 'done' };
-    (c as any).cyberscan = { getCodeScan: vi.fn().mockReturnValue(of(updated)) };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { getCodeScan: vi.fn().mockReturnValue(of(updated)) };
     (c as any).startPolling = vi.fn();
     c.refreshScan(1);
     expect((c as any).activeScan()).toEqual(updated);
@@ -761,7 +809,15 @@ describe('CodeScanComponent — refreshScan()', () => {
   it('relance le polling si le scan est toujours en cours', () => {
     const c = makeComp();
     const updated = { id: 1, status: 'running' };
-    (c as any).cyberscan = { getCodeScan: vi.fn().mockReturnValue(of(updated)) };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { getCodeScan: vi.fn().mockReturnValue(of(updated)) };
     const spy = vi.fn();
     (c as any).startPolling = spy;
     c.refreshScan(1);
@@ -793,7 +849,15 @@ describe('CodeScanComponent — submit()', () => {
   it('ne fait rien si le formulaire est invalide', () => {
     const c = makeComp();
     (c as any).form = { invalid: true, getRawValue: vi.fn() };
-    (c as any).cyberscan = { triggerCodeScan: vi.fn() };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { triggerCodeScan: vi.fn() };
     c.submit();
     expect((c as any).cyberscan.triggerCodeScan).not.toHaveBeenCalled();
     expect((c as any).submitting()).toBe(false);
@@ -807,9 +871,17 @@ describe('CodeScanComponent — submit()', () => {
       getRawValue: () => ({ repo_url: 'https://x.com/r.git', github_token: '' }),
       patchValue,
     };
-    (c as any).cyberscan = {
-      triggerCodeScan: vi.fn().mockReturnValue(of({ scan_id: 99 })),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          triggerCodeScan: vi.fn().mockReturnValue(of({ scan_id: 99 })),
+        };
     c.submit();
     expect((c as any).cyberscan.triggerCodeScan).toHaveBeenCalledWith(
       'https://x.com/r.git',
@@ -828,9 +900,17 @@ describe('CodeScanComponent — submit()', () => {
       getRawValue: () => ({ repo_url: 'https://x.com/r.git', github_token: 'ghp_1' }),
       patchValue: vi.fn(),
     };
-    (c as any).cyberscan = {
-      triggerCodeScan: vi.fn().mockReturnValue(of({ scan_id: 1 })),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          triggerCodeScan: vi.fn().mockReturnValue(of({ scan_id: 1 })),
+        };
     c.submit();
     expect((c as any).cyberscan.triggerCodeScan).toHaveBeenCalledWith(
       'https://x.com/r.git',
@@ -853,16 +933,32 @@ describe('CodeScanComponent — submitZip()', () => {
   it('ne fait rien sans fichier sélectionné', () => {
     const c = makeComp();
     (c as any).selectedFile.set(null);
-    (c as any).cyberscan = { uploadCodeScan: vi.fn() };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { uploadCodeScan: vi.fn() };
     c.submitZip();
     expect((c as any).cyberscan.uploadCodeScan).not.toHaveBeenCalled();
   });
 
   it('upload le fichier et réinitialise la sélection (happy)', () => {
     const c = makeComp();
-    (c as any).cyberscan = {
-      uploadCodeScan: vi.fn().mockReturnValue(of({ scan_id: 7 })),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          uploadCodeScan: vi.fn().mockReturnValue(of({ scan_id: 7 })),
+        };
     c.submitZip();
     expect((c as any).cyberscan.uploadCodeScan).toHaveBeenCalled();
     expect((c as any).submitting()).toBe(false);

@@ -10,7 +10,8 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { interval, Subscription as RxSubscription, EMPTY } from 'rxjs';
 import { switchMap, takeWhile, catchError } from 'rxjs/operators';
 
-import { CyberscanService, CodeScan, PaginatedCodeScans } from '../services/cyberscan.service';
+import { CodeScan, PaginatedCodeScans } from '../services/cyberscan.service';
+import { CodeScanApiService } from '../services/code-scan-api.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { extractApiError } from '../../../core/http-error';
 
@@ -55,7 +56,7 @@ interface ScanResults {
   templateUrl: './code-scan.component.html',
 })
 export class CodeScanComponent implements OnInit, OnDestroy {
-  private cyberscan = inject(CyberscanService);
+  private codeScanApi = inject(CodeScanApiService);
   private fb = inject(FormBuilder);
   private snack = inject(MatSnackBar);
   private pollSubs = new Map<number, RxSubscription>();
@@ -92,7 +93,7 @@ export class CodeScanComponent implements OnInit, OnDestroy {
   loadHistory(page: number) {
     this.loadingHistory.set(true);
     this.currentPage.set(page);
-    this.cyberscan.getCodeScans(page, 10).subscribe({
+    this.codeScanApi.getCodeScans(page, 10).subscribe({
       next: data => {
         this.history.set(data);
         this.loadingHistory.set(false);
@@ -170,7 +171,7 @@ export class CodeScanComponent implements OnInit, OnDestroy {
     this.normalizeRepoUrl();
     const { repo_url, github_token } = this.form.getRawValue();
 
-    this.cyberscan.triggerCodeScan(repo_url, github_token || undefined).subscribe({
+    this.codeScanApi.triggerCodeScan(repo_url, github_token || undefined).subscribe({
       next: res => {
         this.submitting.set(false);
         this.form.patchValue({ repo_url: '', github_token: '' });
@@ -193,7 +194,7 @@ export class CodeScanComponent implements OnInit, OnDestroy {
     const file = this.selectedFile();
     if (!file || this.submitting()) return;
     this.submitting.set(true);
-    this.cyberscan.uploadCodeScan(file).subscribe({
+    this.codeScanApi.uploadCodeScan(file).subscribe({
       next: res => {
         this.submitting.set(false);
         this.selectedFile.set(null);
@@ -216,7 +217,7 @@ export class CodeScanComponent implements OnInit, OnDestroy {
     if (this.pollSubs.has(scanId)) return;
     const sub = interval(4000)
       .pipe(
-        switchMap(() => this.cyberscan.getCodeScan(scanId).pipe(catchError(() => EMPTY))),
+        switchMap(() => this.codeScanApi.getCodeScan(scanId).pipe(catchError(() => EMPTY))),
         takeWhile(s => s.status === 'pending' || s.status === 'running', true)
       )
       .subscribe({
@@ -243,7 +244,7 @@ export class CodeScanComponent implements OnInit, OnDestroy {
   }
 
   refreshScan(scanId: number) {
-    this.cyberscan.getCodeScan(scanId).subscribe({
+    this.codeScanApi.getCodeScan(scanId).subscribe({
       next: scan => {
         this.history.update(h =>
           h
@@ -267,7 +268,7 @@ export class CodeScanComponent implements OnInit, OnDestroy {
   }
 
   deleteScan(scan: CodeScan) {
-    this.cyberscan.deleteCodeScan(scan.id).subscribe({
+    this.codeScanApi.deleteCodeScan(scan.id).subscribe({
       next: () => {
         this.history.update(h =>
           h
