@@ -5,6 +5,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { HttpClient } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { extractApiError } from '../../../core/http-error';
 
 export const NEED_OPTIONS = [
   { value: 'rssi-externalise', label: 'RSSI externalisé — votre RSSI à temps partagé (sur devis)' },
@@ -75,9 +76,10 @@ export class ContactComponent implements OnInit {
       },
       error: err => {
         this.status = 'error';
-        this.errorMessage =
-          err?.error?.detail ??
-          'Une erreur est survenue. Réessayez ou écrivez directement à rocherdavid@ymail.com.';
+        this.errorMessage = extractApiError(
+          err,
+          'Une erreur est survenue. Réessayez ou écrivez directement à rocherdavid@ymail.com.'
+        );
       },
     });
   }

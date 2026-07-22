@@ -15,6 +15,7 @@ import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.com
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { computeScore, getGrade, getScoreColor } from '../../../shared/score-utils';
 import { environment } from '../../../../environments/environment';
+import { extractApiError } from '../../../core/http-error';
 
 interface Module {
   key: string;
@@ -103,7 +104,7 @@ export class ScanGratuitComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.submitting.set(false);
-        this.error.set(err.error?.detail || "Erreur lors du lancement du scan. Vérifiez l'URL.");
+        this.error.set(extractApiError(err, "Erreur lors du lancement du scan. Vérifiez l'URL."));
       },
     });
   }

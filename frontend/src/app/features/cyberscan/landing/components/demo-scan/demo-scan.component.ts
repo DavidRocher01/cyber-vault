@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { CyberscanService } from '../../../services/cyberscan.service';
+import { extractApiError } from '../../../../../core/http-error';
 
 @Component({
   standalone: true,
@@ -90,7 +91,7 @@ export class DemoScanComponent {
       },
       error: err => {
         this.demoLoading.set(false);
-        this.demoError.set(err.error?.detail || 'Erreur lors du lancement du scan. Réessayez.');
+        this.demoError.set(extractApiError(err, 'Erreur lors du lancement du scan. Réessayez.'));
       },
     });
   }

@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { BookingService, Slot } from './booking.service';
 import { NEED_OPTIONS } from '../contact/contact.component';
+import { extractApiError } from '../../../core/http-error';
 
 type Step = 'calendar' | 'form' | 'confirmed';
 
@@ -246,7 +247,7 @@ export class BookingComponent implements OnInit {
           this.submitting.set(false);
         },
         error: err => {
-          this.apiError.set(err?.error?.detail ?? 'Une erreur est survenue. Réessayez.');
+          this.apiError.set(extractApiError(err, 'Une erreur est survenue. Réessayez.'));
           this.submitting.set(false);
         },
       });

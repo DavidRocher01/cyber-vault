@@ -13,6 +13,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { AuthService } from '../../../../../core/services/auth.service';
 import { OtpInputComponent } from '../../../../../shared/otp-input/otp-input.component';
+import { extractApiError } from '../../../../../core/http-error';
 
 @Component({
   standalone: true,
@@ -102,7 +103,7 @@ export class AuthModalComponent {
         }
       },
       error: err => {
-        this.authError = err.error?.detail ?? 'Identifiants incorrects.';
+        this.authError = extractApiError(err, 'Identifiants incorrects.');
         this.authLoading = false;
       },
     });
@@ -118,7 +119,7 @@ export class AuthModalComponent {
         this.router.navigate(['/']);
       },
       error: err => {
-        this.authError = err.error?.detail ?? 'Code invalide.';
+        this.authError = extractApiError(err, 'Code invalide.');
         this.authLoading = false;
         this.authOtpClear++;
       },
@@ -145,7 +146,7 @@ export class AuthModalComponent {
           this.router.navigate(['/onboarding']);
         },
         error: err => {
-          this.authError = err.error?.detail ?? 'Erreur lors de la création du compte.';
+          this.authError = extractApiError(err, 'Erreur lors de la création du compte.');
           this.authLoading = false;
         },
       });

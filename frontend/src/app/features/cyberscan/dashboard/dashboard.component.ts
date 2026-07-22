@@ -49,6 +49,7 @@ import { environment } from '../../../../environments/environment';
 import { StatsCardsComponent } from './components/stats-cards/stats-cards.component';
 import { RecentScansComponent } from './components/recent-scans/recent-scans.component';
 import { SitesGridComponent } from './components/sites-grid/sites-grid.component';
+import { extractApiError } from '../../../core/http-error';
 
 type ScanFilter = 'all' | 'done' | 'running' | 'error';
 
@@ -313,7 +314,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.addingSite.set(false);
-        this.snack.open(err.error?.detail || "Erreur lors de l'ajout", 'Fermer', {
+        this.snack.open(extractApiError(err, "Erreur lors de l'ajout"), 'Fermer', {
           duration: 5000,
         });
       },
@@ -354,7 +355,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.triggeringScans.update(m => ({ ...m, [siteId]: false }));
-        this.snack.open(err.error?.detail || 'Erreur lors du lancement', 'Fermer', {
+        this.snack.open(extractApiError(err, 'Erreur lors du lancement'), 'Fermer', {
           duration: 5000,
         });
       },

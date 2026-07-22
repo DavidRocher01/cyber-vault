@@ -11,6 +11,7 @@ import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 
 import { CyberscanService, UrlScan, PaginatedUrlScans } from '../services/cyberscan.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { extractApiError } from '../../../core/http-error';
 
 interface Finding {
   type: string;
@@ -110,7 +111,7 @@ export class UrlScannerComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.submitting.set(false);
-        this.snack.open(err.error?.detail || 'Erreur lors du lancement', 'Fermer', {
+        this.snack.open(extractApiError(err, 'Erreur lors du lancement'), 'Fermer', {
           duration: 6000,
         });
       },

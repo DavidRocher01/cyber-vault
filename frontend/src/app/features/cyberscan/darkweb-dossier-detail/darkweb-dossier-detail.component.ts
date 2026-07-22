@@ -15,6 +15,7 @@ import {
   BreachSource,
 } from '../services/darkweb-dossier.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { extractApiError } from '../../../core/http-error';
 
 @Component({
   standalone: true,
@@ -104,7 +105,7 @@ export class DarkwebDossierDetailComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.rescanning.set(false);
-        this.snack.open(err?.error?.detail || 'Erreur lors du rescan', 'Fermer', {
+        this.snack.open(extractApiError(err, 'Erreur lors du rescan'), 'Fermer', {
           duration: 4000,
         });
       },

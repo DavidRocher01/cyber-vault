@@ -9,6 +9,7 @@ import { Title } from '@angular/platform-browser';
 
 import { DarkwebDossierService } from '../services/darkweb-dossier.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { extractApiError } from '../../../core/http-error';
 
 @Component({
   standalone: true,
@@ -112,7 +113,7 @@ export class DarkwebDossierNewComponent {
       },
       error: err => {
         this.submitting.set(false);
-        const msg = err?.error?.detail || 'Erreur lors de la création du dossier';
+        const msg = extractApiError(err, 'Erreur lors de la création du dossier');
         this.snack.open(msg, 'Fermer', { duration: 5000 });
       },
     });

@@ -9,6 +9,7 @@ import { Title } from '@angular/platform-browser';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { PhishingStatusBadgeComponent } from '../phishing-status-badge/phishing-status-badge.component';
 import { PhishingService, PhishingCampaign } from '../services/phishing.service';
+import { extractApiError } from '../../../core/http-error';
 
 interface TrendPoint {
   label: string;
@@ -70,7 +71,7 @@ export class PhishingCampaignsComponent implements OnInit {
         this.snack.open('Campagne supprimée', 'OK', { duration: 3000 });
       },
       error: err =>
-        this.snack.open(err.error?.detail || 'Suppression impossible', 'Fermer', {
+        this.snack.open(extractApiError(err, 'Suppression impossible'), 'Fermer', {
           duration: 4000,
         }),
     });

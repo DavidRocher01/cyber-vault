@@ -12,6 +12,7 @@ import { switchMap, takeWhile, catchError } from 'rxjs/operators';
 
 import { CyberscanService, CodeScan, PaginatedCodeScans } from '../services/cyberscan.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { extractApiError } from '../../../core/http-error';
 
 interface Finding {
   tool: string;
@@ -181,7 +182,7 @@ export class CodeScanComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.submitting.set(false);
-        this.snack.open(err.error?.detail || 'Erreur lors du lancement', 'Fermer', {
+        this.snack.open(extractApiError(err, 'Erreur lors du lancement'), 'Fermer', {
           duration: 6000,
         });
       },
@@ -204,7 +205,7 @@ export class CodeScanComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.submitting.set(false);
-        this.snack.open(err.error?.detail || "Erreur lors de l'upload", 'Fermer', {
+        this.snack.open(extractApiError(err, "Erreur lors de l'upload"), 'Fermer', {
           duration: 6000,
         });
       },

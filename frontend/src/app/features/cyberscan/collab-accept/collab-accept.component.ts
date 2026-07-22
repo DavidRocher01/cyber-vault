@@ -7,6 +7,7 @@ import { Title } from '@angular/platform-browser';
 
 import { CollabService, Collaborator } from '../services/collab.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { extractApiError } from '../../../core/http-error';
 
 @Component({
   standalone: true,
@@ -69,7 +70,7 @@ export class CollabAcceptComponent implements OnInit {
         this.loading.set(false);
       },
       error: err => {
-        this.error.set(err.error?.detail || 'Invitation introuvable ou expirée');
+        this.error.set(extractApiError(err, 'Invitation introuvable ou expirée'));
         this.loading.set(false);
       },
     });

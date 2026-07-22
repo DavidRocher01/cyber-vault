@@ -15,6 +15,7 @@ import { NgClass } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
+import { extractApiError } from '../../../core/http-error';
 
 function passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
   const password = control.get('password')?.value;
@@ -95,7 +96,7 @@ export class ResetPasswordComponent implements OnInit {
           this.loading = false;
         },
         error: err => {
-          this.error = err.error?.detail ?? 'Lien invalide ou expiré.';
+          this.error = extractApiError(err, 'Lien invalide ou expiré.');
           this.loading = false;
         },
       });

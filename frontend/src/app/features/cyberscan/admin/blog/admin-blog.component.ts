@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { AdminAuthService } from '../admin-auth.service';
+import { extractApiError } from '../../../../core/http-error';
 
 interface BlogPost {
   id: number;
@@ -134,7 +135,7 @@ export class AdminBlogComponent implements OnInit {
         this.load();
       },
       error: err => {
-        this.saveError.set(err?.error?.detail ?? 'Erreur');
+        this.saveError.set(extractApiError(err, 'Erreur'));
         this.saving.set(false);
       },
     });

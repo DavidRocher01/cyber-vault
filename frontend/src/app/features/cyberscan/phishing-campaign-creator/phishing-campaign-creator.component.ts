@@ -17,6 +17,7 @@ import {
   planMaxTargets,
 } from '../services/phishing.service';
 import { PHISHING_SCENARIOS } from '../services/phishing-scenarios';
+import { extractApiError } from '../../../core/http-error';
 
 export type WizardStep = 'plan' | 'info' | 'targets' | 'scenarios' | 'review';
 
@@ -197,7 +198,7 @@ export class PhishingCampaignCreatorComponent implements OnInit {
       },
       error: err => {
         this.uploading.set(false);
-        const msg = err?.error?.detail ?? "Erreur lors de l'import du CSV";
+        const msg = extractApiError(err, "Erreur lors de l'import du CSV");
         this.snack.open(msg, 'Fermer', { duration: 5000 });
       },
     });
@@ -247,7 +248,7 @@ export class PhishingCampaignCreatorComponent implements OnInit {
       },
       error: err => {
         this.launching.set(false);
-        const msg = err?.error?.detail ?? 'Erreur lors du lancement';
+        const msg = extractApiError(err, 'Erreur lors du lancement');
         this.snack.open(msg, 'Fermer', { duration: 5000 });
       },
     });

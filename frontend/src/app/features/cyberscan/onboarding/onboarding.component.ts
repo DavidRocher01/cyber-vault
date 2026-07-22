@@ -9,6 +9,7 @@ import { Title } from '@angular/platform-browser';
 
 import { CyberscanService, Plan } from '../services/cyberscan.service';
 import { formatScanFrequency } from '../../../shared/plan-features';
+import { extractApiError } from '../../../core/http-error';
 
 @Component({
   standalone: true,
@@ -101,7 +102,7 @@ export class OnboardingComponent implements OnInit {
       },
       error: err => {
         this.addingSite.set(false);
-        this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
+        this.snack.open(extractApiError(err, 'Erreur'), 'Fermer', { duration: 4000 });
       },
     });
   }

@@ -24,6 +24,7 @@ import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.com
 import { computeScore, getGrade, getScoreColor } from '../../../shared/score-utils';
 import { Finding, getFindings } from '../../../shared/scan-findings';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { extractApiError } from '../../../core/http-error';
 import {
   ScoreTrendComponent,
   ScoreTrendPoint,
@@ -93,7 +94,7 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.sendingInvite.set(false);
-        this.snack.open(err.error?.detail || "Erreur lors de l'invitation", 'Fermer', {
+        this.snack.open(extractApiError(err, "Erreur lors de l'invitation"), 'Fermer', {
           duration: 4000,
         });
       },
@@ -264,7 +265,7 @@ export class SiteDetailComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.triggering.set(false);
-        this.snack.open(err.error?.detail || 'Erreur lors du lancement', 'Fermer', {
+        this.snack.open(extractApiError(err, 'Erreur lors du lancement'), 'Fermer', {
           duration: 6000,
         });
       },

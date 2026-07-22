@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
+import { extractApiError } from '../../../core/http-error';
 
 type ActionState = 'loading' | 'accepted' | 'rejected' | 'already' | 'error';
 
@@ -43,7 +44,7 @@ export class QuoteActionComponent implements OnInit {
           }
         },
         error: err => {
-          this.errorMsg.set(err.error?.detail ?? 'Une erreur est survenue.');
+          this.errorMsg.set(extractApiError(err, 'Une erreur est survenue.'));
           this.state.set('error');
         },
       });

@@ -17,6 +17,7 @@ import {
   Nis2Report,
 } from '../services/awareness.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { extractApiError } from '../../../core/http-error';
 
 @Component({
   standalone: true,
@@ -603,7 +604,7 @@ export class AwarenessOrgDetailComponent implements OnInit {
         },
         error: err => {
           this.addingLearner.set(false);
-          this.snack.open(err.error?.detail || 'Erreur.', 'Fermer', { duration: 4000 });
+          this.snack.open(extractApiError(err, 'Erreur.'), 'Fermer', { duration: 4000 });
         },
       });
   }
