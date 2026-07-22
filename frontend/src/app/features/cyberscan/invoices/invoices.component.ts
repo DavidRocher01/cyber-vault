@@ -7,7 +7,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { Title } from '@angular/platform-browser';
 
-import { CyberscanService, Invoice, PaginatedInvoices } from '../services/cyberscan.service';
+import { Invoice, PaginatedInvoices } from '../services/cyberscan.service';
+import { InvoiceApiService } from '../services/invoice-api.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 @Component({
@@ -26,7 +27,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
   styleUrl: './invoices.component.css',
 })
 export class InvoicesComponent implements OnInit {
-  private service = inject(CyberscanService);
+  private service = inject(InvoiceApiService);
   private snack = inject(MatSnackBar);
   private title = inject(Title);
 

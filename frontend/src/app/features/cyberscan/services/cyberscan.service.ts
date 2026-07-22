@@ -421,19 +421,7 @@ export class CyberscanService {
     return this.http.get<SubdomainResult>(`${API}/sites/${siteId}/subdomains`);
   }
 
-  // ── Invoices ───────────────────────────────────────────────────────────
-
-  getMyInvoices(page = 1, perPage = 20): Observable<PaginatedInvoices> {
-    return this.http.get<PaginatedInvoices>(`${API}/invoices?page=${page}&per_page=${perPage}`);
-  }
-
-  getInvoice(id: number): Observable<Invoice> {
-    return this.http.get<Invoice>(`${API}/invoices/${id}`);
-  }
-
-  downloadInvoicePdfBlob(id: number): Observable<Blob> {
-    return this.http.get(`${API}/invoices/${id}/pdf`, { responseType: 'blob' });
-  }
+  // ── Invoices : déplacées dans InvoiceApiService (premier domaine extrait) ──
 
   getFindingStatuses(siteId: number): Observable<FindingStatus[]> {
     return this.http.get<FindingStatus[]>(`${API}/scans/site/${siteId}/finding-status`);
