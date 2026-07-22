@@ -41,28 +41,57 @@ def _run(cmd: list[str], cwd: str, timeout: int = 120) -> tuple[int, str, str]:
         return NOT_INSTALLED, "", f"Command not found: {cmd[0]}"
 
 
+def _run_json_tool(cmd: list[str], cwd: str, tool: str, timeout: int = 120):
+    """Execute un outil qui emet du JSON sur stdout et renvoie l'objet parse.
+
+    Factorise le tryptique repete par la plupart des runners : lancement du
+    process, garde 'pas de sortie', puis json.loads/except. Renvoie None (et
+    logue) si l'outil n'a rien produit ou si le JSON est illisible ; le runner
+    appelant se contente alors de `return []`.
+    """
+    _code, stdout, stderr = _run(cmd, cwd=cwd, timeout=timeout)
+    if not stdout:
+        logger.warning(f"{tool} produced no output: {stderr[:300]}")
+        return None
+    try:
+        return json.loads(stdout)
+    except json.JSONDecodeError:
+        logger.warning(f"{tool} JSON parse error: {stdout[:200]}")
+        return None
+
+
+# Normalisation des severites : cle en MAJUSCULE (telle qu'emise par les outils)
+# -> severite interne. Regroupe les alias des differents scanners (bandit,
+# semgrep, trivy, gosec...) en une seule table.
+SEVERITY_MAP: dict[str, str] = {
+    "CRITICAL": "critical",
+    "HIGH": "high",
+    "ERROR": "high",
+    "MEDIUM": "medium",
+    "MODERATE": "medium",
+    "WARNING": "medium",
+    "LOW": "low",
+    "INFO": "low",
+    "UNKNOWN": "low",
+}
+
+
 # ─── individual tool runners ──────────────────────────────────────────────────
 
 
 def _run_bandit(repo_dir: str) -> list[dict]:
     """Run Bandit on all Python files. Returns list of findings."""
-    code, stdout, stderr = _run(
+    data = _run_json_tool(
         ["bandit", "-r", ".", "-f", "json", "-q", "--exit-zero"],
-        cwd=repo_dir,
+        repo_dir,
+        "bandit",
     )
-    if not stdout:
-        logger.warning(f"Bandit produced no output: {stderr}")
-        return []
-    try:
-        data = json.loads(stdout)
-    except json.JSONDecodeError:
-        logger.warning(f"Bandit JSON parse error: {stdout[:200]}")
+    if data is None:
         return []
 
     findings = []
     for issue in data.get("results", []):
-        sev_map = {"HIGH": "high", "MEDIUM": "medium", "LOW": "low"}
-        severity = sev_map.get(issue.get("issue_severity", "").upper(), "low")
+        severity = SEVERITY_MAP.get(issue.get("issue_severity", "").upper(), "low")
         findings.append(
             {
                 "tool": "bandit",
@@ -80,33 +109,20 @@ def _run_bandit(repo_dir: str) -> list[dict]:
 
 def _run_semgrep(repo_dir: str) -> list[dict]:
     """Run Semgrep with the auto ruleset. Returns list of findings."""
-    code, stdout, stderr = _run(
+    data = _run_json_tool(
         ["semgrep", "scan", "--config=auto", "--json", "--quiet", "--timeout=60"],
-        cwd=repo_dir,
+        repo_dir,
+        "semgrep",
         timeout=180,
     )
-    if not stdout:
-        logger.warning(f"Semgrep produced no output: {stderr[:300]}")
-        return []
-    try:
-        data = json.loads(stdout)
-    except json.JSONDecodeError:
-        logger.warning(f"Semgrep JSON parse error: {stdout[:200]}")
+    if data is None:
         return []
 
-    severity_map = {
-        "ERROR": "high",
-        "WARNING": "medium",
-        "INFO": "low",
-    }
     findings = []
     for r in data.get("results", []):
         extra = r.get("extra", {})
         sev_raw = extra.get("severity", extra.get("metadata", {}).get("severity", "INFO")).upper()
-        if sev_raw == "CRITICAL":
-            severity = "critical"
-        else:
-            severity = severity_map.get(sev_raw, "low")
+        severity = SEVERITY_MAP.get(sev_raw, "low")
 
         findings.append(
             {
@@ -260,18 +276,13 @@ def _run_npm_audit(repo_dir: str) -> list[dict]:
 
 def _run_detect_secrets(repo_dir: str) -> list[dict]:
     """Run detect-secrets to find potential secrets with entropy analysis."""
-    code, stdout, stderr = _run(
+    data = _run_json_tool(
         ["detect-secrets", "scan", "."],
-        cwd=repo_dir,
+        repo_dir,
+        "detect-secrets",
         timeout=120,
     )
-    if not stdout:
-        logger.warning(f"detect-secrets produced no output: {stderr[:300]}")
-        return []
-    try:
-        data = json.loads(stdout)
-    except json.JSONDecodeError:
-        logger.warning(f"detect-secrets JSON parse error: {stdout[:200]}")
+    if data is None:
         return []
 
     findings = []
@@ -294,18 +305,13 @@ def _run_detect_secrets(repo_dir: str) -> list[dict]:
 
 def _run_trivy(repo_dir: str) -> list[dict]:
     """Run trivy fs for multi-ecosystem CVE detection (pip, npm, go, cargo, …)."""
-    code, stdout, stderr = _run(
+    data = _run_json_tool(
         ["trivy", "fs", ".", "--format", "json", "--quiet", "--no-progress"],
-        cwd=repo_dir,
+        repo_dir,
+        "trivy",
         timeout=180,
     )
-    if not stdout:
-        logger.warning(f"trivy produced no output: {stderr[:300]}")
-        return []
-    try:
-        data = json.loads(stdout)
-    except json.JSONDecodeError:
-        logger.warning(f"trivy JSON parse error: {stdout[:200]}")
+    if data is None:
         return []
 
     severity_map = {
@@ -399,17 +405,12 @@ def _run_pip_audit(repo_dir: str) -> list[dict]:
         return []
 
     req_file = dep_files[0]
-    code, stdout, stderr = _run(
+    data = _run_json_tool(
         ["pip-audit", "-r", req_file, "-f", "json", "--no-deps"],
-        cwd=repo_dir,
+        repo_dir,
+        "pip-audit",
     )
-    if not stdout:
-        logger.warning(f"pip-audit produced no output: {stderr[:300]}")
-        return []
-    try:
-        data = json.loads(stdout)
-    except json.JSONDecodeError:
-        logger.warning(f"pip-audit JSON parse error: {stdout[:200]}")
+    if data is None:
         return []
 
     findings = []
@@ -478,18 +479,13 @@ def _run_trufflehog(repo_dir: str) -> list[dict]:
 
 def _run_njsscan(repo_dir: str) -> list[dict]:
     """Run njsscan for Node.js / JavaScript SAST."""
-    code, stdout, stderr = _run(
+    data = _run_json_tool(
         ["njsscan", "--json", "-o", "-", "."],
-        cwd=repo_dir,
+        repo_dir,
+        "njsscan",
         timeout=120,
     )
-    if not stdout:
-        logger.warning(f"njsscan produced no output: {stderr[:300]}")
-        return []
-    try:
-        data = json.loads(stdout)
-    except json.JSONDecodeError:
-        logger.warning(f"njsscan JSON parse error: {stdout[:200]}")
+    if data is None:
         return []
 
     severity_map = {"ERROR": "high", "WARNING": "medium", "INFO": "low"}
@@ -570,18 +566,13 @@ def _run_gosec(repo_dir: str) -> list[dict]:
     if not _glob.glob(os.path.join(repo_dir, "**/*.go"), recursive=True):
         logger.info("gosec: no .go files found, skipping")
         return []
-    code, stdout, stderr = _run(
+    data = _run_json_tool(
         ["gosec", "-fmt", "json", "-stdout", "-quiet", "./..."],
-        cwd=repo_dir,
+        repo_dir,
+        "gosec",
         timeout=180,
     )
-    if not stdout:
-        logger.warning(f"gosec produced no output: {stderr[:300]}")
-        return []
-    try:
-        data = json.loads(stdout)
-    except json.JSONDecodeError:
-        logger.warning(f"gosec JSON parse error: {stdout[:200]}")
+    if data is None:
         return []
 
     severity_map = {"HIGH": "high", "MEDIUM": "medium", "LOW": "low"}
