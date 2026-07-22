@@ -18,10 +18,15 @@ style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
 font-src 'self' https://fonts.gstatic.com;
 img-src 'self' data: https://rochercybersecurite.com https://*.rochercybersecurite.com https://www.gravatar.com;
 connect-src 'self';
-frame-ancestors 'none';
+object-src 'none';
 base-uri 'self';
-form-action 'self'
+form-action 'self';
+frame-src 'none';
+frame-ancestors 'none';
+upgrade-insecure-requests
 ```
+> Valeur EXACTEMENT en miroir de la CSP backend (`app/main.py`, SecurityHeadersMiddleware).
+> Garder les deux synchronisées à chaque évolution.
 Notes :
 - `script-src 'self'` sans `unsafe-inline` : les bundles Angular sont externes → OK. Si un
   `onload`/handler inline traîne dans l'index.html, la phase Report-Only le révélera.

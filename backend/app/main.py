@@ -50,7 +50,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "font-src 'self' https://fonts.gstatic.com; "
             "img-src 'self' data: https://rochercybersecurite.com https://*.rochercybersecurite.com https://www.gravatar.com; "
             "connect-src 'self'; "
-            "frame-ancestors 'none'"
+            # Durcissement : object/base-uri/form-action/frame-src n'ont pas de repli
+            # sur default-src -> les fixer ferme des vecteurs (injection de <base>,
+            # exfiltration via form-action externe, plugins, iframes).
+            "object-src 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self'; "
+            "frame-src 'none'; "
+            "frame-ancestors 'none'; "
+            "upgrade-insecure-requests"
         )
         if settings.APP_ENV == "production":
             response.headers["Strict-Transport-Security"] = (
