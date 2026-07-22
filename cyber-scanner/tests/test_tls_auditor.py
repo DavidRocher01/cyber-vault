@@ -86,7 +86,7 @@ def test_get_certificate_details_returns_none_on_error():
 def test_check_hsts_detects_hsts_header():
     mock_resp = MagicMock()
     mock_resp.headers = {"Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"}
-    with patch("scanner.tls_auditor.requests.get", return_value=mock_resp):
+    with patch("scanner.tls_auditor.safe_http.get", return_value=mock_resp):
         result = _check_hsts(HOST)
     assert result["present"] is True
     assert result["max_age"] == 31536000
@@ -97,7 +97,7 @@ def test_check_hsts_detects_hsts_header():
 def test_check_hsts_absent_when_no_header():
     mock_resp = MagicMock()
     mock_resp.headers = {}
-    with patch("scanner.tls_auditor.requests.get", return_value=mock_resp):
+    with patch("scanner.tls_auditor.safe_http.get", return_value=mock_resp):
         result = _check_hsts(HOST)
     assert result["present"] is False
     assert result["max_age"] == 0

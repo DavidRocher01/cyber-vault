@@ -12,6 +12,8 @@ from typing import Any
 import requests
 import urllib3
 
+from scanner import safe_http
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 REQUEST_TIMEOUT = 10
@@ -89,7 +91,9 @@ def _check_hsts(hostname: str) -> dict[str, Any]:
     """Check HSTS header presence, max-age and preload flag."""
     result = {"present": False, "max_age": 0, "preload": False, "include_subdomains": False}
     try:
-        resp = requests.get(
+        # safe_http revalide chaque redirection (anti-SSRF) : une redirection
+        # vers une IP interne lève InvalidURL (RequestException) -> HSTS absent.
+        resp = safe_http.get(
             f"https://{hostname}",
             timeout=REQUEST_TIMEOUT,
             verify=False,  # nosec B501 nosemgrep: python.requests.security.verify-disabled
