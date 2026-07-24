@@ -1,16 +1,12 @@
 import secrets
-from datetime import UTC, datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import require_admin
 from app.core.limiter import limiter
-from app.models.booking import Booking
 from app.models.booking_slot import BookingSlot
 from app.schemas.booking import (
     BookingConfirmOut,
@@ -19,6 +15,7 @@ from app.schemas.booking import (
     SlotBatchIn,
     SlotOut,
 )
+from app.services import booking_service
 from app.services.email_service import (
     send_booking_admin_notification,
     send_booking_confirmation,
@@ -74,13 +71,7 @@ async def list_slots(month: str, db: AsyncSession = Depends(get_db)):
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Format YYYY-MM requis",
         )
-    result = await db.execute(
-        select(BookingSlot)
-        .where(BookingSlot.date.like(f"{month}-%"))
-        .order_by(BookingSlot.date, BookingSlot.time)
-        .options(selectinload(BookingSlot.bookings))
-    )
-    slots = result.scalars().unique().all()
+    slots = await booking_service.list_slots_for_month(db, month)
     return [_slot_to_out(s) for s in slots]
 
 
@@ -92,12 +83,7 @@ async def create_booking(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(BookingSlot)
-        .where(BookingSlot.id == payload.slot_id)
-        .options(selectinload(BookingSlot.bookings))
-    )
-    slot = result.scalars().unique().one_or_none()
+    slot = await booking_service.get_slot_with_bookings(db, payload.slot_id)
     if not slot:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Créneau introuvable")
 
@@ -116,19 +102,16 @@ async def create_booking(
         raise HTTPException(status_code=status.HTTP_410_GONE, detail="Ce créneau est passé")
 
     cancel_token = secrets.token_urlsafe(32)
-    booking = Booking(
+    booking = await booking_service.create_booking(
+        db,
         slot_id=slot.id,
         name=payload.name,
         email=str(payload.email),
         phone=payload.phone,
         need_type=payload.need_type,
         message=payload.message,
-        status="confirmed",
         cancel_token=cancel_token,
-        created_at=datetime.now(UTC),
     )
-    db.add(booking)
-    await db.commit()
 
     date_label = _format_date_fr(slot.date)
     cancel_url = f"{settings.FRONTEND_URL}/reserver/annuler?token={cancel_token}"
@@ -165,14 +148,12 @@ async def create_booking(
 @router.get("/cancel")
 async def cancel_booking(token: str, db: AsyncSession = Depends(get_db)):
     """Public — cancel a booking via the token from the confirmation email."""
-    result = await db.execute(select(Booking).where(Booking.cancel_token == token))
-    booking = result.scalar_one_or_none()
+    booking = await booking_service.get_booking_by_cancel_token(db, token)
     if not booking:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Réservation introuvable")
     if booking.status == "cancelled":
         return {"message": "Cette réservation est déjà annulée."}
-    booking.status = "cancelled"
-    await db.commit()
+    await booking_service.cancel_booking(db, booking)
     return {"message": "Votre réservation a été annulée."}
 
 
@@ -186,19 +167,18 @@ async def cancel_booking(token: str, db: AsyncSession = Depends(get_db)):
     dependencies=[Depends(require_admin)],
 )
 async def add_slots(payload: SlotBatchIn, db: AsyncSession = Depends(get_db)):
-    now = datetime.now(UTC)
-    created = []
-    for s in payload.slots:
-        slot = BookingSlot(
-            date=s.date,
-            time=s.time,
-            duration_minutes=s.duration_minutes,
-            label=s.label,
-            created_at=now,
-        )
-        db.add(slot)
-        created.append(slot)
-    await db.commit()
+    created = await booking_service.create_slots(
+        db,
+        [
+            {
+                "date": s.date,
+                "time": s.time,
+                "duration_minutes": s.duration_minutes,
+                "label": s.label,
+            }
+            for s in payload.slots
+        ],
+    )
     return [
         SlotOut(
             id=s.id,
@@ -218,25 +198,16 @@ async def add_slots(payload: SlotBatchIn, db: AsyncSession = Depends(get_db)):
     dependencies=[Depends(require_admin)],
 )
 async def delete_slot(slot_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(BookingSlot).where(BookingSlot.id == slot_id))
-    slot = result.scalars().unique().one_or_none()
+    slot = await booking_service.get_slot(db, slot_id)
     if not slot:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Créneau introuvable")
-    await db.delete(slot)
-    await db.commit()
+    await booking_service.delete_slot(db, slot)
 
 
 @router.get("/admin/slots", response_model=list[SlotOut], dependencies=[Depends(require_admin)])
 async def admin_list_slots(month: str | None = None, db: AsyncSession = Depends(get_db)):
-    q = (
-        select(BookingSlot)
-        .order_by(BookingSlot.date, BookingSlot.time)
-        .options(selectinload(BookingSlot.bookings))
-    )
-    if month:
-        q = q.where(BookingSlot.date.like(f"{month}-%"))
-    result = await db.execute(q)
-    return [_slot_to_out(s) for s in result.scalars().unique().all()]
+    slots = await booking_service.list_all_slots(db, month)
+    return [_slot_to_out(s) for s in slots]
 
 
 @router.get(
@@ -245,8 +216,7 @@ async def admin_list_slots(month: str | None = None, db: AsyncSession = Depends(
     dependencies=[Depends(require_admin)],
 )
 async def admin_list_bookings(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Booking).order_by(Booking.created_at.desc()))
-    bookings = result.scalars().all()
+    bookings = await booking_service.list_all_bookings(db)
     return [
         BookingOut(
             id=b.id,
@@ -265,10 +235,8 @@ async def admin_list_bookings(db: AsyncSession = Depends(get_db)):
 
 @router.patch("/admin/bookings/{booking_id}/cancel", dependencies=[Depends(require_admin)])
 async def admin_cancel_booking(booking_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Booking).where(Booking.id == booking_id))
-    booking = result.scalar_one_or_none()
+    booking = await booking_service.get_booking(db, booking_id)
     if not booking:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Réservation introuvable")
-    booking.status = "cancelled"
-    await db.commit()
+    await booking_service.cancel_booking(db, booking)
     return {"message": "Réservation annulée."}
