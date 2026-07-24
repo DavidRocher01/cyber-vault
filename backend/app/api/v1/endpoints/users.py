@@ -9,7 +9,6 @@ import qrcode
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, EmailStr
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -17,8 +16,6 @@ from app.core.deps import get_current_user
 from app.core.limiter import limiter
 from app.core.security import hash_password, verify_password
 from app.core.totp_crypto import decrypt_totp_secret, encrypt_totp_secret
-from app.models.scan import Scan
-from app.models.site import Site
 from app.models.user import User
 from app.schemas.user import (
     NotificationPreferencesIn,
@@ -29,6 +26,7 @@ from app.schemas.user import (
     TwoFactorVerifyIn,
     UserOut,
 )
+from app.services import user_service
 
 
 class DeleteAccountIn(BaseModel):
@@ -53,15 +51,8 @@ async def get_profile(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    from app.models.rssi_client import RssiClient
-
-    linked_client = (
-        await db.execute(
-            select(RssiClient.id).where(RssiClient.client_user_id == current_user.id).limit(1)
-        )
-    ).scalar_one_or_none()
     out = UserOut.model_validate(current_user)
-    out.is_portal_client = linked_client is not None
+    out.is_portal_client = await user_service.is_portal_client(db, current_user.id)
     return out
 
 
@@ -78,14 +69,10 @@ async def update_email(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Mot de passe incorrect"
         )
 
-    result = await db.execute(select(User).where(User.email == payload.email))
-    if result.scalar_one_or_none():
+    if await user_service.get_by_email(db, payload.email):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email déjà utilisé")
 
-    current_user.email = payload.email
-    await db.commit()
-    await db.refresh(current_user)
-    return current_user
+    return await user_service.update_email(db, current_user, payload.email)
 
 
 @router.put("/me/password", status_code=status.HTTP_204_NO_CONTENT)
@@ -107,8 +94,8 @@ async def update_password(
             detail="Le mot de passe doit faire au moins 8 caractères",
         )
 
-    current_user.hashed_password = await asyncio.to_thread(hash_password, payload.new_password)
-    await db.commit()
+    hashed = await asyncio.to_thread(hash_password, payload.new_password)
+    await user_service.update_password(db, current_user, hashed)
 
 
 # ── Two-Factor Authentication ────────────────────────────────────────────────
@@ -128,30 +115,25 @@ async def export_my_data(
     db: AsyncSession = Depends(get_db),
 ):
     """Export all user data as JSON (RGPD — droit à la portabilité)."""
-    sites_result = await db.execute(select(Site).where(Site.user_id == current_user.id))
-    sites = sites_result.scalars().all()
+    sites = await user_service.list_sites_for_user(db, current_user.id)
 
     # Single query for all scans (no N+1)
     site_ids = [s.id for s in sites]
     site_map = {s.id: s for s in sites}
     scans_data = []
-    if site_ids:
-        scans_result = await db.execute(
-            select(Scan).where(Scan.site_id.in_(site_ids)).order_by(Scan.created_at.desc())
+    for scan in await user_service.list_scans_for_sites(db, site_ids):
+        site = site_map[scan.site_id]
+        scans_data.append(
+            {
+                "site_url": site.url,
+                "site_name": site.name,
+                "scan_id": scan.id,
+                "status": scan.status,
+                "overall_status": scan.overall_status,
+                "created_at": scan.created_at.isoformat() if scan.created_at else None,
+                "finished_at": scan.finished_at.isoformat() if scan.finished_at else None,
+            }
         )
-        for scan in scans_result.scalars().all():
-            site = site_map[scan.site_id]
-            scans_data.append(
-                {
-                    "site_url": site.url,
-                    "site_name": site.name,
-                    "scan_id": scan.id,
-                    "status": scan.status,
-                    "overall_status": scan.overall_status,
-                    "created_at": scan.created_at.isoformat() if scan.created_at else None,
-                    "finished_at": scan.finished_at.isoformat() if scan.finished_at else None,
-                }
-            )
 
     export = {
         "exported_at": datetime.now(UTC).isoformat(),
@@ -193,8 +175,7 @@ async def delete_my_account(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Mot de passe incorrect"
         )
 
-    await db.delete(current_user)
-    await db.commit()
+    await user_service.delete_account(db, current_user)
 
 
 @router.get("/me/notification-preferences", response_model=NotificationPreferencesOut)
@@ -208,14 +189,17 @@ async def update_notification_preferences(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    current_user.notif_scan_done = payload.notif_scan_done
-    current_user.notif_scan_critical = payload.notif_scan_critical
-    current_user.notif_url_scan_done = payload.notif_url_scan_done
-    current_user.notif_code_scan_done = payload.notif_code_scan_done
-    current_user.notif_ssl_expiry = payload.notif_ssl_expiry
-    await db.commit()
-    await db.refresh(current_user)
-    return current_user
+    return await user_service.update_notification_prefs(
+        db,
+        current_user,
+        {
+            "notif_scan_done": payload.notif_scan_done,
+            "notif_scan_critical": payload.notif_scan_critical,
+            "notif_url_scan_done": payload.notif_url_scan_done,
+            "notif_code_scan_done": payload.notif_code_scan_done,
+            "notif_ssl_expiry": payload.notif_ssl_expiry,
+        },
+    )
 
 
 @router.get("/me/badges")
@@ -226,23 +210,11 @@ async def get_my_badges(
     """Return the 5 gamification badges computed from existing data."""
     from datetime import timedelta
 
-    from app.models.nis2_assessment import Nis2Assessment
-
     now = datetime.now(UTC)
     since_30d = now - timedelta(days=30)
 
-    scans_result = await db.execute(
-        select(Scan)
-        .join(Site, Site.id == Scan.site_id)
-        .where(Site.user_id == current_user.id, Scan.status == "done")
-        .order_by(Scan.finished_at.asc())
-    )
-    done_scans = scans_result.scalars().all()
-
-    nis2_result = await db.execute(
-        select(Nis2Assessment).where(Nis2Assessment.user_id == current_user.id)
-    )
-    nis2 = nis2_result.scalar_one_or_none()
+    done_scans = await user_service.list_done_scans_for_user(db, current_user.id)
+    nis2 = await user_service.get_nis2_for_user(db, current_user.id)
 
     def _iso(dt) -> str | None:
         return dt.isoformat() if dt else None
@@ -326,8 +298,7 @@ async def setup_2fa(
 
     # Graine chiffrée au repos ; le secret brut n'est renvoyé qu'ici (pré-activation,
     # nécessaire pour la saisie manuelle dans l'app d'authentification).
-    current_user.totp_secret = encrypt_totp_secret(secret)
-    await db.commit()
+    await user_service.set_totp_secret(db, current_user, encrypt_totp_secret(secret))
 
     return TwoFactorSetupOut(qr_code_b64=_make_qr_b64(uri), secret=secret)
 
@@ -346,10 +317,7 @@ async def enable_2fa(
     totp = pyotp.TOTP(decrypt_totp_secret(current_user.totp_secret))
     if not totp.verify(payload.code, valid_window=1):
         raise HTTPException(status_code=400, detail="Code invalide ou expiré")
-    current_user.totp_enabled = True
-    await db.commit()
-    await db.refresh(current_user)
-    return current_user
+    return await user_service.enable_totp(db, current_user)
 
 
 @router.post("/me/2fa/disable", response_model=UserOut)
@@ -368,8 +336,4 @@ async def disable_2fa(
     totp = pyotp.TOTP(decrypt_totp_secret(current_user.totp_secret))
     if not totp.verify(payload.code, valid_window=1):
         raise HTTPException(status_code=400, detail="Code 2FA invalide")
-    current_user.totp_enabled = False
-    current_user.totp_secret = None
-    await db.commit()
-    await db.refresh(current_user)
-    return current_user
+    return await user_service.disable_totp(db, current_user)
