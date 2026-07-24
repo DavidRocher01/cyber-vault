@@ -350,6 +350,65 @@ async def test_process_dossier_failure_sets_failed_status(db_session):
     assert dossier.finished_at is not None
 
 
+# ── rescan: reset non destructif -> un rescan échoué conserve les résultats ─────
+
+
+async def test_reset_for_rescan_preserves_results_on_failure(db_session):
+    """Régression : un rescan qui échoue ne doit PAS détruire les résultats
+    précédents. `reset_dossier_for_rescan` ne réinitialise que le cycle de vie ;
+    les fuites/scores restent jusqu'à réécriture par un run réussi. Ici le run de
+    rescan échoue (API HS) -> les données du scan précédent doivent survivre."""
+    from sqlalchemy import select
+
+    from app.services.darkweb_dossier import reset_dossier_for_rescan
+
+    user = await _seed_user(db_session, "rescan-preserve@test.com")
+    dossier_id = await _seed_dossier(db_session, user.id, ["keep@acme.fr"])
+
+    import unittest.mock as mock
+
+    # 1) Premier scan réussi -> le dossier est peuplé.
+    with mock.patch.object(ingestion, "check_email_breaches", return_value=_BREACH_RESULT):
+        await process_dossier(dossier_id, "key")
+
+    before = await _reload_dossier(dossier_id)
+    before_targets = await _reload_targets(dossier_id)
+    assert before.status == "completed"
+    assert before.risk_score and before.exposed_emails == 1
+    assert before_targets[0].total_breaches == 4
+    prior_risk = before.risk_score
+    prior_severity = before.severity_score
+    prior_sources = before.top_sources_json
+
+    # 2) Reset de rescan : le cycle de vie repart à zéro, les résultats restent.
+    async with _db_module.AsyncSessionLocal() as db:
+        d = (
+            await db.execute(select(DarkwebDossier).where(DarkwebDossier.id == dossier_id))
+        ).scalar_one()
+        d = await reset_dossier_for_rescan(db, d)
+        assert d.status == "pending"
+        assert d.started_at is None and d.finished_at is None
+        assert d.risk_score == prior_risk
+        assert d.exposed_emails == 1
+
+    # 3) Le rescan échoue (provider HS).
+    def _raise(*a, **k):
+        raise RuntimeError("provider down")
+
+    with mock.patch.object(ingestion, "check_email_breaches", side_effect=_raise):
+        await process_dossier(dossier_id, "key")
+
+    after = await _reload_dossier(dossier_id)
+    after_targets = await _reload_targets(dossier_id)
+    # Malgré l'échec, les résultats du scan précédent sont toujours là.
+    assert after.status == "failed"
+    assert after.risk_score == prior_risk
+    assert after.severity_score == prior_severity
+    assert after.exposed_emails == 1
+    assert after.top_sources_json == prior_sources
+    assert after_targets[0].total_breaches == 4
+
+
 # ── send_monitoring_alert: >10 accounts -> "+ N autres" summary + _send called ─
 
 

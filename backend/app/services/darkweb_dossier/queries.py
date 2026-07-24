@@ -81,27 +81,24 @@ async def delete_dossier(db: AsyncSession, dossier: DarkwebDossier) -> None:
 
 
 async def reset_dossier_for_rescan(db: AsyncSession, dossier: DarkwebDossier) -> DarkwebDossier:
-    """Réinitialise le dossier et ses cibles pour relancer le traitement."""
+    """Prepare le dossier et ses cibles pour un rescan SANS detruire les resultats
+    precedents. On ne reinitialise que l'etat du cycle de vie (statuts + compteurs de
+    progression). Les resultats (nombre de fuites, sources, scores) sont conserves :
+    `process_dossier` les reecrit cible par cible puis recalcule les agregats en fin de
+    run reussi. Ils restent donc intacts si le rescan echoue (API HIBP indisponible),
+    au lieu d'etre perdus avant meme la premiere requete."""
     await db.execute(
         DarkwebDossierTarget.__table__.update()
         .where(DarkwebDossierTarget.dossier_id == dossier.id)
         .values(
             status="pending",
             check_status="pending",
-            total_breaches=0,
-            breach_sources_json=None,
-            checked_at=None,
         )
     )
     dossier.status = "pending"
     dossier.started_at = None
     dossier.finished_at = None
-    dossier.risk_score = None
-    dossier.severity_score = None
     dossier.error_message = None
-    dossier.exposed_emails = 0
-    dossier.total_breach_instances = 0
-    dossier.top_sources_json = None
     dossier.checked_count = 0
     dossier.unverified_count = 0
     await db.commit()
