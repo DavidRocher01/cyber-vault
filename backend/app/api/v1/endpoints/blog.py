@@ -1,7 +1,4 @@
-from datetime import UTC, datetime
-
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -9,6 +6,23 @@ from app.core.deps import require_admin
 from app.core.http_cache import cache_public
 from app.models.blog_post import BlogPost
 from app.schemas.blog import BlogPostDetailOut, BlogPostIn, BlogPostOut
+from app.services import blog_service
+
+
+def _post_values(payload: BlogPostIn) -> dict:
+    """Mappe le schema HTTP (camelCase) vers les champs modele (snake_case)."""
+    return {
+        "slug": payload.slug,
+        "title": payload.title,
+        "description": payload.description,
+        "date": payload.date,
+        "read_time": payload.readTime,
+        "category": payload.category,
+        "tags": payload.tags,
+        "html_content": payload.htmlContent,
+        "is_published": payload.isPublished,
+    }
+
 
 router = APIRouter(prefix="/blog", tags=["blog"])
 
@@ -49,12 +63,7 @@ def _to_detail(p: BlogPost) -> BlogPostDetailOut:
     dependencies=[Depends(cache_public(300))],
 )
 async def list_articles(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(BlogPost)
-        .where(BlogPost.is_published == True)  # noqa: E712
-        .order_by(BlogPost.date.desc())
-    )
-    return [_to_out(p) for p in result.scalars().all()]
+    return [_to_out(p) for p in await blog_service.list_published(db)]
 
 
 @router.get(
@@ -65,10 +74,7 @@ async def list_articles(db: AsyncSession = Depends(get_db)):
     dependencies=[Depends(cache_public(300))],
 )
 async def get_article(slug: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(BlogPost).where(BlogPost.slug == slug, BlogPost.is_published == True)  # noqa: E712
-    )
-    post = result.scalar_one_or_none()
+    post = await blog_service.get_published_by_slug(db, slug)
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Article introuvable")
     return _to_detail(post)
@@ -81,8 +87,7 @@ async def get_article(slug: str, db: AsyncSession = Depends(get_db)):
     summary="[Admin] Lister tous les articles (publiés ou non)",
 )
 async def admin_list_articles(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(BlogPost).order_by(BlogPost.date.desc()))
-    return [_to_out(p) for p in result.scalars().all()]
+    return [_to_out(p) for p in await blog_service.list_all(db)]
 
 
 @router.get(
@@ -93,8 +98,7 @@ async def admin_list_articles(db: AsyncSession = Depends(get_db)):
     responses={404: {"description": "Article introuvable"}},
 )
 async def admin_get_article(slug: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(BlogPost).where(BlogPost.slug == slug))
-    post = result.scalar_one_or_none()
+    post = await blog_service.get_by_slug(db, slug)
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Article introuvable")
     return _to_detail(post)
@@ -108,22 +112,7 @@ async def admin_get_article(slug: str, db: AsyncSession = Depends(get_db)):
     summary="[Admin] Créer un article",
 )
 async def create_article(payload: BlogPostIn, db: AsyncSession = Depends(get_db)):
-    now = datetime.now(UTC)
-    post = BlogPost(
-        slug=payload.slug,
-        title=payload.title,
-        description=payload.description,
-        date=payload.date,
-        read_time=payload.readTime,
-        category=payload.category,
-        tags=payload.tags,
-        html_content=payload.htmlContent,
-        is_published=payload.isPublished,
-        created_at=now,
-        updated_at=now,
-    )
-    db.add(post)
-    await db.commit()
+    post = await blog_service.create_post(db, _post_values(payload))
     return _to_detail(post)
 
 
@@ -135,21 +124,10 @@ async def create_article(payload: BlogPostIn, db: AsyncSession = Depends(get_db)
     responses={404: {"description": "Article introuvable"}},
 )
 async def update_article(slug: str, payload: BlogPostIn, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(BlogPost).where(BlogPost.slug == slug))
-    post = result.scalar_one_or_none()
+    post = await blog_service.get_by_slug(db, slug)
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Article introuvable")
-    post.slug = payload.slug
-    post.title = payload.title
-    post.description = payload.description
-    post.date = payload.date
-    post.read_time = payload.readTime
-    post.category = payload.category
-    post.tags = payload.tags
-    post.html_content = payload.htmlContent
-    post.is_published = payload.isPublished
-    post.updated_at = datetime.now(UTC)
-    await db.commit()
+    post = await blog_service.update_post(db, post, _post_values(payload))
     return _to_detail(post)
 
 
@@ -161,9 +139,7 @@ async def update_article(slug: str, payload: BlogPostIn, db: AsyncSession = Depe
     responses={404: {"description": "Article introuvable"}},
 )
 async def delete_article(slug: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(BlogPost).where(BlogPost.slug == slug))
-    post = result.scalar_one_or_none()
+    post = await blog_service.get_by_slug(db, slug)
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Article introuvable")
-    await db.delete(post)
-    await db.commit()
+    await blog_service.delete_post(db, post)
