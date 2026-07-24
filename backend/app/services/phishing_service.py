@@ -58,6 +58,23 @@ from app.services.phishing_templates import (
 _batch_lock = asyncio.Lock()
 
 
+async def commit(db: AsyncSession) -> None:
+    """Valide la transaction courante (mutations staged par les fonctions ci-dessous).
+
+    Les fonctions de mutation (create/update/upload/launch...) se contentent de
+    `flush()` — elles NE committent PAS — afin de laisser l'endpoint décider de la
+    frontière de transaction. C'est volontaire : certaines validations métier ne
+    peuvent avoir lieu qu'APRÈS le flush (ex. plafond de cibles d'un plan calculé
+    sur le total réel dans `upload_targets`). En cas d'échec, l'endpoint lève une
+    HTTPException SANS appeler `commit`, et `get_db` annule le flush.
+
+    La décision commit-vs-rollback dépend donc de la validation HTTP, que la couche
+    service ne doit pas connaître (règle CLAUDE.md) : l'endpoint garde l'arbitrage
+    et délègue ici la seule opération DB.
+    """
+    await db.commit()
+
+
 async def request_domain_verification(
     user_id: int, domain: str, db: AsyncSession
 ) -> PhishingDomainVerification:

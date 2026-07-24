@@ -310,7 +310,7 @@ async def create_campaign(
     campaign = await phishing_service.create_campaign(
         current_user.id, payload.name, payload.plan_tier, db, rssi_client_id=rssi_client_id
     )
-    await db.commit()
+    await phishing_service.commit(db)
     return _serialize_campaign(campaign)
 
 
@@ -364,7 +364,7 @@ async def update_campaign(
         batch_size=payload.batch_size,
         db=db,
     )
-    await db.commit()
+    await phishing_service.commit(db)
     return _serialize_campaign(updated)
 
 
@@ -415,7 +415,7 @@ async def upload_targets(
             detail="Aucune adresse email valide trouvée dans le fichier.",
         )
 
-    await db.commit()
+    await phishing_service.commit(db)
     return {
         "targets_added": result["added"],
         "targets_skipped": result["skipped"],
@@ -462,7 +462,7 @@ async def add_single_target(
             status_code=status.HTTP_409_CONFLICT,
             detail="Cette adresse email est déjà une cible de la campagne.",
         )
-    await db.commit()
+    await phishing_service.commit(db)
     return _serialize_target(target)
 
 
@@ -480,7 +480,7 @@ async def delete_single_target(
     ok = await phishing_service.delete_target(campaign, target_id, db)
     if not ok:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cible introuvable.")
-    await db.commit()
+    await phishing_service.commit(db)
 
 
 @router.post("/campaigns/{campaign_id}/launch", status_code=status.HTTP_202_ACCEPTED)
@@ -535,7 +535,7 @@ async def launch_campaign(
             detail="Erreur lors du lancement de la campagne.",
         )
 
-    await db.commit()
+    await phishing_service.commit(db)
     # Trigger first batch immediately — APScheduler fires every 15 min but users expect prompt starts.
     # On garde une référence forte à la tâche (sinon GC possible avant la fin).
     task = asyncio.create_task(phishing_service.send_pending_batch())
@@ -557,7 +557,7 @@ async def cancel_campaign(
         "Seule une campagne en préparation ou en cours d'envoi peut être annulée.",
     )
     updated = await phishing_service.cancel_campaign(campaign, db)
-    await db.commit()
+    await phishing_service.commit(db)
     return _serialize_campaign(updated)
 
 
@@ -570,7 +570,7 @@ async def delete_campaign(
     """Supprime définitivement une campagne du propriétaire (cibles en cascade)."""
     campaign = await _get_owned(campaign_id, current_user.id, db)
     await phishing_service.delete_campaign(campaign, db)
-    await db.commit()
+    await phishing_service.commit(db)
 
 
 @router.get("/campaigns/{campaign_id}/pdf")
@@ -616,7 +616,7 @@ async def request_domain_verification(
     record = await phishing_service.request_domain_verification(
         current_user.id, payload.domain.lower().strip(), db
     )
-    await db.commit()
+    await phishing_service.commit(db)
     return {
         "domain": record.domain,
         "verified": record.verified,
@@ -651,7 +651,7 @@ async def check_domain_verification(
 
     verified = await phishing_service.check_domain_verification(record, db)
     if verified:
-        await db.commit()
+        await phishing_service.commit(db)
     return {
         "domain": domain,
         "verified": verified,

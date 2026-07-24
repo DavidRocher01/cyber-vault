@@ -36,9 +36,8 @@ _LEGIT_EXCEPTIONS: set[str] = {
 
 # Fichiers qui violent ENCORE la règle (dette héritée). Cette liste ne doit que
 # RÉTRÉCIR : migrer un endpoint vers un service -> le retirer d'ici.
-_BASELINE: set[str] = {
-    "phishing.py",
-}
+# VIDE : tous les endpoints délèguent désormais leur accès DB aux services.
+_BASELINE: set[str] = set()
 
 
 def _current_offenders() -> set[str]:
