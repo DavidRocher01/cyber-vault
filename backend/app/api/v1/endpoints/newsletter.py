@@ -1,12 +1,10 @@
 import json
 import re
-from datetime import UTC, datetime
 
 import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse
 from loguru import logger
-from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -15,9 +13,6 @@ from app.core.deps import require_admin
 from app.core.limiter import limiter
 from app.core.security import create_refresh_token, hash_token, make_unsubscribe_token
 from app.core.ssrf import assert_no_ssrf
-from app.models.app_setting import AppSetting
-from app.models.newsletter_schedule import NewsletterScheduleItem
-from app.models.newsletter_subscriber import NewsletterSubscriber
 from app.schemas.newsletter import (
     NewsletterContentIn,
     NewsletterContentOut,
@@ -31,6 +26,7 @@ from app.schemas.newsletter import (
     SendIssueOut,
     SubscriberOut,
 )
+from app.services import newsletter_service
 
 NEWSLETTER_CONTENT_KEY = "newsletter_content"
 
@@ -80,10 +76,7 @@ async def subscribe(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(NewsletterSubscriber).where(NewsletterSubscriber.email == payload.email)
-    )
-    existing = result.scalar_one_or_none()
+    existing = await newsletter_service.get_subscriber_by_email(db, payload.email)
 
     if existing:
         if existing.is_active:
@@ -91,30 +84,23 @@ async def subscribe(
         # Not yet confirmed — resend confirmation
         if not existing.confirmed_at:
             raw_token = create_refresh_token()
-            existing.confirmation_token = hash_token(raw_token)
-            existing.subscribed_at = datetime.now(UTC)
-            await db.commit()
+            await newsletter_service.refresh_confirmation(db, existing, hash_token(raw_token))
             confirm_url = f"{settings.FRONTEND_URL}/newsletter/confirm?token={raw_token}"
             background_tasks.add_task(send_confirmation_email, existing.email, confirm_url)
             return NewsletterSubscribeOut(message="Un email de confirmation vous a été renvoyé.")
         # Was confirmed but unsubscribed — re-activate directly
-        existing.is_active = True
-        existing.subscribed_at = datetime.now(UTC)
-        await db.commit()
+        await newsletter_service.reactivate_subscriber(db, existing)
         unsubscribe_url = f"{settings.FRONTEND_URL}/newsletter/unsubscribe?token={make_unsubscribe_token(existing.email)}"
         background_tasks.add_task(send_newsletter_welcome, existing.email, unsubscribe_url)
         return NewsletterSubscribeOut(message="Réabonnement confirmé !")
 
     raw_confirmation = create_refresh_token()
-    subscriber = NewsletterSubscriber(
+    subscriber = await newsletter_service.create_pending_subscriber(
+        db,
         email=payload.email,
-        subscribed_at=datetime.now(UTC),
-        is_active=False,
-        confirmation_token=hash_token(raw_confirmation),
+        confirmation_token_hash=hash_token(raw_confirmation),
         unsubscribe_token=make_unsubscribe_token(payload.email),
     )
-    db.add(subscriber)
-    await db.commit()
 
     confirm_url = f"{settings.FRONTEND_URL}/newsletter/confirm?token={raw_confirmation}"
     background_tasks.add_task(send_confirmation_email, payload.email, confirm_url)
@@ -130,21 +116,13 @@ async def confirm(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(NewsletterSubscriber).where(
-            NewsletterSubscriber.confirmation_token == hash_token(token)
-        )
-    )
-    subscriber = result.scalar_one_or_none()
+    subscriber = await newsletter_service.get_by_confirmation_token(db, hash_token(token))
     if not subscriber:
         return RedirectResponse(
             url=f"{settings.FRONTEND_URL}/newsletter/confirm?status=invalid",
             status_code=302,
         )
-    subscriber.is_active = True
-    subscriber.confirmed_at = datetime.now(UTC)
-    subscriber.confirmation_token = None
-    await db.commit()
+    await newsletter_service.confirm_subscriber(db, subscriber)
 
     unsubscribe_url = f"{settings.FRONTEND_URL}/newsletter/unsubscribe?token={make_unsubscribe_token(subscriber.email)}"
     background_tasks.add_task(send_newsletter_welcome, subscriber.email, unsubscribe_url)
@@ -161,17 +139,13 @@ async def unsubscribe(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(NewsletterSubscriber).where(NewsletterSubscriber.unsubscribe_token == token)
-    )
-    subscriber = result.scalar_one_or_none()
+    subscriber = await newsletter_service.get_by_unsubscribe_token(db, token)
     if not subscriber:
         return RedirectResponse(
             url=f"{settings.FRONTEND_URL}/newsletter/unsubscribe?status=invalid",
             status_code=302,
         )
-    subscriber.is_active = False
-    await db.commit()
+    await newsletter_service.deactivate_subscriber(db, subscriber)
     background_tasks.add_task(send_unsubscribe_confirmation, subscriber.email)
     logger.info(f"Newsletter unsubscribe: subscriber_id={subscriber.id}")
     return RedirectResponse(
@@ -189,24 +163,11 @@ async def unsubscribe(
     dependencies=[Depends(require_admin)],
 )
 async def admin_stats(db: AsyncSession = Depends(get_db)):
-    total_r = await db.execute(select(func.count()).select_from(NewsletterSubscriber))
-    active_r = await db.execute(
-        select(func.count())
-        .select_from(NewsletterSubscriber)
-        .where(NewsletterSubscriber.is_active == True)  # noqa: E712
-    )
-    pending_r = await db.execute(
-        select(func.count())
-        .select_from(NewsletterSubscriber)
-        .where(
-            NewsletterSubscriber.is_active == False,  # noqa: E712
-            NewsletterSubscriber.confirmation_token != None,  # noqa: E711
-        )
-    )
+    total, active, pending = await newsletter_service.count_stats(db)
     return NewsletterStatsOut(
-        total=total_r.scalar_one(),
-        active=active_r.scalar_one(),
-        pending_confirmation=pending_r.scalar_one(),
+        total=total,
+        active=active,
+        pending_confirmation=pending,
     )
 
 
@@ -220,13 +181,7 @@ async def admin_subscribers(
     limit: int = Query(default=100, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(NewsletterSubscriber)
-        .order_by(NewsletterSubscriber.subscribed_at.desc())
-        .offset(skip)
-        .limit(limit)
-    )
-    return result.scalars().all()
+    return await newsletter_service.list_subscribers(db, skip=skip, limit=limit)
 
 
 @router.post(
@@ -239,10 +194,7 @@ async def admin_send_issue(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(NewsletterSubscriber).where(NewsletterSubscriber.is_active == True)  # noqa: E712
-    )
-    subscribers = result.scalars().all()
+    subscribers = await newsletter_service.list_active_subscribers(db)
     count = 0
     for sub in subscribers:
         unsubscribe_url = f"{settings.FRONTEND_URL}/newsletter/unsubscribe?token={make_unsubscribe_token(sub.email)}"
@@ -275,10 +227,7 @@ async def admin_send_from_schedule(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
-    schedule_result = await db.execute(
-        select(NewsletterScheduleItem).order_by(NewsletterScheduleItem.position)
-    )
-    items = schedule_result.scalars().all()
+    items = await newsletter_service.list_schedule(db)
     if not items:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -296,10 +245,7 @@ async def admin_send_from_schedule(
         for it in items
     ]
 
-    subscribers_result = await db.execute(
-        select(NewsletterSubscriber).where(NewsletterSubscriber.is_active == True)  # noqa: E712
-    )
-    subscribers = subscribers_result.scalars().all()
+    subscribers = await newsletter_service.list_active_subscribers(db)
     count = 0
     for sub in subscribers:
         unsubscribe_url = f"{settings.FRONTEND_URL}/newsletter/unsubscribe?token={make_unsubscribe_token(sub.email)}"
@@ -368,10 +314,7 @@ async def fetch_og_image(url: str):
 @router.get("/schedule", response_model=list[ScheduleItemOut])
 async def get_schedule(db: AsyncSession = Depends(get_db)):
     """Public — returns the current newsletter schedule with article links."""
-    result = await db.execute(
-        select(NewsletterScheduleItem).order_by(NewsletterScheduleItem.position)
-    )
-    return result.scalars().all()
+    return await newsletter_service.list_schedule(db)
 
 
 @router.put(
@@ -397,29 +340,18 @@ async def update_schedule(
             detail="Positions dupliquées",
         )
 
-    now = datetime.now(UTC)
-
-    # Delete existing
-    existing = await db.execute(select(NewsletterScheduleItem))
-    for row in existing.scalars().all():
-        await db.delete(row)
-    await db.flush()
-
-    # Insert new
-    created = []
-    for item in sorted(items, key=lambda x: x.position):
-        row = NewsletterScheduleItem(
-            position=item.position,
-            actu_title=item.actu_title,
-            actu_url=item.actu_url,
-            actu_source=item.actu_source,
-            reflex=item.reflex,
-            image_url=item.image_url,
-            updated_at=now,
-        )
-        db.add(row)
-        created.append(row)
-    await db.commit()
+    values = [
+        {
+            "position": item.position,
+            "actu_title": item.actu_title,
+            "actu_url": item.actu_url,
+            "actu_source": item.actu_source,
+            "reflex": item.reflex,
+            "image_url": item.image_url,
+        }
+        for item in items
+    ]
+    created = await newsletter_service.replace_schedule(db, values)
 
     logger.info(f"Newsletter schedule updated — {len(created)} items")
     return created
@@ -435,7 +367,7 @@ async def update_schedule(
 )
 async def get_newsletter_content(db: AsyncSession = Depends(get_db)):
     """Return the current newsletter editorial draft (flash/reflex/legal)."""
-    setting = await db.get(AppSetting, NEWSLETTER_CONTENT_KEY)
+    setting = await newsletter_service.get_content_setting(db, NEWSLETTER_CONTENT_KEY)
     if not setting or not setting.value_text:
         return _DEFAULT_CONTENT
     try:
@@ -455,16 +387,8 @@ async def update_newsletter_content(
     db: AsyncSession = Depends(get_db),
 ):
     """Persist the newsletter editorial draft so the scheduler picks it up."""
-    setting = await db.get(AppSetting, NEWSLETTER_CONTENT_KEY)
-    if setting is None:
-        setting = AppSetting(
-            key=NEWSLETTER_CONTENT_KEY,
-            value_int=0,
-            value_text=payload.model_dump_json(),
-        )
-        db.add(setting)
-    else:
-        setting.value_text = payload.model_dump_json()
-    await db.commit()
+    await newsletter_service.upsert_content_setting(
+        db, NEWSLETTER_CONTENT_KEY, payload.model_dump_json()
+    )
     logger.info("Newsletter content updated")
     return payload
