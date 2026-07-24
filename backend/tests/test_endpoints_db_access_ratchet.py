@@ -39,7 +39,6 @@ _LEGIT_EXCEPTIONS: set[str] = {
 _BASELINE: set[str] = {
     "auth.py",
     "phishing.py",
-    "scans.py",
 }
 
 
