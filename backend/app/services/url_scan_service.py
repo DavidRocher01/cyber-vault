@@ -13,9 +13,10 @@ from urllib.parse import urlparse
 
 import httpx
 from loguru import logger
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.pagination import paginate
 from app.models.url_scan import UrlScan
 from app.models.user import User
 
@@ -528,3 +529,36 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
         url_scan.finished_at = datetime.now(UTC)
         url_scan.error_message = str(exc)[:500]
         await db.commit()
+
+
+async def create_url_scan(db: AsyncSession, user_id: int, url: str) -> UrlScan:
+    """Cree un scan URL en statut 'pending' et le persiste."""
+    url_scan = UrlScan(
+        user_id=user_id,
+        url=url,
+        status="pending",
+        created_at=datetime.now(UTC),
+    )
+    db.add(url_scan)
+    await db.commit()
+    await db.refresh(url_scan)
+    return url_scan
+
+
+async def list_user_url_scans(db: AsyncSession, user_id: int, *, page: int, per_page: int) -> dict:
+    """Page des scans URL d'un utilisateur (plus recents d'abord)."""
+    return await paginate(
+        db,
+        base_query=select(UrlScan)
+        .where(UrlScan.user_id == user_id)
+        .order_by(UrlScan.created_at.desc()),
+        count_query=select(func.count()).where(UrlScan.user_id == user_id),
+        page=page,
+        per_page=per_page,
+    )
+
+
+async def delete_url_scan(db: AsyncSession, scan: UrlScan) -> None:
+    """Supprime un scan URL (RGPD - droit a l'oubli)."""
+    await db.delete(scan)
+    await db.commit()

@@ -4,22 +4,20 @@ URL Scan endpoints — trigger and consult suspicious URL analyses.
 
 import asyncio
 import json
-from datetime import UTC
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
-from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crud import get_user_resource
 from app.core.database import AsyncSessionLocal, get_db
 from app.core.deps import get_current_user
 from app.core.limiter import limiter
-from app.core.pagination import paginate
 from app.core.ssrf import assert_no_ssrf
 from app.models.url_scan import UrlScan
 from app.models.user import User
 from app.schemas.url_scan import PaginatedUrlScans, UrlScanCreate, UrlScanOut
+from app.services import url_scan_service
 from app.services.url_scan_service import run_url_scan
 
 router = APIRouter(prefix="/url-scans", tags=["url-scans"])
@@ -41,17 +39,8 @@ async def trigger_url_scan(
 ):
     """Submit a URL for suspicious content analysis."""
     assert_no_ssrf(payload.url)
-    from datetime import datetime
 
-    url_scan = UrlScan(
-        user_id=current_user.id,
-        url=payload.url,
-        status="pending",
-        created_at=datetime.now(UTC),
-    )
-    db.add(url_scan)
-    await db.commit()
-    await db.refresh(url_scan)
+    url_scan = await url_scan_service.create_url_scan(db, current_user.id, payload.url)
 
     background_tasks.add_task(_run_url_scan_background, url_scan.id)
     return url_scan
@@ -65,14 +54,8 @@ async def list_url_scans(
     db: AsyncSession = Depends(get_db),
 ):
     """List all URL scans for the authenticated user."""
-    return await paginate(
-        db,
-        base_query=select(UrlScan)
-        .where(UrlScan.user_id == current_user.id)
-        .order_by(UrlScan.created_at.desc()),
-        count_query=select(func.count()).where(UrlScan.user_id == current_user.id),
-        page=page,
-        per_page=per_page,
+    return await url_scan_service.list_user_url_scans(
+        db, current_user.id, page=page, per_page=per_page
     )
 
 
@@ -126,5 +109,4 @@ async def delete_url_scan(
 ):
     """Delete a URL scan (RGPD — droit à l'oubli)."""
     scan = await get_user_resource(db, UrlScan, scan_id, current_user.id, "Scan introuvable")
-    await db.delete(scan)
-    await db.commit()
+    await url_scan_service.delete_url_scan(db, scan)
