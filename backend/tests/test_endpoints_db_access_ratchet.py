@@ -42,7 +42,6 @@ _BASELINE: set[str] = {
     "phishing.py",
     "portal.py",
     "rssi/actions.py",
-    "rssi/clients.py",
     "scans.py",
     "webhooks.py",
 }
