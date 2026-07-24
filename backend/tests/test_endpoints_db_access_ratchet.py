@@ -38,7 +38,6 @@ _LEGIT_EXCEPTIONS: set[str] = {
 # RÉTRÉCIR : migrer un endpoint vers un service -> le retirer d'ici.
 _BASELINE: set[str] = {
     "auth.py",
-    "darkweb_dossier.py",
     "phishing.py",
     "portal.py",
     "scans.py",
