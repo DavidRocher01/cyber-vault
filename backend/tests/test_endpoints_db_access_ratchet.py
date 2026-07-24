@@ -48,8 +48,6 @@ _BASELINE: set[str] = {
     "portal.py",
     "rssi/actions.py",
     "rssi/clients.py",
-    "rssi/deliverables.py",
-    "rssi/visits.py",
     "scans.py",
     "sites.py",
     "subscriptions.py",
