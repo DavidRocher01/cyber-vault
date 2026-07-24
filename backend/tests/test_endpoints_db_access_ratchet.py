@@ -41,7 +41,6 @@ _BASELINE: set[str] = {
     "darkweb_dossier.py",
     "phishing.py",
     "portal.py",
-    "rssi/actions.py",
     "scans.py",
     "webhooks.py",
 }
