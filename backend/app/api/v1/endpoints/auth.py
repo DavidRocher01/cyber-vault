@@ -13,7 +13,6 @@ from fastapi import (
     status,
 )
 from loguru import logger
-from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -25,12 +24,8 @@ from app.core.security import (
     create_access_token,
     create_refresh_token,
     hash_password,
-    hash_token,
     verify_password,
 )
-from app.models.password_reset_token import PasswordResetToken
-from app.models.refresh_token import RefreshToken
-from app.models.user import User
 from app.schemas.user import (
     AccessTokenOut,
     ForgotPasswordIn,
@@ -39,6 +34,7 @@ from app.schemas.user import (
     UserLogin,
     UserOut,
 )
+from app.services import auth_service
 from app.services.email_service import send_password_reset
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -76,15 +72,13 @@ def _clear_refresh_cookie(response: Response) -> None:
 )
 @limiter.limit("5/minute")
 async def register(request: Request, payload: UserCreate, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == payload.email))
-    if result.scalar_one_or_none():
+    if await auth_service.get_user_by_email(db, payload.email):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
-    user = User(
+    user = await auth_service.create_user(
+        db,
         email=payload.email,
         hashed_password=await asyncio.to_thread(hash_password, payload.password),
     )
-    db.add(user)
-    await db.commit()
     logger.info("New user registered (id={})", user.id)
     return user
 
@@ -105,8 +99,7 @@ async def login(
     payload: UserLogin,
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(User).where(User.email == payload.email))
-    user = result.scalar_one_or_none()
+    user = await auth_service.get_user_by_email(db, payload.email)
 
     invalid_exc = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
@@ -125,13 +118,12 @@ async def login(
         )
 
     if not await asyncio.to_thread(verify_password, payload.password, user.hashed_password):
-        user.failed_login_attempts += 1
-        if user.failed_login_attempts >= settings.MAX_LOGIN_ATTEMPTS:
-            user.locked_until = datetime.now(UTC) + timedelta(minutes=settings.LOCKOUT_MINUTES)
+        # Commit avant de lever (dans le service) — sinon le compteur serait annulé.
+        locked = await auth_service.register_failed_attempt(db, user)
+        if locked:
             logger.warning(
                 f"Account locked after {user.failed_login_attempts} attempts: user_id={user.id}"
             )
-        await db.commit()  # Must commit before raising — rollback would undo the counter
         raise invalid_exc
 
     # 2FA check — auto-repair inconsistent state (enabled=True but no secret)
@@ -142,7 +134,7 @@ async def login(
         if not payload.totp_code:
             # Mot de passe OK mais 2FA en attente : on ne réinitialise PAS encore le
             # compteur (sinon le brute-force du code TOTP ne serait jamais verrouillé).
-            await db.commit()
+            await auth_service.commit(db)
             return {"requires_2fa": True}
         import pyotp
 
@@ -151,27 +143,23 @@ async def login(
         totp = pyotp.TOTP(decrypt_totp_secret(user.totp_secret))
         if not totp.verify(payload.totp_code, valid_window=1):
             # Les échecs TOTP comptent dans le lockout (anti brute-force du code 2FA).
-            user.failed_login_attempts += 1
-            if user.failed_login_attempts >= settings.MAX_LOGIN_ATTEMPTS:
-                user.locked_until = datetime.now(UTC) + timedelta(minutes=settings.LOCKOUT_MINUTES)
+            locked = await auth_service.register_failed_attempt(db, user)
+            if locked:
                 logger.warning(
                     f"Account locked after {user.failed_login_attempts} failed TOTP attempts: "
                     f"user_id={user.id}"
                 )
-            await db.commit()  # commit avant de lever — sinon le compteur serait annulé
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Code 2FA invalide"
             )
 
     # Authentification complète réussie (mot de passe + 2FA le cas échéant) → reset compteur
-    user.failed_login_attempts = 0
-    user.locked_until = None
-
     access_token = create_access_token(subject=str(user.id))
     raw_refresh = create_refresh_token()
     expires = datetime.now(UTC) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    db.add(RefreshToken(user_id=user.id, token=hash_token(raw_refresh), expires_at=expires))
-    await db.commit()
+    await auth_service.finalize_successful_login(
+        db, user=user, raw_token=raw_refresh, expires=expires
+    )
     _set_refresh_cookie(response, raw_refresh)
     logger.info("User logged in (id={})", user.id)
     return AccessTokenOut(
@@ -197,26 +185,17 @@ async def refresh(
     )
     if not refresh_token:
         raise invalid_exc
-    result = await db.execute(
-        select(RefreshToken).where(RefreshToken.token == hash_token(refresh_token))
-    )
-    stored = result.scalar_one_or_none()
+    stored = await auth_service.get_refresh_token(db, refresh_token)
     expires_at = ensure_utc(stored.expires_at if stored else None)
     if not stored or stored.revoked or (expires_at is not None and expires_at < datetime.now(UTC)):
         raise invalid_exc
 
-    stored.revoked = True
     new_access = create_access_token(subject=str(stored.user_id))
     new_raw_refresh = create_refresh_token()
     new_expires = datetime.now(UTC) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    db.add(
-        RefreshToken(
-            user_id=stored.user_id,
-            token=hash_token(new_raw_refresh),
-            expires_at=new_expires,
-        )
+    await auth_service.rotate_refresh_token(
+        db, stored=stored, raw_token=new_raw_refresh, expires=new_expires
     )
-    await db.commit()
     _set_refresh_cookie(response, new_raw_refresh)
     return AccessTokenOut(access_token=new_access)
 
@@ -232,13 +211,9 @@ async def logout(
     db: AsyncSession = Depends(get_db),
 ):
     if refresh_token:
-        result = await db.execute(
-            select(RefreshToken).where(RefreshToken.token == hash_token(refresh_token))
-        )
-        stored = result.scalar_one_or_none()
+        stored = await auth_service.get_refresh_token(db, refresh_token)
         if stored and not stored.revoked:
-            stored.revoked = True
-            await db.commit()
+            await auth_service.revoke_refresh_token(db, stored)
     _clear_refresh_cookie(response)
 
 
@@ -259,16 +234,14 @@ async def forgot_password(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(User).where(User.email == payload.email))
-    user = result.scalar_one_or_none()
+    user = await auth_service.get_user_by_email(db, payload.email)
     # Always return 202 to avoid user enumeration
     if not user:
         return
 
     raw_token = create_refresh_token()
     expires = datetime.now(UTC) + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
-    db.add(PasswordResetToken(user_id=user.id, token=hash_token(raw_token), expires_at=expires))
-    await db.commit()
+    await auth_service.create_reset_token(db, user_id=user.id, raw_token=raw_token, expires=expires)
 
     reset_url = f"{settings.FRONTEND_URL}/auth/reset-password?token={raw_token}"
     background_tasks.add_task(send_password_reset, user.email, reset_url)
@@ -289,10 +262,7 @@ async def forgot_password(
 async def reset_password(
     request: Request, payload: ResetPasswordIn, db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(PasswordResetToken).where(PasswordResetToken.token == hash_token(payload.token))
-    )
-    stored = result.scalar_one_or_none()
+    stored = await auth_service.get_reset_token(db, payload.token)
 
     invalid_exc = HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
@@ -303,27 +273,10 @@ async def reset_password(
     if not stored or stored.used or (expires_at is not None and expires_at < datetime.now(UTC)):
         raise invalid_exc
 
-    user_result = await db.execute(select(User).where(User.id == stored.user_id))
-    user = user_result.scalar_one_or_none()
+    user = await auth_service.get_user_by_id(db, stored.user_id)
     if not user:
         raise invalid_exc
 
-    user.hashed_password = await asyncio.to_thread(hash_password, payload.password)
-    # Sécurité : un reset de mot de passe doit invalider toutes les sessions et
-    # déverrouiller le compte (l'attaquant potentiel perd ses sessions).
-    user.failed_login_attempts = 0
-    user.locked_until = None
-    # Révoque tous les refresh tokens actifs de l'utilisateur.
-    await db.execute(
-        update(RefreshToken)
-        .where(RefreshToken.user_id == user.id, RefreshToken.revoked.is_(False))
-        .values(revoked=True)
-    )
-    # Marque comme utilisés tous les reset tokens non consommés (dont celui-ci).
-    await db.execute(
-        update(PasswordResetToken)
-        .where(PasswordResetToken.user_id == user.id, PasswordResetToken.used.is_(False))
-        .values(used=True)
-    )
-    await db.commit()
+    hashed = await asyncio.to_thread(hash_password, payload.password)
+    await auth_service.apply_password_reset(db, user=user, hashed_password=hashed)
     logger.info(f"Password reset completed for user_id={user.id}")
