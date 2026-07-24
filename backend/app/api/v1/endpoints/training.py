@@ -5,15 +5,13 @@ from datetime import datetime
 import yaml
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.awareness_module import AwarenessModule
-from app.models.awareness_program import AwarenessProgram
-from app.models.training_progress import TrainingProgress
 from app.models.user import User
+from app.services import training_service
 
 router = APIRouter(prefix="/training", tags=["training"])
 
@@ -265,25 +263,13 @@ async def _load_all_modules(db: AsyncSession) -> list[dict]:
     """Charge les modules legacy + les modules awareness (programme nis2-essentiel)."""
     modules: list[dict] = list(LEGACY_MODULES)
 
-    # Charge le programme principal
-    prog_result = await db.execute(
-        select(AwarenessProgram).where(AwarenessProgram.slug == "nis2-essentiel")
+    mods = await training_service.load_program_modules(
+        db, "nis2-essentiel", _AWARENESS_EXCLUDED_SLUGS
     )
-    program = prog_result.scalar_one_or_none()
-    if program:
-        mods_result = await db.execute(
-            select(AwarenessModule)
-            .where(
-                AwarenessModule.program_id == program.id,
-                AwarenessModule.is_active == True,
-                AwarenessModule.slug.notin_(_AWARENESS_EXCLUDED_SLUGS),
-            )
-            .order_by(AwarenessModule.position)
-        )
-        for mod in mods_result.scalars().all():
-            converted = _awareness_module_to_training(mod)
-            if converted:
-                modules.append(converted)
+    for mod in mods:
+        converted = _awareness_module_to_training(mod)
+        if converted:
+            modules.append(converted)
 
     return modules
 
@@ -296,10 +282,10 @@ async def get_modules(
     all_modules = await _load_all_modules(db)
     module_ids = {m["id"] for m in all_modules}
 
-    done_result = await db.execute(
-        select(TrainingProgress).where(TrainingProgress.user_id == current_user.id)
-    )
-    done = {p.module_id: p.completed_at for p in done_result.scalars().all()}
+    done = {
+        p.module_id: p.completed_at
+        for p in await training_service.list_user_progress(db, current_user.id)
+    }
 
     return [
         ModuleOut(
@@ -328,15 +314,7 @@ async def complete_module(
     correct = payload.answer == module["correct"]
 
     if correct:
-        existing = await db.execute(
-            select(TrainingProgress).where(
-                TrainingProgress.user_id == current_user.id,
-                TrainingProgress.module_id == module_id,
-            )
-        )
-        if not existing.scalar_one_or_none():
-            db.add(TrainingProgress(user_id=current_user.id, module_id=module_id))
-            await db.commit()
+        await training_service.mark_module_complete(db, current_user.id, module_id)
 
     return {
         "correct": correct,
@@ -351,10 +329,7 @@ async def get_progress(
     db: AsyncSession = Depends(get_db),
 ):
     all_modules = await _load_all_modules(db)
-    done_result = await db.execute(
-        select(TrainingProgress).where(TrainingProgress.user_id == current_user.id)
-    )
-    done = done_result.scalars().all()
+    done = await training_service.list_user_progress(db, current_user.id)
     total = len(all_modules)
     completed = len(done)
     return ProgressOut(

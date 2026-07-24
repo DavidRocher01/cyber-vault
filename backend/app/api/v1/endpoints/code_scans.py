@@ -1,6 +1,5 @@
 import os
 import tempfile
-from datetime import UTC, datetime
 from urllib.parse import urlparse
 
 from fastapi import (
@@ -12,14 +11,11 @@ from fastapi import (
     Query,
     UploadFile,
 )
-from sqlalchemy import func, select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crud import get_user_resource
 from app.core.database import AsyncSessionLocal, get_db
 from app.core.deps import get_current_user, require_min_tier
-from app.core.pagination import paginate
 from app.core.ssrf import assert_no_ssrf
 from app.models.code_scan import CodeScan
 from app.models.user import User
@@ -29,7 +25,12 @@ from app.schemas.cyberscan import (
     CodeScanTriggerOut,
     PaginatedCodeScans,
 )
+from app.services import code_scan_crud_service
 from app.services.code_scan_service import run_code_scan, run_code_scan_zip
+
+_SCAN_IN_PROGRESS = (
+    "Un scan est déjà en cours. Attendez qu'il se termine avant d'en lancer un nouveau."
+)
 
 router = APIRouter(prefix="/code-scans", tags=["code-scans"])
 
@@ -65,17 +66,8 @@ async def _run_zip_background(scan_id: int, zip_path: str) -> None:
 
 async def _check_no_running_scan(user_id: int, db: AsyncSession) -> None:
     """Raise 429 if the user already has a pending or running code scan."""
-    result = await db.execute(
-        select(CodeScan).where(
-            CodeScan.user_id == user_id,
-            CodeScan.status.in_(["pending", "running"]),
-        )
-    )
-    if result.scalar_one_or_none():
-        raise HTTPException(
-            status_code=429,
-            detail="Un scan est déjà en cours. Attendez qu'il se termine avant d'en lancer un nouveau.",
-        )
+    if await code_scan_crud_service.has_running_scan(db, user_id):
+        raise HTTPException(status_code=429, detail=_SCAN_IN_PROGRESS)
 
 
 @router.post(
@@ -107,23 +99,14 @@ async def upload_code_scan(
 
     repo_name = file.filename[:-4] if file.filename.lower().endswith(".zip") else file.filename
 
-    scan = CodeScan(
+    scan = await code_scan_crud_service.create_code_scan(
+        db,
         user_id=current_user.id,
         repo_url=f"upload:{file.filename}",
         repo_name=repo_name,
-        status="pending",
-        created_at=datetime.now(UTC),
     )
-    db.add(scan)
-    try:
-        await db.commit()
-    except IntegrityError:
-        await db.rollback()
-        raise HTTPException(
-            status_code=429,
-            detail="Un scan est déjà en cours. Attendez qu'il se termine avant d'en lancer un nouveau.",
-        )
-    await db.refresh(scan)
+    if scan is None:
+        raise HTTPException(status_code=429, detail=_SCAN_IN_PROGRESS)
 
     background_tasks.add_task(_run_zip_background, scan.id, zip_path)
     return {"scan_id": scan.id, "message": "Analyse lancée en arrière-plan"}
@@ -158,23 +141,14 @@ async def trigger_code_scan(
     assert_no_ssrf(body.repo_url)
     clone_url = _embed_token(body.repo_url, body.github_token)
 
-    scan = CodeScan(
+    scan = await code_scan_crud_service.create_code_scan(
+        db,
         user_id=current_user.id,
         repo_url=body.repo_url,
         repo_name=_repo_name(body.repo_url),
-        status="pending",
-        created_at=datetime.now(UTC),
     )
-    db.add(scan)
-    try:
-        await db.commit()
-    except IntegrityError:
-        await db.rollback()
-        raise HTTPException(
-            status_code=429,
-            detail="Un scan est déjà en cours. Attendez qu'il se termine avant d'en lancer un nouveau.",
-        )
-    await db.refresh(scan)
+    if scan is None:
+        raise HTTPException(status_code=429, detail=_SCAN_IN_PROGRESS)
 
     background_tasks.add_task(_run_background, scan.id, clone_url if body.github_token else None)
     return {"scan_id": scan.id, "message": "Analyse de code lancée en arrière-plan"}
@@ -187,16 +161,8 @@ async def list_code_scans(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    return await paginate(
-        db,
-        base_query=select(CodeScan)
-        .where(CodeScan.user_id == current_user.id)
-        .order_by(CodeScan.created_at.desc()),
-        count_query=select(func.count())
-        .select_from(CodeScan)
-        .where(CodeScan.user_id == current_user.id),
-        page=page,
-        per_page=per_page,
+    return await code_scan_crud_service.list_user_code_scans(
+        db, current_user.id, page=page, per_page=per_page
     )
 
 
@@ -216,5 +182,4 @@ async def delete_code_scan(
     db: AsyncSession = Depends(get_db),
 ):
     scan = await get_user_resource(db, CodeScan, scan_id, current_user.id, "Analyse non trouvée")
-    await db.delete(scan)
-    await db.commit()
+    await code_scan_crud_service.delete_code_scan(db, scan)
