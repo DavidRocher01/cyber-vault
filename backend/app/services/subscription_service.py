@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -49,3 +51,69 @@ async def get_effective_max_sites(db: AsyncSession, user_id: int) -> int:
     if sub.plan.max_sites < 0:
         return UNLIMITED_SITES
     return sub.plan.max_sites + sub.extra_sites
+
+
+async def get_active_subscription_with_plan(db: AsyncSession, user_id: int) -> Subscription | None:
+    """Abonnement actif de l'utilisateur avec son plan chargé, sinon None."""
+    result = await db.execute(
+        select(Subscription)
+        .options(selectinload(Subscription.plan))
+        .where(Subscription.user_id == user_id, Subscription.status == "active")
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_active_subscription(db: AsyncSession, user_id: int) -> Subscription | None:
+    """Abonnement actif de l'utilisateur, sinon None."""
+    result = await db.execute(
+        select(Subscription).where(Subscription.user_id == user_id, Subscription.status == "active")
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_subscription(db: AsyncSession, user_id: int) -> Subscription | None:
+    """Abonnement de l'utilisateur quel que soit son statut, sinon None."""
+    result = await db.execute(select(Subscription).where(Subscription.user_id == user_id))
+    return result.scalar_one_or_none()
+
+
+async def upsert_active_subscription(
+    db: AsyncSession,
+    *,
+    user_id: int,
+    plan_id: int,
+    now: datetime,
+    period_end: datetime,
+    stripe_customer_id: str | None,
+    stripe_subscription_id: str | None,
+) -> None:
+    """Active ou met à jour l'abonnement de l'utilisateur (checkout dev/gratuit).
+
+    Sur un abonnement existant, seuls le plan, le statut et la période sont
+    mis à jour ; les identifiants Stripe ne sont posés qu'à la création.
+    """
+    existing = await get_subscription(db, user_id)
+    if existing:
+        existing.plan_id = plan_id
+        existing.status = "active"
+        existing.current_period_start = now
+        existing.current_period_end = period_end
+    else:
+        db.add(
+            Subscription(
+                user_id=user_id,
+                plan_id=plan_id,
+                stripe_customer_id=stripe_customer_id,
+                stripe_subscription_id=stripe_subscription_id,
+                status="active",
+                current_period_start=now,
+                current_period_end=period_end,
+            )
+        )
+    await db.commit()
+
+
+async def add_extra_sites(db: AsyncSession, sub: Subscription, count: int) -> None:
+    """Incrémente le nombre de sites supplémentaires d'un abonnement."""
+    sub.extra_sites += count
+    await db.commit()

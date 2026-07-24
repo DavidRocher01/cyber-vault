@@ -12,3 +12,8 @@ async def list_active_plans(db: AsyncSession) -> list[Plan]:
         select(Plan).where(Plan.is_active == True).order_by(Plan.price_eur)  # noqa: E712
     )
     return list(result.scalars().all())
+
+
+async def get_plan(db: AsyncSession, plan_id: int) -> Plan | None:
+    """Retourne un plan par son identifiant, sinon None."""
+    return await db.get(Plan, plan_id)
