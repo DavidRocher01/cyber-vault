@@ -9,13 +9,12 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models.iso27001_assessment import Iso27001Assessment
 from app.models.user import User
+from app.services import iso27001_service
 from app.services.assessment_service import compute_assessment_score
 
 router = APIRouter(prefix="/iso27001", tags=["iso27001"])
@@ -325,10 +324,7 @@ async def get_assessment(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(Iso27001Assessment).where(Iso27001Assessment.user_id == current_user.id)
-    )
-    assessment = result.scalar_one_or_none()
+    assessment = await iso27001_service.get_user_assessment(db, current_user.id)
     items = json.loads(assessment.items_json) if assessment else {}
     score = assessment.score if assessment else 0
     updated_at = assessment.updated_at if assessment else None
@@ -355,27 +351,9 @@ async def save_assessment(
     score = compute_assessment_score(payload.items, ALL_ITEM_IDS)
     now = datetime.now(UTC)
 
-    result = await db.execute(
-        select(Iso27001Assessment).where(Iso27001Assessment.user_id == current_user.id)
+    assessment = await iso27001_service.upsert_assessment(
+        db, current_user.id, items=payload.items, score=score, now=now
     )
-    assessment = result.scalar_one_or_none()
-
-    if assessment:
-        assessment.items_json = json.dumps(payload.items)
-        assessment.score = score
-        assessment.updated_at = now
-    else:
-        assessment = Iso27001Assessment(
-            user_id=current_user.id,
-            items_json=json.dumps(payload.items),
-            score=score,
-            created_at=now,
-            updated_at=now,
-        )
-        db.add(assessment)
-
-    await db.commit()
-    await db.refresh(assessment)
     return {
         "items": payload.items,
         "score": score,
@@ -390,10 +368,7 @@ async def export_assessment_pdf(
     db: AsyncSession = Depends(get_db),
 ):
     """Generate an ISO 27001 compliance report PDF."""
-    result = await db.execute(
-        select(Iso27001Assessment).where(Iso27001Assessment.user_id == current_user.id)
-    )
-    assessment = result.scalar_one_or_none()
+    assessment = await iso27001_service.get_user_assessment(db, current_user.id)
     items = json.loads(assessment.items_json) if assessment else {}
     score = compute_assessment_score(items, ALL_ITEM_IDS)
     updated_at = assessment.updated_at if assessment else None
