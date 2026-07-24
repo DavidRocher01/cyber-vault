@@ -290,6 +290,45 @@ def test_compute_report_stats_aggregates():
     assert stats.median_click_str is not None
 
 
+def test_target_sort_priority_only_real_statuses():
+    """La map de tri des cibles ne doit contenir que des statuts reels de TargetStatus.
+
+    Regression : l'ancien 2e dict de tri portait une cle morte 'reported' (absente de
+    TargetStatus). Une seule map partagee, purgee des statuts fantomes.
+    """
+    from app.models.enums import TargetStatus
+    from app.services.phishing_report_pdf import _TARGET_SORT_PRIORITY
+
+    real = {s.value for s in TargetStatus}
+    assert set(_TARGET_SORT_PRIORITY) <= real, (
+        f"statuts fantomes dans _TARGET_SORT_PRIORITY : {set(_TARGET_SORT_PRIORITY) - real}"
+    )
+    assert "reported" not in _TARGET_SORT_PRIORITY
+
+
+def test_generate_report_scenario_perf_unknown_not_last():
+    """Table 'perf par scenario' avec des cibles sans scenario (__unknown__) intercalees.
+
+    Regression : les lignes etaient construites en sautant __unknown__ tandis que le
+    style etait applique par index sur un tri recalcule incluant __unknown__ -> le
+    surlignage se decalait quand __unknown__ n'etait pas en derniere position. On trie
+    et on stylise desormais dans une seule boucle ; le rapport doit se generer.
+    """
+    camp = _campaign(scenario_keys='["ceo-fraud","o365-credentials"]')
+    targets = [
+        # ceo-fraud : taux de clic eleve (declenche le surlignage rouge)
+        _target("a@corp.fr", "A", "IT", "clicked", scenario_key="ceo-fraud"),
+        _target("b@corp.fr", "B", "IT", "clicked", scenario_key="ceo-fraud"),
+        # cible sans scenario -> bucket __unknown__ (intercalee, pas en dernier)
+        _target("c@corp.fr", "C", "RH", "opened", scenario_key=None),
+        # o365 : taux de clic plus faible
+        _target("d@corp.fr", "D", "Compta", "opened", scenario_key="o365-credentials"),
+        _target("e@corp.fr", "E", "Compta", "pending", scenario_key="o365-credentials"),
+    ]
+    pdf = generate_phishing_report(camp, targets)
+    assert pdf[:4] == b"%PDF"
+
+
 def test_compute_report_stats_handles_bad_scenario_keys_json():
     """Un scenario_keys JSON illisible ne casse pas le calcul (liste vide)."""
     from app.services.phishing_report_pdf import _compute_report_stats

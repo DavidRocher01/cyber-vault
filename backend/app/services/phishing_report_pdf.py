@@ -35,6 +35,18 @@ _GRAY = colors.HexColor("#94a3b8")
 _LIGHT_BG = colors.HexColor("#f8fafc")
 _PAGE_W, _PAGE_H = A4
 
+# Ordre d'affichage des cibles dans le tableau détaillé : du plus grave (a saisi ses
+# identifiants) au moins engagé. Clés = statuts réels de TargetStatus (enums.py) ;
+# un statut inconnu retombe en fin de liste. Source unique : sert à la fois à trier
+# les lignes ET à colorer par index, pour qu'ils ne puissent pas diverger.
+_TARGET_SORT_PRIORITY = {
+    "submitted": 0,
+    "clicked": 1,
+    "opened": 2,
+    "email_sent": 3,
+    "pending": 4,
+}
+
 
 def _risk_color(rate: float) -> colors.Color:
     if rate >= 0.30:
@@ -331,6 +343,21 @@ def generate_phishing_report(
                 "Soum.",
             ]
         ]
+        sc_perf_style = [
+            ("BACKGROUND", (0, 0), (-1, 0), _DARK),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [_LIGHT_BG, colors.white]),
+            ("ALIGN", (1, 0), (-1, -1), "CENTER"),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ]
+        # Un seul tri, une seule boucle : row_i suit les lignes réellement ajoutées
+        # (le compteur n'avance pas sur __unknown__ sauté), donc le style par index
+        # ne peut pas se décaler des lignes du tableau.
+        row_i = 0
         for key, s in sorted(
             scenario_perf.items(),
             key=lambda x: x[1]["clicked"] / (x[1]["total"] or 1),
@@ -338,6 +365,7 @@ def generate_phishing_report(
         ):
             if key == "__unknown__":
                 continue
+            row_i += 1
             cr = s["clicked"] / (s["total"] or 1)
             orr = s["opened"] / (s["total"] or 1)
             sc_perf_rows.append(
@@ -351,39 +379,16 @@ def generate_phishing_report(
                     str(s["submitted"]),
                 ]
             )
-        sc_perf_table = Table(
-            sc_perf_rows,
-            colWidths=[52 * mm, 15 * mm, 17 * mm, 17 * mm, 15 * mm, 17 * mm, 17 * mm],
-        )
-        sc_perf_style = [
-            ("BACKGROUND", (0, 0), (-1, 0), _DARK),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, -1), 9),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [_LIGHT_BG, colors.white]),
-            ("ALIGN", (1, 0), (-1, -1), "CENTER"),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
-            ("TOPPADDING", (0, 0), (-1, -1), 5),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ]
-        # Highlight high-risk rows in the click rate column
-        for row_i, (key, s) in enumerate(
-            sorted(
-                scenario_perf.items(),
-                key=lambda x: x[1]["clicked"] / (x[1]["total"] or 1),
-                reverse=True,
-            ),
-            start=1,
-        ):
-            if key == "__unknown__":
-                continue
-            cr = s["clicked"] / (s["total"] or 1)
             if cr >= 0.30:
                 sc_perf_style.append(("TEXTCOLOR", (5, row_i), (5, row_i), _RED))
                 sc_perf_style.append(("FONTNAME", (5, row_i), (5, row_i), "Helvetica-Bold"))
             elif cr >= 0.15:
                 sc_perf_style.append(("TEXTCOLOR", (5, row_i), (5, row_i), _YELLOW))
                 sc_perf_style.append(("FONTNAME", (5, row_i), (5, row_i), "Helvetica-Bold"))
+        sc_perf_table = Table(
+            sc_perf_rows,
+            colWidths=[52 * mm, 15 * mm, 17 * mm, 17 * mm, 15 * mm, 17 * mm, 17 * mm],
+        )
         sc_perf_table.setStyle(TableStyle(sc_perf_style))
         story.append(sc_perf_table)
         story.append(Spacer(1, 6 * mm))
@@ -524,30 +529,6 @@ def generate_phishing_report(
             "opened": _YELLOW,
         }
         tgt_header = [["Email", "Prénom", "Département", "Scénario", "Statut"]]
-        tgt_rows = []
-        for t in sorted(
-            targets,
-            key=lambda x: {
-                "submitted": 0,
-                "clicked": 1,
-                "opened": 2,
-                "email_sent": 3,
-                "pending": 4,
-            }.get(x.status, 5),
-        ):
-            tgt_rows.append(
-                [
-                    t.email,
-                    t.first_name or "—",
-                    t.department or "—",
-                    SCENARIO_LABELS.get(t.scenario_key or "", t.scenario_key or "—"),
-                    _STATUS_LABELS.get(t.status, t.status),
-                ]
-            )
-        tgt_table = Table(
-            tgt_header + tgt_rows,
-            colWidths=[65 * mm, 25 * mm, 30 * mm, 30 * mm, 20 * mm],
-        )
         tgt_style = [
             ("BACKGROUND", (0, 0), (-1, 0), _DARK),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
@@ -559,24 +540,30 @@ def generate_phishing_report(
             ("TOPPADDING", (0, 0), (-1, -1), 4),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
         ]
+        # Un seul tri : les lignes et les couleurs (appliquées par index) itèrent la
+        # même liste, impossible qu'elles se désalignent.
+        tgt_rows = []
         for row_i, t in enumerate(
-            sorted(
-                targets,
-                key=lambda x: {
-                    "submitted": 0,
-                    "clicked": 1,
-                    "opened": 2,
-                    "email_sent": 3,
-                    "reported": 4,
-                    "pending": 5,
-                }.get(x.status, 5),
-            ),
+            sorted(targets, key=lambda x: _TARGET_SORT_PRIORITY.get(x.status, 99)),
             start=1,
         ):
+            tgt_rows.append(
+                [
+                    t.email,
+                    t.first_name or "—",
+                    t.department or "—",
+                    SCENARIO_LABELS.get(t.scenario_key or "", t.scenario_key or "—"),
+                    _STATUS_LABELS.get(t.status, t.status),
+                ]
+            )
             c = _STATUS_COLORS.get(t.status)
             if c:
                 tgt_style.append(("TEXTCOLOR", (4, row_i), (4, row_i), c))
                 tgt_style.append(("FONTNAME", (4, row_i), (4, row_i), "Helvetica-Bold"))
+        tgt_table = Table(
+            tgt_header + tgt_rows,
+            colWidths=[65 * mm, 25 * mm, 30 * mm, 30 * mm, 20 * mm],
+        )
         tgt_table.setStyle(TableStyle(tgt_style))
         story.append(tgt_table)
         story.append(Spacer(1, 6 * mm))
