@@ -4,19 +4,18 @@ Roles: viewer (lecture seule), auditor (lecture + déclencher scan), manager (to
 """
 
 import secrets
-from datetime import UTC, datetime
+from datetime import datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from loguru import logger
 from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models.collab import SiteCollaborator
 from app.models.site import Site
 from app.models.user import User
+from app.services import collab_service, site_service
 
 router = APIRouter(prefix="/collab", tags=["collab"])
 
@@ -51,8 +50,7 @@ class RoleUpdateIn(BaseModel):
 
 
 async def _assert_site_owner(site_id: int, user: User, db: AsyncSession) -> Site:
-    result = await db.execute(select(Site).where(Site.id == site_id, Site.user_id == user.id))
-    site = result.scalar_one_or_none()
+    site = await site_service.get_owned_site(db, site_id, user.id)
     if not site:
         raise HTTPException(status_code=404, detail="Site non trouvé")
     return site
@@ -92,8 +90,7 @@ async def list_collaborators(
     db: AsyncSession = Depends(get_db),
 ):
     await _assert_site_owner(site_id, current_user, db)
-    result = await db.execute(select(SiteCollaborator).where(SiteCollaborator.site_id == site_id))
-    return result.scalars().all()
+    return await collab_service.list_for_site(db, site_id)
 
 
 @router.post("/sites/{site_id}/collaborators", response_model=CollabOut, status_code=201)
@@ -107,28 +104,18 @@ async def invite_collaborator(
     site = await _assert_site_owner(site_id, current_user, db)
 
     # Check duplicate
-    existing = await db.execute(
-        select(SiteCollaborator).where(
-            SiteCollaborator.site_id == site_id,
-            SiteCollaborator.email == payload.email,
-        )
-    )
-    if existing.scalar_one_or_none():
+    if await collab_service.get_by_email_and_site(db, site_id, payload.email):
         raise HTTPException(status_code=409, detail="Cet email est déjà invité sur ce site")
 
     token = secrets.token_urlsafe(32)
-    collab = SiteCollaborator(
+    collab = await collab_service.create_collaborator(
+        db,
         site_id=site_id,
         owner_user_id=current_user.id,
         email=payload.email,
         role=payload.role,
-        status="pending",
         invite_token=token,
-        invited_at=datetime.now(UTC),
     )
-    db.add(collab)
-    await db.commit()
-    await db.refresh(collab)
 
     background_tasks.add_task(
         _send_invite_email, payload.email, site.name, site.url, payload.role, token
@@ -146,20 +133,11 @@ async def update_collaborator_role(
     db: AsyncSession = Depends(get_db),
 ):
     await _assert_site_owner(site_id, current_user, db)
-    result = await db.execute(
-        select(SiteCollaborator).where(
-            SiteCollaborator.id == collab_id,
-            SiteCollaborator.site_id == site_id,
-        )
-    )
-    collab = result.scalar_one_or_none()
+    collab = await collab_service.get_collaborator(db, site_id, collab_id)
     if not collab:
         raise HTTPException(status_code=404, detail="Collaborateur non trouvé")
 
-    collab.role = payload.role
-    await db.commit()
-    await db.refresh(collab)
-    return collab
+    return await collab_service.update_role(db, collab, payload.role)
 
 
 @router.delete("/sites/{site_id}/collaborators/{collab_id}", status_code=204)
@@ -170,17 +148,10 @@ async def remove_collaborator(
     db: AsyncSession = Depends(get_db),
 ):
     await _assert_site_owner(site_id, current_user, db)
-    result = await db.execute(
-        select(SiteCollaborator).where(
-            SiteCollaborator.id == collab_id,
-            SiteCollaborator.site_id == site_id,
-        )
-    )
-    collab = result.scalar_one_or_none()
+    collab = await collab_service.get_collaborator(db, site_id, collab_id)
     if not collab:
         raise HTTPException(status_code=404, detail="Collaborateur non trouvé")
-    await db.delete(collab)
-    await db.commit()
+    await collab_service.delete_collaborator(db, collab)
 
 
 @router.get("/accept/{token}", response_model=CollabOut)
@@ -189,20 +160,13 @@ async def accept_invite(
     db: AsyncSession = Depends(get_db),
 ):
     """Public endpoint — accepts an invitation via the token link."""
-    result = await db.execute(
-        select(SiteCollaborator).where(SiteCollaborator.invite_token == token)
-    )
-    collab = result.scalar_one_or_none()
+    collab = await collab_service.get_by_token(db, token)
     if not collab:
         raise HTTPException(status_code=404, detail="Invitation introuvable ou expirée")
     if collab.status == "accepted":
         return collab
 
-    collab.status = "accepted"
-    collab.accepted_at = datetime.now(UTC)
-    await db.commit()
-    await db.refresh(collab)
-    return collab
+    return await collab_service.accept(db, collab)
 
 
 @router.get("/my-invitations", response_model=list[CollabOut])
@@ -211,10 +175,4 @@ async def my_invitations(
     db: AsyncSession = Depends(get_db),
 ):
     """Return all sites the current user has been invited to collaborate on."""
-    result = await db.execute(
-        select(SiteCollaborator).where(
-            SiteCollaborator.email == current_user.email,
-            SiteCollaborator.status == "accepted",
-        )
-    )
-    return result.scalars().all()
+    return await collab_service.list_accepted_for_email(db, current_user.email)
