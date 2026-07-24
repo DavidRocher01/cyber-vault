@@ -40,7 +40,6 @@ _BASELINE: set[str] = {
     "auth.py",
     "phishing.py",
     "scans.py",
-    "webhooks.py",
 }
 
 
