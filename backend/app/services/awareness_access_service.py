@@ -37,3 +37,11 @@ async def get_learner_in_org(
         )
     )
     return result.scalar_one_or_none()
+
+
+async def get_organization_by_id(db: AsyncSession, org_id: int) -> AwarenessOrganization | None:
+    """Retourne l'organisation par id (sans contrôle de propriété), sinon None."""
+    result = await db.execute(
+        select(AwarenessOrganization).where(AwarenessOrganization.id == org_id)
+    )
+    return result.scalar_one_or_none()

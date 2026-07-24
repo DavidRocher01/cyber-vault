@@ -28,6 +28,12 @@ async def get_active_program(db: AsyncSession, program_id: int) -> AwarenessProg
     return result.scalar_one_or_none()
 
 
+async def get_program_by_id(db: AsyncSession, program_id: int) -> AwarenessProgram | None:
+    """Programme par id (actif ou non), sinon None."""
+    result = await db.execute(select(AwarenessProgram).where(AwarenessProgram.id == program_id))
+    return result.scalar_one_or_none()
+
+
 async def list_active_modules(db: AsyncSession, program_ids: list[int]) -> list[AwarenessModule]:
     """Modules actifs des programmes donnes, ordonnes par (program_id, position)."""
     if not program_ids:

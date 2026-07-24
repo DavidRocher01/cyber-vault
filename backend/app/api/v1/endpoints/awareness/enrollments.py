@@ -3,15 +3,11 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_learner
-from app.models.awareness_enrollment import AwarenessEnrollment
 from app.models.awareness_learner import AwarenessLearner
-from app.models.awareness_module import AwarenessModule
-from app.models.awareness_program import AwarenessProgram
 from app.models.awareness_progress import AwarenessProgress
 from app.schemas.awareness import (
     AwarenessEnrollmentOut,
@@ -20,6 +16,7 @@ from app.schemas.awareness import (
     LearnerDashboard,
     LearnerModuleProgress,
 )
+from app.services import awareness_enrollment_service, awareness_program_service
 from app.services.awareness_progression import enroll_learner
 
 router = APIRouter()
@@ -41,10 +38,8 @@ async def list_enrollments(
     learner: AwarenessLearner = Depends(get_current_learner),
     db: AsyncSession = Depends(get_db),
 ) -> list[AwarenessEnrollmentOut]:
-    result = await db.execute(
-        select(AwarenessEnrollment).where(AwarenessEnrollment.learner_id == learner.id)
-    )
-    return [AwarenessEnrollmentOut.model_validate(e) for e in result.scalars().all()]
+    enrollments = await awareness_enrollment_service.list_learner_enrollments(db, learner.id)
+    return [AwarenessEnrollmentOut.model_validate(e) for e in enrollments]
 
 
 @router.get("/enrollments/{enrollment_id}/dashboard", response_model=LearnerDashboard)
@@ -54,43 +49,20 @@ async def learner_dashboard(
     db: AsyncSession = Depends(get_db),
 ) -> LearnerDashboard:
     """Retourne l'état complet d'une inscription : programme + progression par module."""
-    enrollment = (
-        await db.execute(
-            select(AwarenessEnrollment).where(
-                AwarenessEnrollment.id == enrollment_id,
-                AwarenessEnrollment.learner_id == learner.id,
-            )
-        )
-    ).scalar_one_or_none()
+    enrollment = await awareness_enrollment_service.get_learner_enrollment(
+        db, enrollment_id, learner.id
+    )
     if enrollment is None:
         raise HTTPException(status_code=404, detail="Inscription introuvable.")
 
-    prog = (
-        await db.execute(
-            select(AwarenessProgram).where(AwarenessProgram.id == enrollment.program_id)
-        )
-    ).scalar_one()
-    mods = (
-        (
-            await db.execute(
-                select(AwarenessModule)
-                .where(AwarenessModule.program_id == prog.id, AwarenessModule.is_active == True)
-                .order_by(AwarenessModule.position)
-            )
-        )
-        .scalars()
-        .all()
-    )
+    prog = await awareness_program_service.get_program_by_id(db, enrollment.program_id)
+    if prog is None:
+        raise HTTPException(status_code=404, detail="Programme introuvable.")
+    mods = await awareness_program_service.list_active_modules(db, [prog.id])
 
     progress_map: dict[int, AwarenessProgress] = {}
-    prog_records = (
-        (
-            await db.execute(
-                select(AwarenessProgress).where(AwarenessProgress.enrollment_id == enrollment_id)
-            )
-        )
-        .scalars()
-        .all()
+    prog_records = await awareness_enrollment_service.list_progress_for_enrollment(
+        db, enrollment_id
     )
     for p in prog_records:
         progress_map[p.module_id] = p
