@@ -52,7 +52,6 @@ _BASELINE: set[str] = {
     "sites.py",
     "subscriptions.py",
     "users.py",
-    "vault.py",
     "webhooks.py",
 }
 

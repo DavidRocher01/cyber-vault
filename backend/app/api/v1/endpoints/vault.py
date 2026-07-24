@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.limiter import limiter
 from app.models.user import User
-from app.models.vault_item import VaultItem
 from app.schemas.vault_item import VaultItemCreate, VaultItemOut, VaultItemUpdate
+from app.services import vault_service
 
 router = APIRouter(prefix="/vault", tags=["vault"])
 
@@ -21,10 +20,7 @@ async def list_items(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(VaultItem).where(VaultItem.owner_id == current_user.id).offset(skip).limit(limit)
-    )
-    return result.scalars().all()
+    return await vault_service.list_items(db, current_user.id, skip=skip, limit=limit)
 
 
 @router.post("/", response_model=VaultItemOut, status_code=status.HTTP_201_CREATED)
@@ -35,11 +31,7 @@ async def create_item(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    item = VaultItem(**payload.model_dump(), owner_id=current_user.id)
-    db.add(item)
-    await db.commit()
-    await db.refresh(item)
-    return item
+    return await vault_service.create_item(db, current_user.id, payload.model_dump())
 
 
 @router.get("/{item_id}", response_model=VaultItemOut)
@@ -50,10 +42,7 @@ async def get_item(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(VaultItem).where(VaultItem.id == item_id, VaultItem.owner_id == current_user.id)
-    )
-    item = result.scalar_one_or_none()
+    item = await vault_service.get_item(db, current_user.id, item_id)
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entrée introuvable")
     return item
@@ -68,17 +57,12 @@ async def update_item(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(VaultItem).where(VaultItem.id == item_id, VaultItem.owner_id == current_user.id)
-    )
-    item = result.scalar_one_or_none()
+    item = await vault_service.get_item(db, current_user.id, item_id)
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entrée introuvable")
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(item, field, value)
-    await db.commit()
-    await db.refresh(item)
-    return item
+    return await vault_service.save_item(db, item)
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -89,11 +73,7 @@ async def delete_item(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(VaultItem).where(VaultItem.id == item_id, VaultItem.owner_id == current_user.id)
-    )
-    item = result.scalar_one_or_none()
+    item = await vault_service.get_item(db, current_user.id, item_id)
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entrée introuvable")
-    await db.delete(item)
-    await db.commit()
+    await vault_service.delete_item(db, item)
