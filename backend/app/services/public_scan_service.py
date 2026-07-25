@@ -12,10 +12,12 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+from fastapi import HTTPException
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.ssrf import assert_no_ssrf
 from app.models.public_scan import PublicScan
 
 SCANNER_DIR = Path(__file__).resolve().parents[3] / "cyber-scanner"
@@ -95,6 +97,23 @@ async def run_public_scan(public_scan_id: int, db: AsyncSession) -> None:
     url = scan.target_url
     if not url.startswith(("http://", "https://")):
         url = f"https://{url}"
+
+    # Re-validation SSRF a l'EXECUTION (defense anti DNS-rebinding / TOCTOU).
+    # assert_no_ssrf a deja ete appele a la creation de l'endpoint, mais le DNS a
+    # pu basculer vers une IP interne entre-temps. Les sondes HTTP passent par
+    # scanner.safe_http (revalide chaque hop + re-resout), mais les sondes
+    # non-HTTP (check_ssl socket TLS, check_ip_reputation, DNS) re-resolvent sans
+    # garde -> on revalide ici, comme url_scan_service._validate_url.
+    try:
+        assert_no_ssrf(url)
+    except HTTPException:
+        scan.status = "failed"
+        scan.error_message = (
+            "URL refusee : l'hote resout vers une adresse interne au moment du scan"
+        )
+        scan.finished_at = datetime.now(UTC)
+        await db.commit()
+        return
 
     try:
         loop = asyncio.get_running_loop()

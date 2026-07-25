@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import HTTPException
 
 from app.models.public_scan import PublicScan
 from app.schemas.public_scan import PublicScanOut
@@ -86,11 +87,35 @@ class TestPublicScanOutSchema:
 
 
 class TestRunPublicScan:
+    @pytest.fixture(autouse=True)
+    def _no_ssrf(self):
+        """Neutralise la re-validation SSRF (pas d'appel DNS reel en test unitaire).
+        Les tests qui veulent verifier le blocage la reconfigurent via side_effect."""
+        with patch("app.services.public_scan_service.assert_no_ssrf") as m:
+            yield m
+
     @pytest.mark.asyncio
     async def test_scan_not_found_returns_early(self):
         db = _mock_db(scan=None)
         await run_public_scan(999, db)
         db.commit.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_ssrf_revalidation_blocks_scan_at_execution(self, _no_ssrf):
+        """Si le DNS a bascule vers une IP interne entre la creation et l'execution,
+        assert_no_ssrf leve -> le scan est marque failed sans lancer les sondes."""
+        _no_ssrf.side_effect = HTTPException(status_code=422, detail="interne")
+        scan = _make_scan(target_url="https://rebind.example.com")
+        db = _mock_db(scan=scan)
+
+        with patch("app.services.public_scan_service._run_demo_scan_sync") as run_sync:
+            await run_public_scan(1, db)
+
+        run_sync.assert_not_called()
+        assert scan.status == "failed"
+        assert "interne" in scan.error_message
+        assert scan.finished_at is not None
+        db.commit.assert_called()
 
     @pytest.mark.asyncio
     async def test_successful_scan_sets_done(self):

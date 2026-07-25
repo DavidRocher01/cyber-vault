@@ -9,10 +9,12 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+from fastapi import HTTPException
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.ssrf import assert_no_ssrf
 from app.models.scan import Scan
 from app.models.site import Site
 
@@ -339,6 +341,21 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
     url = site.url
     if not url.startswith(("http://", "https://")):
         url = f"https://{url}"
+
+    # Re-validation SSRF a l'EXECUTION (anti DNS-rebinding / TOCTOU) : le domaine a
+    # pu etre rebascule vers une IP interne entre le trigger (ou la verification de
+    # propriete) et l'execution differee. Critique ici car scan_ports (nmap) et
+    # check_ssl (socket TLS) re-resolvent le DNS SANS passer par scanner.safe_http.
+    try:
+        assert_no_ssrf(url)
+    except HTTPException:
+        scan.status = "failed"
+        scan.error_message = (
+            "URL refusee : l'hote resout vers une adresse interne au moment du scan"
+        )
+        scan.finished_at = datetime.now(UTC)
+        await db.commit()
+        return
 
     from app.core.config import settings
 
