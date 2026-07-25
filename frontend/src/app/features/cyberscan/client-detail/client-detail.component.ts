@@ -23,6 +23,7 @@ import {
 import { PhishingService, PhishingCampaign } from '../services/phishing.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { extractApiError } from '../../../core/http-error';
+import { snackApiError } from '../../../core/snack-error';
 import {
   priorityClass as priorityClassFn,
   actionStatusClass as actionStatusClassFn,
@@ -363,7 +364,7 @@ export class ClientDetailComponent implements OnInit {
         },
         error: err => {
           this.saving.set(false);
-          this.snack.open(extractApiError(err, 'Erreur'), 'Fermer', { duration: 4000 });
+          snackApiError(this.snack, err);
         },
       });
   }
@@ -455,7 +456,7 @@ export class ClientDetailComponent implements OnInit {
         },
         error: err => {
           this.saving.set(false);
-          this.snack.open(extractApiError(err, 'Erreur'), 'Fermer', { duration: 4000 });
+          snackApiError(this.snack, err);
         },
       });
   }
@@ -495,7 +496,7 @@ export class ClientDetailComponent implements OnInit {
             .logActivity(this.clientId, { action_type: 'update_visit', resource_id: visitId })
             .subscribe();
         },
-        error: err => this.snack.open(extractApiError(err, 'Erreur'), 'Fermer', { duration: 4000 }),
+        error: err => snackApiError(this.snack, err),
       });
   }
 
@@ -509,7 +510,7 @@ export class ClientDetailComponent implements OnInit {
         this.visits.update(list => list.filter(v => v.id !== visitId));
         this.snack.open('Visite supprimée', 'OK', { duration: 3000 });
       },
-      error: err => this.snack.open(extractApiError(err, 'Erreur'), 'Fermer', { duration: 4000 }),
+      error: err => snackApiError(this.snack, err),
     });
   }
 
@@ -541,7 +542,7 @@ export class ClientDetailComponent implements OnInit {
         },
         error: err => {
           this.saving.set(false);
-          this.snack.open(extractApiError(err, 'Erreur'), 'Fermer', { duration: 4000 });
+          snackApiError(this.snack, err);
         },
       });
   }
@@ -581,7 +582,7 @@ export class ClientDetailComponent implements OnInit {
             .logActivity(this.clientId, { action_type: 'update_action', resource_id: actionId })
             .subscribe();
         },
-        error: err => this.snack.open(extractApiError(err, 'Erreur'), 'Fermer', { duration: 4000 }),
+        error: err => snackApiError(this.snack, err),
       });
   }
 
@@ -595,7 +596,7 @@ export class ClientDetailComponent implements OnInit {
         this.actions.update(list => list.filter(a => a.id !== actionId));
         this.snack.open('Action supprimée', 'OK', { duration: 3000 });
       },
-      error: err => this.snack.open(extractApiError(err, 'Erreur'), 'Fermer', { duration: 4000 }),
+      error: err => snackApiError(this.snack, err),
     });
   }
 
@@ -696,8 +697,7 @@ export class ClientDetailComponent implements OnInit {
           this.pendingEditFile.set(null);
           this.snack.open('Livrable mis à jour', 'OK', { duration: 3000 });
         },
-        error: (err: { error?: { detail?: string } }) =>
-          this.snack.open(extractApiError(err, 'Erreur'), 'Fermer', { duration: 4000 }),
+        error: (err: { error?: { detail?: string } }) => snackApiError(this.snack, err),
       });
   }
 
@@ -719,7 +719,7 @@ export class ClientDetailComponent implements OnInit {
         this.deliverables.update(list => list.filter(d => d.id !== deliverableId));
         this.snack.open('Livrable supprimé', 'OK', { duration: 3000 });
       },
-      error: err => this.snack.open(extractApiError(err, 'Erreur'), 'Fermer', { duration: 4000 }),
+      error: err => snackApiError(this.snack, err),
     });
   }
 
@@ -865,7 +865,7 @@ export class ClientDetailComponent implements OnInit {
         this.selectedSiteId.set(null);
         this.snack.open('Site lié avec succès', 'OK', { duration: 3000 });
       },
-      error: err => this.snack.open(extractApiError(err, 'Erreur'), 'Fermer', { duration: 4000 }),
+      error: err => snackApiError(this.snack, err),
     });
   }
 
@@ -886,7 +886,7 @@ export class ClientDetailComponent implements OnInit {
         }
         this.snack.open('Site délié', 'OK', { duration: 3000 });
       },
-      error: err => this.snack.open(extractApiError(err, 'Erreur'), 'Fermer', { duration: 4000 }),
+      error: err => snackApiError(this.snack, err),
     });
   }
 

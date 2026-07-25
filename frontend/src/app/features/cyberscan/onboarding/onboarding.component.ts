@@ -12,7 +12,7 @@ import { ScanApiService } from '../services/scan-api.service';
 import { SiteApiService } from '../services/site-api.service';
 import { BillingService } from '../services/billing.service';
 import { formatScanFrequency } from '../../../shared/plan-features';
-import { extractApiError } from '../../../core/http-error';
+import { snackApiError } from '../../../core/snack-error';
 
 @Component({
   standalone: true,
@@ -107,7 +107,7 @@ export class OnboardingComponent implements OnInit {
       },
       error: err => {
         this.addingSite.set(false);
-        this.snack.open(extractApiError(err, 'Erreur'), 'Fermer', { duration: 4000 });
+        snackApiError(this.snack, err);
       },
     });
   }

@@ -26,6 +26,7 @@ import { RssiService, ConsultantProfile } from '../services/rssi.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { OtpInputComponent } from '../../../shared/otp-input/otp-input.component';
 import { extractApiError } from '../../../core/http-error';
+import { snackApiError } from '../../../core/snack-error';
 
 @Component({
   standalone: true,
@@ -218,7 +219,7 @@ export class ProfileComponent implements OnInit {
       },
       error: err => {
         this.savingEmail.set(false);
-        this.snack.open(extractApiError(err, 'Erreur'), 'Fermer', { duration: 4000 });
+        snackApiError(this.snack, err);
       },
     });
   }
@@ -271,7 +272,7 @@ export class ProfileComponent implements OnInit {
       },
       error: err => {
         this.twoFaLoading.set(false);
-        this.snack.open(extractApiError(err, 'Erreur'), 'Fermer', { duration: 4000 });
+        snackApiError(this.snack, err);
       },
     });
   }
@@ -436,7 +437,7 @@ export class ProfileComponent implements OnInit {
       },
       error: err => {
         this.savingPassword.set(false);
-        this.snack.open(extractApiError(err, 'Erreur'), 'Fermer', { duration: 4000 });
+        snackApiError(this.snack, err);
       },
     });
   }
