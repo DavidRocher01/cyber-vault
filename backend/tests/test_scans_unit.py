@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import BackgroundTasks, HTTPException
+from fastapi import BackgroundTasks, HTTPException, Request
 
 from app.api.v1.endpoints.scans import (
     download_pdf,
@@ -25,6 +25,17 @@ from app.models.site import Site
 from app.models.user import User
 
 # ─── helpers ──────────────────────────────────────────────────────────────────
+
+
+def _mock_request(ip: str = "127.0.0.1") -> MagicMock:
+    # Requete factice pour le decorateur @limiter.limit : IP loopback => clef de
+    # rate-limit unique par requete en env test (aucune limite ne se declenche).
+    req = MagicMock(spec=Request)
+    req.client = MagicMock()
+    req.client.host = ip
+    req.headers = {}
+    req.state = MagicMock()
+    return req
 
 
 def _mock_user(user_id: int = 1) -> MagicMock:
@@ -100,7 +111,9 @@ async def test_trigger_scan_unknown_site_raises_404():
     bg = MagicMock(spec=BackgroundTasks)
 
     with pytest.raises(HTTPException) as exc:
-        await trigger_scan(site_id=99, background_tasks=bg, current_user=user, db=db)
+        await trigger_scan(
+            request=_mock_request(), site_id=99, background_tasks=bg, current_user=user, db=db
+        )
     assert exc.value.status_code == 404
 
 
@@ -133,7 +146,9 @@ async def test_trigger_scan_success_returns_scan_id():
                 count_result,  # recent scans count
             ]
         )
-        result = await trigger_scan(site_id=1, background_tasks=bg, current_user=user, db=db)
+        result = await trigger_scan(
+            request=_mock_request(), site_id=1, background_tasks=bg, current_user=user, db=db
+        )
 
     assert "scan_id" in result or hasattr(result, "scan_id")
     bg.add_task.assert_called_once()
@@ -171,7 +186,9 @@ async def test_trigger_scan_recent_scan_raises_429():
             ]
         )
         with pytest.raises(HTTPException) as exc:
-            await trigger_scan(site_id=1, background_tasks=bg, current_user=user, db=db)
+            await trigger_scan(
+                request=_mock_request(), site_id=1, background_tasks=bg, current_user=user, db=db
+            )
 
     assert exc.value.status_code == 429
     assert "Limite de scans atteinte" in exc.value.detail
@@ -201,7 +218,9 @@ async def test_trigger_scan_free_plan_unlimited_no_block():
         # site query + verrou FOR UPDATE ; pas de requête de quota (max_sites < 0 => bypass)
         db.execute = AsyncMock(side_effect=[_scalar_result(site), MagicMock()])
         # trigger_scan ne doit PAS lever : un scan est créé
-        result = await trigger_scan(site_id=1, background_tasks=bg, current_user=user, db=db)
+        result = await trigger_scan(
+            request=_mock_request(), site_id=1, background_tasks=bg, current_user=user, db=db
+        )
 
     assert "scan_id" in result
 

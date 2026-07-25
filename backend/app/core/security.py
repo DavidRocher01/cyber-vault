@@ -27,6 +27,24 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(_bcrypt_bytes(plain_password), hashed_password.encode())
 
 
+# Hash bcrypt jetable, calcule une seule fois au demarrage. Sert a egaliser le
+# temps de reponse d'un login sur un email INEXISTANT avec celui d'un email
+# existant + mauvais mot de passe : sans cela, l'absence de checkpw rend la
+# reponse "pas de compte" mesurablement plus rapide et permet d'enumerer les
+# comptes par timing (S-9).
+_DUMMY_PASSWORD_HASH = bcrypt.hashpw(b"timing-attack-dummy", bcrypt.gensalt()).decode()
+
+
+def dummy_verify_password() -> None:
+    """Consomme le meme temps CPU qu'un verify_password reel (anti-enumeration).
+
+    Le cout de bcrypt.checkpw ne depend que du facteur de cout du hash, pas de
+    l'entree : comparer un mot de passe fixe au hash jetable prend le meme temps
+    qu'une verification legitime.
+    """
+    bcrypt.checkpw(b"timing-attack-dummy", _DUMMY_PASSWORD_HASH.encode())
+
+
 def create_access_token(subject: str) -> str:
     expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     # "type": "access" empêche qu'un autre JWT signé avec le même secret

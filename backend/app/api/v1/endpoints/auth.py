@@ -23,6 +23,7 @@ from app.core.security import (
     REFRESH_TOKEN_EXPIRE_DAYS,
     create_access_token,
     create_refresh_token,
+    dummy_verify_password,
     hash_password,
     verify_password,
 )
@@ -106,6 +107,11 @@ async def login(
     )
 
     if not user:
+        # Anti-enumeration : on execute un verify_password factice (meme cout
+        # bcrypt) pour egaliser le temps de reponse avec le chemin "le compte
+        # existe mais le mot de passe est faux". Sinon un attaquant distingue
+        # les emails enregistres par la latence.
+        await asyncio.to_thread(dummy_verify_password)
         raise invalid_exc
 
     now_utc = datetime.now(UTC)
