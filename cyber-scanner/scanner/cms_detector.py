@@ -164,6 +164,17 @@ def detect_cms(url: str) -> dict[str, Any]:
         result["status"] = "CRITICAL"
         return result
 
+    # Detection soft-404 / routing catch-all. Certains sites (SPA sur
+    # S3/CloudFront, ou tout site qui reecrit les routes inconnues vers une page
+    # d'accueil) renvoient 200 pour N'IMPORTE quel chemin. Les sondes `url_path`
+    # (qui considerent "existe" des que le code < 404) produisent alors des faux
+    # positifs : /wp-content/ -> index.html 200 => faux "WordPress". On sonde un
+    # chemin volontairement inexistant : s'il repond < 404, le site est en
+    # soft-404 et les checks `url_path` ne sont PAS fiables — on ne garde que les
+    # signatures de contenu (header/html/cookie).
+    bogus = _fetch(url.rstrip("/") + "/__cms_probe_404_check__")
+    url_path_reliable = bogus is None or bogus["status_code"] >= 404
+
     best_cms: str = "Unknown"
     best_score: int = 0
     best_version: str | None = None
@@ -171,7 +182,8 @@ def detect_cms(url: str) -> dict[str, Any]:
     for sig in CMS_SIGNATURES:
         score = sum(
             1 for check in sig["checks"]
-            if _check_signature(check, url, page)
+            if not (check["type"] == "url_path" and not url_path_reliable)
+            and _check_signature(check, url, page)
         )
         if score > best_score:
             best_score = score

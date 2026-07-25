@@ -129,6 +129,38 @@ def test_detect_cms_critical_on_fetch_failure():
     assert result["error"] is not None
 
 
+def test_detect_cms_ignores_url_path_on_soft_404_spa():
+    """SPA / site en catch-all : tout chemin renvoie 200 (soft-404). Les sondes
+    url_path doivent etre ignorees, sinon /wp-content/ -> 200 => faux WordPress."""
+    spa_index = _make_page(html="<html><body>Angular app</body></html>", status_code=200)
+    # _fetch renvoie 200 pour TOUT (l'index de la SPA), y compris la sonde bidon
+    # et /wp-content/, /administrator/, /sites/default/.
+    with patch("scanner.cms_detector._fetch", return_value=spa_index):
+        result = detect_cms(URL)
+    assert result["cms"] == "Unknown"
+    assert result["status"] == "OK"
+    assert result["confidence"] == 0
+
+
+def test_detect_cms_still_detects_via_url_path_when_reliable():
+    """Site avec de vrais 404 : les sondes url_path restent fiables et detectent."""
+    root = _make_page(html="<html><body>Blog</body></html>", status_code=200)
+
+    def fake_fetch(url):
+        if url == URL:
+            return root
+        if url.endswith("/__cms_probe_404_check__"):
+            return _make_page(status_code=404)   # vrai 404 => url_path fiable
+        if url.endswith("/wp-content/"):
+            return _make_page(status_code=200)    # /wp-content/ existe
+        return _make_page(status_code=404)
+
+    with patch("scanner.cms_detector._fetch", side_effect=fake_fetch):
+        result = detect_cms(URL)
+    assert result["cms"] == "WordPress"
+    assert result["status"] == "WARNING"
+
+
 def test_detect_cms_returns_expected_keys():
     page = _make_page()
     with patch("scanner.cms_detector._fetch", return_value=page):
