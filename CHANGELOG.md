@@ -314,6 +314,39 @@ versionnage conforme à [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+### Sécurité
+
+> Campagne de remédiation suite à l'**audit de sécurité multi-agents** du 2026-07-19 (10 findings confirmés). Correctifs livrés par lots successifs sur `develop`, avec CI verte entre chaque lot.
+
+- **Révocation de sessions** : invalidation de tous les refresh tokens actifs au changement de mot de passe ou d'email (G0-0, G0-1)
+- **SSRF (scanner)** : re-validation systématique à l'exécution du scan et probes du scanner routés via `safe_http` — parade au DNS-rebinding et aux redirections hors allowlist (S-2)
+- **Brute-force 2FA** : rate-limit `5/minute` sur les endpoints de configuration TOTP `setup`/`enable`/`disable` (S-4)
+- **Injection de markup ReportLab** : échappement XML des chaînes contrôlées par l'utilisateur dans le PDF de rapport phishing (S-7, partiel)
+- **Sensibilisation** : la complétion d'un module exige désormais une vraie tentative de quiz validée côté serveur (anti-contournement, G4-0)
+- **Vitrine** : en-têtes de sécurité CloudFront + enregistrement DMARC
+
+> _En cours :_ Lot 4 — effacement RGPD `DELETE /users/me` en cascade (S-8), refus de `/auth/refresh` pour un compte désactivé, échappement HTML des noms dans l'email d'invitation portail. _Restant planifié :_ S-1 (autorisation scanner + quota), S-7 (reste), S-9 (timing login), S-10 (PDF phishing async).
+
+### Ajouté
+
+- **Recette post-déploiement automatisée** : job de recette (API pytest/httpx + Playwright contre la prod) après stabilisation ECS, avec **rollback automatique** sur échec et compte canari dédié (activée en prod 2026-07-25)
+- **Observabilité** : 7 alarmes CloudWatch → SNS (alerte email), logs sans secret ni PII
+
+### Modifié
+
+- **Refonte du module phishing** : deux opérateurs, gating du plan au **lancement** (plus à la création), cibles non-destructives, cadence + annulation de campagne, remédiation « training-on-fail », domaine d'envoi dédié, suppression de campagne sans envoi d'email (déployé en prod 2026-07-19)
+- **Lot sécurité + performances** : montée de PyJWT, FastAPI 0.138.1, Starlette 1.3.1, cryptography 49 ; politique **0 CVE** (gates pip/npm + Dependabot) ; parallélisation threadpool + cache CDN (déployé en prod 2026-07-01)
+
+### Corrigé
+
+- **Insertion JSONB** : colonnes `jsonb` mappées en `Text` côté modèle provoquant un INSERT 500 (asyncpg) → migration corrective (déployé en prod 2026-07-16)
+- **Scanner** : suppression du faux positif de détection CMS sur les sites en soft-404 (SPA)
+
+### CI/CD
+
+- **Tests de robustesse** (phase 1) : ~112 tests d'invariants ajoutés, relèvement des seuils de couverture (front + back)
+- Réconciliation du drift modèles ↔ schéma (migrations `autogenerate` remises à vide)
+
 ---
 
 [2.0.0]: https://github.com/DavidRocher01/cyber-vault/compare/v1.2.0...v2.0.0
