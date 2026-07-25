@@ -24,6 +24,7 @@ from .theme import (
     COLOR_TEXT,
     COLOR_WARNING,
     _kv_styles,
+    _kv_table,
     _not_scanned_table,
     _section_header,
     _status_color,
@@ -95,8 +96,7 @@ def _build_ssl_section(
         ]
 
     col_w = page_w - 4 * cm
-    t = Table(rows, colWidths=[col_w * 0.38, col_w * 0.62])
-    t.setStyle(_std_table_style())
+    t = _kv_table(rows, [col_w * 0.38, col_w * 0.62])
     story.append(t)
     return story
 
@@ -319,8 +319,7 @@ def _build_sca_section(
                 )
             ],
         ]
-        t = Table(rows, colWidths=[col_w])
-        t.setStyle(_std_table_style())
+        t = _kv_table(rows, [col_w])
         story.append(t)
         return story
 
@@ -333,8 +332,7 @@ def _build_sca_section(
                 Paragraph(str(sca_result["error"]), cell_style),
             ],
         ]
-        t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
-        t.setStyle(_std_table_style())
+        t = _kv_table(rows, [col_w * 0.35, col_w * 0.65])
         story.append(t)
         return story
 
@@ -364,8 +362,7 @@ def _build_sca_section(
             Paragraph(str(total_vulns), vuln_style),
         ],
     ]
-    t_summary = Table(summary_rows, colWidths=[col_w * 0.45, col_w * 0.55])
-    t_summary.setStyle(_std_table_style())
+    t_summary = _kv_table(summary_rows, [col_w * 0.45, col_w * 0.55])
     story.append(t_summary)
 
     if vulns:
@@ -1127,8 +1124,7 @@ def _build_tech_section(
         rows.append(["—", "Aucune technologie identifiée"])
 
     col_w = page_w - 4 * cm
-    t = Table(rows, colWidths=[col_w * 0.3, col_w * 0.7])
-    t.setStyle(_std_table_style())
+    t = _kv_table(rows, [col_w * 0.3, col_w * 0.7])
     story.append(t)
 
     if tech_result.get("error"):
@@ -1184,8 +1180,7 @@ def _build_tls_section(
         ]
 
     col_w = page_w - 4 * cm
-    t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
-    t.setStyle(_std_table_style())
+    t = _kv_table(rows, [col_w * 0.35, col_w * 0.65])
     story.append(t)
     return story
 
@@ -1290,8 +1285,7 @@ def _build_threat_intel_section(
         ["Abuse score", f"{abuse}/100" if abuse is not None else "—"],
     ]
     col_w = page_w - 4 * cm
-    t = Table(rows, colWidths=[col_w * 0.3, col_w * 0.7])
-    t.setStyle(_std_table_style())
+    t = _kv_table(rows, [col_w * 0.3, col_w * 0.7])
     story.append(t)
 
     if ti_result.get("error"):
@@ -1334,8 +1328,7 @@ def _build_http_methods_section(
         ["Méthodes dangereuses", ", ".join(dangerous) if dangerous else "Aucune"],
     ]
     col_w = page_w - 4 * cm
-    t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
-    t.setStyle(_std_table_style())
+    t = _kv_table(rows, [col_w * 0.35, col_w * 0.65])
     story.append(t)
 
     probes = methods_result.get("probes", [])
@@ -1363,8 +1356,7 @@ def _build_http_methods_section(
                     Paragraph(accepted, accepted_style),
                 ]
             )
-        t2 = Table(probe_rows, colWidths=[col_w * 0.25, col_w * 0.35, col_w * 0.40])
-        t2.setStyle(_std_table_style())
+        t2 = _kv_table(probe_rows, [col_w * 0.25, col_w * 0.35, col_w * 0.40])
         story.append(t2)
     return story
 
@@ -1407,8 +1399,7 @@ def _build_open_redirect_section(
     for f in findings:
         rows.append([f"Param: {f['param']}", f"→ {f['location'][:60]}"])
 
-    t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
-    t.setStyle(_std_table_style())
+    t = _kv_table(rows, [col_w * 0.35, col_w * 0.65])
     story.append(t)
     return story
 
@@ -1446,8 +1437,7 @@ def _build_clickjacking_section(
         ["CSP protégé", "Oui" if csp.get("protected") else "Non"],
         ["Vulnérable clickjacking", "OUI" if r.get("vulnerable") else "Non"],
     ]
-    t = Table(rows, colWidths=[col_w * 0.4, col_w * 0.6])
-    t.setStyle(_std_table_style())
+    t = _kv_table(rows, [col_w * 0.4, col_w * 0.6])
     story.append(t)
     return story
 
@@ -1488,8 +1478,7 @@ def _build_dirlist_section(
     for f in findings:
         rows.append([f["path"], f["category"], f["severity"], str(f["status_code"])])
 
-    t = Table(rows, colWidths=[col_w * 0.38, col_w * 0.22, col_w * 0.22, col_w * 0.18])
-    t.setStyle(_std_table_style())
+    t = _kv_table(rows, [col_w * 0.38, col_w * 0.22, col_w * 0.22, col_w * 0.18])
     story.append(t)
     return story
 
@@ -1523,8 +1512,7 @@ def _build_robots_section(
         ["Sitemap", "Trouvé" if r.get("sitemap_found") else "Absent"],
         ["URLs sitemap", str(r.get("sitemap_url_count", 0))],
     ]
-    t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.65])
-    t.setStyle(_std_table_style())
+    t = _kv_table(rows, [col_w * 0.35, col_w * 0.65])
     story.append(t)
     return story
 
@@ -1579,7 +1567,6 @@ def _build_jwt_section(
         )
         rows.append([a["token"][:40], issues, Paragraph(sev, sev_style)])
 
-    t = Table(rows, colWidths=[col_w * 0.35, col_w * 0.45, col_w * 0.20])
-    t.setStyle(_std_table_style())
+    t = _kv_table(rows, [col_w * 0.35, col_w * 0.45, col_w * 0.20])
     story.append(t)
     return story

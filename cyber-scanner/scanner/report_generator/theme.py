@@ -184,6 +184,18 @@ def _std_table_style(extra: list | None = None) -> TableStyle:
     return TableStyle(base)
 
 
+def _kv_table(rows: list, col_widths: list, extra: list | None = None) -> Table:
+    """Construit un tableau au style standard en une seule etape.
+
+    Centralise le couple ``Table(rows, colWidths=...) + setStyle(_std_table_style(...))``
+    reproduit dans une vingtaine de sections. ``col_widths`` reste passe
+    explicitement pour preserver a l'octet pres le rendu existant.
+    """
+    t = Table(rows, colWidths=col_widths)
+    t.setStyle(_std_table_style(extra))
+    return t
+
+
 # ---------------------------------------------------------------------------
 # Section header helper
 # ---------------------------------------------------------------------------
