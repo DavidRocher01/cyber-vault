@@ -24,14 +24,15 @@ from reportlab.platypus import (
 )
 
 from app.models.phishing import PhishingCampaign, PhishingTarget
+from app.services.pdf_brand import CYAN, DARK_BG, GRAY
 from app.services.phishing_templates import SCENARIO_LABELS
 
-_DARK = colors.HexColor("#0f172a")
-_CYAN = colors.HexColor("#06b6d4")
-_RED = colors.HexColor("#ef4444")
-_YELLOW = colors.HexColor("#eab308")
-_GREEN = colors.HexColor("#22c55e")
-_GRAY = colors.HexColor("#94a3b8")
+_DARK = DARK_BG  # brand (voir pdf_brand)
+_CYAN = CYAN  # brand (voir pdf_brand)
+_RED = colors.HexColor("#ef4444")  # variante vive volontaire (!= brand RED)
+_YELLOW = colors.HexColor("#eab308")  # variante vive volontaire (!= brand YELLOW)
+_GREEN = colors.HexColor("#22c55e")  # variante vive volontaire (!= brand GREEN)
+_GRAY = GRAY  # brand (voir pdf_brand)
 _LIGHT_BG = colors.HexColor("#f8fafc")
 _PAGE_W, _PAGE_H = A4
 

@@ -30,7 +30,6 @@ from app.services.pdf_brand import (
 )
 
 BLUE = colors.HexColor("#3b82f6")
-LIGHT_BG = colors.HexColor("#1e293b")
 
 
 def _styles() -> dict:
@@ -185,7 +184,7 @@ def generate_pca_pdf(data: dict) -> bytes:
         t.setStyle(
             TableStyle(
                 [
-                    ("BACKGROUND", (0, 0), (-1, 0), LIGHT_BG),
+                    ("BACKGROUND", (0, 0), (-1, 0), CARD_BG),
                     ("ROWBACKGROUNDS", (0, 1), (-1, -1), [CARD_BG, DARK_BG]),
                     ("TEXTCOLOR", (0, 0), (-1, -1), WHITE),
                     ("FONTSIZE", (0, 0), (-1, -1), 9),
@@ -226,7 +225,7 @@ def generate_pca_pdf(data: dict) -> bytes:
         t.setStyle(
             TableStyle(
                 [
-                    ("BACKGROUND", (0, 0), (-1, 0), LIGHT_BG),
+                    ("BACKGROUND", (0, 0), (-1, 0), CARD_BG),
                     ("ROWBACKGROUNDS", (0, 1), (-1, -1), [CARD_BG, DARK_BG]),
                     ("TEXTCOLOR", (0, 0), (-1, -1), WHITE),
                     ("FONTSIZE", (0, 0), (-1, -1), 9),

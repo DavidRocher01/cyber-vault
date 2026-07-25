@@ -52,7 +52,7 @@ from app.services.pdf_brand import (
 
 ROW_A = CARD_BG
 ROW_B = colors.HexColor("#162032")
-_EMPTY_BAR = colors.HexColor("#1e293b")
+_EMPTY_BAR = CARD_BG
 
 
 @dataclass(frozen=True)

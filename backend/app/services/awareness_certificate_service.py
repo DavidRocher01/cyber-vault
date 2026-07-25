@@ -192,7 +192,7 @@ def generate_certificate_pdf(cert: AwarenessCertificate, frozen: dict) -> bytes:
     from reportlab.lib.units import mm
     from reportlab.platypus import SimpleDocTemplate, Spacer, Table, TableStyle
 
-    from app.services.pdf_brand import CYAN, GRAY, WHITE
+    from app.services.pdf_brand import CYAN, DARK_BG, GRAY, WHITE
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -218,7 +218,7 @@ def generate_certificate_pdf(cert: AwarenessCertificate, frozen: dict) -> bytes:
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.platypus import Image, Paragraph
 
-    _navy = colors.HexColor("#0f172a")
+    _navy = DARK_BG
     _cyan = CYAN
     _gray = GRAY
     _white = WHITE
