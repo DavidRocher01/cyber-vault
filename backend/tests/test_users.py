@@ -198,6 +198,52 @@ async def test_update_password_unauthenticated_returns_403():
     assert r.status_code == 401
 
 
+@pytest.mark.asyncio
+async def test_update_password_revokes_existing_sessions():
+    """G0-0 : un refresh token émis avant le changement de mot de passe doit être
+    rejeté après (invalidation de session, comme le reset)."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        h = await _auth(c, "pw-sess@test.com")
+        # Le refresh (cookie httpOnly) fonctionne avant le changement.
+        assert (await c.post(f"{BASE}/auth/refresh")).status_code == 200
+
+        r = await c.put(
+            f"{BASE}/users/me/password",
+            headers=h,
+            json={
+                "current_password": "StrongPass123!",
+                "new_password": "NewStrongPass456!",
+            },
+        )
+        assert r.status_code == 204
+
+        # Après changement : tous les refresh tokens sont révoqués -> 401.
+        assert (await c.post(f"{BASE}/auth/refresh")).status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_update_email_revokes_existing_sessions():
+    """G0-1 : un refresh token émis avant le changement d'email doit être rejeté
+    après (invalidation de session)."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        h = await _auth(c, "email-sess@test.com")
+        # Le refresh (cookie httpOnly) fonctionne avant le changement.
+        assert (await c.post(f"{BASE}/auth/refresh")).status_code == 200
+
+        r = await c.put(
+            f"{BASE}/users/me/email",
+            headers=h,
+            json={
+                "email": "email-sess-new@test.com",
+                "current_password": "StrongPass123!",
+            },
+        )
+        assert r.status_code == 200
+
+        # Après changement : tous les refresh tokens sont révoqués -> 401.
+        assert (await c.post(f"{BASE}/auth/refresh")).status_code == 401
+
+
 # ── Export RGPD ────────────────────────────────────────────────────────────────
 
 

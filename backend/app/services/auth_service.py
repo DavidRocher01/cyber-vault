@@ -106,6 +106,22 @@ async def revoke_refresh_token(db: AsyncSession, stored: RefreshToken) -> None:
     await db.commit()
 
 
+async def revoke_all_sessions(db: AsyncSession, user_id: int) -> None:
+    """Révoque tous les refresh tokens actifs de l'utilisateur (stage la mutation,
+    sans commit — le commit revient à l'appelant).
+
+    Sécurité : à invoquer sur tout changement de credential (reset, changement de
+    mot de passe, changement d'email) pour qu'un refresh token volé ne survive pas
+    au changement. La session courante reste valide via son access token jusqu'à
+    expiration, puis devra se ré-authentifier.
+    """
+    await db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user_id, RefreshToken.revoked.is_(False))
+        .values(revoked=True)
+    )
+
+
 # ── Réinitialisation de mot de passe ─────────────────────────────────────────
 
 
@@ -135,11 +151,7 @@ async def apply_password_reset(db: AsyncSession, *, user: User, hashed_password:
     user.hashed_password = hashed_password
     user.failed_login_attempts = 0
     user.locked_until = None
-    await db.execute(
-        update(RefreshToken)
-        .where(RefreshToken.user_id == user.id, RefreshToken.revoked.is_(False))
-        .values(revoked=True)
-    )
+    await revoke_all_sessions(db, user.id)
     await db.execute(
         update(PasswordResetToken)
         .where(PasswordResetToken.user_id == user.id, PasswordResetToken.used.is_(False))
