@@ -9,6 +9,8 @@ import { Title } from '@angular/platform-browser';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { PhishingStatusBadgeComponent } from '../phishing-status-badge/phishing-status-badge.component';
 import { PhishingService, PhishingCampaign } from '../services/phishing.service';
+import { extractApiError } from '../../../core/http-error';
+import { formatFrDate } from '../../../shared/date-utils';
 
 interface TrendPoint {
   label: string;
@@ -70,7 +72,7 @@ export class PhishingCampaignsComponent implements OnInit {
         this.snack.open('Campagne supprimée', 'OK', { duration: 3000 });
       },
       error: err =>
-        this.snack.open(err.error?.detail || 'Suppression impossible', 'Fermer', {
+        this.snack.open(extractApiError(err, 'Suppression impossible'), 'Fermer', {
           duration: 4000,
         }),
     });
@@ -89,12 +91,7 @@ export class PhishingCampaignsComponent implements OnInit {
   }
 
   formatDate(iso: string | null): string {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
+    return formatFrDate(iso, 'date');
   }
 
   get trendData(): TrendPoint[] {

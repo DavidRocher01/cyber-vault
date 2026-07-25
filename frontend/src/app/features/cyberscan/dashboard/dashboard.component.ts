@@ -1,13 +1,4 @@
-import {
-  Component,
-  DestroyRef,
-  inject,
-  OnInit,
-  OnDestroy,
-  signal,
-  HostListener,
-  ElementRef,
-} from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
@@ -20,18 +11,14 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { Title, Meta } from '@angular/platform-browser';
-import { EMPTY, Subscription as RxSubscription, interval, switchMap, tap } from 'rxjs';
+import { EMPTY, Subscription as RxSubscription, switchMap, tap } from 'rxjs';
 import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 import { formatScanFrequency } from '../../../shared/plan-features';
 
-import {
-  CyberscanService,
-  Site,
-  Scan,
-  Subscription as UserSubscription,
-  Plan,
-  AppNotification,
-} from '../services/cyberscan.service';
+import { Site, Scan, Subscription as UserSubscription, Plan } from '../services/cyberscan.service';
+import { ScanApiService } from '../services/scan-api.service';
+import { SiteApiService } from '../services/site-api.service';
+import { BillingService } from '../services/billing.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -49,6 +36,8 @@ import { environment } from '../../../../environments/environment';
 import { StatsCardsComponent } from './components/stats-cards/stats-cards.component';
 import { RecentScansComponent } from './components/recent-scans/recent-scans.component';
 import { SitesGridComponent } from './components/sites-grid/sites-grid.component';
+import { NotificationBellComponent } from './components/notification-bell/notification-bell.component';
+import { extractApiError } from '../../../core/http-error';
 
 type ScanFilter = 'all' | 'done' | 'running' | 'error';
 
@@ -79,12 +68,15 @@ interface PaginatedScans {
     StatsCardsComponent,
     RecentScansComponent,
     SitesGridComponent,
+    NotificationBellComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
 export class DashboardComponent implements OnInit, OnDestroy {
-  private cyberscan = inject(CyberscanService);
+  private scanApi = inject(ScanApiService);
+  private siteApi = inject(SiteApiService);
+  private billing = inject(BillingService);
   private authService = inject(AuthService);
   private fb = inject(FormBuilder);
   private snack = inject(MatSnackBar);
@@ -93,7 +85,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private dialog = inject(MatDialog);
   private titleService = inject(Title);
   private meta = inject(Meta);
-  private el = inject(ElementRef);
   private destroyRef = inject(DestroyRef);
   private pollingMap: Record<number, RxSubscription> = {};
 
@@ -122,11 +113,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   showPlansModal = signal(false);
   plans = signal<Plan[]>([]);
   checkoutLoading = signal<number | null>(null);
-
-  // Notifications
-  notifications = signal<AppNotification[]>([]);
-  unreadCount = signal(0);
-  showNotifPanel = signal(false);
 
   siteForm = this.fb.nonNullable.group({
     url: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]],
@@ -161,19 +147,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.authService.logout();
   }
 
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent) {
-    if (
-      this.showNotifPanel() &&
-      !this.el.nativeElement.querySelector('.notif-panel-anchor')?.contains(event.target)
-    ) {
-      this.showNotifPanel.set(false);
-    }
-  }
-
   loadDashboard() {
     this.loading.set(true);
-    this.cyberscan
+    this.billing
       .getMySubscription()
       .pipe(
         takeUntilDestroyed(this.destroyRef),
@@ -184,7 +160,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
             this.router.navigate(['/onboarding']);
             return EMPTY;
           }
-          return this.cyberscan.getMySites();
+          return this.siteApi.getMySites();
         })
       )
       .subscribe({
@@ -195,69 +171,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
         },
         error: () => this.loading.set(false),
       });
-    this.loadNotifications();
-    interval(30000)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.loadNotifications());
-  }
-
-  loadNotifications() {
-    this.cyberscan.getNotifications().subscribe({
-      next: data => {
-        this.notifications.set(data.items);
-        this.unreadCount.set(data.unread_count);
-      },
-      error: () => {},
-    });
-  }
-
-  toggleNotifPanel(event: MouseEvent) {
-    event.stopPropagation();
-    this.showNotifPanel.update(v => !v);
-  }
-
-  handleNotifClick(notif: AppNotification) {
-    if (!notif.read) {
-      this.cyberscan.markNotificationRead(notif.id).subscribe({
-        next: updated => {
-          this.notifications.update(list => list.map(n => (n.id === notif.id ? updated : n)));
-          this.unreadCount.update(c => Math.max(0, c - 1));
-        },
-        error: () => {},
-      });
-    }
-    if (notif.link) {
-      this.router.navigateByUrl(notif.link);
-      this.showNotifPanel.set(false);
-    }
-  }
-
-  markAllRead() {
-    this.cyberscan.markAllNotificationsRead().subscribe({
-      next: () => {
-        this.notifications.update(list => list.map(n => ({ ...n, read: true })));
-        this.unreadCount.set(0);
-      },
-      error: () => {},
-    });
-  }
-
-  dismissNotif(event: MouseEvent, id: number) {
-    event.stopPropagation();
-    this.cyberscan.deleteNotification(id).subscribe({
-      next: () => {
-        const notif = this.notifications().find(n => n.id === id);
-        this.notifications.update(list => list.filter(n => n.id !== id));
-        if (notif && !notif.read) this.unreadCount.update(c => Math.max(0, c - 1));
-      },
-      error: () => {},
-    });
   }
 
   loadScans(siteId: number, page: number) {
     this.loadingScans.update(m => ({ ...m, [siteId]: true }));
     this.pageMap.update(m => ({ ...m, [siteId]: page }));
-    this.cyberscan.getSiteScans(siteId, page).subscribe({
+    this.scanApi.getSiteScans(siteId, page).subscribe({
       next: data => {
         this.scansMap.update(m => ({ ...m, [siteId]: data }));
         this.loadingScans.update(m => ({ ...m, [siteId]: false }));
@@ -281,7 +200,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private forceStartPolling(siteId: number) {
     this.pollingMap[siteId]?.unsubscribe();
     this.pollingMap[siteId] = pollWithBackoff(
-      () => this.cyberscan.getSiteScans(siteId, this.pageMap()[siteId] ?? 1),
+      () => this.scanApi.getSiteScans(siteId, this.pageMap()[siteId] ?? 1),
       d => !d.items.some(x => x.status === 'pending' || x.status === 'running')
     ).subscribe(data => {
       this.scansMap.update(m => ({ ...m, [siteId]: data }));
@@ -302,7 +221,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   addSite() {
     if (this.siteForm.invalid) return;
     this.addingSite.set(true);
-    this.cyberscan.createSite(this.siteForm.getRawValue()).subscribe({
+    this.siteApi.createSite(this.siteForm.getRawValue()).subscribe({
       next: site => {
         this.sites.update(s => [...s, site]);
         this.siteForm.reset();
@@ -313,7 +232,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.addingSite.set(false);
-        this.snack.open(err.error?.detail || "Erreur lors de l'ajout", 'Fermer', {
+        this.snack.open(extractApiError(err, "Erreur lors de l'ajout"), 'Fermer', {
           duration: 5000,
         });
       },
@@ -332,7 +251,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
     ref.afterClosed().subscribe(ok => {
       if (!ok) return;
-      this.cyberscan.deleteSite(site.id).subscribe({
+      this.siteApi.deleteSite(site.id).subscribe({
         next: () => {
           this.sites.update(s => s.filter(x => x.id !== site.id));
           this.snack.open('Site supprimé', 'OK', { duration: 3000 });
@@ -343,7 +262,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   triggerScan(siteId: number) {
     this.triggeringScans.update(m => ({ ...m, [siteId]: true }));
-    this.cyberscan.triggerScan(siteId).subscribe({
+    this.scanApi.triggerScan(siteId).subscribe({
       next: () => {
         this.triggeringScans.update(m => ({ ...m, [siteId]: false }));
         this.snack.open('Scan lancé — mise à jour automatique en cours', 'OK', { duration: 5000 });
@@ -354,7 +273,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.triggeringScans.update(m => ({ ...m, [siteId]: false }));
-        this.snack.open(err.error?.detail || 'Erreur lors du lancement', 'Fermer', {
+        this.snack.open(extractApiError(err, 'Erreur lors du lancement'), 'Fermer', {
           duration: 5000,
         });
       },
@@ -364,14 +283,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
   openPlansModal() {
     this.showPlansModal.set(true);
     if (this.plans().length === 0) {
-      this.cyberscan.getPlans().subscribe({ next: p => this.plans.set(p) });
+      this.billing.getPlans().subscribe({ next: p => this.plans.set(p) });
     }
   }
 
   selectPlan(plan: Plan) {
     this.checkoutLoading.set(plan.id);
-    this.cyberscan.invalidateSubscriptionCache();
-    this.cyberscan.createCheckout(plan.id).subscribe({
+    this.billing.invalidateSubscriptionCache();
+    this.billing.createCheckout(plan.id).subscribe({
       next: res => {
         const url = res.checkout_url;
         try {
@@ -390,7 +309,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   openBillingPortal() {
-    this.cyberscan.getBillingPortal().subscribe({
+    this.billing.getBillingPortal().subscribe({
       next: res => {
         try {
           const parsed = new URL(res.checkout_url);
@@ -412,7 +331,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   downloadPdf(scanId: number) {
-    this.cyberscan.downloadPdfBlob(scanId).subscribe({
+    this.scanApi.downloadPdfBlob(scanId).subscribe({
       next: blob => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -531,17 +450,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  formatDate(d: string | null): string {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
-
   get maxSites(): number {
     return this.subscription()?.plan?.max_sites ?? 0;
   }
@@ -557,7 +465,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   purchaseExtraSites() {
     this.buyingExtraSites.set(true);
-    this.cyberscan.purchaseExtraSites().subscribe({
+    this.billing.purchaseExtraSites().subscribe({
       next: res => {
         this.buyingExtraSites.set(false);
         try {

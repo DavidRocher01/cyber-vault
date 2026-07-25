@@ -8,11 +8,9 @@ from __future__ import annotations
 import io
 from datetime import date
 
-from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.platypus import (
     HRFlowable,
-    SimpleDocTemplate,
     Spacer,
     Table,
     TableStyle,
@@ -25,11 +23,14 @@ from app.services.pdf_billing import (
     GRAY,
     LGRAY,
     NAVY,
-    VENDOR,
-    WHITE,
     _date,
     _fmt,
     _p,
+    build_brand_header,
+    build_client_row,
+    build_footer_identity,
+    build_info_row,
+    new_billing_doc,
 )
 
 
@@ -43,116 +44,14 @@ def generate_invoice_pdf(
     amount_cents: int,
 ) -> bytes:
     buf = io.BytesIO()
-    W, _ = A4
-    mg = 16 * mm
-    cw = W - 2 * mg
-
-    doc = SimpleDocTemplate(
-        buf,
-        pagesize=A4,
-        leftMargin=mg,
-        rightMargin=mg,
-        topMargin=14 * mm,
-        bottomMargin=16 * mm,
-    )
+    doc, cw, half, gap = new_billing_doc(buf)
     s = []
 
-    half = cw / 2 - 3 * mm
-    gap = 6 * mm
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # 1. TOP ROW — brand left / FACTURE box right
-    # ══════════════════════════════════════════════════════════════════════════
-    brand_box = Table(
-        [
-            [
-                _p(
-                    "<b>Rocher Cybersécurité</b>",
-                    fontSize=18,
-                    fontName="Helvetica-Bold",
-                    textColor=WHITE,
-                    leading=22,
-                ),
-                _p(
-                    "<font color='#06b6d4'>●</font>",
-                    fontSize=24,
-                    fontName="Helvetica-Bold",
-                    textColor=CYAN,
-                    alignment=2,
-                ),
-            ]
-        ],
-        colWidths=[half * 0.7, half * 0.3],
-    )
-    brand_box.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), NAVY),
-                ("TOPPADDING", (0, 0), (-1, -1), 12),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
-                ("LEFTPADDING", (0, 0), (-1, -1), 14),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 14),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ]
-        )
-    )
-
-    facture_box = Table(
-        [
-            [
-                _p(
-                    "<b>FACTURE</b>",
-                    fontSize=20,
-                    fontName="Helvetica-Bold",
-                    textColor=NAVY,
-                    alignment=2,
-                ),
-            ]
-        ],
-        colWidths=[half],
-    )
-    facture_box.setStyle(
-        TableStyle(
-            [
-                ("BOX", (0, 0), (-1, -1), 1, NAVY),
-                ("TOPPADDING", (0, 0), (-1, -1), 10),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
-                ("LEFTPADDING", (0, 0), (-1, -1), 10),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-            ]
-        )
-    )
-
-    top_row = Table([[brand_box, "", facture_box]], colWidths=[half, gap, half])
-    top_row.setStyle(
-        TableStyle(
-            [
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-            ]
-        )
-    )
-    s.append(top_row)
+    # 1. En-tête marque + FACTURE
+    s.append(build_brand_header("FACTURE", half, gap))
     s.append(Spacer(1, 4 * mm))
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # 2. SECOND ROW — vendor info left / ref + date right
-    # ══════════════════════════════════════════════════════════════════════════
-    vendor_info = _p(
-        f"<b>{VENDOR['name']}</b><br/>"
-        f"{VENDOR['status']}<br/>"
-        f"{VENDOR['address']}<br/>"
-        f"{VENDOR['city']}<br/>"
-        f"SIRET : {VENDOR['siret']}<br/>"
-        f"APE : {VENDOR['ape']}<br/>"
-        f"{VENDOR['email']}",
-        fontSize=8.5,
-        fontName="Helvetica",
-        textColor=BLACK,
-        leading=13,
-    )
-
+    # 2. Émetteur (gauche) / référence + date (droite)
     ref_info = _p(
         f"<font color='#64748b' size='8'>Référence :</font> <b>{invoice_number}</b><br/>"
         f"<font color='#64748b' size='8'>Date de facturation :</font> {_date(issue_date)}",
@@ -162,90 +61,12 @@ def generate_invoice_pdf(
         leading=14,
         alignment=2,
     )
-
-    info_row = Table([[vendor_info, "", ref_info]], colWidths=[half, gap, half])
-    info_row.setStyle(
-        TableStyle(
-            [
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                ("TOPPADDING", (0, 0), (-1, -1), 5),
-            ]
-        )
-    )
-    s.append(info_row)
+    s.append(build_info_row(ref_info, half, gap))
     s.append(Spacer(1, 6 * mm))
     s.append(HRFlowable(width=cw, thickness=0.6, color=BORDER, spaceAfter=5 * mm))
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # 3. CLIENT ROW — label left / client box right
-    # ══════════════════════════════════════════════════════════════════════════
-    vendor_label = Table(
-        [
-            [
-                _p(
-                    f"<b>{VENDOR['name']}</b>",
-                    fontSize=10,
-                    fontName="Helvetica-Bold",
-                    textColor=NAVY,
-                ),
-            ]
-        ],
-        colWidths=[half],
-    )
-    vendor_label.setStyle(
-        TableStyle(
-            [
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("TOPPADDING", (0, 0), (-1, -1), 0),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-            ]
-        )
-    )
-
-    addr_lines = f"<b>{client_name}</b><br/>{client_email}"
-    if client_address:
-        addr_lines += f"<br/>{client_address}"
-
-    client_box = Table(
-        [
-            [
-                _p(
-                    addr_lines,
-                    fontSize=8.5,
-                    fontName="Helvetica",
-                    textColor=BLACK,
-                    leading=13,
-                ),
-            ]
-        ],
-        colWidths=[half],
-    )
-    client_box.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), LGRAY),
-                ("BOX", (0, 0), (-1, -1), 0.5, BORDER),
-                ("LEFTPADDING", (0, 0), (-1, -1), 10),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-                ("TOPPADDING", (0, 0), (-1, -1), 8),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-            ]
-        )
-    )
-
-    client_row = Table([[vendor_label, "", client_box]], colWidths=[half, gap, half])
-    client_row.setStyle(
-        TableStyle(
-            [
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-            ]
-        )
-    )
-    s.append(client_row)
+    # 3. Bloc client
+    s.append(build_client_row(client_name, client_email, client_address, half, gap))
     s.append(Spacer(1, 7 * mm))
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -437,17 +258,7 @@ def generate_invoice_pdf(
     # 6. FOOTER
     # ══════════════════════════════════════════════════════════════════════════
     s.append(HRFlowable(width=cw, thickness=0.5, color=BORDER, spaceAfter=3 * mm))
-    s.append(
-        _p(
-            f"{VENDOR['name']} — SIRET {VENDOR['siret']} — APE {VENDOR['ape']} — "
-            f"{VENDOR['email']} — {VENDOR['website']}",
-            fontSize=7,
-            fontName="Helvetica",
-            textColor=GRAY,
-            alignment=1,
-            leading=10,
-        )
-    )
+    s.append(build_footer_identity())
     s.append(
         _p(
             "En cas de retard de paiement, une indemnité forfaitaire de recouvrement de 40 € "

@@ -192,7 +192,7 @@ def generate_certificate_pdf(cert: AwarenessCertificate, frozen: dict) -> bytes:
     from reportlab.lib.units import mm
     from reportlab.platypus import SimpleDocTemplate, Spacer, Table, TableStyle
 
-    from app.services.pdf_brand import CYAN, GRAY, WHITE
+    from app.services.pdf_brand import CYAN, DARK_BG, GRAY, WHITE
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -218,7 +218,7 @@ def generate_certificate_pdf(cert: AwarenessCertificate, frozen: dict) -> bytes:
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.platypus import Image, Paragraph
 
-    _navy = colors.HexColor("#0f172a")
+    _navy = DARK_BG
     _cyan = CYAN
     _gray = GRAY
     _white = WHITE
@@ -336,3 +336,16 @@ async def _upload_to_s3(public_id: str, pdf_bytes: bytes) -> str | None:
         # Niveau error + traceback -> capture Sentry (certificat non stocke = perte donnee)
         logger.exception(f"S3 certificate upload failed for {public_id}")
         return None
+
+
+async def get_certificate_for_learner(
+    db: AsyncSession, enrollment_id: int, learner_id: int
+) -> AwarenessCertificate | None:
+    """Retourne le certificat d'une inscription pour ce learner, sinon None."""
+    result = await db.execute(
+        select(AwarenessCertificate).where(
+            AwarenessCertificate.enrollment_id == enrollment_id,
+            AwarenessCertificate.learner_id == learner_id,
+        )
+    )
+    return result.scalar_one_or_none()

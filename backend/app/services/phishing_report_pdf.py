@@ -5,6 +5,7 @@ Uses ReportLab (already in requirements).
 
 import io
 import json
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from xml.sax.saxutils import escape
 
@@ -23,30 +24,28 @@ from reportlab.platypus import (
 )
 
 from app.models.phishing import PhishingCampaign, PhishingTarget
+from app.services.pdf_brand import CYAN, DARK_BG, GRAY
+from app.services.phishing_templates import SCENARIO_LABELS
 
-_DARK = colors.HexColor("#0f172a")
-_CYAN = colors.HexColor("#06b6d4")
-_RED = colors.HexColor("#ef4444")
-_YELLOW = colors.HexColor("#eab308")
-_GREEN = colors.HexColor("#22c55e")
-_GRAY = colors.HexColor("#94a3b8")
+_DARK = DARK_BG  # brand (voir pdf_brand)
+_CYAN = CYAN  # brand (voir pdf_brand)
+_RED = colors.HexColor("#ef4444")  # variante vive volontaire (!= brand RED)
+_YELLOW = colors.HexColor("#eab308")  # variante vive volontaire (!= brand YELLOW)
+_GREEN = colors.HexColor("#22c55e")  # variante vive volontaire (!= brand GREEN)
+_GRAY = GRAY  # brand (voir pdf_brand)
 _LIGHT_BG = colors.HexColor("#f8fafc")
 _PAGE_W, _PAGE_H = A4
 
-_SCENARIO_LABELS: dict[str, str] = {
-    "ceo-fraud": "Fraude au Président",
-    "o365-credentials": "Credentials Microsoft 365",
-    "fake-invoice": "Fausse relance comptable",
-    "bank-alert": "Fausse alerte bancaire",
-    "parcel-delivery": "Faux avis de livraison",
-    "it-helpdesk": "Faux email DSI / Helpdesk",
-    "hr-notification": "Fausse notification RH",
-    "docusign": "Fausse demande DocuSign",
-    "vpn-alert": "Fausse alerte sécurité VPN",
-    "hr-document": "Document RH confidentiel",
-    "teams-notification": "Notification Microsoft Teams",
-    "sharepoint-share": "Partage SharePoint",
-    "it-ticket": "Ticket Helpdesk DSI",
+# Ordre d'affichage des cibles dans le tableau détaillé : du plus grave (a saisi ses
+# identifiants) au moins engagé. Clés = statuts réels de TargetStatus (enums.py) ;
+# un statut inconnu retombe en fin de liste. Source unique : sert à la fois à trier
+# les lignes ET à colorer par index, pour qu'ils ne puissent pas diverger.
+_TARGET_SORT_PRIORITY = {
+    "submitted": 0,
+    "clicked": 1,
+    "opened": 2,
+    "email_sent": 3,
+    "pending": 4,
 }
 
 
@@ -76,55 +75,31 @@ def _global_risk(click_rate: float, submit_rate: float) -> tuple[str, colors.Col
     return "FAIBLE", _GREEN
 
 
-def _footer(canvas, doc):
-    canvas.saveState()
-    canvas.setFont("Helvetica", 7)
-    canvas.setFillColor(_GRAY)
-    page_num = f"Page {doc.page}"
-    canvas.drawRightString(_PAGE_W - 20 * mm, 12 * mm, page_num)
-    canvas.drawString(20 * mm, 12 * mm, "Rocher Cybersécurité — Rapport confidentiel")
-    canvas.restoreState()
+@dataclass
+class ReportStats:
+    """Statistiques calculees d'une campagne, decouplees du rendu ReportLab.
+
+    Couche de calcul pure -> testable isolement, sans generer de PDF.
+    """
+
+    click_rate: float
+    open_rate: float
+    submit_rate: float
+    global_risk_label: str
+    global_risk_color: colors.Color
+    dept_stats: dict[str, dict[str, int]]
+    scenario_perf: dict[str, dict[str, int]]
+    has_scenario_perf: bool
+    compromised: list[PhishingTarget]
+    scenario_keys: list[str]
+    median_click_str: str | None
 
 
-def generate_phishing_report(
-    campaign: PhishingCampaign,
-    targets: list[PhishingTarget],
-) -> bytes:
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        leftMargin=20 * mm,
-        rightMargin=20 * mm,
-        topMargin=20 * mm,
-        bottomMargin=22 * mm,
-    )
+def _compute_report_stats(campaign: PhishingCampaign, targets: list[PhishingTarget]) -> ReportStats:
+    """Agrege les statistiques d'une campagne (taux, par departement, par scenario,
 
-    title_style = ParagraphStyle(
-        "ReportTitle",
-        fontName="Helvetica-Bold",
-        fontSize=22,
-        textColor=_DARK,
-        spaceAfter=4,
-    )
-    subtitle_style = ParagraphStyle(
-        "Subtitle", fontName="Helvetica", fontSize=12, textColor=_GRAY, spaceAfter=10
-    )
-    section_style = ParagraphStyle(
-        "Section",
-        fontName="Helvetica-Bold",
-        fontSize=13,
-        textColor=_DARK,
-        spaceBefore=14,
-        spaceAfter=6,
-    )
-    body_style = ParagraphStyle(
-        "Body", fontName="Helvetica", fontSize=10, textColor=_DARK, spaceAfter=4
-    )
-    small_style = ParagraphStyle("Small", fontName="Helvetica", fontSize=8, textColor=_GRAY)
-    brand_style = ParagraphStyle("Brand", fontName="Helvetica-Bold", fontSize=11, textColor=_CYAN)
-
-    # ── Compute stats ────────────────────────────────────────────────────────
+    comptes compromis, delai median de clic). Aucune dependance au rendu.
+    """
     n = campaign.targets_count or len(targets) or 1
     click_rate = campaign.clicked_count / n
     open_rate = campaign.opened_count / n
@@ -180,6 +155,83 @@ def generate_phishing_report(
         sorted_d = sorted(click_delays_h)
         mh = sorted_d[len(sorted_d) // 2]
         median_click_str = f"{int(mh)}h{int((mh % 1) * 60):02d}min"
+
+    return ReportStats(
+        click_rate=click_rate,
+        open_rate=open_rate,
+        submit_rate=submit_rate,
+        global_risk_label=global_risk_label,
+        global_risk_color=global_risk_color,
+        dept_stats=dept_stats,
+        scenario_perf=scenario_perf,
+        has_scenario_perf=has_scenario_perf,
+        compromised=compromised,
+        scenario_keys=scenario_keys,
+        median_click_str=median_click_str,
+    )
+
+
+def _footer(canvas, doc):
+    canvas.saveState()
+    canvas.setFont("Helvetica", 7)
+    canvas.setFillColor(_GRAY)
+    page_num = f"Page {doc.page}"
+    canvas.drawRightString(_PAGE_W - 20 * mm, 12 * mm, page_num)
+    canvas.drawString(20 * mm, 12 * mm, "Rocher Cybersécurité — Rapport confidentiel")
+    canvas.restoreState()
+
+
+def generate_phishing_report(
+    campaign: PhishingCampaign,
+    targets: list[PhishingTarget],
+) -> bytes:
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=20 * mm,
+        rightMargin=20 * mm,
+        topMargin=20 * mm,
+        bottomMargin=22 * mm,
+    )
+
+    title_style = ParagraphStyle(
+        "ReportTitle",
+        fontName="Helvetica-Bold",
+        fontSize=22,
+        textColor=_DARK,
+        spaceAfter=4,
+    )
+    subtitle_style = ParagraphStyle(
+        "Subtitle", fontName="Helvetica", fontSize=12, textColor=_GRAY, spaceAfter=10
+    )
+    section_style = ParagraphStyle(
+        "Section",
+        fontName="Helvetica-Bold",
+        fontSize=13,
+        textColor=_DARK,
+        spaceBefore=14,
+        spaceAfter=6,
+    )
+    body_style = ParagraphStyle(
+        "Body", fontName="Helvetica", fontSize=10, textColor=_DARK, spaceAfter=4
+    )
+    small_style = ParagraphStyle("Small", fontName="Helvetica", fontSize=8, textColor=_GRAY)
+    brand_style = ParagraphStyle("Brand", fontName="Helvetica-Bold", fontSize=11, textColor=_CYAN)
+
+    # ── Compute stats (couche de calcul pure, testable) ──────────────────────
+    stats = _compute_report_stats(campaign, targets)
+    click_rate = stats.click_rate
+    open_rate = stats.open_rate
+    submit_rate = stats.submit_rate
+    global_risk_label = stats.global_risk_label
+    global_risk_color = stats.global_risk_color
+    dept_stats = stats.dept_stats
+    scenario_perf = stats.scenario_perf
+    has_scenario_perf = stats.has_scenario_perf
+    compromised = stats.compromised
+    scenario_keys = stats.scenario_keys
+    median_click_str = stats.median_click_str
 
     story = []
 
@@ -292,30 +344,6 @@ def generate_phishing_report(
                 "Soum.",
             ]
         ]
-        for key, s in sorted(
-            scenario_perf.items(),
-            key=lambda x: x[1]["clicked"] / (x[1]["total"] or 1),
-            reverse=True,
-        ):
-            if key == "__unknown__":
-                continue
-            cr = s["clicked"] / (s["total"] or 1)
-            orr = s["opened"] / (s["total"] or 1)
-            sc_perf_rows.append(
-                [
-                    _SCENARIO_LABELS.get(key, key),
-                    str(s["total"]),
-                    str(s["opened"]),
-                    f"{orr:.0%}",
-                    str(s["clicked"]),
-                    f"{cr:.0%}",
-                    str(s["submitted"]),
-                ]
-            )
-        sc_perf_table = Table(
-            sc_perf_rows,
-            colWidths=[52 * mm, 15 * mm, 17 * mm, 17 * mm, 15 * mm, 17 * mm, 17 * mm],
-        )
         sc_perf_style = [
             ("BACKGROUND", (0, 0), (-1, 0), _DARK),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
@@ -327,24 +355,41 @@ def generate_phishing_report(
             ("TOPPADDING", (0, 0), (-1, -1), 5),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
         ]
-        # Highlight high-risk rows in the click rate column
-        for row_i, (key, s) in enumerate(
-            sorted(
-                scenario_perf.items(),
-                key=lambda x: x[1]["clicked"] / (x[1]["total"] or 1),
-                reverse=True,
-            ),
-            start=1,
+        # Un seul tri, une seule boucle : row_i suit les lignes réellement ajoutées
+        # (le compteur n'avance pas sur __unknown__ sauté), donc le style par index
+        # ne peut pas se décaler des lignes du tableau.
+        row_i = 0
+        for key, s in sorted(
+            scenario_perf.items(),
+            key=lambda x: x[1]["clicked"] / (x[1]["total"] or 1),
+            reverse=True,
         ):
             if key == "__unknown__":
                 continue
+            row_i += 1
             cr = s["clicked"] / (s["total"] or 1)
+            orr = s["opened"] / (s["total"] or 1)
+            sc_perf_rows.append(
+                [
+                    SCENARIO_LABELS.get(key, key),
+                    str(s["total"]),
+                    str(s["opened"]),
+                    f"{orr:.0%}",
+                    str(s["clicked"]),
+                    f"{cr:.0%}",
+                    str(s["submitted"]),
+                ]
+            )
             if cr >= 0.30:
                 sc_perf_style.append(("TEXTCOLOR", (5, row_i), (5, row_i), _RED))
                 sc_perf_style.append(("FONTNAME", (5, row_i), (5, row_i), "Helvetica-Bold"))
             elif cr >= 0.15:
                 sc_perf_style.append(("TEXTCOLOR", (5, row_i), (5, row_i), _YELLOW))
                 sc_perf_style.append(("FONTNAME", (5, row_i), (5, row_i), "Helvetica-Bold"))
+        sc_perf_table = Table(
+            sc_perf_rows,
+            colWidths=[52 * mm, 15 * mm, 17 * mm, 17 * mm, 15 * mm, 17 * mm, 17 * mm],
+        )
         sc_perf_table.setStyle(TableStyle(sc_perf_style))
         story.append(sc_perf_table)
         story.append(Spacer(1, 6 * mm))
@@ -358,7 +403,7 @@ def generate_phishing_report(
                 [
                     str(i),
                     key,
-                    _SCENARIO_LABELS.get(key, key),
+                    SCENARIO_LABELS.get(key, key),
                 ]
             )
         sc_table = Table(scenario_rows, colWidths=[8 * mm, 50 * mm, None])
@@ -485,30 +530,6 @@ def generate_phishing_report(
             "opened": _YELLOW,
         }
         tgt_header = [["Email", "Prénom", "Département", "Scénario", "Statut"]]
-        tgt_rows = []
-        for t in sorted(
-            targets,
-            key=lambda x: {
-                "submitted": 0,
-                "clicked": 1,
-                "opened": 2,
-                "email_sent": 3,
-                "pending": 4,
-            }.get(x.status, 5),
-        ):
-            tgt_rows.append(
-                [
-                    t.email,
-                    t.first_name or "—",
-                    t.department or "—",
-                    _SCENARIO_LABELS.get(t.scenario_key or "", t.scenario_key or "—"),
-                    _STATUS_LABELS.get(t.status, t.status),
-                ]
-            )
-        tgt_table = Table(
-            tgt_header + tgt_rows,
-            colWidths=[65 * mm, 25 * mm, 30 * mm, 30 * mm, 20 * mm],
-        )
         tgt_style = [
             ("BACKGROUND", (0, 0), (-1, 0), _DARK),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
@@ -520,24 +541,30 @@ def generate_phishing_report(
             ("TOPPADDING", (0, 0), (-1, -1), 4),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
         ]
+        # Un seul tri : les lignes et les couleurs (appliquées par index) itèrent la
+        # même liste, impossible qu'elles se désalignent.
+        tgt_rows = []
         for row_i, t in enumerate(
-            sorted(
-                targets,
-                key=lambda x: {
-                    "submitted": 0,
-                    "clicked": 1,
-                    "opened": 2,
-                    "email_sent": 3,
-                    "reported": 4,
-                    "pending": 5,
-                }.get(x.status, 5),
-            ),
+            sorted(targets, key=lambda x: _TARGET_SORT_PRIORITY.get(x.status, 99)),
             start=1,
         ):
+            tgt_rows.append(
+                [
+                    t.email,
+                    t.first_name or "—",
+                    t.department or "—",
+                    SCENARIO_LABELS.get(t.scenario_key or "", t.scenario_key or "—"),
+                    _STATUS_LABELS.get(t.status, t.status),
+                ]
+            )
             c = _STATUS_COLORS.get(t.status)
             if c:
                 tgt_style.append(("TEXTCOLOR", (4, row_i), (4, row_i), c))
                 tgt_style.append(("FONTNAME", (4, row_i), (4, row_i), "Helvetica-Bold"))
+        tgt_table = Table(
+            tgt_header + tgt_rows,
+            colWidths=[65 * mm, 25 * mm, 30 * mm, 30 * mm, 20 * mm],
+        )
         tgt_table.setStyle(TableStyle(tgt_style))
         story.append(tgt_table)
         story.append(Spacer(1, 6 * mm))

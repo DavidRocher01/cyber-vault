@@ -22,6 +22,18 @@ import {
 } from '../services/rssi.service';
 import { PhishingService, PhishingCampaign } from '../services/phishing.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { extractApiError } from '../../../core/http-error';
+import { snackApiError } from '../../../core/snack-error';
+import {
+  priorityClass as priorityClassFn,
+  actionStatusClass as actionStatusClassFn,
+  actionStatusLabel as actionStatusLabelFn,
+} from '../shared/rssi-action-labels';
+import * as labels from '../shared/rssi-client-labels';
+import { ClientInfoPanelComponent } from './components/client-info-panel/client-info-panel.component';
+import { ActionsTableComponent } from './components/actions-table/actions-table.component';
+import { ActivityFeedComponent } from './components/activity-feed/activity-feed.component';
+import { formatFrDate } from '../../../shared/date-utils';
 
 @Component({
   standalone: true,
@@ -36,6 +48,9 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
     MatSnackBarModule,
     MatTooltipModule,
     NavButtonsComponent,
+    ClientInfoPanelComponent,
+    ActionsTableComponent,
+    ActivityFeedComponent,
   ],
   templateUrl: './client-detail.component.html',
 })
@@ -349,7 +364,7 @@ export class ClientDetailComponent implements OnInit {
         },
         error: err => {
           this.saving.set(false);
-          this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
+          snackApiError(this.snack, err);
         },
       });
   }
@@ -381,7 +396,7 @@ export class ClientDetailComponent implements OnInit {
       },
       error: err => {
         this.inviting.set(false);
-        this.snack.open(err.error?.detail || "Erreur lors de l'invitation", 'Fermer', {
+        this.snack.open(extractApiError(err, "Erreur lors de l'invitation"), 'Fermer', {
           duration: 4000,
         });
       },
@@ -408,7 +423,7 @@ export class ClientDetailComponent implements OnInit {
       },
       error: err => {
         this.enablingAwareness.set(false);
-        this.snack.open(err.error?.detail || "Erreur lors de l'activation", 'Fermer', {
+        this.snack.open(extractApiError(err, "Erreur lors de l'activation"), 'Fermer', {
           duration: 4000,
         });
       },
@@ -441,7 +456,7 @@ export class ClientDetailComponent implements OnInit {
         },
         error: err => {
           this.saving.set(false);
-          this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
+          snackApiError(this.snack, err);
         },
       });
   }
@@ -481,7 +496,7 @@ export class ClientDetailComponent implements OnInit {
             .logActivity(this.clientId, { action_type: 'update_visit', resource_id: visitId })
             .subscribe();
         },
-        error: err => this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 }),
+        error: err => snackApiError(this.snack, err),
       });
   }
 
@@ -495,7 +510,7 @@ export class ClientDetailComponent implements OnInit {
         this.visits.update(list => list.filter(v => v.id !== visitId));
         this.snack.open('Visite supprimée', 'OK', { duration: 3000 });
       },
-      error: err => this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 }),
+      error: err => snackApiError(this.snack, err),
     });
   }
 
@@ -527,7 +542,7 @@ export class ClientDetailComponent implements OnInit {
         },
         error: err => {
           this.saving.set(false);
-          this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
+          snackApiError(this.snack, err);
         },
       });
   }
@@ -567,7 +582,7 @@ export class ClientDetailComponent implements OnInit {
             .logActivity(this.clientId, { action_type: 'update_action', resource_id: actionId })
             .subscribe();
         },
-        error: err => this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 }),
+        error: err => snackApiError(this.snack, err),
       });
   }
 
@@ -581,7 +596,7 @@ export class ClientDetailComponent implements OnInit {
         this.actions.update(list => list.filter(a => a.id !== actionId));
         this.snack.open('Action supprimée', 'OK', { duration: 3000 });
       },
-      error: err => this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 }),
+      error: err => snackApiError(this.snack, err),
     });
   }
 
@@ -635,7 +650,7 @@ export class ClientDetailComponent implements OnInit {
         },
         error: (err: { error?: { detail?: string } }) => {
           this.saving.set(false);
-          this.snack.open(err.error?.detail || "Erreur lors de l'upload", 'Fermer', {
+          this.snack.open(extractApiError(err, "Erreur lors de l'upload"), 'Fermer', {
             duration: 4000,
           });
         },
@@ -682,8 +697,7 @@ export class ClientDetailComponent implements OnInit {
           this.pendingEditFile.set(null);
           this.snack.open('Livrable mis à jour', 'OK', { duration: 3000 });
         },
-        error: (err: { error?: { detail?: string } }) =>
-          this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 }),
+        error: (err: { error?: { detail?: string } }) => snackApiError(this.snack, err),
       });
   }
 
@@ -705,182 +719,70 @@ export class ClientDetailComponent implements OnInit {
         this.deliverables.update(list => list.filter(d => d.id !== deliverableId));
         this.snack.open('Livrable supprimé', 'OK', { duration: 3000 });
       },
-      error: err => this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 }),
+      error: err => snackApiError(this.snack, err),
     });
   }
 
   docTypeLabel(t: string): string {
-    const map: Record<string, string> = {
-      compte_rendu: 'Compte-rendu',
-      rapport: 'Rapport',
-      recommandation: 'Recommandation',
-      contrat: 'Contrat',
-      autre: 'Autre',
-    };
-    return map[t] ?? t;
+    return labels.docTypeLabel(t);
   }
 
   docTypeClass(t: string): string {
-    switch (t) {
-      case 'compte_rendu':
-        return 'text-blue-300 bg-blue-500/10 border-blue-600/30';
-      case 'rapport':
-        return 'text-cyan-300 bg-cyan-500/10 border-cyan-600/30';
-      case 'recommandation':
-        return 'text-purple-300 bg-purple-500/10 border-purple-600/30';
-      case 'contrat':
-        return 'text-amber-300 bg-amber-500/10 border-amber-600/30';
-      default:
-        return 'text-gray-400 bg-gray-700/20 border-gray-600/30';
-    }
+    return labels.docTypeClass(t);
   }
 
   // ── Formatting helpers ────────────────────────────────────────────────────
 
   formulaLabel(f: string | null): string {
-    const map: Record<string, string> = {
-      essentiel: 'Essentiel',
-      premium: 'Premium',
-      excellence: 'Excellence',
-    };
-    return f ? (map[f] ?? f) : '—';
+    return labels.formulaLabel(f);
   }
 
   formulaClass(f: string | null): string {
-    switch (f) {
-      case 'essentiel':
-        return 'text-blue-300 bg-blue-500/10 border-blue-600/30';
-      case 'premium':
-        return 'text-purple-300 bg-purple-500/10 border-purple-600/30';
-      case 'excellence':
-        return 'text-amber-300 bg-amber-500/10 border-amber-600/30';
-      default:
-        return 'text-gray-400 bg-gray-700/20 border-gray-600/30';
-    }
+    return labels.formulaClass(f);
   }
 
   statusClass(status: string): string {
-    switch (status) {
-      case 'active':
-        return 'text-green-300';
-      case 'inactive':
-        return 'text-yellow-300';
-      case 'churned':
-        return 'text-red-300';
-      default:
-        return 'text-gray-400';
-    }
+    return labels.clientStatusClass(status);
   }
 
   priorityClass(p: string): string {
-    switch (p) {
-      case 'critical':
-        return 'text-red-400 bg-red-500/10 border-red-600/30';
-      case 'high':
-        return 'text-orange-400 bg-orange-500/10 border-orange-600/30';
-      case 'medium':
-        return 'text-yellow-400 bg-yellow-500/10 border-yellow-600/30';
-      default:
-        return 'text-gray-400 bg-gray-700/20 border-gray-600/30';
-    }
+    return priorityClassFn(p);
   }
 
   actionStatusClass(s: string): string {
-    switch (s) {
-      case 'done':
-        return 'text-green-400 bg-green-500/10 border-green-600/30';
-      case 'in_progress':
-        return 'text-blue-400 bg-blue-500/10 border-blue-600/30';
-      case 'cancelled':
-        return 'text-gray-500 bg-gray-700/20 border-gray-600/30';
-      case 'postponed':
-        return 'text-yellow-400 bg-yellow-500/10 border-yellow-600/30';
-      default:
-        return 'text-white bg-gray-700/30 border-gray-600/40';
-    }
+    return actionStatusClassFn(s);
   }
 
   visitStatusClass(s: string): string {
-    switch (s) {
-      case 'completed':
-        return 'text-green-400';
-      case 'cancelled':
-        return 'text-red-400';
-      case 'postponed':
-        return 'text-yellow-400';
-      default:
-        return 'text-blue-300';
-    }
+    return labels.visitStatusClass(s);
   }
 
   actionStatusLabel(s: string): string {
-    const map: Record<string, string> = {
-      open: 'Ouverte',
-      in_progress: 'En cours',
-      done: 'Terminée',
-      cancelled: 'Annulée',
-      postponed: 'Reportée',
-    };
-    return map[s] ?? s;
+    return actionStatusLabelFn(s);
   }
 
   visitStatusLabel(s: string): string {
-    const map: Record<string, string> = {
-      planned: 'Planifiée',
-      completed: 'Complétée',
-      cancelled: 'Annulée',
-      postponed: 'Reportée',
-    };
-    return map[s] ?? s;
+    return labels.visitStatusLabel(s);
   }
 
   visitTypeLabel(t: string): string {
-    const map: Record<string, string> = {
-      monthly: 'Mensuelle',
-      quarterly: 'Trimestrielle',
-      annual: 'Annuelle',
-      urgent: 'Urgente',
-    };
-    return map[t] ?? t;
+    return labels.visitTypeLabel(t);
   }
 
   locationLabel(l: string): string {
-    return l === 'onsite' ? 'Sur site' : 'À distance';
+    return labels.visitLocationLabel(l);
   }
 
   activityLabel(type: string): string {
-    const map: Record<string, string> = {
-      view_client: 'Consultation fiche client',
-      view_sites: 'Consultation des sites',
-      view_scans: 'Consultation des scans',
-      view_findings: 'Consultation des findings',
-      generate_report: 'Génération de rapport',
-      send_deliverable: "Envoi d'un livrable",
-      create_action: "Création d'une action",
-      update_action: "Mise à jour d'une action",
-      create_visit: "Planification d'une visite",
-      update_visit: "Mise à jour d'une visite",
-    };
-    return map[type] ?? type;
+    return labels.activityLabel(type);
   }
 
   formatDate(d: string | null): string {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
+    return formatFrDate(d, 'date');
   }
 
   formatDateTime(d: string): string {
-    return new Date(d).toLocaleString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatFrDate(d, 'datetime');
   }
 
   formatAmount(amount: number | null): string {
@@ -963,7 +865,7 @@ export class ClientDetailComponent implements OnInit {
         this.selectedSiteId.set(null);
         this.snack.open('Site lié avec succès', 'OK', { duration: 3000 });
       },
-      error: err => this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 }),
+      error: err => snackApiError(this.snack, err),
     });
   }
 
@@ -984,25 +886,15 @@ export class ClientDetailComponent implements OnInit {
         }
         this.snack.open('Site délié', 'OK', { duration: 3000 });
       },
-      error: err => this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 }),
+      error: err => snackApiError(this.snack, err),
     });
   }
 
   scanStatusClass(s: 'OK' | 'WARNING' | 'CRITICAL' | null): string {
-    switch (s) {
-      case 'OK':
-        return 'text-green-400 bg-green-500/10 border-green-600/30';
-      case 'WARNING':
-        return 'text-yellow-400 bg-yellow-500/10 border-yellow-600/30';
-      case 'CRITICAL':
-        return 'text-red-400 bg-red-500/10 border-red-600/30';
-      default:
-        return 'text-gray-500 bg-gray-700/20 border-gray-600/30';
-    }
+    return labels.scanStatusClass(s);
   }
 
   scanStatusLabel(s: 'OK' | 'WARNING' | 'CRITICAL' | null): string {
-    if (!s) return 'Aucun scan';
-    return s;
+    return labels.scanStatusLabel(s);
   }
 }

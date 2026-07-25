@@ -9,13 +9,13 @@ import asyncio
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
-from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.invoice import Invoice
 from app.models.user import User
+from app.services import invoice_service
 from app.services.invoice_pdf import generate_invoice_pdf
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
@@ -31,19 +31,9 @@ async def list_invoices(
     per_page = min(per_page, 100)
     offset = (page - 1) * per_page
 
-    total_result = await db.execute(
-        select(func.count()).select_from(Invoice).where(Invoice.user_id == current_user.id)
+    total, invoices = await invoice_service.list_user_invoices(
+        db, current_user.id, offset=offset, limit=per_page
     )
-    total = total_result.scalar_one()
-
-    result = await db.execute(
-        select(Invoice)
-        .where(Invoice.user_id == current_user.id)
-        .order_by(Invoice.issue_date.desc(), Invoice.id.desc())
-        .offset(offset)
-        .limit(per_page)
-    )
-    invoices = result.scalars().all()
 
     return {
         "total": total,
@@ -90,10 +80,7 @@ async def download_invoice_pdf(
 
 
 async def _get_owned(invoice_id: int, user_id: int, db: AsyncSession) -> Invoice:
-    result = await db.execute(
-        select(Invoice).where(Invoice.id == invoice_id, Invoice.user_id == user_id)
-    )
-    inv = result.scalar_one_or_none()
+    inv = await invoice_service.get_owned_invoice(db, invoice_id, user_id)
     if not inv:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Facture introuvable")
     return inv

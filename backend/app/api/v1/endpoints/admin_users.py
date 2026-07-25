@@ -1,12 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import require_admin
-from app.models.plan import Plan
-from app.models.subscription import Subscription
-from app.models.user import User
+from app.services import user_admin_service
 
 router = APIRouter(prefix="/admin/users", tags=["admin"])
 
@@ -21,18 +18,7 @@ async def list_users(
     limit: int = Query(default=100, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(User, Subscription, Plan)
-        .outerjoin(
-            Subscription,
-            (Subscription.user_id == User.id) & (Subscription.status == "active"),
-        )
-        .outerjoin(Plan, Plan.id == Subscription.plan_id)
-        .order_by(User.id.desc())
-        .offset(skip)
-        .limit(limit)
-    )
-    rows = result.all()
+    rows = await user_admin_service.list_users_with_plan(db, skip=skip, limit=limit)
     return [
         {
             "id": u.id,
@@ -54,10 +40,8 @@ async def list_users(
     summary="[Admin] Activer/désactiver le rôle consultant RSSI",
 )
 async def toggle_rssi_consultant(user_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
+    user = await user_admin_service.get_user(db, user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilisateur introuvable")
-    user.is_rssi_consultant = not user.is_rssi_consultant
-    await db.commit()
+    user = await user_admin_service.toggle_rssi_consultant(db, user)
     return {"id": user.id, "is_rssi_consultant": user.is_rssi_consultant}

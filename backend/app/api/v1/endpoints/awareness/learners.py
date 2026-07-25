@@ -4,15 +4,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from loguru import logger
-from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.utils import mask_email
-from app.models.awareness_learner import AwarenessLearner
-from app.models.awareness_organization import AwarenessOrganization
 from app.models.user import User
 from app.schemas.awareness import (
     AwarenessLearnerCreate,
@@ -21,6 +18,7 @@ from app.schemas.awareness import (
     LearnerSession,
     MagicLinkRequest,
 )
+from app.services import awareness_access_service, awareness_learner_service
 from app.services.awareness_magic_link import (
     create_learner_jwt,
     issue_magic_link,
@@ -50,14 +48,7 @@ async def create_learner(
     org = await _get_org_or_404(org_id, current_user, db)
 
     # Check quota
-    count = (
-        await db.execute(
-            select(func.count(AwarenessLearner.id)).where(
-                AwarenessLearner.organization_id == org.id,
-                AwarenessLearner.is_active == True,
-            )
-        )
-    ).scalar_one()
+    count = await awareness_learner_service.count_active_learners(db, org.id)
     if count >= org.max_learners:
         raise HTTPException(
             status_code=422,
@@ -65,21 +56,15 @@ async def create_learner(
         )
 
     # Check duplicate
-    existing = (
-        await db.execute(
-            select(AwarenessLearner).where(
-                AwarenessLearner.organization_id == org_id,
-                AwarenessLearner.email == payload.email,
-            )
-        )
-    ).scalar_one_or_none()
+    existing = await awareness_learner_service.get_learner_by_email(db, org_id, str(payload.email))
     if existing:
         raise HTTPException(
             status_code=409, detail="Email déjà enregistré dans cette organisation."
         )
 
-    learner = AwarenessLearner(
-        organization_id=org_id,
+    learner = await awareness_learner_service.create_learner(
+        db,
+        org_id=org_id,
         email=str(payload.email),
         first_name=payload.first_name,
         last_name=payload.last_name,
@@ -87,9 +72,6 @@ async def create_learner(
         job_title=payload.job_title,
         preferred_language=payload.preferred_language,
     )
-    db.add(learner)
-    await db.commit()
-    await db.refresh(learner)
 
     # Auto-send welcome email with magic-link
     try:
@@ -117,11 +99,10 @@ async def list_learners(
     db: AsyncSession = Depends(get_db),
 ) -> list[AwarenessLearnerOut]:
     await _get_org_or_404(org_id, current_user, db)
-    query = select(AwarenessLearner).where(AwarenessLearner.organization_id == org_id)
-    if active_only:
-        query = query.where(AwarenessLearner.is_active == True)
-    result = await db.execute(query)
-    return [AwarenessLearnerOut.model_validate(row) for row in result.scalars().all()]
+    learners = await awareness_learner_service.list_org_learners(
+        db, org_id, active_only=active_only
+    )
+    return [AwarenessLearnerOut.model_validate(row) for row in learners]
 
 
 @router.patch(
@@ -139,8 +120,7 @@ async def update_learner(
     learner = await _get_learner_or_404(learner_id, org_id, db)
     for field, value in payload.model_dump(exclude_none=True).items():
         setattr(learner, field, value)
-    await db.commit()
-    await db.refresh(learner)
+    await awareness_learner_service.save_learner(db, learner)
     return AwarenessLearnerOut.model_validate(learner)
 
 
@@ -162,10 +142,7 @@ async def request_magic_link(
 
     learner, raw_token = result
 
-    org_result = await db.execute(
-        select(AwarenessOrganization).where(AwarenessOrganization.id == learner.organization_id)
-    )
-    org = org_result.scalar_one_or_none()
+    org = await awareness_access_service.get_organization_by_id(db, learner.organization_id)
     org_name = org.name if org else "votre organisation"
 
     login_url = f"{settings.FRONTEND_URL}/awareness/login?token={raw_token}"

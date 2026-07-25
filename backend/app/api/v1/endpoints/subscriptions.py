@@ -2,18 +2,14 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models.plan import Plan
-from app.models.subscription import Subscription
 from app.models.user import User
 from app.schemas.cyberscan import CheckoutSessionOut, SubscriptionOut
-from app.services import stripe_service
+from app.services import plan_service, stripe_service, subscription_service
 
 ADDON_EXTRA_SITES_COUNT = settings.ADDON_EXTRA_SITES_COUNT
 ADDON_EXTRA_SITES_PRICE_EUR = settings.ADDON_EXTRA_SITES_PRICE_EUR
@@ -42,12 +38,7 @@ async def get_my_subscription(
     db: AsyncSession = Depends(get_db),
 ):
     """Return the current user's active subscription."""
-    result = await db.execute(
-        select(Subscription)
-        .options(selectinload(Subscription.plan))
-        .where(Subscription.user_id == current_user.id, Subscription.status == "active")
-    )
-    return result.scalar_one_or_none()
+    return await subscription_service.get_active_subscription_with_plan(db, current_user.id)
 
 
 @router.post("/checkout/{plan_id}", response_model=CheckoutSessionOut)
@@ -57,70 +48,43 @@ async def create_checkout(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a Stripe Checkout session (or simulate it in dev mode)."""
-    plan = await db.get(Plan, plan_id)
+    plan = await plan_service.get_plan(db, plan_id)
     if not plan or not plan.is_active:
         raise HTTPException(status_code=404, detail="Plan not found")
 
     if DEV_MODE:
         # Simulate subscription activation without Stripe
-        result = await db.execute(
-            select(Subscription).where(Subscription.user_id == current_user.id)
-        )
-        existing = result.scalar_one_or_none()
         now = datetime.now(UTC)
-        if existing:
-            existing.plan_id = plan.id
-            existing.status = "active"
-            existing.current_period_start = now
-            existing.current_period_end = now + timedelta(days=max(plan.scan_interval_days * 2, 30))
-        else:
-            db.add(
-                Subscription(
-                    user_id=current_user.id,
-                    plan_id=plan.id,
-                    stripe_customer_id="dev_customer",
-                    stripe_subscription_id="dev_subscription",
-                    status="active",
-                    current_period_start=now,
-                    current_period_end=now + timedelta(days=max(plan.scan_interval_days * 2, 30)),
-                )
-            )
-        await db.commit()
+        await subscription_service.upsert_active_subscription(
+            db,
+            user_id=current_user.id,
+            plan_id=plan.id,
+            now=now,
+            period_end=now + timedelta(days=max(plan.scan_interval_days * 2, 30)),
+            stripe_customer_id="dev_customer",
+            stripe_subscription_id="dev_subscription",
+        )
         return {"checkout_url": f"{FRONTEND_URL}/success"}
 
     # Free plan: activate directly without Stripe
     if plan.price_eur == 0:
-        result = await db.execute(
-            select(Subscription).where(Subscription.user_id == current_user.id)
-        )
-        existing = result.scalar_one_or_none()
         now = datetime.now(UTC)
-        if existing:
-            existing.plan_id = plan.id
-            existing.status = "active"
-            existing.current_period_start = now
-            existing.current_period_end = now + timedelta(days=365 * 10)
-        else:
-            db.add(
-                Subscription(
-                    user_id=current_user.id,
-                    plan_id=plan.id,
-                    stripe_customer_id=None,
-                    stripe_subscription_id=None,
-                    status="active",
-                    current_period_start=now,
-                    current_period_end=now + timedelta(days=365 * 10),
-                )
-            )
-        await db.commit()
+        await subscription_service.upsert_active_subscription(
+            db,
+            user_id=current_user.id,
+            plan_id=plan.id,
+            now=now,
+            period_end=now + timedelta(days=365 * 10),
+            stripe_customer_id=None,
+            stripe_subscription_id=None,
+        )
         return {"checkout_url": f"{FRONTEND_URL}/dashboard"}
 
     # Production: real Stripe flow
     if not plan.stripe_price_id:
         raise HTTPException(status_code=400, detail="Plan not configured in Stripe yet")
 
-    result = await db.execute(select(Subscription).where(Subscription.user_id == current_user.id))
-    existing = result.scalar_one_or_none()
+    existing = await subscription_service.get_subscription(db, current_user.id)
     if existing and existing.stripe_customer_id:
         customer_id = existing.stripe_customer_id
     else:
@@ -146,13 +110,7 @@ async def billing_portal(
     if DEV_MODE:
         return {"checkout_url": f"{FRONTEND_URL}/dashboard"}
 
-    result = await db.execute(
-        select(Subscription).where(
-            Subscription.user_id == current_user.id,
-            Subscription.status == "active",
-        )
-    )
-    sub = result.scalar_one_or_none()
+    sub = await subscription_service.get_active_subscription(db, current_user.id)
     if not sub or not sub.stripe_customer_id:
         raise HTTPException(status_code=404, detail="No active subscription found")
 
@@ -170,12 +128,7 @@ async def get_extra_sites_info(
     db: AsyncSession = Depends(get_db),
 ):
     """Return current extra-sites count and add-on pricing."""
-    result = await db.execute(
-        select(Subscription).where(
-            Subscription.user_id == current_user.id, Subscription.status == "active"
-        )
-    )
-    sub = result.scalar_one_or_none()
+    sub = await subscription_service.get_active_subscription(db, current_user.id)
     return {
         "extra_sites": sub.extra_sites if sub else 0,
         "pack_size": ADDON_EXTRA_SITES_COUNT,
@@ -189,18 +142,12 @@ async def purchase_extra_sites(
     db: AsyncSession = Depends(get_db),
 ):
     """Purchase an extra-sites pack (+5 site slots)."""
-    result = await db.execute(
-        select(Subscription).where(
-            Subscription.user_id == current_user.id, Subscription.status == "active"
-        )
-    )
-    sub = result.scalar_one_or_none()
+    sub = await subscription_service.get_active_subscription(db, current_user.id)
     if not sub:
         raise HTTPException(status_code=403, detail="Abonnement actif requis")
 
     if DEV_MODE:
-        sub.extra_sites += ADDON_EXTRA_SITES_COUNT
-        await db.commit()
+        await subscription_service.add_extra_sites(db, sub, ADDON_EXTRA_SITES_COUNT)
         return {"checkout_url": f"{FRONTEND_URL}/dashboard?addon=extra_sites"}
 
     price_id = settings.ADDON_EXTRA_SITES_STRIPE_PRICE_ID

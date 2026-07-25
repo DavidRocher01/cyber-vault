@@ -12,6 +12,7 @@ import {
   PortalVisit,
   PortalDeliverable,
 } from '../services/client-portal.service';
+import { formatFrDate } from '../../../shared/date-utils';
 
 @Component({
   standalone: true,
@@ -145,9 +146,7 @@ export class ClientPortalComponent implements OnInit {
   }
 
   formatDate(d: string | null): string {
-    if (!d) return '—';
-    const date = new Date(d);
-    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+    return formatFrDate(d, 'long');
   }
 
   isDone(a: PortalAction): boolean {

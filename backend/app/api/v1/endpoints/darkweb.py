@@ -6,14 +6,13 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_min_tier
-from app.models.darkweb_scan import DarkwebScan
 from app.models.user import User
+from app.services import darkweb_scan_service
 from app.services.darkweb_service import check_email_breaches
 
 router = APIRouter(prefix="/darkweb", tags=["darkweb"])
@@ -41,13 +40,7 @@ async def get_darkweb_status(
     db: AsyncSession = Depends(get_db),
 ):
     """Return last cached dark-web breach check (no HIBP call)."""
-    result = await db.execute(
-        select(DarkwebScan)
-        .where(DarkwebScan.user_id == current_user.id)
-        .order_by(DarkwebScan.checked_at.desc())
-        .limit(1)
-    )
-    scan = result.scalar_one_or_none()
+    scan = await darkweb_scan_service.get_latest_scan(db, current_user.id)
     if not scan:
         return DarkwebStatusOut(
             email=current_user.email,
@@ -85,13 +78,7 @@ async def run_darkweb_check(
 ):
     """Run a fresh HIBP breach check for the current user's email."""
     # Rate-limit: only one fresh check per 24h
-    result = await db.execute(
-        select(DarkwebScan)
-        .where(DarkwebScan.user_id == current_user.id)
-        .order_by(DarkwebScan.checked_at.desc())
-        .limit(1)
-    )
-    existing = result.scalar_one_or_none()
+    existing = await darkweb_scan_service.get_latest_scan(db, current_user.id)
     if existing:
         age = datetime.now(UTC) - existing.checked_at
         if age < timedelta(hours=REFRESH_INTERVAL_HOURS):
@@ -112,17 +99,7 @@ async def run_darkweb_check(
     # Appel HTTP synchrone (requests, timeout 30s) déporté dans un thread
     # pour ne pas bloquer l'event loop.
     data = await asyncio.to_thread(check_email_breaches, current_user.email, settings.HIBP_API_KEY)
-    scan = DarkwebScan(
-        user_id=current_user.id,
-        email=current_user.email,
-        total_breaches=data["total"],
-        status=data["status"],
-        checked_at=datetime.now(UTC),
-        results_json=json.dumps(data["breaches"]),
-    )
-    db.add(scan)
-    await db.commit()
-    await db.refresh(scan)
+    scan = await darkweb_scan_service.save_scan(db, current_user.id, current_user.email, data)
 
     return DarkwebStatusOut(
         email=scan.email,

@@ -9,13 +9,10 @@ from datetime import UTC, datetime
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.models.plan import Plan
-from app.models.processed_stripe_event import ProcessedStripeEvent
-from app.models.subscription import Subscription
+from app.services import stripe_webhook_service, subscription_service, user_service
 from app.services.invoice_service import create_invoice
 from app.services.stripe_service import construct_webhook_event
 
@@ -36,10 +33,7 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid payload")
 
     event_id = event["id"]
-    existing = await db.execute(
-        select(ProcessedStripeEvent).where(ProcessedStripeEvent.stripe_event_id == event_id)
-    )
-    if existing.scalar_one_or_none():
+    if await stripe_webhook_service.is_event_processed(db, event_id):
         return {"status": "ok"}
 
     data = event["data"]["object"]
@@ -61,9 +55,10 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         logger.exception(f"Stripe webhook {event_id} processing failed: {exc}")
         raise HTTPException(status_code=500, detail="Webhook processing failed")
 
-    # Mark as processed only after successful handling so Stripe can retry on failure
-    db.add(ProcessedStripeEvent(stripe_event_id=event_id))
-    await db.commit()
+    # Mark as processed only after successful handling so Stripe can retry on failure.
+    # Ce commit persiste aussi tous les changements posés par les handlers ci-dessus
+    # (même transaction) — atomicité traitement + marqueur d'idempotence.
+    await stripe_webhook_service.mark_event_processed(db, event_id)
     return {"status": "ok"}
 
 
@@ -77,15 +72,9 @@ async def _handle_checkout_completed(session: dict, db: AsyncSession) -> None:
         if user_id:
             from app.core.config import settings
 
-            result = await db.execute(
-                select(Subscription).where(
-                    Subscription.user_id == int(user_id),
-                    Subscription.status == "active",
-                )
-            )
-            sub = result.scalar_one_or_none()
+            sub = await subscription_service.get_active_subscription(db, int(user_id))
             if sub:
-                sub.extra_sites += settings.ADDON_EXTRA_SITES_COUNT
+                stripe_webhook_service.increment_extra_sites(sub, settings.ADDON_EXTRA_SITES_COUNT)
         return
 
     customer_id = session.get("customer")
@@ -106,8 +95,7 @@ async def _handle_checkout_completed(session: dict, db: AsyncSession) -> None:
         return
 
     # Find matching plan
-    result = await db.execute(select(Plan).where(Plan.stripe_price_id == price_id))
-    plan = result.scalar_one_or_none()
+    plan = await stripe_webhook_service.get_plan_by_price_id(db, price_id)
     if not plan:
         logger.warning(
             f"Stripe webhook: no plan found for price_id={price_id} "
@@ -116,10 +104,7 @@ async def _handle_checkout_completed(session: dict, db: AsyncSession) -> None:
         return
 
     # Find user by email
-    from app.models.user import User
-
-    user_result = await db.execute(select(User).where(User.email == customer_email))
-    user = user_result.scalar_one_or_none()
+    user = await user_service.get_by_email(db, customer_email)
     if not user:
         logger.error(
             f"Stripe webhook: user not found for subscription {subscription_id} "
@@ -128,30 +113,21 @@ async def _handle_checkout_completed(session: dict, db: AsyncSession) -> None:
         return
 
     # Upsert subscription
-    sub_result = await db.execute(select(Subscription).where(Subscription.user_id == user.id))
-    sub = sub_result.scalar_one_or_none()
+    existing = await subscription_service.get_subscription(db, user.id)
 
     period_start = datetime.fromtimestamp(stripe_sub["current_period_start"], tz=UTC)
     period_end = datetime.fromtimestamp(stripe_sub["current_period_end"], tz=UTC)
 
-    if sub:
-        sub.plan_id = plan.id
-        sub.stripe_customer_id = customer_id
-        sub.stripe_subscription_id = subscription_id
-        sub.status = "active"
-        sub.current_period_start = period_start
-        sub.current_period_end = period_end
-    else:
-        sub = Subscription(
-            user_id=user.id,
-            plan_id=plan.id,
-            stripe_customer_id=customer_id,
-            stripe_subscription_id=subscription_id,
-            status="active",
-            current_period_start=period_start,
-            current_period_end=period_end,
-        )
-        db.add(sub)
+    stripe_webhook_service.upsert_checkout_subscription(
+        db,
+        existing=existing,
+        user_id=user.id,
+        plan_id=plan.id,
+        customer_id=customer_id,
+        subscription_id=subscription_id,
+        period_start=period_start,
+        period_end=period_end,
+    )
 
 
 async def _handle_subscription_updated(stripe_sub: dict, db: AsyncSession) -> None:
@@ -160,16 +136,17 @@ async def _handle_subscription_updated(stripe_sub: dict, db: AsyncSession) -> No
     if not subscription_id:
         return
 
-    result = await db.execute(
-        select(Subscription).where(Subscription.stripe_subscription_id == subscription_id)
-    )
-    sub = result.scalar_one_or_none()
+    sub = await stripe_webhook_service.get_subscription_by_stripe_id(db, subscription_id)
     if not sub:
         return
 
-    sub.status = stripe_sub.get("status", sub.status)
-    if stripe_sub.get("current_period_end"):
-        sub.current_period_end = datetime.fromtimestamp(stripe_sub["current_period_end"], tz=UTC)
+    new_status = stripe_sub.get("status", sub.status)
+    period_end = (
+        datetime.fromtimestamp(stripe_sub["current_period_end"], tz=UTC)
+        if stripe_sub.get("current_period_end")
+        else None
+    )
+    stripe_webhook_service.apply_subscription_status(sub, status=new_status, period_end=period_end)
 
 
 async def _handle_invoice_payment_succeeded(stripe_inv: dict, db: AsyncSession) -> None:
@@ -184,19 +161,11 @@ async def _handle_invoice_payment_succeeded(stripe_inv: dict, db: AsyncSession) 
         return
 
     # Avoid duplicate invoices for the same Stripe invoice ID
-    from app.models.invoice import Invoice
-
-    existing = await db.execute(
-        select(Invoice).where(Invoice.stripe_invoice_id == stripe_invoice_id)
-    )
-    if existing.scalar_one_or_none():
+    if await stripe_webhook_service.get_invoice_by_stripe_id(db, stripe_invoice_id):
         return
 
     # Resolve user
-    from app.models.user import User
-
-    user_result = await db.execute(select(User).where(User.email == customer_email))
-    user = user_result.scalar_one_or_none()
+    user = await user_service.get_by_email(db, customer_email)
 
     # Build description from Stripe line items if available
     lines = stripe_inv.get("lines", {}).get("data", [])

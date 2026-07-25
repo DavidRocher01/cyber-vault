@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
 import { AdminAuthService } from '../admin-auth.service';
+import { formatFrDate } from '../../../../shared/date-utils';
 
 interface AdminUser {
   id: number;
@@ -62,12 +63,7 @@ export class AdminUsersComponent implements OnInit {
   }
 
   formatDate(iso: string | null): string {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
+    return formatFrDate(iso, 'date');
   }
 
   toggleRssi(user: AdminUser) {

@@ -25,6 +25,8 @@ import { BrandService, BrandProfile } from '../services/brand.service';
 import { RssiService, ConsultantProfile } from '../services/rssi.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { OtpInputComponent } from '../../../shared/otp-input/otp-input.component';
+import { extractApiError } from '../../../core/http-error';
+import { snackApiError } from '../../../core/snack-error';
 
 @Component({
   standalone: true,
@@ -217,7 +219,7 @@ export class ProfileComponent implements OnInit {
       },
       error: err => {
         this.savingEmail.set(false);
-        this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
+        snackApiError(this.snack, err);
       },
     });
   }
@@ -251,7 +253,7 @@ export class ProfileComponent implements OnInit {
       },
       error: err => {
         this.twoFaLoading.set(false);
-        this.snack.open(err.error?.detail || 'Code invalide', 'Fermer', { duration: 4000 });
+        this.snack.open(extractApiError(err, 'Code invalide'), 'Fermer', { duration: 4000 });
       },
     });
   }
@@ -270,7 +272,7 @@ export class ProfileComponent implements OnInit {
       },
       error: err => {
         this.twoFaLoading.set(false);
-        this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
+        snackApiError(this.snack, err);
       },
     });
   }
@@ -402,7 +404,7 @@ export class ProfileComponent implements OnInit {
       },
       error: err => {
         this.deletingAccount.set(false);
-        this.snack.open(err.error?.detail || 'Mot de passe incorrect', 'Fermer', {
+        this.snack.open(extractApiError(err, 'Mot de passe incorrect'), 'Fermer', {
           duration: 4000,
         });
       },
@@ -435,7 +437,7 @@ export class ProfileComponent implements OnInit {
       },
       error: err => {
         this.savingPassword.set(false);
-        this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
+        snackApiError(this.snack, err);
       },
     });
   }

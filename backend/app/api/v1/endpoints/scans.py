@@ -2,23 +2,20 @@ import asyncio
 import csv
 import io
 import os
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
-from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal, get_db
 from app.core.deps import get_current_user, require_min_tier
-from app.core.pagination import paginate
 from app.core.ssrf import assert_no_ssrf
 from app.core.utils import safe_json_load
-from app.models.finding_status import FindingStatus
-from app.models.scan import Scan
 from app.models.site import Site
 from app.models.user import User
 from app.schemas.cyberscan import PaginatedScans, ScanOut, ScanTriggerOut
+from app.services import scan_query_service
 from app.services.scan_service import run_scan
 from app.services.subscription_service import get_active_plan
 
@@ -37,12 +34,7 @@ async def trigger_scan(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(Site).where(
-            Site.id == site_id, Site.user_id == current_user.id, Site.is_active == True
-        )
-    )
-    site = result.scalar_one_or_none()
+    site = await scan_query_service.get_owned_active_site(db, site_id, current_user.id)
     if not site:
         raise HTTPException(status_code=404, detail="Site non trouvé")
 
@@ -51,7 +43,7 @@ async def trigger_scan(
     # Sérialise les triggers concurrents du même utilisateur : verrou sur la ligne
     # user tenu jusqu'au commit. Ferme la race check-then-act du quota (deux POST
     # simultanés voyaient le même décompte et créaient chacun un scan).
-    await db.execute(select(User.id).where(User.id == current_user.id).with_for_update())
+    await scan_query_service.lock_user_row(db, current_user.id)
 
     # Enforce scan frequency based on active subscription plan
     plan = await get_active_plan(db, current_user.id)
@@ -65,32 +57,18 @@ async def trigger_scan(
     # max_sites < 0 => plan a scans illimités (ex. Gratuit) : aucune limite de fréquence.
     max_scans = plan.max_sites if plan else 1
     if interval_days > 0 and max_scans >= 0:
-        from datetime import timedelta
-
         since = datetime.now(UTC) - timedelta(days=interval_days)
-        recent_result = await db.execute(
-            select(func.count(Scan.id))
-            .join(Site, Scan.site_id == Site.id)
-            .where(
-                Site.user_id == current_user.id,
-                or_(
-                    Scan.status.in_(in_flight),
-                    and_(Scan.status == "done", Scan.finished_at >= since),
-                ),
-            )
+        recent = await scan_query_service.count_scans_in_window(
+            db, current_user.id, in_flight, since
         )
-        if recent_result.scalar() >= max_scans:
+        if recent >= max_scans:
             raise HTTPException(
                 status_code=429,
                 detail=f"Limite de scans atteinte. Prochain scan disponible dans {interval_days} jour(s) selon votre plan.",
             )
 
-    scan = Scan(site_id=site_id, status="pending")
-    db.add(scan)
-    await db.flush()
-    await db.refresh(scan)
+    scan = await scan_query_service.create_pending_scan(db, site_id)
     background_tasks.add_task(_run_scan_background, scan.id)
-    await db.commit()
     return {"scan_id": scan.id, "message": "Scan lancé en arrière-plan"}
 
 
@@ -102,19 +80,10 @@ async def list_scans(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(Site).where(Site.id == site_id, Site.user_id == current_user.id)
-    )
-    if not result.scalar_one_or_none():
+    if not await scan_query_service.get_owned_site(db, site_id, current_user.id):
         raise HTTPException(status_code=404, detail="Site non trouvé")
 
-    return await paginate(
-        db,
-        base_query=select(Scan).where(Scan.site_id == site_id).order_by(Scan.created_at.desc()),
-        count_query=select(func.count()).where(Scan.site_id == site_id),
-        page=page,
-        per_page=per_page,
-    )
+    return await scan_query_service.paginate_site_scans(db, site_id, page, per_page)
 
 
 @router.get("/site/{site_id}/export")
@@ -124,17 +93,11 @@ async def export_scans_csv(
     db: AsyncSession = Depends(get_db),
 ):
     """Export scan history as CSV."""
-    result = await db.execute(
-        select(Site).where(Site.id == site_id, Site.user_id == current_user.id)
-    )
-    site = result.scalar_one_or_none()
+    site = await scan_query_service.get_owned_site(db, site_id, current_user.id)
     if not site:
         raise HTTPException(status_code=404, detail="Site non trouvé")
 
-    scans_result = await db.execute(
-        select(Scan).where(Scan.site_id == site_id).order_by(Scan.created_at.desc())
-    )
-    scans = scans_result.scalars().all()
+    scans = await scan_query_service.list_site_scans(db, site_id)
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -171,12 +134,7 @@ async def get_scan(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(Scan)
-        .join(Site, Site.id == Scan.site_id)
-        .where(Scan.id == scan_id, Site.user_id == current_user.id)
-    )
-    scan = result.scalar_one_or_none()
+    scan = await scan_query_service.get_owned_scan(db, scan_id, current_user.id)
     if not scan:
         raise HTTPException(status_code=404, detail="Scan non trouvé")
     return scan
@@ -188,12 +146,7 @@ async def download_pdf(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(Scan)
-        .join(Site, Site.id == Scan.site_id)
-        .where(Scan.id == scan_id, Site.user_id == current_user.id)
-    )
-    scan = result.scalar_one_or_none()
+    scan = await scan_query_service.get_owned_scan(db, scan_id, current_user.id)
     if not scan:
         raise HTTPException(status_code=404, detail="Scan non trouvé")
     if scan.status != "done" or not scan.pdf_path:
@@ -213,32 +166,22 @@ async def download_branded_pdf(
     db: AsyncSession = Depends(get_db),
 ):
     """Generate a white-label management summary PDF using the user's brand profile."""
-    from app.models.brand_profile import BrandProfile
     from app.services.branded_scan_pdf import (
         _compute_score,
         _extract_findings,
         generate_branded_pdf,
     )
 
-    scan_result = await db.execute(
-        select(Scan)
-        .join(Site, Site.id == Scan.site_id)
-        .where(Scan.id == scan_id, Site.user_id == current_user.id)
-    )
-    scan = scan_result.scalar_one_or_none()
+    scan = await scan_query_service.get_owned_scan(db, scan_id, current_user.id)
     if not scan:
         raise HTTPException(status_code=404, detail="Scan non trouvé")
     if scan.status != "done":
         raise HTTPException(status_code=404, detail="Scan non terminé")
 
-    site_result = await db.execute(select(Site).where(Site.id == scan.site_id))
-    site = site_result.scalar_one_or_none()
+    site = await scan_query_service.get_site(db, scan.site_id)
     domain = site.url if site else "inconnu"
 
-    brand_result = await db.execute(
-        select(BrandProfile).where(BrandProfile.user_id == current_user.id)
-    )
-    brand = brand_result.scalar_one_or_none()
+    brand = await scan_query_service.get_brand_profile(db, current_user.id)
 
     company_name = brand.company_name if brand else "Rocher Cybersécurité"
     accent_color = brand.accent_color if brand else "#06b6d4"
@@ -308,12 +251,7 @@ async def download_remediation_script(
     if script_key not in _REMEDIATION_META:
         raise HTTPException(status_code=404, detail="Script inconnu")
 
-    result = await db.execute(
-        select(Scan)
-        .join(Site, Site.id == Scan.site_id)
-        .where(Scan.id == scan_id, Site.user_id == current_user.id)
-    )
-    scan = result.scalar_one_or_none()
+    scan = await scan_query_service.get_owned_scan(db, scan_id, current_user.id)
     if not scan:
         raise HTTPException(status_code=404, detail="Scan non trouvé")
     if scan.status != "done" or not scan.results_json:
@@ -381,8 +319,7 @@ VALID_STATUSES = {"todo", "in_progress", "resolved", "accepted_risk"}
 
 
 async def _get_owned_site(site_id: int, user: User, db: AsyncSession) -> Site:
-    result = await db.execute(select(Site).where(Site.id == site_id, Site.user_id == user.id))
-    site = result.scalar_one_or_none()
+    site = await scan_query_service.get_owned_site(db, site_id, user.id)
     if not site:
         raise HTTPException(status_code=404, detail="Site non trouvé")
     return site
@@ -395,7 +332,7 @@ async def list_finding_statuses(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_owned_site(site_id, current_user, db)
-    rows = await db.execute(select(FindingStatus).where(FindingStatus.site_id == site_id))
+    rows = await scan_query_service.list_finding_statuses(db, site_id)
     return [
         {
             "module_key": r.module_key,
@@ -403,7 +340,7 @@ async def list_finding_statuses(
             "note": r.note,
             "updated_at": r.updated_at.isoformat(),
         }
-        for r in rows.scalars().all()
+        for r in rows
     ]
 
 
@@ -424,29 +361,14 @@ async def upsert_finding_status(
 
     await _get_owned_site(site_id, current_user, db)
 
-    result = await db.execute(
-        select(FindingStatus).where(
-            FindingStatus.site_id == site_id,
-            FindingStatus.module_key == module_key,
-        )
+    row = await scan_query_service.upsert_finding_status(
+        db,
+        site_id=site_id,
+        module_key=module_key,
+        status=status,
+        note=note,
+        now=datetime.now(UTC),
     )
-    row = result.scalar_one_or_none()
-
-    if row:
-        row.status = status
-        row.note = note
-        row.updated_at = datetime.now(UTC)
-    else:
-        row = FindingStatus(
-            site_id=site_id,
-            module_key=module_key,
-            status=status,
-            note=note,
-            updated_at=datetime.now(UTC),
-        )
-        db.add(row)
-
-    await db.commit()
     return {
         "module_key": row.module_key,
         "status": row.status,

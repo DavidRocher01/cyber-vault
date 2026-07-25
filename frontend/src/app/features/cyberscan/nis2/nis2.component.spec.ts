@@ -551,16 +551,24 @@ describe('ngOnInit()', () => {
     const c = make();
     (c as any).loading = signal(true);
     const cat = makeCat('a', 2);
-    (c as any).cyberscan = {
-      getNis2Assessment: vi.fn().mockReturnValue(
-        of({
-          categories: [cat],
-          items: { a_item0: 'compliant' },
-          score: 42,
-          updated_at: '2024-06-15T10:00:00Z',
-        })
-      ),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          getNis2Assessment: vi.fn().mockReturnValue(
+            of({
+              categories: [cat],
+              items: { a_item0: 'compliant' },
+              score: 42,
+              updated_at: '2024-06-15T10:00:00Z',
+            })
+          ),
+        };
     (c as any).snack = { open: vi.fn() };
     c.ngOnInit();
     expect((c as any).categories()).toEqual([cat]);
@@ -573,7 +581,15 @@ describe('ngOnInit()', () => {
   it('réponse partielle : applique les valeurs par défaut', () => {
     const c = make();
     (c as any).loading = signal(true);
-    (c as any).cyberscan = { getNis2Assessment: vi.fn().mockReturnValue(of({})) };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { getNis2Assessment: vi.fn().mockReturnValue(of({})) };
     (c as any).snack = { open: vi.fn() };
     c.ngOnInit();
     expect((c as any).categories()).toEqual([]);
@@ -586,9 +602,17 @@ describe('ngOnInit()', () => {
   it('erreur : coupe loading et affiche un snack', () => {
     const c = make();
     (c as any).loading = signal(true);
-    (c as any).cyberscan = {
-      getNis2Assessment: vi.fn().mockReturnValue(throwError(() => new Error('boom'))),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          getNis2Assessment: vi.fn().mockReturnValue(throwError(() => new Error('boom'))),
+        };
     const snack = { open: vi.fn() };
     (c as any).snack = snack;
     c.ngOnInit();
@@ -606,7 +630,15 @@ describe('save()', () => {
     const c = makeWithCats(2);
     (c as any).saving = signal(false);
     const saveMock = vi.fn().mockReturnValue(of({ score: 88, updated_at: '2024-07-01T12:00:00Z' }));
-    (c as any).cyberscan = { saveNis2Assessment: saveMock };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { saveNis2Assessment: saveMock };
     const snack = { open: vi.fn() };
     (c as any).snack = snack;
     c.save();
@@ -624,9 +656,17 @@ describe('save()', () => {
   it('erreur : coupe saving et affiche un snack erreur', () => {
     const c = makeWithCats(1);
     (c as any).saving = signal(false);
-    (c as any).cyberscan = {
-      saveNis2Assessment: vi.fn().mockReturnValue(throwError(() => new Error('nope'))),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          saveNis2Assessment: vi.fn().mockReturnValue(throwError(() => new Error('nope'))),
+        };
     const snack = { open: vi.fn() };
     (c as any).snack = snack;
     c.save();
@@ -653,10 +693,18 @@ describe('exportPdf()', () => {
   it('cas nominal : sauvegarde puis télécharge le blob', () => {
     const c = makeWithCats(1);
     (c as any).exporting = signal(false);
-    (c as any).cyberscan = {
-      saveNis2Assessment: vi.fn().mockReturnValue(of({ score: 10, updated_at: 'd' })),
-      downloadNis2PdfBlob: vi.fn().mockReturnValue(of(new Blob(['x']))),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          saveNis2Assessment: vi.fn().mockReturnValue(of({ score: 10, updated_at: 'd' })),
+          downloadNis2PdfBlob: vi.fn().mockReturnValue(of(new Blob(['x']))),
+        };
     (c as any).snack = { open: vi.fn() };
     c.exportPdf();
     expect((c as any).score()).toBe(10);
@@ -668,10 +716,18 @@ describe('exportPdf()', () => {
   it('erreur de sauvegarde : coupe exporting et snack', () => {
     const c = makeWithCats(1);
     (c as any).exporting = signal(false);
-    (c as any).cyberscan = {
-      saveNis2Assessment: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
-      downloadNis2PdfBlob: vi.fn(),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          saveNis2Assessment: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
+          downloadNis2PdfBlob: vi.fn(),
+        };
     const snack = { open: vi.fn() };
     (c as any).snack = snack;
     c.exportPdf();
@@ -684,10 +740,18 @@ describe('exportPdf()', () => {
   it('erreur de téléchargement : coupe exporting et snack export PDF', () => {
     const c = makeWithCats(1);
     (c as any).exporting = signal(false);
-    (c as any).cyberscan = {
-      saveNis2Assessment: vi.fn().mockReturnValue(of({ score: 10, updated_at: 'd' })),
-      downloadNis2PdfBlob: vi.fn().mockReturnValue(throwError(() => new Error('dl'))),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          saveNis2Assessment: vi.fn().mockReturnValue(of({ score: 10, updated_at: 'd' })),
+          downloadNis2PdfBlob: vi.fn().mockReturnValue(throwError(() => new Error('dl'))),
+        };
     const snack = { open: vi.fn() };
     (c as any).snack = snack;
     c.exportPdf();
@@ -714,10 +778,18 @@ describe('exportAuditorPdf()', () => {
   it('cas nominal : sauvegarde puis télécharge le document officiel', () => {
     const c = makeWithCats(1);
     (c as any).exportingAuditor = signal(false);
-    (c as any).cyberscan = {
-      saveNis2Assessment: vi.fn().mockReturnValue(of({ score: 20, updated_at: 'e' })),
-      downloadNis2AuditorPdfBlob: vi.fn().mockReturnValue(of(new Blob(['y']))),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          saveNis2Assessment: vi.fn().mockReturnValue(of({ score: 20, updated_at: 'e' })),
+          downloadNis2AuditorPdfBlob: vi.fn().mockReturnValue(of(new Blob(['y']))),
+        };
     (c as any).snack = { open: vi.fn() };
     c.exportAuditorPdf();
     expect((c as any).score()).toBe(20);
@@ -729,10 +801,18 @@ describe('exportAuditorPdf()', () => {
   it('erreur de sauvegarde : coupe exportingAuditor et snack', () => {
     const c = makeWithCats(1);
     (c as any).exportingAuditor = signal(false);
-    (c as any).cyberscan = {
-      saveNis2Assessment: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
-      downloadNis2AuditorPdfBlob: vi.fn(),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          saveNis2Assessment: vi.fn().mockReturnValue(throwError(() => new Error('x'))),
+          downloadNis2AuditorPdfBlob: vi.fn(),
+        };
     const snack = { open: vi.fn() };
     (c as any).snack = snack;
     c.exportAuditorPdf();
@@ -745,10 +825,18 @@ describe('exportAuditorPdf()', () => {
   it('erreur de téléchargement : coupe exportingAuditor et snack document officiel', () => {
     const c = makeWithCats(1);
     (c as any).exportingAuditor = signal(false);
-    (c as any).cyberscan = {
-      saveNis2Assessment: vi.fn().mockReturnValue(of({ score: 20, updated_at: 'e' })),
-      downloadNis2AuditorPdfBlob: vi.fn().mockReturnValue(throwError(() => new Error('dl'))),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          saveNis2Assessment: vi.fn().mockReturnValue(of({ score: 20, updated_at: 'e' })),
+          downloadNis2AuditorPdfBlob: vi.fn().mockReturnValue(throwError(() => new Error('dl'))),
+        };
     const snack = { open: vi.fn() };
     (c as any).snack = snack;
     c.exportAuditorPdf();

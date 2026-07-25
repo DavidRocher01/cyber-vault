@@ -5,8 +5,17 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { CyberscanService } from '../services/cyberscan.service';
+import { ComplianceApiService } from '../services/compliance-api.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import {
+  complianceStatusLabel,
+  complianceStatusIcon,
+  complianceStatusClass,
+  complianceStatusColor,
+  complianceScoreColor,
+  complianceScoreLabel,
+} from '../shared/compliance-status.util';
+import { formatFrDate } from '../../../shared/date-utils';
 
 export type Nis2Status = 'compliant' | 'partial' | 'non_compliant' | 'na';
 
@@ -38,7 +47,7 @@ export interface Nis2Category {
   styleUrl: './nis2.component.css',
 })
 export class Nis2Component implements OnInit {
-  private cyberscan = inject(CyberscanService);
+  private complianceApi = inject(ComplianceApiService);
   private snack = inject(MatSnackBar);
 
   loading = signal(true);
@@ -56,10 +65,12 @@ export class Nis2Component implements OnInit {
   readonly STATUS_LIST: Nis2Status[] = ['compliant', 'partial', 'non_compliant', 'na'];
 
   ngOnInit() {
-    this.cyberscan.getNis2Assessment().subscribe({
+    this.complianceApi.getNis2Assessment().subscribe({
       next: data => {
-        this.categories.set(data.categories ?? []);
-        this.items.set(data.items ?? {});
+        // Narrowing au bord de l'API : le backend renvoie des chaînes/objets
+        // generiques dont les valeurs sont garanties valides pour ces types.
+        this.categories.set((data.categories ?? []) as Nis2Category[]);
+        this.items.set((data.items ?? {}) as Record<string, Nis2Status>);
         this.score.set(data.score ?? 0);
         this.updatedAt.set(data.updated_at ?? null);
         this.loading.set(false);
@@ -116,7 +127,7 @@ export class Nis2Component implements OnInit {
 
   save() {
     this.saving.set(true);
-    this.cyberscan.saveNis2Assessment(this._fullItems).subscribe({
+    this.complianceApi.saveNis2Assessment(this._fullItems).subscribe({
       next: data => {
         this.score.set(data.score);
         this.updatedAt.set(data.updated_at);
@@ -133,7 +144,7 @@ export class Nis2Component implements OnInit {
   exportPdf() {
     this.exporting.set(true);
     // Sauvegarde automatique avant export pour garantir la cohérence PDF/app
-    this.cyberscan.saveNis2Assessment(this._fullItems).subscribe({
+    this.complianceApi.saveNis2Assessment(this._fullItems).subscribe({
       next: data => {
         this.score.set(data.score);
         this.updatedAt.set(data.updated_at);
@@ -147,7 +158,7 @@ export class Nis2Component implements OnInit {
   }
 
   private _downloadPdf() {
-    this.cyberscan.downloadNis2PdfBlob().subscribe({
+    this.complianceApi.downloadNis2PdfBlob().subscribe({
       next: blob => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -166,11 +177,11 @@ export class Nis2Component implements OnInit {
 
   exportAuditorPdf() {
     this.exportingAuditor.set(true);
-    this.cyberscan.saveNis2Assessment(this._fullItems).subscribe({
+    this.complianceApi.saveNis2Assessment(this._fullItems).subscribe({
       next: data => {
         this.score.set(data.score);
         this.updatedAt.set(data.updated_at);
-        this.cyberscan.downloadNis2AuditorPdfBlob().subscribe({
+        this.complianceApi.downloadNis2AuditorPdfBlob().subscribe({
           next: blob => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -198,55 +209,27 @@ export class Nis2Component implements OnInit {
   // ── Helpers ────────────────────────────────────────────────────────────
 
   statusLabel(s: string): string {
-    const map: Record<string, string> = {
-      compliant: 'Conforme',
-      partial: 'Partiel',
-      non_compliant: 'Non conforme',
-      na: 'N/A',
-    };
-    return map[s] ?? s;
+    return complianceStatusLabel(s);
   }
 
   statusIcon(s: string): string {
-    const map: Record<string, string> = {
-      compliant: 'check_circle',
-      partial: 'pending',
-      non_compliant: 'cancel',
-      na: 'remove_circle_outline',
-    };
-    return map[s] ?? 'help_outline';
+    return complianceStatusIcon(s);
   }
 
   statusClass(s: string): string {
-    const map: Record<string, string> = {
-      compliant: 'text-green-400 bg-green-400/10 border-green-700',
-      partial: 'text-yellow-400 bg-yellow-400/10 border-yellow-700',
-      non_compliant: 'text-red-400 bg-red-400/10 border-red-700',
-      na: 'text-gray-400 bg-gray-700/30 border-gray-600',
-    };
-    return map[s] ?? 'text-gray-400 bg-gray-700/30 border-gray-600';
+    return complianceStatusClass(s);
   }
 
   statusColor(s: string): string {
-    const map: Record<string, string> = {
-      compliant: '#4ade80',
-      partial: '#facc15',
-      non_compliant: '#f87171',
-      na: '#6b7280',
-    };
-    return map[s] ?? '#6b7280';
+    return complianceStatusColor(s);
   }
 
   scoreColor(n: number): string {
-    if (n >= 80) return '#4ade80';
-    if (n >= 50) return '#facc15';
-    return '#f87171';
+    return complianceScoreColor(n);
   }
 
   scoreLabel(n: number): string {
-    if (n >= 80) return 'Conforme';
-    if (n >= 50) return 'En cours';
-    return 'Non conforme';
+    return complianceScoreLabel(n);
   }
 
   catCompliance(cat: Nis2Category): {
@@ -275,14 +258,7 @@ export class Nis2Component implements OnInit {
   }
 
   formatDate(d: string | null): string {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatFrDate(d, 'datetime');
   }
 
   readonly totalItems = computed(() => this.categories().reduce((s, c) => s + c.items.length, 0));

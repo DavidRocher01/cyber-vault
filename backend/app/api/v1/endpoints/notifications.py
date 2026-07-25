@@ -3,7 +3,6 @@ Notification endpoints — in-app notification center.
 """
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crud import get_user_resource
@@ -12,6 +11,7 @@ from app.core.deps import get_current_user
 from app.models.notification import Notification
 from app.models.user import User
 from app.schemas.notification import NotificationListOut, NotificationOut
+from app.services import notification_service
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
@@ -22,21 +22,9 @@ async def list_notifications(
     db: AsyncSession = Depends(get_db),
 ):
     """Return the 50 most recent notifications + unread count."""
-    result = await db.execute(
-        select(Notification)
-        .where(Notification.user_id == current_user.id)
-        .order_by(Notification.created_at.desc())
-        .limit(50)
-    )
-    items = result.scalars().all()
-
-    unread = await db.execute(
-        select(func.count()).where(
-            Notification.user_id == current_user.id,
-            Notification.read == False,  # noqa: E712
-        )
-    )
-    return {"items": items, "unread_count": unread.scalar_one()}
+    items = await notification_service.list_recent(db, current_user.id)
+    unread_count = await notification_service.count_unread(db, current_user.id)
+    return {"items": items, "unread_count": unread_count}
 
 
 @router.post("/{notification_id}/read", response_model=NotificationOut)
@@ -48,8 +36,7 @@ async def mark_read(
     notif = await get_user_resource(
         db, Notification, notification_id, current_user.id, "Notification introuvable"
     )
-    notif.read = True
-    await db.commit()
+    await notification_service.mark_read(db, notif)
     return notif
 
 
@@ -58,15 +45,7 @@ async def mark_all_read(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(Notification).where(
-            Notification.user_id == current_user.id,
-            Notification.read == False,  # noqa: E712
-        )
-    )
-    for notif in result.scalars().all():
-        notif.read = True
-    await db.commit()
+    await notification_service.mark_all_read(db, current_user.id)
 
 
 @router.delete("/{notification_id}", status_code=204)
@@ -78,5 +57,4 @@ async def delete_notification(
     notif = await get_user_resource(
         db, Notification, notification_id, current_user.id, "Notification introuvable"
     )
-    await db.delete(notif)
-    await db.commit()
+    await notification_service.delete_notification(db, notif)

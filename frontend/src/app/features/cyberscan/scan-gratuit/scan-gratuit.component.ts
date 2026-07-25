@@ -9,12 +9,15 @@ import { HttpClient } from '@angular/common/http';
 import { Subscription, interval } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 
-import { CyberscanService, PublicScanResult } from '../services/cyberscan.service';
+import { PublicScanResult } from '../services/cyberscan.service';
+import { PublicScanApiService } from '../services/public-scan-api.service';
+import { BillingService } from '../services/billing.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ScoreGaugeComponent } from '../../../shared/score-gauge/score-gauge.component';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { computeScore, getGrade, getScoreColor } from '../../../shared/score-utils';
 import { environment } from '../../../../environments/environment';
+import { extractApiError } from '../../../core/http-error';
 
 interface Module {
   key: string;
@@ -39,7 +42,8 @@ interface Module {
   templateUrl: './scan-gratuit.component.html',
 })
 export class ScanGratuitComponent implements OnInit, OnDestroy {
-  private cyberscan = inject(CyberscanService);
+  private publicScanApi = inject(PublicScanApiService);
+  private billing = inject(BillingService);
   private auth = inject(AuthService);
   private http = inject(HttpClient);
   private router = inject(Router);
@@ -91,7 +95,7 @@ export class ScanGratuitComponent implements OnInit, OnDestroy {
     this.error.set(null);
     this.scan.set(null);
 
-    this.cyberscan.createPublicScan(trimmedUrl).subscribe({
+    this.publicScanApi.createPublicScan(trimmedUrl).subscribe({
       next: result => {
         this.submitting.set(false);
         if (email && consent) {
@@ -103,7 +107,7 @@ export class ScanGratuitComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.submitting.set(false);
-        this.error.set(err.error?.detail || "Erreur lors du lancement du scan. Vérifiez l'URL.");
+        this.error.set(extractApiError(err, "Erreur lors du lancement du scan. Vérifiez l'URL."));
       },
     });
   }
@@ -112,7 +116,7 @@ export class ScanGratuitComponent implements OnInit, OnDestroy {
     this.pollSub?.unsubscribe();
     this.pollSub = interval(3000)
       .pipe(
-        switchMap(() => this.cyberscan.getPublicScan(token)),
+        switchMap(() => this.publicScanApi.getPublicScan(token)),
         takeWhile(s => s.status === 'pending' || s.status === 'running', true)
       )
       .subscribe({
@@ -127,14 +131,14 @@ export class ScanGratuitComponent implements OnInit, OnDestroy {
       return;
     }
     this.checkoutLoading = true;
-    this.cyberscan.getPlans().subscribe({
+    this.billing.getPlans().subscribe({
       next: plans => {
         if (!plans.length) {
           this.checkoutLoading = false;
           return;
         }
         const starter = plans.reduce((a, b) => (a.price_eur < b.price_eur ? a : b));
-        this.cyberscan.createCheckout(starter.id).subscribe({
+        this.billing.createCheckout(starter.id).subscribe({
           next: res => {
             window.location.href = res.checkout_url;
           },

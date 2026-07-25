@@ -1,15 +1,14 @@
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_rssi_consultant
-from app.models.rssi_activity_log import RssiActivityLog
 from app.models.user import User
+from app.services import rssi_activity_service
 
 from ._shared import _get_client_or_404
 
@@ -57,18 +56,14 @@ async def log_activity(
     """Record a consultant action on a client account."""
     await _get_client_or_404(client_id, current_user.id, db)
 
-    entry = RssiActivityLog(
+    return await rssi_activity_service.create_activity_log(
+        db,
         consultant_id=current_user.id,
         client_id=client_id,
         action_type=body.action_type,
         resource_type=body.resource_type,
         resource_id=body.resource_id,
-        performed_at=datetime.now(UTC),
     )
-    db.add(entry)
-    await db.commit()
-    await db.refresh(entry)
-    return entry
 
 
 @router.get("/clients/{client_id}/activity", response_model=list[ActivityLogOut])
@@ -87,13 +82,6 @@ async def get_activity_log(
             detail="limit doit être entre 1 et 200",
         )
 
-    result = await db.execute(
-        select(RssiActivityLog)
-        .where(
-            RssiActivityLog.client_id == client_id,
-            RssiActivityLog.consultant_id == current_user.id,
-        )
-        .order_by(RssiActivityLog.performed_at.desc())
-        .limit(limit)
+    return await rssi_activity_service.list_recent_activity(
+        db, client_id=client_id, consultant_id=current_user.id, limit=limit
     )
-    return result.scalars().all()

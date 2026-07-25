@@ -103,7 +103,7 @@
           <div>
             <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Dernier scan</p>
             <p class="text-sm font-medium">
-              {{ formatDateShort(latestDoneScan?.finished_at ?? null) }}
+              {{ formatDate(latestDoneScan?.finished_at ?? null) }}
             </p>
           </div>
           <div>
@@ -259,7 +259,7 @@
               </div>
               <div>
                 <p class="text-sm font-medium text-white">
-                  Scan du {{ formatDateShort(latestDoneScan.finished_at) }}
+                  Scan du {{ formatDate(latestDoneScan.finished_at) }}
                 </p>
                 <p class="text-xs text-gray-500 mt-0.5">
                   Référence <span class="font-mono text-gray-400">#{{ latestDoneScan.id }}</span>
@@ -546,7 +546,7 @@
               >
                 <!-- Date -->
                 <div>
-                  <p class="text-sm text-gray-200">{{ formatDateShort(scan.created_at) }}</p>
+                  <p class="text-sm text-gray-200">{{ formatDate(scan.created_at) }}</p>
                   @if (scan.status === 'pending' || scan.status === 'running') {
                     <div class="flex items-center gap-1.5 mt-1">
                       <mat-spinner diameter="12"></mat-spinner>

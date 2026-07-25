@@ -6,14 +6,12 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_rssi_consultant
-from app.models.rssi_action import RssiAction
-from app.models.rssi_visit import RssiVisit
 from app.models.user import User
+from app.services import rssi_action_service
 
 from ._shared import _get_client_or_404
 
@@ -71,12 +69,7 @@ async def list_actions(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
-    query = select(RssiAction).where(RssiAction.client_id == client_id)
-    if status_filter:
-        query = query.where(RssiAction.status == status_filter)
-    query = query.order_by(RssiAction.created_at.desc())
-    result = await db.execute(query)
-    return result.scalars().all()
+    return await rssi_action_service.list_actions(db, client_id, status_filter)
 
 
 @router.post("/clients/{client_id}/actions", response_model=RssiActionOut, status_code=201)
@@ -94,31 +87,25 @@ async def create_action(
     # Isolation : une visite source référencée doit appartenir à CE client (sinon un
     # consultant pourrait lier l'action à la visite d'un autre client).
     if payload.source_visit_id is not None:
-        visit = (
-            await db.execute(
-                select(RssiVisit).where(
-                    RssiVisit.id == payload.source_visit_id,
-                    RssiVisit.client_id == client_id,
-                )
-            )
-        ).scalar_one_or_none()
+        visit = await rssi_action_service.get_visit_for_client(
+            db, payload.source_visit_id, client_id
+        )
         if visit is None:
             raise HTTPException(status_code=422, detail="Visite source introuvable pour ce client")
 
-    action = RssiAction(
+    return await rssi_action_service.create_action(
+        db,
         client_id=client_id,
-        title=payload.title.strip(),
-        description=payload.description,
-        category=payload.category,
-        priority=payload.priority,
-        assigned_to=payload.assigned_to,
-        due_date=payload.due_date,
-        source_visit_id=payload.source_visit_id,
+        values={
+            "title": payload.title.strip(),
+            "description": payload.description,
+            "category": payload.category,
+            "priority": payload.priority,
+            "assigned_to": payload.assigned_to,
+            "due_date": payload.due_date,
+            "source_visit_id": payload.source_visit_id,
+        },
     )
-    db.add(action)
-    await db.commit()
-    await db.refresh(action)
-    return action
 
 
 @router.put("/clients/{client_id}/actions/{action_id}", response_model=RssiActionOut)
@@ -130,36 +117,33 @@ async def update_action(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
-    result = await db.execute(
-        select(RssiAction).where(RssiAction.id == action_id, RssiAction.client_id == client_id)
-    )
-    action = result.scalar_one_or_none()
+    action = await rssi_action_service.get_action(db, action_id, client_id)
     if not action:
         raise HTTPException(status_code=404, detail="Action non trouvée")
 
+    # Patch partiel : seuls les champs fournis non-nuls sont appliqués (mêmes
+    # sémantiques que l'ancienne cascade de `if payload.x is not None`).
+    values: dict = {}
     if payload.title is not None:
-        action.title = payload.title.strip()
+        values["title"] = payload.title.strip()
     if payload.description is not None:
-        action.description = payload.description
+        values["description"] = payload.description
     if payload.category is not None:
-        action.category = payload.category
+        values["category"] = payload.category
     if payload.priority is not None:
-        action.priority = payload.priority
+        values["priority"] = payload.priority
     if payload.status is not None:
-        action.status = payload.status
+        values["status"] = payload.status
         if payload.status == "done" and action.completed_at is None:
-            action.completed_at = datetime.now(UTC)
+            values["completed_at"] = datetime.now(UTC)
     if payload.assigned_to is not None:
-        action.assigned_to = payload.assigned_to
+        values["assigned_to"] = payload.assigned_to
     if payload.due_date is not None:
-        action.due_date = payload.due_date
+        values["due_date"] = payload.due_date
     if payload.completed_at is not None:
-        action.completed_at = payload.completed_at
+        values["completed_at"] = payload.completed_at
 
-    action.updated_at = datetime.now(UTC)
-    await db.commit()
-    await db.refresh(action)
-    return action
+    return await rssi_action_service.update_action(db, action, values)
 
 
 @router.delete("/clients/{client_id}/actions/{action_id}", status_code=204)
@@ -170,14 +154,10 @@ async def delete_action(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
-    result = await db.execute(
-        select(RssiAction).where(RssiAction.id == action_id, RssiAction.client_id == client_id)
-    )
-    action = result.scalar_one_or_none()
+    action = await rssi_action_service.get_action(db, action_id, client_id)
     if not action:
         raise HTTPException(status_code=404, detail="Action non trouvée")
-    await db.delete(action)
-    await db.commit()
+    await rssi_action_service.delete_action(db, action)
 
 
 @router.get("/clients/{client_id}/actions/export")
@@ -189,12 +169,7 @@ async def export_actions_csv(
     """Export all actions for a client as a CSV file."""
     await _get_client_or_404(client_id, current_user.id, db)
 
-    result = await db.execute(
-        select(RssiAction)
-        .where(RssiAction.client_id == client_id)
-        .order_by(RssiAction.created_at.desc())
-    )
-    actions = result.scalars().all()
+    actions = await rssi_action_service.list_actions(db, client_id)
 
     buf = io.StringIO()
     writer = csv.writer(buf, delimiter=";", quoting=csv.QUOTE_ALL)

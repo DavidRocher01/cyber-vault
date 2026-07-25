@@ -2,10 +2,10 @@ from typing import Literal
 
 from pydantic import BaseModel, EmailStr
 
+from app.schemas.base import StrictModel
 
-class ApiWaitlistIn(BaseModel):
-    model_config = {"extra": "forbid"}
 
+class ApiWaitlistIn(StrictModel):
     email: EmailStr
     role: Literal["msp", "devsecops", "saas", "other"]
     company: str | None = None

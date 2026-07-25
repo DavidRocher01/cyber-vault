@@ -143,13 +143,13 @@ async def test_monthly_digest_job_no_active_subscriptions():
     result.all.return_value = []
     db.execute = AsyncMock(return_value=result)
 
-    with patch("app.services.scheduler.AsyncSessionLocal") as mock_session:
+    with patch("app.services.scheduler.monthly_digest.AsyncSessionLocal") as mock_session:
         mock_ctx = AsyncMock()
         mock_ctx.__aenter__ = AsyncMock(return_value=db)
         mock_ctx.__aexit__ = AsyncMock(return_value=False)
         mock_session.return_value = mock_ctx
 
-        with patch("app.services.scheduler.send_monthly_digest") as mock_send:
+        with patch("app.services.scheduler.monthly_digest.send_monthly_digest") as mock_send:
             from app.services.scheduler import _send_monthly_digest_job
 
             await _send_monthly_digest_job()
@@ -178,14 +178,14 @@ async def test_monthly_digest_job_sends_to_each_user():
 
     db.execute = execute_side
 
-    with patch("app.services.scheduler.AsyncSessionLocal") as mock_session:
+    with patch("app.services.scheduler.monthly_digest.AsyncSessionLocal") as mock_session:
         mock_ctx = AsyncMock()
         mock_ctx.__aenter__ = AsyncMock(return_value=db)
         mock_ctx.__aexit__ = AsyncMock(return_value=False)
         mock_session.return_value = mock_ctx
 
         with patch(
-            "app.services.scheduler.asyncio.to_thread", new_callable=AsyncMock
+            "app.services.scheduler.monthly_digest.asyncio.to_thread", new_callable=AsyncMock
         ) as mock_thread:
             from app.services.scheduler import _send_monthly_digest_job
 
@@ -232,13 +232,13 @@ async def test_monthly_digest_job_counts_scans_per_site():
         # Call the function to validate it works
         return fn(**kwargs)
 
-    with patch("app.services.scheduler.AsyncSessionLocal") as mock_session:
+    with patch("app.services.scheduler.monthly_digest.AsyncSessionLocal") as mock_session:
         mock_ctx = AsyncMock()
         mock_ctx.__aenter__ = AsyncMock(return_value=db)
         mock_ctx.__aexit__ = AsyncMock(return_value=False)
         mock_session.return_value = mock_ctx
 
-        with patch("app.services.scheduler.asyncio.to_thread") as mock_thread:
+        with patch("app.services.scheduler.monthly_digest.asyncio.to_thread") as mock_thread:
             mock_thread.return_value = None
 
             async def fake_to_thread(fn, **kw):
@@ -246,7 +246,7 @@ async def test_monthly_digest_job_counts_scans_per_site():
 
             mock_thread.side_effect = fake_to_thread
 
-            with patch("app.services.scheduler.send_monthly_digest") as mock_send:
+            with patch("app.services.scheduler.monthly_digest.send_monthly_digest") as mock_send:
                 from app.services.scheduler import _send_monthly_digest_job
 
                 await _send_monthly_digest_job()

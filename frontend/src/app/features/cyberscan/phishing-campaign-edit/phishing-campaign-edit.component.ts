@@ -18,6 +18,7 @@ import {
   planMaxScenarios,
 } from '../services/phishing.service';
 import { PHISHING_SCENARIOS } from '../services/phishing-scenarios';
+import { extractApiError } from '../../../core/http-error';
 
 @Component({
   standalone: true,
@@ -181,7 +182,7 @@ export class PhishingCampaignEditComponent implements OnInit {
         },
         error: err => {
           this.saving.set(false);
-          this.snack.open(err.error?.detail || 'Erreur lors de la sauvegarde', 'Fermer', {
+          this.snack.open(extractApiError(err, 'Erreur lors de la sauvegarde'), 'Fermer', {
             duration: 4000,
           });
         },
@@ -208,7 +209,7 @@ export class PhishingCampaignEditComponent implements OnInit {
         },
         error: err => {
           this.launching.set(false);
-          this.snack.open(err.error?.detail || 'Erreur au lancement', 'Fermer', {
+          this.snack.open(extractApiError(err, 'Erreur au lancement'), 'Fermer', {
             duration: 4000,
           });
         },
@@ -234,7 +235,7 @@ export class PhishingCampaignEditComponent implements OnInit {
       error: err => {
         this.uploadingTargets.set(false);
         input.value = '';
-        this.snack.open(err.error?.detail || "Erreur lors de l'import", 'Fermer', {
+        this.snack.open(extractApiError(err, "Erreur lors de l'import"), 'Fermer', {
           duration: 4000,
         });
       },
@@ -263,7 +264,7 @@ export class PhishingCampaignEditComponent implements OnInit {
       },
       error: err => {
         this.addingTarget.set(false);
-        this.snack.open(err.error?.detail || "Impossible d'ajouter la cible", 'Fermer', {
+        this.snack.open(extractApiError(err, "Impossible d'ajouter la cible"), 'Fermer', {
           duration: 4000,
         });
       },
@@ -274,7 +275,7 @@ export class PhishingCampaignEditComponent implements OnInit {
     this.phishingService.deleteTarget(this.campaignId, targetId).subscribe({
       next: () => this.reloadTargets(),
       error: err =>
-        this.snack.open(err.error?.detail || 'Suppression impossible', 'Fermer', {
+        this.snack.open(extractApiError(err, 'Suppression impossible'), 'Fermer', {
           duration: 4000,
         }),
     });

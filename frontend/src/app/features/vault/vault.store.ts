@@ -5,6 +5,7 @@ import { from, switchMap, concatMap, map, tap } from 'rxjs';
 
 import { VaultItem, VaultItemCreate, VaultService } from '../../core/services/vault.service';
 import { CryptoService } from '../../core/services/crypto.service';
+import { extractApiError } from '../../core/http-error';
 
 interface VaultItemUpdate extends Partial<VaultItemCreate> {
   id: number;
@@ -47,7 +48,7 @@ export class VaultStore extends ComponentStore<VaultState> {
             (err: any) =>
               this.patchState({
                 loading: false,
-                error: err.error?.detail ?? 'Erreur de chargement',
+                error: extractApiError(err, 'Erreur de chargement'),
               })
           )
         )
@@ -97,7 +98,7 @@ export class VaultStore extends ComponentStore<VaultState> {
                   },
                 ],
               })),
-            (err: any) => this.patchState({ error: err.error?.detail ?? 'Erreur de création' })
+            (err: any) => this.patchState({ error: extractApiError(err, 'Erreur de création') })
           )
         )
       )
@@ -153,7 +154,7 @@ export class VaultStore extends ComponentStore<VaultState> {
                     : i
                 ),
               })),
-            (err: any) => this.patchState({ error: err.error?.detail ?? 'Erreur de modification' })
+            (err: any) => this.patchState({ error: extractApiError(err, 'Erreur de modification') })
           )
         )
       )
@@ -166,7 +167,7 @@ export class VaultStore extends ComponentStore<VaultState> {
         this.vaultService.delete(id).pipe(
           tapResponse(
             () => this.patchState(s => ({ items: s.items.filter(i => i.id !== id) })),
-            (err: any) => this.patchState({ error: err.error?.detail ?? 'Erreur de suppression' })
+            (err: any) => this.patchState({ error: extractApiError(err, 'Erreur de suppression') })
           )
         )
       )

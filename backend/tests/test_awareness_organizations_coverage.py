@@ -26,8 +26,9 @@ from app.models.awareness_program import AwarenessProgram
 
 BASE = "/api/v1"
 
-# Cible des patches : les symboles importés DANS le module endpoint.
-_ORG_MODULE = "app.api.v1.endpoints.awareness.organizations"
+# Cible des patches : les symboles importés DANS le module service qui envoie
+# les magic-links (la logique enroll-all a été déplacée endpoint -> service).
+_ORG_MODULE = "app.services.awareness_organization_service"
 
 
 async def _register(client: AsyncClient, email: str) -> dict:

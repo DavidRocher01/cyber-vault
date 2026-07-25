@@ -1,14 +1,13 @@
-from datetime import UTC, datetime
+from datetime import datetime
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models.brand_profile import BrandProfile
 from app.models.user import User
+from app.services import brand_service
 
 router = APIRouter(prefix="/brand", tags=["brand"])
 
@@ -33,8 +32,7 @@ async def get_brand(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(BrandProfile).where(BrandProfile.user_id == current_user.id))
-    return result.scalar_one_or_none()
+    return await brand_service.get_brand_profile(db, current_user.id)
 
 
 @router.put("/me", response_model=BrandProfileOut)
@@ -43,18 +41,10 @@ async def upsert_brand(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(BrandProfile).where(BrandProfile.user_id == current_user.id))
-    brand = result.scalar_one_or_none()
-
-    if brand is None:
-        brand = BrandProfile(user_id=current_user.id)
-        db.add(brand)
-
-    brand.company_name = payload.company_name
-    brand.accent_color = payload.accent_color
-    brand.logo_b64 = payload.logo_b64
-    brand.updated_at = datetime.now(UTC)
-
-    await db.commit()
-    await db.refresh(brand)
-    return brand
+    return await brand_service.upsert_brand_profile(
+        db,
+        current_user.id,
+        company_name=payload.company_name,
+        accent_color=payload.accent_color,
+        logo_b64=payload.logo_b64,
+    )

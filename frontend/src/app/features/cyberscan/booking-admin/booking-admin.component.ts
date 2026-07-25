@@ -5,6 +5,7 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { Slot } from '../booking/booking.service';
+import { extractApiError } from '../../../core/http-error';
 
 interface AdminBooking {
   id: number;
@@ -105,7 +106,7 @@ export class BookingAdminComponent {
           this.addSuccess.set('Créneau ajouté !');
           this.loadData();
         },
-        error: err => this.addError.set(err?.error?.detail ?? 'Erreur'),
+        error: err => this.addError.set(extractApiError(err, 'Erreur')),
       });
   }
 

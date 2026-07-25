@@ -11,6 +11,7 @@ import { HotToastService } from '@ngneat/hot-toast';
 
 import { AuthService } from '../services/auth.service';
 import { CryptoService } from '../services/crypto.service';
+import { extractApiError } from '../http-error';
 
 const addToken = (req: HttpRequest<unknown>, token: string) =>
   req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
@@ -54,7 +55,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         router.navigate(['/']);
       }
       if (error.status === 429) {
-        const msg = error.error?.detail ?? 'Trop de requêtes. Réessayez dans quelques instants.';
+        const msg = extractApiError(error, 'Trop de requêtes. Réessayez dans quelques instants.');
         toast.warning(msg);
       }
       if (error.status >= 500) {

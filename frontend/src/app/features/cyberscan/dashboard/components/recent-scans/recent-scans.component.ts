@@ -7,6 +7,7 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { SkeletonComponent } from '../../../../../shared/skeleton/skeleton.component';
 import { Scan } from '../../../services/cyberscan.service';
 import { computeScore, getScoreColor } from '../../../../../shared/score-utils';
+import { formatFrDate } from '../../../../../shared/date-utils';
 
 @Component({
   standalone: true,
@@ -218,13 +219,6 @@ export class RecentScansComponent {
   }
 
   formatDate(d: string | null): string {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatFrDate(d, 'datetime');
   }
 }

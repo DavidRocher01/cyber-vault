@@ -5,6 +5,7 @@ import { tapResponse } from '@ngrx/operators';
 import { switchMap } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
+import { extractApiError } from '../../core/http-error';
 
 interface AuthState {
   loading: boolean;
@@ -90,7 +91,7 @@ export class AuthStore extends ComponentStore<AuthState> {
               }
             },
             (err: any) => {
-              const msg = err.error?.detail ?? 'Erreur de connexion';
+              const msg = extractApiError(err, 'Erreur de connexion');
               this.patchState({ loading: false, error: msg });
             }
           )
@@ -117,7 +118,7 @@ export class AuthStore extends ComponentStore<AuthState> {
               this.navigateAfterLogin();
             },
             (err: any) => {
-              const msg = err.error?.detail ?? 'Code invalide';
+              const msg = extractApiError(err, 'Code invalide');
               this.patchState({ loading: false, error: msg });
             }
           )

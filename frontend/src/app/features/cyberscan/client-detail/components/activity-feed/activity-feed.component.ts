@@ -1,6 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { ActivityLogEntry } from '../../../services/rssi.service';
+import { formatFrDate } from '../../../../../shared/date-utils';
 
 @Component({
   standalone: true,
@@ -59,12 +60,6 @@ export class ActivityFeedComponent {
   }
 
   formatDateTime(d: string): string {
-    return new Date(d).toLocaleString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatFrDate(d, 'datetime');
   }
 }

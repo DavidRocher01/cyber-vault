@@ -6,7 +6,6 @@ from __future__ import annotations
 import asyncio
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -34,16 +33,9 @@ async def get_certificate(
     db: AsyncSession = Depends(get_db),
 ) -> AwarenessCertificateOut:
     """Retourne les métadonnées du certificat d'une inscription complétée."""
-    from app.models.awareness_certificate import AwarenessCertificate
+    from app.services.awareness_certificate_service import get_certificate_for_learner
 
-    cert = (
-        await db.execute(
-            select(AwarenessCertificate).where(
-                AwarenessCertificate.enrollment_id == enrollment_id,
-                AwarenessCertificate.learner_id == learner.id,
-            )
-        )
-    ).scalar_one_or_none()
+    cert = await get_certificate_for_learner(db, enrollment_id, learner.id)
     if cert is None:
         raise HTTPException(
             status_code=404, detail="Certificat introuvable — programme non complété."
@@ -60,17 +52,12 @@ async def download_certificate_pdf(
     """Télécharge le PDF du certificat."""
     from fastapi.responses import Response
 
-    from app.models.awareness_certificate import AwarenessCertificate
-    from app.services.awareness_certificate_service import generate_certificate_pdf
+    from app.services.awareness_certificate_service import (
+        generate_certificate_pdf,
+        get_certificate_for_learner,
+    )
 
-    cert = (
-        await db.execute(
-            select(AwarenessCertificate).where(
-                AwarenessCertificate.enrollment_id == enrollment_id,
-                AwarenessCertificate.learner_id == learner.id,
-            )
-        )
-    ).scalar_one_or_none()
+    cert = await get_certificate_for_learner(db, enrollment_id, learner.id)
     if cert is None:
         raise HTTPException(status_code=404, detail="Certificat introuvable.")
 

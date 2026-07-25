@@ -7,8 +7,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Title } from '@angular/platform-browser';
 
-import { CyberscanService, Plan } from '../services/cyberscan.service';
+import { Plan } from '../services/cyberscan.service';
+import { ScanApiService } from '../services/scan-api.service';
+import { SiteApiService } from '../services/site-api.service';
+import { BillingService } from '../services/billing.service';
 import { formatScanFrequency } from '../../../shared/plan-features';
+import { snackApiError } from '../../../core/snack-error';
 
 @Component({
   standalone: true,
@@ -25,7 +29,9 @@ import { formatScanFrequency } from '../../../shared/plan-features';
   styleUrl: './onboarding.component.css',
 })
 export class OnboardingComponent implements OnInit {
-  private cyberscan = inject(CyberscanService);
+  private scanApi = inject(ScanApiService);
+  private siteApi = inject(SiteApiService);
+  private billing = inject(BillingService);
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private snack = inject(MatSnackBar);
@@ -50,10 +56,10 @@ export class OnboardingComponent implements OnInit {
 
   ngOnInit() {
     this.title.setTitle('Démarrage — Rocher Cybersécurité');
-    this.cyberscan.getPlans().subscribe({ next: p => this.plans.set(p) });
+    this.billing.getPlans().subscribe({ next: p => this.plans.set(p) });
     // If user already has a subscription (e.g. coming back from Stripe success),
     // skip step 1 and go directly to step 2 (add first site).
-    this.cyberscan.getMySubscription(true).subscribe({
+    this.billing.getMySubscription(true).subscribe({
       next: sub => {
         if (sub) this.currentStep.set(2);
       },
@@ -63,7 +69,7 @@ export class OnboardingComponent implements OnInit {
   selectPlan(plan: Plan) {
     this.selectedPlan.set(plan);
     this.checkoutLoading.set(true);
-    this.cyberscan.createCheckout(plan.id).subscribe({
+    this.billing.createCheckout(plan.id).subscribe({
       next: res => {
         const url = res.checkout_url;
         if (url.startsWith('/')) {
@@ -90,18 +96,18 @@ export class OnboardingComponent implements OnInit {
     this.addingSite.set(true);
     const { url, name } = this.siteForm.getRawValue();
     const fullUrl = url.startsWith('http') ? url : `https://${url}`;
-    this.cyberscan.createSite({ url: fullUrl, name }).subscribe({
+    this.siteApi.createSite({ url: fullUrl, name }).subscribe({
       next: site => {
         this.addingSite.set(false);
         this.currentStep.set(3);
-        this.cyberscan.triggerScan(site.id).subscribe({
+        this.scanApi.triggerScan(site.id).subscribe({
           error: () =>
             this.snack.open('Erreur lors du lancement du scan', 'Fermer', { duration: 4000 }),
         });
       },
       error: err => {
         this.addingSite.set(false);
-        this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
+        snackApiError(this.snack, err);
       },
     });
   }

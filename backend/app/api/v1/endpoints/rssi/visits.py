@@ -1,15 +1,14 @@
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_rssi_consultant
-from app.models.rssi_visit import RssiVisit
 from app.models.user import User
+from app.services import rssi_visit_service
 
 from ._shared import _get_client_or_404
 
@@ -60,12 +59,7 @@ async def list_visits(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
-    result = await db.execute(
-        select(RssiVisit)
-        .where(RssiVisit.client_id == client_id)
-        .order_by(RssiVisit.scheduled_date.desc())
-    )
-    return result.scalars().all()
+    return await rssi_visit_service.list_client_visits(db, client_id)
 
 
 @router.post("/clients/{client_id}/visits", response_model=RssiVisitOut, status_code=201)
@@ -76,18 +70,14 @@ async def create_visit(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
-
-    visit = RssiVisit(
+    return await rssi_visit_service.create_visit(
+        db,
         client_id=client_id,
         scheduled_date=payload.scheduled_date,
         visit_type=payload.visit_type,
         location=payload.location,
         notes=payload.notes,
     )
-    db.add(visit)
-    await db.commit()
-    await db.refresh(visit)
-    return visit
 
 
 @router.put("/clients/{client_id}/visits/{visit_id}", response_model=RssiVisitOut)
@@ -99,10 +89,7 @@ async def update_visit(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
-    result = await db.execute(
-        select(RssiVisit).where(RssiVisit.id == visit_id, RssiVisit.client_id == client_id)
-    )
-    visit = result.scalar_one_or_none()
+    visit = await rssi_visit_service.get_client_visit(db, client_id, visit_id)
     if not visit:
         raise HTTPException(status_code=404, detail="Visite non trouvée")
 
@@ -121,10 +108,7 @@ async def update_visit(
     if payload.duration_hours is not None:
         visit.duration_hours = payload.duration_hours
 
-    visit.updated_at = datetime.now(UTC)
-    await db.commit()
-    await db.refresh(visit)
-    return visit
+    return await rssi_visit_service.save_visit(db, visit)
 
 
 @router.delete("/clients/{client_id}/visits/{visit_id}", status_code=204)
@@ -135,11 +119,7 @@ async def delete_visit(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
-    result = await db.execute(
-        select(RssiVisit).where(RssiVisit.id == visit_id, RssiVisit.client_id == client_id)
-    )
-    visit = result.scalar_one_or_none()
+    visit = await rssi_visit_service.get_client_visit(db, client_id, visit_id)
     if not visit:
         raise HTTPException(status_code=404, detail="Visite non trouvée")
-    await db.delete(visit)
-    await db.commit()
+    await rssi_visit_service.delete_visit(db, visit)

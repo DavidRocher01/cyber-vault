@@ -79,7 +79,7 @@ def _patch_session(db):
     cm = MagicMock()
     cm.__aenter__ = AsyncMock(return_value=db)
     cm.__aexit__ = AsyncMock(return_value=False)
-    return patch("app.services.scheduler.AsyncSessionLocal", MagicMock(return_value=cm))
+    return patch("app.services.scheduler.ssl_alerts.AsyncSessionLocal", MagicMock(return_value=cm))
 
 
 # ─── tests ───────────────────────────────────────────────────────────────────
@@ -345,7 +345,7 @@ async def test_multiple_sites_independent():
     cm.__aenter__ = AsyncMock(return_value=db)
     cm.__aexit__ = AsyncMock(return_value=False)
 
-    with patch("app.services.scheduler.AsyncSessionLocal", MagicMock(return_value=cm)):
+    with patch("app.services.scheduler.ssl_alerts.AsyncSessionLocal", MagicMock(return_value=cm)):
         with patch("asyncio.to_thread", new_callable=AsyncMock):
             await _check_ssl_alerts()
 

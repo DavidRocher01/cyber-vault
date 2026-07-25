@@ -5,12 +5,15 @@ preload status, and validates certificate chain details.
 Uses stdlib ssl + socket only — no external API key required.
 """
 
+import re
 import socket
 import ssl
 from typing import Any
 
 import requests
 import urllib3
+
+from scanner import safe_http
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -89,7 +92,9 @@ def _check_hsts(hostname: str) -> dict[str, Any]:
     """Check HSTS header presence, max-age and preload flag."""
     result = {"present": False, "max_age": 0, "preload": False, "include_subdomains": False}
     try:
-        resp = requests.get(
+        # safe_http revalide chaque redirection (anti-SSRF) : une redirection
+        # vers une IP interne lève InvalidURL (RequestException) -> HSTS absent.
+        resp = safe_http.get(
             f"https://{hostname}",
             timeout=REQUEST_TIMEOUT,
             verify=False,  # nosec B501 nosemgrep: python.requests.security.verify-disabled
@@ -98,7 +103,7 @@ def _check_hsts(hostname: str) -> dict[str, Any]:
         hsts = resp.headers.get("Strict-Transport-Security", "")
         if hsts:
             result["present"] = True
-            ma = __import__("re").search(r"max-age=(\d+)", hsts)
+            ma = re.search(r"max-age=(\d+)", hsts)
             result["max_age"] = int(ma.group(1)) if ma else 0
             result["preload"] = "preload" in hsts.lower()
             result["include_subdomains"] = "includesubdomains" in hsts.lower()

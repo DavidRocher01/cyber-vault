@@ -22,6 +22,17 @@ from .ingestion import (
     send_monitoring_alert,
 )
 
+# Accès DB des dossiers (CRUD + rescan + monitoring)
+from .queries import (
+    count_user_dossiers,
+    create_dossier_with_targets,
+    delete_dossier,
+    get_user_dossier,
+    list_user_dossiers,
+    reset_dossier_for_rescan,
+    set_monitor,
+)
+
 # Reporting
 from .reporting import generate_dossier_pdf
 
@@ -32,6 +43,14 @@ __all__ = [
     "export_dossier_csv",
     "sync_breach_catalog",
     "send_monitoring_alert",
+    # DB access (dossier CRUD)
+    "count_user_dossiers",
+    "create_dossier_with_targets",
+    "list_user_dossiers",
+    "get_user_dossier",
+    "delete_dossier",
+    "reset_dossier_for_rescan",
+    "set_monitor",
     # backward-compat alias
     "send_darkweb_alert_email",
     # internals (tests)

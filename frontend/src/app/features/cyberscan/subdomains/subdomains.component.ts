@@ -5,8 +5,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { CyberscanService, SubdomainResult, SubdomainEntry } from '../services/cyberscan.service';
+import { SubdomainResult, SubdomainEntry } from '../services/cyberscan.service';
+import { SiteApiService } from '../services/site-api.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { formatFrDate } from '../../../shared/date-utils';
 
 @Component({
   standalone: true,
@@ -23,7 +25,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
 })
 export class SubdomainsComponent implements OnInit {
   private route = inject(ActivatedRoute);
-  private cyberscan = inject(CyberscanService);
+  private siteApi = inject(SiteApiService);
 
   siteId = signal<number>(0);
   result = signal<SubdomainResult | null>(null);
@@ -34,7 +36,7 @@ export class SubdomainsComponent implements OnInit {
   ngOnInit() {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.siteId.set(id);
-    this.cyberscan.getSiteSubdomains(id).subscribe({
+    this.siteApi.getSiteSubdomains(id).subscribe({
       next: r => {
         this.result.set(r);
         this.loading.set(false);
@@ -54,13 +56,6 @@ export class SubdomainsComponent implements OnInit {
   }
 
   formatDate(d: string | null): string {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatFrDate(d, 'datetime');
   }
 }

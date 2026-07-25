@@ -220,3 +220,121 @@ def test_generate_report_target_no_department():
     t = _target("anon@corp.fr", "Anon", None, "clicked")
     pdf = generate_phishing_report(camp, [t])
     assert pdf[:4] == b"%PDF"
+
+
+def test_scenario_labels_match_registry():
+    """Les libelles PDF DOIVENT couvrir exactement le registre de scenarios.
+
+    Garde-fou anti-derive : toute cle ajoutee/retiree dans _SCENARIO_TEMPLATES
+    sans mise a jour de SCENARIO_LABELS (ou l'inverse) casse ce test.
+    """
+    from app.services.phishing_templates import (
+        _SCENARIO_TEMPLATES,
+        SCENARIO_LABELS,
+    )
+
+    assert set(SCENARIO_LABELS) == set(_SCENARIO_TEMPLATES), (
+        "SCENARIO_LABELS desynchronise du registre : "
+        f"en trop={set(SCENARIO_LABELS) - set(_SCENARIO_TEMPLATES)}, "
+        f"manquants={set(_SCENARIO_TEMPLATES) - set(SCENARIO_LABELS)}"
+    )
+
+
+def test_compute_report_stats_aggregates():
+    """La couche de calcul pure agrege taux, departements, scenarios, compromis."""
+    from datetime import UTC, datetime
+
+    from app.services.phishing_report_pdf import _compute_report_stats
+
+    campaign = _campaign(
+        targets_count=4,
+        opened_count=3,
+        clicked_count=2,
+        submitted_count=1,
+        scenario_keys='["ceo-fraud"]',
+    )
+    sent = datetime(2026, 4, 2, 9, 0, tzinfo=UTC)
+    targets = [
+        _target(
+            email="a@x.fr",
+            department="IT",
+            status="submitted",
+            scenario_key="ceo-fraud",
+            clicked_at=datetime(2026, 4, 2, 11, 0, tzinfo=UTC),
+            email_sent_at=sent,
+        ),
+        _target(
+            email="b@x.fr",
+            department="IT",
+            status="clicked",
+            scenario_key="ceo-fraud",
+            clicked_at=datetime(2026, 4, 2, 10, 0, tzinfo=UTC),
+            email_sent_at=sent,
+        ),
+        _target(email="c@x.fr", department="RH", status="opened", scenario_key="ceo-fraud"),
+        _target(email="d@x.fr", department="RH", status="pending", scenario_key="ceo-fraud"),
+    ]
+
+    stats = _compute_report_stats(campaign, targets)
+
+    assert stats.click_rate == 0.5
+    assert stats.open_rate == 0.75
+    assert stats.submit_rate == 0.25
+    assert stats.global_risk_label in ("ÉLEVÉ", "MOYEN", "FAIBLE")
+    assert stats.dept_stats["IT"] == {"total": 2, "clicked": 2, "submitted": 1}
+    assert stats.dept_stats["RH"]["total"] == 2
+    assert stats.has_scenario_perf is True
+    assert stats.scenario_perf["ceo-fraud"]["total"] == 4
+    assert [t.email for t in stats.compromised] == ["a@x.fr"]
+    assert stats.scenario_keys == ["ceo-fraud"]
+    assert stats.median_click_str is not None
+
+
+def test_target_sort_priority_only_real_statuses():
+    """La map de tri des cibles ne doit contenir que des statuts reels de TargetStatus.
+
+    Regression : l'ancien 2e dict de tri portait une cle morte 'reported' (absente de
+    TargetStatus). Une seule map partagee, purgee des statuts fantomes.
+    """
+    from app.models.enums import TargetStatus
+    from app.services.phishing_report_pdf import _TARGET_SORT_PRIORITY
+
+    real = {s.value for s in TargetStatus}
+    assert set(_TARGET_SORT_PRIORITY) <= real, (
+        f"statuts fantomes dans _TARGET_SORT_PRIORITY : {set(_TARGET_SORT_PRIORITY) - real}"
+    )
+    assert "reported" not in _TARGET_SORT_PRIORITY
+
+
+def test_generate_report_scenario_perf_unknown_not_last():
+    """Table 'perf par scenario' avec des cibles sans scenario (__unknown__) intercalees.
+
+    Regression : les lignes etaient construites en sautant __unknown__ tandis que le
+    style etait applique par index sur un tri recalcule incluant __unknown__ -> le
+    surlignage se decalait quand __unknown__ n'etait pas en derniere position. On trie
+    et on stylise desormais dans une seule boucle ; le rapport doit se generer.
+    """
+    camp = _campaign(scenario_keys='["ceo-fraud","o365-credentials"]')
+    targets = [
+        # ceo-fraud : taux de clic eleve (declenche le surlignage rouge)
+        _target("a@corp.fr", "A", "IT", "clicked", scenario_key="ceo-fraud"),
+        _target("b@corp.fr", "B", "IT", "clicked", scenario_key="ceo-fraud"),
+        # cible sans scenario -> bucket __unknown__ (intercalee, pas en dernier)
+        _target("c@corp.fr", "C", "RH", "opened", scenario_key=None),
+        # o365 : taux de clic plus faible
+        _target("d@corp.fr", "D", "Compta", "opened", scenario_key="o365-credentials"),
+        _target("e@corp.fr", "E", "Compta", "pending", scenario_key="o365-credentials"),
+    ]
+    pdf = generate_phishing_report(camp, targets)
+    assert pdf[:4] == b"%PDF"
+
+
+def test_compute_report_stats_handles_bad_scenario_keys_json():
+    """Un scenario_keys JSON illisible ne casse pas le calcul (liste vide)."""
+    from app.services.phishing_report_pdf import _compute_report_stats
+
+    campaign = _campaign(scenario_keys="not-json")
+    stats = _compute_report_stats(campaign, [])
+    assert stats.scenario_keys == []
+    assert stats.compromised == []
+    assert stats.has_scenario_perf is False

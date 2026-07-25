@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+from app.schemas.base import StrictModel
+
 # --- Plans ---
 
 
@@ -41,9 +43,7 @@ class CheckoutSessionOut(BaseModel):
 # --- Sites ---
 
 
-class SiteCreate(BaseModel):
-    model_config = {"extra": "forbid"}
-
+class SiteCreate(StrictModel):
     url: str
     name: str
     rssi_client_id: int | None = None
@@ -94,9 +94,7 @@ class PaginatedScans(BaseModel):
 # --- Code Scans ---
 
 
-class CodeScanCreate(BaseModel):
-    model_config = {"extra": "forbid"}
-
+class CodeScanCreate(StrictModel):
     repo_url: str
     github_token: str | None = None  # optional PAT for private repos
 

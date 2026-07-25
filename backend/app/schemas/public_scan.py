@@ -2,10 +2,10 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+from app.schemas.base import StrictModel
 
-class PublicScanCreate(BaseModel):
-    model_config = {"extra": "forbid"}
 
+class PublicScanCreate(StrictModel):
     url: str
 
 

@@ -9,6 +9,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { extractApiError } from '../../core/http-error';
 
 import {
   AwarenessService,
@@ -563,7 +564,7 @@ export class AwarenessModuleComponent implements OnInit, OnDestroy {
         this.view.set('quiz');
       },
       error: err => {
-        const msg = err.error?.detail || 'Impossible de charger le quiz.';
+        const msg = extractApiError(err, 'Impossible de charger le quiz.');
         this.snack.open(msg, 'Fermer', { duration: 4000 });
       },
     });
@@ -653,8 +654,14 @@ export class AwarenessModuleComponent implements OnInit, OnDestroy {
   }
 
   renderMarkdown(md: string): string {
-    // Simple Markdown → HTML (headings, bold, lists, hr)
+    // Simple Markdown → HTML (headings, bold, lists, hr).
+    // On échappe d'abord `&` puis `<` du contenu brut pour qu'aucune balise
+    // fournie dans le markdown ne puisse être injectée dans le [innerHTML]
+    // (défense en profondeur, en plus du sanitizer Angular). `>` reste intact
+    // pour la syntaxe de citation `> ...`.
     return md
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
       .replace(/^### (.+)$/gm, '<h3 class="text-white font-semibold text-base mt-5 mb-2">$1</h3>')
       .replace(
         /^## (.+)$/gm,

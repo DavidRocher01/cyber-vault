@@ -6,7 +6,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { Injector, runInInjectionContext } from '@angular/core';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
-import { CyberscanService } from '../../../services/cyberscan.service';
+import { PublicScanApiService } from '../../../services/public-scan-api.service';
 import { DemoScanComponent } from './demo-scan.component';
 
 function make() {
@@ -14,7 +14,7 @@ function make() {
   const routerMock = { navigate: vi.fn() };
   const injector = Injector.create({
     providers: [
-      { provide: CyberscanService, useValue: cyberscanMock },
+      { provide: PublicScanApiService, useValue: cyberscanMock },
       { provide: Router, useValue: routerMock },
     ],
   });

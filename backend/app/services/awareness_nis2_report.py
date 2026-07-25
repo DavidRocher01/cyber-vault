@@ -45,9 +45,9 @@ from app.models.awareness_learner import AwarenessLearner
 from app.models.awareness_module import AwarenessModule
 from app.models.awareness_organization import AwarenessOrganization
 from app.models.awareness_progress import AwarenessProgress
-from app.services.pdf_brand import CYAN, GRAY, GREEN, RED, WHITE, YELLOW
+from app.services.pdf_brand import CYAN, DARK_BG, GRAY, GREEN, RED, WHITE, YELLOW
 
-_NAVY = colors.HexColor("#0f172a")
+_NAVY = DARK_BG
 _RED = RED
 _GREEN = GREEN
 _YELLOW = YELLOW

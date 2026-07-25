@@ -1,14 +1,14 @@
 from pydantic import BaseModel, Field
 
+from app.schemas.base import StrictModel
+
 VALID_CATEGORIES = {"login", "card", "note", "wifi", "other"}
 
 
-class VaultItemCreate(BaseModel):
+class VaultItemCreate(StrictModel):
     # Zero-knowledge strict : le serveur n'accepte AUCUN champ en clair a la
     # creation. Seuls les blobs *_encrypted sont stockes (extra='forbid' rejette
     # title/username/url/notes en clair s'ils sont envoyes).
-    model_config = {"extra": "forbid"}
-
     password_encrypted: str = Field(min_length=1, max_length=8192)
     category: str = Field(default="login", max_length=32)
     # Zero-knowledge encrypted fields (opaque blobs — backend never reads content)
@@ -22,9 +22,7 @@ class VaultItemCreate(BaseModel):
             self.category = "login"
 
 
-class VaultItemUpdate(BaseModel):
-    model_config = {"extra": "forbid"}
-
+class VaultItemUpdate(StrictModel):
     title: str | None = Field(default=None, max_length=200)
     username: str | None = Field(default=None, max_length=200)
     password_encrypted: str | None = Field(default=None, max_length=8192)

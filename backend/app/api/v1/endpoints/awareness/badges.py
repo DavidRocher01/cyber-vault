@@ -3,14 +3,11 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_learner, get_current_user
-from app.models.awareness_badge import AwarenessBadge
 from app.models.awareness_learner import AwarenessLearner
-from app.models.awareness_learner_badge import AwarenessLearnerBadge
 from app.models.user import User
 from app.schemas.awareness import BadgeOut, LeaderboardEntry, LearnerLevelOut
 
@@ -38,13 +35,9 @@ async def get_my_badges(
     db: AsyncSession = Depends(get_db),
 ) -> list[BadgeOut]:
     """Retourne les badges gagnés par le learner authentifié."""
-    result = await db.execute(
-        select(AwarenessLearnerBadge, AwarenessBadge)
-        .join(AwarenessBadge, AwarenessBadge.id == AwarenessLearnerBadge.badge_id)
-        .where(AwarenessLearnerBadge.learner_id == learner.id)
-        .order_by(AwarenessLearnerBadge.earned_at.desc())
-    )
-    rows = result.all()
+    from app.services.awareness_gamification import list_learner_badges
+
+    rows = await list_learner_badges(db, learner.id)
     out = []
     for lb, badge in rows:
         b = BadgeOut.model_validate(badge)

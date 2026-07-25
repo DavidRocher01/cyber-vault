@@ -1,4 +1,6 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import EmailStr, field_validator
+
+from app.schemas.base import StrictModel
 
 # Doit rester aligné avec NEED_OPTIONS côté front (contact.component.ts).
 NEED_TYPES = {
@@ -14,9 +16,7 @@ NEED_TYPES = {
 }
 
 
-class ContactIn(BaseModel):
-    model_config = {"extra": "forbid"}
-
+class ContactIn(StrictModel):
     name: str
     email: EmailStr
     phone: str | None = None

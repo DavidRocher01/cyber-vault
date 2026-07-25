@@ -3,6 +3,7 @@ Pure functions and constants, no DB dependency."""
 
 from .emails import (
     _SCENARIO_TEMPLATES,
+    SCENARIO_LABELS,
     _tpl_bank,
     _tpl_ceo_fraud,
     _tpl_fake_invoice,
@@ -59,6 +60,7 @@ __all__ = [
     "_SCENARIO_AWARENESS",
     "_SCENARIO_LANDING",
     "_SCENARIO_TEMPLATES",
+    "SCENARIO_LABELS",
     "_attachment_badge",
     "_dynamic_ctx",
     "_email_wrap",

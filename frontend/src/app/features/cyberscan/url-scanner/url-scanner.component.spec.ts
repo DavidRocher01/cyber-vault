@@ -196,7 +196,15 @@ describe('UrlScannerComponent — loadHistory()', () => {
       per_page: 20,
       pages: 1,
     };
-    (c as any).cyberscan = { getUrlScans: vi.fn().mockReturnValue(of(data)) };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { getUrlScans: vi.fn().mockReturnValue(of(data)) };
 
     c.loadHistory(2);
 
@@ -225,7 +233,15 @@ describe('UrlScannerComponent — submit()', () => {
     const c = make();
     (c as any).form = { invalid: true };
     (c as any).submitting = signal(false);
-    (c as any).cyberscan = { triggerUrlScan: vi.fn() };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { triggerUrlScan: vi.fn() };
     c.submit();
     expect((c as any).cyberscan.triggerUrlScan).not.toHaveBeenCalled();
     expect(c.submitting()).toBe(false);
@@ -247,7 +263,15 @@ describe('UrlScannerComponent — submit()', () => {
     (c as any).startPolling = startPolling;
     (c as any).loadHistory = loadHistory;
     const scan = { id: 9, status: 'pending' };
-    (c as any).cyberscan = { triggerUrlScan: vi.fn().mockReturnValue(of(scan)) };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { triggerUrlScan: vi.fn().mockReturnValue(of(scan)) };
 
     c.submit();
 
@@ -269,11 +293,19 @@ describe('UrlScannerComponent — submit()', () => {
     };
     (c as any).submitting = signal(true);
     (c as any).snack = { open: vi.fn() };
-    (c as any).cyberscan = {
-      triggerUrlScan: vi.fn().mockReturnValue({
-        subscribe: (h: any) => h.error({ error: { detail: 'Boom' } }),
-      }),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          triggerUrlScan: vi.fn().mockReturnValue({
+            subscribe: (h: any) => h.error({ error: { detail: 'Boom' } }),
+          }),
+        };
 
     c.submit();
 
@@ -296,7 +328,15 @@ describe('UrlScannerComponent — deleteScan()', () => {
       pages: 1,
     });
     (c as any).activeScan = signal({ id: 2, status: 'done' });
-    (c as any).cyberscan = { deleteUrlScan: vi.fn().mockReturnValue(of(void 0)) };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { deleteUrlScan: vi.fn().mockReturnValue(of(void 0)) };
 
     c.deleteScan({ id: 2 } as any);
 
@@ -317,7 +357,15 @@ describe('UrlScannerComponent — deleteScan()', () => {
     });
     const active = { id: 5, status: 'done' };
     (c as any).activeScan = signal(active);
-    (c as any).cyberscan = { deleteUrlScan: vi.fn().mockReturnValue(of(void 0)) };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        { deleteUrlScan: vi.fn().mockReturnValue(of(void 0)) };
 
     c.deleteScan({ id: 1 } as any);
 
@@ -329,11 +377,19 @@ describe('UrlScannerComponent — downloadPdf()', () => {
   it('affiche une erreur en cas d’échec du téléchargement', () => {
     const c = make();
     (c as any).snack = { open: vi.fn() };
-    (c as any).cyberscan = {
-      downloadUrlScanPdfBlob: vi.fn().mockReturnValue({
-        subscribe: (h: any) => h.error(new Error('fail')),
-      }),
-    };
+    (c as any).cyberscan =
+      (c as any).complianceApi =
+      (c as any).publicScanApi =
+      (c as any).notifApi =
+      (c as any).codeScanApi =
+      (c as any).urlScanApi =
+      (c as any).scanApi =
+      (c as any).siteApi =
+        {
+          downloadUrlScanPdfBlob: vi.fn().mockReturnValue({
+            subscribe: (h: any) => h.error(new Error('fail')),
+          }),
+        };
 
     c.downloadPdf({ id: 3 } as any);
 

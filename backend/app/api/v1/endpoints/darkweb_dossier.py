@@ -27,14 +27,14 @@ from fastapi import (
 )
 from fastapi.responses import Response
 from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_admin, require_min_tier
-from app.models.darkweb_dossier import DarkwebDossier, DarkwebDossierTarget
+from app.models.darkweb_dossier import DarkwebDossier
 from app.models.user import User
+from app.services import darkweb_dossier_service as dossier_service
 from app.services.darkweb_dossier_service import (
     export_dossier_csv,
     generate_dossier_pdf,
@@ -181,10 +181,7 @@ async def create_dossier(
 ):
     """Create a new dossier and start background processing."""
     # Enforce per-user dossier limit
-    count_result = await db.execute(
-        select(DarkwebDossier).where(DarkwebDossier.user_id == current_user.id)
-    )
-    if len(count_result.scalars().all()) >= _MAX_DOSSIERS_PER_USER:
+    if await dossier_service.count_user_dossiers(db, current_user.id) >= _MAX_DOSSIERS_PER_USER:
         raise HTTPException(
             status_code=400,
             detail=f"Limite atteinte — maximum {_MAX_DOSSIERS_PER_USER} dossiers par compte",
@@ -200,21 +197,14 @@ async def create_dossier(
             detail=f"Maximum {_MAX_EMAILS} emails par dossier (fichier contient {len(emails)})",
         )
 
-    dossier = DarkwebDossier(
+    dossier = await dossier_service.create_dossier_with_targets(
+        db,
         user_id=current_user.id,
         company_name=company_name.strip(),
         domain=domain.strip().lower().removeprefix("www."),
-        status="pending",
         total_emails=len(emails),
+        emails=emails,
     )
-    db.add(dossier)
-    await db.flush()
-
-    for email in emails:
-        db.add(DarkwebDossierTarget(dossier_id=dossier.id, email=email))
-
-    await db.commit()
-    await db.refresh(dossier)
 
     background_tasks.add_task(process_dossier, dossier.id, settings.HIBP_API_KEY)
 
@@ -226,12 +216,7 @@ async def list_dossiers(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(DarkwebDossier)
-        .where(DarkwebDossier.user_id == current_user.id)
-        .order_by(DarkwebDossier.created_at.desc())
-    )
-    dossiers = result.scalars().all()
+    dossiers = await dossier_service.list_user_dossiers(db, current_user.id)
     return [
         DossierListItem(
             id=d.id,
@@ -258,13 +243,7 @@ async def get_dossier(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(DarkwebDossier).where(
-            DarkwebDossier.id == dossier_id,
-            DarkwebDossier.user_id == current_user.id,
-        )
-    )
-    dossier = result.scalar_one_or_none()
+    dossier = await dossier_service.get_user_dossier(db, dossier_id, current_user.id)
     if not dossier:
         raise HTTPException(status_code=404, detail="Dossier introuvable")
     return _to_dossier_out(dossier)
@@ -276,17 +255,10 @@ async def delete_dossier(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(DarkwebDossier).where(
-            DarkwebDossier.id == dossier_id,
-            DarkwebDossier.user_id == current_user.id,
-        )
-    )
-    dossier = result.scalar_one_or_none()
+    dossier = await dossier_service.get_user_dossier(db, dossier_id, current_user.id)
     if not dossier:
         raise HTTPException(status_code=404, detail="Dossier introuvable")
-    await db.delete(dossier)
-    await db.commit()
+    await dossier_service.delete_dossier(db, dossier)
 
 
 @router.get("/{dossier_id}/pdf")
@@ -295,13 +267,7 @@ async def download_dossier_pdf(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(DarkwebDossier).where(
-            DarkwebDossier.id == dossier_id,
-            DarkwebDossier.user_id == current_user.id,
-        )
-    )
-    dossier = result.scalar_one_or_none()
+    dossier = await dossier_service.get_user_dossier(db, dossier_id, current_user.id)
     if not dossier:
         raise HTTPException(status_code=404, detail="Dossier introuvable")
     if dossier.status != "completed":
@@ -337,43 +303,13 @@ async def rescan_dossier(
     db: AsyncSession = Depends(get_db),
 ):
     """Reset a dossier and relaunch background processing."""
-    result = await db.execute(
-        select(DarkwebDossier).where(
-            DarkwebDossier.id == dossier_id,
-            DarkwebDossier.user_id == current_user.id,
-        )
-    )
-    dossier = result.scalar_one_or_none()
+    dossier = await dossier_service.get_user_dossier(db, dossier_id, current_user.id)
     if not dossier:
         raise HTTPException(status_code=404, detail="Dossier introuvable")
     if dossier.status in ("pending", "processing"):
         raise HTTPException(status_code=400, detail="Analyse déjà en cours")
 
-    # Reset targets
-    await db.execute(
-        DarkwebDossierTarget.__table__.update()
-        .where(DarkwebDossierTarget.dossier_id == dossier_id)
-        .values(
-            status="pending",
-            check_status="pending",
-            total_breaches=0,
-            breach_sources_json=None,
-            checked_at=None,
-        )
-    )
-    dossier.status = "pending"
-    dossier.started_at = None
-    dossier.finished_at = None
-    dossier.risk_score = None
-    dossier.severity_score = None
-    dossier.error_message = None
-    dossier.exposed_emails = 0
-    dossier.total_breach_instances = 0
-    dossier.top_sources_json = None
-    dossier.checked_count = 0
-    dossier.unverified_count = 0
-    await db.commit()
-    await db.refresh(dossier)
+    dossier = await dossier_service.reset_dossier_for_rescan(db, dossier)
 
     background_tasks.add_task(process_dossier, dossier.id, settings.HIBP_API_KEY)
     return _to_dossier_out(dossier)
@@ -386,13 +322,7 @@ async def export_csv(
     db: AsyncSession = Depends(get_db),
 ):
     """Export dossier targets as CSV."""
-    result = await db.execute(
-        select(DarkwebDossier).where(
-            DarkwebDossier.id == dossier_id,
-            DarkwebDossier.user_id == current_user.id,
-        )
-    )
-    dossier = result.scalar_one_or_none()
+    dossier = await dossier_service.get_user_dossier(db, dossier_id, current_user.id)
     if not dossier:
         raise HTTPException(status_code=404, detail="Dossier introuvable")
     if dossier.status != "completed":
@@ -416,22 +346,15 @@ async def toggle_monitor(
     """Enable or disable monthly monitoring for a dossier."""
     from datetime import timedelta
 
-    result = await db.execute(
-        select(DarkwebDossier).where(
-            DarkwebDossier.id == dossier_id,
-            DarkwebDossier.user_id == current_user.id,
-        )
-    )
-    dossier = result.scalar_one_or_none()
+    dossier = await dossier_service.get_user_dossier(db, dossier_id, current_user.id)
     if not dossier:
         raise HTTPException(status_code=404, detail="Dossier introuvable")
 
-    dossier.monitor_active = not dossier.monitor_active
-    if dossier.monitor_active:
-        dossier.next_monitor_at = datetime.now(UTC) + timedelta(days=30)
-    else:
-        dossier.next_monitor_at = None
-    await db.commit()
+    monitor_active = not dossier.monitor_active
+    next_monitor_at = datetime.now(UTC) + timedelta(days=30) if monitor_active else None
+    await dossier_service.set_monitor(
+        db, dossier, monitor_active=monitor_active, next_monitor_at=next_monitor_at
+    )
     return {
         "monitor_active": dossier.monitor_active,
         "next_monitor_at": dossier.next_monitor_at,

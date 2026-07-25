@@ -26,6 +26,8 @@ import {
 } from '../services/rssi.service';
 import { AwarenessService, AwarenessOrganization } from '../services/awareness.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { snackApiError } from '../../../core/snack-error';
+import { formatFrDate } from '../../../shared/date-utils';
 
 @Component({
   standalone: true,
@@ -179,7 +181,7 @@ export class ConsultantDashboardComponent implements OnInit {
         },
         error: err => {
           this.saving.set(false);
-          this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
+          snackApiError(this.snack, err);
         },
       });
   }
@@ -221,7 +223,7 @@ export class ConsultantDashboardComponent implements OnInit {
           this.snack.open('Client mis à jour', 'OK', { duration: 3000 });
           this._loadAll();
         },
-        error: err => this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 }),
+        error: err => snackApiError(this.snack, err),
       });
   }
 
@@ -235,7 +237,7 @@ export class ConsultantDashboardComponent implements OnInit {
       },
       error: err => {
         this.deletingId.set(null);
-        this.snack.open(err.error?.detail || 'Erreur', 'Fermer', { duration: 4000 });
+        snackApiError(this.snack, err);
       },
     });
   }
@@ -392,12 +394,7 @@ export class ConsultantDashboardComponent implements OnInit {
   }
 
   formatDate(d: string | null): string {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
+    return formatFrDate(d, 'date');
   }
 
   formatAmount(amount: number | null): string {

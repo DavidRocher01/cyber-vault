@@ -16,6 +16,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth.service';
+import { extractApiError } from '../../../core/http-error';
 
 function passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
   const password = control.get('password')?.value;
@@ -108,7 +109,7 @@ export class RegisterComponent {
       .subscribe({
         next: () => this.router.navigateByUrl(this.returnUrl || '/onboarding'),
         error: err => {
-          this.error = err.error?.detail ?? 'Erreur inscription';
+          this.error = extractApiError(err, 'Erreur inscription');
           this.loading = false;
         },
       });

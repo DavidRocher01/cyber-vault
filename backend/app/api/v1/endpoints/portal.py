@@ -11,16 +11,13 @@ from datetime import UTC, date, datetime
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_rssi_client
 from app.models.rssi_action import RssiAction
 from app.models.rssi_client import RssiClient
-from app.models.rssi_deliverable import RssiDeliverable
-from app.models.rssi_visit import RssiVisit
-from app.models.user import User
+from app.services import portal_service
 
 router = APIRouter(prefix="/portal", tags=["portal-client"])
 
@@ -104,11 +101,7 @@ async def get_my_mission(
     client: RssiClient = Depends(get_current_rssi_client),
     db: AsyncSession = Depends(get_db),
 ):
-    actions = (
-        (await db.execute(select(RssiAction).where(RssiAction.client_id == client.id)))
-        .scalars()
-        .all()
-    )
+    actions = await portal_service.list_client_actions(db, client.id)
     today = datetime.now(UTC).date()
     overdue = sum(
         1
@@ -117,22 +110,9 @@ async def get_my_mission(
     )
 
     # Prochaine visite planifiée (à venir)
-    next_visit = (
-        await db.execute(
-            select(RssiVisit)
-            .where(
-                RssiVisit.client_id == client.id,
-                RssiVisit.status == "planned",
-                RssiVisit.scheduled_date >= today,
-            )
-            .order_by(RssiVisit.scheduled_date.asc())
-            .limit(1)
-        )
-    ).scalar_one_or_none()
+    next_visit = await portal_service.get_next_planned_visit(db, client.id, today)
 
-    consultant = (
-        await db.execute(select(User).where(User.id == client.consultant_user_id))
-    ).scalar_one_or_none()
+    consultant = await portal_service.get_user(db, client.consultant_user_id)
 
     return PortalMeOut(
         name=client.name,
@@ -148,7 +128,7 @@ async def get_my_mission(
         )
         if consultant
         else None,
-        progress_score=_progress_score(list(actions)),
+        progress_score=_progress_score(actions),
         actions_total=len(actions),
         actions_open=sum(1 for a in actions if a.status == "open"),
         actions_in_progress=sum(1 for a in actions if a.status == "in_progress"),
@@ -163,12 +143,7 @@ async def list_my_actions(
     client: RssiClient = Depends(get_current_rssi_client),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(RssiAction)
-        .where(RssiAction.client_id == client.id)
-        .order_by(RssiAction.created_at.desc())
-    )
-    return result.scalars().all()
+    return await portal_service.list_client_actions(db, client.id)
 
 
 @router.get("/visits", response_model=list[PortalVisitOut])
@@ -176,12 +151,7 @@ async def list_my_visits(
     client: RssiClient = Depends(get_current_rssi_client),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(RssiVisit)
-        .where(RssiVisit.client_id == client.id)
-        .order_by(RssiVisit.scheduled_date.desc())
-    )
-    return result.scalars().all()
+    return await portal_service.list_client_visits(db, client.id)
 
 
 @router.get("/deliverables", response_model=list[PortalDeliverableOut])
@@ -189,11 +159,7 @@ async def list_my_deliverables(
     client: RssiClient = Depends(get_current_rssi_client),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(RssiDeliverable)
-        .where(RssiDeliverable.client_id == client.id)
-        .order_by(RssiDeliverable.delivered_at.desc())
-    )
+    deliverables = await portal_service.list_client_deliverables(db, client.id)
     return [
         PortalDeliverableOut(
             id=d.id,
@@ -203,7 +169,7 @@ async def list_my_deliverables(
             notes=d.notes,
             has_file=bool(d.file_url),
         )
-        for d in result.scalars().all()
+        for d in deliverables
     ]
 
 
@@ -215,14 +181,7 @@ async def download_my_deliverable(
 ):
     from app.services.storage import get_download_url
 
-    deliverable = (
-        await db.execute(
-            select(RssiDeliverable).where(
-                RssiDeliverable.id == deliverable_id,
-                RssiDeliverable.client_id == client.id,
-            )
-        )
-    ).scalar_one_or_none()
+    deliverable = await portal_service.get_client_deliverable(db, deliverable_id, client.id)
     if deliverable is None:
         raise HTTPException(status_code=404, detail="Livrable non trouvé")
     if not deliverable.file_url:
@@ -238,42 +197,10 @@ async def download_my_report(
     """Rapport PDF de la mission (réutilise le générateur consultant)."""
     from app.services.rssi_report_pdf import generate_rssi_report
 
-    actions = (
-        (
-            await db.execute(
-                select(RssiAction)
-                .where(RssiAction.client_id == client.id)
-                .order_by(RssiAction.created_at.desc())
-            )
-        )
-        .scalars()
-        .all()
-    )
-    visits = (
-        (
-            await db.execute(
-                select(RssiVisit)
-                .where(RssiVisit.client_id == client.id)
-                .order_by(RssiVisit.scheduled_date.desc())
-            )
-        )
-        .scalars()
-        .all()
-    )
-    deliverables = (
-        (
-            await db.execute(
-                select(RssiDeliverable)
-                .where(RssiDeliverable.client_id == client.id)
-                .order_by(RssiDeliverable.delivered_at.desc())
-            )
-        )
-        .scalars()
-        .all()
-    )
-    consultant = (
-        await db.execute(select(User).where(User.id == client.consultant_user_id))
-    ).scalar_one_or_none()
+    actions = await portal_service.list_client_actions(db, client.id)
+    visits = await portal_service.list_client_visits(db, client.id)
+    deliverables = await portal_service.list_client_deliverables(db, client.id)
+    consultant = await portal_service.get_user(db, client.consultant_user_id)
 
     client_dict = {
         "name": client.name,

@@ -17,6 +17,8 @@ import {
   Nis2Report,
 } from '../services/awareness.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { extractApiError } from '../../../core/http-error';
+import { complianceScoreColor, complianceScoreTextClass } from '../shared/compliance-status.util';
 
 @Component({
   standalone: true,
@@ -603,7 +605,7 @@ export class AwarenessOrgDetailComponent implements OnInit {
         },
         error: err => {
           this.addingLearner.set(false);
-          this.snack.open(err.error?.detail || 'Erreur.', 'Fermer', { duration: 4000 });
+          this.snack.open(extractApiError(err, 'Erreur.'), 'Fermer', { duration: 4000 });
         },
       });
   }
@@ -681,10 +683,10 @@ export class AwarenessOrgDetailComponent implements OnInit {
     return r >= 80 ? 'bg-green-500' : r >= 50 ? 'bg-yellow-500' : 'bg-red-500';
   }
   nis2ScoreColor(s: number) {
-    return s >= 80 ? 'text-green-400' : s >= 50 ? 'text-yellow-400' : 'text-red-400';
+    return complianceScoreTextClass(s);
   }
   nis2GaugeColor(s: number) {
-    return s >= 80 ? '#4ade80' : s >= 50 ? '#facc15' : '#f87171';
+    return complianceScoreColor(s);
   }
   nis2StatusClass(c: string) {
     return c === 'green'

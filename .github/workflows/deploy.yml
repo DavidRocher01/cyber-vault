@@ -54,6 +54,11 @@ jobs:
           IMAGE_TAG:    ${{ github.sha }}
           SM_ARN: ${{ secrets.AWS_SM_ARN }}
           STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+          # Parametres de la task def prod centralises (une seule source).
+          TASK_CPU: "1024"
+          TASK_MEMORY: "2048"
+          TASK_ROLE_ARN: "arn:aws:iam::328646895533:role/cybervault-ecs-task-role"
+          DELIVERABLES_BUCKET: "cybervault-rssi-deliverables-prod"
         run: |
           set -euo pipefail
 
@@ -65,38 +70,35 @@ jobs:
           echo "prev_task_def=$TASK_DEF_ARN" >> "$GITHUB_OUTPUT"
 
           # New task definition with the freshly built image + Secrets Manager refs
-          NEW_TASK_DEF=$(aws ecs describe-task-definition             --task-definition "$TASK_DEF_ARN"             --query 'taskDefinition'             --output json | jq               --arg IMAGE      "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"               --arg SM_ARN     "$SM_ARN"               --arg PK_LIVE    "$STRIPE_PUBLISHABLE_KEY"               'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)
-               | .cpu = "1024"
-               | .memory = "2048"
-               | .taskRoleArn = "arn:aws:iam::328646895533:role/cybervault-ecs-task-role"
+          NEW_TASK_DEF=$(aws ecs describe-task-definition \
+            --task-definition "$TASK_DEF_ARN" \
+            --query 'taskDefinition' \
+            --output json | jq \
+              --arg IMAGE     "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+              --arg SM_ARN    "$SM_ARN" \
+              --arg PK_LIVE   "$STRIPE_PUBLISHABLE_KEY" \
+              --arg BUCKET    "$DELIVERABLES_BUCKET" \
+              --arg CPU       "$TASK_CPU" \
+              --arg MEM       "$TASK_MEMORY" \
+              --arg TASK_ROLE "$TASK_ROLE_ARN" \
+              '
+               # Secrets tires de Secrets Manager (source unique) ; les 2 valeurs
+               # non-secretes sont re-injectees en clair. La liste a PURGER derive
+               # de ces deux listes -> plus de triple maintenance manuelle.
+               (["SECRET_KEY","DATABASE_URL","STRIPE_SECRET_KEY","STRIPE_WEBHOOK_SECRET","SMTP_PASSWORD","ADMIN_API_KEY","RESEND_API_KEY","SENTRY_DSN"]) as $secret_names
+               | ([{"name":"STRIPE_PUBLISHABLE_KEY","value":$PK_LIVE},{"name":"S3_BUCKET_NAME","value":$BUCKET}]) as $env_overrides
+               | (($env_overrides | map(.name)) + $secret_names) as $managed
+               | del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)
+               | .cpu = $CPU
+               | .memory = $MEM
+               | .taskRoleArn = $TASK_ROLE
                | .containerDefinitions[0].image = $IMAGE
                | .containerDefinitions[0].environment = (
-                   (.containerDefinitions[0].environment // [])
-                   | map(select(
-                       .name != "SECRET_KEY" and
-                       .name != "DATABASE_URL" and
-                       .name != "STRIPE_SECRET_KEY" and
-                       .name != "STRIPE_WEBHOOK_SECRET" and
-                       .name != "SMTP_PASSWORD" and
-                       .name != "ADMIN_API_KEY" and
-                       .name != "RESEND_API_KEY" and
-                       .name != "SENTRY_DSN" and
-                       .name != "STRIPE_PUBLISHABLE_KEY" and
-                       .name != "S3_BUCKET_NAME"
-                     ))
-                 + [{"name": "STRIPE_PUBLISHABLE_KEY", "value": $PK_LIVE},
-                    {"name": "S3_BUCKET_NAME",         "value": "cybervault-rssi-deliverables-prod"}]
+                   ((.containerDefinitions[0].environment // []) | map(select(.name as $n | ($managed | index($n)) == null)))
+                   + $env_overrides
                  )
-               | .containerDefinitions[0].secrets = [
-                   {"name": "SECRET_KEY",            "valueFrom": ($SM_ARN + ":SECRET_KEY::")},
-                   {"name": "DATABASE_URL",          "valueFrom": ($SM_ARN + ":DATABASE_URL::")},
-                   {"name": "STRIPE_SECRET_KEY",     "valueFrom": ($SM_ARN + ":STRIPE_SECRET_KEY::")},
-                   {"name": "STRIPE_WEBHOOK_SECRET", "valueFrom": ($SM_ARN + ":STRIPE_WEBHOOK_SECRET::")},
-                   {"name": "SMTP_PASSWORD",         "valueFrom": ($SM_ARN + ":SMTP_PASSWORD::")},
-                   {"name": "ADMIN_API_KEY",         "valueFrom": ($SM_ARN + ":ADMIN_API_KEY::")},
-                   {"name": "RESEND_API_KEY",        "valueFrom": ($SM_ARN + ":RESEND_API_KEY::")},
-                   {"name": "SENTRY_DSN",            "valueFrom": ($SM_ARN + ":SENTRY_DSN::")}
-                 ]')
+               | .containerDefinitions[0].secrets = ($secret_names | map({"name": ., "valueFrom": ($SM_ARN + ":" + . + "::")}))
+              ')
 
           # Register the new revision FIRST so migrations run with the NEW image
           NEW_ARN=$(aws ecs register-task-definition             --cli-input-json "$NEW_TASK_DEF"             --query 'taskDefinition.taskDefinitionArn'             --output text)

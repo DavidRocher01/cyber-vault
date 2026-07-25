@@ -15,6 +15,8 @@ import {
   BreachSource,
 } from '../services/darkweb-dossier.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { extractApiError } from '../../../core/http-error';
+import { formatFrDate } from '../../../shared/date-utils';
 
 @Component({
   standalone: true,
@@ -104,7 +106,7 @@ export class DarkwebDossierDetailComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.rescanning.set(false);
-        this.snack.open(err?.error?.detail || 'Erreur lors du rescan', 'Fermer', {
+        this.snack.open(extractApiError(err, 'Erreur lors du rescan'), 'Fermer', {
           duration: 4000,
         });
       },
@@ -289,14 +291,7 @@ export class DarkwebDossierDetailComponent implements OnInit, OnDestroy {
   }
 
   formatDate(d: string | null): string {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatFrDate(d, 'datetime');
   }
 
   formatPwnCount(n: number): string {

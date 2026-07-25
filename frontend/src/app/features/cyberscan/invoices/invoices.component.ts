@@ -7,8 +7,10 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { Title } from '@angular/platform-browser';
 
-import { CyberscanService, Invoice, PaginatedInvoices } from '../services/cyberscan.service';
+import { Invoice, PaginatedInvoices } from '../services/cyberscan.service';
+import { InvoiceApiService } from '../services/invoice-api.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { formatFrDate } from '../../../shared/date-utils';
 
 @Component({
   standalone: true,
@@ -26,7 +28,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
   styleUrl: './invoices.component.css',
 })
 export class InvoicesComponent implements OnInit {
-  private service = inject(CyberscanService);
+  private service = inject(InvoiceApiService);
   private snack = inject(MatSnackBar);
   private title = inject(Title);
 
@@ -86,11 +88,7 @@ export class InvoicesComponent implements OnInit {
   }
 
   formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
+    return formatFrDate(iso, 'date');
   }
 
   typeLabel(type: string): string {
