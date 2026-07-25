@@ -2,10 +2,10 @@ from datetime import datetime
 
 from pydantic import BaseModel, EmailStr
 
+from app.schemas.base import StrictModel
 
-class NewsletterSubscribeIn(BaseModel):
-    model_config = {"extra": "forbid"}
 
+class NewsletterSubscribeIn(StrictModel):
     email: EmailStr
 
 

@@ -2,10 +2,10 @@ from datetime import datetime
 
 from pydantic import BaseModel, field_validator
 
+from app.schemas.base import StrictModel
 
-class UrlScanCreate(BaseModel):
-    model_config = {"extra": "forbid"}
 
+class UrlScanCreate(StrictModel):
     url: str
 
     @field_validator("url")

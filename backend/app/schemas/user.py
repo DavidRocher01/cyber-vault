@@ -1,16 +1,14 @@
 from pydantic import BaseModel, EmailStr, Field
 
+from app.schemas.base import StrictModel
 
-class UserCreate(BaseModel):
-    model_config = {"extra": "forbid"}
 
+class UserCreate(StrictModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
 
 
-class UserLogin(BaseModel):
-    model_config = {"extra": "forbid"}
-
+class UserLogin(StrictModel):
     email: EmailStr
     password: str
     totp_code: str | None = None
@@ -45,9 +43,7 @@ class NotificationPreferencesOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class NotificationPreferencesIn(BaseModel):
-    model_config = {"extra": "forbid"}
-
+class NotificationPreferencesIn(StrictModel):
     notif_scan_done: bool
     notif_scan_critical: bool
     notif_url_scan_done: bool
@@ -67,21 +63,15 @@ class TokenOut(BaseModel):
     token_type: str = "bearer"
 
 
-class RefreshIn(BaseModel):
-    model_config = {"extra": "forbid"}
-
+class RefreshIn(StrictModel):
     refresh_token: str
 
 
-class ForgotPasswordIn(BaseModel):
-    model_config = {"extra": "forbid"}
-
+class ForgotPasswordIn(StrictModel):
     email: EmailStr
 
 
-class ResetPasswordIn(BaseModel):
-    model_config = {"extra": "forbid"}
-
+class ResetPasswordIn(StrictModel):
     token: str
     password: str = Field(min_length=8, max_length=128)
 
@@ -91,20 +81,14 @@ class TwoFactorSetupOut(BaseModel):
     secret: str  # manual entry fallback
 
 
-class TwoFactorSetupIn(BaseModel):
-    model_config = {"extra": "forbid"}
-
+class TwoFactorSetupIn(StrictModel):
     current_code: str | None = None  # required when 2FA is already active
 
 
-class TwoFactorVerifyIn(BaseModel):
-    model_config = {"extra": "forbid"}
-
+class TwoFactorVerifyIn(StrictModel):
     code: str  # 6-digit TOTP code
 
 
-class TwoFactorDisableIn(BaseModel):
-    model_config = {"extra": "forbid"}
-
+class TwoFactorDisableIn(StrictModel):
     password: str
     code: str  # TOTP code required to disable
