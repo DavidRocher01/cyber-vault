@@ -31,20 +31,17 @@ async def _get_plan_tier(db: AsyncSession, user_id: int) -> int:
     return await get_active_tier(db, user_id)
 
 
-def _run_scan_sync(
-    url: str, tier: int, scan_id: int, hibp_key: str, allow_active: bool = True
-) -> dict:
-    """
-    All blocking scanner calls, executed in a thread pool executor so the
-    asyncio event loop stays free to serve API requests during the scan.
-    Returns a dict with keys: results, overall, pdf_path.
+def _run_all_modules(
+    url: str, hostname: str, tier: int, hibp_key: str, allow_active: bool
+) -> dict[str, dict]:
+    """Execute tous les scanners applicables et renvoie leurs resultats par module.
 
-    allow_active : si False, on saute le scan de ports nmap (module INTRUSIF).
-    Réservé aux domaines dont l'utilisateur a prouvé la propriété (anti-scan de
-    tiers non consentants). Les autres modules (GET/DNS/TLS) restent passifs.
+    Les modules joues dependent du tier (Pro >= 3, Entreprise >= 4) et de
+    ``allow_active`` (scan de ports nmap intrusif). Un module non joue vaut un dict
+    vide, neutre pour le PDF comme pour le verdict global. Les imports restent
+    locaux : le paquet scanner est charge a la demande et reste mockable via
+    ``sys.modules`` dans les tests.
     """
-    from urllib.parse import urlparse
-
     from scanner.cms_detector import detect_cms
     from scanner.cookie_checker import check_cookies
     from scanner.cors_checker import check_cors
@@ -53,11 +50,8 @@ def _run_scan_sync(
     from scanner.headers_checker import check_headers
     from scanner.ip_reputation import check_ip_reputation
     from scanner.port_scanner import scan_ports
-    from scanner.report_generator import generate_report
     from scanner.ssl_checker import check_ssl
     from scanner.waf_detector import detect_waf
-
-    hostname = urlparse(url).hostname or url
 
     ssl_result = check_ssl(hostname)
     headers_result = check_headers(url)
@@ -106,59 +100,10 @@ def _run_scan_sync(
         robots_result = analyse_robots_sitemap(url)
         jwt_result = check_jwt(url)
 
-    pdf_dir = SCANNER_DIR / "reports" / "clients"
-    pdf_dir.mkdir(parents=True, exist_ok=True)
-    pdf_path = str(pdf_dir / f"scan_{scan_id}.pdf")
-
-    generate_report(
-        target_url=url,
-        ssl_result=ssl_result,
-        headers_result=headers_result,
-        port_result=port_result,
-        ports_skipped=not allow_active,
-        sca_result={},
-        sca_skipped=True,
-        email_result=email_result,
-        email_skipped=False,
-        cookie_result=cookie_result,
-        cookie_skipped=False,
-        cors_result=cors_result,
-        cors_skipped=False,
-        ip_result=ip_result,
-        ip_skipped=False,
-        dns_result=dns_result,
-        dns_skipped=False,
-        cms_result=cms_result,
-        cms_skipped=False,
-        waf_result=waf_result,
-        waf_skipped=False,
-        tech_result=tech_result,
-        tech_skipped=(tier < 3),
-        tls_result=tls_result,
-        tls_skipped=(tier < 3),
-        takeover_result=takeover_result,
-        takeover_skipped=(tier < 3),
-        ti_result=ti_result,
-        ti_skipped=(tier < 3),
-        methods_result=methods_result,
-        methods_skipped=(tier < 3),
-        redirect_result=redirect_result,
-        redirect_skipped=(tier < 4),
-        clickjacking_result=clickjacking_result,
-        clickjacking_skipped=(tier < 4),
-        dirlist_result=dirlist_result,
-        dirlist_skipped=(tier < 4),
-        robots_result=robots_result,
-        robots_skipped=(tier < 4),
-        jwt_result=jwt_result,
-        jwt_skipped=(tier < 4),
-        output_path=pdf_path,
-    )
-
-    # Source unique des résultats par module : le dict `results` ET le calcul du
-    # statut global en dérivent, évitant toute divergence (un module présent dans
-    # `results` mais oublié dans l'agrégation faussait silencieusement le verdict).
-    module_results: dict[str, dict] = {
+    # Source unique des résultats par module : le PDF, le verdict global ET la
+    # remédiation en dérivent, évitant toute divergence (un module présent ici
+    # mais oublié dans l'agrégation faussait silencieusement le verdict).
+    return {
         "ssl": ssl_result,
         "headers": headers_result,
         "email": email_result,
@@ -182,10 +127,14 @@ def _run_scan_sync(
         "jwt": jwt_result,
     }
 
-    # Modules contribuant au verdict global. `takeover` et `robots` en sont
-    # volontairement exclus ; `breach` a sa propre garde d'erreur (ci-dessous).
-    # Les modules non joués pour le tier sont un dict vide -> .get("status") =
-    # None, sans effet sur le verdict.
+
+def _compute_overall(modules: dict[str, dict]) -> str:
+    """Deduit le verdict global (OK/WARNING/CRITICAL) des statuts par module.
+
+    `takeover` et `robots` en sont volontairement exclus ; `breach` n'entre en
+    compte que s'il n'a pas d'erreur. Un module non joue (dict vide ->
+    ``.get("status")`` = None) est sans effet sur le verdict.
+    """
     status_keys = {
         "ssl",
         "headers",
@@ -206,41 +155,130 @@ def _run_scan_sync(
         "directory_listing",
         "jwt",
     }
-    all_statuses = [r.get("status") for k, r in module_results.items() if k in status_keys]
+    all_statuses = [r.get("status") for k, r in modules.items() if k in status_keys]
+    breach_result = modules.get("breach") or {}
     if breach_result and not breach_result.get("error"):
         all_statuses.append(breach_result.get("status"))
 
     if "CRITICAL" in all_statuses:
-        overall = "CRITICAL"
-    elif "WARNING" in all_statuses:
-        overall = "WARNING"
-    else:
-        overall = "OK"
+        return "CRITICAL"
+    if "WARNING" in all_statuses:
+        return "WARNING"
+    return "OK"
 
-    remediation_dir = str(pdf_dir / f"remediation_{scan_id}")
+
+def _write_report(
+    url: str, modules: dict[str, dict], tier: int, allow_active: bool, output_path: str
+) -> None:
+    """Genere le PDF d'audit a partir des resultats de modules (drapeaux skipped
+    derives du tier et de ``allow_active``)."""
+    from scanner.report_generator import generate_report
+
+    generate_report(
+        target_url=url,
+        ssl_result=modules["ssl"],
+        headers_result=modules["headers"],
+        port_result=modules["ports"],
+        ports_skipped=not allow_active,
+        sca_result={},
+        sca_skipped=True,
+        email_result=modules["email"],
+        email_skipped=False,
+        cookie_result=modules["cookies"],
+        cookie_skipped=False,
+        cors_result=modules["cors"],
+        cors_skipped=False,
+        ip_result=modules["ip"],
+        ip_skipped=False,
+        dns_result=modules["dns"],
+        dns_skipped=False,
+        cms_result=modules["cms"],
+        cms_skipped=False,
+        waf_result=modules["waf"],
+        waf_skipped=False,
+        tech_result=modules["tech"],
+        tech_skipped=(tier < 3),
+        tls_result=modules["tls"],
+        tls_skipped=(tier < 3),
+        takeover_result=modules["takeover"],
+        takeover_skipped=(tier < 3),
+        ti_result=modules["threat_intel"],
+        ti_skipped=(tier < 3),
+        methods_result=modules["http_methods"],
+        methods_skipped=(tier < 3),
+        redirect_result=modules["open_redirect"],
+        redirect_skipped=(tier < 4),
+        clickjacking_result=modules["clickjacking"],
+        clickjacking_skipped=(tier < 4),
+        dirlist_result=modules["directory_listing"],
+        dirlist_skipped=(tier < 4),
+        robots_result=modules["robots"],
+        robots_skipped=(tier < 4),
+        jwt_result=modules["jwt"],
+        jwt_skipped=(tier < 4),
+        output_path=output_path,
+    )
+
+
+def _write_remediation(url: str, modules: dict[str, dict], output_dir: str) -> dict:
+    """Genere les scripts de remediation ; renvoie {} si la generation echoue
+    (l'echec ne doit jamais faire planter le scan)."""
     try:
         from scanner.remediation import generate_remediation
 
-        remediation_paths = generate_remediation(
+        return generate_remediation(
             target_url=url,
-            port_result=port_result,
-            headers_result=headers_result,
+            port_result=modules["ports"],
+            headers_result=modules["headers"],
             sca_result=None,
-            ssl_result=ssl_result,
-            cors_result=cors_result,
-            cookie_result=cookie_result,
-            http_methods_result=methods_result,
-            clickjacking_result=clickjacking_result,
-            directory_listing_result=dirlist_result,
-            open_redirect_result=redirect_result,
-            robots_result=robots_result,
-            email_result=email_result,
-            waf_result=waf_result,
-            output_dir=remediation_dir,
+            ssl_result=modules["ssl"],
+            cors_result=modules["cors"],
+            cookie_result=modules["cookies"],
+            http_methods_result=modules["http_methods"],
+            clickjacking_result=modules["clickjacking"],
+            directory_listing_result=modules["directory_listing"],
+            open_redirect_result=modules["open_redirect"],
+            robots_result=modules["robots"],
+            email_result=modules["email"],
+            waf_result=modules["waf"],
+            output_dir=output_dir,
         )
     except Exception as exc:
         logger.warning(f"Remediation generation failed: {exc}")
-        remediation_paths = {}
+        return {}
+
+
+def _run_scan_sync(
+    url: str, tier: int, scan_id: int, hibp_key: str, allow_active: bool = True
+) -> dict:
+    """
+    All blocking scanner calls, executed in a thread pool executor so the
+    asyncio event loop stays free to serve API requests during the scan.
+    Returns a dict with keys: results, overall, pdf_path.
+
+    Orchestre quatre etapes pures (chacune extraite dans son helper) :
+    collecte des modules -> PDF -> verdict global -> scripts de remediation.
+
+    allow_active : si False, on saute le scan de ports nmap (module INTRUSIF).
+    Réservé aux domaines dont l'utilisateur a prouvé la propriété (anti-scan de
+    tiers non consentants). Les autres modules (GET/DNS/TLS) restent passifs.
+    """
+    from urllib.parse import urlparse
+
+    hostname = urlparse(url).hostname or url
+
+    module_results = _run_all_modules(url, hostname, tier, hibp_key, allow_active)
+
+    pdf_dir = SCANNER_DIR / "reports" / "clients"
+    pdf_dir.mkdir(parents=True, exist_ok=True)
+    pdf_path = str(pdf_dir / f"scan_{scan_id}.pdf")
+    _write_report(url, module_results, tier, allow_active, pdf_path)
+
+    overall = _compute_overall(module_results)
+
+    remediation_paths = _write_remediation(
+        url, module_results, str(pdf_dir / f"remediation_{scan_id}")
+    )
 
     results = {
         **module_results,
