@@ -10,7 +10,9 @@ class Site(Base):
     __tablename__ = "sites"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     url: Mapped[str] = mapped_column(String(512), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -19,7 +21,7 @@ class Site(Base):
     )
 
     rssi_client_id: Mapped[int | None] = mapped_column(
-        ForeignKey("rssi_clients.id"), nullable=True, index=True
+        ForeignKey("rssi_clients.id", ondelete="SET NULL"), nullable=True, index=True
     )
 
     # SSL expiry alert tracking — threshold in days (30/14/7), reset when cert renewed

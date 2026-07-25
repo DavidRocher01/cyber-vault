@@ -16,6 +16,7 @@ from app.models.rssi_client import RssiClient
 from app.models.scan import Scan
 from app.models.site import Site
 from app.models.user import User
+from app.services import auth_service
 
 # ── Profil ────────────────────────────────────────────────────────────────────
 
@@ -35,16 +36,26 @@ async def get_by_email(db: AsyncSession, email: str) -> User | None:
 
 
 async def update_email(db: AsyncSession, user: User, email: str) -> User:
-    """Met a jour l'email du compte."""
+    """Met a jour l'email du compte et revoque toutes les sessions actives.
+
+    Un changement de credential invalide les refresh tokens existants (G0-1) :
+    un token vole ne doit pas survivre au changement d'email.
+    """
     user.email = email
+    await auth_service.revoke_all_sessions(db, user.id)
     await db.commit()
     await db.refresh(user)
     return user
 
 
 async def update_password(db: AsyncSession, user: User, hashed_password: str) -> None:
-    """Remplace le hash du mot de passe du compte."""
+    """Remplace le hash du mot de passe du compte et revoque toutes les sessions.
+
+    Un changement de mot de passe invalide les refresh tokens existants (G0-0) :
+    un token vole ne doit pas survivre au changement de mot de passe.
+    """
     user.hashed_password = hashed_password
+    await auth_service.revoke_all_sessions(db, user.id)
     await db.commit()
 
 

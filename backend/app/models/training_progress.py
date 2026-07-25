@@ -11,7 +11,9 @@ class TrainingProgress(Base):
     __table_args__ = (UniqueConstraint("user_id", "module_id", name="uq_training_user_module"),)
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     module_id: Mapped[str] = mapped_column(String(64), nullable=False)
     completed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)

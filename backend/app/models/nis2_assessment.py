@@ -12,7 +12,7 @@ class Nis2Assessment(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     # One assessment per user (upsert pattern)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"), nullable=False, unique=True, index=True
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True
     )
 
     # JSON dict: { "item_id": "compliant" | "partial" | "non_compliant" | "na" }

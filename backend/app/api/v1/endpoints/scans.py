@@ -4,12 +4,13 @@ import io
 import os
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal, get_db
 from app.core.deps import get_current_user, require_min_tier
+from app.core.limiter import limiter
 from app.core.ssrf import assert_no_ssrf
 from app.core.utils import safe_json_load
 from app.models.site import Site
@@ -28,7 +29,9 @@ async def _run_scan_background(scan_id: int) -> None:
 
 
 @router.post("/trigger/{site_id}", response_model=ScanTriggerOut, status_code=202)
+@limiter.limit("10/minute")
 async def trigger_scan(
+    request: Request,
     site_id: int,
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),

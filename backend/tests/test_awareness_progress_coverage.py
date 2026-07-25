@@ -28,6 +28,7 @@ from app.models.awareness_module import AwarenessModule
 from app.models.awareness_organization import AwarenessOrganization
 from app.models.awareness_program import AwarenessProgram
 from app.models.awareness_progress import AwarenessProgress
+from app.models.awareness_quiz_attempt import AwarenessQuizAttempt
 from app.models.user import User
 from app.services.awareness_magic_link import create_learner_jwt
 
@@ -84,6 +85,28 @@ async def _seed_learner(db, org: AwarenessOrganization, email: str) -> Awareness
     db.add(learner)
     await db.flush()
     return learner
+
+
+async def _seed_quiz_attempt(db, learner, module, *, score: int) -> None:
+    """Seed un AwarenessQuizAttempt réel, comme si submit_quiz l'avait enregistré.
+
+    Nécessaire depuis le durcissement G4-0 : complete_module ne fait plus confiance
+    au quiz_score client et relit le meilleur score serveur en base.
+    """
+    from datetime import UTC, datetime
+
+    db.add(
+        AwarenessQuizAttempt(
+            learner_id=learner.id,
+            module_id=module.id,
+            attempt_number=1,
+            score=score,
+            result="passed" if score >= module.quiz_passing_score else "failed",
+            duration_seconds=30,
+            completed_at=datetime.now(UTC),
+        )
+    )
+    await db.flush()
 
 
 async def _seed_world(db, *, n_modules=2, has_quiz=False, passing_score=60, prog_slug="prog-cov"):
@@ -271,15 +294,19 @@ async def test_heartbeat_accumulates_without_video_position(db, http_client):
 # ── complete_module : quiz ──────────────────────────────────────────────────────
 
 
-async def test_complete_module_quiz_passed_marks_completed(db, http_client):
-    """Module avec quiz, score >= passing -> completed + best_quiz_score enregistré."""
+async def test_complete_module_quiz_uses_server_score_not_client(db, http_client):
+    """G4-0 : le score client est ignoré. Avec un attempt serveur réussi (80) et un
+    quiz_score client mensonger (100), le module est validé au SCORE SERVEUR (80)."""
     w = await _seed_world(db, n_modules=2, has_quiz=True, passing_score=60, prog_slug="quiz-pass")
     enr, learner = w["enrollment"], w["learner"]
     mod = w["modules"][0]
+    await _seed_quiz_attempt(db, learner, mod, score=80)
+    await db.commit()
+
     with patch("app.services.email_service.send_awareness_completion"):
         r = await http_client.post(
             f"{BASE}/awareness/enrollments/{enr.id}/modules/{mod.id}/complete",
-            json={"quiz_score": 80},
+            json={"quiz_score": 100},  # mensonge client -> doit être ignoré
             headers=_auth(learner),
         )
     assert r.status_code == 200
@@ -294,24 +321,23 @@ async def test_complete_module_quiz_passed_marks_completed(db, http_client):
         )
     ).scalar_one()
     assert prog.status == "completed"
-    assert prog.best_quiz_score == 80
+    assert prog.best_quiz_score == 80  # score serveur, pas le 100 client
 
 
-async def test_complete_module_quiz_failed_does_not_progress(db, http_client):
-    """Score < passing -> status 'failed', completion_pct reste 0 (pas compté)."""
-    w = await _seed_world(db, n_modules=2, has_quiz=True, passing_score=60, prog_slug="quiz-fail")
+async def test_complete_module_quiz_without_attempt_forbidden(db, http_client):
+    """G4-0 : sans aucun AwarenessQuizAttempt réel, impossible de valider un module
+    à quiz même en envoyant un quiz_score client parfait -> 403."""
+    w = await _seed_world(db, n_modules=2, has_quiz=True, passing_score=60, prog_slug="quiz-noatt")
     enr, learner = w["enrollment"], w["learner"]
     mod = w["modules"][0]
     with patch("app.services.email_service.send_awareness_completion"):
         r = await http_client.post(
             f"{BASE}/awareness/enrollments/{enr.id}/modules/{mod.id}/complete",
-            json={"quiz_score": 40},
+            json={"quiz_score": 100},
             headers=_auth(learner),
         )
-    assert r.status_code == 200
-    # échec -> aucun module "completed" -> 0%
-    assert r.json()["completion_pct"] == 0.0
-
+    assert r.status_code == 403
+    # aucun progress "completed" n'a été écrit
     prog = (
         await db.execute(
             select(AwarenessProgress).where(
@@ -319,9 +345,35 @@ async def test_complete_module_quiz_failed_does_not_progress(db, http_client):
                 AwarenessProgress.module_id == mod.id,
             )
         )
-    ).scalar_one()
-    assert prog.status == "failed"
-    assert prog.best_quiz_score == 40
+    ).scalar_one_or_none()
+    assert prog is None or prog.status != "completed"
+
+
+async def test_complete_module_quiz_only_failing_attempt_forbidden(db, http_client):
+    """G4-0 : un attempt serveur en échec (40 < 60) ne permet pas de valider -> 403."""
+    w = await _seed_world(db, n_modules=2, has_quiz=True, passing_score=60, prog_slug="quiz-fail")
+    enr, learner = w["enrollment"], w["learner"]
+    mod = w["modules"][0]
+    await _seed_quiz_attempt(db, learner, mod, score=40)
+    await db.commit()
+
+    with patch("app.services.email_service.send_awareness_completion"):
+        r = await http_client.post(
+            f"{BASE}/awareness/enrollments/{enr.id}/modules/{mod.id}/complete",
+            json={"quiz_score": 100},  # mensonge client -> ignoré
+            headers=_auth(learner),
+        )
+    assert r.status_code == 403
+    # le module n'est pas passé "completed" malgré le mensonge client
+    prog = (
+        await db.execute(
+            select(AwarenessProgress).where(
+                AwarenessProgress.enrollment_id == enr.id,
+                AwarenessProgress.module_id == mod.id,
+            )
+        )
+    ).scalar_one_or_none()
+    assert prog is None or prog.status != "completed"
 
 
 async def test_complete_module_creates_progress_when_absent(db, http_client):
@@ -426,6 +478,8 @@ async def test_complete_all_modules_perfect_quiz_issues_certificate_and_email(db
     w = await _seed_world(db, n_modules=1, has_quiz=True, passing_score=60, prog_slug="full-cert")
     enr, learner = w["enrollment"], w["learner"]
     mod = w["modules"][0]
+    await _seed_quiz_attempt(db, learner, mod, score=100)
+    await db.commit()
 
     with patch("app.services.email_service.send_awareness_completion") as mock_email:
         r = await http_client.post(

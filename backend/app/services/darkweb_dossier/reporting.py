@@ -7,6 +7,7 @@ from __future__ import annotations
 import io
 import json
 from datetime import datetime
+from xml.sax.saxutils import escape
 
 from reportlab.lib.units import mm
 from reportlab.platypus import (
@@ -304,15 +305,18 @@ def generate_dossier_pdf(
             unique_dc = list(dict.fromkeys(all_dc))[:4]
             dc_str = ", ".join(unique_dc) if unique_dc else "—"
             row_color = RED if t.total_breaches >= 3 else YELLOW
+            # escape : email (fourni via CSV client) + noms de fuites / data
+            # classes (issus d'API externes HIBP/LeakCheck) sont interpretes comme
+            # markup par ReportLab -> un chevron injecte casserait le rendu.
             table_data.append(
                 [
                     Paragraph(
-                        f'<font color="#{row_color.hexval()[2:]}">{t.email}</font>',
+                        f'<font color="#{row_color.hexval()[2:]}">{escape(t.email or "")}</font>',
                         styles["mono"],
                     ),
                     Paragraph(f"<b>{t.total_breaches}</b>", styles["label"]),
-                    Paragraph(sources_str or "—", styles["small"]),
-                    Paragraph(dc_str, styles["small"]),
+                    Paragraph(escape(sources_str) or "—", styles["small"]),
+                    Paragraph(escape(dc_str), styles["small"]),
                 ]
             )
         tbl = Table(table_data, colWidths=[60 * mm, 18 * mm, 55 * mm, 45 * mm])

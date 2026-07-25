@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import io
 from datetime import UTC, datetime
+from xml.sax.saxutils import escape
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
@@ -220,7 +221,10 @@ def generate_url_scan_pdf(url_scan_data: dict) -> bytes:
         story.append(Paragraph("Chaîne de redirections", st["section"]))
         story.append(section_rule(W, DOC_TYPE))
         for i, hop in enumerate(redirect_chain):
-            story.append(Paragraph(f"{'&#8594; ' if i > 0 else ''}{hop}", st["mono"]))
+            # escape : les URLs de la chaine de redirection viennent du serveur
+            # scanne (non maitrise) et sont interpretees comme markup par ReportLab.
+            arrow = "&#8594; " if i > 0 else ""
+            story.append(Paragraph(f"{arrow}{escape(str(hop))}", st["mono"]))
         story.append(Spacer(1, 4 * mm))
 
     # ── Disclaimer ────────────────────────────────────────────────────────────

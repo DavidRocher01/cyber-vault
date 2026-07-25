@@ -7,11 +7,21 @@ des appels réseau réels et des dépendances système.
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.scan_service import _get_plan_tier, _run_scan_sync, run_scan
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture(autouse=True)
+def _no_ssrf_revalidation():
+    """Neutralise la re-validation SSRF a l'execution (pas d'appel DNS reel en
+    test unitaire). Les tests qui verifient le blocage la reconfigurent via
+    side_effect en demandant la fixture en argument."""
+    with patch("app.services.scan_service.assert_no_ssrf") as m:
+        yield m
 
 
 def _mock_db(scalars_results: list) -> AsyncMock:
@@ -77,6 +87,49 @@ SCANNER_MOCKS = {
     "scanner.report_generator.generate_report": MagicMock(),
     "scanner.remediation.generate_remediation": MagicMock(return_value={}),
 }
+
+
+@pytest.mark.asyncio
+async def test_run_scan_ssrf_revalidation_blocks_at_execution(_no_ssrf_revalidation):
+    """DNS rebascule vers une IP interne apres le trigger : assert_no_ssrf leve a
+    l'execution -> scan 'failed', aucun module scanner (nmap/ssl) lance."""
+    from app.models.scan import Scan
+    from app.models.site import Site
+
+    _no_ssrf_revalidation.side_effect = HTTPException(status_code=422, detail="interne")
+
+    scan = MagicMock(spec=Scan)
+    scan.id = 20
+    scan.site_id = 30
+    scan.status = "pending"
+    scan.started_at = None
+    scan.finished_at = None
+    scan.error_message = None
+
+    site = MagicMock(spec=Site)
+    site.id = 30
+    site.url = "https://rebind.example.com"
+    site.user_id = 1
+
+    plan_mock = MagicMock()
+    plan_mock.tier_level = 2
+
+    db = AsyncMock(spec=AsyncSession)
+    results = [
+        MagicMock(scalar_one_or_none=MagicMock(return_value=scan)),
+        MagicMock(scalar_one_or_none=MagicMock(return_value=site)),
+        MagicMock(scalar_one_or_none=MagicMock(return_value=plan_mock)),
+    ]
+    db.execute = AsyncMock(side_effect=results)
+
+    with patch("app.services.scan_service._run_scan_sync") as run_sync:
+        await run_scan(scan_id=20, db=db)
+
+    run_sync.assert_not_called()
+    assert scan.status == "failed"
+    assert "interne" in scan.error_message
+    assert scan.finished_at is not None
+    db.commit.assert_called()
 
 
 @pytest.mark.asyncio

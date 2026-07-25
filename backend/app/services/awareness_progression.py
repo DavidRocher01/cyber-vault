@@ -24,6 +24,7 @@ from app.models.awareness_learner import AwarenessLearner
 from app.models.awareness_module import AwarenessModule
 from app.models.awareness_program import AwarenessProgram
 from app.models.awareness_progress import AwarenessProgress
+from app.models.awareness_quiz_attempt import AwarenessQuizAttempt
 
 # ── Enroll ────────────────────────────────────────────────────────────────────
 
@@ -195,14 +196,30 @@ async def complete_module(
         )
         db.add(progress)
 
-    # Validate quiz score if module requires it
-    if module.has_quiz and quiz_score is not None:
-        if quiz_score >= module.quiz_passing_score:
-            progress.status = "completed"
-        else:
-            progress.status = "failed"
+    # Sécurité (G4-0) : ne JAMAIS faire confiance au quiz_score fourni par
+    # l'appelant. Pour un module à quiz, le score fait foi uniquement s'il provient
+    # d'un AwarenessQuizAttempt réellement enregistré côté serveur (via submit_quiz,
+    # qui calcule le score et persiste l'attempt avant d'appeler ce service). On
+    # relit donc le meilleur score en base et on ignore la valeur reçue.
+    if module.has_quiz:
+        best = (
+            await db.execute(
+                select(func.max(AwarenessQuizAttempt.score)).where(
+                    AwarenessQuizAttempt.learner_id == learner.id,
+                    AwarenessQuizAttempt.module_id == module_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if best is None or best < module.quiz_passing_score:
+            raise HTTPException(
+                status_code=403,
+                detail="Un quiz réussi est requis pour valider ce module.",
+            )
+        quiz_score = best  # le score client est écrasé par le score serveur
+        progress.status = "completed"
         progress.best_quiz_score = max(progress.best_quiz_score or 0, quiz_score)
     else:
+        quiz_score = None  # pas de quiz -> aucun bonus XP basé sur un score
         progress.status = "completed"
 
     progress.completed_at = datetime.now(UTC)

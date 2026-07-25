@@ -14,7 +14,9 @@ class UrlScan(Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     url: Mapped[str] = mapped_column(String(2048), nullable=False)
 
     # pending | running | done | error

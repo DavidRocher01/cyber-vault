@@ -23,6 +23,7 @@ from app.core.security import (
     REFRESH_TOKEN_EXPIRE_DAYS,
     create_access_token,
     create_refresh_token,
+    dummy_verify_password,
     hash_password,
     verify_password,
 )
@@ -106,6 +107,11 @@ async def login(
     )
 
     if not user:
+        # Anti-enumeration : on execute un verify_password factice (meme cout
+        # bcrypt) pour egaliser le temps de reponse avec le chemin "le compte
+        # existe mais le mot de passe est faux". Sinon un attaquant distingue
+        # les emails enregistres par la latence.
+        await asyncio.to_thread(dummy_verify_password)
         raise invalid_exc
 
     now_utc = datetime.now(UTC)
@@ -188,6 +194,12 @@ async def refresh(
     stored = await auth_service.get_refresh_token(db, refresh_token)
     expires_at = ensure_utc(stored.expires_at if stored else None)
     if not stored or stored.revoked or (expires_at is not None and expires_at < datetime.now(UTC)):
+        raise invalid_exc
+
+    # G0-3 : un compte désactivé ne doit plus pouvoir renouveler son access token,
+    # même si son refresh token n'est pas encore expiré.
+    user = await auth_service.get_user_by_id(db, stored.user_id)
+    if user is None or not user.is_active:
         raise invalid_exc
 
     new_access = create_access_token(subject=str(stored.user_id))

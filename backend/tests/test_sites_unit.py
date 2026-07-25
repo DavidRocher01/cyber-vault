@@ -5,7 +5,7 @@ Unit tests for app.api.v1.endpoints.sites — direct function calls.
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 
 from app.api.v1.endpoints.sites import (
     add_site,
@@ -15,6 +15,17 @@ from app.api.v1.endpoints.sites import (
 from app.models.site import Site
 from app.models.user import User
 from app.services.subscription_service import get_active_plan
+
+
+def _mock_request(ip: str = "127.0.0.1") -> MagicMock:
+    # Requete factice pour le decorateur @limiter.limit : IP loopback => clef de
+    # rate-limit unique par requete en env test (aucune limite ne se declenche).
+    req = MagicMock(spec=Request)
+    req.client = MagicMock()
+    req.client.host = ip
+    req.headers = {}
+    req.state = MagicMock()
+    return req
 
 
 def _mock_user(user_id: int = 1) -> MagicMock:
@@ -107,7 +118,7 @@ async def test_add_site_no_subscription_raises_403():
     user = _mock_user()
 
     with pytest.raises(HTTPException) as exc:
-        await add_site(payload=_payload(), current_user=user, db=db)
+        await add_site(request=_mock_request(), payload=_payload(), current_user=user, db=db)
     assert exc.value.status_code == 403
     assert "Abonnement" in exc.value.detail
 
@@ -122,7 +133,7 @@ async def test_add_site_limit_reached_raises_403():
 
     with patch("app.api.v1.endpoints.sites.get_effective_max_sites", AsyncMock(return_value=2)):
         with pytest.raises(HTTPException) as exc:
-            await add_site(payload=_payload(), current_user=user, db=db)
+            await add_site(request=_mock_request(), payload=_payload(), current_user=user, db=db)
     assert exc.value.status_code == 403
     assert "Limite" in exc.value.detail
 
@@ -137,7 +148,12 @@ async def test_add_site_invalid_protocol_raises_422():
 
     with patch("app.api.v1.endpoints.sites.get_effective_max_sites", AsyncMock(return_value=5)):
         with pytest.raises(HTTPException) as exc:
-            await add_site(payload=_payload(url="ftp://example.com"), current_user=user, db=db)
+            await add_site(
+                request=_mock_request(),
+                payload=_payload(url="ftp://example.com"),
+                current_user=user,
+                db=db,
+            )
     assert exc.value.status_code == 422
 
 
@@ -155,7 +171,9 @@ async def test_add_site_auto_adds_https():
     user = _mock_user()
 
     with patch("app.api.v1.endpoints.sites.get_effective_max_sites", AsyncMock(return_value=5)):
-        await add_site(payload=_payload(url="example.com"), current_user=user, db=db)
+        await add_site(
+            request=_mock_request(), payload=_payload(url="example.com"), current_user=user, db=db
+        )
     assert len(added_sites) == 1
     assert added_sites[0].url.startswith("https://")
 
@@ -172,7 +190,7 @@ async def test_add_site_success():
     user = _mock_user()
 
     with patch("app.api.v1.endpoints.sites.get_effective_max_sites", AsyncMock(return_value=5)):
-        await add_site(payload=_payload(), current_user=user, db=db)
+        await add_site(request=_mock_request(), payload=_payload(), current_user=user, db=db)
     db.commit.assert_called_once()
 
 

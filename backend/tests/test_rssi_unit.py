@@ -313,3 +313,32 @@ def test_schema_full_fields():
     assert c.description == "desc"
     assert c.formula == "premium"
     assert c.monthly_amount == 3200.0
+
+
+# ── G3-0 : durcissement e-mail d'invitation (anti-injection HTML) ───────────────
+
+
+def test_portal_invitation_email_escapes_user_controlled_names():
+    """G3-0 : le nom du client (saisi par le consultant) et le display_name du
+    consultant sont echappes dans le corps HTML de l'e-mail d'invitation, pour
+    empecher toute injection HTML chez le destinataire."""
+    from unittest.mock import patch
+
+    from app.services.email_service.rssi import send_portal_invitation
+
+    with patch("app.services.email_service.rssi._send") as mock_send:
+        send_portal_invitation(
+            "victim@test.com",
+            "https://app.example.com/auth/reset-password?token=abc&invite=1",
+            client_name="<script>alert(1)</script>",
+            consultant_name="<img src=x onerror=alert(2)>",
+        )
+
+    assert mock_send.called
+    _to, _subject, html, _plain = mock_send.call_args.args
+    # Les balises brutes ne doivent PAS apparaitre dans le HTML...
+    assert "<script>" not in html
+    assert "<img src=x" not in html
+    # ...mais bien leur forme echappee.
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
+    assert "&lt;img src=x onerror=alert(2)&gt;" in html

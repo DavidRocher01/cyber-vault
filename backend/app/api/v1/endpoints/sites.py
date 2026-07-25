@@ -1,10 +1,11 @@
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.limiter import limiter
 from app.core.utils import safe_json_load
 from app.models.site import Site
 from app.models.user import User
@@ -36,7 +37,9 @@ async def list_sites(
 
 
 @router.post("", response_model=SiteOut, status_code=201)
+@limiter.limit("20/minute")
 async def add_site(
+    request: Request,
     payload: SiteCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
