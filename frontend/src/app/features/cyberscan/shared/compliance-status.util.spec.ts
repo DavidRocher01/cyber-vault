@@ -6,6 +6,7 @@ import {
   complianceStatusColor,
   complianceScoreColor,
   complianceScoreLabel,
+  complianceScoreTextClass,
 } from './compliance-status.util';
 
 describe('compliance-status.util', () => {
@@ -33,5 +34,11 @@ describe('compliance-status.util', () => {
     expect(complianceScoreLabel(80)).toBe('Conforme');
     expect(complianceScoreLabel(50)).toBe('En cours');
     expect(complianceScoreLabel(0)).toBe('Non conforme');
+  });
+
+  it('scoreTextClass suit les memes seuils 80/50', () => {
+    expect(complianceScoreTextClass(80)).toBe('text-green-400');
+    expect(complianceScoreTextClass(50)).toBe('text-yellow-400');
+    expect(complianceScoreTextClass(49)).toBe('text-red-400');
   });
 });

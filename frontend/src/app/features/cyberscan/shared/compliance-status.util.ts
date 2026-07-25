@@ -50,6 +50,13 @@ export function complianceScoreColor(n: number): string {
   return '#f87171';
 }
 
+/** Variante classe Tailwind (texte) des memes seuils que complianceScoreColor. */
+export function complianceScoreTextClass(n: number): string {
+  if (n >= 80) return 'text-green-400';
+  if (n >= 50) return 'text-yellow-400';
+  return 'text-red-400';
+}
+
 export function complianceScoreLabel(n: number): string {
   if (n >= 80) return 'Conforme';
   if (n >= 50) return 'En cours';
