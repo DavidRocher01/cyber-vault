@@ -29,6 +29,9 @@ import {
   actionStatusLabel as actionStatusLabelFn,
 } from '../shared/rssi-action-labels';
 import * as labels from '../shared/rssi-client-labels';
+import { ClientInfoPanelComponent } from './components/client-info-panel/client-info-panel.component';
+import { ActionsTableComponent } from './components/actions-table/actions-table.component';
+import { ActivityFeedComponent } from './components/activity-feed/activity-feed.component';
 
 @Component({
   standalone: true,
@@ -43,6 +46,9 @@ import * as labels from '../shared/rssi-client-labels';
     MatSnackBarModule,
     MatTooltipModule,
     NavButtonsComponent,
+    ClientInfoPanelComponent,
+    ActionsTableComponent,
+    ActivityFeedComponent,
   ],
   templateUrl: './client-detail.component.html',
 })
