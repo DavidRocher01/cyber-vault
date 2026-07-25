@@ -1,13 +1,4 @@
-import {
-  Component,
-  DestroyRef,
-  inject,
-  OnInit,
-  OnDestroy,
-  signal,
-  HostListener,
-  ElementRef,
-} from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
@@ -20,18 +11,11 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { Title, Meta } from '@angular/platform-browser';
-import { EMPTY, Subscription as RxSubscription, interval, switchMap, tap } from 'rxjs';
+import { EMPTY, Subscription as RxSubscription, switchMap, tap } from 'rxjs';
 import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 import { formatScanFrequency } from '../../../shared/plan-features';
 
-import {
-  Site,
-  Scan,
-  Subscription as UserSubscription,
-  Plan,
-  AppNotification,
-} from '../services/cyberscan.service';
-import { NotificationApiService } from '../services/notification-api.service';
+import { Site, Scan, Subscription as UserSubscription, Plan } from '../services/cyberscan.service';
 import { ScanApiService } from '../services/scan-api.service';
 import { SiteApiService } from '../services/site-api.service';
 import { BillingService } from '../services/billing.service';
@@ -52,8 +36,8 @@ import { environment } from '../../../../environments/environment';
 import { StatsCardsComponent } from './components/stats-cards/stats-cards.component';
 import { RecentScansComponent } from './components/recent-scans/recent-scans.component';
 import { SitesGridComponent } from './components/sites-grid/sites-grid.component';
+import { NotificationBellComponent } from './components/notification-bell/notification-bell.component';
 import { extractApiError } from '../../../core/http-error';
-import { formatFrDate } from '../../../shared/date-utils';
 
 type ScanFilter = 'all' | 'done' | 'running' | 'error';
 
@@ -84,12 +68,12 @@ interface PaginatedScans {
     StatsCardsComponent,
     RecentScansComponent,
     SitesGridComponent,
+    NotificationBellComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
 export class DashboardComponent implements OnInit, OnDestroy {
-  private notifApi = inject(NotificationApiService);
   private scanApi = inject(ScanApiService);
   private siteApi = inject(SiteApiService);
   private billing = inject(BillingService);
@@ -101,7 +85,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private dialog = inject(MatDialog);
   private titleService = inject(Title);
   private meta = inject(Meta);
-  private el = inject(ElementRef);
   private destroyRef = inject(DestroyRef);
   private pollingMap: Record<number, RxSubscription> = {};
 
@@ -130,11 +113,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   showPlansModal = signal(false);
   plans = signal<Plan[]>([]);
   checkoutLoading = signal<number | null>(null);
-
-  // Notifications
-  notifications = signal<AppNotification[]>([]);
-  unreadCount = signal(0);
-  showNotifPanel = signal(false);
 
   siteForm = this.fb.nonNullable.group({
     url: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]],
@@ -169,16 +147,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.authService.logout();
   }
 
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent) {
-    if (
-      this.showNotifPanel() &&
-      !this.el.nativeElement.querySelector('.notif-panel-anchor')?.contains(event.target)
-    ) {
-      this.showNotifPanel.set(false);
-    }
-  }
-
   loadDashboard() {
     this.loading.set(true);
     this.billing
@@ -203,63 +171,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         },
         error: () => this.loading.set(false),
       });
-    this.loadNotifications();
-    interval(30000)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.loadNotifications());
-  }
-
-  loadNotifications() {
-    this.notifApi.getNotifications().subscribe({
-      next: data => {
-        this.notifications.set(data.items);
-        this.unreadCount.set(data.unread_count);
-      },
-      error: () => {},
-    });
-  }
-
-  toggleNotifPanel(event: MouseEvent) {
-    event.stopPropagation();
-    this.showNotifPanel.update(v => !v);
-  }
-
-  handleNotifClick(notif: AppNotification) {
-    if (!notif.read) {
-      this.notifApi.markNotificationRead(notif.id).subscribe({
-        next: updated => {
-          this.notifications.update(list => list.map(n => (n.id === notif.id ? updated : n)));
-          this.unreadCount.update(c => Math.max(0, c - 1));
-        },
-        error: () => {},
-      });
-    }
-    if (notif.link) {
-      this.router.navigateByUrl(notif.link);
-      this.showNotifPanel.set(false);
-    }
-  }
-
-  markAllRead() {
-    this.notifApi.markAllNotificationsRead().subscribe({
-      next: () => {
-        this.notifications.update(list => list.map(n => ({ ...n, read: true })));
-        this.unreadCount.set(0);
-      },
-      error: () => {},
-    });
-  }
-
-  dismissNotif(event: MouseEvent, id: number) {
-    event.stopPropagation();
-    this.notifApi.deleteNotification(id).subscribe({
-      next: () => {
-        const notif = this.notifications().find(n => n.id === id);
-        this.notifications.update(list => list.filter(n => n.id !== id));
-        if (notif && !notif.read) this.unreadCount.update(c => Math.max(0, c - 1));
-      },
-      error: () => {},
-    });
   }
 
   loadScans(siteId: number, page: number) {
@@ -537,10 +448,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       default:
         return 'help_outline';
     }
-  }
-
-  formatDate(d: string | null): string {
-    return formatFrDate(d, 'datetime');
   }
 
   get maxSites(): number {

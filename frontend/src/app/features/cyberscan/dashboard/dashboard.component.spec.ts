@@ -39,16 +39,6 @@ describe('DashboardComponent — statusIcon()', () => {
     expect(make().statusIcon(null)).toBe('help_outline'));
 });
 
-describe('DashboardComponent — formatDate()', () => {
-  it('retourne "—" pour null', () => expect(make().formatDate(null)).toBe('—'));
-  it('formate une date ISO', () =>
-    expect(make().formatDate('2024-06-01T12:00:00Z')).toContain('2024'));
-  it("inclut l'heure dans le format", () => {
-    const result = make().formatDate('2024-06-01T12:00:00Z');
-    expect(result).toMatch(/\d+:\d+/);
-  });
-});
-
 describe('DashboardComponent — getGrade()', () => {
   it('retourne une note pour un score', () => {
     const grade = make().getGrade(85);
@@ -739,14 +729,6 @@ describe('DashboardComponent — toggles', () => {
     c.toggleAnalytics();
     expect(c.analyticsOpen()).toBe(true);
   });
-  it('toggleNotifPanel inverse showNotifPanel et stoppe la propagation', () => {
-    const c = make();
-    (c as any).showNotifPanel = signal(false);
-    const event = { stopPropagation: vi.fn() } as any;
-    c.toggleNotifPanel(event);
-    expect(c.showNotifPanel()).toBe(true);
-    expect(event.stopPropagation).toHaveBeenCalled();
-  });
 });
 
 describe('DashboardComponent — autoPrependHttps()', () => {
@@ -790,145 +772,6 @@ describe('DashboardComponent — logout()', () => {
     (c as any).authService = { logout: vi.fn() };
     c.logout();
     expect((c as any).authService.logout).toHaveBeenCalled();
-  });
-});
-
-describe('DashboardComponent — loadNotifications()', () => {
-  it('met à jour notifications et unreadCount', () => {
-    const c = make();
-    (c as any).notifications = signal([]);
-    (c as any).unreadCount = signal(0);
-    (c as any).cyberscan =
-      (c as any).complianceApi =
-      (c as any).publicScanApi =
-      (c as any).notifApi =
-      (c as any).codeScanApi =
-      (c as any).urlScanApi =
-      (c as any).scanApi =
-      (c as any).siteApi =
-      (c as any).billing =
-        {
-          getNotifications: vi.fn().mockReturnValue(of({ items: [{ id: 1 }], unread_count: 3 })),
-        };
-    c.loadNotifications();
-    expect(c.notifications()).toHaveLength(1);
-    expect(c.unreadCount()).toBe(3);
-  });
-});
-
-describe('DashboardComponent — handleNotifClick()', () => {
-  it('marque comme lue si non lue et décrémente le compteur', () => {
-    const c = make();
-    const notif = { id: 1, read: false, link: null } as any;
-    (c as any).notifications = signal([notif]);
-    (c as any).unreadCount = signal(2);
-    (c as any).cyberscan =
-      (c as any).complianceApi =
-      (c as any).publicScanApi =
-      (c as any).notifApi =
-      (c as any).codeScanApi =
-      (c as any).urlScanApi =
-      (c as any).scanApi =
-      (c as any).siteApi =
-      (c as any).billing =
-        {
-          markNotificationRead: vi.fn().mockReturnValue(of({ id: 1, read: true })),
-        };
-    c.handleNotifClick(notif);
-    expect((c as any).cyberscan.markNotificationRead).toHaveBeenCalledWith(1);
-    expect(c.unreadCount()).toBe(1);
-    expect(c.notifications()[0].read).toBe(true);
-  });
-  it('ne marque pas si déjà lue mais navigue si lien', () => {
-    const c = make();
-    const notif = { id: 1, read: true, link: '/cible' } as any;
-    (c as any).cyberscan =
-      (c as any).complianceApi =
-      (c as any).publicScanApi =
-      (c as any).notifApi =
-      (c as any).codeScanApi =
-      (c as any).urlScanApi =
-      (c as any).scanApi =
-      (c as any).siteApi =
-      (c as any).billing =
-        { markNotificationRead: vi.fn() };
-    (c as any).router = { navigateByUrl: vi.fn() };
-    (c as any).showNotifPanel = signal(true);
-    c.handleNotifClick(notif);
-    expect((c as any).cyberscan.markNotificationRead).not.toHaveBeenCalled();
-    expect((c as any).router.navigateByUrl).toHaveBeenCalledWith('/cible');
-    expect(c.showNotifPanel()).toBe(false);
-  });
-});
-
-describe('DashboardComponent — markAllRead()', () => {
-  it('passe toutes les notifs en lues et remet le compteur à 0', () => {
-    const c = make();
-    (c as any).notifications = signal([
-      { id: 1, read: false },
-      { id: 2, read: false },
-    ]);
-    (c as any).unreadCount = signal(2);
-    (c as any).cyberscan =
-      (c as any).complianceApi =
-      (c as any).publicScanApi =
-      (c as any).notifApi =
-      (c as any).codeScanApi =
-      (c as any).urlScanApi =
-      (c as any).scanApi =
-      (c as any).siteApi =
-      (c as any).billing =
-        {
-          markAllNotificationsRead: vi.fn().mockReturnValue(of({})),
-        };
-    c.markAllRead();
-    expect(c.notifications().every(n => n.read)).toBe(true);
-    expect(c.unreadCount()).toBe(0);
-  });
-});
-
-describe('DashboardComponent — dismissNotif()', () => {
-  it('retire la notif et décrémente si elle était non lue', () => {
-    const c = make();
-    (c as any).notifications = signal([{ id: 1, read: false }]);
-    (c as any).unreadCount = signal(1);
-    (c as any).cyberscan =
-      (c as any).complianceApi =
-      (c as any).publicScanApi =
-      (c as any).notifApi =
-      (c as any).codeScanApi =
-      (c as any).urlScanApi =
-      (c as any).scanApi =
-      (c as any).siteApi =
-      (c as any).billing =
-        {
-          deleteNotification: vi.fn().mockReturnValue(of({})),
-        };
-    const event = { stopPropagation: vi.fn() } as any;
-    c.dismissNotif(event, 1);
-    expect(event.stopPropagation).toHaveBeenCalled();
-    expect(c.notifications()).toHaveLength(0);
-    expect(c.unreadCount()).toBe(0);
-  });
-  it('ne décrémente pas si la notif était déjà lue', () => {
-    const c = make();
-    (c as any).notifications = signal([{ id: 1, read: true }]);
-    (c as any).unreadCount = signal(0);
-    (c as any).cyberscan =
-      (c as any).complianceApi =
-      (c as any).publicScanApi =
-      (c as any).notifApi =
-      (c as any).codeScanApi =
-      (c as any).urlScanApi =
-      (c as any).scanApi =
-      (c as any).siteApi =
-      (c as any).billing =
-        {
-          deleteNotification: vi.fn().mockReturnValue(of({})),
-        };
-    c.dismissNotif({ stopPropagation: vi.fn() } as any, 1);
-    expect(c.notifications()).toHaveLength(0);
-    expect(c.unreadCount()).toBe(0);
   });
 });
 
