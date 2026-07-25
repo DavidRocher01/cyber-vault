@@ -14,7 +14,9 @@ class Scan(Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    site_id: Mapped[int] = mapped_column(ForeignKey("sites.id"), nullable=False, index=True)
+    site_id: Mapped[int] = mapped_column(
+        ForeignKey("sites.id", ondelete="CASCADE"), nullable=False, index=True
+    )
 
     # pending | running | done | failed
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending", index=True)

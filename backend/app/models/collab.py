@@ -13,8 +13,12 @@ class SiteCollaborator(Base):
     __table_args__ = (UniqueConstraint("site_id", "email", name="uq_collab_site_email"),)
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    site_id: Mapped[int] = mapped_column(ForeignKey("sites.id"), nullable=False, index=True)
-    owner_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    site_id: Mapped[int] = mapped_column(
+        ForeignKey("sites.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    owner_user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
 
     # Email of the invitee (may or may not have an account)
     email: Mapped[str] = mapped_column(String(255), nullable=False)

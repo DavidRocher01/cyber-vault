@@ -190,6 +190,12 @@ async def refresh(
     if not stored or stored.revoked or (expires_at is not None and expires_at < datetime.now(UTC)):
         raise invalid_exc
 
+    # G0-3 : un compte désactivé ne doit plus pouvoir renouveler son access token,
+    # même si son refresh token n'est pas encore expiré.
+    user = await auth_service.get_user_by_id(db, stored.user_id)
+    if user is None or not user.is_active:
+        raise invalid_exc
+
     new_access = create_access_token(subject=str(stored.user_id))
     new_raw_refresh = create_refresh_token()
     new_expires = datetime.now(UTC) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)

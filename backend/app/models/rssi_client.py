@@ -11,12 +11,17 @@ class RssiClient(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     consultant_user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"), nullable=False, index=True
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     # Portail client : compte User lié via invitation. Nullable tant que le client n'est pas
     # invité ; unique (un compte = au plus un client RSSI) — base de l'isolation du portail.
     client_user_id: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id"), nullable=True, unique=True, index=True
+        # SET NULL et NON CASCADE : cette ligne rssi_clients appartient au consultant.
+        # Supprimer le compte du client de portail ne doit pas detruire la fiche client.
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        unique=True,
+        index=True,
     )
     # Sensibilisation NIS2 : organisation de formation liée (créée à la demande via
     # "Activer la sensibilisation"). Nullable = additif ; les orgs autonomes restent NULL.

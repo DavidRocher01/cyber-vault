@@ -11,7 +11,7 @@ class Iso27001Assessment(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"), nullable=False, unique=True, index=True
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True
     )
 
     # JSON dict: { "item_id": "compliant" | "partial" | "non_compliant" | "na" }

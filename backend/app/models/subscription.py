@@ -11,7 +11,9 @@ class Subscription(Base):
     __table_args__ = (Index("ix_subscriptions_user_id_status", "user_id", "status"),)
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     plan_id: Mapped[int] = mapped_column(ForeignKey("plans.id"), nullable=False, index=True)
 
     stripe_customer_id: Mapped[str] = mapped_column(String(255), nullable=False, default="")

@@ -15,7 +15,9 @@ class Quote(Base):
     quote_seq: Mapped[int] = mapped_column(Integer, nullable=False)
     quote_year: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
 
     client_name: Mapped[str] = mapped_column(String(255), nullable=False)
     client_email: Mapped[str] = mapped_column(String(255), nullable=False)

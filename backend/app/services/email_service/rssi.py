@@ -1,5 +1,7 @@
 """E-mails du module RSSI externalise (espace client)."""
 
+from html import escape
+
 from .base import _send
 
 
@@ -13,9 +15,19 @@ def send_portal_invitation(
     """Invitation d'un client a son espace RSSI : e-mail de bienvenue dediE (et non
     le mail generique de reinitialisation de mot de passe). Le lien mene a la page
     d'activation ou le client definit son mot de passe (valable token_ttl_days jours)."""
+    # Texte brut : aucune interpretation de balises, valeurs utilisees telles quelles.
     org = f" pour {client_name}" if client_name else ""
     by = (
         f"Votre consultant {consultant_name} vous"
+        if consultant_name
+        else "Votre consultant RSSI vous"
+    )
+    # G3-0 : client_name (nom saisi par le consultant) et consultant_name (display_name)
+    # sont controles par l'utilisateur. On les echappe avant injection dans le corps HTML
+    # de l'e-mail pour empecher toute injection HTML chez le destinataire.
+    org_html = f" pour {escape(client_name)}" if client_name else ""
+    by_html = (
+        f"Votre consultant {escape(consultant_name)} vous"
         if consultant_name
         else "Votre consultant RSSI vous"
     )
@@ -49,7 +61,7 @@ Rocher Cybersécurité — RSSI externalisé
   <tr><td style="padding:32px 40px;">
     <p style="color:#9ca3af;font-size:15px;line-height:1.7;margin:0 0 8px;">Bonjour,</p>
     <p style="color:#9ca3af;font-size:15px;line-height:1.7;margin:0 0 20px;">
-      {by} a ouvert un espace client dédié{org} sur la plateforme
+      {by_html} a ouvert un espace client dédié{org_html} sur la plateforme
       <strong style="color:#f9fafb;">Rocher Cybersécurité</strong>. Vous y suivrez en temps réel
       votre accompagnement : visites planifiées, plan d'actions, livrables et sites surveillés.
     </p>
