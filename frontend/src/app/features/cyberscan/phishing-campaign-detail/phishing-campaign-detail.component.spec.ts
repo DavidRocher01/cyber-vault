@@ -156,7 +156,7 @@ describe('PhishingCampaignDetailComponent — formatDate()', () => {
   it('retourne une date formatée fr-FR', () => {
     const result = make().formatDate('2024-03-15T10:00:00Z');
     expect(result).toContain('2024');
-    expect(result).toContain('03');
+    expect(result).toContain('mars');
     expect(result).toContain('15');
   });
 });

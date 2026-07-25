@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AdminAuthService } from '../admin-auth.service';
+import { formatFrDate } from '../../../../shared/date-utils';
 
 interface WeekBucket {
   label: string;
@@ -101,11 +102,6 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatFrDate(iso, 'datetime');
   }
 }

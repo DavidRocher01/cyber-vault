@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
 import { AdminAuthService } from '../admin-auth.service';
+import { formatFrDate } from '../../../../shared/date-utils';
 
 interface ContactMessage {
   id: number;
@@ -80,12 +81,6 @@ export class AdminContactsComponent implements OnInit {
   }
 
   formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatFrDate(iso, 'datetime');
   }
 }

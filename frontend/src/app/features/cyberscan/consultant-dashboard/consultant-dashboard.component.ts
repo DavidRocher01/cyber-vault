@@ -27,6 +27,7 @@ import {
 import { AwarenessService, AwarenessOrganization } from '../services/awareness.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { extractApiError } from '../../../core/http-error';
+import { formatFrDate } from '../../../shared/date-utils';
 
 @Component({
   standalone: true,
@@ -393,12 +394,7 @@ export class ConsultantDashboardComponent implements OnInit {
   }
 
   formatDate(d: string | null): string {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
+    return formatFrDate(d, 'date');
   }
 
   formatAmount(amount: number | null): string {

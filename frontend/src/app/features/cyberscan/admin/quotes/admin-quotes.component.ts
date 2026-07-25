@@ -14,6 +14,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { AdminAuthService } from '../admin-auth.service';
 import { extractApiError } from '../../../../core/http-error';
+import { formatFrDate } from '../../../../shared/date-utils';
 
 interface QuoteItem {
   description: string;
@@ -200,7 +201,7 @@ export class AdminQuotesComponent implements OnInit {
   }
 
   formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('fr-FR');
+    return formatFrDate(iso, 'date');
   }
 
   statusLabel(s: string): string {

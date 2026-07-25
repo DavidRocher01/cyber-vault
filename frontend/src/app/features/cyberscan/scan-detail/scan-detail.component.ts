@@ -18,6 +18,7 @@ import {
 } from '../../../shared/score-utils';
 import { Finding, getFindings } from '../../../shared/scan-findings';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { formatFrDate } from '../../../shared/date-utils';
 
 const PRO_MODULE_DESCRIPTIONS: Record<string, string> = {
   tech: 'Technologies et versions exposées dans vos en-têtes HTTP',
@@ -337,13 +338,6 @@ export class ScanDetailComponent implements OnInit {
   }
 
   formatDate(d: string | null): string {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatFrDate(d, 'datetime');
   }
 }

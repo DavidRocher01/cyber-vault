@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AdminAuthService } from '../admin-auth.service';
+import { formatFrDate } from '../../../../shared/date-utils';
 
 interface AdminScan {
   id: number;
@@ -69,14 +70,7 @@ export class AdminScansComponent implements OnInit {
   }
 
   formatDate(iso: string | null): string {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatFrDate(iso, 'datetime');
   }
 
   truncate(url: string, max = 50): string {

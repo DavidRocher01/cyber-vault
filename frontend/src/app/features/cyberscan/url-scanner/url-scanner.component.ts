@@ -13,6 +13,7 @@ import { UrlScan, PaginatedUrlScans } from '../services/cyberscan.service';
 import { UrlScanApiService } from '../services/url-scan-api.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { extractApiError } from '../../../core/http-error';
+import { formatFrDate } from '../../../shared/date-utils';
 
 interface Finding {
   type: string;
@@ -266,14 +267,7 @@ export class UrlScannerComponent implements OnInit, OnDestroy {
   }
 
   formatDate(d: string | null): string {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatFrDate(d, 'datetime');
   }
 
   scoreGradient(score: number): string {

@@ -53,6 +53,7 @@ import { StatsCardsComponent } from './components/stats-cards/stats-cards.compon
 import { RecentScansComponent } from './components/recent-scans/recent-scans.component';
 import { SitesGridComponent } from './components/sites-grid/sites-grid.component';
 import { extractApiError } from '../../../core/http-error';
+import { formatFrDate } from '../../../shared/date-utils';
 
 type ScanFilter = 'all' | 'done' | 'running' | 'error';
 
@@ -539,14 +540,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   formatDate(d: string | null): string {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatFrDate(d, 'datetime');
   }
 
   get maxSites(): number {

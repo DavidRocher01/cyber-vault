@@ -38,19 +38,6 @@ describe('SiteDetailComponent — formatDate()', () => {
   it("inclut l'heure", () => expect(make().formatDate('2024-03-15T10:30:00Z')).toMatch(/\d+:\d+/));
 });
 
-describe('SiteDetailComponent — formatDateShort()', () => {
-  it('retourne "—" pour null', () => expect(make().formatDateShort(null)).toBe('—'));
-  it('formate une date en format court', () => {
-    const result = make().formatDateShort('2024-06-01T08:00:00Z');
-    expect(result).toContain('2024');
-    expect(result).toMatch(/\d{2}\/\d{2}\/\d{4}/);
-  });
-  it('format court diffère du format long', () => {
-    const d = '2024-06-01T08:00:00Z';
-    expect(make().formatDateShort(d)).not.toBe(make().formatDate(d));
-  });
-});
-
 describe('SiteDetailComponent — toggleFinding()', () => {
   it('ajoute la clé au premier clic', () => {
     const c = make();

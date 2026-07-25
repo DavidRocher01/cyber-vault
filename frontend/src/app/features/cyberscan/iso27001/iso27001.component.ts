@@ -16,6 +16,7 @@ import {
   complianceScoreColor,
   complianceScoreLabel,
 } from '../shared/compliance-status.util';
+import { formatFrDate } from '../../../shared/date-utils';
 
 export type Iso27001Status = 'compliant' | 'partial' | 'non_compliant' | 'na';
 
@@ -225,14 +226,7 @@ export class Iso27001Component implements OnInit {
   }
 
   formatDate(d: string | null): string {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatFrDate(d, 'datetime');
   }
 
   readonly totalItems = computed(() => this.categories().reduce((s, c) => s + c.items.length, 0));

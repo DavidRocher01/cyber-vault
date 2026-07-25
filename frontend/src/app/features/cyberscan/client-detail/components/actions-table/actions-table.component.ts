@@ -9,6 +9,7 @@ import {
   actionStatusClass as actionStatusClassFn,
   actionStatusLabel as actionStatusLabelFn,
 } from '../../../shared/rssi-action-labels';
+import { formatFrDate } from '../../../../../shared/date-utils';
 
 interface LabelOption {
   value: string;
@@ -471,12 +472,7 @@ export class ActionsTableComponent {
   }
 
   formatDate(d: string | null): string {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
+    return formatFrDate(d, 'date');
   }
 
   priorityClass(p: string): string {

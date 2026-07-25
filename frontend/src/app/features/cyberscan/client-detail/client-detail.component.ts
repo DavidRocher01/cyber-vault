@@ -32,6 +32,7 @@ import * as labels from '../shared/rssi-client-labels';
 import { ClientInfoPanelComponent } from './components/client-info-panel/client-info-panel.component';
 import { ActionsTableComponent } from './components/actions-table/actions-table.component';
 import { ActivityFeedComponent } from './components/activity-feed/activity-feed.component';
+import { formatFrDate } from '../../../shared/date-utils';
 
 @Component({
   standalone: true,
@@ -777,22 +778,11 @@ export class ClientDetailComponent implements OnInit {
   }
 
   formatDate(d: string | null): string {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
+    return formatFrDate(d, 'date');
   }
 
   formatDateTime(d: string): string {
-    return new Date(d).toLocaleString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatFrDate(d, 'datetime');
   }
 
   formatAmount(amount: number | null): string {

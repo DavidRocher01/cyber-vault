@@ -15,6 +15,7 @@ import { PhishingStatusBadgeComponent } from '../phishing-status-badge/phishing-
 import { PhishingService, PhishingCampaign } from '../services/phishing.service';
 import { PHISHING_SCENARIOS } from '../services/phishing-scenarios';
 import { extractApiError } from '../../../core/http-error';
+import { formatFrDate } from '../../../shared/date-utils';
 
 @Component({
   standalone: true,
@@ -147,14 +148,7 @@ export class PhishingCampaignDetailComponent implements OnInit {
   }
 
   formatDate(iso: string | null): string {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatFrDate(iso, 'datetime');
   }
 
   downloadPdf() {

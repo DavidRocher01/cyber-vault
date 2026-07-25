@@ -10,6 +10,7 @@ import { Title } from '@angular/platform-browser';
 import { Invoice, PaginatedInvoices } from '../services/cyberscan.service';
 import { InvoiceApiService } from '../services/invoice-api.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { formatFrDate } from '../../../shared/date-utils';
 
 @Component({
   standalone: true,
@@ -87,11 +88,7 @@ export class InvoicesComponent implements OnInit {
   }
 
   formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
+    return formatFrDate(iso, 'date');
   }
 
   typeLabel(type: string): string {

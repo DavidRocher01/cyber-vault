@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { formatFrDate } from '../../../shared/date-utils';
 
 export interface BlogArticle {
   slug: string;
@@ -61,10 +62,6 @@ export class BlogService {
   }
 
   formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
+    return formatFrDate(iso, 'long');
   }
 }

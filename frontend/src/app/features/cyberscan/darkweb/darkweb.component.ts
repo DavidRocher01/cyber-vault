@@ -10,6 +10,7 @@ import { Title } from '@angular/platform-browser';
 
 import { DarkwebService, DarkwebStatus, DarkwebBreach } from '../services/darkweb.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { formatFrDate } from '../../../shared/date-utils';
 
 @Component({
   standalone: true,
@@ -120,14 +121,7 @@ export class DarkwebComponent implements OnInit {
   }
 
   formatDate(d: string | null): string {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatFrDate(d, 'datetime');
   }
 
   formatPwnCount(n: number): string {

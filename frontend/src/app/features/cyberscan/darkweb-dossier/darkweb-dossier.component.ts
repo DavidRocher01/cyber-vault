@@ -8,6 +8,7 @@ import { Title } from '@angular/platform-browser';
 
 import { DarkwebDossierService, DossierListItem } from '../services/darkweb-dossier.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { formatFrDate } from '../../../shared/date-utils';
 
 @Component({
   standalone: true,
@@ -112,11 +113,6 @@ export class DarkwebDossierComponent implements OnInit {
   }
 
   formatDate(d: string | null): string {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
+    return formatFrDate(d, 'date');
   }
 }
