@@ -50,8 +50,18 @@ async def mark_event_processed(db: AsyncSession, event_id: str) -> None:
 
 
 async def get_plan_by_price_id(db: AsyncSession, price_id: str) -> Plan | None:
-    """Plan correspondant à un price_id Stripe, sinon None."""
-    result = await db.execute(select(Plan).where(Plan.stripe_price_id == price_id))
+    """Plan correspondant à un price_id Stripe (mensuel ou annuel), sinon None.
+
+    Un price_id vide ne doit jamais matcher (les colonnes valent "" par défaut
+    tant qu'aucun price_id n'est configuré).
+    """
+    if not price_id:
+        return None
+    result = await db.execute(
+        select(Plan).where(
+            (Plan.stripe_price_id == price_id) | (Plan.stripe_price_id_yearly == price_id)
+        )
+    )
     return result.scalar_one_or_none()
 
 

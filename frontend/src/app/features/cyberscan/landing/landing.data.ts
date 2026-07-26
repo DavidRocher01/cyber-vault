@@ -68,7 +68,7 @@ export const TESTIMONIALS = [
     name: 'Lucie B.',
     role: 'RSSI, PME industrielle',
     avatar: 'L',
-    text: 'Le scan hebdomadaire Business nous donne une visibilité continue sur nos 8 sites. La détection TLS est particulièrement précise.',
+    text: 'Le scan quotidien Business nous donne une visibilité continue sur tous nos sites. La détection TLS est particulièrement précise.',
   },
   {
     name: 'Marc D.',
@@ -247,8 +247,8 @@ export const NEWSLETTER_ITEMS = [
 export const COMPARISON_ROWS = [
   {
     label: 'Sites surveillés',
-    starter: 'Illimités',
-    pro: 'Illimités',
+    starter: '5',
+    pro: '25',
     business: 'Illimités',
     enterprise: 'Illimités',
   },
@@ -461,7 +461,7 @@ export const CYBER_STATS = [
     source: 'Verizon DBIR 2024',
   },
   {
-    value: '14,90 €',
+    value: '49 €',
     label: "Le prix d'un abonnement Surveillance Starter par mois",
     source: 'Rocher Cybersécurité',
   },

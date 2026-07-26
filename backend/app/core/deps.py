@@ -129,3 +129,25 @@ def require_min_tier(min_tier: int):
             )
 
     return _dependency
+
+
+async def require_conformity_export(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Autorise l'export des rapports de conformité (NIS2 / ISO 27001) seulement si le
+    plan actif l'inclut (plans payants). Le Gratuit fait l'auto-évaluation mais n'exporte pas.
+
+    Fail-open volontaire quand le plan est inconnu (plan Gratuit non semé, ex. tests) :
+    on ne bloque que si l'on sait positivement que le plan actif interdit l'export. En prod
+    le Gratuit est toujours semé (allow_conformity_export=False) → un compte gratuit ou
+    sans abonnement (repli Gratuit) reçoit bien un 403.
+    """
+    from app.services.subscription_service import get_active_plan
+
+    plan = await get_active_plan(db, current_user.id)
+    if plan is not None and not plan.allow_conformity_export:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="L'export des rapports de conformité nécessite un abonnement payant.",
+        )

@@ -272,3 +272,75 @@ class TestSubscriptionStatusTransition:
 
         after = await get_effective_max_sites(db_session, user.id)
         assert after == 0
+
+
+# ---------------------------------------------------------------------------
+# 11. Repli sur le plan Gratuit quand aucun abonnement actif (compte neuf / churn)
+# ---------------------------------------------------------------------------
+
+
+class TestFreePlanFallback:
+    @pytest.mark.asyncio
+    async def test_get_active_plan_falls_back_to_free(self, db_session: AsyncSession):
+        """Aucun abonnement mais un plan 'free' semé → get_active_plan renvoie le Gratuit."""
+        user = await _seed_user(db_session, "fb_plan@test.com")
+        free = await _seed_plan(db_session, name="free", max_sites=1, tier_level=1, price_eur=0)
+        await db_session.commit()
+
+        result = await get_active_plan(db_session, user.id)
+
+        assert result is not None
+        assert result.id == free.id
+        assert result.name == "free"
+
+    @pytest.mark.asyncio
+    async def test_get_active_plan_ignores_inactive_free(self, db_session: AsyncSession):
+        """Un plan 'free' inactif ne sert pas de repli → None."""
+        user = await _seed_user(db_session, "fb_inactive@test.com")
+        free = await _seed_plan(db_session, name="free", max_sites=1, tier_level=1, price_eur=0)
+        free.is_active = False
+        await db_session.commit()
+
+        result = await get_active_plan(db_session, user.id)
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_effective_max_sites_falls_back_to_free_quota(self, db_session: AsyncSession):
+        """Sans abonnement, le quota du Gratuit s'applique au lieu de 0."""
+        user = await _seed_user(db_session, "fb_sites@test.com")
+        await _seed_plan(db_session, name="free", max_sites=1, tier_level=1, price_eur=0)
+        await db_session.commit()
+
+        result = await get_effective_max_sites(db_session, user.id)
+
+        assert result == 1
+
+    @pytest.mark.asyncio
+    async def test_effective_max_sites_free_unlimited(self, db_session: AsyncSession):
+        """Un Gratuit à max_sites<0 renvoie la sentinelle illimitée en repli."""
+        from app.services.subscription_service import UNLIMITED_SITES
+
+        user = await _seed_user(db_session, "fb_unlimited@test.com")
+        await _seed_plan(db_session, name="free", max_sites=-1, tier_level=1, price_eur=0)
+        await db_session.commit()
+
+        result = await get_effective_max_sites(db_session, user.id)
+
+        assert result == UNLIMITED_SITES
+
+    @pytest.mark.asyncio
+    async def test_churned_user_falls_back_to_free(self, db_session: AsyncSession):
+        """Abonnement annulé + Gratuit semé → repli sur le Gratuit (pas de verrouillage)."""
+        user = await _seed_user(db_session, "fb_churn@test.com")
+        free = await _seed_plan(db_session, name="free", max_sites=1, tier_level=1, price_eur=0)
+        paid = await _seed_plan(db_session, name="starter", max_sites=5, tier_level=2)
+        await _seed_subscription(db_session, user.id, paid.id, status="canceled")
+        await db_session.commit()
+
+        plan = await get_active_plan(db_session, user.id)
+        assert plan is not None
+        assert plan.id == free.id
+
+        sites = await get_effective_max_sites(db_session, user.id)
+        assert sites == 1

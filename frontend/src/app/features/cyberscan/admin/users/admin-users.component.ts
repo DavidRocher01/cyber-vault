@@ -28,6 +28,16 @@ export class AdminUsersComponent implements OnInit {
   users = signal<AdminUser[]>([]);
   loading = signal(true);
   search = signal('');
+  savingPlan = signal<Set<number>>(new Set());
+
+  // Plans attribuables manuellement (override admin, sans Stripe). Doit rester aligné
+  // avec les noms techniques semés côté backend (_seed_plans).
+  readonly assignablePlans = [
+    { value: 'free', label: 'Gratuit' },
+    { value: 'starter', label: 'Starter' },
+    { value: 'pro', label: 'Pro' },
+    { value: 'business', label: 'Business' },
+  ];
 
   filtered = computed(() => {
     const q = this.search().toLowerCase();
@@ -64,6 +74,48 @@ export class AdminUsersComponent implements OnInit {
 
   formatDate(iso: string | null): string {
     return formatFrDate(iso, 'date');
+  }
+
+  isSavingPlan(userId: number): boolean {
+    return this.savingPlan().has(userId);
+  }
+
+  setPlan(user: AdminUser, planName: string) {
+    if (!planName || planName === user.plan_name || this.isSavingPlan(user.id)) {
+      return;
+    }
+    this.savingPlan.update(s => new Set(s).add(user.id));
+    this.http
+      .patch<{
+        id: number;
+        plan: string;
+        plan_name: string;
+      }>(
+        `/api/v1/admin/users/${user.id}/plan`,
+        { plan_name: planName },
+        { headers: this.auth.headers() }
+      )
+      .subscribe({
+        next: res => {
+          this.users.update(list =>
+            list.map(u =>
+              u.id === res.id
+                ? { ...u, plan: res.plan, plan_name: res.plan_name, subscription_status: 'active' }
+                : u
+            )
+          );
+          this.clearSaving(user.id);
+        },
+        error: () => this.clearSaving(user.id),
+      });
+  }
+
+  private clearSaving(userId: number) {
+    this.savingPlan.update(s => {
+      const next = new Set(s);
+      next.delete(userId);
+      return next;
+    });
   }
 
   toggleRssi(user: AdminUser) {

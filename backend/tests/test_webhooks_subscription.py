@@ -44,6 +44,7 @@ async def _seed_plan(
     name: str = "pro",
     stripe_price_id: str = "price_pro_123",
     tier_level: int = 3,
+    stripe_price_id_yearly: str = "",
 ) -> int:
     from app.core.database import AsyncSessionLocal
 
@@ -56,6 +57,7 @@ async def _seed_plan(
             scan_interval_days=7,
             tier_level=tier_level,
             stripe_price_id=stripe_price_id,
+            stripe_price_id_yearly=stripe_price_id_yearly,
             is_active=True,
         )
         db.add(plan)
@@ -240,6 +242,45 @@ async def test_checkout_completed_upserts_existing_subscription():
     assert sub.status == "active"
     assert sub.stripe_customer_id == "cus_fresh"
     assert sub.stripe_subscription_id == "sub_fresh"
+
+
+@pytest.mark.asyncio
+async def test_checkout_completed_yearly_price_maps_to_plan():
+    """Un abonnement annuel (price_id annuel) doit retrouver le plan et l'activer."""
+    plan_id = await _seed_plan(
+        stripe_price_id="price_pro_m_only", stripe_price_id_yearly="price_pro_y_only"
+    )
+    await _seed_user("money_yearly@test.com")
+
+    event = _checkout_event("money_yearly@test.com", customer_id="cus_Y", subscription_id="sub_Y")
+
+    with (
+        patch(
+            "app.api.v1.endpoints.webhooks.construct_webhook_event",
+            return_value=event,
+        ),
+        patch(
+            "app.api.v1.endpoints.webhooks.stripe.Subscription.retrieve",
+            new=MagicMock(return_value=_stripe_sub_retrieve("price_pro_y_only")),
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.post(WEBHOOK_URL, content=b"{}", headers={"stripe-signature": "sig"})
+
+    assert r.status_code == 200
+
+    from app.core.database import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as db:
+        user = (
+            await db.execute(select(User).where(User.email == "money_yearly@test.com"))
+        ).scalar_one()
+        sub = (
+            await db.execute(select(Subscription).where(Subscription.user_id == user.id))
+        ).scalar_one()
+
+    assert sub.status == "active"
+    assert sub.plan_id == plan_id
 
 
 @pytest.mark.asyncio

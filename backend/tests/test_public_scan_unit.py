@@ -14,7 +14,16 @@ from fastapi import HTTPException
 
 from app.models.public_scan import PublicScan
 from app.schemas.public_scan import PublicScanOut
-from app.services.public_scan_service import run_public_scan
+from app.services import public_scan_service
+from app.services.public_scan_service import (
+    MAX_DOMAINS_PER_EMAIL,
+    QuotaExceededError,
+    ScanNotReadyError,
+    _domain_of,
+    compute_severity_counts,
+    hash_ip,
+    run_public_scan,
+)
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -28,6 +37,10 @@ def _make_scan(**kwargs) -> MagicMock:
         overall_status=None,
         results_json=None,
         error_message=None,
+        email=None,
+        email_consent_at=None,
+        ip_hash=None,
+        domain=None,
         created_at=datetime(2025, 1, 1, tzinfo=UTC),
         started_at=None,
         finished_at=None,
@@ -60,13 +73,40 @@ class TestPublicScanOutSchema:
         assert out.overall_status is None
         assert out.results_json is None
 
-    def test_done_scan_with_results(self):
+    def test_done_scan_locked_hides_results(self):
+        """Un scan terminé mais non débloqué (email absent) est verrouillé : le teaser
+        n'expose pas results_json."""
         results = json.dumps({"ssl": {"status": "OK"}})
-        scan = _make_scan(status="done", overall_status="OK", results_json=results)
+        scan = _make_scan(
+            status="done", overall_status="OK", results_json=results, email_consent_at=None
+        )
         out = PublicScanOut.from_orm_obj(scan)
         assert out.status == "done"
         assert out.overall_status == "OK"
+        assert out.locked is True
+        assert out.results_json is None
+
+    def test_done_scan_unlocked_reveals_results(self):
+        """Une fois le consentement posé, le rapport complet est révélé."""
+        results = json.dumps({"ssl": {"status": "OK"}})
+        scan = _make_scan(
+            status="done",
+            overall_status="OK",
+            results_json=results,
+            email="lead@example.com",
+            email_consent_at=datetime(2025, 2, 1, tzinfo=UTC),
+        )
+        out = PublicScanOut.from_orm_obj(scan)
+        assert out.status == "done"
+        assert out.locked is False
         assert out.results_json == results
+
+    def test_severity_counts_passed_through(self):
+        scan = _make_scan(status="done", overall_status="WARNING")
+        out = PublicScanOut.from_orm_obj(
+            scan, severity_counts={"CRITICAL": 1, "WARNING": 2, "OK": 6}
+        )
+        assert out.severity_counts == {"CRITICAL": 1, "WARNING": 2, "OK": 6}
 
     def test_failed_scan_with_error(self):
         scan = _make_scan(status="failed", error_message="Timeout")
@@ -222,3 +262,131 @@ class TestRunPublicScan:
             await run_public_scan(1, db)
 
         assert started_ats[0] is not None
+
+
+# ── Fonctions pures du gate lead ────────────────────────────────────────────────
+
+
+class TestGateHelpers:
+    def test_hash_ip_deterministic_and_hex64(self):
+        h1 = hash_ip("203.0.113.7")
+        h2 = hash_ip("203.0.113.7")
+        assert h1 == h2
+        assert len(h1) == 64
+        assert h1 != "203.0.113.7"  # jamais l'IP en clair
+
+    def test_hash_ip_differs_per_ip(self):
+        assert hash_ip("203.0.113.7") != hash_ip("203.0.113.8")
+
+    def test_domain_of_extracts_hostname_lowercased(self):
+        assert _domain_of("https://Example.COM/path?q=1") == "example.com"
+        assert _domain_of("example.com") == "example.com"
+        assert _domain_of("http://sub.example.com") == "sub.example.com"
+
+    def test_compute_severity_counts_aggregates(self):
+        scan = _make_scan(
+            results_json=json.dumps(
+                {
+                    "ssl": {"status": "OK"},
+                    "headers": {"status": "WARNING"},
+                    "cors": {"status": "CRITICAL"},
+                    "dns": {"status": "OK"},
+                    "_meta": {"url": "https://example.com"},
+                }
+            )
+        )
+        assert compute_severity_counts(scan) == {"CRITICAL": 1, "WARNING": 1, "OK": 2}
+
+    def test_compute_severity_counts_none_when_no_results(self):
+        assert compute_severity_counts(_make_scan(results_json=None)) is None
+
+    def test_compute_severity_counts_none_on_bad_json(self):
+        assert compute_severity_counts(_make_scan(results_json="not-json")) is None
+
+
+# ── unlock_public_scan() sur DB réelle ──────────────────────────────────────────
+
+
+async def _seed_scan(db, *, target_url, status="done", results_json=None):
+    scan = PublicScan(target_url=target_url, status=status, results_json=results_json)
+    db.add(scan)
+    await db.commit()
+    await db.refresh(scan)
+    return scan
+
+
+class TestUnlockPublicScan:
+    @pytest.mark.asyncio
+    async def test_unknown_token_returns_none(self, db_session):
+        result = await public_scan_service.unlock_public_scan(
+            db_session, token="does-not-exist", email="a@b.com", ip_hash="h"
+        )
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_not_done_raises_scan_not_ready(self, db_session):
+        scan = await _seed_scan(db_session, target_url="https://a.example.com", status="running")
+        with pytest.raises(ScanNotReadyError):
+            await public_scan_service.unlock_public_scan(
+                db_session, token=scan.session_token, email="a@b.com", ip_hash="h"
+            )
+
+    @pytest.mark.asyncio
+    async def test_unlock_sets_lead_fields(self, db_session):
+        scan = await _seed_scan(
+            db_session,
+            target_url="https://a.example.com",
+            results_json=json.dumps({"ssl": {"status": "OK"}}),
+        )
+        out = await public_scan_service.unlock_public_scan(
+            db_session, token=scan.session_token, email="Lead@Example.com ", ip_hash="hashval"
+        )
+        assert out is not None
+        assert out.email == "lead@example.com"  # normalisé
+        assert out.email_consent_at is not None
+        assert out.ip_hash == "hashval"
+        assert out.domain == "a.example.com"
+
+    @pytest.mark.asyncio
+    async def test_unlock_idempotent_same_email(self, db_session):
+        scan = await _seed_scan(db_session, target_url="https://a.example.com")
+        first = await public_scan_service.unlock_public_scan(
+            db_session, token=scan.session_token, email="lead@example.com", ip_hash="h1"
+        )
+        consent_at = first.email_consent_at
+        again = await public_scan_service.unlock_public_scan(
+            db_session, token=scan.session_token, email="lead@example.com", ip_hash="h2"
+        )
+        assert again.email_consent_at == consent_at  # pas ré-écrit
+
+    @pytest.mark.asyncio
+    async def test_quota_blocks_after_max_domains(self, db_session):
+        email = "lead@example.com"
+        # Débloque MAX_DOMAINS_PER_EMAIL domaines distincts.
+        for i in range(MAX_DOMAINS_PER_EMAIL):
+            scan = await _seed_scan(db_session, target_url=f"https://site{i}.example.com")
+            await public_scan_service.unlock_public_scan(
+                db_session, token=scan.session_token, email=email, ip_hash="h"
+            )
+        # Un domaine de plus dépasse le plafond.
+        extra = await _seed_scan(db_session, target_url="https://one-too-many.example.com")
+        with pytest.raises(QuotaExceededError):
+            await public_scan_service.unlock_public_scan(
+                db_session, token=extra.session_token, email=email, ip_hash="h"
+            )
+
+    @pytest.mark.asyncio
+    async def test_same_domain_does_not_consume_quota(self, db_session):
+        email = "lead@example.com"
+        for i in range(MAX_DOMAINS_PER_EMAIL):
+            scan = await _seed_scan(db_session, target_url=f"https://site{i}.example.com")
+            await public_scan_service.unlock_public_scan(
+                db_session, token=scan.session_token, email=email, ip_hash="h"
+            )
+        # Nouveau scan mais domaine DÉJÀ débloqué → autorisé malgré le plafond.
+        again = await _seed_scan(db_session, target_url="https://site0.example.com/other-page")
+        out = await public_scan_service.unlock_public_scan(
+            db_session, token=again.session_token, email=email, ip_hash="h"
+        )
+        assert out is not None
+        assert out.domain == "site0.example.com"

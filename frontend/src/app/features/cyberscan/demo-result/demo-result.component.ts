@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, signal, DOCUMENT } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { Title, Meta } from '@angular/platform-browser';
 import { MatButtonModule } from '@angular/material/button';
@@ -27,6 +28,7 @@ interface ModuleResult {
   standalone: true,
   selector: 'app-demo-result',
   imports: [
+    FormsModule,
     RouterLink,
     MatButtonModule,
     MatIconModule,
@@ -51,6 +53,13 @@ export class DemoResultComponent implements OnInit, OnDestroy {
   error = signal<string | null>(null);
   linkCopied = signal(false);
   checkoutLoading = false;
+
+  // Gate email (lead) : le rapport complet est verrouillé tant que l'email n'a pas
+  // été saisi + consentement coché. severity_counts alimente le teaser (agrégé).
+  unlockEmail = signal('');
+  unlockConsent = signal(false);
+  unlocking = signal(false);
+  unlockError = signal<string | null>(null);
 
   private pollSub: Subscription | null = null;
 
@@ -121,6 +130,60 @@ export class DemoResultComponent implements OnInit, OnDestroy {
         this.checkoutLoading = false;
       },
     });
+  }
+
+  get isLocked(): boolean {
+    const s = this.scan();
+    return !!s && s.status === 'done' && s.locked;
+  }
+
+  get teaserCritical(): number {
+    return this.scan()?.severity_counts?.['CRITICAL'] ?? 0;
+  }
+  get teaserWarning(): number {
+    return this.scan()?.severity_counts?.['WARNING'] ?? 0;
+  }
+  get teaserOk(): number {
+    return this.scan()?.severity_counts?.['OK'] ?? 0;
+  }
+
+  get canUnlock(): boolean {
+    const email = this.unlockEmail().trim();
+    return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) && this.unlockConsent() && !this.unlocking();
+  }
+
+  submitUnlock() {
+    if (!this.canUnlock) return;
+    const token = this.scan()?.token;
+    if (!token) return;
+
+    this.unlocking.set(true);
+    this.unlockError.set(null);
+    this.publicScanApi
+      .unlockPublicScan(token, this.unlockEmail().trim(), this.unlockConsent())
+      .subscribe({
+        next: s => {
+          // La réponse de déblocage porte le rapport complet (results_json renseigné).
+          this.pollSub?.unsubscribe();
+          this.scan.set(s);
+          this.unlocking.set(false);
+          this._updateMeta(s);
+        },
+        error: err => {
+          this.unlocking.set(false);
+          if (err?.status === 429) {
+            this.unlockError.set(
+              'Vous avez atteint la limite de rapports gratuits. Créez un compte pour continuer à analyser vos sites.'
+            );
+          } else if (err?.status === 422) {
+            this.unlockError.set(
+              'Merci de saisir un email valide et d’accepter le traitement de vos données.'
+            );
+          } else {
+            this.unlockError.set('Le déblocage a échoué. Réessayez dans un instant.');
+          }
+        },
+      });
   }
 
   private _updateMeta(s: PublicScanResult) {

@@ -7,7 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Title } from '@angular/platform-browser';
 
-import { Plan } from '../services/cyberscan.service';
+import { Plan, BillingInterval } from '../services/cyberscan.service';
 import { ScanApiService } from '../services/scan-api.service';
 import { SiteApiService } from '../services/site-api.service';
 import { BillingService } from '../services/billing.service';
@@ -40,6 +40,8 @@ export class OnboardingComponent implements OnInit {
   plans = signal<Plan[]>([]);
   selectedPlan = signal<Plan | null>(null);
   checkoutLoading = signal(false);
+  // Sélecteur mensuel/annuel (2 mois offerts) — visible seulement si un plan a un tarif annuel.
+  billingInterval = signal<BillingInterval>('monthly');
   addingSite = signal(false);
   currentStep = signal(1);
 
@@ -66,10 +68,26 @@ export class OnboardingComponent implements OnInit {
     });
   }
 
+  get hasYearlyOption(): boolean {
+    return this.plans().some(p => p.yearly_available);
+  }
+
+  effectiveInterval(plan: Plan): BillingInterval {
+    return this.billingInterval() === 'yearly' && plan.yearly_available ? 'yearly' : 'monthly';
+  }
+
+  planPrice(plan: Plan): number {
+    return this.effectiveInterval(plan) === 'yearly' ? plan.price_eur_yearly : plan.price_eur;
+  }
+
+  planPriceSuffix(plan: Plan): string {
+    return this.effectiveInterval(plan) === 'yearly' ? '/an HT' : '/mois HT';
+  }
+
   selectPlan(plan: Plan) {
     this.selectedPlan.set(plan);
     this.checkoutLoading.set(true);
-    this.billing.createCheckout(plan.id).subscribe({
+    this.billing.createCheckout(plan.id, this.effectiveInterval(plan)).subscribe({
       next: res => {
         const url = res.checkout_url;
         if (url.startsWith('/')) {

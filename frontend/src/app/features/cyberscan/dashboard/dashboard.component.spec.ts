@@ -10,6 +10,7 @@ function make(): DashboardComponent {
   const comp = Object.create(DashboardComponent.prototype) as DashboardComponent;
   (comp as any).scansMap = signal({});
   (comp as any).sites = signal([]);
+  (comp as any).billingInterval = signal('monthly');
   return comp;
 }
 

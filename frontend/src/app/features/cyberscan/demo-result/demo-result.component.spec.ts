@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { signal } from '@angular/core';
+import { of, throwError } from 'rxjs';
 import { DemoResultComponent } from './demo-result.component';
 
 function make(): DemoResultComponent {
@@ -8,6 +9,12 @@ function make(): DemoResultComponent {
   (comp as any).loading = signal(true);
   (comp as any).error = signal<string | null>(null);
   (comp as any).linkCopied = signal(false);
+  (comp as any).unlockEmail = signal('');
+  (comp as any).unlockConsent = signal(false);
+  (comp as any).unlocking = signal(false);
+  (comp as any).unlockError = signal<string | null>(null);
+  (comp as any).pollSub = null;
+  (comp as any)._updateMeta = () => {};
   return comp;
 }
 
@@ -133,4 +140,132 @@ describe('DemoResultComponent — moduleColor()', () => {
     expect(make().moduleColor('CRITICAL')).toBe('text-red-400'));
   it('text-gray-500 par défaut', () => expect(make().moduleColor(null)).toBe('text-gray-500'));
   it('text-gray-500 pour inconnu', () => expect(make().moduleColor('OTHER')).toBe('text-gray-500'));
+});
+
+describe('DemoResultComponent — gate lead (isLocked / teaser)', () => {
+  it('isLocked false si scan null', () => {
+    expect(make().isLocked).toBe(false);
+  });
+  it('isLocked false si le scan tourne encore', () => {
+    const comp = make();
+    (comp as any).scan.set({ status: 'running', locked: true });
+    expect(comp.isLocked).toBe(false);
+  });
+  it('isLocked true si done + locked', () => {
+    const comp = make();
+    (comp as any).scan.set({ status: 'done', locked: true });
+    expect(comp.isLocked).toBe(true);
+  });
+  it('isLocked false si done + débloqué', () => {
+    const comp = make();
+    (comp as any).scan.set({ status: 'done', locked: false });
+    expect(comp.isLocked).toBe(false);
+  });
+  it('teaser lit severity_counts', () => {
+    const comp = make();
+    (comp as any).scan.set({
+      status: 'done',
+      locked: true,
+      severity_counts: { CRITICAL: 2, WARNING: 3, OK: 4 },
+    });
+    expect(comp.teaserCritical).toBe(2);
+    expect(comp.teaserWarning).toBe(3);
+    expect(comp.teaserOk).toBe(4);
+  });
+  it('teaser vaut 0 sans severity_counts', () => {
+    const comp = make();
+    (comp as any).scan.set({ status: 'done', locked: true });
+    expect(comp.teaserCritical).toBe(0);
+    expect(comp.teaserWarning).toBe(0);
+    expect(comp.teaserOk).toBe(0);
+  });
+});
+
+describe('DemoResultComponent — canUnlock', () => {
+  it('false sans email valide', () => {
+    const comp = make();
+    (comp as any).unlockConsent.set(true);
+    (comp as any).unlockEmail.set('pas-un-email');
+    expect(comp.canUnlock).toBe(false);
+  });
+  it('false sans consentement', () => {
+    const comp = make();
+    (comp as any).unlockEmail.set('lead@example.com');
+    (comp as any).unlockConsent.set(false);
+    expect(comp.canUnlock).toBe(false);
+  });
+  it('false pendant un déblocage en cours', () => {
+    const comp = make();
+    (comp as any).unlockEmail.set('lead@example.com');
+    (comp as any).unlockConsent.set(true);
+    (comp as any).unlocking.set(true);
+    expect(comp.canUnlock).toBe(false);
+  });
+  it('true avec email valide + consentement', () => {
+    const comp = make();
+    (comp as any).unlockEmail.set('lead@example.com');
+    (comp as any).unlockConsent.set(true);
+    expect(comp.canUnlock).toBe(true);
+  });
+});
+
+describe('DemoResultComponent — submitUnlock()', () => {
+  function ready() {
+    const comp = make();
+    (comp as any).scan.set({ token: 'tok1', status: 'done', locked: true });
+    (comp as any).unlockEmail.set('lead@example.com');
+    (comp as any).unlockConsent.set(true);
+    return comp;
+  }
+
+  it('no-op si canUnlock est faux', () => {
+    const comp = make();
+    let called = false;
+    (comp as any).publicScanApi = {
+      unlockPublicScan: () => {
+        called = true;
+        return of({});
+      },
+    };
+    comp.submitUnlock();
+    expect(called).toBe(false);
+  });
+
+  it('succès : remplace le scan par le rapport débloqué', () => {
+    const comp = ready();
+    const full = { token: 'tok1', status: 'done', locked: false, results_json: '{"ssl":{}}' };
+    (comp as any).publicScanApi = { unlockPublicScan: () => of(full) };
+    comp.submitUnlock();
+    expect((comp as any).scan()).toEqual(full);
+    expect((comp as any).unlocking()).toBe(false);
+    expect((comp as any).unlockError()).toBeNull();
+  });
+
+  it('erreur 429 : message quota + créer un compte', () => {
+    const comp = ready();
+    (comp as any).publicScanApi = {
+      unlockPublicScan: () => throwError(() => ({ status: 429 })),
+    };
+    comp.submitUnlock();
+    expect((comp as any).unlocking()).toBe(false);
+    expect((comp as any).unlockError()).toContain('compte');
+  });
+
+  it('erreur 422 : message email/consentement', () => {
+    const comp = ready();
+    (comp as any).publicScanApi = {
+      unlockPublicScan: () => throwError(() => ({ status: 422 })),
+    };
+    comp.submitUnlock();
+    expect((comp as any).unlockError()).toContain('email');
+  });
+
+  it('erreur générique : message de repli', () => {
+    const comp = ready();
+    (comp as any).publicScanApi = {
+      unlockPublicScan: () => throwError(() => ({ status: 500 })),
+    };
+    comp.submitUnlock();
+    expect((comp as any).unlockError()).toContain('échoué');
+  });
 });

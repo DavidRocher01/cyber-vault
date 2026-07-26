@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, shareReplay } from 'rxjs';
 
-import { Plan, Subscription, CheckoutSession } from './cyberscan.service';
+import { Plan, Subscription, CheckoutSession, BillingInterval } from './cyberscan.service';
 
 const API = '/api/v1';
 
@@ -39,8 +39,14 @@ export class BillingService {
     this._subscription$ = null;
   }
 
-  createCheckout(planId: number): Observable<CheckoutSession> {
-    return this.http.post<CheckoutSession>(`${API}/subscriptions/checkout/${planId}`, {});
+  createCheckout(
+    planId: number,
+    interval: BillingInterval = 'monthly'
+  ): Observable<CheckoutSession> {
+    return this.http.post<CheckoutSession>(
+      `${API}/subscriptions/checkout/${planId}?interval=${interval}`,
+      {}
+    );
   }
 
   getBillingPortal(): Observable<{ checkout_url: string }> {

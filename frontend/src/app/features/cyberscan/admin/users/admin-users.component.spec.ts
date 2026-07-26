@@ -17,6 +17,13 @@ function make(): AdminUsersComponent {
   (comp as any).users = signal<AdminUser[]>([]);
   (comp as any).loading = signal(true);
   (comp as any).search = signal('');
+  (comp as any).savingPlan = signal<Set<number>>(new Set());
+  (comp as any).assignablePlans = [
+    { value: 'free', label: 'Gratuit' },
+    { value: 'starter', label: 'Starter' },
+    { value: 'pro', label: 'Pro' },
+    { value: 'business', label: 'Business' },
+  ];
   (comp as any).filtered = computed(() => {
     const q = (comp as any).search().toLowerCase();
     return q
@@ -154,6 +161,71 @@ describe('AdminUsersComponent — filtered()', () => {
     (comp as any).users.set(USERS);
     (comp as any).search.set('example');
     expect((comp as any).filtered().length).toBe(2);
+  });
+});
+
+// ── setPlan / isSavingPlan ──────────────────────────────────────────────────────
+
+describe('AdminUsersComponent — setPlan()', () => {
+  function withHttp(comp: AdminUsersComponent, response: unknown) {
+    (comp as any).http = {
+      patch: () => ({
+        subscribe: (obs: { next: (r: unknown) => void }) => obs.next(response),
+      }),
+    };
+    (comp as any).auth = { headers: () => ({}) };
+  }
+
+  it('attribue un nouveau plan et met à jour la ligne', () => {
+    const comp = make();
+    (comp as any).users.set([USERS[1]]); // bob, plan_name null (gratuit)
+    withHttp(comp, { id: 2, plan: 'Pro', plan_name: 'pro' });
+    comp.setPlan(USERS[1] as any, 'pro');
+    const bob = (comp as any).users()[0];
+    expect(bob.plan_name).toBe('pro');
+    expect(bob.plan).toBe('Pro');
+    expect(bob.subscription_status).toBe('active');
+    expect(comp.isSavingPlan(2)).toBe(false);
+  });
+
+  it('ne fait rien si le plan choisi est déjà le plan courant', () => {
+    const comp = make();
+    let called = false;
+    (comp as any).http = {
+      patch: () => {
+        called = true;
+        return { subscribe: () => {} };
+      },
+    };
+    comp.setPlan(USERS[0] as any, 'pro'); // alice est déjà pro
+    expect(called).toBe(false);
+  });
+
+  it('ne fait rien si un enregistrement est déjà en cours pour cet utilisateur', () => {
+    const comp = make();
+    (comp as any).savingPlan.set(new Set([1]));
+    let called = false;
+    (comp as any).http = {
+      patch: () => {
+        called = true;
+        return { subscribe: () => {} };
+      },
+    };
+    comp.setPlan(USERS[0] as any, 'business');
+    expect(called).toBe(false);
+  });
+
+  it('libère le drapeau de sauvegarde en cas d’erreur', () => {
+    const comp = make();
+    (comp as any).users.set([USERS[1]]);
+    (comp as any).http = {
+      patch: () => ({
+        subscribe: (obs: { error: () => void }) => obs.error(),
+      }),
+    };
+    (comp as any).auth = { headers: () => ({}) };
+    comp.setPlan(USERS[1] as any, 'pro');
+    expect(comp.isSavingPlan(2)).toBe(false);
   });
 });
 

@@ -62,10 +62,16 @@ describe('BillingService', () => {
     expect(http.get).toHaveBeenCalledWith(`${API}/subscriptions/me`);
   });
 
-  it('createCheckout() envoie POST /api/v1/subscriptions/checkout/:id', () => {
+  it('createCheckout() envoie POST /api/v1/subscriptions/checkout/:id (mensuel par défaut)', () => {
     http.post.mockReturnValue(of({ checkout_url: 'https://stripe.com' }));
     service.createCheckout(3).subscribe();
-    expect(http.post).toHaveBeenCalledWith(`${API}/subscriptions/checkout/3`, {});
+    expect(http.post).toHaveBeenCalledWith(`${API}/subscriptions/checkout/3?interval=monthly`, {});
+  });
+
+  it('createCheckout() propage interval=yearly dans la query', () => {
+    http.post.mockReturnValue(of({ checkout_url: 'https://stripe.com' }));
+    service.createCheckout(3, 'yearly').subscribe();
+    expect(http.post).toHaveBeenCalledWith(`${API}/subscriptions/checkout/3?interval=yearly`, {});
   });
 
   it("createCheckout() retourne l'url de checkout", () => {

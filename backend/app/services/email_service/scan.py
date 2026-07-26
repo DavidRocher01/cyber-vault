@@ -74,6 +74,39 @@ Rocher Cybersécurité — Cybersécurité as a Service
         server.sendmail(settings.smtp_from_address, to_email, msg.as_string())
 
 
+def send_public_scan_report(
+    to_email: str,
+    site_url: str,
+    overall_status: str,
+    report_url: str,
+) -> None:
+    """Copie du rapport de scan gratuit (gate lead) : lien vers le rapport complet.
+
+    Contrairement à send_scan_report, aucun PDF n'est joint (le scan gratuit ne génère
+    pas de PDF) : on envoie un lien vers le rapport en ligne, débloqué via son token.
+    """
+    status_emoji = {"OK": "✅", "WARNING": "⚠️", "CRITICAL": "🚨"}.get(overall_status, "📋")
+    subject = f"[Rocher Cybersécurité] Votre rapport de scan — {site_url} {status_emoji}"
+    plain = f"""Bonjour,
+
+Merci d'avoir utilisé le scan de sécurité gratuit de Rocher Cybersécurité.
+
+Site analysé : {site_url}
+Résultat global : {overall_status} {status_emoji}
+
+Consultez votre rapport complet ici :
+{report_url}
+
+Pour surveiller vos sites en continu, exporter vos rapports de conformité et bien plus,
+découvrez nos offres sur {settings.FRONTEND_URL}.
+
+---
+Rocher Cybersécurité — Cybersécurité as a Service
+"""
+    html = f"<p>{plain.replace(chr(10), '<br>')}</p>"
+    _send(to_email, subject, html, plain)
+
+
 def send_ssl_expiry_alert(
     to_email: str,
     site_url: str,

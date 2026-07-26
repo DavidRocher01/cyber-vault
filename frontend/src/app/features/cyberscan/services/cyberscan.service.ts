@@ -11,11 +11,19 @@ export interface Plan {
   name: string;
   display_name: string;
   price_eur: number;
+  // Prix annuel (centimes, 2 mois offerts) et disponibilité réelle de la
+  // facturation annuelle (dépend du price_id Stripe annuel configuré côté back).
+  price_eur_yearly: number;
+  yearly_available: boolean;
   max_sites: number;
   scan_interval_days: number;
   tier_level: number;
   stripe_price_id: string;
+  // Export des rapports de conformité (NIS2/ISO 27001) : réservé aux plans payants.
+  allow_conformity_export?: boolean;
 }
+
+export type BillingInterval = 'monthly' | 'yearly';
 
 export interface Subscription {
   id: number;
@@ -155,6 +163,10 @@ export interface PublicScanResult {
   token: string;
   status: string;
   overall_status: string | null;
+  // Verrouillé tant que le rapport n'a pas été débloqué par email : results_json est
+  // alors null et seul severity_counts (teaser agrégé) est renseigné.
+  locked: boolean;
+  severity_counts: Record<string, number> | null;
   results_json: string | null;
   error_message: string | null;
   created_at: string;

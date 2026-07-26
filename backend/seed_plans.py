@@ -22,35 +22,39 @@ PLANS = [
         "display_name": "Gratuit",
         "price_eur": 0,  # 0,00 €
         "max_sites": 1,
-        "scan_interval_days": 0,  # scan manuel uniquement
+        "scan_interval_days": 30,  # dégustation : 1 scan/mois
         "tier_level": 1,
+        "allow_conformity_export": False,  # export PDF conformité réservé au payant
         "stripe_price_id": "",
     },
     {
         "name": "starter",
         "display_name": "Surveillance Starter",
-        "price_eur": 1490,  # 14,90 €
-        "max_sites": 1,
-        "scan_interval_days": 7,  # 4 scans/mois (hebdo)
+        "price_eur": 4900,  # 49,00 €
+        "max_sites": 5,
+        "scan_interval_days": 1,  # quotidien
         "tier_level": 2,
+        "allow_conformity_export": True,
         "stripe_price_id": "",  # À créer dans Stripe (nouveau prix)
     },
     {
         "name": "pro",
         "display_name": "Surveillance Pro",
-        "price_eur": 4900,  # 49,00 €
-        "max_sites": 5,
-        "scan_interval_days": 7,  # 20 scans/mois (5/sem)
+        "price_eur": 14900,  # 149,00 €
+        "max_sites": 25,
+        "scan_interval_days": 1,  # quotidien
         "tier_level": 3,
+        "allow_conformity_export": True,
         "stripe_price_id": "",  # À créer dans Stripe (nouveau prix)
     },
     {
         "name": "business",
         "display_name": "Surveillance Business",
-        "price_eur": 14900,  # 149,00 €
-        "max_sites": 15,
+        "price_eur": 39000,  # 390,00 €
+        "max_sites": -1,  # illimité
         "scan_interval_days": 1,  # quotidien
         "tier_level": 4,
+        "allow_conformity_export": True,
         "stripe_price_id": "",  # À créer dans Stripe (nouveau prix)
     },
 ]
@@ -63,11 +67,16 @@ async def seed():
             existing = result.scalar_one_or_none()
             if existing:
                 changed = False
-                if existing.price_eur != plan_data["price_eur"]:
-                    existing.price_eur = plan_data["price_eur"]
-                    existing.max_sites = plan_data["max_sites"]
-                    existing.scan_interval_days = plan_data["scan_interval_days"]
-                    changed = True
+                for field in (
+                    "price_eur",
+                    "max_sites",
+                    "scan_interval_days",
+                    "tier_level",
+                    "allow_conformity_export",
+                ):
+                    if getattr(existing, field) != plan_data[field]:
+                        setattr(existing, field, plan_data[field])
+                        changed = True
                 if (
                     plan_data["stripe_price_id"]
                     and existing.stripe_price_id != plan_data["stripe_price_id"]

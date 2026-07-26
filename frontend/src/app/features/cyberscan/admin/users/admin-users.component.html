@@ -41,6 +41,7 @@
           <tr class="text-gray-400 text-xs">
             <th class="text-left px-4 py-3">Email</th>
             <th class="text-left px-4 py-3">Plan</th>
+            <th class="text-left px-4 py-3">Attribuer un plan</th>
             <th class="text-left px-4 py-3">Abonné depuis</th>
             <th class="text-left px-4 py-3">Statut</th>
             <th class="text-left px-4 py-3">RSSI</th>
@@ -54,6 +55,19 @@
                 <span class="text-xs px-2 py-0.5 rounded-full" [class]="planColor(u.plan_name)">
                   {{ u.plan }}
                 </span>
+              </td>
+              <td class="px-4 py-3">
+                <select
+                  [value]="u.plan_name ?? 'free'"
+                  [disabled]="isSavingPlan(u.id)"
+                  (change)="setPlan(u, $any($event.target).value)"
+                  title="Attribuer un plan sans facturation (test / offre commerciale)"
+                  class="px-2 py-1 rounded-lg bg-gray-800 border border-gray-700 text-white text-xs outline-none focus:border-cyan-500 disabled:opacity-50"
+                >
+                  @for (p of assignablePlans; track p.value) {
+                    <option [value]="p.value">{{ p.label }}</option>
+                  }
+                </select>
               </td>
               <td class="px-4 py-3 text-gray-400 text-xs">
                 {{ formatDate(u.subscription_since) }}

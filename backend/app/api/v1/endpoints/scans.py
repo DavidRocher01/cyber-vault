@@ -57,9 +57,13 @@ async def trigger_scan(
     in_flight = ("pending", "running")
 
     # Enforce interval globally across all user sites to prevent bypass via delete+recreate.
-    # max_sites < 0 => plan a scans illimités (ex. Gratuit) : aucune limite de fréquence.
+    # Le décompte "scans dans la fenêtre" est plafonné par max_sites du plan.
+    # - interval_days <= 1 (plans payants Starter/Pro/Business, scan quotidien) => scans
+    #   manuels illimités : seul le garde @limiter.limit("10/minute") subsiste.
+    # - max_sites < 0 (Business, sites illimités) => aucun plafond de fréquence.
+    # Seul le Gratuit (interval=30, max_sites=1) reste plafonné à 1 scan / 30 jours.
     max_scans = plan.max_sites if plan else 1
-    if interval_days > 0 and max_scans >= 0:
+    if interval_days > 1 and max_scans >= 0:
         since = datetime.now(UTC) - timedelta(days=interval_days)
         recent = await scan_query_service.count_scans_in_window(
             db, current_user.id, in_flight, since

@@ -12,9 +12,15 @@ class PlanOut(BaseModel):
     name: str
     display_name: str
     price_eur: int
+    # Prix annuel en centimes (2 mois offerts) et disponibilite reelle de la
+    # facturation annuelle (dependante du price_id Stripe annuel). Exposes en
+    # lecture pour piloter le selecteur mensuel/annuel du front.
+    price_eur_yearly: int
+    yearly_available: bool = False
     max_sites: int
     scan_interval_days: int
     tier_level: int
+    allow_conformity_export: bool = True
 
     model_config = {"from_attributes": True}
 

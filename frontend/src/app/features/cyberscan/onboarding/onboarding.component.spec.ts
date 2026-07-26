@@ -18,6 +18,8 @@ function makePlan(over: Partial<Plan> = {}): Plan {
     name: 'starter',
     display_name: 'Starter',
     price_eur: 29,
+    price_eur_yearly: 290,
+    yearly_available: false,
     max_sites: 1,
     scan_interval_days: 30,
     tier_level: 1,
@@ -32,6 +34,7 @@ function make(): OnboardingComponent {
   (comp as any).plans = signal<Plan[]>([]);
   (comp as any).selectedPlan = signal<Plan | null>(null);
   (comp as any).checkoutLoading = signal(false);
+  (comp as any).billingInterval = signal('monthly');
   (comp as any).addingSite = signal(false);
   (comp as any).currentStep = signal(1);
 
@@ -141,7 +144,7 @@ describe('OnboardingComponent — selectPlan()', () => {
     comp.selectPlan(plan);
     expect(comp.selectedPlan()).toBe(plan);
     expect(comp.checkoutLoading()).toBe(true);
-    expect((comp as any).cyberscan.createCheckout).toHaveBeenCalledWith(plan.id);
+    expect((comp as any).cyberscan.createCheckout).toHaveBeenCalledWith(plan.id, 'monthly');
   });
 
   it('navigue en interne pour une URL relative', () => {

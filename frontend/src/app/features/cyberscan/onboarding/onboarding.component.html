@@ -108,6 +108,40 @@
               }
             }
 
+            @if (hasYearlyOption) {
+              <div class="flex justify-center mb-2">
+                <div
+                  class="inline-flex items-center gap-1 rounded-full border border-gray-800 bg-gray-900/60 p-1"
+                  role="group"
+                  aria-label="Choix de la périodicité de facturation"
+                >
+                  <button
+                    type="button"
+                    class="px-3 py-1 rounded-full text-xs font-semibold transition-colors"
+                    [class.bg-cyan-600]="billingInterval() === 'monthly'"
+                    [class.text-white]="billingInterval() === 'monthly'"
+                    [class.text-gray-400]="billingInterval() !== 'monthly'"
+                    [attr.aria-pressed]="billingInterval() === 'monthly'"
+                    (click)="billingInterval.set('monthly')"
+                  >
+                    Mensuel
+                  </button>
+                  <button
+                    type="button"
+                    class="px-3 py-1 rounded-full text-xs font-semibold transition-colors flex items-center gap-1.5"
+                    [class.bg-cyan-600]="billingInterval() === 'yearly'"
+                    [class.text-white]="billingInterval() === 'yearly'"
+                    [class.text-gray-400]="billingInterval() !== 'yearly'"
+                    [attr.aria-pressed]="billingInterval() === 'yearly'"
+                    (click)="billingInterval.set('yearly')"
+                  >
+                    Annuel
+                    <span class="text-[10px] font-bold text-cyan-300">-2 mois</span>
+                  </button>
+                </div>
+              </div>
+            }
+
             @for (plan of plans(); track plan.id; let i = $index) {
               <button
                 type="button"
@@ -171,9 +205,12 @@
                       </div>
                     } @else {
                       <p class="text-xl font-extrabold text-cyan-400 leading-none">
-                        {{ formatPrice(plan.price_eur) }}
+                        {{ formatPrice(planPrice(plan)) }}
                       </p>
-                      <p class="text-xs text-gray-600 mt-0.5">/mois</p>
+                      <p class="text-xs text-gray-600 mt-0.5">{{ planPriceSuffix(plan) }}</p>
+                      @if (effectiveInterval(plan) === 'yearly') {
+                        <p class="text-[10px] text-cyan-300 mt-0.5">2 mois offerts</p>
+                      }
                     }
                   </div>
                 </div>
