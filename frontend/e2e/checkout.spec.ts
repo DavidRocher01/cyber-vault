@@ -92,14 +92,14 @@ test.describe('Parcours abonnement — initiation du checkout', () => {
     // On arme l'écoute de la requête AVANT le clic pour ne pas la rater.
     const checkoutReq = page.waitForRequest(
       req =>
-        req.method() === 'POST' && /\/api\/v1\/subscriptions\/checkout\/\d+$/.test(req.url())
+        req.method() === 'POST' && /\/api\/v1\/subscriptions\/checkout\/\d+(?:\?|$)/.test(req.url())
     );
 
     await proPlanBtn.click();
 
     const req = await checkoutReq;
     // INVARIANT CLÉ : le checkout est déclenché pour le plan payant sélectionné (id=42, "Pro").
-    expect(req.url()).toMatch(/\/api\/v1\/subscriptions\/checkout\/42$/);
+    expect(req.url()).toMatch(/\/api\/v1\/subscriptions\/checkout\/42(?:\?|$)/);
     expect(req.method()).toBe('POST');
     // Le corps est un POST vide {} côté service — on vérifie juste qu'il n'y a pas d'erreur de sérialisation.
     expect(checkoutBody === null || typeof checkoutBody === 'object' || checkoutBody === '{}').toBeTruthy();
@@ -144,14 +144,14 @@ test.describe('Parcours abonnement — initiation du checkout', () => {
     await expect(page.getByRole('heading', { name: /choisissez votre plan/i })).toBeVisible();
 
     const checkoutReq = page.waitForRequest(
-      req => req.method() === 'POST' && /\/subscriptions\/checkout\/\d+$/.test(req.url())
+      req => req.method() === 'POST' && /\/subscriptions\/checkout\/\d+(?:\?|$)/.test(req.url())
     );
 
     await page.getByRole('button').filter({ hasText: 'Essentiel' }).click();
 
     const req = await checkoutReq;
     // Le premier plan payant (id=1) est bien celui pour lequel le checkout est créé.
-    expect(req.url()).toMatch(/\/api\/v1\/subscriptions\/checkout\/1$/);
+    expect(req.url()).toMatch(/\/api\/v1\/subscriptions\/checkout\/1(?:\?|$)/);
 
     // L'app doit tenter d'atteindre checkout.stripe.com (redirection de paiement).
     await page.waitForURL(/checkout\.stripe\.com/, { timeout: 15_000 });
@@ -179,7 +179,7 @@ test.describe('Parcours abonnement — initiation du checkout', () => {
     await expect(page.getByRole('heading', { name: /choisissez votre plan/i })).toBeVisible();
 
     const checkoutReq = page.waitForRequest(
-      req => req.method() === 'POST' && /\/subscriptions\/checkout\/\d+$/.test(req.url())
+      req => req.method() === 'POST' && /\/subscriptions\/checkout\/\d+(?:\?|$)/.test(req.url())
     );
 
     await page.getByRole('button').filter({ hasText: 'Pro' }).click();
