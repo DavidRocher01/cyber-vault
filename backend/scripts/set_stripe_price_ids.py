@@ -5,8 +5,8 @@ Backfill des `plans.stripe_price_id` après la migration `reprice_plans_v2`
 (cf. dette #2 : le data/seed reste hors des migrations de schéma).
 
 Pré-requis : avoir créé les 3 produits/prix en mode LIVE dans Stripe et noté
-leurs `price_...`. Les nouveaux tarifs attendus :
-    starter  -> 14,90 €   pro -> 49,00 €   business -> 149,00 €
+leurs `price_...`. Les tarifs attendus :
+    starter  -> 49,00 €   pro -> 149,00 €   business -> 390,00 €
 
 Usage (dans le conteneur ECS) :
     python scripts/set_stripe_price_ids.py \

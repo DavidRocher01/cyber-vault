@@ -111,5 +111,6 @@ async def test_list_plans_response_shape():
         "max_sites",
         "scan_interval_days",
         "tier_level",
+        "allow_conformity_export",
     ):
         assert key in plan, f"Missing key: {key}"

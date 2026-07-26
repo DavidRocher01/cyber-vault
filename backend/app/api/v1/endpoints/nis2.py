@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_conformity_export
 from app.models.user import User
 from app.services import brand_service, nis2_service
 from app.services.assessment_service import compute_assessment_score
@@ -342,7 +342,7 @@ async def save_assessment(
     }
 
 
-@router.get("/me/pdf")
+@router.get("/me/pdf", dependencies=[Depends(require_conformity_export)])
 async def export_assessment_pdf(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -375,7 +375,7 @@ async def export_assessment_pdf(
     )
 
 
-@router.get("/me/pdf/auditor")
+@router.get("/me/pdf/auditor", dependencies=[Depends(require_conformity_export)])
 async def export_auditor_pdf(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

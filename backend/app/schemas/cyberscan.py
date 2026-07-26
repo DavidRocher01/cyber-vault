@@ -15,6 +15,7 @@ class PlanOut(BaseModel):
     max_sites: int
     scan_interval_days: int
     tier_level: int
+    allow_conformity_export: bool = True
 
     model_config = {"from_attributes": True}
 

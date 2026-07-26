@@ -608,7 +608,8 @@
               <h3 class="font-bold text-white">{{ f.name }}</h3>
               <span class="text-xs text-cyan-400 font-semibold">{{ f.cadence }}</span>
             </div>
-            <p class="text-gray-500 text-xs mb-4">{{ f.target }}</p>
+            <p class="text-gray-500 text-xs mb-1">{{ f.target }}</p>
+            <p class="text-sm font-semibold text-cyan-400 mb-4">{{ f.price }}</p>
             <ul class="flex flex-col gap-2 mb-5 flex-1">
               @for (item of f.includes; track item) {
                 <li class="flex items-start gap-2 text-sm text-gray-300">
@@ -620,9 +621,7 @@
                 </li>
               }
             </ul>
-            <p class="text-sm font-semibold text-white">
-              Tarif <span class="text-cyan-400">sur devis</span>
-            </p>
+            <p class="text-xs text-gray-500">+ frais de mise en place — devis personnalisé</p>
           </div>
         }
       </div>

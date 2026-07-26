@@ -138,6 +138,7 @@ export class LandingComponent implements OnInit, AfterViewInit {
     {
       name: 'Starter',
       cadence: '~1 j/mois',
+      price: 'à partir de 990 €/mois',
       target: 'TPE/PME « en règle NIS2 »',
       highlight: false,
       includes: [
@@ -149,6 +150,7 @@ export class LandingComponent implements OnInit, AfterViewInit {
     {
       name: 'Standard',
       cadence: '~2 j/mois',
+      price: 'à partir de 1 890 €/mois',
       target: 'PME avec enjeux clients',
       highlight: true,
       includes: [
@@ -161,6 +163,7 @@ export class LandingComponent implements OnInit, AfterViewInit {
     {
       name: 'Renforcé',
       cadence: '~4 j/mois',
+      price: 'à partir de 3 490 €/mois',
       target: 'ETI / secteur régulé',
       highlight: false,
       includes: ['Tout Standard', "PCA/PRA + gestion d'incident", 'Accompagnement ISO 27001'],
@@ -403,7 +406,13 @@ export class LandingComponent implements OnInit, AfterViewInit {
         label: 'Sécurité essentielle',
         detail: 'SSL/TLS, en-têtes de sécurité, DNS, e-mail (SPF/DMARC), cookies, réputation IP…',
       },
-      { label: 'Conformité NIS2 & ISO 27001' },
+      // Le Gratuit permet l'auto-évaluation de conformité mais pas l'export du rapport PDF.
+      plan.allow_conformity_export === false
+        ? {
+            label: 'Auto-évaluation NIS2 & ISO 27001',
+            detail: 'Export PDF réservé aux offres payantes',
+          }
+        : { label: 'Conformité NIS2 & ISO 27001', detail: 'Rapport PDF exportable' },
       { label: 'Alerte e-mail en cas de faille critique' },
     ];
     if (plan.tier_level >= 2) {

@@ -15,6 +15,8 @@ export interface Plan {
   scan_interval_days: number;
   tier_level: number;
   stripe_price_id: string;
+  // Export des rapports de conformité (NIS2/ISO 27001) : réservé aux plans payants.
+  allow_conformity_export?: boolean;
 }
 
 export interface Subscription {

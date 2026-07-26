@@ -77,43 +77,48 @@ async def _seed_plans() -> None:
     from app.core.database import AsyncSessionLocal
     from app.models.plan import Plan
 
+    # Grille tarifaire (tranchée 2026-07-25, cf. project_pricing_review) :
+    #   Gratuit  0€    — 1 site,   scan mensuel (30 j), pas d'export conformite (degustation)
+    #   Starter  49€   — 5 sites,  scan quotidien (1),  export conformite
+    #   Pro      149€  — 25 sites, scan quotidien (1),  export conformite
+    #   Business 390€  — sites illimites (-1), scan quotidien (1), export conformite
+    # price_eur en centimes. stripe_price_id volontairement exclu (pose par migration/admin).
     PLANS = [
         {
             "name": "free",
             "display_name": "Gratuit",
             "price_eur": 0,
-            # -1 = sites illimites (cf. subscription_service.UNLIMITED_SITES) ;
-            # scan quotidien (1) et scans manuels illimites : offre volontairement genereuse.
-            "max_sites": -1,
-            "scan_interval_days": 1,
+            "max_sites": 1,
+            "scan_interval_days": 30,
             "tier_level": 1,
+            "allow_conformity_export": False,
         },
         {
             "name": "starter",
             "display_name": "Surveillance Starter",
-            "price_eur": 1490,
-            # Sites illimites (-1) ET scan quotidien (1) sur tous les plans : chaque tier inclut
-            # le precedent, et le Gratuit est deja illimite + quotidien. La differenciation se
-            # fait sur les features, pas sur le nombre de sites ni la frequence de scan.
-            "max_sites": -1,
+            "price_eur": 4900,
+            "max_sites": 5,
             "scan_interval_days": 1,
             "tier_level": 2,
+            "allow_conformity_export": True,
         },
         {
             "name": "pro",
             "display_name": "Surveillance Pro",
-            "price_eur": 4900,
-            "max_sites": -1,
+            "price_eur": 14900,
+            "max_sites": 25,
             "scan_interval_days": 1,
             "tier_level": 3,
+            "allow_conformity_export": True,
         },
         {
             "name": "business",
             "display_name": "Surveillance Business",
-            "price_eur": 14900,
+            "price_eur": 39000,
             "max_sites": -1,
             "scan_interval_days": 1,
             "tier_level": 4,
+            "allow_conformity_export": True,
         },
     ]
     async with AsyncSessionLocal() as db:

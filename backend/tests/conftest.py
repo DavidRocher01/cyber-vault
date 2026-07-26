@@ -223,11 +223,16 @@ async def register_and_login(
 
 
 _PLAN_DEFAULTS = {
-    # (name, price_eur, max_sites, scan_interval_days) — tous : sites illimités (-1) + quotidien (1)
-    1: ("free", 0, -1, 1),
-    2: ("starter", 1490, -1, 1),
-    3: ("pro", 4900, -1, 1),
-    4: ("business", 14900, -1, 1),
+    # (name, price_eur) — prix alignés sur la grille prod (Gratuit/Starter/Pro/Business).
+    # NB : ce helper existe pour le GATING par tier (require_min_tier), pas pour tester les
+    # quotas de sites/scans → max_sites=-1 (illimité) + scan quotidien (1) volontairement,
+    # afin que les tests de features gatées ne butent jamais sur un quota. Les tests de quota
+    # dédiés (test_sites*, test_subscriptions) sèment leurs propres plans avec des max_sites
+    # précis.
+    1: ("free", 0),
+    2: ("starter", 4900),
+    3: ("pro", 14900),
+    4: ("business", 39000),
 }
 
 
@@ -249,7 +254,7 @@ async def create_plan_and_subscription(client: AsyncClient, headers: dict, tier:
     token = headers["Authorization"].removeprefix("Bearer ").strip()
     user_id = int(decode_access_token(token))
 
-    name, price, max_sites, interval = _PLAN_DEFAULTS[tier]
+    name, price = _PLAN_DEFAULTS[tier]
     async with _db_module.AsyncSessionLocal() as db:
         result = await db.execute(select(Plan).where(Plan.name == name))
         plan = result.scalar_one_or_none()
@@ -258,9 +263,10 @@ async def create_plan_and_subscription(client: AsyncClient, headers: dict, tier:
                 name=name,
                 display_name=name.capitalize(),
                 price_eur=price,
-                max_sites=max_sites,
-                scan_interval_days=interval,
+                max_sites=-1,
+                scan_interval_days=1,
                 tier_level=tier,
+                allow_conformity_export=(tier >= 2),
             )
             db.add(plan)
             await db.flush()

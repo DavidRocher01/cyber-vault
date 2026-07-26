@@ -118,6 +118,45 @@ async def test_scan_frequency_enforcement_429():
 
 
 @pytest.mark.asyncio
+async def test_paid_daily_plan_manual_rescan_not_frequency_capped():
+    """Plan payant à scan quotidien (interval_days=1) : les scans manuels ne sont plus
+    plafonnés par la fréquence (seul @limiter subsiste), même avec max_sites=1."""
+    with (
+        patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock),
+        patch(
+            "app.api.v1.endpoints.scans.get_active_plan",
+            new=AsyncMock(
+                return_value=MagicMock(scan_interval_days=1, max_sites=1, price_eur=4900)
+            ),
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await _headers(c, "daily@test.com")
+            site_id = await _site(c, h)
+
+            first = await c.post(f"{BASE}/scans/trigger/{site_id}", headers=h)
+            assert first.status_code == 202
+            scan_id = first.json()["scan_id"]
+
+            from sqlalchemy import select
+
+            from app.core.database import AsyncSessionLocal
+            from app.models.scan import Scan
+
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(select(Scan).where(Scan.id == scan_id))
+                scan = result.scalar_one()
+                scan.status = "done"
+                scan.finished_at = datetime.now(UTC)
+                await db.commit()
+
+            # Re-scan immédiat autorisé (pas de 429) grâce au découplage interval_days>1.
+            second = await c.post(f"{BASE}/scans/trigger/{site_id}", headers=h)
+
+    assert second.status_code == 202
+
+
+@pytest.mark.asyncio
 async def test_trigger_scan_quota_race_only_one_created():
     """P0 — N triggers concurrents sur un plan à quota (max_sites=1) : un seul scan créé,
     les autres bloqués par le quota de fréquence (429)."""
