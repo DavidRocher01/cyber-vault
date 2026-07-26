@@ -11,7 +11,9 @@ import { LandingComponent } from './landing.component';
 const html = readFileSync(resolve(__dirname, './landing.component.html'), 'utf-8');
 
 function make(): LandingComponent {
-  return Object.create(LandingComponent.prototype) as LandingComponent;
+  const c = Object.create(LandingComponent.prototype) as LandingComponent;
+  (c as any).billingInterval = signal('monthly');
+  return c;
 }
 
 const src = readFileSync(resolve(__dirname, './landing.data.ts'), 'utf-8');
@@ -741,7 +743,7 @@ describe('LandingComponent — subscribe()', () => {
       (c as any).billing =
         { createCheckout };
     c.subscribe({ id: 42 } as any);
-    expect(createCheckout).toHaveBeenCalledWith(42);
+    expect(createCheckout).toHaveBeenCalledWith(42, 'monthly');
     expect(c.checkoutLoading).toBe(42);
   });
 
