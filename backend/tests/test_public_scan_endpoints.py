@@ -30,6 +30,10 @@ def _mock_scan(token="abc123", status="done", url="https://example.com", overall
     s.overall_status = overall
     s.results_json = json.dumps({"_meta": {"url": url}})
     s.error_message = None
+    s.email = None
+    s.email_consent_at = None
+    s.ip_hash = None
+    s.domain = None
     s.created_at = datetime(2025, 1, 1, tzinfo=UTC)
     s.started_at = None
     s.finished_at = None
@@ -237,3 +241,104 @@ async def test_http_create_public_scan_ssrf_blocked():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.post("/api/v1/public-scans", json={"url": "http://localhost/admin"})
     assert r.status_code == 422
+
+
+# ── HTTP integration: gate lead (teaser + unlock) ──────────────────────────────
+
+
+async def _seed_done_scan(db, *, target_url="https://gate.example.com"):
+    scan = PublicScan(
+        target_url=target_url,
+        status="done",
+        overall_status="WARNING",
+        results_json=json.dumps(
+            {
+                "ssl": {"status": "OK"},
+                "headers": {"status": "WARNING"},
+                "cors": {"status": "CRITICAL"},
+                "_meta": {"url": target_url},
+            }
+        ),
+    )
+    db.add(scan)
+    await db.commit()
+    await db.refresh(scan)
+    return scan
+
+
+@pytest.mark.asyncio
+async def test_http_get_scan_is_locked_teaser(http_client, db_session):
+    """GET renvoie un teaser : verrouillé, results_json masqué, severity_counts exposé."""
+    scan = await _seed_done_scan(db_session)
+    r = await http_client.get(f"/api/v1/public-scans/{scan.session_token}")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["locked"] is True
+    assert body["results_json"] is None
+    assert body["severity_counts"] == {"CRITICAL": 1, "WARNING": 1, "OK": 1}
+
+
+@pytest.mark.asyncio
+async def test_http_unlock_reveals_full_report(http_client, db_session):
+    scan = await _seed_done_scan(db_session)
+    with patch("app.services.email_service.send_public_scan_report"):
+        r = await http_client.post(
+            f"/api/v1/public-scans/{scan.session_token}/unlock",
+            json={"email": "lead@example.com", "consent": True},
+        )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["locked"] is False
+    assert body["results_json"] is not None
+    assert "ssl" in json.loads(body["results_json"])
+
+
+@pytest.mark.asyncio
+async def test_http_unlock_requires_consent(http_client, db_session):
+    scan = await _seed_done_scan(db_session)
+    r = await http_client.post(
+        f"/api/v1/public-scans/{scan.session_token}/unlock",
+        json={"email": "lead@example.com", "consent": False},
+    )
+    assert r.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_http_unlock_unknown_token_404(http_client):
+    r = await http_client.post(
+        "/api/v1/public-scans/nope-nope/unlock",
+        json={"email": "lead@example.com", "consent": True},
+    )
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_http_unlock_not_ready_409(http_client, db_session):
+    scan = PublicScan(target_url="https://pending.example.com", status="running")
+    db_session.add(scan)
+    await db_session.commit()
+    await db_session.refresh(scan)
+    r = await http_client.post(
+        f"/api/v1/public-scans/{scan.session_token}/unlock",
+        json={"email": "lead@example.com", "consent": True},
+    )
+    assert r.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_http_unlock_quota_exceeded_429(http_client, db_session):
+    email = "quota@example.com"
+    with patch("app.services.email_service.send_public_scan_report"):
+        for i in range(3):
+            scan = await _seed_done_scan(db_session, target_url=f"https://q{i}.example.com")
+            r = await http_client.post(
+                f"/api/v1/public-scans/{scan.session_token}/unlock",
+                json={"email": email, "consent": True},
+            )
+            assert r.status_code == 200
+        extra = await _seed_done_scan(db_session, target_url="https://q-extra.example.com")
+        r = await http_client.post(
+            f"/api/v1/public-scans/{extra.session_token}/unlock",
+            json={"email": email, "consent": True},
+        )
+    assert r.status_code == 429

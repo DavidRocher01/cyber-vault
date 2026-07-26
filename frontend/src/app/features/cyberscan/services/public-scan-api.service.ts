@@ -18,4 +18,12 @@ export class PublicScanApiService {
   getPublicScan(token: string): Observable<PublicScanResult> {
     return this.http.get<PublicScanResult>(`${API}/public-scans/${token}`);
   }
+
+  /** Débloque le rapport complet contre un email + consentement RGPD. */
+  unlockPublicScan(token: string, email: string, consent: boolean): Observable<PublicScanResult> {
+    return this.http.post<PublicScanResult>(`${API}/public-scans/${token}/unlock`, {
+      email,
+      consent,
+    });
+  }
 }

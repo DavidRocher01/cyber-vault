@@ -26,6 +26,17 @@ class PublicScan(Base):
     results_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     error_message: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
+    # Gate email (lead) : le rapport complet n'est révélé qu'après saisie d'un email
+    # (single opt-in). email_consent_at horodate le consentement RGPD (base légale =
+    # consentement). ip_hash = sha256 salé (RGPD : pas d'IP en clair). domain sert au
+    # quota « 1 rapport par email + domaine, plafond 3 domaines par email ».
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    email_consent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    ip_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    domain: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )

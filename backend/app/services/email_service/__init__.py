@@ -35,7 +35,12 @@ from .awareness import (
 )
 from .base import _send, _send_via_resend, _send_via_smtp
 from .rssi import send_portal_invitation
-from .scan import send_monthly_digest, send_scan_report, send_ssl_expiry_alert
+from .scan import (
+    send_monthly_digest,
+    send_public_scan_report,
+    send_scan_report,
+    send_ssl_expiry_alert,
+)
 
 __all__ = [
     # base
@@ -46,6 +51,7 @@ __all__ = [
     "send_password_reset",
     # scan
     "send_scan_report",
+    "send_public_scan_report",
     "send_ssl_expiry_alert",
     "send_monthly_digest",
     # alerts

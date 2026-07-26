@@ -157,6 +157,10 @@ export interface PublicScanResult {
   token: string;
   status: string;
   overall_status: string | null;
+  // Verrouillé tant que le rapport n'a pas été débloqué par email : results_json est
+  // alors null et seul severity_counts (teaser agrégé) est renseigné.
+  locked: boolean;
+  severity_counts: Record<string, number> | null;
   results_json: string | null;
   error_message: string | null;
   created_at: string;

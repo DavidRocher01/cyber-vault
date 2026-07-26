@@ -7,21 +7,70 @@ No PDF or remediation scripts generated.
 """
 
 import asyncio
+import hashlib
 import json
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import urlparse
 
 from fastapi import HTTPException
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.ssrf import assert_no_ssrf
 from app.models.public_scan import PublicScan
 
 SCANNER_DIR = Path(__file__).resolve().parents[3] / "cyber-scanner"
 sys.path.insert(0, str(SCANNER_DIR))
+
+# Plafond de domaines distincts débloquables par une même adresse email (gate lead).
+# Une PME multi-sites peut débloquer jusqu'à 3 domaines gratuitement ; au-delà on
+# renvoie vers la création de compte.
+MAX_DOMAINS_PER_EMAIL = 3
+
+
+class ScanNotReadyError(Exception):
+    """Le scan n'est pas encore terminé : déblocage impossible."""
+
+
+class QuotaExceededError(Exception):
+    """L'email a déjà atteint le plafond de domaines gratuits."""
+
+
+def hash_ip(ip: str) -> str:
+    """Hash SHA-256 salé de l'IP (RGPD : jamais d'IP en clair en base)."""
+    return hashlib.sha256(f"{settings.SECRET_KEY}:{ip}".encode()).hexdigest()
+
+
+def _domain_of(url: str) -> str:
+    """Extrait le domaine (hostname en minuscules) d'une URL, sinon l'URL brute."""
+    if not url.startswith(("http://", "https://")):
+        url = f"https://{url}"
+    return (urlparse(url).hostname or url).lower()
+
+
+def compute_severity_counts(scan: PublicScan) -> dict[str, int] | None:
+    """Teaser agrégé : nombre de modules par sévérité, sans exposer le moindre détail.
+
+    Renvoie None tant que le scan n'a pas produit de résultats.
+    """
+    if not scan.results_json:
+        return None
+    try:
+        results = json.loads(scan.results_json)
+    except (ValueError, TypeError):
+        return None
+    counts = {"CRITICAL": 0, "WARNING": 0, "OK": 0}
+    for key, module in results.items():
+        if key == "_meta" or not isinstance(module, dict):
+            continue
+        status = module.get("status")
+        if status in counts:
+            counts[status] += 1
+    return counts
 
 
 def _run_demo_scan_sync(url: str) -> dict:
@@ -152,3 +201,55 @@ async def get_public_scan_by_token(db: AsyncSession, token: str) -> PublicScan |
     """Retourne le scan public correspondant au token de session, ou None."""
     result = await db.execute(select(PublicScan).where(PublicScan.session_token == token))
     return result.scalar_one_or_none()
+
+
+async def _unlocked_domains_for_email(db: AsyncSession, email: str) -> set[str]:
+    """Domaines distincts déjà débloqués (consentement posé) par cette adresse email."""
+    result = await db.execute(
+        select(PublicScan.domain)
+        .where(
+            PublicScan.email == email,
+            PublicScan.email_consent_at.is_not(None),
+            PublicScan.domain.is_not(None),
+        )
+        .distinct()
+    )
+    return {d for (d,) in result.all() if d}
+
+
+async def unlock_public_scan(
+    db: AsyncSession, *, token: str, email: str, ip_hash: str
+) -> PublicScan | None:
+    """Débloque le rapport complet d'un scan public après capture du lead (email).
+
+    Quota : 1 rapport par email + domaine, plafond MAX_DOMAINS_PER_EMAIL domaines par
+    email. Débloquer à nouveau un domaine déjà débloqué par le même email est idempotent
+    (ne consomme pas de quota).
+
+    Retourne le scan débloqué, None si le token est inconnu. Lève ScanNotReadyError si le scan
+    n'est pas terminé, QuotaExceededError si le plafond de domaines est atteint.
+    """
+    scan = await get_public_scan_by_token(db, token)
+    if scan is None:
+        return None
+    if scan.status != "done":
+        raise ScanNotReadyError
+
+    email = email.strip().lower()
+    domain = _domain_of(scan.target_url)
+
+    # Déjà débloqué par le même email → idempotent (on ne repose rien, on re-sert).
+    if scan.email_consent_at is not None and scan.email == email:
+        return scan
+
+    unlocked_domains = await _unlocked_domains_for_email(db, email)
+    if domain not in unlocked_domains and len(unlocked_domains) >= MAX_DOMAINS_PER_EMAIL:
+        raise QuotaExceededError
+
+    scan.email = email
+    scan.email_consent_at = datetime.now(UTC)
+    scan.ip_hash = ip_hash
+    scan.domain = domain
+    await db.commit()
+    await db.refresh(scan)
+    return scan
