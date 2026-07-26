@@ -20,7 +20,7 @@ import { MatInputModule } from '@angular/material/input';
 import { environment } from '../../../../environments/environment';
 import { formatScanFrequency } from '../../../shared/plan-features';
 
-import { Plan } from '../services/cyberscan.service';
+import { Plan, BillingInterval } from '../services/cyberscan.service';
 import { BillingService } from '../services/billing.service';
 import { GlobeComponent } from '../../../shared/globe/globe.component';
 import { AuthService } from '../../../core/services/auth.service';
@@ -88,6 +88,9 @@ export class LandingComponent implements OnInit, AfterViewInit {
   plans: Plan[] = [];
   loading = true;
   checkoutLoading: number | null = null;
+  // Sélecteur mensuel/annuel (facturation annuelle = 2 mois offerts). N'apparaît
+  // que si au moins un plan a un tarif annuel configuré (yearly_available).
+  billingInterval = signal<BillingInterval>('monthly');
   openFaqIndex = signal<number | null>(null);
 
   toggleFaq(index: number) {
@@ -379,7 +382,7 @@ export class LandingComponent implements OnInit, AfterViewInit {
       return;
     }
     this.checkoutLoading = plan.id;
-    this.billing.createCheckout(plan.id).subscribe({
+    this.billing.createCheckout(plan.id, this.effectiveInterval(plan)).subscribe({
       next: res => {
         window.location.href = res.checkout_url;
       },
@@ -387,6 +390,26 @@ export class LandingComponent implements OnInit, AfterViewInit {
         this.checkoutLoading = null;
       },
     });
+  }
+
+  /** Vrai si au moins un plan propose la facturation annuelle (pilote l'affichage du sélecteur). */
+  get hasYearlyOption(): boolean {
+    return this.plans.some(p => p.yearly_available);
+  }
+
+  /** Intervalle réellement appliqué à un plan : annuel seulement s'il est configuré pour lui. */
+  effectiveInterval(plan: Plan): BillingInterval {
+    return this.billingInterval() === 'yearly' && plan.yearly_available ? 'yearly' : 'monthly';
+  }
+
+  /** Prix affiché (centimes) selon l'intervalle effectif du plan. */
+  planPrice(plan: Plan): number {
+    return this.effectiveInterval(plan) === 'yearly' ? plan.price_eur_yearly : plan.price_eur;
+  }
+
+  /** Suffixe de prix (/an ou /mois) selon l'intervalle effectif du plan. */
+  planPriceSuffix(plan: Plan): string {
+    return this.effectiveInterval(plan) === 'yearly' ? '/an HT' : '/mois HT';
   }
 
   formatPrice(cents: number): string {

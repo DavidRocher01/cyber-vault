@@ -1,5 +1,6 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -44,10 +45,15 @@ async def get_my_subscription(
 @router.post("/checkout/{plan_id}", response_model=CheckoutSessionOut)
 async def create_checkout(
     plan_id: int,
+    interval: Literal["monthly", "yearly"] = "monthly",
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a Stripe Checkout session (or simulate it in dev mode)."""
+    """Create a Stripe Checkout session (or simulate it in dev mode).
+
+    `interval` selects monthly (default) or yearly billing (2 months free).
+    The interval is materialised entirely by which Stripe price_id is used.
+    """
     plan = await plan_service.get_plan(db, plan_id)
     if not plan or not plan.is_active:
         raise HTTPException(status_code=404, detail="Plan not found")
@@ -80,9 +86,15 @@ async def create_checkout(
         )
         return {"checkout_url": f"{FRONTEND_URL}/dashboard"}
 
-    # Production: real Stripe flow
-    if not plan.stripe_price_id:
-        raise HTTPException(status_code=400, detail="Plan not configured in Stripe yet")
+    # Production: real Stripe flow. Le price_id porte l'intervalle de facturation.
+    price_id = plan.stripe_price_id_yearly if interval == "yearly" else plan.stripe_price_id
+    if not price_id:
+        detail = (
+            "Yearly billing not configured for this plan yet"
+            if interval == "yearly"
+            else "Plan not configured in Stripe yet"
+        )
+        raise HTTPException(status_code=400, detail=detail)
 
     existing = await subscription_service.get_subscription(db, current_user.id)
     if existing and existing.stripe_customer_id:
@@ -94,7 +106,7 @@ async def create_checkout(
     checkout_url = await asyncio.to_thread(
         stripe_service.create_checkout_session,
         customer_id=customer_id,
-        price_id=plan.stripe_price_id,
+        price_id=price_id,
         success_url=f"{FRONTEND_URL}/dashboard?subscribed=true",
         cancel_url=f"{FRONTEND_URL}/?checkout=cancel",
     )

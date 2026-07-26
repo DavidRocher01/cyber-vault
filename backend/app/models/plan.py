@@ -23,6 +23,12 @@ class Plan(Base):
         Integer, nullable=False
     )  # 1=Gratuit 2=Starter 3=Pro 4=Business
     stripe_price_id: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    # Prix annuel Stripe (facturation annuelle, 2 mois offerts). Vide tant que le
+    # price_id LIVE annuel n'est pas configuré : la facturation annuelle reste
+    # alors indisponible (cf. yearly_available) et le front masque le sélecteur.
+    stripe_price_id_yearly: Mapped[str] = mapped_column(
+        String(255), nullable=False, default="", server_default=""
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     # Export des rapports de conformité (NIS2 / ISO 27001) : réservé aux plans payants.
     # Le Gratuit peut faire l'auto-évaluation mais pas exporter le PDF (gate monétisation).
@@ -31,3 +37,13 @@ class Plan(Base):
     )
 
     subscriptions: Mapped[list["Subscription"]] = relationship(back_populates="plan")
+
+    @property
+    def yearly_available(self) -> bool:
+        """Vrai si la facturation annuelle est configurée (price_id annuel posé)."""
+        return bool(self.stripe_price_id_yearly)
+
+    @property
+    def price_eur_yearly(self) -> int:
+        """Prix annuel en centimes : 10 mois payés, 2 mois offerts (mensuel x 10)."""
+        return self.price_eur * 10

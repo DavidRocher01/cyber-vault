@@ -11,6 +11,10 @@ export interface Plan {
   name: string;
   display_name: string;
   price_eur: number;
+  // Prix annuel (centimes, 2 mois offerts) et disponibilité réelle de la
+  // facturation annuelle (dépend du price_id Stripe annuel configuré côté back).
+  price_eur_yearly: number;
+  yearly_available: boolean;
   max_sites: number;
   scan_interval_days: number;
   tier_level: number;
@@ -18,6 +22,8 @@ export interface Plan {
   // Export des rapports de conformité (NIS2/ISO 27001) : réservé aux plans payants.
   allow_conformity_export?: boolean;
 }
+
+export type BillingInterval = 'monthly' | 'yearly';
 
 export interface Subscription {
   id: number;

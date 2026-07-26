@@ -53,4 +53,19 @@ async def test_plan_prices_match_stripe(pg_url):
                 f"{plan.name}: tax_behavior={stripe_price.tax_behavior} (expected 'exclusive')"
             )
 
+        # Facturation annuelle (2 mois offerts) : le prix annuel Stripe doit valoir
+        # price_eur x 10 et être en intervalle 'year'.
+        if plan.stripe_price_id_yearly:
+            yearly = stripe.Price.retrieve(plan.stripe_price_id_yearly)
+            if yearly.unit_amount != plan.price_eur_yearly:
+                mismatches.append(
+                    f"{plan.name} (annuel): DB={plan.price_eur_yearly}c "
+                    f"vs Stripe={yearly.unit_amount}c"
+                )
+            if (yearly.recurring or {}).get("interval") != "year":
+                mismatches.append(
+                    f"{plan.name} (annuel): interval="
+                    f"{(yearly.recurring or {}).get('interval')} (expected 'year')"
+                )
+
     assert not mismatches, "Stripe ↔ DB price mismatch:\n" + "\n".join(mismatches)

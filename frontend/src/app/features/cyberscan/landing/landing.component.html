@@ -653,7 +653,53 @@
   <!-- Pricing -->
   <section id="pricing" class="px-8 py-20 bg-gray-800/30">
     <h2 class="text-3xl font-bold text-center mb-3">Tarifs simples et transparents</h2>
-    <p class="text-gray-300 text-center mb-12">Choisissez le plan adapté à vos besoins</p>
+    <p class="text-gray-300 text-center mb-8">Choisissez le plan adapté à vos besoins</p>
+
+    @if (hasYearlyOption) {
+      <div class="flex justify-center mb-10">
+        <div
+          class="inline-flex items-center gap-1 rounded-full border border-gray-700 bg-gray-800 p-1"
+          role="group"
+          aria-label="Choix de la périodicité de facturation"
+        >
+          <button
+            type="button"
+            class="px-4 py-1.5 rounded-full text-sm font-semibold transition-colors"
+            [ngClass]="
+              billingInterval() === 'monthly'
+                ? 'bg-cyan-500 text-gray-900'
+                : 'text-gray-300 hover:text-white'
+            "
+            [attr.aria-pressed]="billingInterval() === 'monthly'"
+            (click)="billingInterval.set('monthly')"
+          >
+            Mensuel
+          </button>
+          <button
+            type="button"
+            class="px-4 py-1.5 rounded-full text-sm font-semibold transition-colors flex items-center gap-2"
+            [ngClass]="
+              billingInterval() === 'yearly'
+                ? 'bg-cyan-500 text-gray-900'
+                : 'text-gray-300 hover:text-white'
+            "
+            [attr.aria-pressed]="billingInterval() === 'yearly'"
+            (click)="billingInterval.set('yearly')"
+          >
+            Annuel
+            <span
+              class="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+              [ngClass]="
+                billingInterval() === 'yearly'
+                  ? 'bg-gray-900/20 text-gray-900'
+                  : 'bg-cyan-500/20 text-cyan-300'
+              "
+              >2 mois offerts</span
+            >
+          </button>
+        </div>
+      </div>
+    }
 
     @if (loading) {
       <div class="flex justify-center">
@@ -682,10 +728,13 @@
               <h3 class="text-lg font-bold mb-1">{{ plan.display_name }}</h3>
               <div class="flex items-end gap-1">
                 <span class="text-3xl font-extrabold text-cyan-400">{{
-                  formatPrice(plan.price_eur)
+                  formatPrice(planPrice(plan))
                 }}</span>
-                <span class="text-gray-400 mb-1">/mois HT</span>
+                <span class="text-gray-400 mb-1">{{ planPriceSuffix(plan) }}</span>
               </div>
+              @if (effectiveInterval(plan) === 'yearly') {
+                <p class="text-xs text-cyan-300 mt-1">Soit 2 mois offerts sur l'année</p>
+              }
               @if (plan.price_eur > 0) {
                 <p class="text-xs text-gray-500 mt-1">TVA 20% en sus</p>
               }

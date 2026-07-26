@@ -15,7 +15,13 @@ import { EMPTY, Subscription as RxSubscription, switchMap, tap } from 'rxjs';
 import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 import { formatScanFrequency } from '../../../shared/plan-features';
 
-import { Site, Scan, Subscription as UserSubscription, Plan } from '../services/cyberscan.service';
+import {
+  Site,
+  Scan,
+  Subscription as UserSubscription,
+  Plan,
+  BillingInterval,
+} from '../services/cyberscan.service';
 import { ScanApiService } from '../services/scan-api.service';
 import { SiteApiService } from '../services/site-api.service';
 import { BillingService } from '../services/billing.service';
@@ -113,6 +119,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   showPlansModal = signal(false);
   plans = signal<Plan[]>([]);
   checkoutLoading = signal<number | null>(null);
+  // Sélecteur mensuel/annuel (2 mois offerts) — visible seulement si un plan a un tarif annuel.
+  billingInterval = signal<BillingInterval>('monthly');
 
   siteForm = this.fb.nonNullable.group({
     url: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]],
@@ -287,10 +295,26 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  get hasYearlyOption(): boolean {
+    return this.plans().some(p => p.yearly_available);
+  }
+
+  effectiveInterval(plan: Plan): BillingInterval {
+    return this.billingInterval() === 'yearly' && plan.yearly_available ? 'yearly' : 'monthly';
+  }
+
+  planPrice(plan: Plan): number {
+    return this.effectiveInterval(plan) === 'yearly' ? plan.price_eur_yearly : plan.price_eur;
+  }
+
+  planPriceSuffix(plan: Plan): string {
+    return this.effectiveInterval(plan) === 'yearly' ? '/an HT' : '/mois HT';
+  }
+
   selectPlan(plan: Plan) {
     this.checkoutLoading.set(plan.id);
     this.billing.invalidateSubscriptionCache();
-    this.billing.createCheckout(plan.id).subscribe({
+    this.billing.createCheckout(plan.id, this.effectiveInterval(plan)).subscribe({
       next: res => {
         const url = res.checkout_url;
         try {

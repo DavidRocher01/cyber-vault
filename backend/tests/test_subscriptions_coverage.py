@@ -50,7 +50,11 @@ async def _user_id(email: str) -> int:
         return (await db.execute(select(User).where(User.email == email))).scalar_one().id
 
 
-async def _seed_paid_plan(name: str, stripe_price_id: str = "price_paid_123") -> int:
+async def _seed_paid_plan(
+    name: str,
+    stripe_price_id: str = "price_paid_123",
+    stripe_price_id_yearly: str = "",
+) -> int:
     from app.core.database import AsyncSessionLocal
 
     async with AsyncSessionLocal() as db:
@@ -62,6 +66,7 @@ async def _seed_paid_plan(name: str, stripe_price_id: str = "price_paid_123") ->
             scan_interval_days=7,
             tier_level=3,
             stripe_price_id=stripe_price_id,
+            stripe_price_id_yearly=stripe_price_id_yearly,
             is_active=True,
         )
         db.add(plan)
@@ -199,6 +204,84 @@ async def test_checkout_paid_stripe_error_bubbles_up():
             r = await c.post(f"{BASE}/subscriptions/checkout/{plan_id}", headers=h)
 
     assert r.status_code == 500
+
+
+# ── checkout: annual billing (interval=yearly) ────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_checkout_yearly_uses_yearly_price_id():
+    """interval=yearly → la session Stripe utilise le price_id annuel du plan."""
+    plan_id = await _seed_paid_plan(
+        "pro_yearly", stripe_price_id="price_m", stripe_price_id_yearly="price_y"
+    )
+
+    create_session = MagicMock(return_value="https://stripe.test/checkout/yearly")
+
+    with (
+        patch(f"{SUB_MODULE}.DEV_MODE", False),
+        patch(f"{SUB_MODULE}.stripe_service.create_customer", MagicMock(return_value="cus_y")),
+        patch(f"{SUB_MODULE}.stripe_service.create_checkout_session", create_session),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await _headers(c, "paid_yearly@test.com")
+            r = await c.post(f"{BASE}/subscriptions/checkout/{plan_id}?interval=yearly", headers=h)
+
+    assert r.status_code == 200
+    _, kwargs = create_session.call_args
+    assert kwargs["price_id"] == "price_y"
+
+
+@pytest.mark.asyncio
+async def test_checkout_monthly_default_uses_monthly_price_id():
+    """Sans interval (défaut mensuel) → price_id mensuel, même si l'annuel existe."""
+    plan_id = await _seed_paid_plan(
+        "pro_default_m", stripe_price_id="price_m2", stripe_price_id_yearly="price_y2"
+    )
+
+    create_session = MagicMock(return_value="https://stripe.test/checkout/monthly")
+
+    with (
+        patch(f"{SUB_MODULE}.DEV_MODE", False),
+        patch(f"{SUB_MODULE}.stripe_service.create_customer", MagicMock(return_value="cus_m")),
+        patch(f"{SUB_MODULE}.stripe_service.create_checkout_session", create_session),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await _headers(c, "paid_default_m@test.com")
+            r = await c.post(f"{BASE}/subscriptions/checkout/{plan_id}", headers=h)
+
+    assert r.status_code == 200
+    _, kwargs = create_session.call_args
+    assert kwargs["price_id"] == "price_m2"
+
+
+@pytest.mark.asyncio
+async def test_checkout_yearly_not_configured_returns_400():
+    """interval=yearly sans price_id annuel → 400 explicite (annuel non configuré)."""
+    plan_id = await _seed_paid_plan(
+        "pro_no_yearly", stripe_price_id="price_m3", stripe_price_id_yearly=""
+    )
+
+    with patch(f"{SUB_MODULE}.DEV_MODE", False):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await _headers(c, "paid_no_yearly@test.com")
+            r = await c.post(f"{BASE}/subscriptions/checkout/{plan_id}?interval=yearly", headers=h)
+
+    assert r.status_code == 400
+    assert "Yearly" in r.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_checkout_invalid_interval_returns_422():
+    """interval hors {monthly, yearly} → 422 (validation FastAPI)."""
+    plan_id = await _seed_paid_plan("pro_bad_interval", stripe_price_id="price_m4")
+
+    with patch(f"{SUB_MODULE}.DEV_MODE", False):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await _headers(c, "paid_bad_interval@test.com")
+            r = await c.post(f"{BASE}/subscriptions/checkout/{plan_id}?interval=weekly", headers=h)
+
+    assert r.status_code == 422
 
 
 # ── portal: real Stripe billing-portal path ───────────────────────────────────

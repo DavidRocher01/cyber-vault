@@ -108,9 +108,56 @@ async def test_list_plans_response_shape():
         "name",
         "display_name",
         "price_eur",
+        "price_eur_yearly",
+        "yearly_available",
         "max_sites",
         "scan_interval_days",
         "tier_level",
         "allow_conformity_export",
     ):
         assert key in plan, f"Missing key: {key}"
+
+
+@pytest.mark.asyncio
+async def test_list_plans_exposes_annual_billing_fields():
+    """price_eur_yearly = mensuel x 10 (2 mois offerts) ; yearly_available suit le price_id annuel."""
+    from app.core.database import AsyncSessionLocal
+    from app.models.plan import Plan
+
+    async with AsyncSessionLocal() as db:
+        # Plan sans price_id annuel → facturation annuelle indisponible.
+        db.add(
+            Plan(
+                name="starter",
+                display_name="Starter",
+                price_eur=4900,
+                max_sites=5,
+                scan_interval_days=1,
+                tier_level=2,
+                is_active=True,
+            )
+        )
+        # Plan avec price_id annuel configuré → disponible.
+        db.add(
+            Plan(
+                name="pro",
+                display_name="Pro",
+                price_eur=14900,
+                max_sites=25,
+                scan_interval_days=1,
+                tier_level=3,
+                stripe_price_id="price_pro_m",
+                stripe_price_id_yearly="price_pro_y",
+                is_active=True,
+            )
+        )
+        await db.commit()
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/plans")
+    plans = {p["name"]: p for p in r.json()}
+
+    assert plans["starter"]["price_eur_yearly"] == 49000  # 4900 x 10
+    assert plans["starter"]["yearly_available"] is False
+    assert plans["pro"]["price_eur_yearly"] == 149000  # 14900 x 10
+    assert plans["pro"]["yearly_available"] is True
