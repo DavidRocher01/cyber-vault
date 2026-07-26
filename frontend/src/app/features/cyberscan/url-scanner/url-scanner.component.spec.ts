@@ -257,6 +257,7 @@ describe('UrlScannerComponent — submit()', () => {
     };
     (c as any).submitting = signal(true);
     (c as any).activeScan = signal(null);
+    (c as any).quota = signal(null);
     (c as any).snack = { open: vi.fn() };
     const startPolling = vi.fn();
     const loadHistory = vi.fn();
@@ -271,7 +272,12 @@ describe('UrlScannerComponent — submit()', () => {
       (c as any).urlScanApi =
       (c as any).scanApi =
       (c as any).siteApi =
-        { triggerUrlScan: vi.fn().mockReturnValue(of(scan)) };
+        {
+          triggerUrlScan: vi.fn().mockReturnValue(of(scan)),
+          getUrlScanQuota: vi
+            .fn()
+            .mockReturnValue(of({ unlimited: true, limit: null, used: 0, remaining: null })),
+        };
 
     c.submit();
 
@@ -328,6 +334,7 @@ describe('UrlScannerComponent — deleteScan()', () => {
       pages: 1,
     });
     (c as any).activeScan = signal({ id: 2, status: 'done' });
+    (c as any).quota = signal(null);
     (c as any).cyberscan =
       (c as any).complianceApi =
       (c as any).publicScanApi =
@@ -336,7 +343,12 @@ describe('UrlScannerComponent — deleteScan()', () => {
       (c as any).urlScanApi =
       (c as any).scanApi =
       (c as any).siteApi =
-        { deleteUrlScan: vi.fn().mockReturnValue(of(void 0)) };
+        {
+          deleteUrlScan: vi.fn().mockReturnValue(of(void 0)),
+          getUrlScanQuota: vi
+            .fn()
+            .mockReturnValue(of({ unlimited: true, limit: null, used: 0, remaining: null })),
+        };
 
     c.deleteScan({ id: 2 } as any);
 
@@ -357,6 +369,7 @@ describe('UrlScannerComponent — deleteScan()', () => {
     });
     const active = { id: 5, status: 'done' };
     (c as any).activeScan = signal(active);
+    (c as any).quota = signal(null);
     (c as any).cyberscan =
       (c as any).complianceApi =
       (c as any).publicScanApi =
@@ -365,11 +378,68 @@ describe('UrlScannerComponent — deleteScan()', () => {
       (c as any).urlScanApi =
       (c as any).scanApi =
       (c as any).siteApi =
-        { deleteUrlScan: vi.fn().mockReturnValue(of(void 0)) };
+        {
+          deleteUrlScan: vi.fn().mockReturnValue(of(void 0)),
+          getUrlScanQuota: vi
+            .fn()
+            .mockReturnValue(of({ unlimited: true, limit: null, used: 0, remaining: null })),
+        };
 
     c.deleteScan({ id: 1 } as any);
 
     expect(c.activeScan()).toBe(active);
+  });
+});
+
+describe('UrlScannerComponent — loadQuota()', () => {
+  function makeComp(): UrlScannerComponent {
+    const c = make();
+    (c as any).quota = signal(null);
+    return c;
+  }
+
+  it('stocke le quota renvoyé par l’API', () => {
+    const c = makeComp();
+    const q = { unlimited: false, limit: 5, used: 2, remaining: 3 };
+    (c as any).urlScanApi = { getUrlScanQuota: vi.fn().mockReturnValue(of(q)) };
+    c.loadQuota();
+    expect(c.quota()).toEqual(q);
+  });
+
+  it('remet le quota à null en cas d’erreur', () => {
+    const c = makeComp();
+    (c as any).quota.set({ unlimited: true, limit: null, used: 0, remaining: null });
+    (c as any).urlScanApi = {
+      getUrlScanQuota: vi.fn().mockReturnValue({ subscribe: (h: any) => h.error(new Error('x')) }),
+    };
+    c.loadQuota();
+    expect(c.quota()).toBeNull();
+  });
+});
+
+describe('UrlScannerComponent — quotaExhausted (getter)', () => {
+  it('false si quota inconnu', () => {
+    const c = make();
+    (c as any).quota = signal(null);
+    expect(c.quotaExhausted).toBe(false);
+  });
+
+  it('false sur un plan illimité', () => {
+    const c = make();
+    (c as any).quota = signal({ unlimited: true, limit: null, used: 99, remaining: null });
+    expect(c.quotaExhausted).toBe(false);
+  });
+
+  it('false s’il reste des scans', () => {
+    const c = make();
+    (c as any).quota = signal({ unlimited: false, limit: 5, used: 2, remaining: 3 });
+    expect(c.quotaExhausted).toBe(false);
+  });
+
+  it('true quand le quota Gratuit est épuisé', () => {
+    const c = make();
+    (c as any).quota = signal({ unlimited: false, limit: 5, used: 5, remaining: 0 });
+    expect(c.quotaExhausted).toBe(true);
   });
 });
 

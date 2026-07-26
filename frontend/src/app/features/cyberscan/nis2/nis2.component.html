@@ -49,33 +49,45 @@
           <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">restart_alt</mat-icon>
           Réinitialiser
         </button>
-        <button
-          type="button"
-          (click)="exportPdf()"
-          [disabled]="exporting() || loading()"
-          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          @if (exporting()) {
-            <mat-spinner diameter="14"></mat-spinner>
-          } @else {
-            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">picture_as_pdf</mat-icon>
-          }
-          Exporter PDF
-        </button>
-        <button
-          type="button"
-          (click)="exportAuditorPdf()"
-          [disabled]="exportingAuditor() || loading()"
-          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          matTooltip="Document officiel NIS2 prêt-à-déposer pour auditeur certifié"
-        >
-          @if (exportingAuditor()) {
-            <mat-spinner diameter="14"></mat-spinner>
-          } @else {
-            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">verified</mat-icon>
-          }
-          Document officiel
-        </button>
+        @if (canExport()) {
+          <button
+            type="button"
+            (click)="exportPdf()"
+            [disabled]="exporting() || loading()"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            @if (exporting()) {
+              <mat-spinner diameter="14"></mat-spinner>
+            } @else {
+              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">picture_as_pdf</mat-icon>
+            }
+            Exporter PDF
+          </button>
+          <button
+            type="button"
+            (click)="exportAuditorPdf()"
+            [disabled]="exportingAuditor() || loading()"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            matTooltip="Document officiel NIS2 prêt-à-déposer pour auditeur certifié"
+          >
+            @if (exportingAuditor()) {
+              <mat-spinner diameter="14"></mat-spinner>
+            } @else {
+              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">verified</mat-icon>
+            }
+            Document officiel
+          </button>
+        } @else if (showUpgrade()) {
+          <a
+            routerLink="/dashboard"
+            [queryParams]="{ upgrade: 'true' }"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-amber-500 text-gray-900 hover:bg-amber-400 transition-all"
+            matTooltip="L'export PDF NIS2 est inclus dès le plan Starter"
+          >
+            <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">lock</mat-icon>
+            Passer Starter pour exporter
+          </a>
+        }
         <button
           type="button"
           (click)="save()"
@@ -300,33 +312,45 @@
             <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">restart_alt</mat-icon>
             Réinitialiser
           </button>
-          <button
-            type="button"
-            (click)="exportPdf()"
-            [disabled]="exporting()"
-            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-all disabled:opacity-50"
-          >
-            @if (exporting()) {
-              <mat-spinner diameter="14"></mat-spinner>
-            } @else {
-              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">picture_as_pdf</mat-icon>
-            }
-            Exporter PDF
-          </button>
-          <button
-            type="button"
-            (click)="exportAuditorPdf()"
-            [disabled]="exportingAuditor()"
-            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-purple-500/30 text-purple-400 hover:bg-purple-500/10 transition-all disabled:opacity-50"
-            matTooltip="Document officiel NIS2 prêt-à-déposer pour auditeur certifié"
-          >
-            @if (exportingAuditor()) {
-              <mat-spinner diameter="14"></mat-spinner>
-            } @else {
-              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">verified</mat-icon>
-            }
-            Document officiel
-          </button>
+          @if (canExport()) {
+            <button
+              type="button"
+              (click)="exportPdf()"
+              [disabled]="exporting()"
+              class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-all disabled:opacity-50"
+            >
+              @if (exporting()) {
+                <mat-spinner diameter="14"></mat-spinner>
+              } @else {
+                <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">picture_as_pdf</mat-icon>
+              }
+              Exporter PDF
+            </button>
+            <button
+              type="button"
+              (click)="exportAuditorPdf()"
+              [disabled]="exportingAuditor()"
+              class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-purple-500/30 text-purple-400 hover:bg-purple-500/10 transition-all disabled:opacity-50"
+              matTooltip="Document officiel NIS2 prêt-à-déposer pour auditeur certifié"
+            >
+              @if (exportingAuditor()) {
+                <mat-spinner diameter="14"></mat-spinner>
+              } @else {
+                <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">verified</mat-icon>
+              }
+              Document officiel
+            </button>
+          } @else if (showUpgrade()) {
+            <a
+              routerLink="/dashboard"
+              [queryParams]="{ upgrade: 'true' }"
+              class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-amber-500 text-gray-900 hover:bg-amber-400 transition-all"
+              matTooltip="L'export PDF NIS2 est inclus dès le plan Starter"
+            >
+              <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">lock</mat-icon>
+              Passer Starter pour exporter
+            </a>
+          }
           <button
             type="button"
             (click)="save()"

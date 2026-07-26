@@ -24,8 +24,16 @@ function make(): Nis2Component {
   (c as any).loading = signal(false);
   (c as any).saving = signal(false);
   (c as any).exporting = signal(false);
+  (c as any).exportingAuditor = signal(false);
   (c as any).score = signal(0);
   (c as any).updatedAt = signal<string | null>(null);
+
+  // Gating export payant
+  (c as any).subLoaded = signal(false);
+  (c as any).canExport = signal(false);
+  (c as any).showUpgrade = computed(() => (c as any).subLoaded() && !(c as any).canExport());
+  (c as any).billing = { getMySubscription: vi.fn().mockReturnValue(of(null)) };
+  (c as any).router = { navigate: vi.fn() };
 
   // Données
   (c as any).categories = signal<Nis2Category[]>([]);
@@ -621,6 +629,28 @@ describe('ngOnInit()', () => {
       duration: 4000,
     });
   });
+
+  it('plan payant : canExport passe à true (pas de CTA upgrade)', () => {
+    const c = make();
+    (c as any).billing = {
+      getMySubscription: vi.fn().mockReturnValue(of({ plan: { allow_conformity_export: true } })),
+    };
+    (c as any).complianceApi = { getNis2Assessment: vi.fn().mockReturnValue(of({})) };
+    (c as any).snack = { open: vi.fn() };
+    c.ngOnInit();
+    expect((c as any).canExport()).toBe(true);
+    expect((c as any).showUpgrade()).toBe(false);
+  });
+
+  it('plan Gratuit : canExport reste false et showUpgrade passe à true', () => {
+    const c = make();
+    (c as any).billing = { getMySubscription: vi.fn().mockReturnValue(of(null)) };
+    (c as any).complianceApi = { getNis2Assessment: vi.fn().mockReturnValue(of({})) };
+    (c as any).snack = { open: vi.fn() };
+    c.ngOnInit();
+    expect((c as any).canExport()).toBe(false);
+    expect((c as any).showUpgrade()).toBe(true);
+  });
 });
 
 // ── save() ────────────────────────────────────────────────────────────────────
@@ -758,6 +788,31 @@ describe('exportPdf()', () => {
     expect((c as any).exporting()).toBe(false);
     expect(snack.open).toHaveBeenCalledWith("Erreur lors de l'export PDF", 'Fermer', {
       duration: 4000,
+    });
+  });
+
+  it('403 : message « réservé aux plans payants » + action vers la grille tarifaire', () => {
+    const c = makeWithCats(1);
+    (c as any).exporting = signal(false);
+    (c as any).canExport = signal(true);
+    const actionRef = { onAction: vi.fn().mockReturnValue(of(void 0)) };
+    const snack = { open: vi.fn().mockReturnValue(actionRef) };
+    (c as any).snack = snack;
+    (c as any).router = { navigate: vi.fn() };
+    (c as any).complianceApi = {
+      saveNis2Assessment: vi.fn().mockReturnValue(of({ score: 10, updated_at: 'd' })),
+      downloadNis2PdfBlob: vi.fn().mockReturnValue(throwError(() => ({ status: 403 }))),
+    };
+    c.exportPdf();
+    expect((c as any).exporting()).toBe(false);
+    expect((c as any).canExport()).toBe(false);
+    expect(snack.open).toHaveBeenCalledWith(
+      "L'export PDF est réservé aux plans payants (dès Starter).",
+      'Voir les offres',
+      { duration: 7000 }
+    );
+    expect((c as any).router.navigate).toHaveBeenCalledWith(['/dashboard'], {
+      queryParams: { upgrade: 'true' },
     });
   });
 });

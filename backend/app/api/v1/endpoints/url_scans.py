@@ -4,6 +4,7 @@ URL Scan endpoints — trigger and consult suspicious URL analyses.
 
 import asyncio
 import json
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
@@ -18,7 +19,12 @@ from app.models.url_scan import UrlScan
 from app.models.user import User
 from app.schemas.url_scan import PaginatedUrlScans, UrlScanCreate, UrlScanOut
 from app.services import url_scan_service
-from app.services.url_scan_service import run_url_scan
+from app.services.subscription_service import get_active_tier
+from app.services.url_scan_service import (
+    FREE_URL_SCAN_MONTHLY_LIMIT,
+    FREE_URL_SCAN_WINDOW_DAYS,
+    run_url_scan,
+)
 
 router = APIRouter(prefix="/url-scans", tags=["url-scans"])
 
@@ -40,10 +46,35 @@ async def trigger_url_scan(
     """Submit a URL for suspicious content analysis."""
     assert_no_ssrf(payload.url)
 
+    # Quota mensuel sur le plan Gratuit (payant = illimité). Le décompte délègue au
+    # service ; le gate 429 vit ici (couche endpoint), comme le plafond de scans de sites.
+    tier = await get_active_tier(db, current_user.id)
+    if tier < 2:
+        since = datetime.now(UTC) - timedelta(days=FREE_URL_SCAN_WINDOW_DAYS)
+        used = await url_scan_service.count_url_scans_since(db, current_user.id, since)
+        if used >= FREE_URL_SCAN_MONTHLY_LIMIT:
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    f"Limite de {FREE_URL_SCAN_MONTHLY_LIMIT} scans URL/mois atteinte "
+                    "sur le plan Gratuit. Passez à un plan payant pour des scans illimités."
+                ),
+            )
+
     url_scan = await url_scan_service.create_url_scan(db, current_user.id, payload.url)
 
     background_tasks.add_task(_run_url_scan_background, url_scan.id)
     return url_scan
+
+
+@router.get("/quota")
+async def get_quota(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """État du quota de scans URL (illimité sur les plans payants)."""
+    tier = await get_active_tier(db, current_user.id)
+    return await url_scan_service.get_url_scan_quota(db, current_user.id, tier=tier)
 
 
 @router.get("", response_model=PaginatedUrlScans)

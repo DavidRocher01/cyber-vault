@@ -60,9 +60,55 @@
             @if (form.controls.url.touched && form.controls.url.invalid) {
               <p class="text-xs text-red-400 -mt-2">URL valide requise (https://...)</p>
             }
+
+            <!-- Quota mensuel (plan Gratuit uniquement) -->
+            @if (quota(); as q) {
+              @if (!q.unlimited) {
+                <div class="flex items-center justify-between text-xs -mt-1">
+                  <span class="text-gray-500 flex items-center gap-1.5">
+                    <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] text-cyan-600"
+                      >bolt</mat-icon
+                    >
+                    Plan Gratuit
+                  </span>
+                  <span
+                    class="font-semibold"
+                    [class]="quotaExhausted ? 'text-red-400' : 'text-gray-400'"
+                  >
+                    {{ q.used }}/{{ q.limit }} scans ce mois
+                  </span>
+                </div>
+              }
+            }
+
+            @if (quotaExhausted) {
+              <div
+                class="bg-amber-900/20 border border-amber-700/50 rounded-xl px-4 py-3 flex items-start gap-3"
+              >
+                <mat-icon
+                  class="text-amber-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem] flex-shrink-0"
+                  >lock</mat-icon
+                >
+                <div class="flex-1">
+                  <p class="text-sm font-semibold text-amber-300">Quota mensuel atteint</p>
+                  <p class="text-xs text-gray-400 mt-0.5">
+                    Passez à un plan payant pour des scans d'URL illimités.
+                  </p>
+                  <a
+                    routerLink="/dashboard"
+                    [queryParams]="{ upgrade: 'true' }"
+                    class="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-gray-900 hover:bg-amber-400 transition-colors"
+                  >
+                    <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">upgrade</mat-icon>
+                    Passer à un plan payant
+                  </a>
+                </div>
+              </div>
+            }
+
             <button
               type="submit"
-              [disabled]="submitting() || form.invalid"
+              [disabled]="submitting() || form.invalid || quotaExhausted"
               class="w-full py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               @if (submitting()) {

@@ -1,11 +1,12 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { ComplianceApiService } from '../services/compliance-api.service';
+import { BillingService } from '../services/billing.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import {
   complianceStatusLabel,
@@ -48,12 +49,22 @@ export interface Nis2Category {
 })
 export class Nis2Component implements OnInit {
   private complianceApi = inject(ComplianceApiService);
+  private billing = inject(BillingService);
+  private router = inject(Router);
   private snack = inject(MatSnackBar);
 
   loading = signal(true);
   saving = signal(false);
   exporting = signal(false);
   exportingAuditor = signal(false);
+
+  // Export PDF réservé aux plans payants (allow_conformity_export). Le score reste
+  // visible au Gratuit (accroche de conversion) ; seul l'export est verrouillé.
+  private subLoaded = signal(false);
+  canExport = signal(false);
+  // Vrai uniquement une fois l'abonnement chargé et l'export non autorisé : évite
+  // d'afficher le CTA d'upgrade à un payant pendant le chargement.
+  readonly showUpgrade = computed(() => this.subLoaded() && !this.canExport());
 
   categories = signal<Nis2Category[]>([]);
   items = signal<Record<string, Nis2Status>>({});
@@ -65,6 +76,14 @@ export class Nis2Component implements OnInit {
   readonly STATUS_LIST: Nis2Status[] = ['compliant', 'partial', 'non_compliant', 'na'];
 
   ngOnInit() {
+    this.billing.getMySubscription().subscribe({
+      next: sub => {
+        this.canExport.set(!!sub?.plan?.allow_conformity_export);
+        this.subLoaded.set(true);
+      },
+      error: () => this.subLoaded.set(true),
+    });
+
     this.complianceApi.getNis2Assessment().subscribe({
       next: data => {
         // Narrowing au bord de l'API : le backend renvoie des chaînes/objets
@@ -141,6 +160,23 @@ export class Nis2Component implements OnInit {
     });
   }
 
+  /**
+   * Verrou d'export payant : message explicite (pas une « erreur du site ») +
+   * action directe vers la grille tarifaire. Bascule aussi l'UI en mode Gratuit.
+   */
+  private notifyExportLocked(): void {
+    this.canExport.set(false);
+    this.subLoaded.set(true);
+    const ref = this.snack.open(
+      "L'export PDF est réservé aux plans payants (dès Starter).",
+      'Voir les offres',
+      { duration: 7000 }
+    );
+    ref.onAction().subscribe(() => {
+      this.router.navigate(['/dashboard'], { queryParams: { upgrade: 'true' } });
+    });
+  }
+
   exportPdf() {
     this.exporting.set(true);
     // Sauvegarde automatique avant export pour garantir la cohérence PDF/app
@@ -168,8 +204,12 @@ export class Nis2Component implements OnInit {
         URL.revokeObjectURL(url);
         this.exporting.set(false);
       },
-      error: () => {
+      error: err => {
         this.exporting.set(false);
+        if (err?.status === 403) {
+          this.notifyExportLocked();
+          return;
+        }
         this.snack.open("Erreur lors de l'export PDF", 'Fermer', { duration: 4000 });
       },
     });
@@ -191,8 +231,12 @@ export class Nis2Component implements OnInit {
             URL.revokeObjectURL(url);
             this.exportingAuditor.set(false);
           },
-          error: () => {
+          error: err => {
             this.exportingAuditor.set(false);
+            if (err?.status === 403) {
+              this.notifyExportLocked();
+              return;
+            }
             this.snack.open("Erreur lors de l'export du document officiel", 'Fermer', {
               duration: 4000,
             });

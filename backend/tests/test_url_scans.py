@@ -10,6 +10,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
+from app.services.url_scan_service import FREE_URL_SCAN_MONTHLY_LIMIT
 
 BASE = "/api/v1"
 
@@ -57,6 +58,82 @@ async def test_trigger_url_scan_ftp_rejected_422():
         h = await _headers(c, "urlscan_ftp@test.com")
         r = await c.post(f"{BASE}/url-scans", json={"url": "ftp://files.example.com"}, headers=h)
     assert r.status_code == 422
+
+
+# ── Quota plan Gratuit ───────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_free_url_scan_quota_enforced():
+    """Un compte Gratuit (aucun abo -> tier 1) est plafonne ; le N+1 renvoie 429."""
+    with (
+        patch("app.api.v1.endpoints.url_scans.run_url_scan", new_callable=AsyncMock),
+        patch("app.api.v1.endpoints.url_scans.assert_no_ssrf"),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await _headers(c, "urlquota_free@test.com")
+            for i in range(FREE_URL_SCAN_MONTHLY_LIMIT):
+                ok = await c.post(
+                    f"{BASE}/url-scans", json={"url": f"https://example{i}.com"}, headers=h
+                )
+                assert ok.status_code == 202
+            over = await c.post(
+                f"{BASE}/url-scans", json={"url": "https://one-too-many.com"}, headers=h
+            )
+    assert over.status_code == 429
+    assert "Gratuit" in over.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_paid_url_scan_unlimited():
+    """Un plan payant (tier >= 2) n'est pas plafonne."""
+    with (
+        patch("app.api.v1.endpoints.url_scans.run_url_scan", new_callable=AsyncMock),
+        patch("app.api.v1.endpoints.url_scans.assert_no_ssrf"),
+        patch("app.api.v1.endpoints.url_scans.get_active_tier", new_callable=AsyncMock) as tier,
+    ):
+        tier.return_value = 3
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await _headers(c, "urlquota_paid@test.com")
+            statuses = []
+            for i in range(FREE_URL_SCAN_MONTHLY_LIMIT + 2):
+                r = await c.post(
+                    f"{BASE}/url-scans", json={"url": f"https://example{i}.com"}, headers=h
+                )
+                statuses.append(r.status_code)
+    assert all(s == 202 for s in statuses)
+
+
+@pytest.mark.asyncio
+async def test_url_scan_quota_endpoint_free():
+    with (
+        patch("app.api.v1.endpoints.url_scans.run_url_scan", new_callable=AsyncMock),
+        patch("app.api.v1.endpoints.url_scans.assert_no_ssrf"),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await _headers(c, "urlquota_ep_free@test.com")
+            await c.post(f"{BASE}/url-scans", json={"url": "https://a.com"}, headers=h)
+            await c.post(f"{BASE}/url-scans", json={"url": "https://b.com"}, headers=h)
+            r = await c.get(f"{BASE}/url-scans/quota", headers=h)
+    assert r.status_code == 200
+    data = r.json()
+    assert data["unlimited"] is False
+    assert data["limit"] == FREE_URL_SCAN_MONTHLY_LIMIT
+    assert data["used"] == 2
+    assert data["remaining"] == FREE_URL_SCAN_MONTHLY_LIMIT - 2
+
+
+@pytest.mark.asyncio
+async def test_url_scan_quota_endpoint_paid_unlimited():
+    with patch("app.api.v1.endpoints.url_scans.get_active_tier", new_callable=AsyncMock) as tier:
+        tier.return_value = 2
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await _headers(c, "urlquota_ep_paid@test.com")
+            r = await c.get(f"{BASE}/url-scans/quota", headers=h)
+    assert r.status_code == 200
+    data = r.json()
+    assert data["unlimited"] is True
+    assert data["limit"] is None
 
 
 # ── GET /url-scans ───────────────────────────────────────────────────────────
