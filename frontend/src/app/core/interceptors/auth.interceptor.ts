@@ -6,7 +6,18 @@ import {
 } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, retry, switchMap, throwError, timer } from 'rxjs';
+import {
+  Observable,
+  catchError,
+  finalize,
+  map,
+  retry,
+  shareReplay,
+  switchMap,
+  take,
+  throwError,
+  timer,
+} from 'rxjs';
 import { HotToastService } from '@ngneat/hot-toast';
 
 import { AuthService } from '../services/auth.service';
@@ -16,6 +27,26 @@ import { extractApiError } from '../http-error';
 const addToken = (req: HttpRequest<unknown>, token: string) =>
   req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
 
+// Refresh « single-flight » : le refresh_token est ROTÉ côté serveur à chaque appel
+// (l'ancien cookie est invalidé). Si deux requêtes tombent en 401 en même temps et
+// lancent chacune leur propre refresh, le 2e présente un cookie déjà périmé → 401 →
+// déconnexion intempestive. On partage donc UN SEUL refresh entre toutes les requêtes
+// 401 concurrentes via shareReplay, et on le réarme (null) une fois terminé.
+let sharedRefresh$: Observable<string> | null = null;
+
+const sharedRefresh = (authService: AuthService): Observable<string> => {
+  if (!sharedRefresh$) {
+    sharedRefresh$ = authService.refresh().pipe(
+      map(res => res.access_token),
+      shareReplay({ bufferSize: 1, refCount: false }),
+      finalize(() => {
+        sharedRefresh$ = null;
+      })
+    );
+  }
+  return sharedRefresh$;
+};
+
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const cryptoService = inject(CryptoService);
@@ -24,6 +55,12 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const token = authService.getToken();
 
   const authReq = token ? addToken(req, token) : req;
+
+  const forceLogout = () => {
+    authService.logout();
+    cryptoService.clearKey();
+    router.navigate(['/']);
+  };
 
   return next(authReq).pipe(
     retry({
@@ -36,23 +73,30 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       },
     }),
     catchError((error: HttpErrorResponse) => {
-      // Don't redirect on 401 from auth endpoints (login/register return 401 for bad credentials)
-      const isAuthEndpoint = req.url.includes('/auth/login') || req.url.includes('/auth/register');
+      // Ne pas tenter de refresh sur les endpoints d'auth eux-mêmes :
+      // - login/register renvoient 401 pour de mauvais identifiants ;
+      // - refresh/logout : éviter une récursion de refresh (un refresh qui 401
+      //   doit se propager et déclencher la déconnexion, pas relancer un refresh).
+      const isAuthEndpoint =
+        req.url.includes('/auth/login') ||
+        req.url.includes('/auth/register') ||
+        req.url.includes('/auth/refresh') ||
+        req.url.includes('/auth/logout');
+
       if (error.status === 401 && !isAuthEndpoint && authService.isAuthenticated()) {
-        return authService.refresh().pipe(
-          switchMap(res => next(addToken(req, res.access_token))),
+        // Toutes les requêtes 401 concurrentes s'abonnent au MÊME refresh (single-flight),
+        // puis rejouent leur propre requête avec le nouveau token.
+        return sharedRefresh(authService).pipe(
+          take(1),
+          switchMap(newToken => next(addToken(req, newToken))),
           catchError(() => {
-            authService.logout();
-            cryptoService.clearKey();
-            router.navigate(['/']);
+            forceLogout();
             return throwError(() => error);
           })
         );
       }
       if (error.status === 401 && !isAuthEndpoint) {
-        authService.logout();
-        cryptoService.clearKey();
-        router.navigate(['/']);
+        forceLogout();
       }
       if (error.status === 429) {
         const msg = extractApiError(error, 'Trop de requêtes. Réessayez dans quelques instants.');
