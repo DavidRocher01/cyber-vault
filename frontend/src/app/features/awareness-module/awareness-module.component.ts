@@ -70,9 +70,7 @@ type PageView = 'dashboard' | 'content' | 'quiz' | 'quiz-result' | 'certificate'
         }
         <div class="flex items-center gap-2 shrink-0">
           <mat-icon class="text-cyan-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]">shield</mat-icon>
-          <span class="text-sm font-bold hidden sm:inline"
-            >Cyber<span class="text-cyan-400">Scan</span></span
-          >
+          <span class="text-sm font-bold text-cyan-400 hidden sm:inline">Rocher Cybersécurité</span>
         </div>
       </nav>
 

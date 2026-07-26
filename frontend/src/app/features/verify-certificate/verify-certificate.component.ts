@@ -18,7 +18,7 @@ import { AwarenessService, CertificateVerification } from '../cyberscan/services
         <div class="text-center mb-6">
           <div class="flex items-center justify-center gap-2 mb-1">
             <mat-icon class="text-cyan-400 !text-[1.4rem] !w-[1.4rem] !h-[1.4rem]">shield</mat-icon>
-            <span class="font-bold text-white">Cyber<span class="text-cyan-400">Scan</span></span>
+            <span class="font-bold text-cyan-400">Rocher Cybersécurité</span>
           </div>
           <p class="text-gray-500 text-xs">Vérification d'attestation NIS2</p>
         </div>
