@@ -1159,13 +1159,15 @@
                     >
                     {{ scanFrequency(plan.scan_interval_days) }}
                   </div>
-                  <div class="flex items-center gap-2 text-xs text-gray-300">
-                    <mat-icon
-                      class="text-cyan-500 !text-[0.75rem] !w-[0.75rem] !h-[0.75rem] flex-shrink-0"
-                      >check_circle</mat-icon
-                    >
-                    Rapport PDF complet
-                  </div>
+                  @if (plan.tier_level >= 2) {
+                    <div class="flex items-center gap-2 text-xs text-gray-300">
+                      <mat-icon
+                        class="text-cyan-500 !text-[0.75rem] !w-[0.75rem] !h-[0.75rem] flex-shrink-0"
+                        >check_circle</mat-icon
+                      >
+                      Rapport PDF complet
+                    </div>
+                  }
                   @if (plan.tier_level >= 3) {
                     <div class="flex items-center gap-2 text-xs text-gray-300">
                       <mat-icon

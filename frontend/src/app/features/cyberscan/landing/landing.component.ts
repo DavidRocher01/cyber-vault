@@ -424,7 +424,9 @@ export class LandingComponent implements OnInit, AfterViewInit {
     const features: { label: string; detail?: string }[] = [
       { label: sitesLabel },
       { label: formatScanFrequency(plan.scan_interval_days) },
-      { label: 'Rapport clair, prêt à présenter' },
+      // « Rapport prêt à présenter » réservé aux plans payants : le Gratuit ne
+      // met pas en avant l'export PDF (cohérence avec le verrou conformité).
+      ...(plan.tier_level >= 2 ? [{ label: 'Rapport clair, prêt à présenter' }] : []),
       {
         label: 'Sécurité essentielle',
         detail: 'SSL/TLS, en-têtes de sécurité, DNS, e-mail (SPF/DMARC), cookies, réputation IP…',

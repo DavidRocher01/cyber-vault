@@ -130,6 +130,24 @@ describe('LandingComponent — getPlanFeatures()', () => {
     const plan: any = { max_sites: 1, scan_interval_days: 30, tier_level: 1 };
     expect(make().getPlanFeatures(plan).length).toBeGreaterThanOrEqual(4);
   });
+
+  it('ne met PAS en avant "prêt à présenter" pour le Gratuit (tier_level 1)', () => {
+    const plan: any = { max_sites: 1, scan_interval_days: 30, tier_level: 1 };
+    expect(
+      make()
+        .getPlanFeatures(plan)
+        .some(f => f.label.includes('prêt à présenter'))
+    ).toBe(false);
+  });
+
+  it('met en avant "prêt à présenter" dès un plan payant (tier_level >= 2)', () => {
+    const plan: any = { max_sites: 5, scan_interval_days: 7, tier_level: 2 };
+    expect(
+      make()
+        .getPlanFeatures(plan)
+        .some(f => f.label.includes('prêt à présenter'))
+    ).toBe(true);
+  });
 });
 
 // ── getPlanBadge() ────────────────────────────────────────────────────────────
