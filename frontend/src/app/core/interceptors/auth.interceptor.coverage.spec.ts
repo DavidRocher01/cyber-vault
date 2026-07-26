@@ -8,7 +8,7 @@ import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { of, throwError, Subject } from 'rxjs';
 import { HotToastService } from '@ngneat/hot-toast';
 
 // Aucun spec du dépôt n'utilise TestBed (tous font Injector.create / instanciation
@@ -152,6 +152,45 @@ describe('authInterceptor (DI réel) — 401 avec refresh réussi', () => {
     retry.flush({ ok: true });
 
     expect(result).toEqual({ ok: true });
+    expect(authMock.logout).not.toHaveBeenCalled();
+    expect(routerMock.navigate).not.toHaveBeenCalled();
+  });
+});
+
+describe('authInterceptor (DI réel) — refresh single-flight (concurrence)', () => {
+  it('deux 401 simultanés ne déclenchent QU’UN seul refresh puis rejouent chacun', () => {
+    // Régression : le refresh_token est roté côté serveur à chaque appel. Sans
+    // déduplication, deux 401 concurrents lançaient chacun leur refresh ; le 2e
+    // présentait un cookie déjà invalidé → 401 → déconnexion intempestive.
+    const { http, httpMock } = setup({ token: 'old_tok', authenticated: true });
+    // refresh asynchrone contrôlé : les deux 401 doivent s'y abonner AVANT résolution.
+    const refreshSubject = new Subject<any>();
+    authMock.refresh = vi.fn().mockReturnValue(refreshSubject.asObservable());
+
+    http.get('/api/v1/a').subscribe({ next: () => {}, error: () => {} });
+    http.get('/api/v1/b').subscribe({ next: () => {}, error: () => {} });
+
+    httpMock
+      .expectOne('/api/v1/a')
+      .flush({ detail: 'expired' }, { status: 401, statusText: 'Unauthorized' });
+    httpMock
+      .expectOne('/api/v1/b')
+      .flush({ detail: 'expired' }, { status: 401, statusText: 'Unauthorized' });
+
+    // Un seul refresh malgré deux 401 concurrents.
+    expect(authMock.refresh).toHaveBeenCalledTimes(1);
+
+    // Le refresh se résout : les deux requêtes rejouent avec le nouveau token.
+    refreshSubject.next({ access_token: 'new_tok', token_type: 'bearer' });
+    refreshSubject.complete();
+
+    const a2 = httpMock.expectOne('/api/v1/a');
+    const b2 = httpMock.expectOne('/api/v1/b');
+    expect(a2.request.headers.get('Authorization')).toBe('Bearer new_tok');
+    expect(b2.request.headers.get('Authorization')).toBe('Bearer new_tok');
+    a2.flush({ ok: true });
+    b2.flush({ ok: true });
+
     expect(authMock.logout).not.toHaveBeenCalled();
     expect(routerMock.navigate).not.toHaveBeenCalled();
   });
