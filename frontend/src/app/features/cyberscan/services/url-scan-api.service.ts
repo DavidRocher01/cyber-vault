@@ -6,6 +6,14 @@ import { UrlScan, PaginatedUrlScans } from './cyberscan.service';
 
 const API = '/api/v1';
 
+/** État du quota de scans URL (illimité sur les plans payants). */
+export interface UrlScanQuota {
+  unlimited: boolean;
+  limit: number | null;
+  used: number;
+  remaining: number | null;
+}
+
 /** Domaine scans d URL extrait de CyberscanService. */
 @Injectable({ providedIn: 'root' })
 export class UrlScanApiService {
@@ -17,6 +25,10 @@ export class UrlScanApiService {
 
   getUrlScans(page = 1, perPage = 20): Observable<PaginatedUrlScans> {
     return this.http.get<PaginatedUrlScans>(`${API}/url-scans?page=${page}&per_page=${perPage}`);
+  }
+
+  getUrlScanQuota(): Observable<UrlScanQuota> {
+    return this.http.get<UrlScanQuota>(`${API}/url-scans/quota`);
   }
 
   getUrlScan(id: number): Observable<UrlScan> {

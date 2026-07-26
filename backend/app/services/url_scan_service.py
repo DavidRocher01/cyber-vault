@@ -8,7 +8,7 @@ import ipaddress
 import json
 import re
 import socket
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from urllib.parse import urlparse
 
 import httpx
@@ -69,6 +69,13 @@ HEADERS = {
         "Chrome/122.0.0.0 Safari/537.36"
     )
 }
+
+# Quota de scans URL du plan Gratuit sur une fenêtre glissante de 30 jours. Les plans
+# payants (tier >= 2) ne sont pas plafonnés (seul le garde @limiter.limit("10/minute")
+# subsiste). Fenêtre glissante (et non mois calendaire) pour éviter le contournement par
+# reset de fin de mois, cohérent avec le plafond de scans de sites (scans.py).
+FREE_URL_SCAN_MONTHLY_LIMIT = 5
+FREE_URL_SCAN_WINDOW_DAYS = 30
 
 
 # ---------------------------------------------------------------------------
@@ -543,6 +550,34 @@ async def create_url_scan(db: AsyncSession, user_id: int, url: str) -> UrlScan:
     await db.commit()
     await db.refresh(url_scan)
     return url_scan
+
+
+async def count_url_scans_since(db: AsyncSession, user_id: int, since: datetime) -> int:
+    """Nombre de scans URL créés par l'utilisateur depuis `since` (fenêtre de quota)."""
+    result = await db.execute(
+        select(func.count())
+        .select_from(UrlScan)
+        .where(UrlScan.user_id == user_id, UrlScan.created_at >= since)
+    )
+    return int(result.scalar_one())
+
+
+async def get_url_scan_quota(db: AsyncSession, user_id: int, *, tier: int) -> dict:
+    """État du quota de scans URL de l'utilisateur.
+
+    Les plans payants (tier >= 2) sont illimités ; le Gratuit est plafonné à
+    FREE_URL_SCAN_MONTHLY_LIMIT sur une fenêtre glissante de FREE_URL_SCAN_WINDOW_DAYS jours.
+    """
+    if tier >= 2:
+        return {"unlimited": True, "limit": None, "used": 0, "remaining": None}
+    since = datetime.now(UTC) - timedelta(days=FREE_URL_SCAN_WINDOW_DAYS)
+    used = await count_url_scans_since(db, user_id, since)
+    return {
+        "unlimited": False,
+        "limit": FREE_URL_SCAN_MONTHLY_LIMIT,
+        "used": used,
+        "remaining": max(0, FREE_URL_SCAN_MONTHLY_LIMIT - used),
+    }
 
 
 async def list_user_url_scans(db: AsyncSession, user_id: int, *, page: int, per_page: int) -> dict:

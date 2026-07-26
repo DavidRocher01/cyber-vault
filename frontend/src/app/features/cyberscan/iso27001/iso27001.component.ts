@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -7,6 +7,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Title, Meta } from '@angular/platform-browser';
 
 import { ComplianceApiService } from '../services/compliance-api.service';
+import { BillingService } from '../services/billing.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import {
   complianceStatusLabel,
@@ -48,6 +49,8 @@ export interface Iso27001Category {
 })
 export class Iso27001Component implements OnInit {
   private complianceApi = inject(ComplianceApiService);
+  private billing = inject(BillingService);
+  private router = inject(Router);
   private snack = inject(MatSnackBar);
   private titleService = inject(Title);
   private meta = inject(Meta);
@@ -55,6 +58,12 @@ export class Iso27001Component implements OnInit {
   loading = signal(true);
   saving = signal(false);
   exporting = signal(false);
+
+  // Export PDF réservé aux plans payants (allow_conformity_export). Le score reste
+  // visible au Gratuit (accroche de conversion) ; seul l'export est verrouillé.
+  private subLoaded = signal(false);
+  canExport = signal(false);
+  readonly showUpgrade = computed(() => this.subLoaded() && !this.canExport());
 
   categories = signal<Iso27001Category[]>([]);
   items = signal<Record<string, Iso27001Status>>({});
@@ -70,6 +79,13 @@ export class Iso27001Component implements OnInit {
       name: 'description',
       content:
         'Évaluez votre niveau de conformité à la norme ISO/IEC 27001:2022 avec Rocher Cybersécurité.',
+    });
+    this.billing.getMySubscription().subscribe({
+      next: sub => {
+        this.canExport.set(!!sub?.plan?.allow_conformity_export);
+        this.subLoaded.set(true);
+      },
+      error: () => this.subLoaded.set(true),
     });
     this.complianceApi.getIso27001Assessment().subscribe({
       next: data => {
@@ -144,6 +160,23 @@ export class Iso27001Component implements OnInit {
     });
   }
 
+  /**
+   * Verrou d'export payant : message explicite (pas une « erreur du site ») +
+   * action directe vers la grille tarifaire. Bascule aussi l'UI en mode Gratuit.
+   */
+  private notifyExportLocked(): void {
+    this.canExport.set(false);
+    this.subLoaded.set(true);
+    const ref = this.snack.open(
+      "L'export PDF est réservé aux plans payants (dès Starter).",
+      'Voir les offres',
+      { duration: 7000 }
+    );
+    ref.onAction().subscribe(() => {
+      this.router.navigate(['/dashboard'], { queryParams: { upgrade: 'true' } });
+    });
+  }
+
   exportPdf() {
     this.exporting.set(true);
     this.complianceApi.saveIso27001Assessment(this._fullItems).subscribe({
@@ -170,8 +203,12 @@ export class Iso27001Component implements OnInit {
         URL.revokeObjectURL(url);
         this.exporting.set(false);
       },
-      error: () => {
+      error: err => {
         this.exporting.set(false);
+        if (err?.status === 403) {
+          this.notifyExportLocked();
+          return;
+        }
         this.snack.open("Erreur lors de l'export PDF", 'Fermer', { duration: 4000 });
       },
     });

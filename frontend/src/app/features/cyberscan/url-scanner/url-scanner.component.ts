@@ -10,7 +10,7 @@ import { Subscription as RxSubscription } from 'rxjs';
 import { pollWithBackoff } from '../../../shared/poll-with-backoff';
 
 import { UrlScan, PaginatedUrlScans } from '../services/cyberscan.service';
-import { UrlScanApiService } from '../services/url-scan-api.service';
+import { UrlScanApiService, UrlScanQuota } from '../services/url-scan-api.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { extractApiError } from '../../../core/http-error';
 import { formatFrDate } from '../../../shared/date-utils';
@@ -67,9 +67,24 @@ export class UrlScannerComponent implements OnInit, OnDestroy {
   loadingHistory = signal(true);
   currentPage = signal(1);
   activeScan = signal<UrlScan | null>(null);
+  quota = signal<UrlScanQuota | null>(null);
 
   ngOnInit() {
     this.loadHistory(1);
+    this.loadQuota();
+  }
+
+  loadQuota() {
+    this.urlScanApi.getUrlScanQuota().subscribe({
+      next: q => this.quota.set(q),
+      error: () => this.quota.set(null),
+    });
+  }
+
+  /** Vrai si le plan Gratuit a épuisé son quota mensuel de scans URL. */
+  get quotaExhausted(): boolean {
+    const q = this.quota();
+    return !!q && !q.unlimited && (q.remaining ?? 0) <= 0;
   }
 
   ngOnDestroy() {
@@ -110,12 +125,15 @@ export class UrlScannerComponent implements OnInit, OnDestroy {
         });
         this.startPolling(scan.id);
         this.loadHistory(1);
+        this.loadQuota();
       },
       error: err => {
         this.submitting.set(false);
         this.snack.open(extractApiError(err, 'Erreur lors du lancement'), 'Fermer', {
           duration: 6000,
         });
+        // Un 429 (quota atteint) doit rafraîchir le compteur affiché.
+        if (err?.status === 429) this.loadQuota();
       },
     });
   }
@@ -163,6 +181,7 @@ export class UrlScannerComponent implements OnInit, OnDestroy {
           h ? { ...h, items: h.items.filter(s => s.id !== scan.id), total: h.total - 1 } : h
         );
         if (this.activeScan()?.id === scan.id) this.activeScan.set(null);
+        this.loadQuota();
       },
     });
   }

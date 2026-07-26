@@ -18,8 +18,20 @@ function make(): Iso27001Component {
   (comp as any).items = signal<Record<string, Iso27001Status>>({});
   (comp as any).score = signal(0);
   (comp as any).updatedAt = signal<string | null>(null);
+  (comp as any).loading = signal(false);
+  (comp as any).saving = signal(false);
+  (comp as any).exporting = signal(false);
   (comp as any).CYCLE = ['non_compliant', 'partial', 'compliant', 'na'];
   (comp as any).STATUS_LIST = ['compliant', 'partial', 'non_compliant', 'na'];
+
+  // Gating export payant
+  (comp as any).subLoaded = signal(false);
+  (comp as any).canExport = signal(false);
+  (comp as any).showUpgrade = computed(
+    () => (comp as any).subLoaded() && !(comp as any).canExport()
+  );
+  (comp as any).billing = { getMySubscription: vi.fn().mockReturnValue(of(null)) };
+  (comp as any).router = { navigate: vi.fn() };
   const allIds = computed(() =>
     (comp as any).categories().flatMap((cat: Iso27001Category) => cat.items.map((i: any) => i.id))
   );
@@ -432,6 +444,26 @@ describe('Iso27001Component — ngOnInit()', () => {
     expect((comp as any).loading()).toBe(false);
     expect((comp as any).snack.open).toHaveBeenCalled();
   });
+
+  it('plan payant : canExport passe à true', () => {
+    const comp = makeService();
+    (comp as any).billing = {
+      getMySubscription: vi.fn().mockReturnValue(of({ plan: { allow_conformity_export: true } })),
+    };
+    (comp as any).complianceApi = { getIso27001Assessment: vi.fn().mockReturnValue(of({})) };
+    comp.ngOnInit();
+    expect((comp as any).canExport()).toBe(true);
+    expect((comp as any).showUpgrade()).toBe(false);
+  });
+
+  it('plan Gratuit : showUpgrade passe à true', () => {
+    const comp = makeService();
+    (comp as any).billing = { getMySubscription: vi.fn().mockReturnValue(of(null)) };
+    (comp as any).complianceApi = { getIso27001Assessment: vi.fn().mockReturnValue(of({})) };
+    comp.ngOnInit();
+    expect((comp as any).canExport()).toBe(false);
+    expect((comp as any).showUpgrade()).toBe(true);
+  });
 });
 
 describe('Iso27001Component — save()', () => {
@@ -562,5 +594,28 @@ describe('Iso27001Component — exportPdf()', () => {
     comp.exportPdf();
     expect((comp as any).exporting()).toBe(false);
     expect((comp as any).snack.open).toHaveBeenCalled();
+  });
+
+  it('403 : message « réservé aux plans payants » + action vers la grille tarifaire', () => {
+    const comp = makeService();
+    (comp as any).canExport = signal(true);
+    const actionRef = { onAction: vi.fn().mockReturnValue(of(void 0)) };
+    (comp as any).snack = { open: vi.fn().mockReturnValue(actionRef) };
+    (comp as any).router = { navigate: vi.fn() };
+    (comp as any).complianceApi = {
+      saveIso27001Assessment: vi.fn().mockReturnValue(of({ score: 60, updated_at: 'x' })),
+      downloadIso27001PdfBlob: vi.fn().mockReturnValue(throwError(() => ({ status: 403 }))),
+    };
+    comp.exportPdf();
+    expect((comp as any).exporting()).toBe(false);
+    expect((comp as any).canExport()).toBe(false);
+    expect((comp as any).snack.open).toHaveBeenCalledWith(
+      "L'export PDF est réservé aux plans payants (dès Starter).",
+      'Voir les offres',
+      { duration: 7000 }
+    );
+    expect((comp as any).router.navigate).toHaveBeenCalledWith(['/dashboard'], {
+      queryParams: { upgrade: 'true' },
+    });
   });
 });
