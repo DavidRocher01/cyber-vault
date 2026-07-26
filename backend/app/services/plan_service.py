@@ -17,3 +17,9 @@ async def list_active_plans(db: AsyncSession) -> list[Plan]:
 async def get_plan(db: AsyncSession, plan_id: int) -> Plan | None:
     """Retourne un plan par son identifiant, sinon None."""
     return await db.get(Plan, plan_id)
+
+
+async def get_plan_by_name(db: AsyncSession, name: str) -> Plan | None:
+    """Retourne un plan actif par son nom technique (ex. 'starter'), sinon None."""
+    result = await db.execute(select(Plan).where(Plan.name == name, Plan.is_active.is_(True)))
+    return result.scalar_one_or_none()

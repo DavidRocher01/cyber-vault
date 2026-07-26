@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -144,3 +144,28 @@ async def add_extra_sites(db: AsyncSession, sub: Subscription, count: int) -> No
     """Incrémente le nombre de sites supplémentaires d'un abonnement."""
     sub.extra_sites += count
     await db.commit()
+
+
+# Identifiant Stripe fictif posé sur les abonnements créés par override admin (piste A).
+# Permet de distinguer un abonnement attribué manuellement (test de quotas, offre
+# commerciale) d'un abonnement réel issu d'un checkout Stripe.
+ADMIN_OVERRIDE_MARKER = "admin_override"
+
+
+async def admin_set_user_plan(db: AsyncSession, *, user_id: int, plan: Plan, now: datetime) -> None:
+    """Attribue (ou rétrograde) l'abonnement d'un utilisateur vers un plan SANS Stripe.
+
+    Réservé à l'usage admin : tester les quotas / l'export / le scan d'un palier, ou
+    offrir un plan à un client. La période est posée à ~10 ans (abonnement non facturé,
+    aucun renouvellement à gérer). Sur un abonnement existant, seuls le plan, le statut et
+    la période sont mis à jour ; les identifiants Stripe d'origine ne sont pas écrasés.
+    """
+    await upsert_active_subscription(
+        db,
+        user_id=user_id,
+        plan_id=plan.id,
+        now=now,
+        period_end=now + timedelta(days=365 * 10),
+        stripe_customer_id=ADMIN_OVERRIDE_MARKER,
+        stripe_subscription_id=ADMIN_OVERRIDE_MARKER,
+    )
