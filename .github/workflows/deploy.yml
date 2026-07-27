@@ -4,6 +4,14 @@ name: Deploy — Production
 on:
   push:
     branches: [main, master]
+    # Un changement purement CI/docs (workflows, markdown, docs/) ne doit pas
+    # redéployer la prod. paths-ignore ne skippe le run que si TOUS les fichiers
+    # du push correspondent — un merge de feature avec du code applicatif déploie
+    # normalement (mix ignoré + non-ignoré => run déclenché).
+    paths-ignore:
+      - ".github/**"
+      - "**.md"
+      - "docs/**"
 
 permissions:
   id-token: write   # required for OIDC token request

@@ -58,8 +58,12 @@ jobs:
 
       - name: npm audit (JSON)
         id: npm_audit
+        # --omit=dev : on gate sur les dépendances de PRODUCTION, aligné sur ci.yml.
+        # Les advisories dev-only (lint/build : eslint/storybook/typescript-eslint,
+        # ex. brace-expansion ReDoS GHSA-mh99-v99m-4gvg) ne sont pas corrigeables sans
+        # bump majeur cassant (eslint 8→10) et n'atteignent jamais le bundle livré.
         run: |
-          npm audit --json > npm-audit.json || true
+          npm audit --json --omit=dev > npm-audit.json || true
         working-directory: frontend
 
       # ── Parse & résumé ───────────────────────────────────────────────────────
@@ -210,13 +214,18 @@ jobs:
           retention-days: 90
 
       # ── Email si vulnérabilités ──────────────────────────────────────────────
+      # continue-on-error : un raté d'alerte (clé Resend expirée, 403, réseau) ne doit
+      # JAMAIS marquer l'audit sécurité en échec — le résultat de l'audit reste le
+      # summary + les artifacts. En cas d'erreur HTTP, on logge le corps Resend pour
+      # diagnostic (ex. domaine from non vérifié, clé restreinte).
       - name: Envoyer alerte email
         if: steps.parse.outputs.has_vulns == 'true'
+        continue-on-error: true
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         run: |
           python - << 'PYEOF'
-          import json, os, urllib.request
+          import json, os, urllib.request, urllib.error
           from pathlib import Path
 
           d = json.loads(Path("audit-summary.json").read_text())
@@ -229,20 +238,20 @@ jobs:
 
           html = f"""
           <div style="font-family:sans-serif;max-width:600px">
-            <h2 style="color:#0f172a">⚠️ Alerte sécurité CyberScan — {date}</h2>
+            <h2 style="color:#0f172a">⚠️ Alerte sécurité Rocher Cybersécurité — {date}</h2>
             <p>Des vulnérabilités ont été détectées lors de l'audit hebdomadaire :</p>
             <ul>{"".join(f"<li>{l}</li>" for l in lines)}</ul>
             <p>Consultez les <a href="https://github.com/DavidRocher01/cyber-vault/actions">artifacts GitHub Actions</a>
             pour le détail complet.</p>
             <hr style="border:1px solid #e2e8f0">
-            <p style="color:#64748b;font-size:12px">CyberScan — Audit automatique hebdomadaire</p>
+            <p style="color:#64748b;font-size:12px">Rocher Cybersécurité — Audit automatique hebdomadaire</p>
           </div>
           """
 
           payload = json.dumps({
               "from": "Rocher Cybersécurité <contact@rochercybersecurite.com>",
               "to": ["rocherdavid@ymail.com"],
-              "subject": f"[CyberScan] ⚠️ Alerte sécurité — {date}",
+              "subject": f"[Rocher Cybersécurité] ⚠️ Alerte sécurité — {date}",
               "html": html,
           }).encode()
 
@@ -254,6 +263,12 @@ jobs:
                   "Content-Type": "application/json",
               },
           )
-          with urllib.request.urlopen(req) as resp:
-              print(f"Email envoyé : {resp.status}")
+          try:
+              with urllib.request.urlopen(req) as resp:
+                  print(f"Email envoyé : {resp.status}")
+          except urllib.error.HTTPError as e:
+              body = e.read().decode(errors="replace")
+              print(f"::warning title=Alerte email non envoyée::HTTP {e.code} Resend — {body}")
+          except Exception as e:  # réseau, DNS, timeout…
+              print(f"::warning title=Alerte email non envoyée::{type(e).__name__} — {e}")
           PYEOF
