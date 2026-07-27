@@ -34,7 +34,7 @@ import {
       >
         <div class="flex items-center gap-2">
           <mat-icon class="text-cyan-400 !text-[1.4rem] !w-[1.4rem] !h-[1.4rem]">shield</mat-icon>
-          <span class="font-bold text-white">Cyber<span class="text-cyan-400">Scan</span></span>
+          <span class="font-bold text-cyan-400">Rocher Cybersécurité</span>
           <span
             class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-600/30 uppercase tracking-widest ml-1"
             >NIS2</span
