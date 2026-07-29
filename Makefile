@@ -31,6 +31,9 @@ install-backend: ## Installe les dépendances Python
 install-frontend: ## Installe les dépendances Node.js
 	cd frontend && npm install
 
+bootstrap-env: ## Génère backend/.env de dev (secrets locaux, --force pour écraser)
+	python scripts/bootstrap_dev_env.py
+
 # ── Développement ───────────────────────────────────────────────────────────────
 
 dev-backend: ## Lance le backend en mode dev

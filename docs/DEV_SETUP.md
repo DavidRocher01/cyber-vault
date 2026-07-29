@@ -53,6 +53,12 @@ git checkout develop
   locales** (Postgres local, clés Stripe *test*, Resend de test). Les vraies
   valeurs **prod** sont dans **AWS Secrets Manager** (`cybervault/prod`,
   `eu-west-3`) — à ne **pas** mettre en dev.
+- **Assisté (recommandé)** : `make bootstrap-env` (ou
+  `python scripts/bootstrap_dev_env.py`) génère un `backend/.env` de dev prêt à
+  l'emploi — `SECRET_KEY`/`ADMIN_API_KEY` aléatoires, Postgres local, CORS
+  `localhost:4200`, Sentry off, phishing local. Refuse d'écraser un `.env`
+  existant sans `--force` ; `--print` pour prévisualiser. Les secrets de services
+  tiers (Stripe/Resend/HIBP…) restent **vides**, à compléter seulement si besoin.
 
 Clés attendues (cf. `backend/.env.example`) : `SECRET_KEY` (≥64 chars),
 `DATABASE_URL`, `ALLOWED_ORIGINS`, `FRONTEND_URL`, `ADMIN_API_KEY`, `STRIPE_*`,
