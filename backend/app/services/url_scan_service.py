@@ -507,6 +507,10 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
             db.add(notif)
             await db.commit()
         except Exception as exc:
+            # Rollback obligatoire : sans lui la session reste empoisonnee et
+            # l'envoi d'email ci-dessous (qui relit l'utilisateur) echoue en
+            # cascade, alors que l'alerte n'a rien a voir avec la notification.
+            await db.rollback()
             logger.warning(f"URL scan notification DB write failed: {exc}")
 
         # Send email alert (non-blocking — ignore SMTP errors)

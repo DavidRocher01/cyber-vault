@@ -94,8 +94,11 @@
 
 ### 5. Vérifications post-déploiement
 - [ ] Health : `curl https://rochercybersecurite.com/api/v1/health` → 200
-- [ ] Health profond : `curl https://rochercybersecurite.com/api/v1/health/deep` → DB + Stripe + Resend + S3 OK
-- [ ] `alembic current` (via tâche/exec) = tête attendue
+- [ ] Révision Alembic : le même appel renvoie `db_revision` — vérifier qu'il vaut
+      la tête attendue (plus fiable et plus rapide qu'un `alembic current` via exec ECS)
+- [ ] Health profond : **non joignable publiquement** (monté sur `/health/deep` à la
+      racine, et CloudFront ne route que `/api/*`) — cf. [`DEPLOY.md`](DEPLOY.md)
+      § Vérification post-déploiement
 - [ ] **Parcours nominal** : inscription → login → 2FA setup/verify → création entrée vault (chiffrée) → relecture → déconnexion.
 - [ ] **Checkout** : tester un abonnement (sandbox carte test si dispo) → redirection Stripe OK.
 - [ ] Front : page d'accueil + `/docs` (Swagger) chargent ; pas d'erreur console.

@@ -4,8 +4,6 @@ Covers: list empty, list with items + unread count, mark one read,
         mark all read, delete, auth isolation, 404 on wrong user.
 """
 
-from datetime import datetime
-
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -32,7 +30,9 @@ async def _seed_notification(user_id: int, title: str = "Test", read: bool = Fal
             body="Corps de la notification",
             link="/dashboard",
             read=read,
-            created_at=datetime.utcnow(),
+            # created_at volontairement NON fourni : on veut exercer le default
+            # tz-aware du modele. Le passer en dur (datetime.utcnow(), naif)
+            # masquait le bug de fuseau qui cassait tous les inserts en prod.
         )
         db.add(notif)
         await db.commit()
@@ -212,3 +212,34 @@ async def test_delete_notification_unknown_returns_404():
         h = await _headers(c, "deln3@test.com")
         r = await c.delete(f"{BASE}/notifications/99999", headers=h)
     assert r.status_code == 404
+
+
+# ── Regression : fuseau horaire de created_at ─────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_notification_default_created_at_is_timezone_aware():
+    """Garde-fou du bug de prod du 2026-07-29.
+
+    ``Notification.created_at`` etait declare ``DateTime`` sans ``timezone=True``
+    alors que son default est ``datetime.now(UTC)`` (tz-aware) : asyncpg refusait
+    chaque insert, donc plus aucune notification n'etait creee et l'email
+    d'alerte de scan URL echouait en cascade sur la session empoisonnee.
+
+    Les tests ne l'avaient pas vu car ils fournissaient tous ``created_at`` en
+    dur (naif), court-circuitant le default. Ce test insere SANS le fournir.
+    """
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        h = await _headers(c, "notif-tz@test.com")
+        uid = await _get_user_id(c, h)
+        nid = await _seed_notification(uid, "Fuseau")
+
+        from app.core.database import AsyncSessionLocal
+
+        async with AsyncSessionLocal() as db:
+            stored = await db.get(Notification, nid)
+            assert stored is not None
+            # Relu depuis PostgreSQL : doit rester tz-aware (colonne timestamptz).
+            assert stored.created_at.tzinfo is not None, (
+                "created_at relu sans fuseau : la colonne n'est plus en timestamptz"
+            )
