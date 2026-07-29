@@ -34,6 +34,9 @@ install-frontend: ## Installe les dépendances Node.js
 bootstrap-env: ## Génère backend/.env de dev (secrets locaux, --force pour écraser)
 	python scripts/bootstrap_dev_env.py
 
+setup: ## Setup complet nouveau poste (venv+deps+hooks+.env+DB) — ARGS="--seed --with-scanner"
+	bash scripts/setup_dev.sh $(ARGS)
+
 # ── Développement ───────────────────────────────────────────────────────────────
 
 dev-backend: ## Lance le backend en mode dev

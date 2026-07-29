@@ -14,6 +14,10 @@ qui n'est **pas** versionné (secrets `.env`, base locale, outillage).
 `git clone` ramène tout le code (y compris `cyber-scanner/`). Hors git, seules
 **3 catégories** comptent — tout le reste se régénère.
 
+> ⚡ **Le plus simple** : installe les prérequis (§1), clone, puis lance
+> `make setup`. Il fait A (le `.env`), la base + migrations et toutes les deps
+> automatiquement, et te **liste** ce qui reste (B: auth, C: outils absents).
+
 ### A. Secrets — apporter par canal sûr OU régénérer
 
 - [ ] `backend/.env` : le plus simple = **ne rien transférer** et lancer
@@ -75,6 +79,14 @@ git clone https://github.com/DavidRocher01/cyber-vault.git
 cd cyber-vault
 git checkout develop
 ```
+
+> **Raccourci tout-en-un** — une fois les prérequis §1 installés et le repo
+> cloné, `make setup` (ou `bash scripts/setup_dev.sh`) automatise §3→§7 : venv
+> backend + deps, `npm install`, hooks pre-commit, `backend/.env` de dev, base
+> locale + migrations. Il **détecte** ce qui manque (Docker, nmap, auth AWS/gh)
+> et affiche la commande exacte à lancer, sans rien forcer. Idempotent.
+> Options : `make setup ARGS="--seed --with-scanner"`. Les sections détaillées
+> ci-dessous restent utiles pour comprendre / dépanner.
 
 `git config core.autocrlf` : sous Windows, laisser le défaut. Des diffs
 « fantômes » CRLF↔LF peuvent apparaître sur des fichiers front — c'est du bruit,
