@@ -42,6 +42,10 @@ DEV_OVERRIDES: dict[str, object] = {
     "PHISHING_BASE_URL": "http://localhost:8000/api/v1",
     # Redis absent en dev = fallback in-memory (comme la prod mono-instance).
     "REDIS_URL": "",
+    # Vide => storage.py bascule sur le backend fichier local. Non vide, il
+    # instancie boto3 sans endpoint_url ni mock : le dev ET la suite de tests
+    # ecrivent alors dans le vrai bucket S3 du compte AWS configure.
+    "S3_BUCKET_NAME": "",
 }
 
 # Clés de services TIERS laissées telles quelles dans l'exemple : à compléter à
@@ -84,7 +88,22 @@ def build_env(example_text: str) -> str:
         if key in DEV_OVERRIDES:
             new = DEV_OVERRIDES[key]
             new_value = new() if callable(new) else new
-            out_lines.append(f"{key}={new_value}{inline}")
+            if new_value == "" and inline:
+                # Valeur vide SUIVIE d'un commentaire inline : rien ne precede le
+                # '#', donc python-dotenv/pydantic-settings relisent le commentaire
+                # COMME la valeur (ex. REDIS_URL = "# ex: redis://...", qui casse
+                # l'init du limiter slowapi au demarrage). On remonte le
+                # commentaire sur sa propre ligne pour garder la doc sans le bug.
+                out_lines.append(inline.strip())
+                out_lines.append(f"{key}=")
+            else:
+                out_lines.append(f"{key}={new_value}{inline}")
+        elif _value == "" and inline:
+            # Meme piege pour les cles recopiees telles quelles depuis l'exemple
+            # (ex. HIBP_API_KEY=  # https://...), qui partirait sinon comme cle
+            # d'API vers le service Dark Web.
+            out_lines.append(inline.strip())
+            out_lines.append(f"{key}=")
         else:
             out_lines.append(line)
     header = (

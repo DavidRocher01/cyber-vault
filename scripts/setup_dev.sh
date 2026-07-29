@@ -174,13 +174,40 @@ fi
 
 # ── 6. Base de données locale + migrations ───────────────────────────────────
 step "6/8  Base de données locale (port 5432) + migrations"
+
+# Identifiants Postgres deduits du DATABASE_URL de backend/.env.
+# Sans eux, createdb/psql se rabattent sur l'utilisateur systeme et ouvrent un
+# prompt de mot de passe : masque par 2>/dev/null, il fige le script pour
+# toujours sur toute install Postgres en authentification password (le defaut
+# sous Windows). Le -w ci-dessous interdit en plus tout prompt residuel.
+DB_NAME=cybervault
+_db_url="$(sed -n 's/^DATABASE_URL=//p' backend/.env 2>/dev/null | head -n1)"
+case "$_db_url" in
+  *://*@*)
+    _creds="${_db_url#*://}"                    # user:pass@host:port/base
+    _userpass="${_creds%%@*}"                   # user:pass
+    _hostpath="${_creds#*@}"                    # host:port/base
+    _hostport="${_hostpath%%/*}"                # host:port
+    export PGUSER="${PGUSER:-${_userpass%%:*}}"
+    export PGPASSWORD="${PGPASSWORD:-${_userpass#*:}}"
+    export PGHOST="${PGHOST:-${_hostport%%:*}}"
+    case "$_hostport" in
+      *:*) export PGPORT="${PGPORT:-${_hostport##*:}}" ;;
+      *)   export PGPORT="${PGPORT:-5432}" ;;
+    esac
+    _name="${_hostpath##*/}"
+    [ -n "$_name" ] && DB_NAME="${_name%%\?*}"
+    info "Postgres : $PGUSER@$PGHOST:$PGPORT/$DB_NAME (depuis backend/.env)"
+    ;;
+esac
+
 DB_READY=0
 if have createdb; then
-  if createdb cybervault 2>/dev/null; then ok "base 'cybervault' créée"; DB_READY=1
-  else info "base 'cybervault' déjà là (ou createdb a refusé) — on tente les migrations"; DB_READY=1; fi
+  if createdb -w "$DB_NAME" 2>/dev/null; then ok "base '$DB_NAME' créée"; DB_READY=1
+  else info "base '$DB_NAME' déjà là (ou createdb a refusé) — on tente les migrations"; DB_READY=1; fi
 elif have psql; then
-  if psql -lqt 2>/dev/null | cut -d'|' -f1 | grep -qw cybervault; then ok "base 'cybervault' présente"; DB_READY=1
-  else warn "base 'cybervault' absente — crée-la : createdb cybervault (ou CREATE DATABASE cybervault;)"; fi
+  if psql -w -lqt 2>/dev/null | cut -d'|' -f1 | grep -qw "$DB_NAME"; then ok "base '$DB_NAME' présente"; DB_READY=1
+  else warn "base '$DB_NAME' absente — crée-la : createdb $DB_NAME (ou CREATE DATABASE $DB_NAME;)"; fi
 else
   warn "pas de client Postgres — crée la base à la main, puis : (cd backend && ../$VENV_PY -m alembic upgrade head)"
   add_manual "Créer la base 'cybervault' (5432) et lancer : cd backend && alembic upgrade head"
@@ -199,7 +226,11 @@ fi
 step "7/8  Options"
 if [ "$DO_SEED" = "1" ] && [ "$DB_READY" = "1" ]; then
   info "seed de la base de dev (scripts/seed_test_db.py)"
-  "$VENV_PY" scripts/seed_test_db.py && ok "base peuplée" || warn "échec seed"
+  # Lance depuis backend/ : le paquet `app` y vit, et Python met le dossier du
+  # SCRIPT sur sys.path (pas le repertoire courant) -> PYTHONPATH explicite,
+  # sinon ModuleNotFoundError: No module named 'app'.
+  ( cd backend && PYTHONPATH=. "../$VENV_PY" ../scripts/seed_test_db.py ) \
+    && ok "base peuplée" || warn "échec seed"
 else
   info "seed non demandé (ajoute --seed pour peupler la base de dev)"
 fi
