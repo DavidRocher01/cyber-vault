@@ -170,13 +170,31 @@ async def test_list_code_scans_after_trigger():
     assert r.json()["items"][0]["status"] == "pending"
 
 
+async def _cloturer_scans_actifs() -> None:
+    """Passe les scans pending/running en 'done'.
+
+    La base n'autorise qu'UN scan actif par utilisateur (index unique partiel
+    uq_code_scan_active_per_user, migration f7a8b9c0d1e2). Patcher le garde-fou
+    applicatif ne suffit donc pas a en creer plusieurs : la contrainte est en
+    base. On cloture chaque scan avant le suivant, comme en usage reel.
+    """
+    from sqlalchemy import update
+
+    import app.core.database as _db_module
+    from app.models.code_scan import CodeScan
+
+    async with _db_module.AsyncSessionLocal() as db:
+        await db.execute(
+            update(CodeScan)
+            .where(CodeScan.status.in_(["pending", "running"]))
+            .values(status="done")
+        )
+        await db.commit()
+
+
 @pytest.mark.asyncio
 async def test_list_code_scans_pagination():
-    # Bypass the 429 concurrency guard so we can create multiple scans for pagination.
-    with (
-        patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock),
-        patch("app.api.v1.endpoints.code_scans._check_no_running_scan", new_callable=AsyncMock),
-    ):
+    with patch("app.api.v1.endpoints.code_scans._run_background", new_callable=AsyncMock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await _headers(c, "list3@test.com")
             for i in range(3):
@@ -185,6 +203,7 @@ async def test_list_code_scans_pagination():
                     json={"repo_url": f"https://github.com/user/repo{i}"},
                     headers=h,
                 )
+                await _cloturer_scans_actifs()
             r = await c.get(f"{BASE}/code-scans?page=1&per_page=2", headers=h)
     data = r.json()
     assert data["total"] == 3

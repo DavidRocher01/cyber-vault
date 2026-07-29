@@ -4,7 +4,7 @@ Covers: trigger (202), list (pagination), get by ID, delete,
         auth isolation, unauthenticated rejection.
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -328,3 +328,119 @@ async def test_delete_url_scan_requires_auth():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.delete(f"{BASE}/url-scans/1")
     assert r.status_code == 401
+
+
+# ── Effets de bord du scan : notification + email ─────────────────────────────
+#
+# Les tests de run_url_scan dans test_url_scan_service.py passent un db MagicMock
+# et n'assertent que le statut du scan. Ils ne pouvaient donc pas voir que
+# l'insert de notification echouait en prod (created_at sans fuseau), ni que
+# l'email d'alerte tombait en cascade sur la session empoisonnee. Ces tests-ci
+# tournent contre la vraie base de test et assertent les effets observables.
+
+
+_ANALYSE_SAFE = {
+    "verdict": "safe",
+    "threat_type": None,
+    "threat_score": 10,
+    "findings": [],
+    "redirect_chain": [],
+    "redirect_count": 0,
+    "ssl_valid": True,
+    "final_url": "https://example.com",
+}
+
+
+async def _creer_scan(email: str) -> tuple[int, int]:
+    """Cree un utilisateur + un url_scan en attente. Retourne (user_id, scan_id)."""
+    import app.core.database as _db_module
+    from app.models.url_scan import UrlScan
+    from app.models.user import User
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        await _headers(c, email)
+
+    from sqlalchemy import select
+
+    async with _db_module.AsyncSessionLocal() as db:
+        user = (await db.execute(select(User).where(User.email == email))).scalar_one()
+        scan = UrlScan(user_id=user.id, url="https://example.com", status="pending")
+        db.add(scan)
+        await db.commit()
+        await db.refresh(scan)
+        return user.id, scan.id
+
+
+@pytest.mark.asyncio
+async def test_scan_termine_cree_une_notification_et_envoie_l_email():
+    from sqlalchemy import select
+
+    import app.core.database as _db_module
+    from app.models.notification import Notification
+    from app.services.url_scan_service import run_url_scan
+
+    user_id, scan_id = await _creer_scan("urlscan-effets@test.com")
+
+    envoye = MagicMock()
+    with (
+        patch(
+            "app.services.url_scan_service._analyze_url",
+            new=AsyncMock(return_value=_ANALYSE_SAFE),
+        ),
+        patch("app.services.email_service.send_url_scan_alert", envoye),
+    ):
+        async with _db_module.AsyncSessionLocal() as db:
+            await run_url_scan(scan_id, db)
+
+    async with _db_module.AsyncSessionLocal() as db:
+        notifs = (
+            (await db.execute(select(Notification).where(Notification.user_id == user_id)))
+            .scalars()
+            .all()
+        )
+
+    assert len(notifs) == 1, "le scan termine doit creer exactement une notification"
+    assert notifs[0].type == "url_scan_done"
+    assert envoye.called, "l'email d'alerte doit etre envoye"
+
+
+@pytest.mark.asyncio
+async def test_email_envoye_meme_si_la_notification_echoue():
+    """Non-regression : l'echec d'insert de notification empoisonnait la session
+    et faisait echouer l'email juste apres, alors que les deux sont independants.
+    """
+    from sqlalchemy import select
+
+    import app.core.database as _db_module
+    from app.models.notification import Notification
+    from app.services.url_scan_service import run_url_scan
+
+    user_id, scan_id = await _creer_scan("urlscan-cascade@test.com")
+
+    def _notif_orpheline(**kwargs):
+        """Notification rattachee a un user_id inexistant -> violation de cle
+        etrangere au flush, ce qui reproduit l'echec d'insert observe en prod."""
+        kwargs["user_id"] = 999_999
+        return Notification(**kwargs)
+
+    envoye = MagicMock()
+    with (
+        patch(
+            "app.services.url_scan_service._analyze_url",
+            new=AsyncMock(return_value=_ANALYSE_SAFE),
+        ),
+        patch("app.models.notification.Notification", _notif_orpheline),
+        patch("app.services.email_service.send_url_scan_alert", envoye),
+    ):
+        async with _db_module.AsyncSessionLocal() as db:
+            await run_url_scan(scan_id, db)
+
+    async with _db_module.AsyncSessionLocal() as db:
+        notifs = (
+            (await db.execute(select(Notification).where(Notification.user_id == user_id)))
+            .scalars()
+            .all()
+        )
+
+    assert notifs == [], "le pre-requis du test n'est pas rempli : la notif aurait du echouer"
+    assert envoye.called, "l'email doit partir meme si la notification a echoue"
