@@ -269,6 +269,8 @@ uniques) ; vérifier **une seule tête** (`make migrate-status`) avant tout push
 ## 13. Repères dans le repo
 
 - `CLAUDE.md` — règles projet (branches, archi couches, sécurité, Alembic).
+- `docs/ETAT_DES_LIEUX.md` — **état des lieux** : où en est le projet (dev/prod),
+  décisions et actions en attente. À lire en premier pour reprendre le contexte.
 - `docs/SECURITY_AUDIT_2026-07-27.md` — audit de sécurité en cours de remédiation.
 - `docs/S2_INFRA_CHECKLIST.md` / `docs/S6_INFRA_CHECKLIST.md` — actions infra en
   attente (ElastiCache/ALB, rotation `ADMIN_API_KEY`).
