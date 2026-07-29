@@ -302,6 +302,35 @@ async def test_export_my_data_unauthenticated_returns_403():
     assert r.status_code == 401
 
 
+@pytest.mark.asyncio
+async def test_export_my_data_covers_art20_perimeter():
+    # L'export Art.20 (finding #12) doit couvrir toutes les familles de données du
+    # titulaire, pas seulement account/sites/scans, et documenter le périmètre exclu.
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        h = await _auth(c, "export6@test.com")
+        r = await c.get(f"{BASE}/users/me/export", headers=h)
+    data = r.json()
+    for key in (
+        "url_scans",
+        "code_scans",
+        "nis2_assessment",
+        "iso27001_assessment",
+        "training_progress",
+        "darkweb_dossiers",
+        "darkweb_scans",
+        "subscription",
+        "invoices",
+        "quotes",
+        "brand_profile",
+        "notifications",
+        "perimetre_exclu",
+    ):
+        assert key in data, f"clé d'export manquante : {key}"
+    # Le périmètre exclu doit expliciter le coffre-fort chiffré et les données de tiers.
+    assert "vault" in data["perimetre_exclu"]
+    assert "rssi_awareness" in data["perimetre_exclu"]
+
+
 # ── Delete account ─────────────────────────────────────────────────────────────
 
 

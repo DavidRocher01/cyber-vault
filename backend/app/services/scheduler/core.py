@@ -46,6 +46,7 @@ def start_scheduler() -> None:
     from app.services.scheduler.darkweb import _run_darkweb_monitoring
     from app.services.scheduler.monthly_digest import _send_monthly_digest_job
     from app.services.scheduler.newsletter import _send_biweekly_newsletter
+    from app.services.scheduler.retention import _run_data_retention_purge
     from app.services.scheduler.scans import _schedule_due_scans
     from app.services.scheduler.ssl_alerts import _check_ssl_alerts
 
@@ -97,6 +98,13 @@ def start_scheduler() -> None:
         _run_awareness_at_risk_detection,
         trigger=CronTrigger(hour=4, minute=0),
         id="awareness_at_risk",
+        replace_existing=True,
+    )
+    # Rétention / purge RGPD — nightly at 05:00 UTC (public_scans + Dark Web expirés)
+    scheduler.add_job(
+        _run_data_retention_purge,
+        trigger=CronTrigger(hour=5, minute=0),
+        id="data_retention_purge",
         replace_existing=True,
     )
     scheduler.start()
