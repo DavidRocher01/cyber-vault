@@ -7,97 +7,169 @@
       <button
         type="button"
         (click)="back()"
+        aria-label="Retour à l'espace consultant"
         class="text-gray-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5"
       >
         <mat-icon>arrow_back</mat-icon>
       </button>
       <div>
         <h1 class="text-2xl font-bold tracking-tight">Mon profil consultant</h1>
-        <p class="text-sm text-gray-500 mt-0.5">
+        <p class="text-sm text-gray-400 mt-0.5">
           Informations affichées dans vos rapports PDF clients
         </p>
       </div>
     </div>
 
     @if (loading()) {
-      <div class="flex items-center gap-3 text-gray-500 text-sm py-8">
-        <mat-icon class="animate-spin opacity-60">autorenew</mat-icon>
-        Chargement…
+      <div class="flex flex-col gap-5" aria-busy="true" aria-live="polite">
+        <span class="sr-only">Chargement du profil…</span>
+        <div class="skeleton-shimmer rounded-2xl h-24"></div>
+        <div class="skeleton-shimmer rounded-2xl h-80"></div>
+        <div class="skeleton-shimmer rounded-xl h-12"></div>
       </div>
     } @else {
-      <form [formGroup]="form" (ngSubmit)="save()" class="flex flex-col gap-5">
-        <!-- Avatar + identity preview -->
+      <form [formGroup]="form" (ngSubmit)="save()" class="flex flex-col gap-5" novalidate>
+        <!-- Aperçu : ce que le client verra en en-tête de rapport -->
         <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex items-center gap-4">
           <div
             class="w-14 h-14 rounded-xl bg-cyan-500/15 border border-cyan-700/30 flex items-center justify-center flex-shrink-0"
           >
-            @if (form.value.display_name) {
-              <span class="text-cyan-300 text-lg font-bold uppercase">
-                {{ displayInitials }}
-              </span>
+            @if (displayInitials) {
+              <span class="text-cyan-300 text-lg font-bold uppercase">{{ displayInitials }}</span>
             } @else {
               <mat-icon class="text-cyan-600 !text-2xl">person</mat-icon>
             }
           </div>
           <div class="min-w-0">
-            <p class="font-semibold text-white truncate">
+            <p
+              class="font-semibold truncate"
+              [class.text-white]="form.value.display_name"
+              [class.text-gray-600]="!form.value.display_name"
+              [class.italic]="!form.value.display_name"
+            >
               {{ form.value.display_name || 'Votre nom' }}
             </p>
-            <p class="text-sm text-gray-500 truncate">
+            <p
+              class="text-sm truncate"
+              [class.text-gray-400]="form.value.company_name"
+              [class.text-gray-600]="!form.value.company_name"
+              [class.italic]="!form.value.company_name"
+            >
               {{ form.value.company_name || 'Votre société' }}
             </p>
             @if (form.value.phone) {
-              <p class="text-xs text-gray-600 mt-0.5">{{ form.value.phone }}</p>
+              <p class="text-xs text-gray-500 mt-0.5">{{ form.value.phone }}</p>
             }
           </div>
           <div class="ml-auto flex-shrink-0">
             <span
-              class="text-[10px] px-2 py-1 rounded-full bg-cyan-500/10 text-cyan-500 border border-cyan-700/30 uppercase tracking-widest font-medium"
+              class="text-[10px] px-2 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-700/30 uppercase tracking-widest font-medium"
             >
               Consultant
             </span>
           </div>
         </div>
 
-        <!-- Form fields -->
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex flex-col gap-4">
-          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Informations</p>
+        <!-- Champs -->
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex flex-col gap-5">
+          <div class="flex items-center justify-between">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Informations</p>
+            @if (form.dirty) {
+              <span class="text-[11px] text-amber-400/90 flex items-center gap-1">
+                <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">edit</mat-icon>
+                Non enregistré
+              </span>
+            }
+          </div>
 
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Nom affiché</mat-label>
-            <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]"
-              >badge</mat-icon
-            >
-            <input matInput formControlName="display_name" placeholder="Ex : David Rocher" />
-            <mat-hint>Prénom et nom complet, tel qu'il apparaît sur les rapports</mat-hint>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Société</mat-label>
-            <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]"
-              >business</mat-icon
-            >
+          <!-- Nom affiché -->
+          <div>
+            <label for="display_name" class="block text-sm font-medium text-gray-300 mb-1.5">
+              Nom affiché <span class="text-cyan-400" aria-hidden="true">*</span>
+            </label>
             <input
-              matInput
-              formControlName="company_name"
-              placeholder="Ex : Rocher Cybersécurité SAS"
+              id="display_name"
+              formControlName="display_name"
+              type="text"
+              autocomplete="name"
+              placeholder="Ex : David Rocher"
+              required
+              [attr.aria-invalid]="isInvalid('display_name')"
+              [attr.aria-describedby]="
+                isInvalid('display_name') ? 'display_name-error' : 'display_name-hint'
+              "
+              class="w-full px-4 py-2.5 rounded-lg bg-gray-950 border text-white placeholder-gray-600 text-sm outline-none transition-colors focus:ring-1 focus:ring-cyan-500"
+              [class.border-gray-700]="!isInvalid('display_name')"
+              [class.focus:border-cyan-500]="!isInvalid('display_name')"
+              [class.border-red-500]="isInvalid('display_name')"
             />
-          </mat-form-field>
+            @if (isInvalid('display_name')) {
+              <p id="display_name-error" class="text-xs text-red-400 mt-1.5">
+                Le nom affiché est obligatoire : il figure en en-tête de chaque rapport.
+              </p>
+            } @else {
+              <p id="display_name-hint" class="text-xs text-gray-500 mt-1.5">
+                Prénom et nom complet, tel qu'il apparaît sur les rapports.
+              </p>
+            }
+          </div>
 
-          <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Téléphone</mat-label>
-            <mat-icon matPrefix class="text-gray-500 mr-2 !text-[1.1rem] !w-[1.1rem] !h-[1.1rem]"
-              >phone</mat-icon
-            >
-            <input matInput formControlName="phone" placeholder="Ex : +33 6 12 34 56 78" />
-          </mat-form-field>
+          <!-- Société -->
+          <div>
+            <label for="company_name" class="block text-sm font-medium text-gray-300 mb-1.5">
+              Société <span class="text-gray-500 font-normal">(facultatif)</span>
+            </label>
+            <input
+              id="company_name"
+              formControlName="company_name"
+              type="text"
+              autocomplete="organization"
+              placeholder="Ex : Rocher Cybersécurité SAS"
+              aria-describedby="company_name-hint"
+              class="w-full px-4 py-2.5 rounded-lg bg-gray-950 border border-gray-700 text-white placeholder-gray-600 text-sm outline-none transition-colors focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+            />
+            <p id="company_name-hint" class="text-xs text-gray-500 mt-1.5">
+              Affichée sous votre nom. Laissez vide si vous exercez en votre nom propre.
+            </p>
+          </div>
+
+          <!-- Téléphone -->
+          <div>
+            <label for="phone" class="block text-sm font-medium text-gray-300 mb-1.5">
+              Téléphone <span class="text-gray-500 font-normal">(facultatif)</span>
+            </label>
+            <input
+              id="phone"
+              formControlName="phone"
+              type="tel"
+              autocomplete="tel"
+              placeholder="Ex : +33 6 12 34 56 78"
+              [attr.aria-invalid]="isInvalid('phone')"
+              [attr.aria-describedby]="isInvalid('phone') ? 'phone-error' : 'phone-hint'"
+              class="w-full px-4 py-2.5 rounded-lg bg-gray-950 border text-white placeholder-gray-600 text-sm outline-none transition-colors focus:ring-1 focus:ring-cyan-500"
+              [class.border-gray-700]="!isInvalid('phone')"
+              [class.focus:border-cyan-500]="!isInvalid('phone')"
+              [class.border-red-500]="isInvalid('phone')"
+            />
+            @if (isInvalid('phone')) {
+              <p id="phone-error" class="text-xs text-red-400 mt-1.5">
+                Numéro invalide : chiffres, espaces, points, tirets et « + » uniquement.
+              </p>
+            } @else {
+              <p id="phone-hint" class="text-xs text-gray-500 mt-1.5">
+                Numéro joignable par vos clients, imprimé sur le rapport.
+              </p>
+            }
+          </div>
         </div>
 
-        <!-- PDF context hint -->
+        <!-- Contexte PDF -->
         <div
-          class="flex items-start gap-3 px-4 py-3 rounded-xl border border-gray-800 bg-gray-900/50 text-xs text-gray-500"
+          class="flex items-start gap-3 px-4 py-3 rounded-xl border border-gray-800 bg-gray-900/50 text-xs text-gray-400"
         >
-          <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem] text-gray-600 flex-shrink-0 mt-0.5"
+          <mat-icon
+            class="!text-[1rem] !w-[1rem] !h-[1rem] text-gray-500 flex-shrink-0 mt-0.5"
+            aria-hidden="true"
             >picture_as_pdf</mat-icon
           >
           <span
@@ -106,33 +178,36 @@
           >
         </div>
 
-        <!-- Save button -->
+        <!-- Enregistrer -->
         <button
           mat-flat-button
           type="submit"
-          [disabled]="saving()"
-          class="!rounded-xl !py-3 !text-sm !font-semibold transition-all"
+          [disabled]="saving() || form.pristine"
+          class="!rounded-xl !py-3 !text-sm !font-semibold transition-all disabled:!opacity-40"
           [class]="
             saved() ? '!bg-emerald-600 hover:!bg-emerald-500' : '!bg-cyan-600 hover:!bg-cyan-500'
           "
         >
           @if (saving()) {
-            <ng-container>
-              <mat-icon class="animate-spin !text-base !w-4 !h-4 mr-1.5">autorenew</mat-icon>
-              Enregistrement…
-            </ng-container>
+            <mat-icon class="animate-spin !text-base !w-4 !h-4 mr-1.5" aria-hidden="true"
+              >autorenew</mat-icon
+            >
+            Enregistrement…
           } @else if (saved()) {
-            <ng-container>
-              <mat-icon class="!text-base !w-4 !h-4 mr-1.5">check_circle</mat-icon>
-              Sauvegardé
-            </ng-container>
+            <mat-icon class="!text-base !w-4 !h-4 mr-1.5" aria-hidden="true">check_circle</mat-icon>
+            Profil enregistré
           } @else {
-            <ng-container>
-              <mat-icon class="!text-base !w-4 !h-4 mr-1.5">save</mat-icon>
-              Enregistrer le profil
-            </ng-container>
+            <mat-icon class="!text-base !w-4 !h-4 mr-1.5" aria-hidden="true">save</mat-icon>
+            Enregistrer le profil
           }
         </button>
+
+        <!-- Statut annonce aux lecteurs d'ecran (le seul retour etait visuel) -->
+        <p class="sr-only" role="status" aria-live="polite">
+          @if (saved()) {
+            Profil enregistré.
+          }
+        </p>
       </form>
     }
   </div>
