@@ -32,6 +32,7 @@ ignore = [
 "app/models/__init__.py" = ["F401"]                       # Re-exports SQLAlchemy intentionnels
 "tests/*" = ["S101", "T201", "F841", "E402", "SIM117", "PTH110", "PTH202", "C416", "N817"]  # Tests
 "scripts/*" = ["T201", "F841", "PTH100"]                  # Scripts CLI : print intentionnel
+"recette/*" = ["T201"]                                     # Recette post-prod : print intentionnel (visible dans le log CI)
 "seed_plans.py" = ["T201"]                                 # Seed script : print intentionnel
 
 [tool.mypy]

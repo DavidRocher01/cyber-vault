@@ -20,8 +20,12 @@ class Notification(Base):
     body: Mapped[str] = mapped_column(Text, nullable=True)
     link: Mapped[str] = mapped_column(String(500), nullable=True)
     read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # timezone=True obligatoire : le default fournit un datetime tz-aware
+    # (datetime.now(UTC)) et asyncpg refuse de l'ecrire dans un TIMESTAMP
+    # WITHOUT TIME ZONE -> tous les inserts echouaient (cf. migration
+    # 940d8244be0e).
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(UTC), nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
 
     user: Mapped["User"] = relationship(back_populates="notifications")  # type: ignore[name-defined]

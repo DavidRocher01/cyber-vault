@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -8,6 +8,9 @@ from app.core.database import Base
 
 class Nis2Assessment(Base):
     __tablename__ = "nis2_assessments"
+    # Contrainte nommee en base (migration b3c4d5e6f7a8) : la declarer ici, sinon
+    # le modele et les migrations divergent (cf. test_migrations_match_models).
+    __table_args__ = (UniqueConstraint("user_id", name="uq_nis2_assessments_user_id"),)
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     # One assessment per user (upsert pattern)

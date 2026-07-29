@@ -84,6 +84,18 @@ def canary() -> dict:
     c.close()
 
 
+# Garde-fou : le drainage relit toujours la page 1, une boucle bornee evite de
+# tourner indefiniment si un DELETE echoue silencieusement.
+_WIPE_MAX_PAGES = 20
+
+
+def _wipe_warn(quoi: str, detail: object) -> None:
+    """Le wipe reste non bloquant (c'est un filet de securite, pas un test) mais
+    il ne doit plus echouer en silence : un nettoyage qui ne nettoie rien s'est
+    deja produit sans que personne le voie."""
+    print(f"[wipe canari] nettoyage {quoi} incomplet: {detail}")
+
+
 def _wipe_canary(c: httpx.Client) -> None:
     """Fait table rase des donnees mutables du canari (coffre, url-scans, sites,
     clients RSSI) — filet de securite si un run precedent a crashe avant teardown.
@@ -93,31 +105,42 @@ def _wipe_canary(c: httpx.Client) -> None:
         items = c.get(f"{API}/vault/", params={"limit": 200}).json()
         for it in items:
             c.delete(f"{API}/vault/{it['id']}")
-    except Exception:
-        pass
+    except Exception as exc:
+        _wipe_warn("vault", exc)
     try:
-        page = c.get(f"{API}/url-scans", params={"page": 1, "per_page": 100}).json()
-        for s in page.get("items", []):
-            c.delete(f"{API}/url-scans/{s['id']}")
-    except Exception:
-        pass
+        # per_page est plafonne cote API a 50 (Query(10, ge=1, le=50)) : demander
+        # 100 renvoyait un 422 dont le corps n'a pas de cle "items" -> la boucle
+        # tournait a vide et les scans du canari s'accumulaient a chaque run.
+        # On draine page 1 en boucle puisque chaque passage supprime ce qu'il lit.
+        for _ in range(_WIPE_MAX_PAGES):
+            resp = c.get(f"{API}/url-scans", params={"page": 1, "per_page": 50})
+            if resp.status_code != 200:
+                _wipe_warn("url-scans", f"HTTP {resp.status_code}: {resp.text[:200]}")
+                break
+            scans = resp.json().get("items", [])
+            if not scans:
+                break
+            for s in scans:
+                c.delete(f"{API}/url-scans/{s['id']}")
+    except Exception as exc:
+        _wipe_warn("url-scans", exc)
     try:
         for site in c.get(f"{API}/sites").json():
             c.delete(f"{API}/sites/{site['id']}")  # soft delete
-    except Exception:
-        pass
+    except Exception as exc:
+        _wipe_warn("sites", exc)
     try:
         for cl in c.get(f"{API}/rssi/clients").json():
             if str(cl.get("name", "")).startswith(MARKER):
                 c.delete(f"{API}/rssi/clients/{cl['id']}")
-    except Exception:
-        pass
+    except Exception as exc:
+        _wipe_warn("rssi/clients", exc)
     try:
         for camp in c.get(f"{API}/phishing/campaigns").json():
             if str(camp.get("name", "")).startswith(MARKER):
                 c.delete(f"{API}/phishing/campaigns/{camp['id']}")
-    except Exception:
-        pass
+    except Exception as exc:
+        _wipe_warn("phishing/campaigns", exc)
 
 
 def poll_until(fn, predicate, timeout_s: float, interval_s: float = 3.0):

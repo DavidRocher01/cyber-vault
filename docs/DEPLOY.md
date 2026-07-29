@@ -57,7 +57,8 @@ make migrate-prod
 
 ### Checklist avant migration
 
-- **Snapshot DB** d'abord (cf. § Rollback DB).
+- **Snapshot DB** d'abord (cf. § Rollback DB) — ⚠️ exempté tant qu'il n'y a
+  aucun client réel, cf. § Snapshot manuel pré-déploiement.
 - Vérifier une seule tête : `alembic heads`.
 - Appliquer la migration **avant** de basculer le nouveau code (l'ordre
   `migrate puis deploy` évite qu'un nouveau code écrive dans une colonne
@@ -136,6 +137,12 @@ aws rds create-db-snapshot \
   --db-instance-identifier cybervault-prod
 ```
 
+> **Statut actuel (décision 2026-07-29) :** le snapshot pré-migration est
+> **volontairement sauté** tant qu'il n'y a **aucun client réel** en base (seuls
+> des comptes de test + le canari de recette). Rien d'irremplaçable à perdre.
+> **Dès le premier client signé, il redevient obligatoire** avant toute
+> migration — cette exemption tombe à ce moment-là.
+
 ## Variables d'environnement en prod
 
 Gérées via AWS Secrets Manager → injectées dans ECS task definition.
@@ -149,15 +156,19 @@ Pour ajouter/modifier une variable :
 ## Vérification post-déploiement
 
 ```bash
-# Health check rapide (pour ALB)
+# Health check rapide — renvoie aussi la revision Alembic reellement appliquee
+# ({"status":"ok",...,"db_revision":"<rev>"}), ce qui evite un exec ECS.
 curl https://rochercybersecurite.com/api/v1/health
 
-# Health check approfondi (DB + Stripe + Resend + S3)
-curl https://rochercybersecurite.com/api/v1/health/deep
-
 # Vérifier les logs récents
-aws logs tail /ecs/cyberscan-backend --follow --since 5m
+aws logs tail /ecs/cybervault-backend --follow --since 5m --region eu-west-3
 ```
+
+> ⚠️ **Le health check approfondi n'est PAS joignable publiquement.** Il est monté
+> à la racine de l'app (`/health/deep`, cf. `backend/app/main.py`), or CloudFront
+> ne route que `/api/*` vers le backend : `…/api/v1/health/deep` renvoie 404 et
+> `…/health/deep` renvoie la SPA. Pour l'interroger, passer par l'ALB directement
+> ou une task ECS. (Ancienne commande `curl …/api/v1/health/deep` : erronée.)
 
 ## Contacts d'urgence
 

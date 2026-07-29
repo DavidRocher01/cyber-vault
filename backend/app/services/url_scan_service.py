@@ -490,6 +490,14 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
         url_scan.results_json = json.dumps(analysis, default=str)
         await db.commit()
 
+        # Valeurs figees AVANT les effets de bord ci-dessous : si l'insert de
+        # notification echoue, le rollback expire les objets ORM et toute
+        # relecture d'attribut de url_scan declencherait une IO paresseuse hors
+        # contexte greenlet ("greenlet_spawn has not been called"), ce qui
+        # ferait retomber l'email en panne pour une autre raison.
+        scan_user_id = url_scan.user_id
+        scanned_url = url_scan.url
+
         # In-app notification
         try:
             from app.models.notification import Notification
@@ -498,15 +506,19 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
             score = analysis["threat_score"]
             icon = {"safe": "✅", "suspicious": "⚠️", "malicious": "🚨"}.get(verdict, "🔍")
             notif = Notification(
-                user_id=url_scan.user_id,
+                user_id=scan_user_id,
                 type="url_scan_done",
                 title=f"{icon} Scan URL — {verdict.capitalize()} (score {score}/100)",
-                body=url_scan.url[:120],
+                body=scanned_url[:120],
                 link="/url-scanner",
             )
             db.add(notif)
             await db.commit()
         except Exception as exc:
+            # Rollback obligatoire : sans lui la session reste empoisonnee et
+            # l'envoi d'email ci-dessous (qui relit l'utilisateur) echoue en
+            # cascade, alors que l'alerte n'a rien a voir avec la notification.
+            await db.rollback()
             logger.warning(f"URL scan notification DB write failed: {exc}")
 
         # Send email alert (non-blocking — ignore SMTP errors)
@@ -514,13 +526,13 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
             from app.core.config import settings
             from app.services.email_service import send_url_scan_alert
 
-            user_result = await db.execute(select(User).where(User.id == url_scan.user_id))
+            user_result = await db.execute(select(User).where(User.id == scan_user_id))
             user = user_result.scalar_one_or_none()
             if user:
                 dashboard_url = f"{settings.FRONTEND_URL}/url-scanner"
                 send_url_scan_alert(
                     to_email=user.email,
-                    scanned_url=url_scan.url,
+                    scanned_url=scanned_url,
                     verdict=analysis["verdict"],
                     threat_score=analysis["threat_score"],
                     threat_type=analysis["threat_type"],
