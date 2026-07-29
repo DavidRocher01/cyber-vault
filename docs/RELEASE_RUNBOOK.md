@@ -56,6 +56,12 @@
 - [ ] Annoncer la fenêtre (~30 min).
 
 ### 2. Sauvegarde
+
+> ⚠️ **Exemption en cours (décision 2026-07-29)** : le snapshot est sauté tant
+> qu'il n'y a **aucun client réel** en base — rien d'irremplaçable à perdre.
+> **Dès le premier client signé, il redevient obligatoire.** Cf.
+> [`DEPLOY.md`](DEPLOY.md) § Snapshot manuel pré-déploiement.
+
 - [ ] **Snapshot RDS** (obligatoire avant migrations) :
   ```bash
   aws rds create-db-snapshot \
