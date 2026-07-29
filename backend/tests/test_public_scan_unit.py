@@ -17,6 +17,8 @@ from app.schemas.public_scan import PublicScanOut
 from app.services import public_scan_service
 from app.services.public_scan_service import (
     MAX_DOMAINS_PER_EMAIL,
+    MAX_DOMAINS_PER_IP,
+    AlreadyUnlockedError,
     QuotaExceededError,
     ScanNotReadyError,
     _domain_of,
@@ -318,10 +320,11 @@ async def _seed_scan(db, *, target_url, status="done", results_json=None):
 class TestUnlockPublicScan:
     @pytest.mark.asyncio
     async def test_unknown_token_returns_none(self, db_session):
-        result = await public_scan_service.unlock_public_scan(
+        result, newly = await public_scan_service.unlock_public_scan(
             db_session, token="does-not-exist", email="a@b.com", ip_hash="h"
         )
         assert result is None
+        assert newly is False
 
     @pytest.mark.asyncio
     async def test_not_done_raises_scan_not_ready(self, db_session):
@@ -338,10 +341,11 @@ class TestUnlockPublicScan:
             target_url="https://a.example.com",
             results_json=json.dumps({"ssl": {"status": "OK"}}),
         )
-        out = await public_scan_service.unlock_public_scan(
+        out, newly = await public_scan_service.unlock_public_scan(
             db_session, token=scan.session_token, email="Lead@Example.com ", ip_hash="hashval"
         )
         assert out is not None
+        assert newly is True  # premier déblocage → transition
         assert out.email == "lead@example.com"  # normalisé
         assert out.email_consent_at is not None
         assert out.ip_hash == "hashval"
@@ -350,14 +354,28 @@ class TestUnlockPublicScan:
     @pytest.mark.asyncio
     async def test_unlock_idempotent_same_email(self, db_session):
         scan = await _seed_scan(db_session, target_url="https://a.example.com")
-        first = await public_scan_service.unlock_public_scan(
+        first, first_newly = await public_scan_service.unlock_public_scan(
             db_session, token=scan.session_token, email="lead@example.com", ip_hash="h1"
         )
+        assert first_newly is True
         consent_at = first.email_consent_at
-        again = await public_scan_service.unlock_public_scan(
+        again, again_newly = await public_scan_service.unlock_public_scan(
             db_session, token=scan.session_token, email="lead@example.com", ip_hash="h2"
         )
         assert again.email_consent_at == consent_at  # pas ré-écrit
+        assert again_newly is False  # ré-consultation → aucun renvoi d'email
+
+    @pytest.mark.asyncio
+    async def test_unlock_freezes_email_rejects_different_address(self, db_session):
+        """Anti-mailbombing : une fois un token débloqué, une AUTRE adresse est refusée."""
+        scan = await _seed_scan(db_session, target_url="https://a.example.com")
+        await public_scan_service.unlock_public_scan(
+            db_session, token=scan.session_token, email="first@example.com", ip_hash="h"
+        )
+        with pytest.raises(AlreadyUnlockedError):
+            await public_scan_service.unlock_public_scan(
+                db_session, token=scan.session_token, email="victim@example.com", ip_hash="h"
+            )
 
     @pytest.mark.asyncio
     async def test_quota_blocks_after_max_domains(self, db_session):
@@ -385,8 +403,44 @@ class TestUnlockPublicScan:
             )
         # Nouveau scan mais domaine DÉJÀ débloqué → autorisé malgré le plafond.
         again = await _seed_scan(db_session, target_url="https://site0.example.com/other-page")
-        out = await public_scan_service.unlock_public_scan(
+        out, newly = await public_scan_service.unlock_public_scan(
             db_session, token=again.session_token, email=email, ip_hash="h"
         )
         assert out is not None
+        assert newly is True  # nouveau token → transition (domaine déjà connu, quota non consommé)
         assert out.domain == "site0.example.com"
+
+    @pytest.mark.asyncio
+    async def test_ip_cap_blocks_email_rotation(self, db_session):
+        """Audit #9 : varier l'email ne contourne pas le plafond — corrélation par IP.
+
+        Une même IP (hachée) qui débloque MAX_DOMAINS_PER_IP domaines distincts en
+        changeant d'adresse à chaque fois est bloquée au domaine suivant."""
+        ip = "same-ip-hash"
+        for i in range(MAX_DOMAINS_PER_IP):
+            scan = await _seed_scan(db_session, target_url=f"https://ipsite{i}.example.com")
+            await public_scan_service.unlock_public_scan(
+                db_session, token=scan.session_token, email=f"rot{i}@example.com", ip_hash=ip
+            )
+        # Domaine supplémentaire, encore une nouvelle adresse → bloqué par le plafond IP.
+        extra = await _seed_scan(db_session, target_url="https://ip-one-too-many.example.com")
+        with pytest.raises(QuotaExceededError):
+            await public_scan_service.unlock_public_scan(
+                db_session, token=extra.session_token, email="rotX@example.com", ip_hash=ip
+            )
+
+    @pytest.mark.asyncio
+    async def test_ip_cap_not_triggered_by_different_ips(self, db_session):
+        """Des IP différentes ne se cumulent pas : chaque IP a son propre plafond.
+
+        Email distinct ET IP distincte à chaque itération → ni le plafond par email
+        ni le plafond par IP ne s'appliquent (1 seul domaine sur chaque dimension)."""
+        for i in range(MAX_DOMAINS_PER_IP + 2):
+            scan = await _seed_scan(db_session, target_url=f"https://distinctip{i}.example.com")
+            out, newly = await public_scan_service.unlock_public_scan(
+                db_session,
+                token=scan.session_token,
+                email=f"distinct{i}@example.com",
+                ip_hash=f"ip-{i}",
+            )
+            assert newly is True  # jamais bloqué : 1 seul domaine par IP

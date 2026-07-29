@@ -1,12 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AdminAuthService } from './admin-auth.service';
 
-function make(storedKey?: string): AdminAuthService {
-  if (storedKey) {
-    sessionStorage.setItem('admin_key', storedKey);
-  } else {
-    sessionStorage.removeItem('admin_key');
-  }
+function make(): AdminAuthService {
   const httpMock = { get: vi.fn() };
   return new AdminAuthService(httpMock as any);
 }
@@ -14,33 +9,44 @@ function make(storedKey?: string): AdminAuthService {
 describe('AdminAuthService — constructor', () => {
   beforeEach(() => sessionStorage.clear());
 
-  it('démarre non authentifié sans clé stockée', () => {
+  it('démarre non authentifié', () => {
     const svc = make();
     expect(svc.authenticated()).toBe(false);
     expect(svc.adminKey()).toBe('');
   });
 
-  it("restaure l'état depuis sessionStorage si une clé est présente", () => {
-    const svc = make('my-saved-key');
-    expect(svc.authenticated()).toBe(true);
-    expect(svc.adminKey()).toBe('my-saved-key');
+  it("ne lit AUCUN storage (pas de restauration d'une clé persistée — S6)", () => {
+    // Une clé laissée par une ancienne version ne doit PLUS être reprise.
+    sessionStorage.setItem('admin_key', 'legacy-key');
+    const svc = make();
+    expect(svc.authenticated()).toBe(false);
+    expect(svc.adminKey()).toBe('');
   });
 });
 
 describe('AdminAuthService — login()', () => {
   beforeEach(() => sessionStorage.clear());
 
-  it('active authenticated et stocke la clé', () => {
+  it('active authenticated et pose la clé en mémoire', () => {
     const svc = make();
     svc.login('secret-key');
     expect(svc.authenticated()).toBe(true);
     expect(svc.adminKey()).toBe('secret-key');
   });
 
-  it('persiste la clé dans sessionStorage', () => {
+  it('ne persiste JAMAIS la clé dans un storage (S6 — pas de secret au repos)', () => {
     const svc = make();
     svc.login('persist-me');
-    expect(sessionStorage.getItem('admin_key')).toBe('persist-me');
+    expect(sessionStorage.getItem('admin_key')).toBeNull();
+    expect(localStorage.getItem('admin_key')).toBeNull();
+  });
+
+  it('la clé ne survit pas à une nouvelle instance (re-saisie par session)', () => {
+    make().login('ephemeral');
+    // Nouvelle instance = rechargement complet simulé → état vierge.
+    const fresh = make();
+    expect(fresh.authenticated()).toBe(false);
+    expect(fresh.adminKey()).toBe('');
   });
 });
 
@@ -48,16 +54,11 @@ describe('AdminAuthService — logout()', () => {
   beforeEach(() => sessionStorage.clear());
 
   it('désactive authenticated et vide la clé', () => {
-    const svc = make('some-key');
+    const svc = make();
+    svc.login('some-key');
     svc.logout();
     expect(svc.authenticated()).toBe(false);
     expect(svc.adminKey()).toBe('');
-  });
-
-  it('supprime la clé de sessionStorage', () => {
-    const svc = make('some-key');
-    svc.logout();
-    expect(sessionStorage.getItem('admin_key')).toBeNull();
   });
 });
 
@@ -82,7 +83,6 @@ describe('AdminAuthService — verify()', () => {
 
   it('appelle GET /api/v1/admin/stats avec la clé fournie', () => {
     const httpMock = { get: vi.fn().mockReturnValue({ subscribe: vi.fn() }) };
-    sessionStorage.removeItem('admin_key');
     const svc = new AdminAuthService(httpMock as any);
     svc.verify('my-key');
     expect(httpMock.get).toHaveBeenCalledWith(

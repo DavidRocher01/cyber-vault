@@ -85,6 +85,37 @@ async def test_free_url_scan_quota_enforced():
 
 
 @pytest.mark.asyncio
+async def test_free_quota_not_reset_by_delete_then_rescan():
+    """Audit #6 : supprimer ses scans ne rend PAS de quota.
+
+    Le quota se compte sur le compteur monotone `url_scan_usages` (jamais décrémenté),
+    pas sur les lignes `url_scans` restantes. Un compte Gratuit qui atteint le plafond,
+    supprime tous ses scans, puis rescanne, reste bloqué (429)."""
+    with (
+        patch("app.api.v1.endpoints.url_scans.run_url_scan", new_callable=AsyncMock),
+        patch("app.api.v1.endpoints.url_scans.assert_no_ssrf"),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await _headers(c, "urlquota_delreset@test.com")
+            ids = []
+            for i in range(FREE_URL_SCAN_MONTHLY_LIMIT):
+                ok = await c.post(
+                    f"{BASE}/url-scans", json={"url": f"https://example{i}.com"}, headers=h
+                )
+                assert ok.status_code == 202
+                ids.append(ok.json()["id"])
+            # Supprime tous les scans (droit à l'oubli) — ne doit pas restaurer le quota.
+            for scan_id in ids:
+                d = await c.delete(f"{BASE}/url-scans/{scan_id}", headers=h)
+                assert d.status_code == 204
+            over = await c.post(
+                f"{BASE}/url-scans", json={"url": "https://after-delete.com"}, headers=h
+            )
+    assert over.status_code == 429
+    assert "Gratuit" in over.json()["detail"]
+
+
+@pytest.mark.asyncio
 async def test_paid_url_scan_unlimited():
     """Un plan payant (tier >= 2) n'est pas plafonne."""
     with (

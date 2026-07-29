@@ -291,6 +291,31 @@ def test_contact_unknown_need_type_uses_raw_value():
     assert "mystere" in owner_subject
 
 
+def test_contact_html_escapes_user_fields():
+    """Un message/nom/URL contenant du HTML est échappé dans l'e-mail owner ET la
+    confirmation (anti-injection HTML dans la boîte admin)."""
+    with patch(SEND) as mock_send:
+        send_contact_email(
+            name="<b>Mallory</b>",
+            email="m@example.com",
+            phone="<i>06</i>",
+            need_type="autre",
+            site_url='https://evil"onmouseover=x',
+            message='Cliquez <a href="https://phish.example">ici</a> <img src=x>',
+            contact_email="owner@rocher.com",
+        )
+    owner_html = mock_send.call_args_list[0][0][2]
+    confirm_html = mock_send.call_args_list[1][0][2]
+    # Aucune balise brute injectée ne subsiste.
+    assert "<b>Mallory</b>" not in owner_html
+    assert "&lt;b&gt;Mallory&lt;/b&gt;" in owner_html
+    assert '<a href="https://phish.example">' not in owner_html
+    assert "<img src=x>" not in owner_html
+    assert '"onmouseover=x' not in owner_html
+    # La confirmation (envoyée au visiteur) échappe aussi le nom.
+    assert "<b>Mallory</b>" not in confirm_html
+
+
 def test_contact_none_phone_and_site_render_dash():
     mock_send = _call_contact(phone=None, site_url=None)
     owner_plain = mock_send.call_args_list[0][0][3]

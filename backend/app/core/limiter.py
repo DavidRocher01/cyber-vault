@@ -1,4 +1,5 @@
 import ipaddress
+import secrets as _secrets
 
 from slowapi import Limiter
 from starlette.requests import Request
@@ -32,7 +33,24 @@ def _get_real_ip(request: Request) -> str:
     bypassed some proxies), we fall back to request.client.host which is the IP
     that actually connected to the server — at least that cannot be spoofed at
     the TCP layer.
+
+    Anti-spoof gate (defense-in-depth, S2 / audit finding #4): a request that
+    reaches the ALB directly (bypassing CloudFront) can forge X-Forwarded-For and
+    is INDISTINGUISHABLE at the app layer from a legitimate CloudFront chain by
+    length alone. The robust fix is the infra lock (ALB behind CloudFront via a
+    secret X-Origin-Verify header). When ORIGIN_VERIFY_SECRET is configured, we
+    enforce that header here: a request lacking it did not transit CloudFront, so
+    its X-Forwarded-For is untrusted and we use the TCP peer IP instead. No-op
+    (behaviour unchanged) until the secret is provisioned on both ends.
     """
+    secret = settings.ORIGIN_VERIFY_SECRET
+    if (
+        isinstance(secret, str)
+        and secret
+        and not _secrets.compare_digest(request.headers.get("X-Origin-Verify", ""), secret)
+    ):
+        return request.client.host if request.client else "unknown"
+
     forwarded_for = request.headers.get("X-Forwarded-For", "")
     ips = [ip.strip() for ip in forwarded_for.split(",") if ip.strip()]
 
@@ -68,4 +86,7 @@ def _rate_limit_key(request: Request) -> str:
     return ip
 
 
-limiter = Limiter(key_func=_rate_limit_key)
+# storage_uri partagé si REDIS_URL est configuré (compteurs globaux à toutes les
+# tâches ECS) ; sinon "memory://" in-process — défaut slowapi, comportement
+# inchangé tant qu'ElastiCache n'est pas provisionné (cf. audit finding #5).
+limiter = Limiter(key_func=_rate_limit_key, storage_uri=settings.REDIS_URL or "memory://")

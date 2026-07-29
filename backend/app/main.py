@@ -1,7 +1,6 @@
 import time
 from contextlib import asynccontextmanager
 
-import sentry_sdk
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -25,11 +24,9 @@ from app.services.scheduler import start_scheduler, stop_scheduler
 setup_logging(settings.APP_ENV)
 
 if settings.SENTRY_DSN:
-    sentry_sdk.init(
-        dsn=settings.SENTRY_DSN,
-        traces_sample_rate=0.1,
-        environment=settings.APP_ENV,
-    )
+    from app.core.sentry import init_sentry
+
+    init_sentry(settings.SENTRY_DSN, settings.APP_ENV)
     logger.info("Sentry initialisé")
 
 

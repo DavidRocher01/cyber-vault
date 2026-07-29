@@ -10,6 +10,7 @@ import io
 import json
 from collections import Counter
 from datetime import UTC, datetime, timedelta
+from html import escape as _esc
 
 from loguru import logger
 from sqlalchemy import select
@@ -128,6 +129,25 @@ async def process_dossier(dossier_id: int, api_key: str) -> None:
             await db.commit()
 
 
+# Caractères qui déclenchent l'interprétation d'une cellule comme FORMULE par Excel /
+# LibreOffice / Google Sheets (CSV injection). Une adresse comme "=1+1@x.tld" stockée
+# telle quelle serait ré-exportée verbatim puis exécutée par le tableur du destinataire
+# du livrable (portail client / consultant RSSI). Audit 2026-07-27, finding #7.
+_CSV_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
+
+
+def _csv_safe(value: object) -> str:
+    """Neutralise une valeur avant écriture CSV en préfixant les cellules-formule.
+
+    Toute cellule (une fois convertie en texte) commençant par un caractère de formule
+    est préfixée d'une apostrophe : le tableur l'affiche comme du texte au lieu d'évaluer
+    la formule. No-op sur les valeurs normales (emails, statuts, dates)."""
+    text = "" if value is None else str(value)
+    if text and text[0] in _CSV_FORMULA_PREFIXES:
+        return "'" + text
+    return text
+
+
 def export_dossier_csv(dossier: DarkwebDossier, targets: list[DarkwebDossierTarget]) -> bytes:
     """Build a UTF-8 BOM CSV with one row per target email."""
     output = io.StringIO()
@@ -156,15 +176,17 @@ def export_dossier_csv(dossier: DarkwebDossier, targets: list[DarkwebDossierTarg
             if dc not in ("Email addresses",)
         )
         checked = t.checked_at.strftime("%Y-%m-%d") if t.checked_at else ""
+        # _csv_safe sur CHAQUE cellule de données : l'email (contrôlé par l'uploadeur)
+        # comme les sources/types (issus des noms de fuites tiers) sont neutralisés.
         writer.writerow(
             [
-                t.email,
-                t.status,
-                t.check_status,
-                t.total_breaches,
-                sources,
-                data_classes,
-                checked,
+                _csv_safe(t.email),
+                _csv_safe(t.status),
+                _csv_safe(t.check_status),
+                _csv_safe(t.total_breaches),
+                _csv_safe(sources),
+                _csv_safe(data_classes),
+                _csv_safe(checked),
             ]
         )
     return ("﻿" + output.getvalue()).encode("utf-8")
@@ -179,12 +201,18 @@ def send_monitoring_alert(
     dashboard_url: str,
 ) -> None:
     """Send an alert email when monitoring detects new exposed accounts."""
-    new_list_html = "".join(f"<li style='color:#fca5a5'>{e}</li>" for e in new_exposed[:10])
+    # Échappement HTML des valeurs issues d'un upload (emails des cibles) et du
+    # formulaire (company_name/domain) avant interpolation : même si le destinataire
+    # est le propriétaire du dossier (impact self-dirigé), on ne rend jamais de HTML
+    # arbitraire dans l'e-mail (défense en profondeur, cohérent avec le contact).
+    new_list_html = "".join(f"<li style='color:#fca5a5'>{_esc(e)}</li>" for e in new_exposed[:10])
     more = (
         f"<p style='color:#94a3b8;font-size:13px'>+ {len(new_exposed) - 10} autres</p>"
         if len(new_exposed) > 10
         else ""
     )
+    company_name_h = _esc(company_name)
+    domain_h = _esc(domain)
 
     subject = f"[Rocher Cybersécurité] ⚠️ Dark Web — Nouvelles fuites détectées pour {domain}"
     html = f"""<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0f172a;font-family:Arial,sans-serif;">
@@ -196,7 +224,7 @@ def send_monitoring_alert(
 </td></tr>
 <tr><td style="padding:32px 40px;">
 <p style="color:#94a3b8;font-size:15px;line-height:1.7;margin:0 0 20px;">
-Le monitoring Dark Web de <strong style="color:#f8fafc;">{company_name}</strong> ({domain}) a détecté
+Le monitoring Dark Web de <strong style="color:#f8fafc;">{company_name_h}</strong> ({domain_h}) a détecté
 <strong style="color:#ef4444;font-size:18px;"> {exposed_count} compte(s) exposé(s)</strong> lors du rescan mensuel.
 </p>
 <p style="color:#94a3b8;font-size:13px;margin:0 0 8px;font-weight:700;letter-spacing:1px;">NOUVEAUX COMPTES DÉTECTÉS :</p>

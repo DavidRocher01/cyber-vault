@@ -450,6 +450,25 @@ def test_send_monitoring_alert_ten_or_fewer_no_summary():
 # ── send_monitoring_alert: _send raises -> swallowed (no exception propagates) ──
 
 
+def test_send_monitoring_alert_escapes_html():
+    """company_name / domain / emails contenant du HTML sont échappés dans l'alerte."""
+    import unittest.mock as mock
+
+    with mock.patch.object(ingestion, "_send") as send_mock:
+        send_monitoring_alert(
+            "rssi@acme.fr",
+            "<script>x</script>Acme",
+            "acme.fr",
+            1,
+            ["<img src=x>@acme.fr"],
+            "https://dash",
+        )
+    _, _, html, _ = send_mock.call_args.args
+    assert "<script>x</script>" not in html
+    assert "&lt;script&gt;" in html
+    assert "<img src=x>" not in html
+
+
 def test_send_monitoring_alert_swallows_send_error():
     import unittest.mock as mock
 

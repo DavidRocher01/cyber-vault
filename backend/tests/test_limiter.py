@@ -186,3 +186,96 @@ class TestGetRealIpEdgeCases:
             mock_settings.TRUSTED_PROXY_COUNT = 1
             ip = _get_real_ip(req)
         assert ip == "unknown"
+
+
+# ── _get_real_ip — X-Origin-Verify anti-spoof gate (S2 / audit finding #4) ────
+
+
+def _make_request_with_headers(
+    xff: str | None, origin_verify: str | None, client_host: str = "10.0.1.100"
+) -> Request:
+    """Fake Request with optional X-Forwarded-For and X-Origin-Verify headers."""
+    headers = []
+    if xff is not None:
+        headers.append((b"x-forwarded-for", xff.encode()))
+    if origin_verify is not None:
+        headers.append((b"x-origin-verify", origin_verify.encode()))
+    scope = {
+        "type": "http",
+        "method": "GET",
+        "path": "/",
+        "query_string": b"",
+        "headers": headers,
+        "client": (client_host, 12345),
+    }
+    return Request(scope)
+
+
+class TestOriginVerifyGate:
+    SECRET = "s3cr3t-cloudfront-token"
+
+    def test_missing_header_falls_back_to_tcp_peer(self):
+        """Secret configured but no X-Origin-Verify → request bypassed CloudFront →
+        its (spoofable) X-Forwarded-For is ignored, TCP peer used instead."""
+        req = _make_request_with_headers("9.9.9.9, 8.8.8.8", None, client_host="5.6.7.8")
+        with patch("app.core.limiter.settings") as mock_settings:
+            mock_settings.ORIGIN_VERIFY_SECRET = self.SECRET
+            mock_settings.TRUSTED_PROXY_COUNT = 2
+            ip = _get_real_ip(req)
+        assert ip == "5.6.7.8"
+
+    def test_wrong_header_falls_back_to_tcp_peer(self):
+        req = _make_request_with_headers("9.9.9.9, 8.8.8.8", "wrong-token", client_host="5.6.7.8")
+        with patch("app.core.limiter.settings") as mock_settings:
+            mock_settings.ORIGIN_VERIFY_SECRET = self.SECRET
+            mock_settings.TRUSTED_PROXY_COUNT = 2
+            ip = _get_real_ip(req)
+        assert ip == "5.6.7.8"
+
+    def test_correct_header_trusts_xff(self):
+        """Correct secret → request transited CloudFront → normal XFF parsing."""
+        req = _make_request_with_headers("1.2.3.4, 13.225.0.1", self.SECRET)
+        with patch("app.core.limiter.settings") as mock_settings:
+            mock_settings.ORIGIN_VERIFY_SECRET = self.SECRET
+            mock_settings.TRUSTED_PROXY_COUNT = 2
+            ip = _get_real_ip(req)
+        assert ip == "1.2.3.4"
+
+    def test_none_secret_is_noop(self):
+        """ORIGIN_VERIFY_SECRET=None (default) → gate disabled, XFF parsed as before
+        even without the header (backward-compatible / no-op until provisioned)."""
+        req = _make_request_with_headers("1.2.3.4, 13.225.0.1", None)
+        with patch("app.core.limiter.settings") as mock_settings:
+            mock_settings.ORIGIN_VERIFY_SECRET = None
+            mock_settings.TRUSTED_PROXY_COUNT = 2
+            ip = _get_real_ip(req)
+        assert ip == "1.2.3.4"
+
+    def test_empty_secret_is_noop(self):
+        req = _make_request_with_headers("1.2.3.4, 13.225.0.1", None)
+        with patch("app.core.limiter.settings") as mock_settings:
+            mock_settings.ORIGIN_VERIFY_SECRET = ""
+            mock_settings.TRUSTED_PROXY_COUNT = 2
+            ip = _get_real_ip(req)
+        assert ip == "1.2.3.4"
+
+    def test_residual_spoof_without_gate_is_documented(self):
+        """WITHOUT the gate (secret unset), a direct-to-ALB attacker forging XFF
+        still controls the rate-limit key — this is precisely why the infra lock
+        (ORIGIN_VERIFY_SECRET + ALB behind CloudFront) is required (finding #4)."""
+        req = _make_request_with_headers("9.9.9.9, 172.16.0.5", None, client_host="66.66.66.66")
+        with patch("app.core.limiter.settings") as mock_settings:
+            mock_settings.ORIGIN_VERIFY_SECRET = None
+            mock_settings.TRUSTED_PROXY_COUNT = 2
+            ip = _get_real_ip(req)
+        assert ip == "9.9.9.9"  # forged; blocked only once the gate is enabled
+
+    def test_gate_blocks_the_spoof_when_enabled(self):
+        """Same forged request as above, but with the gate enabled and no valid
+        header → the spoof is neutralised (TCP peer used)."""
+        req = _make_request_with_headers("9.9.9.9, 172.16.0.5", None, client_host="66.66.66.66")
+        with patch("app.core.limiter.settings") as mock_settings:
+            mock_settings.ORIGIN_VERIFY_SECRET = self.SECRET
+            mock_settings.TRUSTED_PROXY_COUNT = 2
+            ip = _get_real_ip(req)
+        assert ip == "66.66.66.66"

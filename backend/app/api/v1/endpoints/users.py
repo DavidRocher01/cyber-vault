@@ -114,45 +114,12 @@ async def export_my_data(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Export all user data as JSON (RGPD — droit à la portabilité)."""
-    sites = await user_service.list_sites_for_user(db, current_user.id)
+    """Export all user data as JSON (RGPD — droit à la portabilité, Art.20).
 
-    # Single query for all scans (no N+1)
-    site_ids = [s.id for s in sites]
-    site_map = {s.id: s for s in sites}
-    scans_data = []
-    for scan in await user_service.list_scans_for_sites(db, site_ids):
-        site = site_map[scan.site_id]
-        scans_data.append(
-            {
-                "site_url": site.url,
-                "site_name": site.name,
-                "scan_id": scan.id,
-                "status": scan.status,
-                "overall_status": scan.overall_status,
-                "created_at": scan.created_at.isoformat() if scan.created_at else None,
-                "finished_at": scan.finished_at.isoformat() if scan.finished_at else None,
-            }
-        )
-
-    export = {
-        "exported_at": datetime.now(UTC).isoformat(),
-        "account": {
-            "email": current_user.email,
-            "is_active": current_user.is_active,
-            "totp_enabled": current_user.totp_enabled,
-        },
-        "sites": [
-            {
-                "url": s.url,
-                "name": s.name,
-                "created_at": s.created_at.isoformat() if s.created_at else None,
-            }
-            for s in sites
-        ],
-        "scans": scans_data,
-    }
-
+    Le périmètre complet (sites/scans, conformité, Dark Web, facturation, marque,
+    notifications) et ce qui en est volontairement exclu sont assemblés côté service.
+    """
+    export = await user_service.export_account_data(db, current_user)
     content = json.dumps(export, ensure_ascii=False, indent=2)
     return StreamingResponse(
         iter([content]),

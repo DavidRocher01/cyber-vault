@@ -31,6 +31,14 @@ sys.path.insert(0, str(SCANNER_DIR))
 # renvoie vers la création de compte.
 MAX_DOMAINS_PER_EMAIL = 3
 
+# Plafond de domaines distincts débloquables depuis une même IP (hachée), tous emails
+# confondus. Le plafond par email (3) se contourne en changeant d'adresse à chaque fois ;
+# ce garde corrèle sur l'IP pour borner l'abus par rotation d'email (audit 2026-07-27,
+# finding #9). Volontairement plus large que le plafond par email (NAT/bureaux partagés
+# derrière une IP unique) : atteindre ce plafond ne bloque pas, il renvoie vers la
+# création de compte, comme le plafond par email.
+MAX_DOMAINS_PER_IP = 10
+
 
 class ScanNotReadyError(Exception):
     """Le scan n'est pas encore terminé : déblocage impossible."""
@@ -38,6 +46,16 @@ class ScanNotReadyError(Exception):
 
 class QuotaExceededError(Exception):
     """L'email a déjà atteint le plafond de domaines gratuits."""
+
+
+class AlreadyUnlockedError(Exception):
+    """Le scan est déjà débloqué avec une AUTRE adresse email.
+
+    L'email est figé au premier déblocage effectif d'un token : tout changement
+    est refusé. Sans ce verrou, un attaquant boucle POST /{token}/unlock en
+    variant l'adresse destinataire pour transformer le token en relais de mail
+    (mailbombing depuis le domaine réputé de l'éditeur).
+    """
 
 
 def hash_ip(ip: str) -> str:
@@ -79,13 +97,20 @@ def _run_demo_scan_sync(url: str) -> dict:
     from scanner.cms_detector import detect_cms
     from scanner.cookie_checker import check_cookies
     from scanner.cors_checker import check_cors
-    from scanner.dns_scanner import scan_subdomains
     from scanner.email_checker import check_email_security
     from scanner.headers_checker import check_headers
     from scanner.ip_reputation import check_ip_reputation
     from scanner.ssl_checker import check_ssl
     from scanner.waf_detector import detect_waf
 
+    # Scan public ANONYME : uniquement des modules passifs (GET page + en-têtes,
+    # CORS, cookies, CMS, WAF, SSL, e-mail/DNS passif, réputation IP). On EXCLUT
+    # volontairement scan_subdomains (énumération de ~60 sous-domaines + tentative
+    # AXFR) : c'est de la reconnaissance ACTIVE contre un domaine tiers dont on n'a
+    # aucune preuve de propriété — l'infra de l'éditeur deviendrait un proxy de recon
+    # anonyme (exposition juridique/attribution). L'énumération de sous-domaines
+    # reste réservée au scan AUTHENTIFIÉ sur un domaine dont l'utilisateur est
+    # propriétaire (cf. scan_service).
     hostname = urlparse(url).hostname or url
 
     ssl_result = check_ssl(hostname)
@@ -94,7 +119,6 @@ def _run_demo_scan_sync(url: str) -> dict:
     cookie_result = check_cookies(url)
     cors_result = check_cors(url)
     ip_result = check_ip_reputation(hostname)
-    dns_result = scan_subdomains(hostname)
     cms_result = detect_cms(url)
     waf_result = detect_waf(url)
 
@@ -105,7 +129,6 @@ def _run_demo_scan_sync(url: str) -> dict:
         cookie_result.get("status"),
         cors_result.get("status"),
         ip_result.get("status"),
-        dns_result.get("status"),
         cms_result.get("status"),
         waf_result.get("status"),
     ]
@@ -124,7 +147,6 @@ def _run_demo_scan_sync(url: str) -> dict:
         "cookies": cookie_result,
         "cors": cors_result,
         "ip": ip_result,
-        "dns": dns_result,
         "cms": cms_result,
         "waf": waf_result,
         "_meta": {"tier": 2, "url": url},
@@ -217,33 +239,66 @@ async def _unlocked_domains_for_email(db: AsyncSession, email: str) -> set[str]:
     return {d for (d,) in result.all() if d}
 
 
+async def _unlocked_domains_for_ip(db: AsyncSession, ip_hash: str) -> set[str]:
+    """Domaines distincts déjà débloqués depuis cette IP (hachée), tous emails confondus."""
+    result = await db.execute(
+        select(PublicScan.domain)
+        .where(
+            PublicScan.ip_hash == ip_hash,
+            PublicScan.email_consent_at.is_not(None),
+            PublicScan.domain.is_not(None),
+        )
+        .distinct()
+    )
+    return {d for (d,) in result.all() if d}
+
+
 async def unlock_public_scan(
     db: AsyncSession, *, token: str, email: str, ip_hash: str
-) -> PublicScan | None:
+) -> tuple[PublicScan | None, bool]:
     """Débloque le rapport complet d'un scan public après capture du lead (email).
 
     Quota : 1 rapport par email + domaine, plafond MAX_DOMAINS_PER_EMAIL domaines par
     email. Débloquer à nouveau un domaine déjà débloqué par le même email est idempotent
     (ne consomme pas de quota).
 
-    Retourne le scan débloqué, None si le token est inconnu. Lève ScanNotReadyError si le scan
-    n'est pas terminé, QuotaExceededError si le plafond de domaines est atteint.
+    Anti-mailbombing : l'email est FIGÉ au premier déblocage effectif d'un token.
+    Toute tentative ultérieure avec une adresse DIFFÉRENTE lève AlreadyUnlockedError
+    (le token ne peut pas être détourné en relais vers des tiers arbitraires).
+
+    Retourne `(scan, newly_unlocked)` : `newly_unlocked` vaut True uniquement lorsque
+    ce déblocage vient de poser le consentement (transition) → l'appelant n'envoie
+    l'email de rapport QUE dans ce cas, jamais sur une ré-consultation idempotente.
+    `scan` vaut None si le token est inconnu. Lève ScanNotReadyError si le scan n'est
+    pas terminé, QuotaExceededError si le plafond de domaines est atteint,
+    AlreadyUnlockedError si le token est déjà débloqué avec une autre adresse.
     """
     scan = await get_public_scan_by_token(db, token)
     if scan is None:
-        return None
+        return None, False
     if scan.status != "done":
         raise ScanNotReadyError
 
     email = email.strip().lower()
     domain = _domain_of(scan.target_url)
 
-    # Déjà débloqué par le même email → idempotent (on ne repose rien, on re-sert).
-    if scan.email_consent_at is not None and scan.email == email:
-        return scan
+    # Déjà débloqué : email figé.
+    if scan.email_consent_at is not None:
+        if scan.email == email:
+            # Même adresse → idempotent : on re-sert SANS renvoyer d'email.
+            return scan, False
+        # Adresse différente → tentative de détournement du token, refusée.
+        raise AlreadyUnlockedError
 
     unlocked_domains = await _unlocked_domains_for_email(db, email)
     if domain not in unlocked_domains and len(unlocked_domains) >= MAX_DOMAINS_PER_EMAIL:
+        raise QuotaExceededError
+
+    # Corrélation par IP (tous emails confondus) : borne l'abus qui contourne le plafond
+    # par email en variant l'adresse à chaque déblocage (finding #9). Un domaine déjà
+    # débloqué depuis cette IP ne recompte pas (idempotent).
+    ip_domains = await _unlocked_domains_for_ip(db, ip_hash)
+    if domain not in ip_domains and len(ip_domains) >= MAX_DOMAINS_PER_IP:
         raise QuotaExceededError
 
     scan.email = email
@@ -252,4 +307,4 @@ async def unlock_public_scan(
     scan.domain = domain
     await db.commit()
     await db.refresh(scan)
-    return scan
+    return scan, True

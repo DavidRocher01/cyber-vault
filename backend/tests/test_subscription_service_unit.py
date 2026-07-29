@@ -13,6 +13,8 @@ Covers:
  10. transition: canceled subscription no longer counts as active
 """
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,7 +22,12 @@ from app.core.security import hash_password
 from app.models.plan import Plan
 from app.models.subscription import Subscription
 from app.models.user import User
-from app.services.subscription_service import get_active_plan, get_effective_max_sites
+from app.services.subscription_service import (
+    SUBSCRIPTION_GRACE_DAYS,
+    get_active_plan,
+    get_active_subscription,
+    get_effective_max_sites,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -64,16 +71,84 @@ async def _seed_subscription(
     *,
     status: str = "active",
     extra_sites: int = 0,
+    current_period_end: datetime | None = None,
 ) -> Subscription:
     sub = Subscription(
         user_id=user_id,
         plan_id=plan_id,
         status=status,
         extra_sites=extra_sites,
+        current_period_end=current_period_end,
     )
     db.add(sub)
     await db.flush()
     return sub
+
+
+# ---------------------------------------------------------------------------
+# 11. current_period_end : un abonnement 'active' mais expiré n'est plus actif
+#     (audit 2026-07-27, finding #11)
+# ---------------------------------------------------------------------------
+
+
+class TestActivePeriodExpiry:
+    @pytest.mark.asyncio
+    async def test_null_period_end_stays_active(self, db_session: AsyncSession):
+        """current_period_end NULL (plan manuel / override admin) = pas d'expiration."""
+        user = await _seed_user(db_session, "exp_null@test.com")
+        plan = await _seed_plan(db_session, name="exp_null_plan", max_sites=3)
+        await _seed_subscription(db_session, user.id, plan.id, current_period_end=None)
+        await db_session.commit()
+
+        assert await get_active_plan(db_session, user.id) is not None
+        assert await get_active_subscription(db_session, user.id) is not None
+
+    @pytest.mark.asyncio
+    async def test_future_period_end_is_active(self, db_session: AsyncSession):
+        user = await _seed_user(db_session, "exp_future@test.com")
+        plan = await _seed_plan(db_session, name="exp_future_plan", max_sites=3)
+        await _seed_subscription(
+            db_session,
+            user.id,
+            plan.id,
+            current_period_end=datetime.now(UTC) + timedelta(days=15),
+        )
+        await db_session.commit()
+
+        result = await get_active_plan(db_session, user.id)
+        assert result is not None and result.id == plan.id
+
+    @pytest.mark.asyncio
+    async def test_within_grace_is_still_active(self, db_session: AsyncSession):
+        """Expiré depuis moins que la marge de grâce → encore actif (lag webhook)."""
+        user = await _seed_user(db_session, "exp_grace@test.com")
+        plan = await _seed_plan(db_session, name="exp_grace_plan")
+        await _seed_subscription(
+            db_session,
+            user.id,
+            plan.id,
+            current_period_end=datetime.now(UTC) - timedelta(days=SUBSCRIPTION_GRACE_DAYS - 1),
+        )
+        await db_session.commit()
+
+        assert await get_active_subscription(db_session, user.id) is not None
+
+    @pytest.mark.asyncio
+    async def test_expired_beyond_grace_is_inactive(self, db_session: AsyncSession):
+        """Expiré au-delà de la marge → n'ouvre plus l'accès payant (repli Gratuit)."""
+        user = await _seed_user(db_session, "exp_stale@test.com")
+        plan = await _seed_plan(db_session, name="exp_stale_plan", max_sites=5)
+        await _seed_subscription(
+            db_session,
+            user.id,
+            plan.id,
+            current_period_end=datetime.now(UTC) - timedelta(days=SUBSCRIPTION_GRACE_DAYS + 5),
+        )
+        await db_session.commit()
+
+        # Pas de plan Gratuit semé dans ce test unitaire → repli None (abo ignoré).
+        assert await get_active_plan(db_session, user.id) is None
+        assert await get_active_subscription(db_session, user.id) is None
 
 
 # ---------------------------------------------------------------------------
