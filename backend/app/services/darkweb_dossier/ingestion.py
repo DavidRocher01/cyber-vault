@@ -129,6 +129,25 @@ async def process_dossier(dossier_id: int, api_key: str) -> None:
             await db.commit()
 
 
+# Caractères qui déclenchent l'interprétation d'une cellule comme FORMULE par Excel /
+# LibreOffice / Google Sheets (CSV injection). Une adresse comme "=1+1@x.tld" stockée
+# telle quelle serait ré-exportée verbatim puis exécutée par le tableur du destinataire
+# du livrable (portail client / consultant RSSI). Audit 2026-07-27, finding #7.
+_CSV_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
+
+
+def _csv_safe(value: object) -> str:
+    """Neutralise une valeur avant écriture CSV en préfixant les cellules-formule.
+
+    Toute cellule (une fois convertie en texte) commençant par un caractère de formule
+    est préfixée d'une apostrophe : le tableur l'affiche comme du texte au lieu d'évaluer
+    la formule. No-op sur les valeurs normales (emails, statuts, dates)."""
+    text = "" if value is None else str(value)
+    if text and text[0] in _CSV_FORMULA_PREFIXES:
+        return "'" + text
+    return text
+
+
 def export_dossier_csv(dossier: DarkwebDossier, targets: list[DarkwebDossierTarget]) -> bytes:
     """Build a UTF-8 BOM CSV with one row per target email."""
     output = io.StringIO()
@@ -157,15 +176,17 @@ def export_dossier_csv(dossier: DarkwebDossier, targets: list[DarkwebDossierTarg
             if dc not in ("Email addresses",)
         )
         checked = t.checked_at.strftime("%Y-%m-%d") if t.checked_at else ""
+        # _csv_safe sur CHAQUE cellule de données : l'email (contrôlé par l'uploadeur)
+        # comme les sources/types (issus des noms de fuites tiers) sont neutralisés.
         writer.writerow(
             [
-                t.email,
-                t.status,
-                t.check_status,
-                t.total_breaches,
-                sources,
-                data_classes,
-                checked,
+                _csv_safe(t.email),
+                _csv_safe(t.status),
+                _csv_safe(t.check_status),
+                _csv_safe(t.total_breaches),
+                _csv_safe(sources),
+                _csv_safe(data_classes),
+                _csv_safe(checked),
             ]
         )
     return ("﻿" + output.getvalue()).encode("utf-8")

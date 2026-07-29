@@ -13,6 +13,7 @@ Routes:
 import asyncio
 import csv
 import io
+import re
 from datetime import UTC, datetime
 
 from fastapi import (
@@ -46,6 +47,19 @@ router = APIRouter(prefix="/darkweb-dossier", tags=["darkweb-dossier"])
 
 _MAX_EMAILS = 500
 _MAX_DOSSIERS_PER_USER = 20
+
+# Cap d'octets du CSV lu en mémoire AVANT parsing (audit 2026-07-27, finding #14). Un
+# fichier de 500 emails pèse quelques centaines de Ko ; 2 Mo est large tout en bornant
+# la consommation mémoire (le cap RSSI storage.MAX_UPLOAD_BYTES=20 Mo vise des PDF, pas
+# une liste d'adresses). Lecture bornée à _MAX_CSV_BYTES+1 puis rejet si dépassement.
+_MAX_CSV_BYTES = 2 * 1024 * 1024
+
+# Regex email strict appliqué à chaque adresse extraite du CSV (durcissement d'entrée,
+# audit finding #7/#15). Rejette les caractères de formule CSV en tête de partie locale
+# (=,+ hors plus-addressing légitime… le "=" n'est pas dans la classe autorisée) et les
+# chevrons/espaces d'une injection HTML (ex. "x<img src=y>@evil.com"). Volontairement plus
+# strict que la RFC 5321 (pas de quoted-local-part) : suffisant pour des adros pro.
+_EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -119,8 +133,10 @@ def _parse_emails_csv(content: bytes) -> list[str]:
             if email_col is None and row:
                 email_col = list(row.keys())[0]
         if email_col and email_col in row:
-            val = row[email_col].strip().lower()
-            if "@" in val and "." in val.split("@")[-1]:
+            val = (row[email_col] or "").strip().lower()
+            # Validation stricte : rejette les caractères de formule CSV et d'injection
+            # HTML en amont (finding #7/#15) en plus du filtrage @/domaine historique.
+            if _EMAIL_RE.match(val):
                 emails.append(val)
 
     return list(dict.fromkeys(emails))  # deduplicate, preserve order
@@ -187,7 +203,14 @@ async def create_dossier(
             detail=f"Limite atteinte — maximum {_MAX_DOSSIERS_PER_USER} dossiers par compte",
         )
 
-    raw = await emails_csv.read()
+    # Lecture BORNÉE avant parsing : on lit au plus _MAX_CSV_BYTES+1 octets et on rejette
+    # si le fichier dépasse le cap, pour éviter de charger un CSV géant en RAM (finding #14).
+    raw = await emails_csv.read(_MAX_CSV_BYTES + 1)
+    if len(raw) > _MAX_CSV_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Fichier CSV trop volumineux — maximum {_MAX_CSV_BYTES // (1024 * 1024)} Mo",
+        )
     emails = _parse_emails_csv(raw)
     if not emails:
         raise HTTPException(status_code=400, detail="Aucun email valide trouvé dans le fichier CSV")

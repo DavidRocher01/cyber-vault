@@ -70,6 +70,28 @@ def test_parse_quoted_values():
     assert emails == ["quoted@domain.fr"]
 
 
+def test_parse_rejects_formula_and_illegal_prefixes():
+    # "=" et "@" en tête ne sont pas des débuts d'adresse valides → rejetés par _EMAIL_RE.
+    # (Les rares locales RFC-valides commençant par +/- restent acceptées ici mais sont
+    # neutralisées à l'EXPORT par _csv_safe — cf. test_export_csv_neutralizes_*.)
+    emails = _parse_emails_csv(csv("email\n=1+1@evil.tld\n@nolocal.tld\ngood@corp.fr\n"))
+    assert emails == ["good@corp.fr"]
+
+
+def test_parse_rejects_html_injection_chars():
+    # Chevrons / espaces d'une tentative d'injection HTML rejetés par le regex strict.
+    emails = _parse_emails_csv(
+        csv("email\nx<img src=y onerror=alert(1)>@evil.tld\na b@corp.fr\nok@corp.fr\n")
+    )
+    assert emails == ["ok@corp.fr"]
+
+
+def test_parse_rejects_missing_tld():
+    # Adresse sans TLD (< 2 lettres après le dernier point) rejetée par _EMAIL_RE.
+    emails = _parse_emails_csv(csv("email\nuser@localhost\nuser@corp.f\nvalid@corp.fr\n"))
+    assert emails == ["valid@corp.fr"]
+
+
 # ── generate_dossier_pdf ──────────────────────────────────────────────────────
 
 
@@ -309,6 +331,45 @@ def test_export_csv_bom_prefix():
 
     result = export_dossier_csv(_make_dossier(), [])
     assert result.startswith(b"\xef\xbb\xbf"), "CSV doit commencer par un BOM UTF-8"
+
+
+def test_csv_safe_neutralizes_formula_prefixes():
+    # _csv_safe préfixe d'une apostrophe toute valeur commençant par un caractère de
+    # formule pour que le tableur du destinataire l'affiche en texte (finding #7).
+    from app.services.darkweb_dossier.ingestion import _csv_safe
+
+    assert _csv_safe("=1+1") == "'=1+1"
+    assert _csv_safe("+cmd") == "'+cmd"
+    assert _csv_safe("-2+3") == "'-2+3"
+    assert _csv_safe("@SUM(A1)") == "'@SUM(A1)"
+    assert _csv_safe("\tTAB") == "'\tTAB"
+
+
+def test_csv_safe_leaves_normal_values_untouched():
+    from app.services.darkweb_dossier.ingestion import _csv_safe
+
+    assert _csv_safe("alice@corp.fr") == "alice@corp.fr"
+    assert _csv_safe("exposed") == "exposed"
+    assert _csv_safe(7) == "7"
+    assert _csv_safe(None) == ""
+
+
+def test_export_csv_neutralizes_malicious_breach_source_name():
+    # Le nom d'une fuite tierce (non contrôlé) commençant par "=" ne doit jamais être
+    # ré-exporté comme formule exécutable : _csv_safe le neutralise dans la cellule Sources.
+    from app.services.darkweb_dossier_service import export_dossier_csv
+
+    t = MagicMock(spec=DarkwebDossierTarget)
+    t.email = "victim@corp.fr"
+    t.status = "exposed"
+    t.check_status = "exposed"
+    t.total_breaches = 1
+    t.breach_sources_json = json.dumps([{"name": "=HYPERLINK(0)", "data_classes": ["Passwords"]}])
+    t.checked_at = datetime.now(UTC)
+    result = export_dossier_csv(_make_dossier(), [t]).decode("utf-8-sig")
+    # La cellule Sources est préfixée d'une apostrophe → pas d'évaluation par le tableur.
+    assert "'=HYPERLINK(0)" in result
+    assert ",=HYPERLINK(0)" not in result
 
 
 # ── _compute_severity ─────────────────────────────────────────────────────────

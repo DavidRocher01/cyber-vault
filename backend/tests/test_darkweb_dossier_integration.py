@@ -152,6 +152,25 @@ async def test_create_dossier_no_valid_emails_returns_400(http_client: AsyncClie
     assert r.status_code == 400
 
 
+@pytest.mark.asyncio
+async def test_create_dossier_oversized_csv_returns_413(http_client: AsyncClient):
+    # Lecture bornée (finding #14) : un CSV dépassant _MAX_CSV_BYTES est rejeté AVANT
+    # parsing, sans charger l'intégralité du fichier en mémoire.
+    from app.api.v1.endpoints.darkweb_dossier import _MAX_CSV_BYTES
+
+    headers = await _pro_headers(http_client, "dossierbig@test.com")
+    oversized = b"email\n" + (b"a@big.fr\n" * ((_MAX_CSV_BYTES // 8) + 100))
+    assert len(oversized) > _MAX_CSV_BYTES
+    r = await http_client.post(
+        ENDPOINT,
+        data={"company_name": "Big", "domain": "big.fr"},
+        files={"emails_csv": ("big.csv", io.BytesIO(oversized), "text/csv")},
+        headers=headers,
+    )
+    assert r.status_code == 413
+    assert "volumineux" in r.json()["detail"].lower()
+
+
 # ── List dossiers ─────────────────────────────────────────────────────────────
 
 
