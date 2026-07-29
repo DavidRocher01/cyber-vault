@@ -98,6 +98,20 @@ class Settings(BaseSettings):
     # Determines how many IPs to strip from the right of X-Forwarded-For.
     TRUSTED_PROXY_COUNT: int = 1
 
+    # Rate-limiting backend (slowapi). Absent => "memory://" in-process, propre à
+    # chaque tâche ECS (compteurs NON partagés entre tâches derrière l'ALB). Pour
+    # rendre les limites globales, provisionner ElastiCache/Redis et injecter
+    # REDIS_URL (redis://host:6379/0) via Secrets Manager + deploy.yml. No-op tant
+    # qu'absent — cohérent avec le scheduler (os.getenv REDIS_URL) et la prod actuelle.
+    REDIS_URL: str | None = None
+
+    # Secret partagé injecté par CloudFront dans l'en-tête X-Origin-Verify (verrou
+    # ALB-derrière-CloudFront). Quand il est configuré, toute requête sans l'en-tête
+    # exact n'a PAS transité par CloudFront (accès direct à l'ALB) : son
+    # X-Forwarded-For est attaquant-contrôlé et n'est PAS digne de confiance — on
+    # retombe alors sur l'IP TCP. No-op tant qu'absent (comportement inchangé).
+    ORIGIN_VERIFY_SECRET: str | None = None
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
