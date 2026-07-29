@@ -46,10 +46,62 @@ def api() -> str:
     return API
 
 
+# La recette demarre juste apres la bascule des taches ECS : une connexion peut
+# etre coupee en plein etablissement (reset TCP), ce qui declenchait un rollback
+# de prod alors que rien n'etait casse. `retries` de httpx ne rejoue QUE les
+# echecs de connexion — une reponse HTTP (401, 500...) reste un echec franc, donc
+# aucune regression fonctionnelle n'est masquee.
+_TRANSPORT_RETRIES = 3
+
+# `aws ecs wait services-stable` rend la main avant que l'ancienne cible ait fini
+# de se desenregistrer de l'ALB : on exige des reponses saines CONSECUTIVES avant
+# de lancer la suite, sinon les premiers tests tapent une cible en cours de retrait.
+_READY_CONSECUTIVE = 3
+_READY_TIMEOUT_S = 90.0
+_READY_INTERVAL_S = 1.0
+
+
+def _make_client() -> httpx.Client:
+    return httpx.Client(
+        base_url=BASE_URL,
+        timeout=TIMEOUT,
+        follow_redirects=False,
+        transport=httpx.HTTPTransport(retries=_TRANSPORT_RETRIES),
+    )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def backend_ready() -> None:
+    """Attend que l'instance deployee reponde de facon stable avant les tests."""
+    deadline = time.monotonic() + _READY_TIMEOUT_S
+    streak = 0
+    derniere = "aucune tentative"
+    with _make_client() as c:
+        while time.monotonic() < deadline:
+            try:
+                r = c.get(f"{API}/health")
+                if r.status_code == 200:
+                    streak += 1
+                    if streak >= _READY_CONSECUTIVE:
+                        return
+                else:
+                    streak = 0
+                    derniere = f"HTTP {r.status_code}"
+            except httpx.HTTPError as exc:
+                streak = 0
+                derniere = f"{type(exc).__name__}: {exc}"
+            time.sleep(_READY_INTERVAL_S)
+    pytest.fail(
+        f"Backend non stabilise apres {_READY_TIMEOUT_S:.0f}s "
+        f"({_READY_CONSECUTIVE} reponses 200 consecutives attendues sur {API}/health). "
+        f"Derniere observation : {derniere}"
+    )
+
+
 @pytest.fixture()
 def client() -> httpx.Client:
     """Client anonyme (cookies actives pour le refresh_token httpOnly)."""
-    with httpx.Client(base_url=BASE_URL, timeout=TIMEOUT, follow_redirects=False) as c:
+    with _make_client() as c:
         yield c
 
 
@@ -66,7 +118,7 @@ def _login(c: httpx.Client) -> str:
 
 
 @pytest.fixture(scope="session")
-def canary() -> dict:
+def canary(backend_ready: None) -> dict:
     """Session canari : client httpx authentifie (Bearer + cookie refresh).
 
     Fait TABLE RASE au demarrage (coffre + url-scans) pour ne jamais accumuler
@@ -74,7 +126,7 @@ def canary() -> dict:
     """
     if not (CANARY_EMAIL and CANARY_PASSWORD):
         pytest.skip("compte canari non configure")
-    c = httpx.Client(base_url=BASE_URL, timeout=TIMEOUT, follow_redirects=False)
+    c = _make_client()
     token = _login(c)
     c.headers["Authorization"] = f"Bearer {token}"
     _wipe_canary(c)

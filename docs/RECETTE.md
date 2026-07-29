@@ -67,6 +67,26 @@ Recréer / réinitialiser le mot de passe du canari :
 Job `recette`, `needs: [deploy-backend, deploy-frontend]` → tourne une fois le
 service ECS **stable sur la nouvelle révision**. En cas d'échec :
 
+> **Garde-fous anti-faux-positif** (ajoutés le 2026-07-29 après un rollback
+> déclenché pour rien). `aws ecs wait services-stable` rend la main **avant** que
+> l'ancienne cible ait fini de se désenregistrer de l'ALB, et le service ne tourne
+> qu'avec **une seule tâche** : une requête peut donc être coupée en plein vol
+> (`ConnectError: [Errno 104] Connection reset by peer`). Deux protections dans
+> `recette/conftest.py` :
+> - une **porte de disponibilité** (fixture `backend_ready`, autouse session) qui
+>   exige 3 réponses 200 **consécutives** sur `/api/v1/health` avant de lancer la
+>   suite, et échoue avec un diagnostic explicite au bout de 90 s ;
+> - `httpx.HTTPTransport(retries=3)` sur tous les clients, qui ne rejoue **que**
+>   les échecs d'établissement de connexion — une réponse HTTP (401, 500…) reste
+>   un échec franc, aucune régression fonctionnelle n'est masquée.
+>
+> Si un `ConnectError` survient malgré tout, vérifier avant de conclure à une
+> régression : erreur transport (et non assertion HTTP), horodatages de démarrage
+> de tâche dans `/ecs/cybervault-backend` encadrant l'échec, aucune ligne
+> ERROR/WARNING applicative. Le cas échéant → `gh run rerun <id> --failed`.
+> ⚠️ Le rollback laisse le service sur la task definition précédente : si le
+> déploiement touchait le backend, **relancer la recette ne le redéploie pas**.
+
 ```
 recette KO  ->  aws ecs update-service --task-definition <prev_task_def>
             ->  wait services-stable  ->  run rouge + alerte
