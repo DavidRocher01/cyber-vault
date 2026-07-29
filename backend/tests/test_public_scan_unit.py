@@ -17,6 +17,7 @@ from app.schemas.public_scan import PublicScanOut
 from app.services import public_scan_service
 from app.services.public_scan_service import (
     MAX_DOMAINS_PER_EMAIL,
+    MAX_DOMAINS_PER_IP,
     AlreadyUnlockedError,
     QuotaExceededError,
     ScanNotReadyError,
@@ -408,3 +409,38 @@ class TestUnlockPublicScan:
         assert out is not None
         assert newly is True  # nouveau token → transition (domaine déjà connu, quota non consommé)
         assert out.domain == "site0.example.com"
+
+    @pytest.mark.asyncio
+    async def test_ip_cap_blocks_email_rotation(self, db_session):
+        """Audit #9 : varier l'email ne contourne pas le plafond — corrélation par IP.
+
+        Une même IP (hachée) qui débloque MAX_DOMAINS_PER_IP domaines distincts en
+        changeant d'adresse à chaque fois est bloquée au domaine suivant."""
+        ip = "same-ip-hash"
+        for i in range(MAX_DOMAINS_PER_IP):
+            scan = await _seed_scan(db_session, target_url=f"https://ipsite{i}.example.com")
+            await public_scan_service.unlock_public_scan(
+                db_session, token=scan.session_token, email=f"rot{i}@example.com", ip_hash=ip
+            )
+        # Domaine supplémentaire, encore une nouvelle adresse → bloqué par le plafond IP.
+        extra = await _seed_scan(db_session, target_url="https://ip-one-too-many.example.com")
+        with pytest.raises(QuotaExceededError):
+            await public_scan_service.unlock_public_scan(
+                db_session, token=extra.session_token, email="rotX@example.com", ip_hash=ip
+            )
+
+    @pytest.mark.asyncio
+    async def test_ip_cap_not_triggered_by_different_ips(self, db_session):
+        """Des IP différentes ne se cumulent pas : chaque IP a son propre plafond.
+
+        Email distinct ET IP distincte à chaque itération → ni le plafond par email
+        ni le plafond par IP ne s'appliquent (1 seul domaine sur chaque dimension)."""
+        for i in range(MAX_DOMAINS_PER_IP + 2):
+            scan = await _seed_scan(db_session, target_url=f"https://distinctip{i}.example.com")
+            out, newly = await public_scan_service.unlock_public_scan(
+                db_session,
+                token=scan.session_token,
+                email=f"distinct{i}@example.com",
+                ip_hash=f"ip-{i}",
+            )
+            assert newly is True  # jamais bloqué : 1 seul domaine par IP

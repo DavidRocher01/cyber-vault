@@ -64,5 +64,6 @@ from app.models.site import Site  # noqa: F401
 from app.models.subscription import Subscription  # noqa: F401
 from app.models.training_progress import TrainingProgress  # noqa: F401
 from app.models.url_scan import UrlScan  # noqa: F401
+from app.models.url_scan_usage import UrlScanUsage  # noqa: F401
 from app.models.user import User  # noqa: F401
 from app.models.vault_item import VaultItem  # noqa: F401

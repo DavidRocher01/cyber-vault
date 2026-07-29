@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.pagination import paginate
 from app.models.url_scan import UrlScan
+from app.models.url_scan_usage import UrlScanUsage
 from app.models.user import User
 
 # ---------------------------------------------------------------------------
@@ -539,7 +540,12 @@ async def run_url_scan(url_scan_id: int, db: AsyncSession) -> None:
 
 
 async def create_url_scan(db: AsyncSession, user_id: int, url: str) -> UrlScan:
-    """Cree un scan URL en statut 'pending' et le persiste."""
+    """Cree un scan URL en statut 'pending' et le persiste.
+
+    Enregistre aussi une ligne dans le compteur monotone `url_scan_usages` (jamais
+    supprimée par un delete de scan) : c'est elle qui sert au quota freemium, pour que
+    supprimer puis rescanner ne remette pas le quota à zéro (audit #6).
+    """
     url_scan = UrlScan(
         user_id=user_id,
         url=url,
@@ -547,17 +553,23 @@ async def create_url_scan(db: AsyncSession, user_id: int, url: str) -> UrlScan:
         created_at=datetime.now(UTC),
     )
     db.add(url_scan)
+    db.add(UrlScanUsage(user_id=user_id, created_at=datetime.now(UTC)))
     await db.commit()
     await db.refresh(url_scan)
     return url_scan
 
 
 async def count_url_scans_since(db: AsyncSession, user_id: int, since: datetime) -> int:
-    """Nombre de scans URL créés par l'utilisateur depuis `since` (fenêtre de quota)."""
+    """Consommation de scans URL de l'utilisateur depuis `since` (fenêtre de quota).
+
+    Compte les lignes du compteur MONOTONE `url_scan_usages` — pas les `url_scans`
+    encore présents : supprimer un scan (droit à l'oubli) ne doit pas rendre du quota
+    et permettre un rescan illimité (audit 2026-07-27, finding #6).
+    """
     result = await db.execute(
         select(func.count())
-        .select_from(UrlScan)
-        .where(UrlScan.user_id == user_id, UrlScan.created_at >= since)
+        .select_from(UrlScanUsage)
+        .where(UrlScanUsage.user_id == user_id, UrlScanUsage.created_at >= since)
     )
     return int(result.scalar_one())
 

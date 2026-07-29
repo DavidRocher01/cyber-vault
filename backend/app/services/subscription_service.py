@@ -1,11 +1,38 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import ColumnElement, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.plan import Plan
 from app.models.subscription import Subscription
+
+# Marge de grâce sur current_period_end : un abonnement dont la période est expirée
+# depuis moins de SUBSCRIPTION_GRACE_DAYS reste considéré actif. Absorbe le lag normal
+# entre la fin de période Stripe et l'événement webhook de renouvellement, sans jamais
+# offrir un accès payant prolongé au-delà de la marge (audit 2026-07-27, finding #11).
+SUBSCRIPTION_GRACE_DAYS = 3
+
+
+def _active_conditions(user_id: int) -> list[ColumnElement[bool]]:
+    """Conditions d'un abonnement EFFECTIVEMENT actif pour `user_id`.
+
+    Statut 'active' ET période non expirée au-delà de la marge de grâce. Un
+    current_period_end NULL est traité comme « pas d'expiration » (plans manuels /
+    Gratuit / override admin) → l'abonnement reste actif. Sans le filtre de date, un
+    abonnement annulé mais laissé au statut 'active' (webhook manqué) continuerait
+    d'ouvrir l'accès payant indéfiniment (finding #11).
+    """
+    cutoff = datetime.now(UTC) - timedelta(days=SUBSCRIPTION_GRACE_DAYS)
+    return [
+        Subscription.user_id == user_id,
+        Subscription.status == "active",
+        or_(
+            Subscription.current_period_end.is_(None),
+            Subscription.current_period_end >= cutoff,
+        ),
+    ]
+
 
 # Sentinelle "sites illimités" : un plan dont max_sites est < 0 (ex. Gratuit) n'impose
 # aucune limite de nombre de sites. Repris tel quel par get_effective_max_sites afin que
@@ -42,7 +69,7 @@ async def get_active_plan(db: AsyncSession, user_id: int) -> Plan | None:
     result = await db.execute(
         select(Plan)
         .join(Subscription, Subscription.plan_id == Plan.id)
-        .where(Subscription.user_id == user_id, Subscription.status == "active")
+        .where(*_active_conditions(user_id))
     )
     plan = result.scalar_one_or_none()
     if plan is None:
@@ -67,7 +94,7 @@ async def get_effective_max_sites(db: AsyncSession, user_id: int) -> int:
     result = await db.execute(
         select(Subscription)
         .options(selectinload(Subscription.plan))
-        .where(Subscription.user_id == user_id, Subscription.status == "active")
+        .where(*_active_conditions(user_id))
     )
     sub = result.scalar_one_or_none()
     if not sub:
@@ -85,16 +112,14 @@ async def get_active_subscription_with_plan(db: AsyncSession, user_id: int) -> S
     result = await db.execute(
         select(Subscription)
         .options(selectinload(Subscription.plan))
-        .where(Subscription.user_id == user_id, Subscription.status == "active")
+        .where(*_active_conditions(user_id))
     )
     return result.scalar_one_or_none()
 
 
 async def get_active_subscription(db: AsyncSession, user_id: int) -> Subscription | None:
     """Abonnement actif de l'utilisateur, sinon None."""
-    result = await db.execute(
-        select(Subscription).where(Subscription.user_id == user_id, Subscription.status == "active")
-    )
+    result = await db.execute(select(Subscription).where(*_active_conditions(user_id)))
     return result.scalar_one_or_none()
 
 

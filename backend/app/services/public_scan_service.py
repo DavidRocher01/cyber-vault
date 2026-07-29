@@ -31,6 +31,14 @@ sys.path.insert(0, str(SCANNER_DIR))
 # renvoie vers la création de compte.
 MAX_DOMAINS_PER_EMAIL = 3
 
+# Plafond de domaines distincts débloquables depuis une même IP (hachée), tous emails
+# confondus. Le plafond par email (3) se contourne en changeant d'adresse à chaque fois ;
+# ce garde corrèle sur l'IP pour borner l'abus par rotation d'email (audit 2026-07-27,
+# finding #9). Volontairement plus large que le plafond par email (NAT/bureaux partagés
+# derrière une IP unique) : atteindre ce plafond ne bloque pas, il renvoie vers la
+# création de compte, comme le plafond par email.
+MAX_DOMAINS_PER_IP = 10
+
 
 class ScanNotReadyError(Exception):
     """Le scan n'est pas encore terminé : déblocage impossible."""
@@ -231,6 +239,20 @@ async def _unlocked_domains_for_email(db: AsyncSession, email: str) -> set[str]:
     return {d for (d,) in result.all() if d}
 
 
+async def _unlocked_domains_for_ip(db: AsyncSession, ip_hash: str) -> set[str]:
+    """Domaines distincts déjà débloqués depuis cette IP (hachée), tous emails confondus."""
+    result = await db.execute(
+        select(PublicScan.domain)
+        .where(
+            PublicScan.ip_hash == ip_hash,
+            PublicScan.email_consent_at.is_not(None),
+            PublicScan.domain.is_not(None),
+        )
+        .distinct()
+    )
+    return {d for (d,) in result.all() if d}
+
+
 async def unlock_public_scan(
     db: AsyncSession, *, token: str, email: str, ip_hash: str
 ) -> tuple[PublicScan | None, bool]:
@@ -270,6 +292,13 @@ async def unlock_public_scan(
 
     unlocked_domains = await _unlocked_domains_for_email(db, email)
     if domain not in unlocked_domains and len(unlocked_domains) >= MAX_DOMAINS_PER_EMAIL:
+        raise QuotaExceededError
+
+    # Corrélation par IP (tous emails confondus) : borne l'abus qui contourne le plafond
+    # par email en variant l'adresse à chaque déblocage (finding #9). Un domaine déjà
+    # débloqué depuis cette IP ne recompte pas (idempotent).
+    ip_domains = await _unlocked_domains_for_ip(db, ip_hash)
+    if domain not in ip_domains and len(ip_domains) >= MAX_DOMAINS_PER_IP:
         raise QuotaExceededError
 
     scan.email = email
