@@ -9,6 +9,46 @@ qui n'est **pas** versionné (secrets `.env`, base locale, outillage).
 
 ---
 
+## 0. Check-list « quoi apporter » (ce qui ne suit pas git)
+
+`git clone` ramène tout le code (y compris `cyber-scanner/`). Hors git, seules
+**3 catégories** comptent — tout le reste se régénère.
+
+### A. Secrets — apporter par canal sûr OU régénérer
+
+- [ ] `backend/.env` : le plus simple = **ne rien transférer** et lancer
+  `make bootstrap-env` sur le nouveau poste (cf. §3). Ne le copier (USB /
+  gestionnaire de mots de passe) **que** pour garder tes clés *test* tierces
+  (Stripe test, Resend test, HIBP). ⚠️ **Jamais** par email, chat ou git.
+
+### B. Ré-authentifier les identités machine (ne suivent jamais git) — cf. §10
+
+- [ ] **AWS CLI** (`aws configure` / `aws sso login`, région `eu-west-3`) —
+  indispensable pour le travail prod (deploy checks, ECS run-task, Secrets
+  Manager, recette).
+- [ ] **GitHub CLI** (`gh auth login`) — PR, merge, relance CI.
+- [ ] **Identité git** (`git config --global user.name` / `user.email`).
+
+### C. Outils absents de git à installer — cf. §1 et §9
+
+- [ ] Docker Desktop, Node 20, Python 3.12+, PostgreSQL 17, `pre-commit`.
+- [ ] **`nmap`** — requis pour `make prod-check` (scan iso-prod). Installe-le si
+  tu veux les scans locaux (souvent absent par défaut).
+- [ ] `psql` (client Postgres CLI) — optionnel.
+- [ ] **`cyber-scanner/.venv`** à recréer (venv séparé du backend). ⚠️ Veille à
+  ce que `python` par défaut pointe sur `backend/.venv`, pas sur celui du
+  cyber-scanner.
+
+### D. Régénérable — RIEN à transférer
+
+`node_modules`, `.venv`, `dist`, `.angular`, caches (→ `make install`) ; **base
+de dev locale** (→ `alembic upgrade head` + `python scripts/seed_test_db.py`) ;
+PDFs de preview, `htmlcov/`, `uploads/`, `test-results/`, `docs/architecture.html`
+(jetables). Les comptes de test **locaux** sont perdus mais régénérables ; le
+compte démo **prod** vit en prod, pas en local.
+
+---
+
 ## 1. Prérequis à installer
 
 | Outil | Version | Rôle |
