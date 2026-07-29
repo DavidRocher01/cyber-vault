@@ -294,6 +294,40 @@ async def test_http_unlock_reveals_full_report(http_client, db_session):
 
 
 @pytest.mark.asyncio
+async def test_http_unlock_freezes_email_second_address_409(http_client, db_session):
+    """Anti-mailbombing : re-déverrouiller un token avec une AUTRE adresse → 409,
+    et aucun second e-mail n'est envoyé."""
+    scan = await _seed_done_scan(db_session)
+    with patch("app.services.email_service.send_public_scan_report") as send_mock:
+        first = await http_client.post(
+            f"/api/v1/public-scans/{scan.session_token}/unlock",
+            json={"email": "owner@example.com", "consent": True},
+        )
+        assert first.status_code == 200
+        second = await http_client.post(
+            f"/api/v1/public-scans/{scan.session_token}/unlock",
+            json={"email": "victim@example.com", "consent": True},
+        )
+    assert second.status_code == 409
+    # Un seul envoi (le déblocage initial), pas de mail vers la victime.
+    assert send_mock.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_http_unlock_same_email_twice_sends_once(http_client, db_session):
+    """Ré-consulter avec la MÊME adresse est idempotent : pas de second envoi (anti-spam)."""
+    scan = await _seed_done_scan(db_session)
+    with patch("app.services.email_service.send_public_scan_report") as send_mock:
+        for _ in range(3):
+            r = await http_client.post(
+                f"/api/v1/public-scans/{scan.session_token}/unlock",
+                json={"email": "lead@example.com", "consent": True},
+            )
+            assert r.status_code == 200
+    assert send_mock.call_count == 1
+
+
+@pytest.mark.asyncio
 async def test_http_unlock_requires_consent(http_client, db_session):
     scan = await _seed_done_scan(db_session)
     r = await http_client.post(

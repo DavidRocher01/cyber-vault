@@ -1,5 +1,7 @@
 """Emails d'alerte : scan URL, campagne phishing, contact, réservations."""
 
+from html import escape as _esc
+
 from loguru import logger
 
 from app.core.config import settings
@@ -171,6 +173,19 @@ def send_contact_email(
     }
     need_label = need_labels.get(need_type, need_type)
 
+    # Échappement HTML de tous les champs fournis par un visiteur anonyme (formulaire
+    # de contact public) avant interpolation dans les e-mails HTML : sans cela, un
+    # message contenant <a>/<img>/... est rendu tel quel dans la boîte de l'admin
+    # (spear-phishing + pixel de tracking aux couleurs de la plateforme). Le
+    # plain-text reste brut (aucun rendu HTML). need_label vient d'un dict fermé mais
+    # est échappé par défense en profondeur (fallback = need_type validé côté schéma).
+    name_h = _esc(name)
+    email_h = _esc(email)
+    phone_h = _esc(phone) if phone else "—"
+    site_url_h = _esc(site_url) if site_url else "—"
+    message_h = _esc(message)
+    need_label_h = _esc(need_label)
+
     subject = f"[Rocher Cybersécurité Contact] {need_label} — {name} <{email}>"
 
     plain_owner = f"""Nouvelle demande de contact via Rocher Cybersécurité
@@ -193,32 +208,32 @@ Répondre à : {email}
 <table width="600" cellpadding="0" cellspacing="0" style="background:#1e293b;border-radius:12px;border:1px solid #334155;">
 <tr><td style="background:linear-gradient(135deg,#0e7490,#0369a1);padding:28px 40px;border-radius:12px 12px 0 0;">
 <h1 style="margin:0;color:#fff;font-size:20px;">Nouvelle demande de contact</h1>
-<p style="margin:6px 0 0;color:#bae6fd;font-size:13px;">{need_label}</p>
+<p style="margin:6px 0 0;color:#bae6fd;font-size:13px;">{need_label_h}</p>
 </td></tr>
 <tr><td style="padding:32px 40px;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;border-radius:8px;padding:20px;margin-bottom:24px;">
 <tr><td style="padding:8px 0;border-bottom:1px solid #1e293b;">
   <p style="margin:0;color:#64748b;font-size:11px;font-weight:700;letter-spacing:1px;">NOM</p>
-  <p style="margin:4px 0 0;color:#f8fafc;font-size:15px;">{name}</p>
+  <p style="margin:4px 0 0;color:#f8fafc;font-size:15px;">{name_h}</p>
 </td></tr>
 <tr><td style="padding:8px 0;border-bottom:1px solid #1e293b;">
   <p style="margin:0;color:#64748b;font-size:11px;font-weight:700;letter-spacing:1px;">EMAIL</p>
-  <p style="margin:4px 0 0;color:#22d3ee;font-size:15px;"><a href="mailto:{email}" style="color:#22d3ee;">{email}</a></p>
+  <p style="margin:4px 0 0;color:#22d3ee;font-size:15px;"><a href="mailto:{email_h}" style="color:#22d3ee;">{email_h}</a></p>
 </td></tr>
 <tr><td style="padding:8px 0;border-bottom:1px solid #1e293b;">
   <p style="margin:0;color:#64748b;font-size:11px;font-weight:700;letter-spacing:1px;">TÉLÉPHONE</p>
-  <p style="margin:4px 0 0;color:#f8fafc;font-size:15px;">{phone or "—"}</p>
+  <p style="margin:4px 0 0;color:#f8fafc;font-size:15px;">{phone_h}</p>
 </td></tr>
 <tr><td style="padding:8px 0;">
   <p style="margin:0;color:#64748b;font-size:11px;font-weight:700;letter-spacing:1px;">SITE / URL</p>
-  <p style="margin:4px 0 0;color:#f8fafc;font-size:15px;">{site_url or "—"}</p>
+  <p style="margin:4px 0 0;color:#f8fafc;font-size:15px;">{site_url_h}</p>
 </td></tr>
 </table>
 <p style="color:#64748b;font-size:11px;font-weight:700;letter-spacing:1px;margin:0 0 8px;">MESSAGE</p>
-<div style="background:#0f172a;border-radius:8px;padding:16px;color:#cbd5e1;font-size:14px;line-height:1.7;white-space:pre-wrap;">{message}</div>
+<div style="background:#0f172a;border-radius:8px;padding:16px;color:#cbd5e1;font-size:14px;line-height:1.7;white-space:pre-wrap;">{message_h}</div>
 <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;"><tr><td>
-<a href="mailto:{email}" style="display:inline-block;background:#0e7490;color:#fff;text-decoration:none;
-padding:12px 28px;border-radius:8px;font-weight:700;font-size:14px;">Répondre à {name} →</a>
+<a href="mailto:{email_h}" style="display:inline-block;background:#0e7490;color:#fff;text-decoration:none;
+padding:12px 28px;border-radius:8px;font-weight:700;font-size:14px;">Répondre à {name_h} →</a>
 </td></tr></table>
 </td></tr>
 <tr><td style="padding:20px 40px;border-top:1px solid #334155;text-align:center;">
@@ -250,10 +265,10 @@ contact@rochercybersecurite.com
 </td></tr>
 <tr><td style="padding:32px 40px;">
 <p style="color:#94a3b8;font-size:15px;line-height:1.7;margin:0 0 20px;">
-Bonjour <strong style="color:#f8fafc;">{name}</strong>,
+Bonjour <strong style="color:#f8fafc;">{name_h}</strong>,
 </p>
 <p style="color:#94a3b8;font-size:15px;line-height:1.7;margin:0 0 20px;">
-Votre demande concernant <strong style="color:#22d3ee;">{need_label}</strong> a bien été reçue.
+Votre demande concernant <strong style="color:#22d3ee;">{need_label_h}</strong> a bien été reçue.
 Je vous répondrai sous <strong style="color:#f8fafc;">4 heures</strong> (jours ouvrés, 9h–18h).
 </p>
 <p style="color:#475569;font-size:13px;line-height:1.7;margin:0;">
