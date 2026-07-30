@@ -152,7 +152,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000   # ou : make dev-backe
 ```
 
 Tests : `cd backend && pytest` (la suite complète ~11-12 min, seuil couverture
-≥82 %). Rapide : `make test-backend-fast`.
+≥90 %). Rapide : `make test-backend-fast`.
 
 Note : `test_scans_unit.py::test_remediation_import_error_raises_404` échoue en
 local (cyber-scanner absent du PATH) — normal, il passe en CI.

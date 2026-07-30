@@ -115,7 +115,7 @@ frontend/src/app/
 
 - Framework : **pytest** avec `asyncio_mode = auto`
 - Isolation : fixture `setup_db` (autouse) — `TRUNCATE … RESTART IDENTITY CASCADE` avant chaque test
-- Seuil de couverture : **82%** minimum (`--cov-fail-under=82` dans `pytest.ini`)
+- Seuil de couverture : **90%** minimum (`--cov-fail-under=90` dans `pytest.ini`) — couverture réelle ~94%
 - Relancer uniquement les KO : `gh run rerun <id> --failed`
 - Le test `test_scans_unit.py::test_remediation_import_error_raises_404` échoue en local (cyber-scanner absent du PATH) — c'est normal, il passe en CI.
 
