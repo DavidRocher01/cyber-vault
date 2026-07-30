@@ -264,6 +264,29 @@
                     <p class="text-sm font-medium text-gray-100">{{ item.label }}</p>
                     <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">{{ item.desc }}</p>
 
+                    <!-- Mesure detenue par la plateforme. Elle NE remplit PAS
+                         le questionnaire : l'utilisateur declare, on mesure. Une
+                         auto-evaluation pre-remplie n'est plus une declaration
+                         et perdrait sa valeur devant un auditeur. -->
+                    @if (preuve(item.id); as p) {
+                      <div
+                        class="mt-2 inline-flex items-center gap-2 rounded-lg border border-cyan-800/40 bg-cyan-900/10 px-2.5 py-1.5"
+                      >
+                        <mat-icon class="text-cyan-400 !text-[0.9rem] !w-[0.9rem] !h-[0.9rem]"
+                          >insights</mat-icon
+                        >
+                        <span class="text-xs text-cyan-200">
+                          Mesuré sur votre plateforme : {{ p.termines }}/{{
+                            p.apprenants
+                          }}
+                          apprenant{{ p.apprenants > 1 ? 's' : '' }} ont terminé un parcours ({{
+                            p.pct
+                          }}
+                          %)
+                        </span>
+                      </div>
+                    }
+
                     <!-- Remediation : n'apparait que sur un ecart DECLARE, et
                          seulement si un produit comble reellement ce manque. Le
                          diagnostic pointait le manque sans jamais dire par quoi

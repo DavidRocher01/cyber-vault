@@ -30,6 +30,19 @@ export interface Nis2Remediation {
   route: string;
 }
 
+/** Mesure objective detenue par la plateforme pour un item du referentiel.
+ *
+ * Elle NE remplit PAS le questionnaire : l'utilisateur declare, la plateforme
+ * mesure. Une auto-evaluation pre-remplie n'est plus une declaration et perd sa
+ * valeur devant un auditeur.
+ */
+export interface Nis2Preuve {
+  organisations: number;
+  apprenants: number;
+  termines: number;
+  pct: number;
+}
+
 export interface Nis2Item {
   id: string;
   label: string;
@@ -78,6 +91,7 @@ export class Nis2Component implements OnInit {
   readonly showUpgrade = computed(() => this.subLoaded() && !this.canExport());
 
   categories = signal<Nis2Category[]>([]);
+  preuves = signal<Record<string, Nis2Preuve>>({});
   items = signal<Record<string, Nis2Status>>({});
   score = signal(0);
   updatedAt = signal<string | null>(null);
@@ -101,6 +115,7 @@ export class Nis2Component implements OnInit {
         // generiques dont les valeurs sont garanties valides pour ces types.
         this.categories.set((data.categories ?? []) as Nis2Category[]);
         this.items.set((data.items ?? {}) as Record<string, Nis2Status>);
+        this.preuves.set((data.preuves ?? {}) as Record<string, Nis2Preuve>);
         this.score.set(data.score ?? 0);
         this.updatedAt.set(data.updated_at ?? null);
         this.loading.set(false);
@@ -116,11 +131,16 @@ export class Nis2Component implements OnInit {
     return this.items()[itemId] ?? 'non_compliant';
   }
 
-  /** Vrai si l'item a ete EXPLICITEMENT renseigne comme un ecart.
+  /** Mesure détenue par la plateforme pour cet item, s'il y en a une. */
+  preuve(itemId: string): Nis2Preuve | null {
+    return this.preuves()[itemId] ?? null;
+  }
+
+  /** Vrai si l'item a été EXPLICITEMENT renseigné comme un écart.
    *
-   * getStatus() retourne 'non_compliant' par defaut pour les items non
-   * renseignes : s'en servir afficherait la remediation sur une evaluation
-   * vierge, avant que l'utilisateur ait rien declare. On exige donc une reponse
+   * getStatus() retourne 'non_compliant' par défaut pour les items non
+   * renseignés : s'en servir afficherait la remédiation sur une évaluation
+   * vierge, avant que l'utilisateur ait rien déclaré. On exige donc une réponse
    * explicite.
    */
   aUnEcartDeclare(itemId: string): boolean {

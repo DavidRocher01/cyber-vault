@@ -26,6 +26,8 @@ function make(): Nis2Component {
   (c as any).exporting = signal(false);
   (c as any).exportingAuditor = signal(false);
   (c as any).score = signal(0);
+  // Mesures detenues par la plateforme (preuve de formation) — vide par defaut.
+  (c as any).preuves = signal({});
   (c as any).updatedAt = signal<string | null>(null);
 
   // Gating export payant

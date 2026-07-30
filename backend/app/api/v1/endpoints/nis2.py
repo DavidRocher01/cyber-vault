@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_conformity_export
 from app.models.user import User
-from app.services import brand_service, nis2_service
+from app.services import awareness_nis2_report, brand_service, nis2_service
 from app.services.assessment_service import compute_assessment_score
 
 router = APIRouter(prefix="/nis2", tags=["nis2"])
@@ -315,6 +315,11 @@ class Nis2Out(BaseModel):
     score: int
     updated_at: datetime | None
     categories: list  # static definition returned for convenience
+    # Mesures objectives detenues par la plateforme pour certains items.
+    # Ne repond PAS a la place de l'utilisateur : une auto-evaluation remplie
+    # automatiquement n'est plus une declaration et perd sa valeur devant un
+    # auditeur. On fournit la mesure, il declare.
+    preuves: dict = {}
 
 
 # ---------------------------------------------------------------------------
@@ -331,11 +336,17 @@ async def get_assessment(
     items = json.loads(assessment.items_json) if assessment else {}
     score = assessment.score if assessment else 0
     updated_at = assessment.updated_at if assessment else None
+    preuves: dict = {}
+    formation = await awareness_nis2_report.preuve_formation(db, current_user.id)
+    if formation:
+        preuves["awareness"] = formation
+
     return {
         "items": items,
         "score": score,
         "updated_at": updated_at,
         "categories": NIS2_CATEGORIES,
+        "preuves": preuves,
     }
 
 
@@ -358,11 +369,20 @@ async def save_assessment(
     assessment = await nis2_service.upsert_assessment(
         db, current_user.id, items=payload.items, score=score, now=now
     )
+
+    # Meme calcul que sur le GET : sans cela, les mesures disparaitraient de
+    # l'ecran juste apres un enregistrement.
+    preuves: dict = {}
+    formation = await awareness_nis2_report.preuve_formation(db, current_user.id)
+    if formation:
+        preuves["awareness"] = formation
+
     return {
         "items": payload.items,
         "score": score,
         "updated_at": assessment.updated_at,
         "categories": NIS2_CATEGORIES,
+        "preuves": preuves,
     }
 
 
