@@ -258,10 +258,10 @@ export class AwarenessPricingComponent {
       icon: 'menu_book',
       title: 'Formation',
       items: [
-        '17 modules NIS2 Article 21',
+        '28 modules NIS2 Article 21',
         'Quiz adaptatifs (3 tentatives)',
         'Progression séquentielle',
-        'Temps de lecture ~72 min',
+        'Parcours complet ~143 min',
         'Contenu mis à jour régulièrement',
       ],
     },

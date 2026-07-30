@@ -54,7 +54,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
                 <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem] text-cyan-400"
                   >school</mat-icon
                 >
-                17 modules NIS2 Art. 21
+                28 modules NIS2 Art. 21
               </span>
               <span
                 class="inline-flex items-center gap-1.5 text-xs text-gray-400 bg-gray-800/60 border border-gray-700/60 px-2.5 py-1 rounded-full"

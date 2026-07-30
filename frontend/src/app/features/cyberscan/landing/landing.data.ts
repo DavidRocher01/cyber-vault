@@ -47,7 +47,7 @@ export const FEATURES = [
   {
     icon: 'school',
     title: 'Sensibilisation NIS2',
-    desc: '17 modules e-learning NIS2 Article 21 pour vos équipes — quiz, gamification, attestations vérifiables et tableau de bord de conformité.',
+    desc: '28 modules e-learning NIS2 Article 21 pour vos équipes — quiz, gamification, attestations vérifiables et tableau de bord de conformité.',
   },
 ];
 
