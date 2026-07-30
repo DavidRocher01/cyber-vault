@@ -1,3 +1,5 @@
+import { NB_MODULES } from '../../../shared/awareness-catalog.generated';
+
 export const FEATURES = [
   {
     icon: 'security',
@@ -47,7 +49,7 @@ export const FEATURES = [
   {
     icon: 'school',
     title: 'Sensibilisation NIS2',
-    desc: '28 modules e-learning NIS2 Article 21 pour vos équipes — quiz, gamification, attestations vérifiables et tableau de bord de conformité.',
+    desc: `${NB_MODULES} modules e-learning NIS2 Article 21 pour vos équipes — quiz, gamification, attestations vérifiables et tableau de bord de conformité.`,
   },
 ];
 

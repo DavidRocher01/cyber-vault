@@ -4,6 +4,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import {
+  NB_MODULES,
+  DUREE_TOTALE_MINUTES,
+  PARCOURS,
+} from '../../../shared/awareness-catalog.generated';
 
 interface AwarenessPlan {
   id: string;
@@ -27,7 +32,7 @@ const PLANS: AwarenessPlan[] = [
     featured: false,
     features: [
       "Jusqu'à 10 learners",
-      '28 modules NIS2 inclus',
+      `${NB_MODULES} modules NIS2 inclus`,
       'Quiz avec 3 tentatives',
       'Attestations PDF vérifiables',
       'Dashboard de complétion',
@@ -110,8 +115,8 @@ const PLANS: AwarenessPlan[] = [
             Formez vos équipes à la cybersécurité
           </h1>
           <p class="text-gray-400 text-lg max-w-2xl mx-auto">
-            28 modules e-learning NIS2 Article 21, attestations vérifiables et tableau de bord de
-            conformité. Simple, certifiant, prêt en 48h.
+            {{ nbModules }} modules e-learning NIS2 Article 21, attestations vérifiables et tableau
+            de bord de conformité. Simple, certifiant, prêt en 48h.
           </p>
           <div
             class="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-full border border-amber-600/30 bg-amber-500/5 text-amber-400 text-sm"
@@ -252,16 +257,19 @@ const PLANS: AwarenessPlan[] = [
 })
 export class AwarenessPricingComponent {
   readonly plans = PLANS;
+  /** Catalogue derive de content/fr/ — jamais recopie a la main. */
+  readonly parcours = PARCOURS;
+  readonly nbModules = NB_MODULES;
 
   readonly featureGroups = [
     {
       icon: 'menu_book',
       title: 'Formation',
       items: [
-        '28 modules NIS2 Article 21',
+        `${NB_MODULES} modules NIS2 Article 21`,
         'Quiz adaptatifs (3 tentatives)',
         'Progression séquentielle',
-        'Parcours complet ~143 min',
+        `Parcours complet ~${DUREE_TOTALE_MINUTES} min`,
         'Contenu mis à jour régulièrement',
       ],
     },

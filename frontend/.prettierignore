@@ -1,0 +1,4 @@
+
+# Fichier genere par backend/scripts/generate_awareness_catalog.py.
+# Le formater le desynchroniserait du generateur, et la CI (--check) echouerait.
+src/app/shared/awareness-catalog.generated.ts

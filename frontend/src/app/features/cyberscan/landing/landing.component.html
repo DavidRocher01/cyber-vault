@@ -937,8 +937,8 @@
         </span>
         <h2 class="text-3xl font-bold mb-3">Formez vos équipes à la cybersécurité</h2>
         <p class="text-gray-400 max-w-2xl mx-auto text-sm leading-relaxed">
-          28 modules e-learning NIS2 Article 21, attestations PDF vérifiables et tableau de bord de
-          conformité. Simple, certifiant, prêt en 48h.
+          {{ nbModules }} modules e-learning NIS2 Article 21, attestations PDF vérifiables et
+          tableau de bord de conformité. Simple, certifiant, prêt en 48h.
         </p>
       </div>
 
@@ -953,9 +953,9 @@
             >
             <h3 class="font-bold text-sm">Formation</h3>
             <ul class="flex flex-col gap-1.5 text-xs text-gray-400">
-              <li>28 modules NIS2 Art. 21</li>
+              <li>{{ nbModules }} modules NIS2 Art. 21</li>
               <li>Quiz adaptatifs</li>
-              <li>4 parcours par profil</li>
+              <li>{{ parcours.length }} parcours par profil</li>
               <li>Magic-link sans MDP</li>
             </ul>
           </div>

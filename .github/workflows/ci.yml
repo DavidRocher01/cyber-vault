@@ -94,6 +94,14 @@ jobs:
         run: python scripts/validate_awareness_content.py
         working-directory: backend
 
+      - name: Catalogue de sensibilisation à jour
+        # Le frontend importe des chiffres derives de content/fr/ (nombre de
+        # modules, durees, parcours). Sans ce garde-fou, ajouter un module sans
+        # regenerer laisse le site annoncer l'ancien catalogue — c'est ce qui a
+        # produit « 17 modules » affiches pour 28 reels.
+        run: python scripts/generate_awareness_catalog.py --check
+        working-directory: backend
+
       - name: Alembic migrations (up + down + up)
         env:
           SECRET_KEY: ci-test-secret-key

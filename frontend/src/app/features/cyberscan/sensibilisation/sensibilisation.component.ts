@@ -17,6 +17,7 @@ import {
   CompleteResult,
 } from '../services/training.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { NB_MODULES } from '../../../shared/awareness-catalog.generated';
 
 type QuizState = 'idle' | 'answered';
 
@@ -48,6 +49,9 @@ interface ModuleUiState {
   styleUrl: './sensibilisation.component.css',
 })
 export class SensibilisationComponent implements OnInit {
+  /** Catalogue dérivé de content/fr/ — jamais recopié à la main. */
+  readonly nbModules = NB_MODULES;
+
   private training = inject(TrainingService);
   private snack = inject(MatSnackBar);
   private title = inject(Title);

@@ -46,6 +46,7 @@ import {
   USE_CASES,
   CYBER_STATS,
 } from './landing.data';
+import { NB_MODULES, PARCOURS } from '../../../shared/awareness-catalog.generated';
 
 @Component({
   standalone: true,
@@ -100,6 +101,9 @@ export class LandingComponent implements OnInit, AfterViewInit {
   isRssiConsultant = signal(false);
 
   // Static data from landing.data.ts
+  // Catalogue derive de content/fr/ via le script de generation.
+  readonly nbModules = NB_MODULES;
+  readonly parcours = PARCOURS;
   readonly features = FEATURES;
   readonly testimonials = TESTIMONIALS;
   readonly faqs = FAQS;
