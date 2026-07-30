@@ -49,7 +49,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: "3.14"
+          python-version-file: .python-version
           cache: "pip"
           # Les deux fichiers comptent : requirements.txt tire requirements.prod.txt.
           cache-dependency-path: backend/requirements*.txt
@@ -64,6 +64,12 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
         working-directory: backend
+
+      - name: Cohérence des runtimes (Python/Node déclarés partout pareil)
+        # Attrape une image Docker ou un engines.node qui repart de son côté, et
+        # tout ré-épinglage en dur dans un workflow. Sans ce garde-fou, le poste
+        # de dev a tourné en Python 3.12 pendant que la prod était en 3.14.
+        run: python scripts/check_runtime_versions.py
 
       - name: Ruff (lint)
         run: ruff check app/
@@ -152,7 +158,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: "20"
+          node-version-file: .nvmrc
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
@@ -254,7 +260,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: "3.14"
+          python-version-file: .python-version
 
       - name: Install reportlab
         run: pip install reportlab
@@ -302,7 +308,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: "3.14"
+          python-version-file: .python-version
           cache: "pip"
           cache-dependency-path: backend/requirements.prod.txt
 
@@ -346,7 +352,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: "20"
+          node-version-file: .nvmrc
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 

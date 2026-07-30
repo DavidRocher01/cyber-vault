@@ -35,7 +35,7 @@ qui n'est **pas** versionné (secrets `.env`, base locale, outillage).
 
 ### C. Outils absents de git à installer — cf. §1 et §9
 
-- [ ] Docker Desktop, Node 20, Python 3.12+, PostgreSQL 17, `pre-commit`.
+- [ ] Docker Desktop, Node 24, Python 3.14, PostgreSQL 17, `pre-commit`.
 - [ ] **`nmap`** — requis pour `make prod-check` (scan iso-prod). Installe-le si
   tu veux les scans locaux (souvent absent par défaut).
 - [ ] `psql` (client Postgres CLI) — optionnel.
@@ -58,8 +58,8 @@ compte démo **prod** vit en prod, pas en local.
 | Outil | Version | Rôle |
 |-------|---------|------|
 | Git | récent | cloner / committer |
-| Python | **3.12+** (la CI tourne en **3.14**) | backend FastAPI |
-| Node.js | **20** | frontend Angular 20 |
+| Python | **3.14** (cf. `.python-version`) | backend FastAPI |
+| Node.js | **24** (cf. `.nvmrc`) | frontend Angular 20 |
 | PostgreSQL | **17** | base de dev native (port 5432) |
 | Docker Desktop | récent | parité prod / edge (voir §8) |
 | `gh` (GitHub CLI) | récent | PRs, relance CI |
@@ -143,7 +143,9 @@ cd backend && alembic upgrade head   # applique jusqu'à la tête (ex. d3b47ded5
 
 ```bash
 cd backend
-python -m venv .venv
+# ⚠️ Créer le venv avec la version de .python-version (3.14) — la même que la
+# prod et la CI. Sur Windows : py -3.14 -m venv .venv
+python3.14 -m venv .venv
 # Windows : .venv\Scripts\activate     |  Linux/macOS : source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000   # ou : make dev-backend

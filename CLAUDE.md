@@ -7,6 +7,12 @@ Elle combine un gestionnaire de mots de passe zero-knowledge, des modules de con
 
 Stack : **FastAPI 0.138.1** + **Starlette 1.3.1** + **SQLAlchemy 2.0 async** + **PostgreSQL 17** (backend) / **Angular 20 standalone** (frontend) / **GitHub Actions** (CI) / **AWS ECS Fargate + RDS** (prod).
 
+**Versions de runtime — une seule source de vérité :** `.python-version` (3.14) et
+`.nvmrc` (24), à la racine. Les workflows les lisent via `python-version-file` /
+`node-version-file` — ne jamais réépingler une version en dur dans un workflow.
+`scripts/check_runtime_versions.py` (lancé en CI) vérifie que le `Dockerfile` et
+`engines.node` restent alignés dessus.
+
 ---
 
 ## Règles de développement
@@ -109,7 +115,7 @@ frontend/src/app/
 
 - Framework : **pytest** avec `asyncio_mode = auto`
 - Isolation : fixture `setup_db` (autouse) — `TRUNCATE … RESTART IDENTITY CASCADE` avant chaque test
-- Seuil de couverture : **81%** minimum (CI Python 3.12, `--cov-fail-under=81`)
+- Seuil de couverture : **82%** minimum (`--cov-fail-under=82` dans `pytest.ini`)
 - Relancer uniquement les KO : `gh run rerun <id> --failed`
 - Le test `test_scans_unit.py::test_remediation_import_error_raises_404` échoue en local (cyber-scanner absent du PATH) — c'est normal, il passe en CI.
 

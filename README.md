@@ -50,7 +50,7 @@ Le script démarre PostgreSQL (Docker), backend (FastAPI) et frontend (Angular) 
 
 ### Manuel
 
-**Prérequis** : Python 3.12+, Node.js 20+, Docker
+**Prérequis** : Python 3.14 (`.python-version`), Node.js 24 (`.nvmrc`), Docker
 
 ```bash
 # Backend
