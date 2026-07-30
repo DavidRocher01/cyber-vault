@@ -18,14 +18,28 @@ Audit `docs/SECURITY_AUDIT_2026-07-27.md` (17 findings : 0 HIGH, 6 MEDIUM,
 **Statut : les 7 lots sont EN PRODUCTION depuis le 2026-07-29** (merge `159e6ec`,
 migration `d3b47ded55b3` appliquée, recette post-prod verte).
 
-⚠️ **Mais S2 et S6 sont livrés en code NO-OP tant que l'infra ne suit pas.** Le
-rate-limiting partagé, le verrou X-Origin-Verify et la rotation de clé admin sont
-déployés mais **inertes** : voir §2. Ne pas confondre « livré » et « actif ».
+⚠️ **Une partie de S2 et S6 est livrée en code NO-OP tant que l'infra ne suit
+pas.** Détail vérifié le 2026-07-30, les deux moitiés de S2 n'ont PAS le même
+statut — c'est important, on s'était trompé dans les deux sens :
+
+- **Compteurs de rate-limit partagés (Redis/Valkey) — PAS un trou aujourd'hui.**
+  Le conteneur tourne en `--workers 1` et le service en `desiredCount: 1` : il y
+  a un seul processus, donc les compteurs `memory://` sont de fait globaux. C'est
+  un **prérequis pour scaler**, pas une faille active. Décision 2026-07-30 :
+  **différé**, on reste à une tâche.
+- **Verrou X-Origin-Verify — trou RÉEL et ouvert.** L'ALB `cybervault-alb` est
+  `internet-facing` et répond en direct (vérifié : `/health` → 200 en HTTP comme
+  en HTTPS, CloudFront contourné). Un attaquant peut donc forger
+  `X-Forwarded-For` et **changer sa clé de rate-limit à volonté**, ce qui annule
+  la protection des endpoints publics non authentifiés. Le code du garde est déjà
+  livré (`_get_real_ip`), il est no-op tant que `ORIGIN_VERIFY_SECRET` n'existe
+  pas des deux côtés. **Correction gratuite** — voir §2, action B.
+- **S6** : rotation de `ADMIN_API_KEY` non faite.
 
 | Lot | Objet | Commit | État réel |
 |-----|-------|--------|-----------|
 | S1 | Durcissement surface publique non-auth (mailbombing unlock, recon anonyme, escape HTML) | `f50c10a` | ✅ actif en prod |
-| S2 | Rate-limiting (Redis, X-Origin-Verify, TRUSTED_PROXY_COUNT) | `75cb704` | ⚠️ **inerte** — attend l'infra (§2) |
+| S2 | Rate-limiting (Redis, X-Origin-Verify, TRUSTED_PROXY_COUNT) | `75cb704` | 🟡 partiel — compteurs OK à 1 tâche, **verrou ALB manquant** (§2) |
 | S3 | Intégrité monétisation (quota URL monotone, gate plan `current_period_end`, plafond scan/IP) + migration `d3b47ded55b3` | `f779491` | ✅ actif en prod |
 | S4 | Injection/robustesse entrées Dark Web (`_csv_safe`, `_parse_emails_csv`, lecture CSV bornée 413) | `f7d3454` | ✅ actif en prod |
 | S5 | RGPD (export Art.20 complet, purge/rétention 90j public_scans+darkweb, scrubbing PII Sentry) | `bd534ce` | ✅ actif en prod |
