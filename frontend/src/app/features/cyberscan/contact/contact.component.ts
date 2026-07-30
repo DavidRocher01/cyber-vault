@@ -1,11 +1,12 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Title, Meta } from '@angular/platform-browser';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { extractApiError } from '../../../core/http-error';
+import { PLAN_ENTREE, REMISE_PARTENAIRE } from '../../../shared/awareness-plans';
 
 export const NEED_OPTIONS = [
   { value: 'rssi-externalise', label: 'RSSI externalisé — votre RSSI à temps partagé (sur devis)' },
@@ -16,7 +17,11 @@ export const NEED_OPTIONS = [
   { value: 'simulation-phishing', label: 'Simulation de phishing — à partir de 990 € HT' },
   {
     value: 'sensibilisation-nis2',
-    label: 'Formation NIS2 — Sensibilisation équipes (dès 79 €/mois)',
+    label: `Formation NIS2 — Sensibilisation équipes (dès ${PLAN_ENTREE.price} €/mois)`,
+  },
+  {
+    value: 'partenaire-sensibilisation',
+    label: `Partenaire consultant RSSI — formation de vos clients (-${Math.round(REMISE_PARTENAIRE * 100)} %)`,
   },
   { value: 'abonnement', label: 'Abonnement surveillance continue (14,90–149 €/mois)' },
   { value: 'autre', label: 'Autre / Demande de devis' },
@@ -31,6 +36,7 @@ export const NEED_OPTIONS = [
 export class ContactComponent implements OnInit {
   private titleService = inject(Title);
   private meta = inject(Meta);
+  private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
   private http = inject(HttpClient);
 
@@ -50,6 +56,15 @@ export class ContactComponent implements OnInit {
   });
 
   ngOnInit() {
+    // Le parametre ?subject= etait passe par les liens des pages tarifs mais
+    // n'etait lu NULLE PART : une demande partenaire arrivait indistinguable
+    // d'un contact ordinaire. On pre-selectionne le type de besoin quand la
+    // valeur correspond a une option connue.
+    const sujet = this.route.snapshot.queryParamMap.get('subject');
+    if (sujet && NEED_OPTIONS.some(o => o.value === sujet)) {
+      this.form.patchValue({ need_type: sujet });
+    }
+
     this.titleService.setTitle('Contact — Réserver un audit cybersécurité | Rocher Cybersécurité');
     this.meta.updateTag({
       name: 'description',
