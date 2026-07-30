@@ -15,24 +15,27 @@ travail détaillé n'est pas dans git). Mettre à jour ce fichier au fil de l'ea
 Audit `docs/SECURITY_AUDIT_2026-07-27.md` (17 findings : 0 HIGH, 6 MEDIUM,
 7 LOW, 4 INFO). Remédiation en **7 lots S1→S7, livrés dans l'ordre**.
 
-**Statut : les 7 lots sont TERMINÉS sur `develop`, CI verte — PAS ENCORE EN PROD.**
-En attente de **ta décision de merge** `develop→master`.
+**Statut : les 7 lots sont EN PRODUCTION depuis le 2026-07-29** (merge `159e6ec`,
+migration `d3b47ded55b3` appliquée, recette post-prod verte).
 
-| Lot | Objet | Commit | État |
-|-----|-------|--------|------|
-| S1 | Durcissement surface publique non-auth (mailbombing unlock, recon anonyme, escape HTML) | `f50c10a` | ✅ CI verte |
-| S2 | Rate-limiting (code no-op activable : Redis, X-Origin-Verify, TRUSTED_PROXY_COUNT) | `75cb704` | ✅ CI verte |
-| S3 | Intégrité monétisation (quota URL monotone, gate plan `current_period_end`, plafond scan/IP) + migration `d3b47ded55b3` | `f779491` | ✅ CI verte |
-| S4 | Injection/robustesse entrées Dark Web (`_csv_safe`, `_parse_emails_csv`, lecture CSV bornée 413) | `f7d3454` | ✅ CI verte |
-| S5 | RGPD (export Art.20 complet, purge/rétention 90j public_scans+darkweb, scrubbing PII Sentry) | `bd534ce` | ✅ CI verte |
-| S6 | Auth admin front (clé `X-Admin-Key` en mémoire seule, SSR-safe) | `0d76aeb` | ✅ CI verte |
+⚠️ **Mais S2 et S6 sont livrés en code NO-OP tant que l'infra ne suit pas.** Le
+rate-limiting partagé, le verrou X-Origin-Verify et la rotation de clé admin sont
+déployés mais **inertes** : voir §2. Ne pas confondre « livré » et « actif ».
+
+| Lot | Objet | Commit | État réel |
+|-----|-------|--------|-----------|
+| S1 | Durcissement surface publique non-auth (mailbombing unlock, recon anonyme, escape HTML) | `f50c10a` | ✅ actif en prod |
+| S2 | Rate-limiting (Redis, X-Origin-Verify, TRUSTED_PROXY_COUNT) | `75cb704` | ⚠️ **inerte** — attend l'infra (§2) |
+| S3 | Intégrité monétisation (quota URL monotone, gate plan `current_period_end`, plafond scan/IP) + migration `d3b47ded55b3` | `f779491` | ✅ actif en prod |
+| S4 | Injection/robustesse entrées Dark Web (`_csv_safe`, `_parse_emails_csv`, lecture CSV bornée 413) | `f7d3454` | ✅ actif en prod |
+| S5 | RGPD (export Art.20 complet, purge/rétention 90j public_scans+darkweb, scrubbing PII Sentry) | `bd534ce` | ✅ actif en prod |
+| S6 | Auth admin front (clé `X-Admin-Key` en mémoire seule, SSR-safe) | `0d76aeb` | ✅ actif ; ⚠️ rotation de clé non faite (§2) |
 | S7 | Registre d'acceptation du risque (doc) | `ec06e70` | 📄 docs-only |
 
-**Merge prod** = déclenche `deploy.yml` (build ECR + task def + **migration
-`d3b47ded55b3`** `url_scan_usages` + update ECS + front S3/CloudFront) puis la
-recette post-prod auto (rollback ECS si KO). Tête Alembic **unique**, migration
-rétro-compatible (compatible rollback CODE-only). Quand prêt : demander le merge,
-la surveillance du run + checks prod suivent.
+**Correctifs livrés après coup** (bugs trouvés dans les logs post-déploiement) :
+`8f4596a` notifications `created_at` en timestamptz — les notifications in-app et
+les emails d'alerte de scan URL étaient **cassés depuis un moment**, silencieusement
+(`except` avalé en warning). Déployé et vérifié le 2026-07-29.
 
 ---
 
@@ -102,6 +105,10 @@ N'empêchent PAS le merge (les fixes code correspondants sont des no-op activabl
   PDF+QR, gamification, multi-tenancy).
 - **Observabilité** — reste Redis multi-instance (limiter+scheduler) + métriques
   de latence (lié à l'action infra S2).
+- **Montées de dépendances** — 4 chantiers restants (ESLint 9, Angular 22,
+  Stripe 15, Tailwind 4), dans cet ordre, avec prérequis et validation par
+  chantier : voir `docs/MONTEES_DEPENDANCES.md`. Aucune urgence sécurité (0 CVE
+  en prod), mais les prérequis sont déjà levés.
 - Dette technique — la majorité des gros refactos restants sont des **décisions**
   différées, pas de la dette bloquante.
 

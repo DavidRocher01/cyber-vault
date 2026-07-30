@@ -72,21 +72,39 @@ install_hint() {
 # ── 1. Prérequis ─────────────────────────────────────────────────────────────
 step "1/8  Vérification des prérequis"
 
-# Python (requis)
+# Python (requis) — version EXACTE imposée par .python-version.
+# Un « 3.12+ » permissif avait laissé un poste tourner en 3.12 pendant que la
+# prod et la CI étaient en 3.14 : les tests passaient en local sans rien garantir
+# de ce qui était livré. On exige donc la même version qu'en production.
+PY_WANTED="$(tr -d '[:space:]' < .python-version 2>/dev/null || echo 3.14)"
 PYTHON_CMD=""
-for c in python3 python; do
-  if have "$c" && "$c" -c 'import sys; sys.exit(0 if sys.version_info>=(3,12) else 1)' 2>/dev/null; then
+for c in "python$PY_WANTED" python3 python; do
+  if have "$c" && "$c" -c "import sys; sys.exit(0 if '.'.join(map(str, sys.version_info[:2])) == '$PY_WANTED' else 1)" 2>/dev/null; then
     PYTHON_CMD="$c"; break
   fi
 done
-if [ -n "$PYTHON_CMD" ]; then ok "Python 3.12+ ($PYTHON_CMD)"; else
-  warn "Python 3.12+ absent — REQUIS. $(install_hint python 'Python.Python.3.12' python3)"
+# Windows : le lanceur `py` sait cibler une version précise même si `python` en
+# pointe une autre. On résout le chemin complet pour rester sur un mot unique.
+if [ -z "$PYTHON_CMD" ] && have py; then
+  cand="$(py "-$PY_WANTED" -c 'import sys; print(sys.executable)' 2>/dev/null || true)"
+  [ -n "$cand" ] && PYTHON_CMD="$cand"
+fi
+if [ -n "$PYTHON_CMD" ]; then ok "Python $PY_WANTED ($PYTHON_CMD)"; else
+  warn "Python $PY_WANTED absent — REQUIS (version de la prod et de la CI, cf. .python-version). $(install_hint python "Python.Python.$PY_WANTED" "python$PY_WANTED")"
   MISSING_REQUIRED=1
 fi
 
-# Node/npm (requis pour le frontend)
-if have node && have npm; then ok "Node/npm ($(node --version))"; else
-  warn "Node.js 20 absent — REQUIS (frontend). $(install_hint node 'OpenJS.NodeJS.LTS' nodejs)"
+# Node/npm (requis pour le frontend) — version majeure imposée par .nvmrc
+NODE_WANTED="$(tr -d '[:space:]' < .nvmrc 2>/dev/null || echo 24)"
+if have node && have npm; then
+  node_major="$(node --version 2>/dev/null | sed 's/^v//' | cut -d. -f1)"
+  if [ "$node_major" = "$NODE_WANTED" ]; then
+    ok "Node/npm ($(node --version))"
+  else
+    warn "Node $node_major détecté, $NODE_WANTED attendu (cf. .nvmrc) — la CI construit le bundle livré avec cette version."
+  fi
+else
+  warn "Node.js $NODE_WANTED absent — REQUIS (frontend). $(install_hint node 'OpenJS.NodeJS.LTS' nodejs)"
   MISSING_REQUIRED=1
 fi
 

@@ -34,6 +34,10 @@
 
 ## 🟠 Reste réel — bounded (faisable en code, à planifier)
 
+> **Montées de dépendances** : traitées à part dans
+> [`MONTEES_DEPENDANCES.md`](MONTEES_DEPENDANCES.md) (4 chantiers restants,
+> ordre imposé, prérequis levés). Ne pas les redocumenter ici.
+
 ### Backend
 - **`extra='forbid'` sur les schémas d'entrée authentifiés** (vault, rssi,
   darkweb, awareness, 2FA, notif prefs) — étendre la règle au-delà du public.

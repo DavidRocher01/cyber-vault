@@ -322,7 +322,13 @@ async def health_deep(db: AsyncSession = Depends(get_db)):
         try:
             import stripe as _stripe
 
+            # Passe par le service pour hériter de la version d'API épinglée :
+            # une sonde qui interroge une autre version que le reste du code ne
+            # vérifierait pas ce qu'on croit.
+            from app.services.stripe_service import STRIPE_API_VERSION
+
             _stripe.api_key = settings.STRIPE_SECRET_KEY
+            _stripe.api_version = STRIPE_API_VERSION
             await _asyncio.to_thread(_stripe.Balance.retrieve)
             checks["stripe"] = "ok"
         except Exception:

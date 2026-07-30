@@ -1,3 +1,13 @@
+# Dependabot — mises à jour groupées par famille.
+#
+# Sans `groups`, Dependabot proposait un paquet par PR. Sur des familles dont les
+# versions DOIVENT rester alignées, ça produit des PR inutilisables : en juillet
+# 2026 il a ouvert deux PR montant `@angular/forms` et
+# `@angular/platform-browser-dynamic` de 20 à 22 pendant que les onze autres
+# `@angular/*` restaient en 20 — fusionner l'une ou l'autre cassait le build.
+#
+# Les groupes ci-dessous font arriver chaque famille en UNE PR cohérente,
+# testable et mergeable telle quelle.
 version: 2
 updates:
   - package-ecosystem: "pip"
@@ -5,14 +15,71 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    groups:
+      # Outils de dev/test : jamais dans l'image de production, faible risque,
+      # autant les traiter en un seul lot. Listés explicitement plutôt que via
+      # `dependency-type: development`, que pip ne sait pas distinguer (il n'a
+      # pas la séparation dependencies/devDependencies de npm).
+      backend-dev:
+        patterns:
+          - "pytest*"
+          - "coverage"
+          - "testcontainers*"
+          - "aiosqlite"
+          - "ruff"
+          - "mypy"
+          - "bandit"
+          - "pip-audit"
+          - "pre-commit"
+      # boto3 et botocore publient ensemble et doivent rester alignés.
+      aws:
+        patterns:
+          - "boto3"
+          - "botocore"
+          - "s3transfer"
 
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    groups:
+      # LA raison d'être de ce fichier : Angular exige des versions identiques
+      # entre tous ses paquets. Le CLI et le devkit suivent la même cadence.
+      angular:
+        patterns:
+          - "@angular/*"
+          - "@angular-devkit/*"
+          - "@angular/cli"
+      # angular-eslint dépend d'eslint et de typescript-eslint : monter l'un
+      # sans les autres casse la configuration de lint.
+      lint:
+        patterns:
+          - "eslint"
+          - "@eslint/*"
+          - "@typescript-eslint/*"
+          - "@angular-eslint/*"
+      storybook:
+        patterns:
+          - "storybook"
+          - "@storybook/*"
+      test:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+          - "jsdom"
+          - "@playwright/test"
+      styles:
+        patterns:
+          - "tailwindcss"
+          - "postcss"
+          - "autoprefixer"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "monthly"
+    groups:
+      actions:
+        patterns:
+          - "*"
