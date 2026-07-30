@@ -31,8 +31,14 @@ _CARD_BG = "background:#1e293b;border-radius:12px;overflow:hidden;border:1px sol
 
 
 def _footer(frontend: str, unsubscribe_url: str = "") -> str:
+    # _safe_url comme partout ailleurs dans ce module : le garde existait mais
+    # n'etait applique qu'aux URLs d'articles. Les URLs de desabonnement et de
+    # confirmation sont construites cote serveur aujourd'hui — donc pas
+    # exploitables — mais rien ne garantit qu'un appelant futur ne passera pas
+    # une valeur derivee d'une entree utilisateur. Appliquer le garde partout
+    # supprime la question.
     unsub = (
-        f' | <a href="{unsubscribe_url}" style="color:#475569;">Se desabonner</a>'
+        f' | <a href="{_safe_url(unsubscribe_url)}" style="color:#475569;">Se desabonner</a>'
         if unsubscribe_url
         else ""
     )
@@ -99,7 +105,7 @@ def send_confirmation_email(to_email: str, confirm_url: str) -> None:
         " le brief bimensuel qui decrypte les cybermenaces mondiales en 5 minutes.<br><br>"
         "Cliquez sur le bouton ci-dessous pour confirmer votre adresse et activer votre abonnement."
         "</p>"
-        f'<a href="{confirm_url}"'
+        f'<a href="{_safe_url(confirm_url)}"'
         ' style="display:inline-block;background:#0891b2;color:#fff;text-decoration:none;'
         'padding:14px 36px;border-radius:10px;font-weight:bold;font-size:15px;">'
         "Confirmer mon inscription"
