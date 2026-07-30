@@ -38,6 +38,10 @@ NIS2_CATEGORIES = [
                 "id": "rssi",
                 "label": "Désignation d'un RSSI ou responsable cyber",
                 "desc": "Une personne identifiée est responsable de la sécurité des systèmes d'information.",
+                "remediation": {
+                    "produit": "RSSI externalisé",
+                    "route": "/rssi-externalise",
+                },
             },
             {
                 "id": "policy",
@@ -48,6 +52,10 @@ NIS2_CATEGORIES = [
                 "id": "mgmt_training",
                 "label": "Implication et formation de la direction",
                 "desc": "Les dirigeants ont été sensibilisés aux risques cyber et à leurs responsabilités NIS2.",
+                "remediation": {
+                    "produit": "Sensibilisation NIS2 — parcours Direction",
+                    "route": "/sensibilisation",
+                },
             },
             {
                 "id": "policy_review",
@@ -205,6 +213,10 @@ NIS2_CATEGORIES = [
                 "id": "sca",
                 "label": "Inventaire des dépendances logicielles (SCA)",
                 "desc": "Les composants open source et tiers sont inventoriés et surveillés pour les vulnérabilités.",
+                "remediation": {
+                    "produit": "Analyse de code (SAST/SCA)",
+                    "route": "/code-scan",
+                },
             },
         ],
     },
@@ -239,16 +251,28 @@ NIS2_CATEGORIES = [
                 "id": "awareness",
                 "label": "Programme de formation cyber pour les employés",
                 "desc": "Tous les employés suivent une formation annuelle de sensibilisation à la cybersécurité.",
+                "remediation": {
+                    "produit": "Sensibilisation NIS2",
+                    "route": "/sensibilisation",
+                },
             },
             {
                 "id": "phishing_sim",
                 "label": "Exercices de phishing simulé",
                 "desc": "Des campagnes de phishing simulé sont menées régulièrement pour évaluer la vigilance.",
+                "remediation": {
+                    "produit": "Simulation de phishing",
+                    "route": "/simulation-phishing",
+                },
             },
             {
                 "id": "it_training",
                 "label": "Formation spécifique pour l'équipe IT/sécurité",
                 "desc": "L'équipe technique reçoit des formations adaptées aux menaces actuelles.",
+                "remediation": {
+                    "produit": "Sensibilisation NIS2 — parcours Équipes techniques",
+                    "route": "/sensibilisation",
+                },
             },
         ],
     },

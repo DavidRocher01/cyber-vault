@@ -263,6 +263,22 @@
                   <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-gray-100">{{ item.label }}</p>
                     <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">{{ item.desc }}</p>
+
+                    <!-- Remediation : n'apparait que sur un ecart DECLARE, et
+                         seulement si un produit comble reellement ce manque. Le
+                         diagnostic pointait le manque sans jamais dire par quoi
+                         le combler. -->
+                    @if (item.remediation && aUnEcartDeclare(item.id)) {
+                      <a
+                        [routerLink]="item.remediation.route"
+                        class="inline-flex items-center gap-1.5 mt-2 text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+                      >
+                        <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]"
+                          >arrow_forward</mat-icon
+                        >
+                        Combler cet écart : {{ item.remediation.produit }}
+                      </a>
+                    }
                   </div>
 
                   <!-- Quick set buttons -->

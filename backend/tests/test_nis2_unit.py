@@ -139,3 +139,86 @@ class TestComputeScore:
         items = dict.fromkeys(ALL_ITEM_IDS, "non_compliant")
         items["rssi"] = "unknown_status"
         assert _compute_score(items) == 0
+
+
+# ── Remediation : lien diagnostic -> produit ──────────────────────────────────
+#
+# Ajoute le 2026-07-30 (fusion des deux produits NIS2). Le diagnostic pointait un
+# ecart sans jamais dire par quoi le combler, alors que six items correspondent a
+# des produits vendus par la plateforme.
+
+
+class TestRemediation:
+    """Le referentiel declare un produit pour les items qu'un produit comble."""
+
+    _ATTENDUS = {
+        "rssi": "/rssi-externalise",
+        "mgmt_training": "/sensibilisation",
+        "awareness": "/sensibilisation",
+        "phishing_sim": "/simulation-phishing",
+        "it_training": "/sensibilisation",
+        "sca": "/code-scan",
+    }
+
+    def _items(self):
+        return {it["id"]: it for cat in NIS2_CATEGORIES for it in cat["items"]}
+
+    def test_les_six_items_portent_une_remediation(self):
+        items = self._items()
+        for item_id, route in self._ATTENDUS.items():
+            assert "remediation" in items[item_id], f"{item_id} sans remediation"
+            assert items[item_id]["remediation"]["route"] == route
+
+    def test_chaque_remediation_a_un_produit_nomme(self):
+        for it in self._items().values():
+            rem = it.get("remediation")
+            if rem:
+                assert rem.get("produit"), f"{it['id']} : produit vide"
+
+    def test_les_autres_items_n_en_ont_pas(self):
+        """Pas de correspondance inventee : seuls les items reellement couverts
+        par un produit en portent une."""
+        items = self._items()
+        avec = {i for i, it in items.items() if "remediation" in it}
+        assert avec == set(self._ATTENDUS), (
+            f"correspondances inattendues : {avec ^ set(self._ATTENDUS)}"
+        )
+
+
+class TestRemediationDansLePdf:
+    """La remediation n'apparait dans le rapport que sur un ecart DECLARE."""
+
+    def _lignes(self, items: dict) -> list[str]:
+        from datetime import UTC, datetime
+        from unittest.mock import patch
+
+        import app.services.pdf_compliance as pc
+        from app.services.nis2_pdf import generate_nis2_pdf
+
+        captures: list[str] = []
+        vrai = pc.Paragraph
+
+        def espion(texte, *a, **k):
+            captures.append(str(texte))
+            return vrai(texte, *a, **k)
+
+        with patch.object(pc, "Paragraph", espion):
+            generate_nis2_pdf(NIS2_CATEGORIES, items, 42, datetime.now(UTC), "x@y.fr")
+        return [t for t in captures if "combler" in t.lower()]
+
+    def test_evaluation_vierge_ne_propose_rien(self):
+        """Sans reponse, le score compte les items comme non conformes — mais on
+        ne place pas six produits dans le rapport de quelqu'un qui n'a rien
+        declare."""
+        assert self._lignes({}) == []
+
+    def test_ecart_declare_propose_le_produit(self):
+        lignes = self._lignes({"awareness": "non_compliant"})
+        assert len(lignes) == 1
+        assert "Sensibilisation NIS2" in lignes[0]
+
+    def test_ecart_partiel_propose_aussi(self):
+        assert len(self._lignes({"phishing_sim": "partial"})) == 1
+
+    def test_item_conforme_ne_propose_rien(self):
+        assert self._lignes({"awareness": "compliant"}) == []

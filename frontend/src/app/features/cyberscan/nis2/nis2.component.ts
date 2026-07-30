@@ -20,10 +20,21 @@ import { formatFrDate } from '../../../shared/date-utils';
 
 export type Nis2Status = 'compliant' | 'partial' | 'non_compliant' | 'na';
 
+/** Produit interne qui comble l'écart pointé par un item du référentiel.
+ *
+ * Renseigné côté backend (NIS2_CATEGORIES) uniquement pour les items où un
+ * produit répond réellement au manque — pas d'approximation commerciale.
+ */
+export interface Nis2Remediation {
+  produit: string;
+  route: string;
+}
+
 export interface Nis2Item {
   id: string;
   label: string;
   desc: string;
+  remediation?: Nis2Remediation;
 }
 
 export interface Nis2Category {
@@ -103,6 +114,18 @@ export class Nis2Component implements OnInit {
 
   getStatus(itemId: string): Nis2Status {
     return this.items()[itemId] ?? 'non_compliant';
+  }
+
+  /** Vrai si l'item a ete EXPLICITEMENT renseigne comme un ecart.
+   *
+   * getStatus() retourne 'non_compliant' par defaut pour les items non
+   * renseignes : s'en servir afficherait la remediation sur une evaluation
+   * vierge, avant que l'utilisateur ait rien declare. On exige donc une reponse
+   * explicite.
+   */
+  aUnEcartDeclare(itemId: string): boolean {
+    const statut = this.items()[itemId];
+    return statut === 'non_compliant' || statut === 'partial';
   }
 
   toggle(itemId: string) {
