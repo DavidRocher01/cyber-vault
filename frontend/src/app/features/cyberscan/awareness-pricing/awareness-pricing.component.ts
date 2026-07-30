@@ -9,88 +9,7 @@ import {
   DUREE_TOTALE_MINUTES,
   PARCOURS,
 } from '../../../shared/awareness-catalog.generated';
-
-interface AwarenessPlan {
-  id: string;
-  name: string;
-  price: number;
-  period: string;
-  maxLearners: number | null;
-  badge: string;
-  featured: boolean;
-  features: string[];
-}
-
-const PLANS: AwarenessPlan[] = [
-  {
-    id: 'awareness-s',
-    name: 'Formation S',
-    price: 79,
-    period: 'mois',
-    maxLearners: 10,
-    badge: '',
-    featured: false,
-    features: [
-      "Jusqu'à 10 learners",
-      `${NB_MODULES} modules NIS2 inclus`,
-      'Quiz avec 3 tentatives',
-      'Attestations PDF vérifiables',
-      'Dashboard de complétion',
-      'Magic-link sans mot de passe',
-    ],
-  },
-  {
-    id: 'awareness-m',
-    name: 'Formation M',
-    price: 199,
-    period: 'mois',
-    maxLearners: 30,
-    badge: 'Populaire',
-    featured: true,
-    features: [
-      "Jusqu'à 30 learners",
-      'Tout Formation S +',
-      'Import CSV en masse',
-      'Gamification (XP, badges, classement)',
-      'Rapport NIS2 Article 21 PDF',
-      'Dashboard at-risk learners',
-    ],
-  },
-  {
-    id: 'awareness-l',
-    name: 'Formation L',
-    price: 449,
-    period: 'mois',
-    maxLearners: 75,
-    badge: '',
-    featured: false,
-    features: [
-      "Jusqu'à 75 learners",
-      'Tout Formation M +',
-      'Multi-organisations',
-      'Rapport de conformité exportable',
-      'Relances automatiques des inactifs',
-      'Support prioritaire',
-    ],
-  },
-  {
-    id: 'awareness-xl',
-    name: 'Formation XL',
-    price: 899,
-    period: 'mois',
-    maxLearners: 200,
-    badge: 'Entreprise',
-    featured: false,
-    features: [
-      "Jusqu'à 200 learners",
-      'Tout Formation L +',
-      'Onboarding personnalisé',
-      'Modules sur mesure (option)',
-      'SLA 99,9 % garanti',
-      'Facturation annuelle disponible',
-    ],
-  },
-];
+import { PLANS } from '../../../shared/awareness-plans';
 
 @Component({
   standalone: true,
@@ -116,7 +35,7 @@ const PLANS: AwarenessPlan[] = [
           </h1>
           <p class="text-gray-400 text-lg max-w-2xl mx-auto">
             {{ nbModules }} modules e-learning NIS2 Article 21, attestations vérifiables et tableau
-            de bord de conformité. Simple, certifiant, prêt en 48h.
+            de bord de conformité. Simple, traçable, prêt en 48h.
           </p>
           <div
             class="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-full border border-amber-600/30 bg-amber-500/5 text-amber-400 text-sm"

@@ -32,11 +32,17 @@
 - **Scripts de remédiation** prêts à l'emploi (UFW, SSH, Nginx…).
 - **Dark Web** : surveillance de fuites (e‑mails) + **Dark Web Dossier** B2B (exposition d'un domaine, scoring de risque, monitoring, PDF).
 - **Coffre‑fort de mots de passe zero‑knowledge** (chiffrement AES‑GCM côté client).
-- **Sensibilisation / e‑learning NIS2** (attestations) et **simulation de phishing**.
+- **Sensibilisation / e‑learning NIS2** : 28 modules, 4 parcours par profil, quiz, gamification,
+  attestations vérifiables publiquement — voir §2, offre de pointe n°2. Et **simulation de phishing**.
 
 ---
 
-## 2. Les 3 offres "pointe de lance" (par priorité)
+## 2. Les 4 offres "pointe de lance" (par priorité)
+
+> Décision du 2026-07-30 : la **sensibilisation e‑learning devient une offre de pointe à part
+> entière**, et non plus un complément du RSSI externalisé. Elle figurait jusqu'ici en une
+> ligne dans la liste des fonctionnalités, alors que c'est le produit le plus construit de la
+> plateforme.
 
 ### 🥇 1. RSSI externalisé (fer de lance)
 - **Quoi :** un RSSI à temps partagé (fractional CISO) + la plateforme pour piloter la mission
@@ -45,12 +51,46 @@
   mais **n'a ni RSSI ni budget pour un temps plein**.
 - **Nature :** offre **service récurrent** (abonnement mensuel / forfait mission) — c'est le plus fort en valeur et en récurrence.
 
-### 🥈 2. Conformité GRC (NIS2 / ISO 27001 / PCA)
+### 🥈 2. Sensibilisation NIS2 (e‑learning)
+- **Quoi :** plateforme de formation à la cybersécurité pour l'ensemble du personnel —
+  **28 modules** répartis en **4 parcours selon le profil**, quiz, gamification, et une
+  **attestation PDF vérifiable en ligne** par un tiers (client, auditeur, assureur) sans compte.
+- **Douleur résolue :** l'article 21 de NIS2 impose la formation du personnel à la
+  cybersécurité. La PME n'a ni contenu, ni outil de suivi, ni preuve à présenter.
+- **Les 4 parcours, argument central :** c'est ce qui lève l'objection numéro un sur la
+  formation — le temps.
+
+  | Parcours | Public | Modules | Durée |
+  |----------|--------|---------|-------|
+  | Essentiel | tout le personnel | 28 | ~144 min |
+  | Techniques | IT, développeurs, DevOps | 8 | ~40 min |
+  | Direction | dirigeants, managers, RSSI | 6 | ~31 min |
+  | Onboarding | nouveaux arrivants | 4 | ~20 min |
+
+- **Nature :** abonnement mensuel par tranche d'apprenants. Récurrent, coût de livraison
+  quasi nul une fois le contenu écrit.
+
+  | Palier | Prix HT/mois | Apprenants |
+  |--------|--------------|------------|
+  | Formation S | 79 € | jusqu'à 10 |
+  | Formation M | 199 € | jusqu'à 30 |
+  | Formation L | 449 € | jusqu'à 75 |
+  | Formation XL | 899 € | jusqu'à 200 |
+- **Deux acheteurs distincts :** le dirigeant qui forme ses propres salariés, **et** le
+  consultant RSSI qui pilote la formation de plusieurs clients (le multi‑organisations est
+  déjà en place côté produit).
+- **Connexion sans mot de passe** (lien magique par e‑mail) : supprime l'objection « encore
+  un compte à créer pour 50 salariés ».
+
+### 🥉 3. Conformité GRC (NIS2 / ISO 27001 / PCA)
 - **Quoi :** auto‑évaluation guidée + scoring + rapports PDF prêts à présenter (direction, auditeur, client).
 - **Douleur résolue :** "on nous demande d'être conformes NIS2/ISO, on ne sait pas par où commencer ni où on en est."
 - **Angle :** souvent la **porte d'entrée** vers le RSSI externalisé (le diagnostic révèle le besoin d'accompagnement).
+- **Lien avec l'offre 2 :** le référentiel contient un critère « programme de formation cyber
+  pour les employés ». Un diagnostic qui révèle ce manque appelle directement la
+  sensibilisation — c'est le rebond le plus naturel du catalogue.
 
-### 🥉 3. Analyse de failles & de code
+### 4. Analyse de failles & de code
 - **Quoi :** scan externe continu + analyse de code (SAST/SCA) + scripts de remédiation.
 - **Douleur résolue :** "est‑ce que mon site / mon appli a des failles exploitables ?"
 - **Angle :** produit **self‑service** peu coûteux, bon pour générer des leads (offre gratuite généreuse → upsell).
@@ -75,10 +115,16 @@ groupes** (exigences de sécurité "supply chain").
 
 ---
 
-## 4. Différenciateurs (à marmarteler)
+## 4. Différenciateurs (à marteler)
 - **Souveraineté : hébergement France / UE**, aucun transfert hors UE (argument fort face aux solutions US).
-- **Tout‑en‑un** : RSSI + conformité + scan + dark web + coffre‑fort, au lieu de 5 outils.
+- **Tout‑en‑un** : RSSI + conformité + **formation** + scan + dark web + coffre‑fort, au lieu de 6 outils.
 - **Humain + logiciel** : un vrai RSSI, pas juste un dashboard.
+- **Preuve opposable** : l'attestation de formation est **vérifiable en ligne par un tiers**
+  sans compte. Face à un donneur d'ordre ou un assureur qui demande une preuve, c'est un
+  lien, pas un PDF qu'on pourrait avoir bricolé.
+- **Formation adaptée au poste** : 4 parcours, de 20 minutes pour un nouvel arrivant à
+  ~144 minutes pour le parcours complet. La plupart des solutions imposent le même contenu à
+  tout le monde.
 - **Zero‑knowledge** sur le coffre‑fort (le prestataire ne peut pas lire les secrets).
 - **Accessible aux PME** : offre gratuite généreuse, prix lisibles, sans jargon.
 

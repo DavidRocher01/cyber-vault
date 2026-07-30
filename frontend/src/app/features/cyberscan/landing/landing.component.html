@@ -938,8 +938,23 @@
         <h2 class="text-3xl font-bold mb-3">Formez vos équipes à la cybersécurité</h2>
         <p class="text-gray-400 max-w-2xl mx-auto text-sm leading-relaxed">
           {{ nbModules }} modules e-learning NIS2 Article 21, attestations PDF vérifiables et
-          tableau de bord de conformité. Simple, certifiant, prêt en 48h.
+          tableau de bord de conformité. Simple, traçable, prêt en 48h.
         </p>
+      </div>
+
+      <!-- Les 4 parcours : reponse a l'objection « mes equipes n'ont pas le temps ».
+           Donnees derivees de content/fr/ via awareness-catalog.generated.ts. -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+        @for (p of parcours; track p.slug) {
+          <div
+            class="rounded-xl border border-gray-700 bg-gray-800/60 p-5 flex flex-col gap-2 text-center"
+          >
+            <span class="text-2xl font-extrabold text-amber-400">{{ p.dureeMinutes }}</span>
+            <span class="text-[11px] uppercase tracking-widest text-gray-500">minutes</span>
+            <h3 class="font-bold text-sm mt-1">{{ p.public }}</h3>
+            <p class="text-xs text-gray-400">{{ p.nbModules }} modules</p>
+          </div>
+        }
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
@@ -1002,10 +1017,10 @@
               avec un suivi individuel et des attestations infalsifiables.
             </p>
             <div class="flex items-baseline gap-1 mb-1">
-              <!-- Doit rester aligne sur Formation S dans awareness-pricing.component.ts
-                   (page visee par « Voir les tarifs » juste en dessous). -->
-              <span class="text-3xl font-extrabold text-amber-400">79€</span>
-              <span class="text-gray-400 text-sm">/ mois HT · jusqu'à 10 learners</span>
+              <span class="text-3xl font-extrabold text-amber-400">{{ planEntree.price }}€</span>
+              <span class="text-gray-400 text-sm"
+                >/ mois HT · jusqu'à {{ planEntree.maxLearners }} apprenants</span
+              >
             </div>
             <p class="text-xs text-gray-500">Essai gratuit 14 jours · Sans engagement</p>
           </div>
