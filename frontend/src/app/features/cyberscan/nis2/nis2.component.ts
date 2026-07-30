@@ -47,6 +47,9 @@ export interface Nis2Item {
   id: string;
   label: string;
   desc: string;
+  /** Article de la directive (UE) 2022/2555 auquel l'item se rattache.
+   *  Rattachement indicatif, pas une analyse juridique. */
+  article?: string;
   remediation?: Nis2Remediation;
 }
 

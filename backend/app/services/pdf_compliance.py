@@ -308,9 +308,15 @@ def _detail_block(cfg: ComplianceStyle, w: float, cat: dict, items: dict) -> Kee
                 _st(f"Bdg{it['id']}", fontSize=7, fontName="Helvetica-Bold", textColor=sc_col),
             )
 
+        # Rattachement reglementaire accole au libelle : c'est ce que cherche un
+        # auditeur. Conditionnel — les referentiels ISO/PCA n'ont pas ce champ.
+        libelle = it["label"]
+        if it.get("article"):
+            libelle = f"{libelle}  <font color='#94a3b8' size='6'>{it['article']}</font>"
+
         content_cell = [
             Paragraph(
-                it["label"],
+                libelle,
                 _st(
                     f"Lb{it['id']}",
                     fontSize=8,

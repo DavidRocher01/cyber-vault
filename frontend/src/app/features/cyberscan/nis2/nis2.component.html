@@ -261,7 +261,19 @@
 
                   <!-- Label + description -->
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-100">{{ item.label }}</p>
+                    <div class="flex items-baseline gap-2 flex-wrap">
+                      <p class="text-sm font-medium text-gray-100">{{ item.label }}</p>
+                      @if (item.article) {
+                        <!-- Rattachement a la directive : c'est ce qui distingue
+                             un diagnostic d'un questionnaire maison. -->
+                        <span
+                          class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-gray-700 bg-gray-800 text-gray-400 whitespace-nowrap"
+                          [matTooltip]="'Directive (UE) 2022/2555 — rattachement indicatif'"
+                        >
+                          {{ item.article }}
+                        </span>
+                      }
+                    </div>
                     <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">{{ item.desc }}</p>
 
                     <!-- Mesure detenue par la plateforme. Elle NE remplit PAS

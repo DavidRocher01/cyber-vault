@@ -17,7 +17,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.awareness_learner import AwarenessLearner
+from app.models.awareness_organization import AwarenessOrganization
 from app.schemas.awareness import CsvImportResult
+from app.services.awareness_learner_service import count_active_learners
 
 _REQUIRED = {"email"}
 _OPTIONAL = {"first_name", "last_name", "department", "job_title", "preferred_language"}
@@ -35,7 +37,22 @@ async def import_learners_from_csv(
     csv_bytes: bytes,
     auto_activate: bool = True,
 ) -> CsvImportResult:
+    """Importe des apprenants depuis un CSV, dans la limite du quota.
+
+    Le quota etait verifie a la creation unitaire d'un apprenant (endpoint
+    learners) mais PAS ici : l'import en masse le contournait entierement. Une
+    organisation vendue pour 10 apprenants pouvait en recevoir 500 par CSV.
+
+    Les lignes au-dela du quota sont comptees dans `skipped` avec une erreur
+    explicite, plutot que de rejeter tout le fichier : l'utilisateur garde ce qui
+    tient et sait exactement ce qui manque.
+    """
     result = CsvImportResult()
+
+    org = await db.get(AwarenessOrganization, organization_id)
+    quota = org.max_learners if org else 0
+    actifs = await count_active_learners(db, organization_id)
+    restants = max(quota - actifs, 0)
 
     try:
         text = csv_bytes.decode("utf-8-sig")  # strip BOM if present
@@ -93,6 +110,13 @@ async def import_learners_from_csv(
                 existing.is_active = True
             result.updated += 1
         else:
+            if restants <= 0:
+                result.skipped += 1
+                result.errors.append(
+                    f"{email} : quota atteint ({quota} apprenants max pour cette organisation)."
+                )
+                continue
+            restants -= 1
             learner = AwarenessLearner(
                 organization_id=organization_id,
                 email=email,

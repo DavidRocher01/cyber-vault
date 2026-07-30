@@ -222,3 +222,60 @@ class TestRemediationDansLePdf:
 
     def test_item_conforme_ne_propose_rien(self):
         assert self._lignes({"awareness": "compliant"}) == []
+
+
+# ── Rattachement reglementaire ────────────────────────────────────────────────
+#
+# Ajoute le 2026-07-30. Le referentiel couvrait les bons themes mais ne citait
+# AUCUN article : face a un auditeur, la tracabilite « cet item repond a telle
+# exigence » est ce qui distingue un diagnostic d'un questionnaire maison.
+
+
+class TestArticles:
+    def _items(self):
+        return [it for cat in NIS2_CATEGORIES for it in cat["items"]]
+
+    def test_tous_les_items_citent_un_article(self):
+        sans = [it["id"] for it in self._items() if not it.get("article")]
+        assert sans == [], f"items sans rattachement : {sans}"
+
+    def test_le_format_est_homogene(self):
+        for it in self._items():
+            assert it["article"].startswith("Art. "), f"{it['id']} : {it['article']!r}"
+
+    def test_les_items_de_formation_pointent_l_alinea_g(self):
+        """Art. 21(2)(g) — hygiene informatique de base et formation."""
+        items = {it["id"]: it["article"] for it in self._items()}
+        for item_id in ("awareness", "phishing_sim", "it_training"):
+            assert items[item_id] == "Art. 21(2)(g)"
+
+    def test_la_notification_pointe_l_article_23(self):
+        items = {it["id"]: it["article"] for it in self._items()}
+        assert items["anssi_notif"] == "Art. 23"
+
+    def test_la_gouvernance_pointe_l_article_20(self):
+        """Art. 20 traite de la responsabilite et de la formation des dirigeants,
+        distinct des mesures techniques de l'article 21."""
+        items = {it["id"]: it["article"] for it in self._items()}
+        assert items["rssi"].startswith("Art. 20")
+        assert items["mgmt_training"].startswith("Art. 20")
+
+    def test_le_rapport_pdf_affiche_l_article(self):
+        from datetime import UTC, datetime
+        from unittest.mock import patch
+
+        import app.services.pdf_compliance as pc
+        from app.services.nis2_pdf import generate_nis2_pdf
+
+        captures: list[str] = []
+        vrai = pc.Paragraph
+
+        def espion(texte, *a, **k):
+            captures.append(str(texte))
+            return vrai(texte, *a, **k)
+
+        with patch.object(pc, "Paragraph", espion):
+            generate_nis2_pdf(NIS2_CATEGORIES, {}, 0, datetime.now(UTC), "x@y.fr")
+
+        avec_article = [t for t in captures if "Art. " in t]
+        assert len(avec_article) == 34, "chaque item doit citer son article dans le rapport"

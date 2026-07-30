@@ -115,8 +115,12 @@ N'empêchent PAS le merge (les fixes code correspondants sont des no-op activabl
 
 ## 6. En cours / backlog non-bloquant
 
-- **Sensibilisation NIS2** (e-learning Art.21) — module en cours (attestations
-  PDF+QR, gamification, multi-tenancy).
+- ~~**Sensibilisation NIS2** — module en cours~~ → **CONSTRUIT et promu offre de
+  pointe n°2** le 2026-07-30. Les trois chantiers annoncés « en cours »
+  (attestations PDF+QR, gamification, multi-tenancy) étaient en réalité
+  implémentés et testés. 28 modules, 4 parcours, 198 tests. Voir
+  `SALES-BRIEF.md` §2 et §5.1. Reste : les quotas ne sont pas appliqués par le
+  code (bloquant pour un passage en self-service, sans effet en vente sur devis).
 - **Observabilité** — reste Redis multi-instance (limiter+scheduler) + métriques
   de latence (lié à l'action infra S2).
 - **Montées de dépendances** — 4 chantiers restants (ESLint 9, Angular 22,
