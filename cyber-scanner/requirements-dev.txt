@@ -1,3 +1,11 @@
-bandit>=1.7.9
-pip-audit>=2.7.3
-pytest>=8.2.0
+# Outils de dev/test du scanner — ÉPINGLÉS, comme requirements.txt.
+#
+# Étaient en `>=` alors que le fichier voisin avait justement abandonné cette
+# forme pour cause de builds non reproductibles : oubli lors de ce durcissement.
+#
+# Versions alignées sur backend/requirements.txt : le scanner partage le venv de
+# l'image de production, deux épinglages différents du même outil se résoudraient
+# selon l'ordre d'installation.
+bandit==1.9.4
+pip-audit==2.10.1
+pytest==9.1.1
