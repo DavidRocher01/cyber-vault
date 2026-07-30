@@ -9,6 +9,22 @@ from app.core.config import settings
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
+# Version d'API Stripe EPINGLEE explicitement.
+#
+# Sans cette ligne, la version d'API utilisee est celle par defaut du SDK — donc
+# monter le SDK change AUSSI le contrat serveur (forme des payloads de webhook,
+# champs des reponses) dans le meme commit. Deux risques melanges, impossibles a
+# annuler separement.
+#
+# Avec l'epinglage, une montee du SDK devient un changement purement Python, et
+# le passage a une version d'API plus recente devient une decision distincte,
+# testable et reversible seule.
+#
+# Valeur = defaut du SDK 10.5.0, c'est-a-dire ce que la prod utilise deja :
+# poser cette ligne ne change RIEN au comportement actuel.
+STRIPE_API_VERSION = "2024-06-20"
+stripe.api_version = STRIPE_API_VERSION
+
 
 def create_customer(email: str) -> str:
     """Create a Stripe customer and return the customer ID."""
