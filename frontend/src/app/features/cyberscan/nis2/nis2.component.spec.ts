@@ -9,6 +9,9 @@
  *  - Getter _fullItems (34 items complets)
  */
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { signal, computed } from '@angular/core';
 import { of, throwError } from 'rxjs';
@@ -903,5 +906,135 @@ describe('exportAuditorPdf()', () => {
       'Fermer',
       { duration: 4000 }
     );
+  });
+});
+
+// ── Remédiation et preuve (fusion des deux produits NIS2, 2026-07-30) ─────────
+//
+// Ces deux méthodes décident si un prospect voit une sollicitation commerciale
+// sur son diagnostic. Le cas « item non renseigné » est le piège : getStatus()
+// retourne 'non_compliant' par défaut, et s'en servir afficherait six produits
+// sur une évaluation vierge. C'est exactement l'erreur qu'il a fallu corriger
+// côté PDF — d'où ces tests.
+
+describe('aUnEcartDeclare()', () => {
+  it('faux sur un item jamais renseigné', () => {
+    const c = make();
+    (c as any).items = signal({});
+    expect(c.aUnEcartDeclare('awareness')).toBe(false);
+  });
+
+  it('vrai sur un écart déclaré non conforme', () => {
+    const c = make();
+    (c as any).items = signal({ awareness: 'non_compliant' });
+    expect(c.aUnEcartDeclare('awareness')).toBe(true);
+  });
+
+  it('vrai sur un écart déclaré partiel', () => {
+    const c = make();
+    (c as any).items = signal({ awareness: 'partial' });
+    expect(c.aUnEcartDeclare('awareness')).toBe(true);
+  });
+
+  it('faux sur un item déclaré conforme', () => {
+    const c = make();
+    (c as any).items = signal({ awareness: 'compliant' });
+    expect(c.aUnEcartDeclare('awareness')).toBe(false);
+  });
+
+  it('faux sur un item déclaré non applicable', () => {
+    const c = make();
+    (c as any).items = signal({ awareness: 'na' });
+    expect(c.aUnEcartDeclare('awareness')).toBe(false);
+  });
+
+  it('ne confond pas deux items différents', () => {
+    const c = make();
+    (c as any).items = signal({ awareness: 'non_compliant' });
+    expect(c.aUnEcartDeclare('phishing_sim')).toBe(false);
+  });
+});
+
+describe('preuve()', () => {
+  it('null quand la plateforme ne mesure rien pour cet item', () => {
+    const c = make();
+    (c as any).preuves = signal({});
+    expect(c.preuve('awareness')).toBeNull();
+  });
+
+  it('retourne la mesure quand elle existe', () => {
+    const c = make();
+    const mesure = { organisations: 1, apprenants: 15, termines: 12, pct: 80 };
+    (c as any).preuves = signal({ awareness: mesure });
+    expect(c.preuve('awareness')).toEqual(mesure);
+  });
+
+  it('null pour un item sans mesure, même si un autre en a une', () => {
+    const c = make();
+    (c as any).preuves = signal({
+      awareness: { organisations: 1, apprenants: 5, termines: 5, pct: 100 },
+    });
+    expect(c.preuve('phishing_sim')).toBeNull();
+  });
+
+  it('la mesure est indépendante de la déclaration', () => {
+    // Point clé : 100 % de salariés formés ne change PAS le statut déclaré.
+    // L'utilisateur déclare, la plateforme mesure.
+    const c = make();
+    (c as any).items = signal({});
+    (c as any).preuves = signal({
+      awareness: { organisations: 1, apprenants: 10, termines: 10, pct: 100 },
+    });
+    expect(c.preuve('awareness')?.pct).toBe(100);
+    expect(c.getStatus('awareness')).toBe('non_compliant');
+    expect(c.aUnEcartDeclare('awareness')).toBe(false);
+  });
+});
+
+// ── Template : ce que la page affiche réellement ─────────────────────────────
+//
+// Aucun spec du projet ne fait de rendu de template (pas de TestBed). On vérifie
+// donc la SOURCE, comme le fait déjà landing.component.spec.ts.
+//
+// LIMITE ASSUMÉE : ces tests attrapent une suppression de bloc ou une condition
+// changée, pas une erreur de rendu. Un vrai test de rendu exigerait d'introduire
+// TestBed, ce que le projet ne fait nulle part.
+
+describe('Template — blocs de remédiation et de preuve', () => {
+  const tpl = readFileSync(resolve(__dirname, './nis2.component.html'), 'utf-8');
+
+  it('la remédiation est conditionnée à un écart DÉCLARÉ', () => {
+    // Si quelqu'un remplace aUnEcartDeclare() par getStatus(), six produits
+    // s'afficheraient sur une évaluation vierge — le défaut corrigé côté PDF.
+    expect(tpl).toContain('@if (item.remediation && aUnEcartDeclare(item.id))');
+  });
+
+  it('la remédiation ne s’affiche jamais sans produit associé', () => {
+    // `item.remediation &&` doit précéder la condition d'écart : un item sans
+    // produit ne doit rien afficher, même en écart.
+    const bloc = tpl.slice(tpl.indexOf('item.remediation'));
+    expect(bloc.indexOf('item.remediation')).toBeLessThan(bloc.indexOf('aUnEcartDeclare'));
+  });
+
+  it('la remédiation pointe vers la route fournie par le référentiel', () => {
+    expect(tpl).toContain('[routerLink]="item.remediation.route"');
+    expect(tpl).toContain('item.remediation.produit');
+  });
+
+  it('la preuve s’affiche dès qu’elle existe, indépendamment du statut déclaré', () => {
+    // Volontairement PAS conditionnée à aUnEcartDeclare : la mesure est un fait,
+    // elle s'affiche que l'utilisateur se déclare conforme ou non.
+    expect(tpl).toContain('@if (preuve(item.id); as p)');
+  });
+
+  it('la preuve affiche le rapport terminés/apprenants et le pourcentage', () => {
+    expect(tpl).toContain('p.termines');
+    expect(tpl).toContain('p.apprenants');
+    expect(tpl).toContain('p.pct');
+  });
+
+  it('la preuve est présentée comme une mesure, pas comme une réponse', () => {
+    // Le libellé ne doit pas suggérer que l'item est rempli.
+    expect(tpl).toContain('Mesuré sur votre plateforme');
   });
 });
