@@ -144,6 +144,44 @@ _La différenciation se fait par les **fonctionnalités** ; sites surveillés et
 > ⚠️ Le **RSSI externalisé** est une **prestation de service** (forfait/abonnement dédié), pas un simple
 > palier du SaaS — à tarifer au cas par cas (à cadrer avec moi si un prospect avance).
 
+### 5.1 Sensibilisation NIS2 — tarif partenaire (consultants RSSI)
+
+**Le barème direct moins 40 %, à partir de 3 organisations clientes.**
+
+| Taille du client | Direct | Partenaire |
+|---|---|---|
+| jusqu'à 10 apprenants | 79 € | **47 €** |
+| jusqu'à 30 | 199 € | **119 €** |
+| jusqu'à 75 | 449 € | **269 €** |
+| jusqu'à 200 | 899 € | **539 €** |
+
+Pas de grille séparée : **même logique de taille que le direct**, ce qui évite qu'un
+gros compte passe par un consultant pour changer de barème. La remise rémunère ce
+que le partenaire fait à notre place — vente, mise en place, support de niveau 1.
+Le seuil de 3 clients évite qu'un acheteur isolé se déclare partenaire.
+
+**Argument à lui tenir :** un client de 30 salariés lui coûte 119 €, qu'il intègre
+dans une mission facturée ~1 890 € — **6 % de sa facture**. Dix clients de cette
+taille = 1 190 €/mois de récurrent pour nous.
+
+> ⚠️ **Ces trois premiers accords sont des tarifs de LANCEMENT, révisables à
+> l'échéance** — à écrire dans le contrat. Aucun client à ce jour : ces montants
+> sont une hypothèse construite sur notre propre grille, pas sur une étude de
+> marché. Si les trois premiers acceptent sans négocier, nous sommes trop bas.
+
+**Positionnement — ne jamais comparer au prix d'un outil.** Des plateformes de
+sensibilisation françaises plafonnent autour de 99 €/mois quel que soit l'effectif,
+et l'État distribue SensCyber gratuitement. Sur ce terrain nous perdons.
+Le point de comparaison est le **budget formation** (~290 € par salarié pour un
+e‑learning de 8 h, ~950 € pour une journée en présentiel) et surtout **la preuve
+opposable** : l'attestation vérifiable en ligne par un tiers, que ces outils
+n'offrent pas.
+
+> ⚠️ **Limite technique connue** : aujourd'hui aucun quota n'est appliqué par le
+> code (ni nombre d'organisations, ni `max_learners`). Sans importance tant que
+> l'offre est vendue sur devis et provisionnée à la main — bloquant le jour où
+> elle passera en self‑service.
+
 ---
 
 ## 6. Arguments de confiance / preuves

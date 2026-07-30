@@ -9,7 +9,12 @@ import {
   DUREE_TOTALE_MINUTES,
   PARCOURS,
 } from '../../../shared/awareness-catalog.generated';
-import { PLANS } from '../../../shared/awareness-plans';
+import {
+  PLANS,
+  MIN_CLIENTS_PARTENAIRE,
+  REMISE_PARTENAIRE,
+  prixPartenaire,
+} from '../../../shared/awareness-plans';
 
 @Component({
   standalone: true,
@@ -127,6 +132,47 @@ import { PLANS } from '../../../shared/awareness-plans';
           }
         </div>
 
+        <!-- Offre partenaire : consultants RSSI qui pilotent plusieurs clients.
+             Prix DERIVES du barreme direct (meme logique de taille), pour qu'un
+             gros compte ne passe pas par un consultant juste pour changer de
+             barreme. -->
+        <div class="rounded-xl border border-amber-700/40 bg-amber-900/10 p-6 mb-12">
+          <div class="flex flex-wrap items-center gap-3 mb-2">
+            <mat-icon class="text-amber-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]"
+              >handshake</mat-icon
+            >
+            <h2 class="text-white font-semibold">Vous êtes consultant RSSI ?</h2>
+            <span
+              class="text-[0.7rem] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-600/30"
+            >
+              -{{ remisePartenairePct }} %
+            </span>
+          </div>
+          <p class="text-gray-400 text-sm mb-5">
+            Formez les équipes de vos clients depuis un seul compte. Tarif partenaire à partir de
+            {{ minClientsPartenaire }} organisations clientes, facturé par client selon sa taille.
+          </p>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            @for (plan of plans; track plan.id) {
+              <div class="rounded-lg border border-gray-800 bg-gray-900 p-4">
+                <p class="text-gray-500 text-xs mb-1">
+                  {{ plan.maxLearners ? "jusqu'à " + plan.maxLearners : 'illimité' }} apprenants
+                </p>
+                <p class="text-amber-400 text-xl font-bold">{{ prixPartenaire(plan) }}€</p>
+                <p class="text-gray-600 text-xs line-through">{{ plan.price }}€ en direct</p>
+              </div>
+            }
+          </div>
+          <a
+            routerLink="/contact"
+            [queryParams]="{ subject: 'partenaire-sensibilisation' }"
+            mat-flat-button
+            class="!bg-amber-600 hover:!bg-amber-500 !text-white !rounded-xl !text-sm"
+          >
+            Devenir partenaire
+          </a>
+        </div>
+
         <!-- Feature comparison -->
         <div class="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden mb-12">
           <div class="p-6 border-b border-gray-800">
@@ -176,6 +222,10 @@ import { PLANS } from '../../../shared/awareness-plans';
 })
 export class AwarenessPricingComponent {
   readonly plans = PLANS;
+  /** Tarif partenaire : DERIVE du barreme direct, jamais recopie. */
+  readonly prixPartenaire = prixPartenaire;
+  readonly remisePartenairePct = Math.round(REMISE_PARTENAIRE * 100);
+  readonly minClientsPartenaire = MIN_CLIENTS_PARTENAIRE;
   /** Catalogue derive de content/fr/ — jamais recopie a la main. */
   readonly parcours = PARCOURS;
   readonly nbModules = NB_MODULES;
