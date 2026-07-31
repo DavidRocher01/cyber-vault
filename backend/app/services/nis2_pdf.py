@@ -52,7 +52,7 @@ _STYLE = ComplianceStyle(
         "Rapport NIS2 généré par Rocher Cybersécurité le {date} UTC — "
         "Ce rapport est fourni à titre indicatif et ne constitue pas un audit légal de conformité."
     ),
-    cover_title1="Rapport de conformite",
+    cover_title1="Rapport de conformité",
     cover_title2="Directive NIS2",
     later_page_title="Conformité NIS2",
 )

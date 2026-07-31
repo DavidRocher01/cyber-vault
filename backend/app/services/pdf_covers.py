@@ -37,6 +37,7 @@ from app.services.pdf_brand import (
     YELLOW,
     _accent_cols,
     _draw_band,
+    ajuster_texte,
     score_color,
 )
 
@@ -109,7 +110,7 @@ def draw_compliance_cover(
 
     canvas.setFillColor(GRAY)
     canvas.setFont("Helvetica", 7.5)
-    canvas.drawString(tx, ty - 16 * mm, f"Genere le {date_str}  •  {SITE_EMAIL}")
+    canvas.drawString(tx, ty - 16 * mm, f"Généré le {date_str}  •  {SITE_EMAIL}")
 
     # ── Score card ────────────────────────────────────────────────────────────
     card_y = H - 120 * mm
@@ -120,7 +121,7 @@ def draw_compliance_cover(
 
     canvas.setFillColor(col)
     canvas.setFont("Helvetica-Bold", 7)
-    canvas.drawString(M, card_y + card_h + 4 * mm, "SYNTHESE DE CONFORMITE")
+    canvas.drawString(M, card_y + card_h + 4 * mm, "SYNTHÈSE DE CONFORMITÉ")
 
     canvas.setFillColor(colors.HexColor("#111c30"))
     canvas.roundRect(M, card_y, card_w, card_h, radius=4 * mm, fill=1, stroke=0)
@@ -176,7 +177,7 @@ def draw_compliance_cover(
     canvas.drawCentredString(cx, card_y + 11 * mm, score_label)
     canvas.setFillColor(GRAY)
     canvas.setFont("Helvetica", 7)
-    canvas.drawCentredString(cx, card_y + 5.5 * mm, f"{total} controles")
+    canvas.drawCentredString(cx, card_y + 5.5 * mm, f"{total} contrôles")
 
     sep_x = M + left_w + 4 * mm
     canvas.setStrokeColor(colors.HexColor("#1e293b"))
@@ -230,7 +231,7 @@ def draw_compliance_cover(
 
     canvas.setFillColor(col)
     canvas.setFont("Helvetica-Bold", 7)
-    canvas.drawString(M, dom_top, "RESULTATS PAR DOMAINE")
+    canvas.drawString(M, dom_top, "RÉSULTATS PAR DOMAINE")
 
     for idx, (lbl, pct) in enumerate(domain_scores):
         col_i = idx % ncols
@@ -252,8 +253,12 @@ def draw_compliance_cover(
 
         inner_x = dx + 7 * mm
         canvas.setFillColor(WHITE)
-        canvas.setFont("Helvetica-Bold", 7.5)
-        short_lbl = lbl if len(lbl) <= 26 else lbl[:25] + "…"
+        # Largeur reellement disponible : jusqu'au bord de la carte, moins la
+        # zone du pourcentage et un ecart. Mesuree, pas estimee en caracteres.
+        largeur_pct = canvas.stringWidth(f"{pct}%", "Helvetica-Bold", 8)
+        largeur_lbl = (dx + col_w - 3 * mm) - inner_x - largeur_pct - 2 * mm
+        short_lbl, taille_lbl = ajuster_texte(canvas, lbl, "Helvetica-Bold", 7.5, largeur_lbl)
+        canvas.setFont("Helvetica-Bold", taille_lbl)
         canvas.drawString(inner_x, cell_y + cell_h * 0.55, short_lbl)
 
         bar_x = inner_x
@@ -356,7 +361,7 @@ def draw_url_scan_cover(
 
     canvas.setFillColor(GRAY)
     canvas.setFont("Helvetica", 7.5)
-    canvas.drawString(tx, ty - 16 * mm, f"Genere le {date_str}  •  {SITE_EMAIL}")
+    canvas.drawString(tx, ty - 16 * mm, f"Généré le {date_str}  •  {SITE_EMAIL}")
 
     # ── Verdict card ──────────────────────────────────────────────────────────
     card_y = H - 125 * mm
@@ -365,7 +370,7 @@ def draw_url_scan_cover(
 
     canvas.setFillColor(col)
     canvas.setFont("Helvetica-Bold", 7)
-    canvas.drawString(M, card_y + card_h + 4 * mm, "RESULTAT DE L'ANALYSE")
+    canvas.drawString(M, card_y + card_h + 4 * mm, "RÉSULTAT DE L'ANALYSE")
 
     canvas.setFillColor(colors.HexColor("#111c30"))
     canvas.roundRect(M, card_y, card_w, card_h, radius=4 * mm, fill=1, stroke=0)

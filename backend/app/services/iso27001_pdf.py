@@ -66,7 +66,7 @@ _STYLE = ComplianceStyle(
         "Rapport ISO 27001:2022 généré par Rocher Cybersécurité le {date} UTC — "
         "Ce rapport est fourni à titre indicatif et ne constitue pas une certification ISO/IEC 27001."
     ),
-    cover_title1="Rapport de conformite",
+    cover_title1="Rapport de conformité",
     cover_title2="ISO/IEC 27001:2022",
     later_page_title="Conformité ISO 27001:2022",
 )

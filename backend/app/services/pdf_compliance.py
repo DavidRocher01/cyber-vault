@@ -342,7 +342,7 @@ def _detail_block(cfg: ComplianceStyle, w: float, cat: dict, items: dict) -> Kee
         if remediation and items.get(it["id"]) in ("non_compliant", "partial"):
             content_cell.append(
                 Paragraph(
-                    f"→ Pour combler cet ecart : {remediation['produit']}",
+                    f"→ Pour combler cet écart : {remediation['produit']}",
                     _st(
                         f"Rm{it['id']}",
                         fontSize=7,

@@ -26,6 +26,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
 from reportlab.platypus import HRFlowable
 
 # ---------------------------------------------------------------------------
@@ -153,6 +154,38 @@ def cat_score(cat_items: list, items: dict) -> int:
 # ---------------------------------------------------------------------------
 
 
+def ajuster_texte(
+    canvas,
+    texte: str,
+    police: str,
+    taille: float,
+    largeur_max: float,
+    *,
+    taille_mini: float = 5.5,
+) -> tuple[str, float]:
+    """Fait tenir `texte` dans `largeur_max` : reduit la police, tronque en dernier recours.
+
+    Renvoie (texte a dessiner, taille de police a utiliser).
+
+    Remplace les troncatures au NOMBRE DE CARACTERES qui trainaient dans les
+    generateurs (`lbl if len(lbl) <= 26 else lbl[:25] + "…"`). Un compte de
+    caracteres ignore la largeur reelle des glyphes : « Formation &
+    sensibilisation » etait coupe alors qu'il tenait, et un libelle de 26
+    caracteres larges aurait deborde sans etre coupe.
+    """
+    if not texte:
+        return texte, taille
+    while taille > taille_mini and canvas.stringWidth(texte, police, taille) > largeur_max:
+        taille -= 0.25
+    if canvas.stringWidth(texte, police, taille) <= largeur_max:
+        return texte, taille
+    # Toujours trop long a la taille plancher : on coupe, en mesurant.
+    coupe = texte
+    while coupe and canvas.stringWidth(coupe + "…", police, taille) > largeur_max:
+        coupe = coupe[:-1]
+    return (coupe + "…") if coupe else texte[:1], taille
+
+
 def _draw_band(
     canvas,
     *,
@@ -198,25 +231,65 @@ def _draw_band(
     canvas.setFont("Helvetica-Bold", band_h * 0.33)
     canvas.drawCentredString(logo_cx, band_cy - band_h * 0.07, "CS")
 
-    # "Rocher Cybersécurité" wordmark
+    # ── Marque a gauche, type de document a droite ────────────────────────────
+    #
+    # Les deux textes etaient dessines a taille fixe, sans qu'aucun ne mesure sa
+    # largeur : ils se chevauchaient sur TOUTES les pages de TOUS les rapports
+    # (« Rocher Cybersécurité » recouvrant « DIRECTIVE NIS2 », « CONFORMITÉ
+    # NIS2 », « RAPPORT D'ANALYSE D'URL »...). Le `rule_x0 = wm_x + 52` etait une
+    # estimation en dur de la largeur du nom, tres en dessous du reel.
+    #
+    # On mesure desormais, et si l'ensemble deborde on reduit les deux polices
+    # PROPORTIONNELLEMENT : l'equilibre visuel est conserve, et aucun texte
+    # n'est tronque ni recouvert.
     wm_x = logo_cx + logo_r + 2.5 * mm
-    canvas.setFillColor(WHITE)
-    canvas.setFont("Helvetica-Bold", band_h * 0.62)
-    canvas.drawString(wm_x, band_cy - band_h * 0.12, "Rocher Cybersécurité")
+    wm_texte = "Rocher Cybersécurité"
+    ecart_min = 6 * mm
 
-    # Thin rule connecting wordmark to right text
-    rule_x0 = wm_x + 52
-    rule_x1 = W - M - 45 * mm
+    taille_wm = band_h * 0.62
+    taille_rt = band_h * 0.50
+    largeur_wm = canvas.stringWidth(wm_texte, "Helvetica-Bold", taille_wm)
+    largeur_rt = canvas.stringWidth(right_text, "Helvetica-Bold", taille_rt)
+
+    budget = (W - M) - wm_x - ecart_min
+    if largeur_wm + largeur_rt > budget and largeur_wm + largeur_rt > 0:
+        facteur = budget / (largeur_wm + largeur_rt)
+        # Plancher : en-dessous de 55 % le bandeau devient illisible ; mieux vaut
+        # un ecart plus serre qu'un texte minuscule.
+        facteur = max(facteur, 0.55)
+        taille_wm *= facteur
+        taille_rt *= facteur
+        largeur_wm = canvas.stringWidth(wm_texte, "Helvetica-Bold", taille_wm)
+        largeur_rt = canvas.stringWidth(right_text, "Helvetica-Bold", taille_rt)
+
+    canvas.setFillColor(WHITE)
+    canvas.setFont("Helvetica-Bold", taille_wm)
+    canvas.drawString(wm_x, band_cy - band_h * 0.12, wm_texte)
+
+    # Filet de liaison, borne par les largeurs REELLES des deux textes.
+    rule_x0 = wm_x + largeur_wm + 2 * mm
+    rule_x1 = (W - M) - largeur_rt - 2 * mm
     if rule_x1 > rule_x0 + 8:
         canvas.setStrokeColor(colors.HexColor("#2d1b69"))
         canvas.setLineWidth(0.5)
-        canvas.line(rule_x0 + 2 * mm, band_cy, rule_x1 - 2 * mm, band_cy)
+        canvas.line(rule_x0, band_cy, rule_x1, band_cy)
 
     # Right zone: stacked title + sub
+    #
+    # La ligne de base est abaissee jusqu'a ce que l'ASCENDANTE de la police
+    # tienne sous le bord du bandeau. Sans ca, un titre en capitales accentuees
+    # (« CONFORMITÉ NIS2 ») voyait son accent rogne par le bord : invisible tant
+    # que les chaines etaient saisies sans accents, flagrant une fois corrigees.
+    ascendante = pdfmetrics.getAscent("Helvetica-Bold", taille_rt)
+    base_titre = band_cy + band_h * 0.10
+    plafond = band_y + band_h - 1.2 * mm
+    if base_titre + ascendante > plafond:
+        base_titre = plafond - ascendante
+
     right_col = colors.HexColor(_BAND_TITLE_COLOR.get(doc_type, "#e2e8f0"))
     canvas.setFillColor(right_col)
-    canvas.setFont("Helvetica-Bold", band_h * 0.50)
-    canvas.drawRightString(W - M, band_cy + band_h * 0.10, right_text)
+    canvas.setFont("Helvetica-Bold", taille_rt)
+    canvas.drawRightString(W - M, base_titre, right_text)
     canvas.setFillColor(colors.HexColor("#6b7280"))
     canvas.setFont("Helvetica", band_h * 0.38)
     canvas.drawRightString(W - M, band_cy - band_h * 0.28, right_sub)
