@@ -45,3 +45,6 @@ docs/architecture.html
 # OS
 .DS_Store
 Thumbs.db
+
+# Echantillons PDF generes par scripts/preview_pdfs.py (confort local, jamais versionne)
+backend/previsualisation_pdf/
