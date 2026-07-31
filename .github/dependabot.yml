@@ -51,6 +51,12 @@ updates:
           - "@angular/*"
           - "@angular-devkit/*"
           - "@angular/cli"
+          # typescript DOIT etre dans ce groupe : le compilateur Angular epingle
+          # une plage TS stricte. La premiere PR groupee a echoue exactement
+          # la-dessus — « The Angular Compiler requires TypeScript >=6.0.0 and
+          # <6.1.0 but 5.8.3 was found instead ». Sans typescript ici, le groupe
+          # produit une PR qui ne compile pas.
+          - "typescript"
       # angular-eslint dépend d'eslint et de typescript-eslint : monter l'un
       # sans les autres casse la configuration de lint.
       lint:

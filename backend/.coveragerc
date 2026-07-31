@@ -3,32 +3,23 @@
 # RÈGLE : chaque exclusion doit avoir une raison écrite. Une exclusion sans
 # justification finit par masquer un angle mort qu'on croit couvert.
 #
-# Nettoyage 2026-07-30 : trois entrées ne matchaient plus rien depuis que ces
-# services sont devenus des packages (email_service/, scheduler/,
-# phishing_templates/). Elles laissaient croire à une exclusion alors que ces
-# modules étaient déjà mesurés. Supprimées.
+# Historique — 2026-07-30 : plus AUCUN service n'est exclu de la mesure.
+# Cinq l'étaient encore, sur la présomption qu'ils n'étaient pas testés. Mesure
+# faite, quatre l'étaient déjà correctement (phishing 90 %, scan 83 %,
+# public_scan 82 %, quote 75 %) : ils étaient invisibles, pas à découvert. Le
+# cinquième, newsletter_email, était réellement à 25 % — le seul vrai angle mort
+# du lot, et on ne le voyait pas.
+# Trois autres entrées ne matchaient plus rien depuis que ces services sont
+# devenus des packages (email_service/, scheduler/, phishing_templates/) et
+# laissaient croire à une exclusion inexistante.
 [run]
 source = app
 omit =
     # Migrations : du DDL généré, pas du code applicatif.
     app/alembic/*
-    # Configuration de connexion : exécutée à l'import, rien à tester.
+    # Configuration de connexion : quelques lignes exécutées à l'import, sans
+    # branche à tester.
     app/core/database.py
-    # Services encore non couverts — à réintégrer au fur et à mesure que des
-    # tests sont écrits, comme on vient de le faire pour la surface paiement.
-    app/services/newsletter_email.py
-    app/services/scan_service.py
-    app/services/phishing_service.py
-    app/services/public_scan_service.py
-    app/services/quote_service.py
-
-# Retirés de la liste le 2026-07-30 : app/services/stripe_service.py et
-# app/api/v1/endpoints/webhooks.py. Ces deux fichiers portent la chaîne de
-# paiement et sont couverts par 88 tests (test_subscriptions,
-# test_webhooks*, test_stripe_service_unit...), mais ils étaient exclus de la
-# MESURE : personne ne savait ce que ces tests couvrent réellement. C'est le
-# prérequis d'une montée du SDK Stripe — on ne s'appuie pas sur un filet dont
-# on ignore les trous.
 
 [report]
 exclude_lines =

@@ -94,12 +94,16 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Sensibilisation — Rocher Cybersécurité',
   },
   {
+    // PUBLIQUE, comme /rssi-externalise et les autres pages d'offre : c'est une
+    // page de presentation et de tarifs, sans donnee utilisateur ni appel d'API.
+    // Elle etait derriere authGuard, ce qui renvoyait tout prospect vers le
+    // formulaire de connexion — y compris les consultants vises par le CTA
+    // « Devenir partenaire ».
     path: 'awareness-pricing',
     loadComponent: () =>
       import('./awareness-pricing/awareness-pricing.component').then(
         m => m.AwarenessPricingComponent
       ),
-    canActivate: [authGuard],
     title: 'Tarifs Sensibilisation NIS2 — Rocher Cybersécurité',
   },
   {
@@ -327,6 +331,14 @@ export const CYBERSCAN_ROUTES: Routes = [
     path: 'contact',
     loadComponent: () => import('./contact/contact.component').then(m => m.ContactComponent),
     title: 'Contact — Réserver un audit cybersécurité | Rocher Cybersécurité',
+  },
+  {
+    // PUBLIQUE : page vitrine de l'offre Dark Web, comme /rssi-externalise et
+    // /awareness-pricing. /darkweb-dossier reste l'application (authGuard).
+    path: 'darkweb-offre',
+    loadComponent: () =>
+      import('./darkweb-offre/darkweb-offre.component').then(m => m.DarkwebOffreComponent),
+    title: 'Dark Web Dossier — exposition de votre domaine | Rocher Cybersécurité',
   },
   {
     path: 'rssi-externalise',

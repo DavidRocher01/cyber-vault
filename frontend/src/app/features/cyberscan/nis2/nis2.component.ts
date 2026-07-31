@@ -20,10 +20,37 @@ import { formatFrDate } from '../../../shared/date-utils';
 
 export type Nis2Status = 'compliant' | 'partial' | 'non_compliant' | 'na';
 
+/** Produit interne qui comble l'écart pointé par un item du référentiel.
+ *
+ * Renseigné côté backend (NIS2_CATEGORIES) uniquement pour les items où un
+ * produit répond réellement au manque — pas d'approximation commerciale.
+ */
+export interface Nis2Remediation {
+  produit: string;
+  route: string;
+}
+
+/** Mesure objective detenue par la plateforme pour un item du referentiel.
+ *
+ * Elle NE remplit PAS le questionnaire : l'utilisateur declare, la plateforme
+ * mesure. Une auto-evaluation pre-remplie n'est plus une declaration et perd sa
+ * valeur devant un auditeur.
+ */
+export interface Nis2Preuve {
+  organisations: number;
+  apprenants: number;
+  termines: number;
+  pct: number;
+}
+
 export interface Nis2Item {
   id: string;
   label: string;
   desc: string;
+  /** Article de la directive (UE) 2022/2555 auquel l'item se rattache.
+   *  Rattachement indicatif, pas une analyse juridique. */
+  article?: string;
+  remediation?: Nis2Remediation;
 }
 
 export interface Nis2Category {
@@ -67,6 +94,7 @@ export class Nis2Component implements OnInit {
   readonly showUpgrade = computed(() => this.subLoaded() && !this.canExport());
 
   categories = signal<Nis2Category[]>([]);
+  preuves = signal<Record<string, Nis2Preuve>>({});
   items = signal<Record<string, Nis2Status>>({});
   score = signal(0);
   updatedAt = signal<string | null>(null);
@@ -90,6 +118,7 @@ export class Nis2Component implements OnInit {
         // generiques dont les valeurs sont garanties valides pour ces types.
         this.categories.set((data.categories ?? []) as Nis2Category[]);
         this.items.set((data.items ?? {}) as Record<string, Nis2Status>);
+        this.preuves.set((data.preuves ?? {}) as Record<string, Nis2Preuve>);
         this.score.set(data.score ?? 0);
         this.updatedAt.set(data.updated_at ?? null);
         this.loading.set(false);
@@ -103,6 +132,23 @@ export class Nis2Component implements OnInit {
 
   getStatus(itemId: string): Nis2Status {
     return this.items()[itemId] ?? 'non_compliant';
+  }
+
+  /** Mesure détenue par la plateforme pour cet item, s'il y en a une. */
+  preuve(itemId: string): Nis2Preuve | null {
+    return this.preuves()[itemId] ?? null;
+  }
+
+  /** Vrai si l'item a été EXPLICITEMENT renseigné comme un écart.
+   *
+   * getStatus() retourne 'non_compliant' par défaut pour les items non
+   * renseignés : s'en servir afficherait la remédiation sur une évaluation
+   * vierge, avant que l'utilisateur ait rien déclaré. On exige donc une réponse
+   * explicite.
+   */
+  aUnEcartDeclare(itemId: string): boolean {
+    const statut = this.items()[itemId];
+    return statut === 'non_compliant' || statut === 'partial';
   }
 
   toggle(itemId: string) {

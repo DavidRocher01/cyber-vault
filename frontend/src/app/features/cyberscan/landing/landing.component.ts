@@ -46,6 +46,8 @@ import {
   USE_CASES,
   CYBER_STATS,
 } from './landing.data';
+import { NB_MODULES, PARCOURS } from '../../../shared/awareness-catalog.generated';
+import { PLAN_ENTREE } from '../../../shared/awareness-plans';
 
 @Component({
   standalone: true,
@@ -100,6 +102,11 @@ export class LandingComponent implements OnInit, AfterViewInit {
   isRssiConsultant = signal(false);
 
   // Static data from landing.data.ts
+  // Catalogue derive de content/fr/ via le script de generation.
+  readonly nbModules = NB_MODULES;
+  readonly parcours = PARCOURS;
+  /** Prix d'entrée de la sensibilisation — source unique, jamais recopié. */
+  readonly planEntree = PLAN_ENTREE;
   readonly features = FEATURES;
   readonly testimonials = TESTIMONIALS;
   readonly faqs = FAQS;

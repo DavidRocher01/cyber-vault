@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,6 +7,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Title } from '@angular/platform-browser';
 
 import { DarkwebDossierService, DossierListItem } from '../services/darkweb-dossier.service';
+import { BillingService } from '../services/billing.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { formatFrDate } from '../../../shared/date-utils';
 
@@ -25,6 +26,7 @@ import { formatFrDate } from '../../../shared/date-utils';
 })
 export class DarkwebDossierComponent implements OnInit {
   private service = inject(DarkwebDossierService);
+  private billing = inject(BillingService);
   private snack = inject(MatSnackBar);
   private title = inject(Title);
 
@@ -32,8 +34,33 @@ export class DarkwebDossierComponent implements OnInit {
   loading = signal(true);
   deletingId = signal<number | null>(null);
 
+  // Le backend reserve la CREATION d'un dossier au tier 3 (Pro+). La page ne le
+  // disait pas : un compte Gratuit arrivait sur un ecran muet ou la creation
+  // echouait sans explication. Meme traitement que l'export NIS2 verrouille.
+  private abonnementCharge = signal(false);
+  peutCreer = signal(false);
+  readonly montrerUpgrade = computed(() => this.abonnementCharge() && !this.peutCreer());
+
+  /** Tier minimal exigé par le backend pour créer un dossier. */
+  private readonly TIER_REQUIS = 3;
+
   ngOnInit() {
     this.title.setTitle('Dark Web Dossier — Rocher Cybersécurité');
+
+    this.billing.getMySubscription().subscribe({
+      next: sub => {
+        this.peutCreer.set((sub?.plan?.tier_level ?? 0) >= this.TIER_REQUIS);
+        this.abonnementCharge.set(true);
+      },
+      // En cas d'echec on n'affiche PAS le verrou : mieux vaut laisser tenter
+      // et recevoir l'erreur du backend que bloquer un client payant sur une
+      // panne de lecture d'abonnement.
+      error: () => {
+        this.peutCreer.set(true);
+        this.abonnementCharge.set(true);
+      },
+    });
+
     this.load();
   }
 

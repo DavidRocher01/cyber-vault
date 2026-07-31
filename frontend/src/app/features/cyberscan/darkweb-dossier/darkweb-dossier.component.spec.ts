@@ -62,3 +62,74 @@ describe('DarkwebDossierComponent — formatDate()', () => {
     expect(make().formatDate('2024-05-20T10:00:00Z')).toContain('20');
   });
 });
+
+// ── Verrou de plan (2026-07-30) ───────────────────────────────────────────────
+//
+// Le backend réserve la CRÉATION d'un dossier au tier 3 (Pro+), mais la page ne
+// le disait pas : un compte Gratuit arrivait sur un écran muet où la création
+// échouait sans explication, après avoir vu l'entrée dans le menu.
+
+import { computed } from '@angular/core';
+import { of, throwError } from 'rxjs';
+import { vi } from 'vitest';
+
+function makeAvecAbonnement(sub: unknown, erreur = false): DarkwebDossierComponent {
+  const comp = Object.create(DarkwebDossierComponent.prototype) as DarkwebDossierComponent;
+  (comp as any).dossiers = signal([]);
+  (comp as any).loading = signal(false);
+  (comp as any).abonnementCharge = signal(false);
+  (comp as any).peutCreer = signal(false);
+  (comp as any).montrerUpgrade = computed(
+    () => (comp as any).abonnementCharge() && !(comp as any).peutCreer()
+  );
+  (comp as any).TIER_REQUIS = 3;
+  (comp as any).title = { setTitle: vi.fn() };
+  (comp as any).service = { list: vi.fn(() => of([])) };
+  (comp as any).billing = {
+    getMySubscription: vi.fn(() => (erreur ? throwError(() => new Error('boom')) : of(sub))),
+  };
+  return comp;
+}
+
+describe('DarkwebDossierComponent — verrou de plan', () => {
+  it('compte Gratuit (tier 1) : le verrou s’affiche', () => {
+    const c = makeAvecAbonnement({ plan: { tier_level: 1 } });
+    c.ngOnInit();
+    expect((c as any).peutCreer()).toBe(false);
+    expect((c as any).montrerUpgrade()).toBe(true);
+  });
+
+  it('sans abonnement du tout : le verrou s’affiche', () => {
+    const c = makeAvecAbonnement(null);
+    c.ngOnInit();
+    expect((c as any).montrerUpgrade()).toBe(true);
+  });
+
+  it('plan Pro (tier 3) : pas de verrou', () => {
+    const c = makeAvecAbonnement({ plan: { tier_level: 3 } });
+    c.ngOnInit();
+    expect((c as any).peutCreer()).toBe(true);
+    expect((c as any).montrerUpgrade()).toBe(false);
+  });
+
+  it('plan supérieur (tier 4) : pas de verrou', () => {
+    const c = makeAvecAbonnement({ plan: { tier_level: 4 } });
+    c.ngOnInit();
+    expect((c as any).montrerUpgrade()).toBe(false);
+  });
+
+  it('le seuil suit celui du backend (require_min_tier(3))', () => {
+    const c2 = makeAvecAbonnement({ plan: { tier_level: 2 } });
+    c2.ngOnInit();
+    expect((c2 as any).montrerUpgrade()).toBe(true);
+  });
+
+  it('échec de lecture de l’abonnement : on NE bloque PAS', () => {
+    // Mieux vaut laisser tenter et recevoir l'erreur du backend que verrouiller
+    // un client payant sur une panne de lecture d'abonnement.
+    const c = makeAvecAbonnement(null, true);
+    c.ngOnInit();
+    expect((c as any).peutCreer()).toBe(true);
+    expect((c as any).montrerUpgrade()).toBe(false);
+  });
+});

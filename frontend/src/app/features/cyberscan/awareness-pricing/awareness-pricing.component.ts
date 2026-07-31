@@ -4,88 +4,17 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
-
-interface AwarenessPlan {
-  id: string;
-  name: string;
-  price: number;
-  period: string;
-  maxLearners: number | null;
-  badge: string;
-  featured: boolean;
-  features: string[];
-}
-
-const PLANS: AwarenessPlan[] = [
-  {
-    id: 'awareness-s',
-    name: 'Formation S',
-    price: 79,
-    period: 'mois',
-    maxLearners: 10,
-    badge: '',
-    featured: false,
-    features: [
-      "Jusqu'à 10 learners",
-      '28 modules NIS2 inclus',
-      'Quiz avec 3 tentatives',
-      'Attestations PDF vérifiables',
-      'Dashboard de complétion',
-      'Magic-link sans mot de passe',
-    ],
-  },
-  {
-    id: 'awareness-m',
-    name: 'Formation M',
-    price: 199,
-    period: 'mois',
-    maxLearners: 30,
-    badge: 'Populaire',
-    featured: true,
-    features: [
-      "Jusqu'à 30 learners",
-      'Tout Formation S +',
-      'Import CSV en masse',
-      'Gamification (XP, badges, classement)',
-      'Rapport NIS2 Article 21 PDF',
-      'Dashboard at-risk learners',
-    ],
-  },
-  {
-    id: 'awareness-l',
-    name: 'Formation L',
-    price: 449,
-    period: 'mois',
-    maxLearners: 75,
-    badge: '',
-    featured: false,
-    features: [
-      "Jusqu'à 75 learners",
-      'Tout Formation M +',
-      'Multi-organisations',
-      'Rapport de conformité exportable',
-      'Relances automatiques des inactifs',
-      'Support prioritaire',
-    ],
-  },
-  {
-    id: 'awareness-xl',
-    name: 'Formation XL',
-    price: 899,
-    period: 'mois',
-    maxLearners: 200,
-    badge: 'Entreprise',
-    featured: false,
-    features: [
-      "Jusqu'à 200 learners",
-      'Tout Formation L +',
-      'Onboarding personnalisé',
-      'Modules sur mesure (option)',
-      'SLA 99,9 % garanti',
-      'Facturation annuelle disponible',
-    ],
-  },
-];
+import {
+  NB_MODULES,
+  DUREE_TOTALE_MINUTES,
+  PARCOURS,
+} from '../../../shared/awareness-catalog.generated';
+import {
+  PLANS,
+  MIN_CLIENTS_PARTENAIRE,
+  REMISE_PARTENAIRE,
+  prixPartenaire,
+} from '../../../shared/awareness-plans';
 
 @Component({
   standalone: true,
@@ -110,8 +39,8 @@ const PLANS: AwarenessPlan[] = [
             Formez vos équipes à la cybersécurité
           </h1>
           <p class="text-gray-400 text-lg max-w-2xl mx-auto">
-            28 modules e-learning NIS2 Article 21, attestations vérifiables et tableau de bord de
-            conformité. Simple, certifiant, prêt en 48h.
+            {{ nbModules }} modules e-learning NIS2 Article 21, attestations vérifiables et tableau
+            de bord de conformité. Simple, traçable, prêt en 48h.
           </p>
           <div
             class="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-full border border-amber-600/30 bg-amber-500/5 text-amber-400 text-sm"
@@ -203,6 +132,47 @@ const PLANS: AwarenessPlan[] = [
           }
         </div>
 
+        <!-- Offre partenaire : consultants RSSI qui pilotent plusieurs clients.
+             Prix DERIVES du barreme direct (meme logique de taille), pour qu'un
+             gros compte ne passe pas par un consultant juste pour changer de
+             barreme. -->
+        <div class="rounded-xl border border-amber-700/40 bg-amber-900/10 p-6 mb-12">
+          <div class="flex flex-wrap items-center gap-3 mb-2">
+            <mat-icon class="text-amber-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem]"
+              >handshake</mat-icon
+            >
+            <h2 class="text-white font-semibold">Vous êtes consultant RSSI ?</h2>
+            <span
+              class="text-[0.7rem] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-600/30"
+            >
+              -{{ remisePartenairePct }} %
+            </span>
+          </div>
+          <p class="text-gray-400 text-sm mb-5">
+            Formez les équipes de vos clients depuis un seul compte. Tarif partenaire à partir de
+            {{ minClientsPartenaire }} organisations clientes, facturé par client selon sa taille.
+          </p>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            @for (plan of plans; track plan.id) {
+              <div class="rounded-lg border border-gray-800 bg-gray-900 p-4">
+                <p class="text-gray-500 text-xs mb-1">
+                  {{ plan.maxLearners ? "jusqu'à " + plan.maxLearners : 'illimité' }} apprenants
+                </p>
+                <p class="text-amber-400 text-xl font-bold">{{ prixPartenaire(plan) }}€</p>
+                <p class="text-gray-600 text-xs line-through">{{ plan.price }}€ en direct</p>
+              </div>
+            }
+          </div>
+          <a
+            routerLink="/contact"
+            [queryParams]="{ subject: 'partenaire-sensibilisation' }"
+            mat-flat-button
+            class="!bg-amber-600 hover:!bg-amber-500 !text-white !rounded-xl !text-sm"
+          >
+            Devenir partenaire
+          </a>
+        </div>
+
         <!-- Feature comparison -->
         <div class="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden mb-12">
           <div class="p-6 border-b border-gray-800">
@@ -252,16 +222,23 @@ const PLANS: AwarenessPlan[] = [
 })
 export class AwarenessPricingComponent {
   readonly plans = PLANS;
+  /** Tarif partenaire : DERIVE du barreme direct, jamais recopie. */
+  readonly prixPartenaire = prixPartenaire;
+  readonly remisePartenairePct = Math.round(REMISE_PARTENAIRE * 100);
+  readonly minClientsPartenaire = MIN_CLIENTS_PARTENAIRE;
+  /** Catalogue derive de content/fr/ — jamais recopie a la main. */
+  readonly parcours = PARCOURS;
+  readonly nbModules = NB_MODULES;
 
   readonly featureGroups = [
     {
       icon: 'menu_book',
       title: 'Formation',
       items: [
-        '17 modules NIS2 Article 21',
+        `${NB_MODULES} modules NIS2 Article 21`,
         'Quiz adaptatifs (3 tentatives)',
         'Progression séquentielle',
-        'Temps de lecture ~72 min',
+        `Parcours complet ~${DUREE_TOTALE_MINUTES} min`,
         'Contenu mis à jour régulièrement',
       ],
     },

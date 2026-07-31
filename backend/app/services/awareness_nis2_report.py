@@ -414,3 +414,67 @@ async def build_nis2_report(db: AsyncSession, org_id: int) -> dict:
         "certificate_count": cert_count,
         "generated_at": datetime.now(UTC),
     }
+
+
+# ---------------------------------------------------------------------------
+# Preuve de formation pour l'auto-evaluation NIS2
+# ---------------------------------------------------------------------------
+
+
+async def preuve_formation(db: AsyncSession, user_id: int) -> dict | None:
+    """Mesure la formation reellement suivie dans les organisations d'un user.
+
+    Sert la boucle de retour entre les deux produits NIS2 : l'auto-evaluation
+    demande « vos employes suivent-ils une formation cyber ? » alors que la
+    plateforme connait deja la reponse pour les clients qui utilisent
+    l'e-learning.
+
+    IMPORTANT — cette fonction ne repond PAS a la place de l'utilisateur. Elle
+    fournit une mesure ; c'est lui qui declare sa conformite. Une auto-evaluation
+    remplie automatiquement n'est plus une declaration, et perdrait sa valeur
+    devant un auditeur.
+
+    Retourne None si l'utilisateur ne possede aucune organisation apprenante —
+    il n'y a alors rien a mesurer, pas de preuve « a zero ».
+    """
+    orgs = (
+        (
+            await db.execute(
+                select(AwarenessOrganization.id).where(
+                    AwarenessOrganization.owner_user_id == user_id,
+                    AwarenessOrganization.is_active == True,  # noqa: E712
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if not orgs:
+        return None
+
+    apprenants = (
+        await db.execute(
+            select(func.count(AwarenessLearner.id)).where(
+                AwarenessLearner.organization_id.in_(orgs),
+                AwarenessLearner.is_active == True,  # noqa: E712
+            )
+        )
+    ).scalar_one()
+
+    # Un apprenant est compte une seule fois, meme s'il a termine plusieurs
+    # parcours : on mesure des personnes formees, pas des inscriptions.
+    termines = (
+        await db.execute(
+            select(func.count(func.distinct(AwarenessEnrollment.learner_id))).where(
+                AwarenessEnrollment.organization_id.in_(orgs),
+                AwarenessEnrollment.status == "completed",
+            )
+        )
+    ).scalar_one()
+
+    return {
+        "organisations": len(orgs),
+        "apprenants": apprenants,
+        "termines": termines,
+        "pct": round(termines / apprenants * 100, 1) if apprenants else 0.0,
+    }

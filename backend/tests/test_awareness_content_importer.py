@@ -1,4 +1,5 @@
 """
+import pytest
 Tests d'intégration — ContentImporter (awareness module).
 
 Couvre :
@@ -325,3 +326,80 @@ is_active: true
 
     assert first.position == 1
     assert second.position == 2
+
+
+# ── Quota d'apprenants a l'import CSV ────────────────────────────────────────
+#
+# Le quota etait verifie a la creation unitaire (endpoint learners) mais PAS a
+# l'import en masse : une organisation vendue pour 10 apprenants pouvait en
+# recevoir 500 par CSV. Ajoute le 2026-07-30.
+
+
+@pytest.mark.asyncio
+async def test_import_csv_respecte_le_quota(db_session):
+    from app.models.awareness_organization import AwarenessOrganization
+    from app.models.user import User
+    from app.services.awareness_csv_import import import_learners_from_csv
+
+    u = User(email="quota@acme.fr", hashed_password="x")
+    db_session.add(u)
+    await db_session.flush()
+    org = AwarenessOrganization(owner_user_id=u.id, name="Petite", max_learners=2)
+    db_session.add(org)
+    await db_session.flush()
+
+    csv = (
+        b"email,first_name,last_name\na@acme.fr,A,A\nb@acme.fr,B,B\nc@acme.fr,C,C\nd@acme.fr,D,D\n"
+    )
+    res = await import_learners_from_csv(db_session, org.id, csv)
+
+    assert res.created == 2, "seuls les apprenants tenant dans le quota sont crees"
+    assert res.skipped == 2, "les autres sont ignores, pas crees en silence"
+    assert any("quota" in e.lower() for e in res.errors), "l'utilisateur doit savoir pourquoi"
+
+
+@pytest.mark.asyncio
+async def test_import_csv_tient_compte_des_apprenants_deja_presents(db_session):
+    """Le quota porte sur le total, pas sur le fichier importe."""
+    from app.models.awareness_learner import AwarenessLearner
+    from app.models.awareness_organization import AwarenessOrganization
+    from app.models.user import User
+    from app.services.awareness_csv_import import import_learners_from_csv
+
+    u = User(email="deja@acme.fr", hashed_password="x")
+    db_session.add(u)
+    await db_session.flush()
+    org = AwarenessOrganization(owner_user_id=u.id, name="Deja peuplee", max_learners=3)
+    db_session.add(org)
+    await db_session.flush()
+    db_session.add(
+        AwarenessLearner(organization_id=org.id, email="existant@acme.fr", first_name="E")
+    )
+    await db_session.flush()
+
+    csv = b"email,first_name,last_name\nx@acme.fr,X,X\ny@acme.fr,Y,Y\nz@acme.fr,Z,Z\n"
+    res = await import_learners_from_csv(db_session, org.id, csv)
+
+    assert res.created == 2, "3 places - 1 deja occupee = 2"
+    assert res.skipped == 1
+
+
+@pytest.mark.asyncio
+async def test_import_csv_sous_le_quota_passe_entierement(db_session):
+    from app.models.awareness_organization import AwarenessOrganization
+    from app.models.user import User
+    from app.services.awareness_csv_import import import_learners_from_csv
+
+    u = User(email="large@acme.fr", hashed_password="x")
+    db_session.add(u)
+    await db_session.flush()
+    org = AwarenessOrganization(owner_user_id=u.id, name="Large", max_learners=50)
+    db_session.add(org)
+    await db_session.flush()
+
+    csv = b"email,first_name,last_name\na@x.fr,A,A\nb@x.fr,B,B\n"
+    res = await import_learners_from_csv(db_session, org.id, csv)
+
+    assert res.created == 2
+    assert res.skipped == 0
+    assert res.errors == []

@@ -21,7 +21,34 @@ provisionner côté AWS pour les activer.
 
 ---
 
-## Action A — Compteurs de rate-limit partagés (ElastiCache Redis) → active #5
+## ⚠️ Statut réel des deux actions (vérifié le 2026-07-30)
+
+**Action A (Redis) — DIFFÉRÉE, ce n'est pas un trou aujourd'hui.** Le conteneur
+tourne en `--workers 1` et le service ECS en `desiredCount: 1` : un seul
+processus détient les compteurs, ils sont donc **de fait globaux**. Le finding #5
+ne se matérialise qu'à partir de **2 tâches** (ou pendant les quelques secondes
+d'un déploiement). C'est un prérequis pour scaler, pas une faille active.
+
+> Coûts relevés via l'API AWS Pricing (EU Paris, `cache.t4g.micro`, aucun free
+> tier sur ce compte) : **Redis 13,14 $/mois**, **Valkey 10,51 $/mois**. Prendre
+> **Valkey** le jour où on provisionne : `limits` 5.8.0 supporte nativement les
+> schémas `valkey://` / `valkeys://`, donc **zéro ligne de code à changer**.
+>
+> Alternative écartée : écrire un backend de stockage PostgreSQL pour `limits`
+> (non supporté nativement). Ça mettrait une écriture par requête sur la base,
+> sur les endpoints publics justement visés par un afflux — la protection
+> deviendrait un amplificateur.
+
+**Action B (verrou ALB) — À FAIRE, trou ouvert et correction gratuite.** L'ALB
+`cybervault-alb` est `internet-facing` et répond en direct : `/health` renvoie
+200 en HTTP comme en HTTPS, CloudFront contourné. Un attaquant peut donc forger
+`X-Forwarded-For` et **changer sa clé de rate-limit à volonté**, ce qui annule la
+protection par IP des endpoints publics non authentifiés. C'est l'action qui a le
+meilleur rapport valeur/coût du lot : **0 €**.
+
+---
+
+## Action A — Compteurs de rate-limit partagés (ElastiCache) → active #5
 
 Rend les limites (`public-scans 3/h`, `contact 3/h`, `url-scans 10/min`, `unlock 5/h`,
 login) **globales à toutes les tâches ECS** au lieu d'être comptées par tâche.

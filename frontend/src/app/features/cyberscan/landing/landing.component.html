@@ -35,7 +35,7 @@
         >Blog</a
       >
       <a
-        routerLink="/sensibilisation"
+        routerLink="/awareness-pricing"
         mat-button
         class="!text-amber-400 font-medium hidden lg:inline-flex items-center gap-1"
       >
@@ -142,6 +142,10 @@
                     >manage_search</mat-icon
                   >
                   Dark Web Dossier
+                  <span
+                    class="ml-auto px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 uppercase tracking-wide"
+                    >PRO</span
+                  >
                 </a>
                 @if (isRssiConsultant()) {
                   <a
@@ -656,6 +660,136 @@
     </div>
   </section>
 
+  <!-- Sensibilisation NIS2 -->
+  <section class="px-8 py-20 bg-gray-900 border-t border-gray-800">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-14">
+        <span
+          class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-amber-400 mb-4"
+        >
+          <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">school</mat-icon>
+          Sensibilisation NIS2
+        </span>
+        <h2 class="text-3xl font-bold mb-3">Prouvez que vos équipes sont formées</h2>
+        <p class="text-gray-300 max-w-2xl mx-auto text-sm leading-relaxed">
+          L'article 21 de NIS2 impose la formation du personnel. Nous délivrons une
+          <strong class="text-white"
+            >attestation vérifiable en ligne par votre client, votre auditeur ou votre
+            assureur</strong
+          >
+          — sans qu'ils aient besoin d'un compte.
+        </p>
+        <p class="text-gray-500 max-w-2xl mx-auto text-xs leading-relaxed mt-3">
+          {{ nbModules }} modules, {{ parcours.length }} parcours selon le profil, suivi individuel.
+          Prêt en 48 h.
+        </p>
+      </div>
+
+      <!-- Les 4 parcours : reponse a l'objection « mes equipes n'ont pas le temps ».
+           Donnees derivees de content/fr/ via awareness-catalog.generated.ts. -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        @for (p of parcours; track p.slug) {
+          <div
+            class="rounded-2xl border border-amber-800/50 bg-amber-900/10 p-6 flex flex-col gap-3 text-center"
+          >
+            <span class="text-2xl font-extrabold text-amber-400">{{ p.dureeMinutes }}</span>
+            <span class="text-[11px] uppercase tracking-widest text-gray-500">minutes</span>
+            <h3 class="font-bold text-sm mt-1">{{ p.public }}</h3>
+            <p class="text-xs text-gray-400">{{ p.nbModules }} modules</p>
+          </div>
+        }
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+        <!-- Feature columns -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div
+            class="rounded-2xl border border-amber-800/50 bg-amber-900/10 p-6 flex flex-col gap-3"
+          >
+            <mat-icon class="text-amber-400 !text-[1.5rem] !w-[1.5rem] !h-[1.5rem]"
+              >menu_book</mat-icon
+            >
+            <h3 class="font-bold text-sm">Formation</h3>
+            <ul class="flex flex-col gap-1.5 text-xs text-gray-400">
+              <li>{{ nbModules }} modules NIS2 Art. 21</li>
+              <li>Quiz adaptatifs</li>
+              <li>{{ parcours.length }} parcours par profil</li>
+              <li>Magic-link sans MDP</li>
+            </ul>
+          </div>
+          <div
+            class="rounded-2xl border border-green-800/50 bg-green-900/10 p-6 flex flex-col gap-3"
+          >
+            <mat-icon class="text-green-400 !text-[1.5rem] !w-[1.5rem] !h-[1.5rem]"
+              >verified</mat-icon
+            >
+            <h3 class="font-bold text-sm">Attestations</h3>
+            <ul class="flex flex-col gap-1.5 text-xs text-gray-400">
+              <li>PDF auto-généré</li>
+              <li>QR code de vérification</li>
+              <li>Signature SHA-256</li>
+              <li>Validité 12 mois</li>
+            </ul>
+          </div>
+          <div class="rounded-2xl border border-cyan-800/50 bg-cyan-900/10 p-6 flex flex-col gap-3">
+            <mat-icon class="text-cyan-400 !text-[1.5rem] !w-[1.5rem] !h-[1.5rem]"
+              >bar_chart</mat-icon
+            >
+            <h3 class="font-bold text-sm">Pilotage</h3>
+            <ul class="flex flex-col gap-1.5 text-xs text-gray-400">
+              <li>Score de conformité</li>
+              <li>Alertes at-risk</li>
+              <li>Rapport PDF NIS2</li>
+              <li>Export CSV</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- CTA card -->
+        <div class="rounded-2xl border border-amber-700/40 bg-gray-800 p-8 flex flex-col gap-6">
+          <div
+            class="inline-flex items-center gap-2 bg-amber-900/30 text-amber-400 px-3 py-1 rounded-full text-xs font-medium border border-amber-800 self-start"
+          >
+            <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">shield</mat-icon>
+            Conforme NIS2 Article 21
+          </div>
+          <div>
+            <p class="text-gray-300 text-sm leading-relaxed mb-4">
+              La directive NIS2 impose la sensibilisation de l'ensemble du personnel à la
+              cybersécurité. Notre plateforme e-learning vous permet de répondre à cette obligation
+              avec un suivi individuel et des attestations infalsifiables.
+            </p>
+            <div class="flex items-baseline gap-1 mb-1">
+              <span class="text-3xl font-extrabold text-amber-400">{{ planEntree.price }}€</span>
+              <span class="text-gray-400 text-sm"
+                >/ mois HT · jusqu'à {{ planEntree.maxLearners }} apprenants</span
+              >
+            </div>
+            <p class="text-xs text-gray-500">Essai gratuit 14 jours · Sans engagement</p>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <a
+              routerLink="/awareness-pricing"
+              mat-flat-button
+              color="primary"
+              class="flex-1 text-center py-3 rounded-lg font-semibold text-sm"
+            >
+              Découvrir la formation
+            </a>
+            <a
+              routerLink="/contact"
+              [queryParams]="{ subject: 'sensibilisation-nis2' }"
+              mat-stroked-button
+              class="flex-1 text-center py-3 rounded-lg text-sm !border-gray-600 !text-gray-300"
+            >
+              Demander un devis
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Pricing -->
   <section id="pricing" class="px-8 py-20 bg-gray-800/30">
     <h2 class="text-3xl font-bold text-center mb-3">Tarifs simples et transparents</h2>
@@ -922,112 +1056,6 @@
           }
         </tbody>
       </table>
-    </div>
-  </section>
-
-  <!-- Sensibilisation NIS2 -->
-  <section class="px-8 py-20 bg-gray-900 border-t border-gray-800">
-    <div class="max-w-6xl mx-auto">
-      <div class="text-center mb-14">
-        <span
-          class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-amber-400 mb-4"
-        >
-          <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">school</mat-icon>
-          Sensibilisation NIS2
-        </span>
-        <h2 class="text-3xl font-bold mb-3">Formez vos équipes à la cybersécurité</h2>
-        <p class="text-gray-400 max-w-2xl mx-auto text-sm leading-relaxed">
-          17 modules e-learning NIS2 Article 21, attestations PDF vérifiables et tableau de bord de
-          conformité. Simple, certifiant, prêt en 48h.
-        </p>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-        <!-- Feature columns -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div
-            class="rounded-2xl border border-amber-800/50 bg-amber-900/10 p-6 flex flex-col gap-3"
-          >
-            <mat-icon class="text-amber-400 !text-[1.5rem] !w-[1.5rem] !h-[1.5rem]"
-              >menu_book</mat-icon
-            >
-            <h3 class="font-bold text-sm">Formation</h3>
-            <ul class="flex flex-col gap-1.5 text-xs text-gray-400">
-              <li>17 modules NIS2 Art. 21</li>
-              <li>Quiz adaptatifs</li>
-              <li>~72 min de contenu</li>
-              <li>Magic-link sans MDP</li>
-            </ul>
-          </div>
-          <div
-            class="rounded-2xl border border-green-800/50 bg-green-900/10 p-6 flex flex-col gap-3"
-          >
-            <mat-icon class="text-green-400 !text-[1.5rem] !w-[1.5rem] !h-[1.5rem]"
-              >verified</mat-icon
-            >
-            <h3 class="font-bold text-sm">Attestations</h3>
-            <ul class="flex flex-col gap-1.5 text-xs text-gray-400">
-              <li>PDF auto-généré</li>
-              <li>QR code de vérification</li>
-              <li>Signature SHA-256</li>
-              <li>Validité 12 mois</li>
-            </ul>
-          </div>
-          <div class="rounded-2xl border border-cyan-800/50 bg-cyan-900/10 p-6 flex flex-col gap-3">
-            <mat-icon class="text-cyan-400 !text-[1.5rem] !w-[1.5rem] !h-[1.5rem]"
-              >bar_chart</mat-icon
-            >
-            <h3 class="font-bold text-sm">Pilotage</h3>
-            <ul class="flex flex-col gap-1.5 text-xs text-gray-400">
-              <li>Score de conformité</li>
-              <li>Alertes at-risk</li>
-              <li>Rapport PDF NIS2</li>
-              <li>Export CSV</li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- CTA card -->
-        <div class="rounded-2xl border border-amber-700/40 bg-gray-800 p-8 flex flex-col gap-6">
-          <div
-            class="inline-flex items-center gap-2 bg-amber-900/30 text-amber-400 px-3 py-1 rounded-full text-xs font-medium border border-amber-800 self-start"
-          >
-            <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]">shield</mat-icon>
-            Conforme NIS2 Article 21
-          </div>
-          <div>
-            <p class="text-gray-300 text-sm leading-relaxed mb-4">
-              La directive NIS2 impose la sensibilisation de l'ensemble du personnel à la
-              cybersécurité. Notre plateforme e-learning vous permet de répondre à cette obligation
-              avec un suivi individuel et des attestations infalsifiables.
-            </p>
-            <div class="flex items-baseline gap-1 mb-1">
-              <!-- Doit rester aligne sur Formation S dans awareness-pricing.component.ts
-                   (page visee par « Voir les tarifs » juste en dessous). -->
-              <span class="text-3xl font-extrabold text-amber-400">79€</span>
-              <span class="text-gray-400 text-sm">/ mois HT · jusqu'à 10 learners</span>
-            </div>
-            <p class="text-xs text-gray-500">Essai gratuit 14 jours · Sans engagement</p>
-          </div>
-          <div class="flex flex-col sm:flex-row gap-3">
-            <a
-              routerLink="/sensibilisation"
-              mat-flat-button
-              color="primary"
-              class="flex-1 text-center py-3 rounded-lg font-semibold text-sm"
-            >
-              Découvrir le module
-            </a>
-            <a
-              routerLink="/awareness-pricing"
-              mat-stroked-button
-              class="flex-1 text-center py-3 rounded-lg text-sm !border-gray-600 !text-gray-300"
-            >
-              Voir les tarifs
-            </a>
-          </div>
-        </div>
-      </div>
     </div>
   </section>
 
@@ -1438,10 +1466,10 @@
           <a routerLink="/simulation-phishing" class="hover:text-cyan-400 transition-colors"
             >Simulation phishing</a
           >
-          <a routerLink="/darkweb-dossier" class="hover:text-rose-400 transition-colors"
+          <a routerLink="/darkweb-offre" class="hover:text-rose-400 transition-colors"
             >Dark Web Dossier</a
           >
-          <a routerLink="/consultant" class="hover:text-cyan-400 transition-colors"
+          <a routerLink="/rssi-externalise" class="hover:text-cyan-400 transition-colors"
             >RSSI Externalisé</a
           >
           <a routerLink="/awareness-pricing" class="hover:text-amber-400 transition-colors"

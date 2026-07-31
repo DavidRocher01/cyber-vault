@@ -19,7 +19,7 @@ installent les mêmes versions : `requirements.txt` hérite de
 **Une advisory ouverte, dev uniquement** : `brace-expansion`
 [GHSA-mh99-v99m-4gvg](https://github.com/advisories/GHSA-mh99-v99m-4gvg) (DoS),
 via toute la chaîne de dépendances d'ESLint 8. N'atteint jamais le navigateur.
-Corrigée par le passage à ESLint 9.
+Corrigée par le passage à ESLint 10.
 
 ---
 
@@ -39,13 +39,13 @@ mécanisme : il ne reçoit plus de correctifs, donc l'advisory ci-dessus ne sera
 ## Les quatre chantiers, dans l'ordre
 
 L'ordre n'est pas arbitraire : ESLint doit passer avant Angular, car
-`@angular-eslint` 20 (exigé par Angular 22) exige ESLint 9. Le faire après, c'est
+`@angular-eslint` (exigé par Angular 22) exige ESLint 10. Le faire après, c'est
 le faire deux fois.
 
-### 1. ESLint 8 → 9
+### 1. ESLint 8 → 10
 
 - **Débloque** : Angular 22 ; ferme l'advisory `brace-expansion`.
-- **Ce que ça implique** : ESLint 9 impose la configuration « flat ».
+- **Ce que ça implique** : ESLint 10 impose la configuration « flat ».
   `frontend/.eslintrc.json` est à réécrire en `eslint.config.js`. Entraîne
   `@typescript-eslint` 7 → 8 et `@angular-eslint` 17 → 20.
 - **Risque** : nul sur le bundle livré — outillage pur.
@@ -60,7 +60,10 @@ le faire deux fois.
 - **Risque** : deux majeures d'écart, sur l'interface vue par les clients.
 - **Validation disponible** : 3 057 tests unitaires, build AOT, E2E Playwright.
   Le filet existe et est sérieux.
-- **Prérequis** : ESLint 9 (voir ci-dessus).
+- **Prérequis** : ESLint 10 (voir ci-dessus), et **`typescript` monte avec le
+  groupe angular** — le compilateur Angular épingle une plage TS stricte
+  (constaté en CI : « requires TypeScript >=6.0.0 and <6.1.0 but 5.8.3 was
+  found »). Le groupe `angular` de `dependabot.yml` inclut donc `typescript`.
 - ⚠️ **Ne jamais fusionner une PR Dependabot Angular isolée.** Le groupement mis
   en place dans `.github/dependabot.yml` fait désormais arriver la famille en une
   seule PR — c'est celle-là qu'il faut, jamais un paquet seul.

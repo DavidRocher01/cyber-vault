@@ -36,6 +36,7 @@ from reportlab.platypus import (
 from app.services.pdf_brand import (
     BORDER,
     CARD_BG,
+    CYAN,
     GRAY,
     GREEN,
     RED,
@@ -307,9 +308,15 @@ def _detail_block(cfg: ComplianceStyle, w: float, cat: dict, items: dict) -> Kee
                 _st(f"Bdg{it['id']}", fontSize=7, fontName="Helvetica-Bold", textColor=sc_col),
             )
 
+        # Rattachement reglementaire accole au libelle : c'est ce que cherche un
+        # auditeur. Conditionnel — les referentiels ISO/PCA n'ont pas ce champ.
+        libelle = it["label"]
+        if it.get("article"):
+            libelle = f"{libelle}  <font color='#94a3b8' size='6'>{it['article']}</font>"
+
         content_cell = [
             Paragraph(
-                it["label"],
+                libelle,
                 _st(
                     f"Lb{it['id']}",
                     fontSize=8,
@@ -323,6 +330,30 @@ def _detail_block(cfg: ComplianceStyle, w: float, cat: dict, items: dict) -> Kee
                 _st(f"Dc{it['id']}", fontSize=7, textColor=GRAY, leading=10, spaceAfter=0),
             ),
         ]
+        # Remediation : le rapport pointait l'ecart sans jamais dire par quoi le
+        # combler. N'apparait que sur un ecart REEL et si le referentiel declare
+        # un produit pour cet item — les referentiels ISO/PCA n'en ont pas, le
+        # rendu est donc inchange pour eux.
+        # `status` retombe sur "non_compliant" pour un item NON RENSEIGNE (c'est
+        # la convention de score du produit). S'en servir ici proposerait six
+        # produits sur une evaluation vierge, alors que l'ecran n'en propose
+        # aucun. On exige donc une reponse explicite, comme dans nis2.component.
+        remediation = it.get("remediation")
+        if remediation and items.get(it["id"]) in ("non_compliant", "partial"):
+            content_cell.append(
+                Paragraph(
+                    f"→ Pour combler cet ecart : {remediation['produit']}",
+                    _st(
+                        f"Rm{it['id']}",
+                        fontSize=7,
+                        fontName="Helvetica-Bold",
+                        textColor=CYAN,
+                        leading=10,
+                        spaceBefore=3,
+                    ),
+                )
+            )
+
         item_rows.append([badge_cell, content_cell])
         item_ts.append(("BACKGROUND", (0, row_idx), (0, row_idx), STATUS_BG.get(status, CARD_BG)))
 

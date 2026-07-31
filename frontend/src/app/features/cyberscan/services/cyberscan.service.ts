@@ -216,4 +216,8 @@ export interface ComplianceAssessment {
   score: number;
   updated_at: string | null;
   categories?: unknown[];
+  /** Mesures détenues par la plateforme pour certains items (NIS2 uniquement
+   *  aujourd'hui). Ne remplissent jamais le questionnaire : l'utilisateur
+   *  déclare, la plateforme mesure. */
+  preuves?: Record<string, unknown>;
 }
