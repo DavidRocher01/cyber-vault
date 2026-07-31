@@ -71,6 +71,14 @@ jobs:
         # de dev a tourné en Python 3.12 pendant que la prod était en 3.14.
         run: python scripts/check_runtime_versions.py
 
+      - name: Syntaxe shell des workflows
+        # Le 2026-07-31, une apostrophe dans un commentaire du programme jq de
+        # deploy.yml a referme la chaine shell qui l'entoure et fait echouer un
+        # deploiement de production — le job frontend etant deja passe, la prod
+        # s'est retrouvee avec un frontend a jour devant un backend inchange.
+        # Rien ne testait les workflows : l'erreur ne se voyait qu'a l'execution.
+        run: python scripts/check_workflow_shell.py
+
       - name: Ruff (lint)
         run: ruff check app/
         working-directory: backend
