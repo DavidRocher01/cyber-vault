@@ -22,15 +22,26 @@
           collaborateurs ont été compromis dans des fuites.
         </p>
       </div>
-      <a
-        routerLink="/darkweb-dossier/new"
-        mat-flat-button
-        color="warn"
-        class="!rounded-xl flex-shrink-0"
-      >
-        <mat-icon>add</mat-icon>
-        Nouveau dossier
-      </a>
+      @if (montrerUpgrade()) {
+        <a
+          routerLink="/"
+          fragment="pricing"
+          class="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-amber-500 text-gray-900 hover:bg-amber-400 transition-all"
+        >
+          <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">lock</mat-icon>
+          Passer Pro pour créer un dossier
+        </a>
+      } @else {
+        <a
+          routerLink="/darkweb-dossier/new"
+          mat-flat-button
+          color="warn"
+          class="!rounded-xl flex-shrink-0"
+        >
+          <mat-icon>add</mat-icon>
+          Nouveau dossier
+        </a>
+      }
     </div>
 
     @if (loading()) {
@@ -41,15 +52,38 @@
         <mat-icon class="!text-[4rem] !w-[4rem] !h-[4rem] text-gray-700 mb-4"
           >travel_explore</mat-icon
         >
-        <h2 class="text-xl font-semibold text-gray-300 mb-2">Aucun dossier créé</h2>
-        <p class="text-gray-500 text-sm mb-6 max-w-md mx-auto">
-          Créez votre premier dossier en uploadant la liste des emails de vos collaborateurs.
-          L'analyse est entièrement automatique.
-        </p>
-        <a routerLink="/darkweb-dossier/new" mat-flat-button color="warn" class="!rounded-xl">
-          <mat-icon>add</mat-icon>
-          Créer un dossier
-        </a>
+        @if (montrerUpgrade()) {
+          <h2 class="text-xl font-semibold text-gray-300 mb-2">Inclus à partir du plan Pro</h2>
+          <p class="text-gray-500 text-sm mb-6 max-w-md mx-auto">
+            Le Dark Web Dossier analyse l'exposition de votre domaine dans les fuites connues :
+            adresses compromises, score de risque, sources identifiées et rapport PDF.
+          </p>
+          <div class="flex flex-col sm:flex-row gap-3 justify-center">
+            <a
+              routerLink="/"
+              fragment="pricing"
+              class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-amber-500 text-gray-900 hover:bg-amber-400 transition-all"
+            >
+              Voir les tarifs
+            </a>
+            <a
+              routerLink="/darkweb-offre"
+              class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-gray-600 text-gray-300 hover:border-gray-500 text-sm transition-all"
+            >
+              En savoir plus
+            </a>
+          </div>
+        } @else {
+          <h2 class="text-xl font-semibold text-gray-300 mb-2">Aucun dossier créé</h2>
+          <p class="text-gray-500 text-sm mb-6 max-w-md mx-auto">
+            Créez votre premier dossier en uploadant la liste des emails de vos collaborateurs.
+            L'analyse est entièrement automatique.
+          </p>
+          <a routerLink="/darkweb-dossier/new" mat-flat-button color="warn" class="!rounded-xl">
+            <mat-icon>add</mat-icon>
+            Créer un dossier
+          </a>
+        }
       </div>
 
       <!-- How it works -->
