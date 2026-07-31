@@ -111,6 +111,13 @@ jobs:
         working-directory: backend
 
       - name: Lisibilité des PDF (texte invisible, chevauchements)
+        env:
+          # Plusieurs generateurs importent `Settings`, qui exige ces deux
+          # champs. En local un .env les fournit, pas sur un runner : sans eux,
+          # six echantillons sur douze echouent a l'import. Memes valeurs
+          # factices que l'etape Alembic ci-dessous ; aucune base n'est touchee.
+          SECRET_KEY: ci-test-secret-key
+          DATABASE_URL: postgresql+asyncpg://postgres:password@localhost:5432/cybervault_test
         # Aucun test ne REGARDAIT un PDF : ils verifiaient qu'il est produit,
         # jamais qu'il est lisible. Le 2026-07-31 la bascule en thema clair a
         # rendu le rapport de phishing a moitie illisible — en-tetes, domaine,
