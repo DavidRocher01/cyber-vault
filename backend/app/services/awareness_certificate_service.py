@@ -187,12 +187,18 @@ def generate_certificate_pdf(cert: AwarenessCertificate, frozen: dict) -> bytes:
     import io
 
     import qrcode
-    from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
     from reportlab.platypus import SimpleDocTemplate, Spacer, Table, TableStyle
 
-    from app.services.pdf_brand import CYAN, DARK_BG, GRAY, TEXTE
+    from app.services.pdf_brand import (
+        BORDER,
+        CYAN,
+        DARK_BG,
+        GRAY,
+        LIGNE_A,
+        TEXTE,
+    )
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -271,14 +277,14 @@ def generate_certificate_pdf(cert: AwarenessCertificate, frozen: dict) -> bytes:
     t.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#1e293b")),
-                ("BACKGROUND", (1, 0), (1, -1), colors.HexColor("#0f172a")),
+                ("BACKGROUND", (0, 0), (0, -1), LIGNE_A),
+                ("BACKGROUND", (1, 0), (1, -1), DARK_BG),
                 ("TEXTCOLOR", (0, 0), (-1, -1), _white),
                 ("FONTSIZE", (0, 0), (-1, -1), 9),
                 ("TOPPADDING", (0, 0), (-1, -1), 6),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
                 ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#334155")),
+                ("GRID", (0, 0), (-1, -1), 0.5, BORDER),
             ]
         )
     )

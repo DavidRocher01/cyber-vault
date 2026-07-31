@@ -32,10 +32,10 @@ from reportlab.platypus import HRFlowable
 # ---------------------------------------------------------------------------
 # Colour palette
 # ---------------------------------------------------------------------------
-DARK_BG = colors.HexColor("#0f172a")
-CARD_BG = colors.HexColor("#1e293b")
-HEADER_BG = colors.HexColor("#0c1a2e")
-BORDER = colors.HexColor("#334155")
+DARK_BG = colors.HexColor("#ffffff")  # fond de page
+CARD_BG = colors.HexColor("#f1f5f9")
+HEADER_BG = colors.HexColor("#eef2f7")
+BORDER = colors.HexColor("#cbd5e1")
 
 # Surfaces des pages de garde.
 #
@@ -48,11 +48,11 @@ BORDER = colors.HexColor("#334155")
 #
 # Trois des valeurs dupliquaient en plus STATUS_BG, defini quelques lignes plus
 # bas dans ce meme module.
-CARTE_BG = colors.HexColor("#111c30")  # fond des grandes cartes de synthese
-CARTE_BORDURE = colors.HexColor("#1e2d4a")  # liseré de ces cartes
-JAUGE_PISTE = colors.HexColor("#1e293b")  # piste non remplie des jauges et barres
-JAUGE_CREUX = colors.HexColor("#141e30")  # disque central des jauges circulaires
-TUILE_BG = colors.HexColor("#0e1623")  # fond des petites tuiles (domaines, infos)
+CARTE_BG = colors.HexColor("#f8fafc")  # fond des grandes cartes de synthese
+CARTE_BORDURE = colors.HexColor("#e2e8f0")  # liseré de ces cartes
+JAUGE_PISTE = colors.HexColor("#e2e8f0")  # piste non remplie des jauges et barres
+JAUGE_CREUX = colors.HexColor("#ffffff")  # disque central des jauges circulaires
+TUILE_BG = colors.HexColor("#f8fafc")  # fond des petites tuiles (domaines, infos)
 
 # Surfaces des pages de CONTENU (tableaux des rapports de conformite).
 #
@@ -60,17 +60,17 @@ TUILE_BG = colors.HexColor("#0e1623")  # fond des petites tuiles (domaines, info
 # l'import — donc figee, insensible a tout changement ulterieur de la palette —
 # et `ROW_B` en litteral. Les fonds d'en-tete de tableau etaient eux ecrits en
 # dur dans CHACUN des quatre rapports.
-LIGNE_A = colors.HexColor("#1e293b")  # lignes paires des tableaux
-LIGNE_B = colors.HexColor("#162032")  # lignes impaires (alternance)
-ENTETE_TABLEAU = colors.HexColor("#0c1422")  # bandeau d'en-tete des tableaux
-ENTETE_CATEGORIE = colors.HexColor("#0c1f3a")  # bandeau de titre de categorie
-CYAN = colors.HexColor("#06b6d4")
-GREEN = colors.HexColor("#4ade80")
-YELLOW = colors.HexColor("#facc15")
-RED = colors.HexColor("#f87171")
-ORANGE = colors.HexColor("#fb923c")
-GRAY = colors.HexColor("#94a3b8")
-TEXTE = colors.white
+LIGNE_A = colors.HexColor("#ffffff")  # lignes paires des tableaux
+LIGNE_B = colors.HexColor("#f8fafc")  # lignes impaires (alternance)
+ENTETE_TABLEAU = colors.HexColor("#eef2f7")  # bandeau d'en-tete des tableaux
+ENTETE_CATEGORIE = colors.HexColor("#e8eefc")  # bandeau de titre de categorie
+CYAN = colors.HexColor("#0891b2")
+GREEN = colors.HexColor("#15803d")
+YELLOW = colors.HexColor("#a16207")
+RED = colors.HexColor("#b91c1c")
+ORANGE = colors.HexColor("#c2410c")
+GRAY = colors.HexColor("#64748b")
+TEXTE = colors.HexColor("#0f172a")  # texte courant : sombre sur page claire
 
 # Texte pose SUR LE BANDEAU, dont le fond reste sombre quel que soit le thema.
 #
@@ -80,6 +80,7 @@ TEXTE = colors.white
 # suite : en inversant `TEXTE` pour le texte de page, la marque devenait noire
 # sur le bandeau reste sombre, donc illisible. Les deux roles sont desormais
 # distincts. Valeur identique a TEXTE aujourd'hui : aucun changement visuel.
+BANDEAU_BG = colors.HexColor("#0f0a28")  # fond du bandeau : sombre en toute circonstance
 TEXTE_BANDEAU = colors.white
 
 # Per-document-type accent colour
@@ -128,10 +129,10 @@ STATUS_LABEL = {
     "na": "N/A",
 }
 STATUS_BG = {
-    "compliant": colors.HexColor("#052e16"),
-    "partial": colors.HexColor("#1c1400"),
-    "non_compliant": colors.HexColor("#2d0a0a"),
-    "na": colors.HexColor("#111827"),
+    "compliant": colors.HexColor("#dcfce7"),
+    "partial": colors.HexColor("#fef9c3"),
+    "non_compliant": colors.HexColor("#fee2e2"),
+    "na": colors.HexColor("#f1f5f9"),
 }
 
 # Layout constants
@@ -287,7 +288,7 @@ def _draw_band(
     W = PAGE_W
 
     # Band background
-    canvas.setFillColor(colors.HexColor("#0f0a28"))
+    canvas.setFillColor(BANDEAU_BG)
     canvas.rect(0, band_y, W, band_h, fill=1, stroke=0)
 
     # Left stripe (2 mm)

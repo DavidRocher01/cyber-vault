@@ -29,12 +29,16 @@ from reportlab.platypus import (
 )
 
 from app.services.pdf_brand import (
+    BANDEAU_BG,
     BORDER,
     CARD_BG,
     CYAN,
     DARK_BG,
+    ENTETE_TABLEAU,
     FOOTER_H,
     GRAY,
+    LIGNE_A,
+    LIGNE_B,
     MARGIN,
     PAGE_H,
     PAGE_W,
@@ -42,6 +46,7 @@ from app.services.pdf_brand import (
     STATUS_COLOR,
     STATUS_LABEL,
     TEXTE,
+    TEXTE_BANDEAU,
     YELLOW,
     draw_compliance_cover,
     get_styles,
@@ -70,7 +75,7 @@ def _draw_auditor_page(canvas, doc, *, user_email: str, date_str: str) -> None:
     canvas.setFillColor(DARK_BG)
     canvas.rect(0, 0, PAGE_W, PAGE_H, fill=1, stroke=0)
 
-    canvas.setFillColor(colors.HexColor("#0f0a28"))
+    canvas.setFillColor(BANDEAU_BG)
     canvas.rect(0, band_y, PAGE_W, BAND_H, fill=1, stroke=0)
     canvas.setFillColor(acc)
     canvas.rect(0, band_y, 2 * mm, BAND_H, fill=1, stroke=0)
@@ -78,7 +83,7 @@ def _draw_auditor_page(canvas, doc, *, user_email: str, date_str: str) -> None:
     canvas.setLineWidth(2.5)
     canvas.line(0, band_y, PAGE_W, band_y)
 
-    canvas.setFillColor(TEXTE)
+    canvas.setFillColor(TEXTE_BANDEAU)
     canvas.setFont("Helvetica-Bold", BAND_H * 0.55)
     canvas.drawString(M + 3 * mm, band_cy - BAND_H * 0.12, "Rocher Cybersécurité")
     canvas.setFillColor(acc)
@@ -200,7 +205,7 @@ def generate_nis2_auditor_pdf(
     attest_tbl.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#1e293b")),
+                ("BACKGROUND", (0, 0), (0, -1), ENTETE_TABLEAU),
                 ("BACKGROUND", (1, 0), (1, -1), CARD_BG),
                 ("TEXTCOLOR", (0, 0), (-1, -1), TEXTE),
                 ("TEXTCOLOR", (0, 0), (0, -1), CYAN),
@@ -209,7 +214,7 @@ def generate_nis2_auditor_pdf(
                 ("TOPPADDING", (0, 0), (-1, -1), 5),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
                 ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#334155")),
+                ("GRID", (0, 0), (-1, -1), 0.4, BORDER),
             ]
         )
     )
@@ -232,7 +237,7 @@ def generate_nis2_auditor_pdf(
     summary_tbl.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e293b")),
+                ("BACKGROUND", (0, 0), (-1, 0), ENTETE_TABLEAU),
                 ("BACKGROUND", (0, 1), (-1, -1), CARD_BG),
                 ("TEXTCOLOR", (0, 0), (-1, 0), CYAN),
                 ("TEXTCOLOR", (0, 1), (-1, -1), TEXTE),
@@ -241,12 +246,12 @@ def generate_nis2_auditor_pdf(
                 ("TOPPADDING", (0, 0), (-1, -1), 4),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
                 ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#334155")),
+                ("GRID", (0, 0), (-1, -1), 0.4, BORDER),
                 (
                     "ROWBACKGROUNDS",
                     (0, 1),
                     (-1, -1),
-                    [CARD_BG, colors.HexColor("#1a2535")],
+                    [LIGNE_A, LIGNE_B],
                 ),
             ]
         )
@@ -276,7 +281,7 @@ def generate_nis2_auditor_pdf(
         det_tbl.setStyle(
             TableStyle(
                 [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e293b")),
+                    ("BACKGROUND", (0, 0), (-1, 0), ENTETE_TABLEAU),
                     ("TEXTCOLOR", (0, 0), (-1, 0), CYAN),
                     ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                     ("BACKGROUND", (0, 1), (-1, -1), CARD_BG),
@@ -285,12 +290,12 @@ def generate_nis2_auditor_pdf(
                     ("TOPPADDING", (0, 0), (-1, -1), 3),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
                     ("LEFTPADDING", (0, 0), (-1, -1), 6),
-                    ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#334155")),
+                    ("GRID", (0, 0), (-1, -1), 0.3, BORDER),
                     (
                         "ROWBACKGROUNDS",
                         (0, 1),
                         (-1, -1),
-                        [CARD_BG, colors.HexColor("#1a2535")],
+                        [LIGNE_A, LIGNE_B],
                     ),
                     *cell_colors,
                 ]
@@ -342,7 +347,7 @@ def generate_nis2_auditor_pdf(
         plan_tbl.setStyle(
             TableStyle(
                 [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e293b")),
+                    ("BACKGROUND", (0, 0), (-1, 0), ENTETE_TABLEAU),
                     ("TEXTCOLOR", (0, 0), (-1, 0), CYAN),
                     ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                     ("BACKGROUND", (0, 1), (-1, -1), CARD_BG),
@@ -351,12 +356,12 @@ def generate_nis2_auditor_pdf(
                     ("TOPPADDING", (0, 0), (-1, -1), 3),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
                     ("LEFTPADDING", (0, 0), (-1, -1), 6),
-                    ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#334155")),
+                    ("GRID", (0, 0), (-1, -1), 0.3, BORDER),
                     (
                         "ROWBACKGROUNDS",
                         (0, 1),
                         (-1, -1),
-                        [CARD_BG, colors.HexColor("#1a2535")],
+                        [LIGNE_A, LIGNE_B],
                     ),
                     *prio_colors,
                 ]
@@ -396,7 +401,7 @@ def generate_nis2_auditor_pdf(
     sig_tbl.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#1e293b")),
+                ("BACKGROUND", (0, 0), (0, -1), ENTETE_TABLEAU),
                 ("BACKGROUND", (1, 0), (1, -1), CARD_BG),
                 ("TEXTCOLOR", (0, 0), (-1, -1), TEXTE),
                 ("TEXTCOLOR", (0, 0), (0, -1), CYAN),
@@ -405,7 +410,7 @@ def generate_nis2_auditor_pdf(
                 ("TOPPADDING", (0, 0), (-1, -1), 8),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
                 ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#334155")),
+                ("GRID", (0, 0), (-1, -1), 0.4, BORDER),
             ]
         )
     )

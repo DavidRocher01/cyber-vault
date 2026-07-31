@@ -11,6 +11,7 @@ from xml.sax.saxutils import escape
 
 from reportlab.lib.units import mm
 from reportlab.platypus import (
+    PageBreak,
     Paragraph,
     SimpleDocTemplate,
     Spacer,
@@ -20,9 +21,15 @@ from reportlab.platypus import (
 
 from app.models.darkweb_dossier import DarkwebDossier, DarkwebDossierTarget
 from app.services.pdf_brand import (
+    CARTE_BG,
+    CARTE_BORDURE,
+    CYAN,
     DARK_BG,
     GRAY,
     GREEN,
+    JAUGE_CREUX,
+    LIGNE_A,
+    LIGNE_B,
     MARGIN,
     ORANGE,
     RED,
@@ -121,7 +128,7 @@ def _draw_dossier_cover(
     card_y = H - 120 * mm
     card_h = 30 * mm
     card_w = W - 2 * M
-    canvas.setFillColor(colors.HexColor("#111c30"))
+    canvas.setFillColor(CARTE_BG)
     canvas.roundRect(M, card_y, card_w, card_h, radius=4 * mm, fill=1, stroke=0)
     canvas.setStrokeColor(rc)
     canvas.setLineWidth(2 * mm)
@@ -144,9 +151,9 @@ def _draw_dossier_cover(
     kpi_h = 50 * mm
     kpi_w = card_w
 
-    canvas.setFillColor(colors.HexColor("#111c30"))
+    canvas.setFillColor(CARTE_BG)
     canvas.roundRect(M, kpi_y, kpi_w, kpi_h, radius=4 * mm, fill=1, stroke=0)
-    canvas.setStrokeColor(colors.HexColor("#1e2d4a"))
+    canvas.setStrokeColor(CARTE_BORDURE)
     canvas.setLineWidth(0.8)
     canvas.roundRect(M, kpi_y, kpi_w, kpi_h, radius=4 * mm, fill=0, stroke=1)
 
@@ -155,7 +162,7 @@ def _draw_dossier_cover(
     cy = kpi_y + kpi_h / 2 + 4 * mm
     r = 16 * mm
 
-    canvas.setStrokeColor(colors.HexColor("#1e293b"))
+    canvas.setStrokeColor(LIGNE_A)
     canvas.setLineWidth(11)
     canvas.setLineCap(0)
     p = canvas.beginPath()
@@ -170,7 +177,7 @@ def _draw_dossier_cover(
         p2.arc(cx - r, cy - r, cx + r, cy + r, startAng=180 - fill_ext, extent=fill_ext)
         canvas.drawPath(p2, stroke=1, fill=0)
 
-    canvas.setFillColor(colors.HexColor("#141e30"))
+    canvas.setFillColor(JAUGE_CREUX)
     canvas.circle(cx, cy, r - 5.5 * mm, fill=1, stroke=0)
     canvas.setFillColor(rc)
     canvas.setFont("Helvetica-Bold", 26)
@@ -183,7 +190,7 @@ def _draw_dossier_cover(
     canvas.drawCentredString(cx, kpi_y + 4.5 * mm, "Score de risque global")
 
     sep_x = M + left_w + 4 * mm
-    canvas.setStrokeColor(colors.HexColor("#1e293b"))
+    canvas.setStrokeColor(LIGNE_A)
     canvas.setLineWidth(0.8)
     canvas.line(sep_x, kpi_y + 8 * mm, sep_x, kpi_y + kpi_h - 8 * mm)
 
@@ -206,7 +213,7 @@ def _draw_dossier_cover(
     for i, (val, lbl, k_col) in enumerate(kpis):
         kx = gx0 + i * (cell_w + 2.5 * mm)
         ky = kpi_y + 5 * mm
-        canvas.setFillColor(colors.HexColor("#1e293b"))
+        canvas.setFillColor(LIGNE_A)
         canvas.roundRect(kx, ky, cell_w, cell_h, radius=2.5 * mm, fill=1, stroke=0)
         canvas.setStrokeColor(k_col)
         canvas.setLineWidth(2 * mm)
@@ -245,7 +252,6 @@ def generate_dossier_pdf(
     dossier: DarkwebDossier,
     targets: list[DarkwebDossierTarget],
 ) -> bytes:
-    from reportlab.lib import colors
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -283,7 +289,10 @@ def generate_dossier_pdf(
     def on_page(canvas, doc):
         draw_page(canvas, doc, "darkweb", "DOSSIER DARKWEB", date_str)
 
-    story = []
+    # La page 1 est la couverture, peinte par `on_cover`. Sans ce saut, le
+    # contenu coulait PAR-DESSUS : titre, tableaux et carte de synthese se
+    # chevauchaient. Meme construction que pdf_compliance.
+    story = [PageBreak()]
 
     # ── Section 1 : Emails exposés ────────────────────────────────────────────
     story.append(Paragraph("Emails exposés", styles["section"]))
@@ -323,17 +332,17 @@ def generate_dossier_pdf(
         tbl.setStyle(
             TableStyle(
                 [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#111c30")),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#06b6d4")),
+                    ("BACKGROUND", (0, 0), (-1, 0), CARTE_BG),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), CYAN),
                     ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                     ("FONTSIZE", (0, 0), (-1, 0), 7),
                     (
                         "ROWBACKGROUNDS",
                         (0, 1),
                         (-1, -1),
-                        [colors.HexColor("#0f172a"), colors.HexColor("#111827")],
+                        [DARK_BG, LIGNE_B],
                     ),
-                    ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#1e293b")),
+                    ("GRID", (0, 0), (-1, -1), 0.4, LIGNE_A),
                     ("TOPPADDING", (0, 0), (-1, -1), 4),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
                     ("LEFTPADDING", (0, 0), (-1, -1), 5),
@@ -363,17 +372,17 @@ def generate_dossier_pdf(
         src_tbl.setStyle(
             TableStyle(
                 [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#111c30")),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#ef4444")),
+                    ("BACKGROUND", (0, 0), (-1, 0), CARTE_BG),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), RED),
                     ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                     ("FONTSIZE", (0, 0), (-1, 0), 7),
                     (
                         "ROWBACKGROUNDS",
                         (0, 1),
                         (-1, -1),
-                        [colors.HexColor("#0f172a"), colors.HexColor("#111827")],
+                        [DARK_BG, LIGNE_B],
                     ),
-                    ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#1e293b")),
+                    ("GRID", (0, 0), (-1, -1), 0.4, LIGNE_A),
                     ("TOPPADDING", (0, 0), (-1, -1), 4),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
                     ("LEFTPADDING", (0, 0), (-1, -1), 5),

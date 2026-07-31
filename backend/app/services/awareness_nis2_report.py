@@ -24,7 +24,6 @@ from __future__ import annotations
 import io
 from datetime import UTC, datetime
 
-from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
@@ -45,7 +44,18 @@ from app.models.awareness_learner import AwarenessLearner
 from app.models.awareness_module import AwarenessModule
 from app.models.awareness_organization import AwarenessOrganization
 from app.models.awareness_progress import AwarenessProgress
-from app.services.pdf_brand import CYAN, DARK_BG, GRAY, GREEN, RED, TEXTE, YELLOW
+from app.services.pdf_brand import (
+    BORDER,
+    CARTE_BG,
+    CYAN,
+    DARK_BG,
+    GRAY,
+    GREEN,
+    LIGNE_A,
+    RED,
+    TEXTE,
+    YELLOW,
+)
 
 _NAVY = DARK_BG
 _RED = RED
@@ -324,7 +334,7 @@ def generate_nis2_report_pdf(
     t.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e293b")),
+                ("BACKGROUND", (0, 0), (-1, 0), LIGNE_A),
                 ("TEXTCOLOR", (0, 0), (-1, 0), _WHITE),
                 ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                 ("FONTSIZE", (0, 0), (-1, 0), 8),
@@ -332,11 +342,11 @@ def generate_nis2_report_pdf(
                     "ROWBACKGROUNDS",
                     (0, 1),
                     (-1, -1),
-                    [colors.HexColor("#0f172a"), colors.HexColor("#111c30")],
+                    [DARK_BG, CARTE_BG],
                 ),
                 ("TEXTCOLOR", (0, 1), (-1, -1), _WHITE),
                 ("FONTSIZE", (0, 1), (-1, -1), 8),
-                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#334155")),
+                ("GRID", (0, 0), (-1, -1), 0.5, BORDER),
                 ("TOPPADDING", (0, 0), (-1, -1), 5),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
                 ("LEFTPADDING", (0, 0), (-1, -1), 6),
@@ -361,7 +371,7 @@ def generate_nis2_report_pdf(
     mt.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e293b")),
+                ("BACKGROUND", (0, 0), (-1, 0), LIGNE_A),
                 ("TEXTCOLOR", (0, 0), (-1, -1), _WHITE),
                 ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                 ("FONTSIZE", (0, 0), (-1, -1), 9),
@@ -369,9 +379,9 @@ def generate_nis2_report_pdf(
                     "ROWBACKGROUNDS",
                     (0, 1),
                     (-1, -1),
-                    [colors.HexColor("#0f172a"), colors.HexColor("#111c30")],
+                    [DARK_BG, CARTE_BG],
                 ),
-                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#334155")),
+                ("GRID", (0, 0), (-1, -1), 0.5, BORDER),
                 ("TOPPADDING", (0, 0), (-1, -1), 5),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
                 ("LEFTPADDING", (0, 0), (-1, -1), 8),

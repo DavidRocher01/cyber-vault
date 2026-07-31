@@ -27,18 +27,27 @@ from reportlab.platypus import (
 )
 
 from app.services.pdf_brand import (
+    BANDEAU_BG,
     BORDER,
     CARD_BG,
+    CARTE_BG,
+    CARTE_BORDURE,
     CYAN,
     DARK_BG,
     FOOTER_H,
     GRAY,
     GREEN,
+    HEADER_BG,
+    JAUGE_CREUX,
+    LIGNE_A,
     MARGIN,
     PAGE_H,
     PAGE_W,
     RED,
+    STATUS_BG,
     TEXTE,
+    TEXTE_BANDEAU,
+    TUILE_BG,
     YELLOW,
     ajuster_paire,
     base_sous_plafond,
@@ -101,7 +110,7 @@ def _draw_branded_cover(
     band_y = H - BAND_H
     band_cy = H - BAND_H / 2
 
-    canvas.setFillColor(colors.HexColor("#0f0a28"))
+    canvas.setFillColor(BANDEAU_BG)
     canvas.rect(0, band_y, W, BAND_H, fill=1, stroke=0)
     canvas.setFillColor(acc)
     canvas.rect(0, band_y, 2 * mm, BAND_H, fill=1, stroke=0)
@@ -164,7 +173,7 @@ def _draw_branded_cover(
         ecart_min=6 * mm,
     )
 
-    canvas.setFillColor(TEXTE)
+    canvas.setFillColor(TEXTE_BANDEAU)
     canvas.setFont("Helvetica-Bold", taille_nom)
     canvas.drawString(nom_x, band_cy - BAND_H * 0.12, company_name)
 
@@ -215,9 +224,9 @@ def _draw_branded_cover(
     canvas.setFont("Helvetica-Bold", 7)
     canvas.drawString(M, card_y + card_h + 4 * mm, "SYNTHÈSE DE L'AUDIT")
 
-    canvas.setFillColor(colors.HexColor("#111c30"))
+    canvas.setFillColor(CARTE_BG)
     canvas.roundRect(M, card_y, card_w, card_h, radius=4 * mm, fill=1, stroke=0)
-    canvas.setStrokeColor(colors.HexColor("#1e2d4a"))
+    canvas.setStrokeColor(CARTE_BORDURE)
     canvas.setLineWidth(0.8)
     canvas.roundRect(M, card_y, card_w, card_h, radius=4 * mm, fill=0, stroke=1)
     canvas.setStrokeColor(s_col)
@@ -236,7 +245,7 @@ def _draw_branded_cover(
     cy2 = card_y + card_h / 2 + 6 * mm
     r2 = 18 * mm
 
-    canvas.setStrokeColor(colors.HexColor("#1e293b"))
+    canvas.setStrokeColor(LIGNE_A)
     canvas.setLineWidth(11)
     canvas.setLineCap(0)
     p = canvas.beginPath()
@@ -258,7 +267,7 @@ def _draw_branded_cover(
         )
         canvas.drawPath(p2, stroke=1, fill=0)
 
-    canvas.setFillColor(colors.HexColor("#141e30"))
+    canvas.setFillColor(JAUGE_CREUX)
     canvas.circle(cx2, cy2, r2 - 6 * mm, fill=1, stroke=0)
     canvas.setFillColor(s_col)
     canvas.setFont("Helvetica-Bold", 26)
@@ -271,15 +280,15 @@ def _draw_branded_cover(
     canvas.drawCentredString(cx2, card_y + 5.5 * mm, "Score de sécurité")
 
     sep_x = M + left_w + 4 * mm
-    canvas.setStrokeColor(colors.HexColor("#1e293b"))
+    canvas.setStrokeColor(LIGNE_A)
     canvas.setLineWidth(0.8)
     canvas.line(sep_x, card_y + 8 * mm, sep_x, card_y + card_h - 8 * mm)
 
     # KPI 3-cell row (right 62%)
     kpis = [
-        (critical_count, "Critiques", RED, colors.HexColor("#2d0a0a")),
-        (warning_count, "Avertis.", YELLOW, colors.HexColor("#1c1400")),
-        (info_count, "Infos", CYAN, colors.HexColor("#0c1a2e")),
+        (critical_count, "Critiques", RED, STATUS_BG["non_compliant"]),
+        (warning_count, "Avertis.", YELLOW, STATUS_BG["partial"]),
+        (info_count, "Infos", CYAN, HEADER_BG),
     ]
     gx0 = sep_x + 4 * mm
     gw = card_w * 0.62 - 12 * mm
@@ -313,7 +322,7 @@ def _draw_branded_cover(
     canvas.setFont("Helvetica-Bold", 7)
     canvas.drawString(M, url_y + 2 * mm, "DOMAINE AUDITÉ")
 
-    canvas.setFillColor(colors.HexColor("#0e1623"))
+    canvas.setFillColor(TUILE_BG)
     canvas.roundRect(M, url_y - 8 * mm, card_w, 9 * mm, radius=2 * mm, fill=1, stroke=0)
 
     max_dom = 90
@@ -354,7 +363,7 @@ def _draw_branded_page(canvas, doc, *, company_name: str, accent_hex: str) -> No
     canvas.setFillColor(DARK_BG)
     canvas.rect(0, 0, PAGE_W, PAGE_H, fill=1, stroke=0)
 
-    canvas.setFillColor(colors.HexColor("#0f0a28"))
+    canvas.setFillColor(BANDEAU_BG)
     canvas.rect(0, band_y, PAGE_W, BAND_H, fill=1, stroke=0)
     canvas.setFillColor(acc)
     canvas.rect(0, band_y, 2 * mm, BAND_H, fill=1, stroke=0)
