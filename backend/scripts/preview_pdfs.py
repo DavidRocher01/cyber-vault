@@ -259,6 +259,123 @@ def ech_dossier_darkweb() -> bytes:
     return generate_dossier_pdf(dossier, cibles)
 
 
+def ech_pca() -> bytes:
+    from app.services.pca_pdf import generate_pca_pdf
+
+    return generate_pca_pdf(
+        {
+            "company": {
+                "name": _CLIENT,
+                "sector": "Menuiserie industrielle",
+                "contact": "Paul Delorme",
+                "email": "direction@delorme-menuiserie.fr",
+            },
+            "critical_systems": [
+                {
+                    "name": "ERP de production",
+                    "description": "Gestion des commandes et de l'ordonnancement atelier.",
+                    "responsible": "Claire Vasseur",
+                    "rto_hours": 4,
+                    "rpo_hours": 1,
+                },
+                {
+                    "name": "Messagerie",
+                    "description": "Échanges clients et fournisseurs.",
+                    "responsible": "Paul Delorme",
+                    "rto_hours": 8,
+                    "rpo_hours": 4,
+                },
+                {
+                    "name": "Serveur de fichiers",
+                    "description": "Plans et documents techniques.",
+                    "responsible": "Marc Ferrand",
+                    "rto_hours": 24,
+                    "rpo_hours": 12,
+                },
+            ],
+            "response_team": [
+                {
+                    "role": "Directeur de crise",
+                    "name": "Paul Delorme",
+                    "phone": "06 12 34 56 78",
+                    "email": "direction@delorme-menuiserie.fr",
+                },
+                {
+                    "role": "Responsable technique",
+                    "name": "Claire Vasseur",
+                    "phone": "06 98 76 54 32",
+                    "email": "claire.vasseur@cabinet-vasseur.fr",
+                },
+            ],
+            "communication_plan": (
+                "Salariés prévenus par SMS et affichage atelier dès la détection. "
+                "Clients informés par e-mail et bandeau sur le site sous 4 heures. "
+                "Assureur et prestataire informatique contactés par téléphone sous 24 heures."
+            ),
+        }
+    )
+
+
+def ech_phishing() -> bytes:
+    from app.services.phishing_report_pdf import generate_phishing_report
+
+    campagne = SimpleNamespace(
+        name="Simulation trimestrielle — T3 2026",
+        domain=_DOMAINE,
+        plan_tier="pro",
+        scenario_keys='["facture_impayee", "reset_mdp"]',
+        targets_count=30,
+        emails_sent=30,
+        opened_count=18,
+        clicked_count=7,
+        submitted_count=2,
+        started_at=_DATE,
+        finished_at=_DATE,
+    )
+    cibles = [
+        SimpleNamespace(
+            first_name=p,
+            last_name=n,
+            email=f"{p.lower()}.{n.lower()}@{_DOMAINE}",
+            department=d,
+            scenario_key="facture_impayee",
+            status=st,
+            email_sent_at=_DATE,
+            clicked_at=_DATE if st == "clicked" else None,
+        )
+        for p, n, d, st in [
+            ("Paul", "Delorme", "Direction", "submitted"),
+            ("Claire", "Vasseur", "Comptabilité", "clicked"),
+            ("Marc", "Ferrand", "Atelier", "opened"),
+            ("Léa", "Nguyen", "RH", "sent"),
+        ]
+    ]
+    return generate_phishing_report(campagne, cibles)
+
+
+def ech_certificat() -> bytes:
+    import json
+
+    from app.services.awareness_certificate_service import generate_certificate_pdf
+
+    cert = SimpleNamespace(
+        public_id="CERT-2026-0042",
+        issued_at=_DATE,
+        expires_at=datetime(2027, 7, 31, tzinfo=UTC),
+        is_revoked=False,
+        signature_hash="a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        verification_token="tok_demo",
+        verification_count=0,
+        frozen_data_json=json.dumps({}),
+    )
+    frozen = {
+        "learner_name": "Claire Vasseur",
+        "program_title": "Parcours Direction — NIS2 et gouvernance",
+        "completion_pct": 100,
+    }
+    return generate_certificate_pdf(cert, frozen)
+
+
 ECHANTILLONS = {
     "nis2": ech_nis2,
     "nis2-auditeur": ech_nis2_auditeur,
@@ -269,6 +386,9 @@ ECHANTILLONS = {
     "scan-marque": ech_scan_marque,
     "rssi": ech_rssi,
     "darkweb": ech_dossier_darkweb,
+    "pca": ech_pca,
+    "phishing": ech_phishing,
+    "certificat": ech_certificat,
 }
 
 
