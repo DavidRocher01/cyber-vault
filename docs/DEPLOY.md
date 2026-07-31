@@ -164,11 +164,18 @@ curl https://rochercybersecurite.com/api/v1/health
 aws logs tail /ecs/cybervault-backend --follow --since 5m --region eu-west-3
 ```
 
-> ⚠️ **Le health check approfondi n'est PAS joignable publiquement.** Il est monté
-> à la racine de l'app (`/health/deep`, cf. `backend/app/main.py`), or CloudFront
-> ne route que `/api/*` vers le backend : `…/api/v1/health/deep` renvoie 404 et
-> `…/health/deep` renvoie la SPA. Pour l'interroger, passer par l'ALB directement
-> ou une task ECS. (Ancienne commande `curl …/api/v1/health/deep` : erronée.)
+> ⚠️ **Le health check approfondi n'est plus joignable depuis Internet.** Il est
+> monté à la racine de l'app (`/health/deep`, cf. `backend/app/main.py`), or
+> CloudFront ne route que `/api/*` vers le backend : `…/api/v1/health/deep`
+> renvoie 404 et `…/health/deep` renvoie la SPA. Le seul chemin restant était
+> l'ALB en direct — **fermé le 2026-07-31** (cf. [S2_INFRA_CHECKLIST.md](S2_INFRA_CHECKLIST.md),
+> action B2). Passer désormais par une task ECS :
+>
+> ```bash
+> aws ecs execute-command --cluster cybervault --task <task-id> \
+>   --container backend --interactive --region eu-west-3 \
+>   --command "curl -s localhost:8000/health/deep"
+> ```
 
 ## Contacts d'urgence
 
