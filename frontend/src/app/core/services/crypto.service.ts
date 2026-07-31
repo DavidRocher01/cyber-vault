@@ -23,7 +23,12 @@ export class CryptoService {
     iterations = CryptoService.ITERATIONS
   ): Promise<void> {
     const enc = new TextEncoder();
-    let saltBytes: Uint8Array;
+    // `Uint8Array<ArrayBuffer>` et non `Uint8Array` tout court : depuis
+    // TypeScript 5.7 le type est generique sur son buffer et vaut par defaut
+    // `ArrayBufferLike`, qui inclut `SharedArrayBuffer`. WebCrypto refuse ce
+    // dernier, d'ou l'echec de compilation a la montee vers Angular 21
+    // (TS 5.9). Annotation de type uniquement — aucun changement d'execution.
+    let saltBytes: Uint8Array<ArrayBuffer>;
     try {
       // If saltOrEmail is base64 (44 chars for 32 bytes), decode it; otherwise treat as email string
       if (/^[A-Za-z0-9+/]{43}=?$/.test(saltOrEmail)) {

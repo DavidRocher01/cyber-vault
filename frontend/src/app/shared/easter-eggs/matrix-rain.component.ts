@@ -12,7 +12,6 @@ import {
   inject,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { CommonModule } from '@angular/common';
 
 const CHARS =
   'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF<>/\\|{}[]';
@@ -20,13 +19,15 @@ const CHARS =
 @Component({
   selector: 'app-matrix-rain',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div *ngIf="visible" class="matrix-overlay" (click)="onClose()" title="Cliquer pour fermer">
-      <canvas #canvas></canvas>
-      <div class="matrix-hint">[ cliquer pour fermer ]</div>
-    </div>
+    @if (visible) {
+      <div class="matrix-overlay" (click)="onClose()" title="Cliquer pour fermer">
+        <canvas #canvas></canvas>
+        <div class="matrix-hint">[ cliquer pour fermer ]</div>
+      </div>
+    }
   `,
   styles: [
     `

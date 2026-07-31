@@ -39,18 +39,18 @@ export class VaultStore extends ComponentStore<VaultState> {
           switchMap(items =>
             from(Promise.all(items.map(i => this.vaultService.hydrateForDisplay(i))))
           ),
-          tapResponse(
-            items => {
+          tapResponse({
+            next: items => {
               this.patchState({ items, loading: false });
               // Migrate legacy plaintext items in the background (non-blocking)
               this.vaultService.migrateLegacyItems().catch(() => {});
             },
-            (err: any) =>
+            error: (err: any) =>
               this.patchState({
                 loading: false,
                 error: extractApiError(err, 'Erreur de chargement'),
-              })
-          )
+              }),
+          })
         )
       )
     )
@@ -83,8 +83,8 @@ export class VaultStore extends ComponentStore<VaultState> {
       ),
       concatMap(({ send, plain }) =>
         this.vaultService.create(send).pipe(
-          tapResponse(
-            item =>
+          tapResponse({
+            next: item =>
               // Server returns null plaintext; show the values we already hold locally
               this.patchState(s => ({
                 items: [
@@ -98,8 +98,9 @@ export class VaultStore extends ComponentStore<VaultState> {
                   },
                 ],
               })),
-            (err: any) => this.patchState({ error: extractApiError(err, 'Erreur de création') })
-          )
+            error: (err: any) =>
+              this.patchState({ error: extractApiError(err, 'Erreur de création') }),
+          })
         )
       )
     )
@@ -137,8 +138,8 @@ export class VaultStore extends ComponentStore<VaultState> {
       ),
       concatMap(({ id, send, plain }) =>
         this.vaultService.update(id, send).pipe(
-          tapResponse(
-            updated =>
+          tapResponse({
+            next: updated =>
               // Server returns null plaintext; keep the values we already hold locally
               this.patchState(s => ({
                 items: s.items.map(i =>
@@ -154,8 +155,9 @@ export class VaultStore extends ComponentStore<VaultState> {
                     : i
                 ),
               })),
-            (err: any) => this.patchState({ error: extractApiError(err, 'Erreur de modification') })
-          )
+            error: (err: any) =>
+              this.patchState({ error: extractApiError(err, 'Erreur de modification') }),
+          })
         )
       )
     )
@@ -165,10 +167,11 @@ export class VaultStore extends ComponentStore<VaultState> {
     id$.pipe(
       switchMap(id =>
         this.vaultService.delete(id).pipe(
-          tapResponse(
-            () => this.patchState(s => ({ items: s.items.filter(i => i.id !== id) })),
-            (err: any) => this.patchState({ error: extractApiError(err, 'Erreur de suppression') })
-          )
+          tapResponse({
+            next: () => this.patchState(s => ({ items: s.items.filter(i => i.id !== id) })),
+            error: (err: any) =>
+              this.patchState({ error: extractApiError(err, 'Erreur de suppression') }),
+          })
         )
       )
     )
