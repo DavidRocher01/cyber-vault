@@ -110,6 +110,22 @@ jobs:
         run: python scripts/generate_awareness_catalog.py --check
         working-directory: backend
 
+      - name: Lisibilité des PDF (texte invisible, chevauchements)
+        # Aucun test ne REGARDAIT un PDF : ils verifiaient qu'il est produit,
+        # jamais qu'il est lisible. Le 2026-07-31 la bascule en thema clair a
+        # rendu le rapport de phishing a moitie illisible — en-tetes, domaine,
+        # plan et dates ecrits en blanc sur blanc — pendant que 1454 tests
+        # restaient verts. Du blanc sur blanc s'extrait parfaitement : seul le
+        # rendu le montre.
+        #
+        # pypdfium2 et pillow ne sont PAS des dependances du projet, seulement
+        # de ce controle : installes ici, jamais embarques dans l'image.
+        run: |
+          pip install --quiet pypdfium2 pillow
+          python scripts/preview_pdfs.py
+          python scripts/check_pdf_lisibilite.py
+        working-directory: backend
+
       - name: Alembic migrations (up + down + up)
         env:
           SECRET_KEY: ci-test-secret-key
