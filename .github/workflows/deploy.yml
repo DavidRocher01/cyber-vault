@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@517a711dbcd0e402f90c77e7e2f81e849156e31d # v6
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region:     ${{ env.AWS_REGION }}
@@ -93,7 +93,12 @@ jobs:
                # Secrets tires de Secrets Manager (source unique) ; les 2 valeurs
                # non-secretes sont re-injectees en clair. La liste a PURGER derive
                # de ces deux listes -> plus de triple maintenance manuelle.
-               (["SECRET_KEY","DATABASE_URL","STRIPE_SECRET_KEY","STRIPE_WEBHOOK_SECRET","SMTP_PASSWORD","ADMIN_API_KEY","RESEND_API_KEY","SENTRY_DSN"]) as $secret_names
+               #
+               # ORIGIN_VERIFY_SECRET (2026-07-31, lot S2 action B1) : active le
+               # garde applicatif de _get_real_ip. Sans lui le code est un no-op.
+               # Il DOIT exister dans Secrets Manager avant d'etre liste ici,
+               # sinon la task ECS refuse de demarrer.
+               (["SECRET_KEY","DATABASE_URL","STRIPE_SECRET_KEY","STRIPE_WEBHOOK_SECRET","SMTP_PASSWORD","ADMIN_API_KEY","RESEND_API_KEY","SENTRY_DSN","ORIGIN_VERIFY_SECRET"]) as $secret_names
                | ([{"name":"STRIPE_PUBLISHABLE_KEY","value":$PK_LIVE},{"name":"S3_BUCKET_NAME","value":$BUCKET},{"name":"TRUSTED_PROXY_COUNT","value":"2"}]) as $env_overrides
                | (($env_overrides | map(.name)) + $secret_names) as $managed
                | del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)
@@ -146,7 +151,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
           cache: "npm"
@@ -157,7 +162,7 @@ jobs:
         working-directory: frontend
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@517a711dbcd0e402f90c77e7e2f81e849156e31d # v6
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region:     ${{ env.AWS_REGION }}
@@ -227,13 +232,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@517a711dbcd0e402f90c77e7e2f81e849156e31d # v6
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region:     ${{ env.AWS_REGION }}
 
       - name: Setup Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version-file: .python-version
 
@@ -245,7 +250,7 @@ jobs:
         working-directory: backend
 
       - name: Setup Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
           cache: "npm"

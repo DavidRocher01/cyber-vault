@@ -1,4 +1,8 @@
-# S2 — Fiabiliser le rate-limiting : actions INFRA restantes (à faire côté AWS)
+# S2 — Fiabiliser le rate-limiting : actions INFRA
+
+> **État au 2026-07-31 : action B terminée (B1 + B2).** Seule l'action A
+> (ElastiCache) reste, volontairement différée — ce n'est pas un trou tant que
+> le service tourne à une tâche et un worker.
 
 Le lot **S2** de l'audit `SECURITY_AUDIT_2026-07-27.md` est en partie **bloqué par de
 l'infra AWS** non gérée dans ce repo. Le code a été préparé pour être **activable sans
@@ -69,9 +73,39 @@ Etat final :
   2026-07-31 **avant** la fermeture, sa valeur precedente etant inconnue. Les 25
   chemins `/api/*` de la recette ont ete verifies un a un a travers CloudFront.
 
-**Reste optionnel : B1** (header `X-Origin-Verify`), defense en profondeur si la
-regle reseau saute. Le code est deja la et reste un no-op tant que
-`ORIGIN_VERIFY_SECRET` n'est pas provisionne.
+**B1 (header `X-Origin-Verify`) — ✅ FAITE le 2026-07-31 elle aussi.**
+
+Pourquoi elle restait utile malgre B2 : n'importe qui peut creer SA PROPRE
+distribution CloudFront pointant sur notre ALB. Ses requetes arriveraient
+alors depuis des IP CloudFront legitimes et franchiraient la prefix-list. Seul
+un secret partage distingue notre distribution des autres.
+
+Ce qui a ete pose, dans cet ordre (l'ordre importe : exiger l'en-tete avant que
+CloudFront ne l'envoie coupe tout le site) :
+
+1. Secret de 64 caracteres hex ajoute comme **10e cle de `cybervault/prod`**,
+   les 9 autres preservees. Pas de nouveau secret cree — la facturation
+   Secrets Manager est par secret, pas par cle.
+2. **CloudFront** : header d'origine `X-Origin-Verify` sur la SEULE origine
+   ALB (l'origine S3 n'en a que faire). Attendu `Status: Deployed` avant la
+   suite.
+3. **ALB, listener :80** (celui que CloudFront utilise — l'origine est en
+   http-only) : regle de priorite 1 qui forwarde si l'en-tete vaut le secret,
+   puis action par defaut basculee en **fixed-response 403**.
+4. `ORIGIN_VERIFY_SECRET` ajoute a `$secret_names` dans `deploy.yml`.
+
+**Preuve que le verrou fonctionne** : avec l'action par defaut a 403, le site
+et `/api/v1/health` repondent toujours 200 a travers CloudFront. Seule une
+requete portant le bon en-tete est forwardee — c'est donc bien la regle qui
+matche, pas le defaut.
+
+> Pour retirer le verrou en urgence : remettre l'action par defaut du listener
+> :80 sur `Type=forward,TargetGroupArn=<tg>`. Effet immediat, aucun
+> redeploiement.
+
+Le garde applicatif `_get_real_ip` s'active au prochain deploiement, quand la
+task ECS recevra `ORIGIN_VERIFY_SECRET` : une requete sans en-tete valide verra
+son `X-Forwarded-For` ignore au profit de l'IP TCP.
 
 ---
 
