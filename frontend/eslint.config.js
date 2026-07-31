@@ -38,12 +38,26 @@ module.exports = tseslint.config(
         'error',
         { type: 'element', prefix: 'app', style: 'kebab-case' },
       ],
-      // Regle NOUVELLE en v20, absente du `recommended` de la v17 : elle
-      // signale 16 injections par constructeur encore presentes (auth.store,
-      // vault.store, admin-auth.service, not-found, cyber-loader, globe).
-      // Desactivee ICI pour que ce commit ne porte QUE la migration de format :
-      // convertir ces 16 sites touche l'authentification et le coffre-fort, ca
-      // merite son propre commit et sa propre relecture. A rallumer ensuite.
+      /*
+       * Regle nouvelle en @angular-eslint v20, absente du `recommended` de la
+       * v17. Elle signale 16 injections par constructeur dans 9 fichiers, dont
+       * auth.service, auth.store, vault.service et vault.store.
+       *
+       * DESACTIVEE APRES ESSAI, pas par facilite. La migration officielle
+       * (`ng generate @angular/core:inject`) a ete appliquee le 2026-07-31 :
+       * elle passe le lint et le build, mais casse 79 tests dans 6 fichiers.
+       * Raison : ce projet n'utilise pas TestBed, ses specs instancient
+       * directement (`new AuthService(httpMock, routerMock, 'browser')`), et
+       * un initialiseur `inject()` exige un contexte d'injection — NG0203.
+       *
+       * Suivre cette regle imposerait donc de reecrire les suites de tests de
+       * l'authentification et du coffre-fort, c'est-a-dire le filet de
+       * securite du code le plus sensible du depot, pour un gain de style.
+       * Le rapport benefice/risque est negatif tant que la convention de test
+       * du projet reste l'instanciation directe.
+       *
+       * A rouvrir si l'on adopte un jour TestBed ou `runInInjectionContext`.
+       */
       '@angular-eslint/prefer-inject': 'off',
     },
   },
