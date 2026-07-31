@@ -704,17 +704,34 @@ async def test_planificateur_ignore_les_dossiers_des_comptes_retrogrades(http_cl
         dossier.next_monitor_at = datetime.now(UTC) - timedelta(days=1)
         await db.commit()
 
+    # `scheduler/darkweb.py` fait `from app.core.database import AsyncSessionLocal`
+    # au chargement du module : il a donc lie la fabrique de sessions REELLE, pas
+    # celle que conftest substitue ensuite sur `_db_module`. Sans ce patch le job
+    # interroge une autre base et ne trouve jamais rien — c'est la convention
+    # deja suivie par test_monthly_digest.py.
+    def _job_sur_la_base_de_test():
+        return patch(
+            "app.services.scheduler.darkweb.AsyncSessionLocal",
+            _db_module.AsyncSessionLocal,
+        )
+
     # Toujours Pro : le job DOIT le traiter — sinon le test ne prouverait rien.
-    with patch(
-        "app.services.darkweb_dossier_service.process_dossier", new_callable=AsyncMock
-    ) as traite:
+    with (
+        _job_sur_la_base_de_test(),
+        patch(
+            "app.services.darkweb_dossier_service.process_dossier", new_callable=AsyncMock
+        ) as traite,
+    ):
         await _run_darkweb_monitoring()
     assert traite.await_count == 1
 
     await _retrograder(email)
 
-    with patch(
-        "app.services.darkweb_dossier_service.process_dossier", new_callable=AsyncMock
-    ) as traite:
+    with (
+        _job_sur_la_base_de_test(),
+        patch(
+            "app.services.darkweb_dossier_service.process_dossier", new_callable=AsyncMock
+        ) as traite,
+    ):
         await _run_darkweb_monitoring()
     assert traite.await_count == 0
