@@ -39,11 +39,13 @@ from app.services.pdf_brand import (
     CYAN,
     GRAY,
     GREEN,
+    LIGNE_A,
+    LIGNE_B,
     RED,
     STATUS_BG,
     STATUS_COLOR,
     STATUS_LABEL,
-    WHITE,
+    TEXTE,
     YELLOW,
     cat_score,
     draw_compliance_cover,
@@ -51,9 +53,11 @@ from app.services.pdf_brand import (
     score_color,
 )
 
-ROW_A = CARD_BG
-ROW_B = colors.HexColor("#162032")
-_EMPTY_BAR = CARD_BG
+# Alias vers la palette. Etaient `ROW_A = CARD_BG` (evalue a l'import, donc
+# insensible a tout changement ulterieur) et un litteral pour ROW_B.
+ROW_A = LIGNE_A
+ROW_B = LIGNE_B
+_EMPTY_BAR = LIGNE_A
 
 
 @dataclass(frozen=True)
@@ -103,7 +107,7 @@ class ComplianceStyle:
 
 
 def _st(name: str, **kw) -> ParagraphStyle:
-    d = dict(fontName="Helvetica", textColor=WHITE, fontSize=9, spaceAfter=2, leading=12)
+    d = dict(fontName="Helvetica", textColor=TEXTE, fontSize=9, spaceAfter=2, leading=12)
     d.update(kw)
     return ParagraphStyle(name, **d)
 
@@ -179,7 +183,7 @@ def _summary_table(cfg: ComplianceStyle, w: float, categories: list[dict], items
 
         rows.append(
             [
-                Paragraph(cat["label"], _st(f"CL{cat['id']}", fontSize=8, textColor=WHITE)),
+                Paragraph(cat["label"], _st(f"CL{cat['id']}", fontSize=8, textColor=TEXTE)),
                 [
                     bar,
                     Paragraph(
@@ -321,7 +325,7 @@ def _detail_block(cfg: ComplianceStyle, w: float, cat: dict, items: dict) -> Kee
                     f"Lb{it['id']}",
                     fontSize=8,
                     fontName="Helvetica-Bold",
-                    textColor=WHITE,
+                    textColor=TEXTE,
                     leading=11,
                 ),
             ),

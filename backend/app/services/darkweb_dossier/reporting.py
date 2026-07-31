@@ -26,7 +26,7 @@ from app.services.pdf_brand import (
     MARGIN,
     ORANGE,
     RED,
-    WHITE,
+    TEXTE,
     YELLOW,
     draw_page,
     get_styles,
@@ -110,7 +110,7 @@ def _draw_dossier_cover(
     canvas.setFillColor(rc)
     canvas.setFont("Helvetica-Bold", 22)
     canvas.drawString(tx, ty, "Dossier d'exposition")
-    canvas.setFillColor(WHITE)
+    canvas.setFillColor(TEXTE)
     canvas.setFont("Helvetica-Bold", 17)
     canvas.drawString(tx, ty - 9 * mm, "Dark Web — Fuites de données")
     canvas.setFillColor(GRAY)
@@ -132,7 +132,7 @@ def _draw_dossier_cover(
         M + card_w - 4 * mm,
         card_y + card_h - 1 * mm,
     )
-    canvas.setFillColor(WHITE)
+    canvas.setFillColor(TEXTE)
     canvas.setFont("Helvetica-Bold", 14)
     canvas.drawString(M + 6 * mm, card_y + card_h * 0.55, company_name)
     canvas.setFillColor(GRAY)

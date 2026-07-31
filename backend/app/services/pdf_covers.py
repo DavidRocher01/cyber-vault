@@ -38,8 +38,8 @@ from app.services.pdf_brand import (
     RED,
     SITE_EMAIL,
     STATUS_BG,
+    TEXTE,
     TUILE_BG,
-    WHITE,
     YELLOW,
     _accent_cols,
     _draw_band,
@@ -110,7 +110,7 @@ def draw_compliance_cover(
     canvas.setFont("Helvetica-Bold", 22)
     canvas.drawString(tx, ty, title_line1)
 
-    canvas.setFillColor(WHITE)
+    canvas.setFillColor(TEXTE)
     canvas.setFont("Helvetica-Bold", 17)
     canvas.drawString(tx, ty - 9 * mm, title_line2)
 
@@ -258,7 +258,7 @@ def draw_compliance_cover(
         canvas.line(dx + 2 * mm, cell_y + r_cell, dx + 2 * mm, cell_y + cell_h - r_cell)
 
         inner_x = dx + 7 * mm
-        canvas.setFillColor(WHITE)
+        canvas.setFillColor(TEXTE)
         # Largeur reellement disponible : jusqu'au bord de la carte, moins la
         # zone du pourcentage et un ecart. Mesuree, pas estimee en caracteres.
         largeur_pct = canvas.stringWidth(f"{pct}%", "Helvetica-Bold", 8)
@@ -361,7 +361,7 @@ def draw_url_scan_cover(
     canvas.setFont("Helvetica-Bold", 22)
     canvas.drawString(tx, ty, "Rapport d'analyse")
 
-    canvas.setFillColor(WHITE)
+    canvas.setFillColor(TEXTE)
     canvas.setFont("Helvetica-Bold", 17)
     canvas.drawString(tx, ty - 9 * mm, "Analyse d'URL")
 

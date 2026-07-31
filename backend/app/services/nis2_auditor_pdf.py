@@ -41,7 +41,7 @@ from app.services.pdf_brand import (
     RED,
     STATUS_COLOR,
     STATUS_LABEL,
-    WHITE,
+    TEXTE,
     YELLOW,
     draw_compliance_cover,
     get_styles,
@@ -78,7 +78,7 @@ def _draw_auditor_page(canvas, doc, *, user_email: str, date_str: str) -> None:
     canvas.setLineWidth(2.5)
     canvas.line(0, band_y, PAGE_W, band_y)
 
-    canvas.setFillColor(WHITE)
+    canvas.setFillColor(TEXTE)
     canvas.setFont("Helvetica-Bold", BAND_H * 0.55)
     canvas.drawString(M + 3 * mm, band_cy - BAND_H * 0.12, "Rocher Cybersécurité")
     canvas.setFillColor(acc)
@@ -202,7 +202,7 @@ def generate_nis2_auditor_pdf(
             [
                 ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#1e293b")),
                 ("BACKGROUND", (1, 0), (1, -1), CARD_BG),
-                ("TEXTCOLOR", (0, 0), (-1, -1), WHITE),
+                ("TEXTCOLOR", (0, 0), (-1, -1), TEXTE),
                 ("TEXTCOLOR", (0, 0), (0, -1), CYAN),
                 ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
                 ("FONTSIZE", (0, 0), (-1, -1), 8),
@@ -235,7 +235,7 @@ def generate_nis2_auditor_pdf(
                 ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e293b")),
                 ("BACKGROUND", (0, 1), (-1, -1), CARD_BG),
                 ("TEXTCOLOR", (0, 0), (-1, 0), CYAN),
-                ("TEXTCOLOR", (0, 1), (-1, -1), WHITE),
+                ("TEXTCOLOR", (0, 1), (-1, -1), TEXTE),
                 ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                 ("FONTSIZE", (0, 0), (-1, -1), 8),
                 ("TOPPADDING", (0, 0), (-1, -1), 4),
@@ -280,7 +280,7 @@ def generate_nis2_auditor_pdf(
                     ("TEXTCOLOR", (0, 0), (-1, 0), CYAN),
                     ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                     ("BACKGROUND", (0, 1), (-1, -1), CARD_BG),
-                    ("TEXTCOLOR", (0, 1), (0, -1), WHITE),
+                    ("TEXTCOLOR", (0, 1), (0, -1), TEXTE),
                     ("FONTSIZE", (0, 0), (-1, -1), 7.5),
                     ("TOPPADDING", (0, 0), (-1, -1), 3),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
@@ -346,7 +346,7 @@ def generate_nis2_auditor_pdf(
                     ("TEXTCOLOR", (0, 0), (-1, 0), CYAN),
                     ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                     ("BACKGROUND", (0, 1), (-1, -1), CARD_BG),
-                    ("TEXTCOLOR", (0, 1), (-1, -1), WHITE),
+                    ("TEXTCOLOR", (0, 1), (-1, -1), TEXTE),
                     ("FONTSIZE", (0, 0), (-1, -1), 7.5),
                     ("TOPPADDING", (0, 0), (-1, -1), 3),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
@@ -398,7 +398,7 @@ def generate_nis2_auditor_pdf(
             [
                 ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#1e293b")),
                 ("BACKGROUND", (1, 0), (1, -1), CARD_BG),
-                ("TEXTCOLOR", (0, 0), (-1, -1), WHITE),
+                ("TEXTCOLOR", (0, 0), (-1, -1), TEXTE),
                 ("TEXTCOLOR", (0, 0), (0, -1), CYAN),
                 ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
                 ("FONTSIZE", (0, 0), (-1, -1), 8),

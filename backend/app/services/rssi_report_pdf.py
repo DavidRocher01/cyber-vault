@@ -28,7 +28,7 @@ from app.services.pdf_brand import (
     MARGIN,
     PAGE_W,
     RED,
-    WHITE,
+    TEXTE,
 )
 
 _AMBER = colors.HexColor("#f59e0b")
@@ -66,15 +66,15 @@ def _styles() -> dict:
             "r_body",
             fontName="Helvetica",
             fontSize=10,
-            textColor=WHITE,
+            textColor=TEXTE,
             leading=15,
             spaceAfter=4,
         ),
         "label": ParagraphStyle("r_label", fontName="Helvetica-Bold", fontSize=9, textColor=GRAY),
-        "value": ParagraphStyle("r_value", fontName="Helvetica", fontSize=10, textColor=WHITE),
+        "value": ParagraphStyle("r_value", fontName="Helvetica", fontSize=10, textColor=TEXTE),
         "small": ParagraphStyle("r_small", fontName="Helvetica", fontSize=8, textColor=GRAY),
         "th": ParagraphStyle("r_th", fontName="Helvetica-Bold", fontSize=9, textColor=CYAN),
-        "td": ParagraphStyle("r_td", fontName="Helvetica", fontSize=9, textColor=WHITE),
+        "td": ParagraphStyle("r_td", fontName="Helvetica", fontSize=9, textColor=TEXTE),
         "td_red": ParagraphStyle("r_td_red", fontName="Helvetica-Bold", fontSize=9, textColor=RED),
         "td_grn": ParagraphStyle(
             "r_td_grn", fontName="Helvetica-Bold", fontSize=9, textColor=GREEN

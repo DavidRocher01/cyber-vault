@@ -26,7 +26,7 @@ from app.services.pdf_brand import (
     GRAY,
     MARGIN,
     PAGE_W,
-    WHITE,
+    TEXTE,
 )
 
 BLUE = colors.HexColor("#3b82f6")
@@ -58,14 +58,14 @@ def _styles() -> dict:
             "pca_body",
             fontName="Helvetica",
             fontSize=10,
-            textColor=WHITE,
+            textColor=TEXTE,
             leading=15,
             spaceAfter=4,
         ),
         "label": ParagraphStyle("pca_label", fontName="Helvetica-Bold", fontSize=9, textColor=GRAY),
-        "value": ParagraphStyle("pca_value", fontName="Helvetica", fontSize=10, textColor=WHITE),
+        "value": ParagraphStyle("pca_value", fontName="Helvetica", fontSize=10, textColor=TEXTE),
         "check": ParagraphStyle(
-            "pca_check", fontName="Helvetica", fontSize=10, textColor=WHITE, leading=16
+            "pca_check", fontName="Helvetica", fontSize=10, textColor=TEXTE, leading=16
         ),
     }
 
@@ -82,7 +82,7 @@ def _kv_table(pairs: list[tuple[str, str]], styles: dict, col_w: float) -> Table
             [
                 ("BACKGROUND", (0, 0), (-1, -1), CARD_BG),
                 ("ROWBACKGROUNDS", (0, 0), (-1, -1), [CARD_BG, DARK_BG]),
-                ("TEXTCOLOR", (0, 0), (-1, -1), WHITE),
+                ("TEXTCOLOR", (0, 0), (-1, -1), TEXTE),
                 ("FONTSIZE", (0, 0), (-1, -1), 9),
                 ("TOPPADDING", (0, 0), (-1, -1), 5),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
@@ -188,7 +188,7 @@ def generate_pca_pdf(data: dict) -> bytes:
                 [
                     ("BACKGROUND", (0, 0), (-1, 0), CARD_BG),
                     ("ROWBACKGROUNDS", (0, 1), (-1, -1), [CARD_BG, DARK_BG]),
-                    ("TEXTCOLOR", (0, 0), (-1, -1), WHITE),
+                    ("TEXTCOLOR", (0, 0), (-1, -1), TEXTE),
                     ("FONTSIZE", (0, 0), (-1, -1), 9),
                     ("TOPPADDING", (0, 0), (-1, -1), 5),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
@@ -229,7 +229,7 @@ def generate_pca_pdf(data: dict) -> bytes:
                 [
                     ("BACKGROUND", (0, 0), (-1, 0), CARD_BG),
                     ("ROWBACKGROUNDS", (0, 1), (-1, -1), [CARD_BG, DARK_BG]),
-                    ("TEXTCOLOR", (0, 0), (-1, -1), WHITE),
+                    ("TEXTCOLOR", (0, 0), (-1, -1), TEXTE),
                     ("FONTSIZE", (0, 0), (-1, -1), 9),
                     ("TOPPADDING", (0, 0), (-1, -1), 5),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 5),

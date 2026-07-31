@@ -7,10 +7,16 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from reportlab.lib import colors
 from reportlab.lib.units import mm
 
-from app.services.pdf_brand import BORDER, CYAN, get_styles, section_rule
+from app.services.pdf_brand import (
+    BORDER,
+    CYAN,
+    ENTETE_CATEGORIE,
+    ENTETE_TABLEAU,
+    get_styles,
+    section_rule,
+)
 from app.services.pdf_compliance import ComplianceStyle, generate_compliance_pdf
 
 DOC_TYPE = "nis2"
@@ -26,7 +32,7 @@ _STYLE = ComplianceStyle(
     col1_header="Catégorie",
     nc_header="✗ N.Conf.",
     summary_col_ratios=(0.36, 0.30, 0.085, 0.085, 0.095, 0.075),
-    summary_header_bg=colors.HexColor("#0c1422"),
+    summary_header_bg=ENTETE_TABLEAU,
     summary_pad=6,
     summary_has_fontsize_rule=True,
     summary_linebelow=BORDER,
@@ -35,7 +41,7 @@ _STYLE = ComplianceStyle(
     count_font=8,
     count_align=None,
     spacer_after_summary=7 * mm,
-    cat_header_bg=colors.HexColor("#0c1f3a"),
+    cat_header_bg=ENTETE_CATEGORIE,
     cat_accent=CYAN,
     cat_label_font=9,
     cat_label_leading=13,

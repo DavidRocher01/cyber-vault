@@ -38,7 +38,7 @@ from app.services.pdf_brand import (
     PAGE_H,
     PAGE_W,
     RED,
-    WHITE,
+    TEXTE,
     YELLOW,
     ajuster_paire,
     base_sous_plafond,
@@ -164,7 +164,7 @@ def _draw_branded_cover(
         ecart_min=6 * mm,
     )
 
-    canvas.setFillColor(WHITE)
+    canvas.setFillColor(TEXTE)
     canvas.setFont("Helvetica-Bold", taille_nom)
     canvas.drawString(nom_x, band_cy - BAND_H * 0.12, company_name)
 
@@ -197,7 +197,7 @@ def _draw_branded_cover(
     canvas.setFont("Helvetica-Bold", 20)
     canvas.drawString(M + 7 * mm, ty, "Audit de cybersécurité")
 
-    canvas.setFillColor(WHITE)
+    canvas.setFillColor(TEXTE)
     canvas.setFont("Helvetica-Bold", 15)
     canvas.drawString(M + 7 * mm, ty - 8 * mm, domain)
 
@@ -362,7 +362,7 @@ def _draw_branded_page(canvas, doc, *, company_name: str, accent_hex: str) -> No
     canvas.setLineWidth(2.5)
     canvas.line(0, band_y, PAGE_W, band_y)
 
-    canvas.setFillColor(WHITE)
+    canvas.setFillColor(TEXTE)
     canvas.setFont("Helvetica-Bold", BAND_H * 0.55)
     canvas.drawString(M + 3 * mm, band_cy - BAND_H * 0.12, company_name)
 

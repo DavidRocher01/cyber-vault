@@ -6,7 +6,7 @@ moved to pdf_covers.py and are re-exported below for backward compatibility.
 
 Public API
 ----------
-Constants  : DARK_BG, CARD_BG, BORDER, CYAN, GREEN, YELLOW, RED, ORANGE, GRAY, WHITE
+Constants  : DARK_BG, CARD_BG, BORDER, CYAN, GREEN, YELLOW, RED, ORANGE, GRAY, TEXTE
              PAGE_W, PAGE_H, MARGIN, TOP_BAND, FOOTER_H
              DOC_COLOR
 Functions  : score_color(pct)
@@ -53,22 +53,33 @@ CARTE_BORDURE = colors.HexColor("#1e2d4a")  # liseré de ces cartes
 JAUGE_PISTE = colors.HexColor("#1e293b")  # piste non remplie des jauges et barres
 JAUGE_CREUX = colors.HexColor("#141e30")  # disque central des jauges circulaires
 TUILE_BG = colors.HexColor("#0e1623")  # fond des petites tuiles (domaines, infos)
+
+# Surfaces des pages de CONTENU (tableaux des rapports de conformite).
+#
+# Elles vivaient dans pdf_compliance sous la forme `ROW_A = CARD_BG` evalue a
+# l'import — donc figee, insensible a tout changement ulterieur de la palette —
+# et `ROW_B` en litteral. Les fonds d'en-tete de tableau etaient eux ecrits en
+# dur dans CHACUN des quatre rapports.
+LIGNE_A = colors.HexColor("#1e293b")  # lignes paires des tableaux
+LIGNE_B = colors.HexColor("#162032")  # lignes impaires (alternance)
+ENTETE_TABLEAU = colors.HexColor("#0c1422")  # bandeau d'en-tete des tableaux
+ENTETE_CATEGORIE = colors.HexColor("#0c1f3a")  # bandeau de titre de categorie
 CYAN = colors.HexColor("#06b6d4")
 GREEN = colors.HexColor("#4ade80")
 YELLOW = colors.HexColor("#facc15")
 RED = colors.HexColor("#f87171")
 ORANGE = colors.HexColor("#fb923c")
 GRAY = colors.HexColor("#94a3b8")
-WHITE = colors.white
+TEXTE = colors.white
 
 # Texte pose SUR LE BANDEAU, dont le fond reste sombre quel que soit le thema.
 #
-# `WHITE` jouait deux roles a la fois : « couleur du texte courant » et
+# `TEXTE` jouait deux roles a la fois : « couleur du texte courant » et
 # « couleur du texte du bandeau ». Tant que la page etait sombre, les deux
 # coincidaient. Un rendu du meme rapport sur fond clair l'a montre tout de
-# suite : en inversant `WHITE` pour le texte de page, la marque devenait noire
+# suite : en inversant `TEXTE` pour le texte de page, la marque devenait noire
 # sur le bandeau reste sombre, donc illisible. Les deux roles sont desormais
-# distincts. Valeur identique a WHITE aujourd'hui : aucun changement visuel.
+# distincts. Valeur identique a TEXTE aujourd'hui : aucun changement visuel.
 TEXTE_BANDEAU = colors.white
 
 # Per-document-type accent colour
@@ -452,7 +463,7 @@ def get_styles(doc_type: str) -> dict[str, ParagraphStyle]:
     doc_color = colors.HexColor(doc_hex)
 
     def _s(name: str, **kw) -> ParagraphStyle:
-        defaults = dict(fontName="Helvetica", textColor=WHITE, fontSize=9, spaceAfter=2)
+        defaults = dict(fontName="Helvetica", textColor=TEXTE, fontSize=9, spaceAfter=2)
         defaults.update(kw)
         return ParagraphStyle(name, **defaults)
 
@@ -461,7 +472,7 @@ def get_styles(doc_type: str) -> dict[str, ParagraphStyle]:
             f"brand_title_{doc_type}",
             fontSize=20,
             fontName="Helvetica-Bold",
-            textColor=WHITE,
+            textColor=TEXTE,
         ),
         "subtitle": _s(f"brand_subtitle_{doc_type}", fontSize=10, textColor=GRAY),
         "section": _s(
@@ -476,7 +487,7 @@ def get_styles(doc_type: str) -> dict[str, ParagraphStyle]:
             f"brand_subsection_{doc_type}",
             fontSize=10,
             fontName="Helvetica-Bold",
-            textColor=WHITE,
+            textColor=TEXTE,
             spaceBefore=8,
             spaceAfter=3,
         ),
@@ -487,7 +498,7 @@ def get_styles(doc_type: str) -> dict[str, ParagraphStyle]:
             f"brand_label_{doc_type}",
             fontSize=9,
             fontName="Helvetica-Bold",
-            textColor=WHITE,
+            textColor=TEXTE,
         ),
         "badge_pass": _s(
             f"brand_badge_pass_{doc_type}",
