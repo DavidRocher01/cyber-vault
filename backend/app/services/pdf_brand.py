@@ -61,6 +61,16 @@ ORANGE = colors.HexColor("#fb923c")
 GRAY = colors.HexColor("#94a3b8")
 WHITE = colors.white
 
+# Texte pose SUR LE BANDEAU, dont le fond reste sombre quel que soit le thema.
+#
+# `WHITE` jouait deux roles a la fois : « couleur du texte courant » et
+# « couleur du texte du bandeau ». Tant que la page etait sombre, les deux
+# coincidaient. Un rendu du meme rapport sur fond clair l'a montre tout de
+# suite : en inversant `WHITE` pour le texte de page, la marque devenait noire
+# sur le bandeau reste sombre, donc illisible. Les deux roles sont desormais
+# distincts. Valeur identique a WHITE aujourd'hui : aucun changement visuel.
+TEXTE_BANDEAU = colors.white
+
 # Per-document-type accent colour
 DOC_COLOR: dict[str, str] = {
     "nis2": "#8b5cf6",
@@ -320,7 +330,7 @@ def _draw_band(
         ecart_min=6 * mm,
     )
 
-    canvas.setFillColor(WHITE)
+    canvas.setFillColor(TEXTE_BANDEAU)
     canvas.setFont("Helvetica-Bold", taille_wm)
     canvas.drawString(wm_x, band_cy - band_h * 0.12, wm_texte)
 
