@@ -94,12 +94,16 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Sensibilisation — Rocher Cybersécurité',
   },
   {
+    // PUBLIQUE, comme /rssi-externalise et les autres pages d'offre : c'est une
+    // page de presentation et de tarifs, sans donnee utilisateur ni appel d'API.
+    // Elle etait derriere authGuard, ce qui renvoyait tout prospect vers le
+    // formulaire de connexion — y compris les consultants vises par le CTA
+    // « Devenir partenaire ».
     path: 'awareness-pricing',
     loadComponent: () =>
       import('./awareness-pricing/awareness-pricing.component').then(
         m => m.AwarenessPricingComponent
       ),
-    canActivate: [authGuard],
     title: 'Tarifs Sensibilisation NIS2 — Rocher Cybersécurité',
   },
   {

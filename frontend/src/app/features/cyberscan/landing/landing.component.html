@@ -35,7 +35,7 @@
         >Blog</a
       >
       <a
-        routerLink="/sensibilisation"
+        routerLink="/awareness-pricing"
         mat-button
         class="!text-amber-400 font-medium hidden lg:inline-flex items-center gap-1"
       >
@@ -765,19 +765,20 @@
           </div>
           <div class="flex flex-col sm:flex-row gap-3">
             <a
-              routerLink="/sensibilisation"
+              routerLink="/awareness-pricing"
               mat-flat-button
               color="primary"
               class="flex-1 text-center py-3 rounded-lg font-semibold text-sm"
             >
-              Découvrir le module
+              Découvrir l'offre
             </a>
             <a
-              routerLink="/awareness-pricing"
+              routerLink="/contact"
+              [queryParams]="{ subject: 'sensibilisation-nis2' }"
               mat-stroked-button
               class="flex-1 text-center py-3 rounded-lg text-sm !border-gray-600 !text-gray-300"
             >
-              Voir les tarifs
+              Demander un devis
             </a>
           </div>
         </div>
