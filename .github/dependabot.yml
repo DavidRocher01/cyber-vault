@@ -8,10 +8,17 @@
 #
 # Les groupes ci-dessous font arriver chaque famille en UNE PR cohérente,
 # testable et mergeable telle quelle.
+#
+# `target-branch: develop` sur CHAQUE écosystème : sans lui, Dependabot vise la
+# branche par défaut, c'est-à-dire `master`. Or un push sur `master` déclenche
+# `deploy.yml`, donc la production. Constaté le 2026-07-31 avec 16 PR ouvertes
+# sur `master` : les fusionner aurait produit seize mises en production de
+# dépendances jamais validées ensemble, en contournant entièrement `develop`.
 version: 2
 updates:
   - package-ecosystem: "pip"
     directory: "/backend"
+    target-branch: "develop"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
@@ -40,6 +47,7 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/frontend"
+    target-branch: "develop"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
@@ -83,6 +91,7 @@ updates:
 
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "develop"
     schedule:
       interval: "monthly"
     groups:
