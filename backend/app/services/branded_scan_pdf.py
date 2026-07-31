@@ -371,13 +371,36 @@ def _draw_branded_page(canvas, doc, *, company_name: str, accent_hex: str) -> No
     canvas.setLineWidth(2.5)
     canvas.line(0, band_y, PAGE_W, band_y)
 
-    canvas.setFillColor(TEXTE)
-    canvas.setFont("Helvetica-Bold", BAND_H * 0.55)
-    canvas.drawString(M + 3 * mm, band_cy - BAND_H * 0.12, company_name)
+    # Meme ajustement que sur la couverture. La correction n'avait ete appliquee
+    # qu'a `_draw_branded_cover` : les PAGES DE CONTENU gardaient le defaut, et
+    # le nom du cabinet y recouvrait encore « RAPPORT DE SÉCURITÉ ». Trouve par
+    # le detecteur de chevauchement, pas a l'oeil.
+    nom_x = M + 3 * mm
+    titre_droite = "RAPPORT DE SÉCURITÉ"
+    taille_nom, taille_titre, _, _ = ajuster_paire(
+        canvas,
+        company_name,
+        titre_droite,
+        "Helvetica-Bold",
+        BAND_H * 0.55,
+        BAND_H * 0.45,
+        (PAGE_W - M) - nom_x,
+        ecart_min=6 * mm,
+    )
+
+    canvas.setFillColor(TEXTE_BANDEAU)
+    canvas.setFont("Helvetica-Bold", taille_nom)
+    canvas.drawString(nom_x, band_cy - BAND_H * 0.12, company_name)
 
     canvas.setFillColor(acc)
-    canvas.setFont("Helvetica-Bold", BAND_H * 0.45)
-    canvas.drawRightString(PAGE_W - M, band_cy + BAND_H * 0.10, "RAPPORT DE SÉCURITÉ")
+    canvas.setFont("Helvetica-Bold", taille_titre)
+    canvas.drawRightString(
+        PAGE_W - M,
+        base_sous_plafond(
+            band_cy + BAND_H * 0.10, taille_titre, "Helvetica-Bold", band_y + BAND_H - 1.2 * mm
+        ),
+        titre_droite,
+    )
     canvas.setFillColor(GRAY)
     canvas.setFont("Helvetica", BAND_H * 0.35)
     canvas.drawRightString(PAGE_W - M, band_cy - BAND_H * 0.28, today)
