@@ -186,6 +186,53 @@ def ajuster_texte(
     return (coupe + "…") if coupe else texte[:1], taille
 
 
+def ajuster_paire(
+    canvas,
+    gauche: str,
+    droite: str,
+    police: str,
+    taille_gauche: float,
+    taille_droite: float,
+    largeur_dispo: float,
+    *,
+    ecart_min: float,
+    facteur_mini: float = 0.55,
+) -> tuple[float, float, float, float]:
+    """Fait cohabiter deux textes opposes sur une meme ligne sans chevauchement.
+
+    Renvoie (taille_gauche, taille_droite, largeur_gauche, largeur_droite) apres
+    reduction PROPORTIONNELLE si l'ensemble deborde — l'equilibre visuel entre
+    les deux est ainsi conserve.
+
+    Extrait pour etre partage : le bandeau de `_draw_band` et celui du rapport en
+    marque blanche etaient deux copies du meme dessin. Seule la premiere avait
+    ete corrigee, et le rapport marque blanche — celui qu'un consultant presente
+    a SON client sous SA marque — restait illisible, d'autant que la longueur du
+    nom de societe y est arbitraire.
+    """
+    lg = canvas.stringWidth(gauche, police, taille_gauche)
+    ld = canvas.stringWidth(droite, police, taille_droite)
+    budget = largeur_dispo - ecart_min
+    if lg + ld > budget and lg + ld > 0:
+        facteur = max(budget / (lg + ld), facteur_mini)
+        taille_gauche *= facteur
+        taille_droite *= facteur
+        lg = canvas.stringWidth(gauche, police, taille_gauche)
+        ld = canvas.stringWidth(droite, police, taille_droite)
+    return taille_gauche, taille_droite, lg, ld
+
+
+def base_sous_plafond(base: float, taille: float, police: str, plafond: float) -> float:
+    """Abaisse `base` jusqu'a ce que l'ascendante de la police tienne sous `plafond`.
+
+    Sans cela, un titre en capitales ACCENTUEES voit son accent rogne par le bord
+    du bandeau — defaut invisible tant que les chaines etaient saisies sans
+    accents, flagrant une fois celles-ci corrigees.
+    """
+    ascendante = pdfmetrics.getAscent(police, taille)
+    return min(base, plafond - ascendante)
+
+
 def _draw_band(
     canvas,
     *,
@@ -244,23 +291,17 @@ def _draw_band(
     # n'est tronque ni recouvert.
     wm_x = logo_cx + logo_r + 2.5 * mm
     wm_texte = "Rocher Cybersécurité"
-    ecart_min = 6 * mm
 
-    taille_wm = band_h * 0.62
-    taille_rt = band_h * 0.50
-    largeur_wm = canvas.stringWidth(wm_texte, "Helvetica-Bold", taille_wm)
-    largeur_rt = canvas.stringWidth(right_text, "Helvetica-Bold", taille_rt)
-
-    budget = (W - M) - wm_x - ecart_min
-    if largeur_wm + largeur_rt > budget and largeur_wm + largeur_rt > 0:
-        facteur = budget / (largeur_wm + largeur_rt)
-        # Plancher : en-dessous de 55 % le bandeau devient illisible ; mieux vaut
-        # un ecart plus serre qu'un texte minuscule.
-        facteur = max(facteur, 0.55)
-        taille_wm *= facteur
-        taille_rt *= facteur
-        largeur_wm = canvas.stringWidth(wm_texte, "Helvetica-Bold", taille_wm)
-        largeur_rt = canvas.stringWidth(right_text, "Helvetica-Bold", taille_rt)
+    taille_wm, taille_rt, largeur_wm, largeur_rt = ajuster_paire(
+        canvas,
+        wm_texte,
+        right_text,
+        "Helvetica-Bold",
+        band_h * 0.62,
+        band_h * 0.50,
+        (W - M) - wm_x,
+        ecart_min=6 * mm,
+    )
 
     canvas.setFillColor(WHITE)
     canvas.setFont("Helvetica-Bold", taille_wm)
@@ -280,11 +321,12 @@ def _draw_band(
     # tienne sous le bord du bandeau. Sans ca, un titre en capitales accentuees
     # (« CONFORMITÉ NIS2 ») voyait son accent rogne par le bord : invisible tant
     # que les chaines etaient saisies sans accents, flagrant une fois corrigees.
-    ascendante = pdfmetrics.getAscent("Helvetica-Bold", taille_rt)
-    base_titre = band_cy + band_h * 0.10
-    plafond = band_y + band_h - 1.2 * mm
-    if base_titre + ascendante > plafond:
-        base_titre = plafond - ascendante
+    base_titre = base_sous_plafond(
+        band_cy + band_h * 0.10,
+        taille_rt,
+        "Helvetica-Bold",
+        band_y + band_h - 1.2 * mm,
+    )
 
     right_col = colors.HexColor(_BAND_TITLE_COLOR.get(doc_type, "#e2e8f0"))
     canvas.setFillColor(right_col)

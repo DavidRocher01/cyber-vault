@@ -199,6 +199,7 @@ def generate_phishing_report(
         "ReportTitle",
         fontName="Helvetica-Bold",
         fontSize=22,
+        leading=26,
         textColor=_DARK,
         spaceAfter=4,
     )
@@ -209,6 +210,7 @@ def generate_phishing_report(
         "Section",
         fontName="Helvetica-Bold",
         fontSize=13,
+        leading=16,
         textColor=_DARK,
         spaceBefore=14,
         spaceAfter=6,

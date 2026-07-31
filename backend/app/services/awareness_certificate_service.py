@@ -226,6 +226,7 @@ def generate_certificate_pdf(cert: AwarenessCertificate, frozen: dict) -> bytes:
     h1 = ParagraphStyle(
         "cert_h1",
         fontSize=26,
+        leading=31,
         textColor=_cyan,
         fontName="Helvetica-Bold",
         alignment=1,

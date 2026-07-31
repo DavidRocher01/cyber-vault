@@ -40,6 +40,8 @@ from app.services.pdf_brand import (
     RED,
     WHITE,
     YELLOW,
+    ajuster_paire,
+    base_sous_plafond,
     get_styles,
     section_rule,
 )
@@ -141,22 +143,52 @@ def _draw_branded_cover(
         canvas.setFont("Helvetica-Bold", BAND_H * 0.30)
         canvas.drawCentredString(cx, band_cy - BAND_H * 0.07, initials[:2])
 
-    # Company name in band
-    canvas.setFillColor(WHITE)
-    canvas.setFont("Helvetica-Bold", BAND_H * 0.55)
-    canvas.drawString(M + 15 * mm, band_cy - BAND_H * 0.12, company_name)
+    # ── Nom du cabinet a gauche, type de document a droite ────────────────────
+    #
+    # Les deux etaient dessines a taille fixe : « Cabinet Vasseur — RSSI
+    # externalisé » recouvrait entierement « RAPPORT DE SÉCURITÉ » et la date.
+    # C'est le pire endroit ou laisser ce defaut — le nom vient du consultant,
+    # sa longueur est donc arbitraire, et ce document est celui qu'il presente a
+    # SON client sous SA marque. Meme ajustement que le bandeau maison, via
+    # l'utilitaire partage pour que les deux ne redivergent pas.
+    nom_x = M + 15 * mm
+    titre_droite = "RAPPORT DE SÉCURITÉ"
+    taille_nom, taille_titre, _, _ = ajuster_paire(
+        canvas,
+        company_name,
+        titre_droite,
+        "Helvetica-Bold",
+        BAND_H * 0.55,
+        BAND_H * 0.45,
+        (W - M) - nom_x,
+        ecart_min=6 * mm,
+    )
 
-    # Right: "Rapport de sécurité"
+    canvas.setFillColor(WHITE)
+    canvas.setFont("Helvetica-Bold", taille_nom)
+    canvas.drawString(nom_x, band_cy - BAND_H * 0.12, company_name)
+
     canvas.setFillColor(acc)
-    canvas.setFont("Helvetica-Bold", BAND_H * 0.45)
-    canvas.drawRightString(W - M, band_cy + BAND_H * 0.10, "RAPPORT DE SÉCURITÉ")
+    canvas.setFont("Helvetica-Bold", taille_titre)
+    canvas.drawRightString(
+        W - M,
+        base_sous_plafond(
+            band_cy + BAND_H * 0.10, taille_titre, "Helvetica-Bold", band_y + BAND_H - 1.2 * mm
+        ),
+        titre_droite,
+    )
     canvas.setFillColor(GRAY)
     canvas.setFont("Helvetica", BAND_H * 0.35)
     canvas.drawRightString(W - M, band_cy - BAND_H * 0.28, date_str[:10])
 
     # ── Title block ───────────────────────────────────────────────────────────
+    #
+    # Etait a H - 52 mm, soit 26 mm plus bas que son equivalent sur les rapports
+    # de conformite, alors que la carte de synthese se trouve quasiment a la meme
+    # hauteur : le titre, le domaine et la ligne « Généré le… » percutaient le
+    # bord superieur de la carte et son intitule. Remonte pour degager la zone.
     _tx = M
-    ty = H - 52 * mm
+    ty = H - 30 * mm
 
     canvas.setFillColor(acc)
     canvas.roundRect(M, ty - 12 * mm, 3 * mm, 22 * mm, radius=1 * mm, fill=1, stroke=0)

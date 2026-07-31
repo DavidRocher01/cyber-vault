@@ -255,10 +255,21 @@ def generate_nis2_report_pdf(
     )
 
     h1 = ParagraphStyle(
-        "rh1", fontSize=22, textColor=_CYAN, fontName="Helvetica-Bold", spaceAfter=4
+        "rh1",
+        fontSize=22,
+        leading=26,
+        textColor=_CYAN,
+        fontName="Helvetica-Bold",
+        spaceAfter=4,
     )
     h2 = ParagraphStyle(
-        "rh2", fontSize=13, textColor=_CYAN, fontName="Helvetica-Bold", spaceBefore=10, spaceAfter=4
+        "rh2",
+        fontSize=13,
+        leading=16,
+        textColor=_CYAN,
+        fontName="Helvetica-Bold",
+        spaceBefore=10,
+        spaceAfter=4,
     )
     body = ParagraphStyle("rbody", fontSize=9, textColor=_WHITE, leading=14, spaceAfter=3)
     small = ParagraphStyle("rsmall", fontSize=7, textColor=_GRAY, spaceAfter=2)

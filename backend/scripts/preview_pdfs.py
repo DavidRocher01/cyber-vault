@@ -167,22 +167,22 @@ def ech_scan_marque() -> bytes:
         accent_color="#0ea5e9",
         logo_b64=None,
         domain=_DOMAINE,
-        overall_status="warning",
+        overall_status="WARNING",  # vocabulaire attendu : OK / WARNING / CRITICAL
         score_pct=68,
         scan_date="31/07/2026",
         findings=[
             {
-                "severity": "high",
+                "severity": "critical",
                 "title": "TLS 1.0 encore accepté",
                 "description": "Le serveur négocie une version obsolète du protocole.",
             },
             {
-                "severity": "medium",
+                "severity": "warning",
                 "title": "En-tête HSTS absent",
                 "description": "Aucune directive Strict-Transport-Security n'est envoyée.",
             },
             {
-                "severity": "low",
+                "severity": "info",
                 "title": "Bannière de version exposée",
                 "description": "Le serveur annonce sa version dans l'en-tête Server.",
             },
