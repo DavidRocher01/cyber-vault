@@ -27,6 +27,7 @@ from app.services.pdf_brand import (
     MARGIN,
     PAGE_W,
     TEXTE,
+    draw_page,
 )
 
 BLUE = colors.HexColor("#3b82f6")
@@ -101,7 +102,7 @@ def generate_pca_pdf(data: dict) -> bytes:
         pagesize=A4,
         leftMargin=MARGIN,
         rightMargin=MARGIN,
-        topMargin=MARGIN,
+        topMargin=(14 + 6) * mm,  # sous le bandeau
         bottomMargin=MARGIN,
     )
     styles = _styles()
@@ -283,5 +284,11 @@ def generate_pca_pdf(data: dict) -> bytes:
         )
     )
 
-    doc.build(story)
+    # Bandeau de marque et pied de page communs. Ce rapport n'en portait
+    # aucun, alors que NIS2, ISO 27001, le dossier dark web et les rapports de
+    # scan en ont un : c'etait l'un des derniers ecarts d'harmonisation.
+    def _page(canvas, doc):
+        draw_page(canvas, doc, "pca", "PLAN DE CONTINUITÉ", "")
+
+    doc.build(story, onFirstPage=_page, onLaterPages=_page)
     return buf.getvalue()

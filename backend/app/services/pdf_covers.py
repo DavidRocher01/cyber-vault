@@ -127,7 +127,7 @@ def draw_compliance_cover(
 
     canvas.setFillColor(col)
     canvas.setFont("Helvetica-Bold", 7)
-    canvas.drawString(M, card_y + card_h + 4 * mm, "SYNTHÈSE DE CONFORMITÉ")
+    canvas.drawString(M + 7 * mm, card_y + card_h + 4 * mm, "SYNTHÈSE DE CONFORMITÉ")
 
     canvas.setFillColor(CARTE_BG)
     canvas.roundRect(M, card_y, card_w, card_h, radius=4 * mm, fill=1, stroke=0)
@@ -376,7 +376,7 @@ def draw_url_scan_cover(
 
     canvas.setFillColor(col)
     canvas.setFont("Helvetica-Bold", 7)
-    canvas.drawString(M, card_y + card_h + 4 * mm, "RÉSULTAT DE L'ANALYSE")
+    canvas.drawString(M + 7 * mm, card_y + card_h + 4 * mm, "RÉSULTAT DE L'ANALYSE")
 
     canvas.setFillColor(CARTE_BG)
     canvas.roundRect(M, card_y, card_w, card_h, radius=4 * mm, fill=1, stroke=0)

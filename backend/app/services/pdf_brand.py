@@ -92,6 +92,8 @@ DOC_COLOR: dict[str, str] = {
     "test": "#10b981",
     "darkweb": "#ef4444",
     "phishing": "#f59e0b",
+    "pca": "#0891b2",
+    "rssi": "#0891b2",
 }
 
 # Cover accent triples: (main, mid, dark-bg) hex strings
@@ -112,6 +114,8 @@ _BAND_TITLE_COLOR: dict[str, str] = {
     "scan": "#bae6fd",
     "darkweb": "#fca5a5",
     "phishing": "#fde68a",
+    "pca": "#a5f3fc",
+    "rssi": "#a5f3fc",
 }
 
 # Short label shown in the band right zone for compliance covers

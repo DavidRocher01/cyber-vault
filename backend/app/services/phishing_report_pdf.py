@@ -24,7 +24,7 @@ from reportlab.platypus import (
 )
 
 from app.models.phishing import PhishingCampaign, PhishingTarget
-from app.services.pdf_brand import CYAN, ENTETE_TABLEAU, GRAY, TEXTE
+from app.services.pdf_brand import CYAN, ENTETE_TABLEAU, GRAY, TEXTE, draw_page
 from app.services.phishing_templates import SCENARIO_LABELS
 
 # `_DARK` ne designait pas une couleur mais deux ROLES distincts : la
@@ -174,13 +174,13 @@ def _compute_report_stats(campaign: PhishingCampaign, targets: list[PhishingTarg
 
 
 def _footer(canvas, doc):
-    canvas.saveState()
-    canvas.setFont("Helvetica", 7)
-    canvas.setFillColor(_GRAY)
-    page_num = f"Page {doc.page}"
-    canvas.drawRightString(_PAGE_W - 20 * mm, 12 * mm, page_num)
-    canvas.drawString(20 * mm, 12 * mm, "Rocher Cybersécurité — Rapport confidentiel")
-    canvas.restoreState()
+    """Bandeau de marque + pied de page, communs a tous les rapports.
+
+    Ce generateur ne posait qu'un pied de page maison, sans bandeau : il etait
+    l'un des rares rapports a ne porter aucune marque en tete, alors que NIS2,
+    ISO 27001, le dossier dark web et les deux rapports de scan en portent un.
+    """
+    draw_page(canvas, doc, "phishing", "RAPPORT DE PHISHING", "")
 
 
 def generate_phishing_report(
@@ -193,7 +193,7 @@ def generate_phishing_report(
         pagesize=A4,
         leftMargin=20 * mm,
         rightMargin=20 * mm,
-        topMargin=20 * mm,
+        topMargin=(14 + 6) * mm,  # sous le bandeau
         bottomMargin=22 * mm,
     )
 
@@ -221,7 +221,6 @@ def generate_phishing_report(
         "Body", fontName="Helvetica", fontSize=10, textColor=_TEXTE, spaceAfter=4
     )
     small_style = ParagraphStyle("Small", fontName="Helvetica", fontSize=8, textColor=_GRAY)
-    brand_style = ParagraphStyle("Brand", fontName="Helvetica-Bold", fontSize=11, textColor=_CYAN)
 
     # ── Compute stats (couche de calcul pure, testable) ──────────────────────
     stats = _compute_report_stats(campaign, targets)
@@ -240,7 +239,8 @@ def generate_phishing_report(
     story = []
 
     # ── Header ──────────────────────────────────────────────────────────────
-    story.append(Paragraph("Rocher Cybersécurité", brand_style))
+    # Le nom de marque est desormais porte par le bandeau : le repeter ici
+    # ferait doublon, comme c'etait le cas sur le devis et la facture.
     story.append(Paragraph("Rapport de simulation de phishing", title_style))
     # XML-escape : campaign.name est fourni par l'utilisateur et interprété comme
     # markup par ReportLab (Paragraph) — sans échappement, `<img src=...>` déclenche

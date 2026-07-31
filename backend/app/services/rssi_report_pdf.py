@@ -29,6 +29,7 @@ from app.services.pdf_brand import (
     PAGE_W,
     RED,
     TEXTE,
+    draw_page,
 )
 
 _AMBER = colors.HexColor("#f59e0b")
@@ -157,7 +158,7 @@ def generate_rssi_report(
         pagesize=A4,
         leftMargin=MARGIN * mm,
         rightMargin=MARGIN * mm,
-        topMargin=MARGIN * mm,
+        topMargin=(14 + 6) * mm,  # sous le bandeau
         bottomMargin=MARGIN * mm,
     )
     styles = _styles()
@@ -480,5 +481,11 @@ def generate_rssi_report(
         )
     )
 
-    doc.build(story)
+    # Bandeau de marque et pied de page communs. Ce rapport n'en portait
+    # aucun, alors que NIS2, ISO 27001, le dossier dark web et les rapports de
+    # scan en ont un : c'etait l'un des derniers ecarts d'harmonisation.
+    def _page(canvas, doc):
+        draw_page(canvas, doc, "rssi", "RAPPORT RSSI", "")
+
+    doc.build(story, onFirstPage=_page, onLaterPages=_page)
     return buf.getvalue()
