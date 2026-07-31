@@ -188,16 +188,24 @@
             saved() ? '!bg-emerald-600 hover:!bg-emerald-500' : '!bg-cyan-600 hover:!bg-cyan-500'
           "
         >
+          <!--
+            L'icone reste HORS des branches : sous Angular 21, une branche
+            @if a plusieurs noeuds racines n'est plus projetee dans
+            l'emplacement d'icone de MatButton (NG8011), et l'icone se
+            retrouvait mal placee. Une seule <mat-icon> a la racine, dont le
+            glyphe suit l'etat.
+          -->
+          <mat-icon
+            class="!text-base !w-4 !h-4 mr-1.5"
+            [class.animate-spin]="saving()"
+            aria-hidden="true"
+            >{{ saving() ? 'autorenew' : saved() ? 'check_circle' : 'save' }}</mat-icon
+          >
           @if (saving()) {
-            <mat-icon class="animate-spin !text-base !w-4 !h-4 mr-1.5" aria-hidden="true"
-              >autorenew</mat-icon
-            >
             Enregistrement…
           } @else if (saved()) {
-            <mat-icon class="!text-base !w-4 !h-4 mr-1.5" aria-hidden="true">check_circle</mat-icon>
             Profil enregistré
           } @else {
-            <mat-icon class="!text-base !w-4 !h-4 mr-1.5" aria-hidden="true">save</mat-icon>
             Enregistrer le profil
           }
         </button>

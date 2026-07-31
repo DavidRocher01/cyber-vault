@@ -68,7 +68,9 @@ const NMAP_LINES = [
       </div>
 
       <div class="terminal-body" #body>
-        <div *ngFor="let l of lines" [ngClass]="'line line-' + l.type">{{ l.text }}</div>
+        @for (l of lines; track l) {
+          <div [ngClass]="'line line-' + l.type">{{ l.text }}</div>
+        }
         <div class="input-row">
           <span class="prompt">{{ prompt }}</span>
           <input

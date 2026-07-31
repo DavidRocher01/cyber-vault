@@ -5,13 +5,12 @@
  * ESLint 9 ne lit plus le format `eslintrc`. La migration etait un prerequis
  * documente dans docs/MONTEES_DEPENDANCES.md.
  *
- * CORRECTION AU PLAN INITIAL : le plan visait ESLint 10 directement. Ce n'est
- * pas atteignable tant qu'on est sur Angular 20 —
- * `@angular-eslint` suit la majeure d'Angular en verrou, et seule la v22
- * (qui exige `@angular/cli >= 22`) accepte ESLint 10. La v20, compatible
- * Angular 20, plafonne a `eslint ^8.57 || ^9`. On s'arrete donc a ESLint 9,
- * qui utilise deja la config flat : tout le travail de format est fait, et le
- * passage a Angular 22 n'aura plus qu'a monter les versions.
+ * HISTORIQUE DES VERSIONS. Premiere etape (ESLint 9) : `@angular-eslint` suit
+ * la majeure d'Angular en verrou, et la v20 — seule compatible Angular 20 —
+ * plafonnait a `eslint ^8.57 || ^9`. ESLint 10 etait donc hors d'atteinte.
+ * Deuxieme etape, le meme jour : la montee en Angular 21 a amene
+ * `@angular-eslint` 21, qui accepte `eslint ^8.57 || ^9 || ^10`. ESLint 10 est
+ * en place depuis.
  *
  * PERIMETRE VOLONTAIREMENT IDENTIQUE A L'ANCIENNE CONFIG : mêmes extends, mêmes
  * regles. On migre le FORMAT, pas le jeu de regles — activer

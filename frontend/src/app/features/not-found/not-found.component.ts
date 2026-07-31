@@ -8,7 +8,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 
 const RESPONSES: Record<string, string[]> = {
@@ -29,7 +29,7 @@ const RESPONSES: Record<string, string[]> = {
 @Component({
   standalone: true,
   selector: 'app-not-found',
-  imports: [RouterLink, MatButtonModule, MatIconModule, CommonModule, FormsModule],
+  imports: [RouterLink, MatButtonModule, MatIconModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -58,9 +58,11 @@ const RESPONSES: Record<string, string[]> = {
         </button>
         @if (termOpen) {
           <div class="term-body">
-            <div *ngFor="let l of termLines" class="term-line" [class.term-cmd]="l.isCmd">
-              {{ l.text }}
-            </div>
+            @for (l of termLines; track l) {
+              <div class="term-line" [class.term-cmd]="l.isCmd">
+                {{ l.text }}
+              </div>
+            }
             <div class="term-input-row">
               <span style="color:#00e645">$&nbsp;</span>
               <input

@@ -76,8 +76,8 @@ export class AuthStore extends ComponentStore<AuthState> {
       switchMap(({ email, password }) => {
         this.patchState({ loading: true, error: null });
         return this.authService.login(email, password).pipe(
-          tapResponse(
-            res => {
+          tapResponse({
+            next: res => {
               if ('requires_2fa' in res) {
                 this.patchState({
                   loading: false,
@@ -90,11 +90,11 @@ export class AuthStore extends ComponentStore<AuthState> {
                 this.navigateAfterLogin();
               }
             },
-            (err: any) => {
+            error: (err: any) => {
               const msg = extractApiError(err, 'Erreur de connexion');
               this.patchState({ loading: false, error: msg });
-            }
-          )
+            },
+          })
         );
       })
     )
@@ -107,8 +107,8 @@ export class AuthStore extends ComponentStore<AuthState> {
         if (!pendingEmail || !pendingPassword) return [];
         this.patchState({ loading: true, error: null });
         return this.authService.login(pendingEmail, pendingPassword, totpCode).pipe(
-          tapResponse(
-            () => {
+          tapResponse({
+            next: () => {
               this.patchState({
                 loading: false,
                 requires2fa: false,
@@ -117,11 +117,11 @@ export class AuthStore extends ComponentStore<AuthState> {
               });
               this.navigateAfterLogin();
             },
-            (err: any) => {
+            error: (err: any) => {
               const msg = extractApiError(err, 'Code invalide');
               this.patchState({ loading: false, error: msg });
-            }
-          )
+            },
+          })
         );
       })
     )

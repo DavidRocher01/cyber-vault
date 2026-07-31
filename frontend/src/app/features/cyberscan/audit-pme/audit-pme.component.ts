@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 import { Title, Meta } from '@angular/platform-browser';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { CommonModule } from '@angular/common';
+
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 
 export const AUDIT_OFFERS = [
@@ -155,7 +155,7 @@ export const AUDIT_FAQS = [
 @Component({
   standalone: true,
   selector: 'app-audit-pme',
-  imports: [RouterLink, MatIconModule, MatButtonModule, CommonModule, NavButtonsComponent],
+  imports: [RouterLink, MatIconModule, MatButtonModule, NavButtonsComponent],
   templateUrl: './audit-pme.component.html',
 })
 export class AuditPmeComponent implements OnInit {

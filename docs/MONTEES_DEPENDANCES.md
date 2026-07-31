@@ -38,11 +38,14 @@ mécanisme : il ne reçoit plus de correctifs, donc l'advisory ci-dessus ne sera
 
 ## Les quatre chantiers, dans l'ordre
 
-L'ordre n'est pas arbitraire : ESLint doit passer avant Angular, car
-`@angular-eslint` (exigé par Angular 22) exige ESLint 10. Le faire après, c'est
-le faire deux fois.
+> **Mise à jour du 2026-07-31 — les chantiers 1 et 3 sont faits, le 2 est
+> partiellement fait et bloqué en amont.** Voir le détail dans chaque section.
+> L'ordre initialement écrit ici était erroné : il supposait qu'on pouvait
+> passer à ESLint 10 avant Angular. C'est l'inverse — `@angular-eslint` suit la
+> majeure d'Angular en verrou, et seule sa v21+ accepte ESLint 10. Le bon
+> enchaînement est donc Angular d'abord, ESLint dans la foulée.
 
-### 1. ESLint 8 → 10
+### 1. ESLint 8 → 10 — ✅ FAIT (2026-07-31)
 
 - **Débloque** : Angular 22 ; ferme l'advisory `brace-expansion`.
 - **Ce que ça implique** : ESLint 10 impose la configuration « flat ».
@@ -50,9 +53,12 @@ le faire deux fois.
   `@typescript-eslint` 7 → 8 et `@angular-eslint` 17 → 20.
 - **Risque** : nul sur le bundle livré — outillage pur.
 - **Validation** : binaire, le lint passe ou non. `npx eslint src/` puis la CI.
-- **Prérequis** : aucun. C'est le chantier à prendre en premier.
+- **Prérequis** : ~~aucun~~ — en réalité Angular 21. La config flat a été posée
+  d'abord sur ESLint **9** (seul palier compatible Angular 20), puis ESLint 10
+  est arrivé avec `@angular-eslint` 21. Deux étapes le même jour, commits
+  `e7c912e` et `196d330`.
 
-### 2. Angular 20 → 22
+### 2. Angular 20 → 22 — ⚠️ ARRÊTÉ À 21, BLOQUÉ EN AMONT (2026-07-31)
 
 - **Ce que ça implique** : montée coordonnée de **13 paquets** `@angular/*` plus
   le CLI et le devkit. Se fait avec `ng update`, qui applique des migrations
@@ -67,6 +73,31 @@ le faire deux fois.
 - ⚠️ **Ne jamais fusionner une PR Dependabot Angular isolée.** Le groupement mis
   en place dans `.github/dependabot.yml` fait désormais arriver la famille en une
   seule PR — c'est celle-là qu'il faut, jamais un paquet seul.
+
+**Ce qui bloque Angular 22, vérifié le 2026-07-31 :**
+
+| Paquet | Dernière version | Contrainte |
+|--------|------------------|-----------|
+| `@ngrx/component-store` | 21.1.1 — **pas de v22** | `@angular/core ^21` |
+| `lucide-angular` | — | `13.x - 21.x` |
+
+`ComponentStore` porte `auth.store.ts` et `vault.store.ts`. Passer à Angular 22
+suppose donc soit d'attendre les versions amont, soit de sortir ComponentStore
+de l'authentification et du coffre-fort — un chantier à part entière sur le
+code le plus sensible du dépôt, avec réécriture des specs associées.
+
+**Correction sur TypeScript.** Angular 22 exige `>=6.0 <6.1`, **pas 7**. La PR
+Dependabot #95 proposait `typescript ~7.0.2`, donc hors plage : elle aurait
+échoué là-dessus même son problème `@angular-eslint` résolu. Le groupe `angular`
+contient bien `typescript`, mais Dependabot y met la DERNIÈRE version publiée,
+pas celle qu'Angular supporte — le groupement ne suffit pas, il faut vérifier la
+plage à chaque fois.
+
+**Fait en Angular 21** : `ng update` a migré la syntaxe de contrôle de flux sur
+6 fichiers, `main.server.ts`, et la signature de `tapResponse` dans les deux
+stores. Deux corrections manuelles ont été nécessaires — le typage générique de
+`Uint8Array` depuis TS 5.7 dans `crypto.service.ts`, et une projection de
+contenu `NG8011` dans `consultant-profile`.
 
 ### 3. Stripe 10.5.0 → 15.3.1
 

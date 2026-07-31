@@ -85,69 +85,67 @@ function pad(n: number, w = 2) {
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="stage crt" *ngIf="visible" role="status" aria-label="Chargement sécurisé">
-      <div class="screen">
-        <div class="topbar">
-          <div><span class="dot"></span>{{ product }} · secure-boot v4.2.1</div>
-          <div class="topbar-right">
-            <span>node: edge-07.fr3</span>
-            <span>sess: 0x{{ sessionId }}</span>
-            <span>{{ tStr }} UTC</span>
-          </div>
-        </div>
-
-        <div class="main">
-          <div class="logs">
-            <div class="section-title">── event stream ────────────────────────────────</div>
-            <div class="log-list">
-              <div
-                *ngFor="let l of rollingLogs; let i = index"
-                class="log-line"
-                [style.opacity]="0.35 + (i / rollingLogs.length) * 0.65"
-              >
-                <span class="log-ts">{{ logTs(i) }}</span>
-                <span class="log-lvl" [class.wrn]="l.lvl === 'WRN'" [class.err]="l.lvl === 'ERR'"
-                  >[{{ l.lvl }}]</span
-                >
-                <span>{{ l.msg }}</span>
-              </div>
-              <div class="log-line log-waiting phos-glow">
-                <span class="log-ts">{{ tStr }}</span>
-                <span class="log-lvl">[---]</span>
-                <span>waiting<span class="caret"></span></span>
-              </div>
-            </div>
-            <div class="fade-top"></div>
-          </div>
-
-          <div class="checks">
-            <div class="section-title">── integrity checks ────────────────────</div>
-            <div class="check-list">
-              <div
-                *ngFor="let c of CHECKS; let i = index"
-                class="check-line"
-                [ngClass]="checkState(i)"
-              >
-                <span class="mark" [class.phos-glow]="checkState(i) === 'ok'">
-                  {{ checkMark(i) }}
-                </span>
-                <span class="check-label">{{ c }}</span>
-                <span class="check-time">{{ checkTime(i) }}</span>
-              </div>
+    @if (visible) {
+      <div class="stage crt" role="status" aria-label="Chargement sécurisé">
+        <div class="screen">
+          <div class="topbar">
+            <div><span class="dot"></span>{{ product }} · secure-boot v4.2.1</div>
+            <div class="topbar-right">
+              <span>node: edge-07.fr3</span>
+              <span>sess: 0x{{ sessionId }}</span>
+              <span>{{ tStr }} UTC</span>
             </div>
           </div>
-        </div>
-
-        <div class="footer">
-          <div class="footer-head">
-            <span class="phos-glow pct">[{{ pctStr }}%] bootstrapping secure runtime</span>
-            <span class="eta">loading…</span>
+          <div class="main">
+            <div class="logs">
+              <div class="section-title">── event stream ────────────────────────────────</div>
+              <div class="log-list">
+                @for (l of rollingLogs; track l; let i = $index) {
+                  <div class="log-line" [style.opacity]="0.35 + (i / rollingLogs.length) * 0.65">
+                    <span class="log-ts">{{ logTs(i) }}</span>
+                    <span
+                      class="log-lvl"
+                      [class.wrn]="l.lvl === 'WRN'"
+                      [class.err]="l.lvl === 'ERR'"
+                      >[{{ l.lvl }}]</span
+                    >
+                    <span>{{ l.msg }}</span>
+                  </div>
+                }
+                <div class="log-line log-waiting phos-glow">
+                  <span class="log-ts">{{ tStr }}</span>
+                  <span class="log-lvl">[---]</span>
+                  <span>waiting<span class="caret"></span></span>
+                </div>
+              </div>
+              <div class="fade-top"></div>
+            </div>
+            <div class="checks">
+              <div class="section-title">── integrity checks ────────────────────</div>
+              <div class="check-list">
+                @for (c of CHECKS; track c; let i = $index) {
+                  <div class="check-line" [ngClass]="checkState(i)">
+                    <span class="mark" [class.phos-glow]="checkState(i) === 'ok'">
+                      {{ checkMark(i) }}
+                    </span>
+                    <span class="check-label">{{ c }}</span>
+                    <span class="check-time">{{ checkTime(i) }}</span>
+                  </div>
+                }
+              </div>
+            </div>
           </div>
-          <div class="bar"><div class="bar-fill" [style.width.%]="loopPct * 100"></div></div>
-          <div class="hash">sha256: {{ hash }}</div>
+          <div class="footer">
+            <div class="footer-head">
+              <span class="phos-glow pct">[{{ pctStr }}%] bootstrapping secure runtime</span>
+              <span class="eta">loading…</span>
+            </div>
+            <div class="bar"><div class="bar-fill" [style.width.%]="loopPct * 100"></div></div>
+            <div class="hash">sha256: {{ hash }}</div>
+          </div>
         </div>
       </div>
-    </div>
+    }
   `,
   styles: [
     `
