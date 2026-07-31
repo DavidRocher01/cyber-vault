@@ -36,6 +36,23 @@ DARK_BG = colors.HexColor("#0f172a")
 CARD_BG = colors.HexColor("#1e293b")
 HEADER_BG = colors.HexColor("#0c1a2e")
 BORDER = colors.HexColor("#334155")
+
+# Surfaces des pages de garde.
+#
+# Ces cinq teintes vivaient en LITTERAUX disperses dans pdf_covers (dix-sept
+# appels a HexColor, neuf valeurs distinctes), alors meme que pdf_brand se
+# presente comme « l'identite visuelle partagee ». Consequence : la palette
+# n'etait pas reellement centralisee, et changer l'apparence des rapports
+# revenait a traquer des valeurs a la main dans chaque fichier — ce qui rendait
+# tout changement de theme illusoire.
+#
+# Trois des valeurs dupliquaient en plus STATUS_BG, defini quelques lignes plus
+# bas dans ce meme module.
+CARTE_BG = colors.HexColor("#111c30")  # fond des grandes cartes de synthese
+CARTE_BORDURE = colors.HexColor("#1e2d4a")  # liseré de ces cartes
+JAUGE_PISTE = colors.HexColor("#1e293b")  # piste non remplie des jauges et barres
+JAUGE_CREUX = colors.HexColor("#141e30")  # disque central des jauges circulaires
+TUILE_BG = colors.HexColor("#0e1623")  # fond des petites tuiles (domaines, infos)
 CYAN = colors.HexColor("#06b6d4")
 GREEN = colors.HexColor("#4ade80")
 YELLOW = colors.HexColor("#facc15")
