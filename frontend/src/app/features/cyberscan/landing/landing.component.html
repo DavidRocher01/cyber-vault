@@ -683,10 +683,10 @@
 
       <!-- Les 4 parcours : reponse a l'objection « mes equipes n'ont pas le temps ».
            Donnees derivees de content/fr/ via awareness-catalog.generated.ts. -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
         @for (p of parcours; track p.slug) {
           <div
-            class="rounded-xl border border-gray-700 bg-gray-800/60 p-5 flex flex-col gap-2 text-center"
+            class="rounded-2xl border border-amber-800/50 bg-amber-900/10 p-6 flex flex-col gap-3 text-center"
           >
             <span class="text-2xl font-extrabold text-amber-400">{{ p.dureeMinutes }}</span>
             <span class="text-[11px] uppercase tracking-widest text-gray-500">minutes</span>
