@@ -52,13 +52,18 @@ RACINE = Path(__file__).resolve().parent.parent
 _ECHELLE = 3  # facteur de rendu ; plus haut = plus precis, plus lent
 _SEUIL_CONTRASTE = 30.0  # ecart de luminance minimal (0-255) dans la boite du glyphe
 _SEUIL_RECOUVREMENT = 0.25  # part du plus petit segment couverte par l'autre
-_MIN_GLYPHES_INVISIBLES = 3  # en dessous, c'est du bruit (glyphes decoratifs)
-# Un glyphe tres fin (« l », « I », « . ») ne couvre que un a deux pixels au
-# rendu : l'anticrenelage lisse son contraste et le fait passer sous le seuil
-# alors qu'il est parfaitement visible. Constate sur le pied de page du
-# dossier dark web — un « l » de 0,62 pt. On ne mesure donc que les glyphes
-# assez larges ; un vrai texte invisible en comporte forcement.
-_LARGEUR_MIN_MESURABLE = 1.5  # points
+# Un glyphe pris ISOLEMENT est une mauvaise unite de mesure : « l », « I »,
+# « - » ne couvrent qu'un a deux pixels au rendu, et l'anticrenelage lisse leur
+# contraste au point de les faire passer pour invisibles. Le seuil de largeur
+# seul ne suffit pas — il tenait sur mon poste, pas sur le rendu du runner CI.
+#
+# Le defaut REEL n'est jamais un glyphe isole : c'est un SEGMENT entier — un
+# titre, un en-tete de colonne, une ligne — ecrit dans la couleur de son fond.
+# On mesure donc par segment, et on ne signale que ceux dont la majorite des
+# glyphes mesurables ne se detache pas.
+_LARGEUR_MIN_MESURABLE = 1.5  # points — en dessous, la mesure n'est pas fiable
+_MIN_GLYPHES_MESURES = 4  # un segment plus court ne prouve rien
+_PART_INVISIBLE = 0.6  # part du segment devant etre sans contraste
 
 
 def _luminance(px) -> float:
@@ -66,26 +71,28 @@ def _luminance(px) -> float:
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
 
-def glyphes_invisibles(page, textpage) -> list[str]:
-    """Glyphes dont la boîte ne présente aucun contraste avec son fond."""
+def segments_invisibles(page, textpage) -> list[str]:
+    """Segments de texte dont la majorite des glyphes ne se detache pas du fond."""
     img = page.render(scale=_ECHELLE).to_pil().convert("RGB")
     _, hauteur_pt = page.get_size()
     trouves: list[str] = []
-    for i in range(textpage.count_chars()):
-        car = textpage.get_text_range(i, 1)
-        if not car.strip():
-            continue
-        gauche, bas, droite, haut = textpage.get_charbox(i)
-        if droite - gauche < _LARGEUR_MIN_MESURABLE or haut - bas < 0.5:
-            continue
-        x0, x1 = int(gauche * _ECHELLE), int(droite * _ECHELLE) + 1
-        y0, y1 = int((hauteur_pt - haut) * _ECHELLE), int((hauteur_pt - bas) * _ECHELLE) + 1
-        zone = img.crop((max(x0, 0), max(y0, 0), min(x1, img.width), min(y1, img.height)))
-        if zone.width == 0 or zone.height == 0:
-            continue
-        valeurs = [_luminance(p) for p in zone.getdata()]
-        if max(valeurs) - min(valeurs) < _SEUIL_CONTRASTE:
-            trouves.append(car)
+    for seg in _segments(textpage):
+        mesures = 0
+        sans_contraste = 0
+        for gauche, bas, droite, haut in seg["boites"]:
+            if droite - gauche < _LARGEUR_MIN_MESURABLE or haut - bas < 0.5:
+                continue
+            x0, x1 = int(gauche * _ECHELLE), int(droite * _ECHELLE) + 1
+            y0, y1 = int((hauteur_pt - haut) * _ECHELLE), int((hauteur_pt - bas) * _ECHELLE) + 1
+            zone = img.crop((max(x0, 0), max(y0, 0), min(x1, img.width), min(y1, img.height)))
+            if zone.width == 0 or zone.height == 0:
+                continue
+            mesures += 1
+            valeurs = [_luminance(p) for p in zone.getdata()]
+            if max(valeurs) - min(valeurs) < _SEUIL_CONTRASTE:
+                sans_contraste += 1
+        if mesures >= _MIN_GLYPHES_MESURES and sans_contraste / mesures >= _PART_INVISIBLE:
+            trouves.append(seg["txt"])
     return trouves
 
 
@@ -104,8 +111,16 @@ def _segments(textpage) -> list[dict]:
             courant["t"] = max(courant["t"], haut)
             courant["b"] = min(courant["b"], bas)
             courant["txt"] += car
+            courant["boites"].append((gauche, bas, droite, haut))
         else:
-            courant = {"l": gauche, "b": bas, "r": droite, "t": haut, "txt": car}
+            courant = {
+                "l": gauche,
+                "b": bas,
+                "r": droite,
+                "t": haut,
+                "txt": car,
+                "boites": [(gauche, bas, droite, haut)],
+            }
             segs.append(courant)
     return segs
 
@@ -140,12 +155,8 @@ def analyser(chemin: Path) -> list[str]:
         for numero in range(len(doc)):
             page = doc[numero]
             textpage = page.get_textpage()
-            invisibles = glyphes_invisibles(page, textpage)
-            if len(invisibles) >= _MIN_GLYPHES_INVISIBLES:
-                extrait = "".join(invisibles)[:60]
-                anomalies.append(
-                    f"p{numero + 1} · {len(invisibles)} glyphe(s) sans contraste : {extrait!r}"
-                )
+            for seg in segments_invisibles(page, textpage):
+                anomalies.append(f"p{numero + 1} · segment sans contraste : {seg[:60]!r}")
             for a, b, part in chevauchements(textpage):
                 anomalies.append(
                     f"p{numero + 1} · chevauchement {int(part * 100)}% : {a!r} ↔ {b!r}"
