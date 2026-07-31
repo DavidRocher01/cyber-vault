@@ -333,6 +333,14 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Contact — Réserver un audit cybersécurité | Rocher Cybersécurité',
   },
   {
+    // PUBLIQUE : page vitrine de l'offre Dark Web, comme /rssi-externalise et
+    // /awareness-pricing. /darkweb-dossier reste l'application (authGuard).
+    path: 'darkweb-offre',
+    loadComponent: () =>
+      import('./darkweb-offre/darkweb-offre.component').then(m => m.DarkwebOffreComponent),
+    title: 'Dark Web Dossier — exposition de votre domaine | Rocher Cybersécurité',
+  },
+  {
     path: 'rssi-externalise',
     loadComponent: () =>
       import('./rssi-externalise/rssi-externalise.component').then(m => m.RssiExternaliseComponent),

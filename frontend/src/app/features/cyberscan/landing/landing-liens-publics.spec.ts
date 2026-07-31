@@ -44,18 +44,28 @@ function cheminsProteges(): Set<string> {
 }
 
 /**
- * Violations PRÉEXISTANTES, constatées le 2026-07-30 en écrivant ce test.
+ * Liens vers des routes protégées qui sont LÉGITIMES.
  *
- * Le pied de page renvoie vers `/darkweb-dossier` (authGuard) et `/consultant`
- * (rssiGuard) sans condition de connexion : un visiteur qui clique tombe sur le
- * formulaire de login. Même défaut que celui corrigé pour la sensibilisation,
- * mais sur d'autres produits — laissé en l'état faute d'arbitrage produit
- * (faut-il une page vitrine publique, ou retirer le lien du pied de page ?).
+ * `/dashboard` et `/profile` vivent dans `@if (isLoggedIn)` : ils ne s'affichent
+ * qu'à un utilisateur connecté. Le test ne sait pas lire cette condition, d'où
+ * leur présence ici.
  *
- * `/dashboard` et `/profile` sont légitimes : ils vivent dans `@if (isLoggedIn)`.
- * Le test ne sait pas lire cette condition, d'où leur présence ici.
+ * `/darkweb-dossier` est également dans ce menu, et `/consultant` dans
+ * `@if (isRssiConsultant())`.
  *
- * Toute NOUVELLE entrée dans cette liste doit être corrigée, pas ajoutée.
+ * Les deux violations réelles constatées le 2026-07-30 étaient dans le PIED DE
+ * PAGE, qui s'affiche pour tout le monde : il pointait vers `/darkweb-dossier`
+ * et `/consultant`. Corrigées le même jour — il mène désormais vers
+ * `/darkweb-offre` et `/rssi-externalise`, deux vitrines publiques.
+ *
+ * LIMITE : ce test raisonne par chemin, pas par emplacement. Il ne peut pas
+ * distinguer un même chemin lié deux fois, une fois légitimement et une fois
+ * non — c'est précisément le cas qui s'est produit. La liste ci-dessous couvre
+ * donc les usages légitimes, et une nouvelle violation sur ces mêmes chemins
+ * passerait inaperçue. Un test par emplacement demanderait de parser la
+ * structure du template.
+ *
+ * Toute NOUVELLE entrée ici doit être corrigée, pas ajoutée.
  */
 const VIOLATIONS_CONNUES = ['dashboard', 'profile', 'darkweb-dossier', 'consultant'];
 
@@ -88,6 +98,22 @@ describe('Landing — aucun lien vers une page authentifiée', () => {
     const proteges = cheminsProteges();
     expect(proteges.has('awareness-pricing')).toBe(false);
     expect(proteges.has('contact')).toBe(false);
+  });
+
+  it('les pages vitrines des offres sont toutes publiques', () => {
+    const proteges = cheminsProteges();
+    for (const vitrine of ['rssi-externalise', 'awareness-pricing', 'darkweb-offre']) {
+      expect(proteges.has(vitrine)).toBe(false);
+    }
+  });
+
+  it('les applications correspondantes restent protégées', () => {
+    // La vitrine est publique, l'application ne l'est pas — c'est la distinction
+    // qui manquait et qui envoyait les prospects sur le formulaire de connexion.
+    const proteges = cheminsProteges();
+    for (const app of ['darkweb-dossier', 'consultant', 'sensibilisation']) {
+      expect(proteges.has(app)).toBe(true);
+    }
   });
 
   it('/sensibilisation reste protégée — c’est l’application, pas une vitrine', () => {

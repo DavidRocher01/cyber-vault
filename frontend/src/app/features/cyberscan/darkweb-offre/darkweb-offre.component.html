@@ -1,0 +1,112 @@
+<app-nav-buttons />
+
+<div class="min-h-screen bg-gray-900 text-white">
+  <!-- Hero -->
+  <section class="px-8 pt-20 pb-16 text-center border-b border-gray-800">
+    <div class="max-w-3xl mx-auto">
+      <span
+        class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-rose-400 mb-4"
+      >
+        <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]">travel_explore</mat-icon>
+        Dark Web Dossier
+      </span>
+      <h1 class="text-4xl md:text-5xl font-extrabold mb-5 leading-tight">
+        Vos adresses circulent-elles déjà ?
+      </h1>
+      <p class="text-gray-400 text-base leading-relaxed mb-8 max-w-2xl mx-auto">
+        Nous analysons l'exposition de votre domaine dans les fuites de données connues, et vous
+        remettons un dossier lisible : ce qui est exposé, d'où ça vient, et quoi faire.
+      </p>
+      <a
+        routerLink="/contact"
+        [queryParams]="{ subject: 'autre' }"
+        class="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm transition-all"
+      >
+        <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">mail</mat-icon>
+        Demander un dossier
+      </a>
+      <p class="text-xs text-gray-500 mt-3">Sur votre domaine · sans engagement.</p>
+    </div>
+  </section>
+
+  <!-- Douleurs -->
+  <section class="px-8 py-16 border-b border-gray-800">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="text-2xl font-bold text-center mb-10">Le problème</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        @for (d of douleurs; track d.text) {
+          <div class="rounded-2xl border border-rose-800/50 bg-rose-900/10 p-6 flex flex-col gap-3">
+            <mat-icon class="text-rose-400 !text-[1.5rem] !w-[1.5rem] !h-[1.5rem]">{{
+              d.icon
+            }}</mat-icon>
+            <p class="text-sm text-gray-300 leading-relaxed">{{ d.text }}</p>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Contenu du dossier -->
+  <section class="px-8 py-16 border-b border-gray-800">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-2xl font-bold text-center mb-3">Ce que contient le dossier</h2>
+      <p class="text-gray-400 text-sm text-center mb-10 max-w-2xl mx-auto">
+        Un document, pas un tableau de bord de plus.
+      </p>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @for (c of contenu; track c.titre) {
+          <div class="rounded-2xl border border-gray-700 bg-gray-800/40 p-6 flex flex-col gap-3">
+            <mat-icon class="text-rose-400 !text-[1.5rem] !w-[1.5rem] !h-[1.5rem]">{{
+              c.icon
+            }}</mat-icon>
+            <h3 class="font-bold text-sm">{{ c.titre }}</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">{{ c.desc }}</p>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Ce que ce n'est pas -->
+  <section class="px-8 py-16 border-b border-gray-800">
+    <div class="max-w-3xl mx-auto">
+      <div class="rounded-2xl border border-gray-700 bg-gray-800/40 p-8">
+        <h2 class="text-xl font-bold mb-4">Ce que ce n'est pas</h2>
+        <p class="text-sm text-gray-400 leading-relaxed">
+          Ce dossier ne « retire » pas vos données du dark web — personne ne peut le faire, et
+          méfiez-vous de qui le promet. Il vous dit ce qui est exposé, à quel point c'est grave, et
+          quelles mesures prendre : changer les mots de passe concernés, activer la double
+          authentification, surveiller les comptes à risque.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Accès -->
+  <section class="px-8 py-16">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="text-2xl font-bold mb-4">Comment y accéder</h2>
+      <p class="text-gray-400 text-sm leading-relaxed mb-8">
+        La surveillance Dark Web et le Dossier sont inclus à partir du plan
+        <strong class="text-white">Pro</strong>. Pour un dossier ponctuel sur votre domaine ou une
+        étude à plusieurs domaines, écrivez-nous.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <a
+          routerLink="/"
+          fragment="pricing"
+          class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm transition-all"
+        >
+          Voir les tarifs
+        </a>
+        <a
+          routerLink="/contact"
+          [queryParams]="{ subject: 'autre' }"
+          class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-gray-600 text-gray-300 hover:border-gray-500 text-sm transition-all"
+        >
+          Poser une question
+        </a>
+      </div>
+    </div>
+  </section>
+</div>
