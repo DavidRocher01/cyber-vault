@@ -7,6 +7,10 @@ from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal
 
+# Palier minimum requis pour la surveillance recurrente (Pro), aligne sur
+# `_TIER_DARKWEB` de l'endpoint darkweb_dossier.
+_TIER_MONITORING = 3
+
 
 async def _run_darkweb_monitoring() -> None:
     """Daily job (03:00 UTC) : re-scanne les dossiers surveilles dont next_monitor_at
@@ -19,6 +23,7 @@ async def _run_darkweb_monitoring() -> None:
         process_dossier,
         send_darkweb_alert_email,
     )
+    from app.services.subscription_service import get_active_tier
 
     async with AsyncSessionLocal() as db:
         now = datetime.now(UTC)
@@ -30,6 +35,17 @@ async def _run_darkweb_monitoring() -> None:
             )
         )
         dossiers = result.scalars().all()
+
+        # `monitor_active` reste vrai apres une retrogradation : l'abonne l'a pose
+        # du temps ou il etait Pro, et rien ne l'efface. Sans ce filtre, un compte
+        # redescendu en Gratuit continuait d'etre re-scanne et alerte chaque mois,
+        # indefiniment et aux frais des appels HIBP. On verifie donc le palier au
+        # moment de l'execution, pas seulement a l'activation.
+        autorises = []
+        for d in dossiers:
+            if await get_active_tier(db, d.user_id) >= _TIER_MONITORING:
+                autorises.append(d)
+        dossiers = autorises
 
     for d in dossiers:
         # Snapshot exposed emails before re-scan

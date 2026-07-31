@@ -48,6 +48,10 @@ router = APIRouter(prefix="/darkweb-dossier", tags=["darkweb-dossier"])
 _MAX_EMAILS = 500
 _MAX_DOSSIERS_PER_USER = 20
 
+# Palier minimum du Dark Web Dossier (Pro). Nomme ici pour que la garde des routes
+# et le controle d'activation de la surveillance ne puissent plus diverger.
+_TIER_DARKWEB = 3
+
 # Cap d'octets du CSV lu en mémoire AVANT parsing (audit 2026-07-27, finding #14). Un
 # fichier de 500 emails pèse quelques centaines de Ko ; 2 Mo est large tout en bornant
 # la consommation mémoire (le cap RSSI storage.MAX_UPLOAD_BYTES=20 Mo vise des PDF, pas
@@ -185,7 +189,7 @@ def _to_dossier_out(d: DarkwebDossier) -> DossierOut:
     "",
     response_model=DossierOut,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_min_tier(3))],  # Dark Web Dossier : Pro+
+    dependencies=[Depends(require_min_tier(_TIER_DARKWEB))],  # Dark Web Dossier : Pro+
 )
 async def create_dossier(
     background_tasks: BackgroundTasks,
@@ -317,7 +321,7 @@ async def sync_catalog(
 @router.post(
     "/{dossier_id}/rescan",
     response_model=DossierOut,
-    dependencies=[Depends(require_min_tier(3))],  # Dark Web Dossier : Pro+
+    dependencies=[Depends(require_min_tier(_TIER_DARKWEB))],  # Dark Web Dossier : Pro+
 )
 async def rescan_dossier(
     dossier_id: int,
@@ -366,14 +370,26 @@ async def toggle_monitor(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Enable or disable monthly monitoring for a dossier."""
+    """Active ou desactive la surveillance mensuelle d'un dossier.
+
+    Volontairement PAS de `require_min_tier(3)` sur toute la route : c'est une
+    bascule, et un abonne retrograde doit pouvoir ETEINDRE une surveillance
+    qu'il a activee du temps ou il y avait droit. Seule l'activation est gardee.
+    """
     from datetime import timedelta
+
+    from app.services.subscription_service import get_active_tier
 
     dossier = await dossier_service.get_user_dossier(db, dossier_id, current_user.id)
     if not dossier:
         raise HTTPException(status_code=404, detail="Dossier introuvable")
 
     monitor_active = not dossier.monitor_active
+    if monitor_active and await get_active_tier(db, current_user.id) < _TIER_DARKWEB:
+        raise HTTPException(
+            status_code=403,
+            detail="La surveillance recurrente est reservee au plan Pro.",
+        )
     next_monitor_at = datetime.now(UTC) + timedelta(days=30) if monitor_active else None
     await dossier_service.set_monitor(
         db, dossier, monitor_active=monitor_active, next_monitor_at=next_monitor_at

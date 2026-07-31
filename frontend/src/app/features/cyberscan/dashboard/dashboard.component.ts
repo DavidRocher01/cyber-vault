@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
@@ -13,7 +13,13 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { Title, Meta } from '@angular/platform-browser';
 import { EMPTY, Subscription as RxSubscription, switchMap, tap } from 'rxjs';
 import { pollWithBackoff } from '../../../shared/poll-with-backoff';
-import { formatScanFrequency } from '../../../shared/plan-features';
+import {
+  badgePalier,
+  formatScanFrequency,
+  modulesInclus,
+  modulesVerrouilles,
+  PALIERS,
+} from '../../../shared/plan-features';
 
 import {
   Site,
@@ -104,6 +110,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
   readonly version = environment.version;
 
   subscription = signal<UserSubscription | null>(null);
+
+  /** Palier courant — 1 (Gratuit) par defaut, y compris sans abonnement charge. */
+  readonly palierCourant = computed(() => this.subscription()?.plan?.tier_level ?? PALIERS.GRATUIT);
+
+  /**
+   * Modules que l'abonne n'a pas encore, affiches verrouilles sous la grille.
+   * Vide au palier Business : il n'y a plus rien a debloquer.
+   */
+  readonly modulesAVenir = computed(() => modulesVerrouilles(this.palierCourant()));
+
+  /** Exposes au template : badge des cartes verrouillees, contenu de la modale. */
+  readonly badgePalier = badgePalier;
+  readonly modulesInclus = modulesInclus;
+
   sites = signal<Site[]>([]);
   scansMap = signal<Record<number, PaginatedScans>>({});
   loadingScans = signal<Record<number, boolean>>({});
