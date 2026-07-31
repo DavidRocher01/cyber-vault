@@ -599,3 +599,122 @@ async def test_toggle_monitor_other_user_returns_404(http_client: AsyncClient):
 
     r = await http_client.patch(f"{ENDPOINT}/{dossier_id}/monitor", headers=h2)
     assert r.status_code == 404
+
+
+# ── Surveillance recurrente et retrogradation ─────────────────────────────────
+#
+# Trouve le 2026-07-31 : la route /monitor n'avait AUCUNE garde de palier, alors
+# que la creation et le rescan du dossier exigent Pro. Un abonne retrograde
+# gardait donc la surveillance mensuelle — et le planificateur, qui ne lisait que
+# `monitor_active`, continuait de le re-scanner et de l'alerter indefiniment aux
+# frais des appels HIBP.
+#
+# La bascule reste ouverte a tous dans le sens EXTINCTION : enfermer quelqu'un
+# avec une surveillance qu'il ne peut plus eteindre serait pire que le trou.
+
+
+async def _retrograder(email: str) -> None:
+    """Desactive l'abonnement de l'utilisateur : get_active_tier retombe au Gratuit."""
+    from sqlalchemy import select
+
+    import app.core.database as _db_module
+    from app.models.subscription import Subscription
+    from app.models.user import User
+
+    async with _db_module.AsyncSessionLocal() as db:
+        user = (await db.execute(select(User).where(User.email == email))).scalar_one()
+        subs = (
+            (await db.execute(select(Subscription).where(Subscription.user_id == user.id)))
+            .scalars()
+            .all()
+        )
+        for sub in subs:
+            sub.status = "canceled"
+        await db.commit()
+
+
+async def _creer_dossier(http_client: AsyncClient, headers: dict, domaine: str) -> int:
+    with patch(
+        "app.services.darkweb_dossier.ingestion.check_email_breaches",
+        return_value=_MOCK_CLEAN,
+    ):
+        r = await http_client.post(
+            ENDPOINT,
+            data={"company_name": "Retro Corp", "domain": domaine},
+            files=_upload([f"contact@{domaine}"]),
+            headers=headers,
+        )
+    assert r.status_code == 201
+    return r.json()["id"]
+
+
+@pytest.mark.asyncio
+async def test_monitor_activation_refusee_apres_retrogradation(http_client: AsyncClient):
+    email = "retro-active@test.com"
+    headers = await _pro_headers(http_client, email)
+    dossier_id = await _creer_dossier(http_client, headers, "retro1.fr")
+
+    await _retrograder(email)
+
+    r = await http_client.patch(f"{ENDPOINT}/{dossier_id}/monitor", headers=headers)
+    assert r.status_code == 403
+    assert "Pro" in r.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_monitor_extinction_reste_possible_apres_retrogradation(http_client: AsyncClient):
+    """Un ex-Pro doit pouvoir COUPER une surveillance posee du temps ou il y avait droit."""
+    email = "retro-off@test.com"
+    headers = await _pro_headers(http_client, email)
+    dossier_id = await _creer_dossier(http_client, headers, "retro2.fr")
+
+    on = await http_client.patch(f"{ENDPOINT}/{dossier_id}/monitor", headers=headers)
+    assert on.json()["monitor_active"] is True
+
+    await _retrograder(email)
+
+    off = await http_client.patch(f"{ENDPOINT}/{dossier_id}/monitor", headers=headers)
+    assert off.status_code == 200
+    assert off.json()["monitor_active"] is False
+    assert off.json()["next_monitor_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_planificateur_ignore_les_dossiers_des_comptes_retrogrades(http_client: AsyncClient):
+    """Le vrai trou : la garde d'endpoint n'eteint pas les surveillances DEJA actives."""
+    from datetime import UTC, datetime, timedelta
+
+    from sqlalchemy import select
+
+    import app.core.database as _db_module
+    from app.models.darkweb_dossier import DarkwebDossier
+    from app.services.scheduler.darkweb import _run_darkweb_monitoring
+
+    email = "retro-sched@test.com"
+    headers = await _pro_headers(http_client, email)
+    dossier_id = await _creer_dossier(http_client, headers, "retro3.fr")
+    await http_client.patch(f"{ENDPOINT}/{dossier_id}/monitor", headers=headers)
+
+    # Echeance depassee : sans filtre de palier, le job le reprendrait.
+    async with _db_module.AsyncSessionLocal() as db:
+        dossier = (
+            await db.execute(select(DarkwebDossier).where(DarkwebDossier.id == dossier_id))
+        ).scalar_one()
+        dossier.status = "completed"
+        dossier.next_monitor_at = datetime.now(UTC) - timedelta(days=1)
+        await db.commit()
+
+    # Toujours Pro : le job DOIT le traiter — sinon le test ne prouverait rien.
+    with patch(
+        "app.services.darkweb_dossier_service.process_dossier", new_callable=AsyncMock
+    ) as traite:
+        await _run_darkweb_monitoring()
+    assert traite.await_count == 1
+
+    await _retrograder(email)
+
+    with patch(
+        "app.services.darkweb_dossier_service.process_dossier", new_callable=AsyncMock
+    ) as traite:
+        await _run_darkweb_monitoring()
+    assert traite.await_count == 0

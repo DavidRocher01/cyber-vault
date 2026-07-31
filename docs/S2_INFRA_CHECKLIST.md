@@ -94,6 +94,25 @@ contrôler la clé de rate-limit. Deux couches (poser au moins UNE, idéalement 
 - Bénéfice : l'ALB n'est plus joignable que depuis les IP CloudFront, l'accès direct
   est coupé au niveau réseau (le plus robuste).
 
+### Ce qui dépend de l'accès direct à l'ALB (vérifié le 2026-07-31, AVANT de poser B2)
+
+Couper l'ALB casse tout ce qui ne passe pas par CloudFront. Inventaire :
+
+- **La recette post-prod ne casse pas.** `backend/recette/conftest.py` prend
+  `https://rochercybersecurite.com` par défaut et n'interroge que `/api/v1/health`,
+  route servie par CloudFront. ⚠️ Non vérifiable depuis le repo : la valeur réelle
+  du secret `RECETTE_BASE_URL`, qui peut surcharger ce défaut. **Le lire avant de
+  poser B2** — s'il pointe sur le DNS de l'ALB, la recette échouera à chaque
+  déploiement et déclenchera un rollback automatique.
+- **Le health check approfondi casse.** `/health/deep` est monté à la racine de
+  l'app et CloudFront ne route que `/api/*` : il n'est joignable qu'en direct sur
+  l'ALB (cf. [DEPLOY.md](DEPLOY.md)). Après B2, il faudra passer par une task ECS
+  (`aws ecs execute-command`). C'est un outil de diagnostic manuel, pas une
+  dépendance du pipeline — coût opérationnel acceptable, mais à savoir avant de
+  chercher pourquoi la commande du runbook ne répond plus.
+- **Le health check de la target group ALB ne casse pas** : il vient de l'intérieur
+  du VPC, pas d'Internet.
+
 ### Vérification #4
 - `curl -H "X-Forwarded-For: 9.9.9.9" https://<ALB-DNS-direct>/api/v1/plans` → doit
   échouer (403 via B1, ou timeout/refus via B2), et NON servir la réponse.
