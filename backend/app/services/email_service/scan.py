@@ -11,7 +11,22 @@ import resend
 
 from app.core.config import settings
 
-from .base import _send
+from .base import _send, gabarit_html
+
+# Libelles lisibles a la place des codes bruts et des emoji : « WARNING ⚠️ »
+# ne dit rien de plus que « Vulnerabilites a corriger », et l'emoji dans
+# l'objet est un signal negatif pour les filtres anti-spam.
+_LIBELLE_STATUT = {
+    "OK": "Aucune vulnérabilité critique",
+    "WARNING": "Vulnérabilités à corriger",
+    "CRITICAL": "Action immédiate requise",
+}
+_COULEUR_STATUT = {
+    "OK": "#4ade80",
+    "WARNING": "#facc15",
+    "CRITICAL": "#f87171",
+}
+SITE_EMAIL = "contact@rochercybersecurite.com"
 
 
 def send_scan_report(
@@ -20,20 +35,32 @@ def send_scan_report(
     overall_status: str,
     pdf_path: str,
 ) -> None:
-    status_emoji = {"OK": "✅", "WARNING": "⚠️", "CRITICAL": "🚨"}.get(overall_status, "📋")
-    subject = f"[Rocher Cybersécurité] Rapport de scan — {site_url} {status_emoji}"
+    libelle = _LIBELLE_STATUT.get(overall_status, overall_status)
+    # Pas d'emoji dans l'objet : c'est un signal negatif pour les filtres, et il
+    # n'apporte rien qu'un libelle clair ne dise mieux.
+    subject = f"[Rocher Cybersécurité] Rapport de scan — {site_url}"
     plain = f"""Bonjour,
 
 Votre rapport de sécurité mensuel pour {site_url} est disponible.
 
-Résultat global : {overall_status} {status_emoji}
+Résultat global : {libelle}
 
 Retrouvez le rapport détaillé en pièce jointe.
 
 ---
 Rocher Cybersécurité — Cybersécurité as a Service
+{settings.FRONTEND_URL}
 """
-    _html = f"<p>{plain.replace(chr(10), '<br>')}</p>"
+    html = gabarit_html(
+        "Votre rapport de sécurité mensuel",
+        f"<p>Bonjour,</p>"
+        f"<p>Votre rapport de sécurité mensuel pour <strong>{site_url}</strong> est "
+        f"disponible.</p>"
+        f'<p style="margin:20px 0;padding:14px 18px;background:#0f172a;border-left:3px solid '
+        f'{_COULEUR_STATUT.get(overall_status, "#94a3b8")};border-radius:6px;">'
+        f"Résultat global : <strong>{libelle}</strong></p>"
+        f"<p>Le rapport détaillé se trouve en pièce jointe.</p>",
+    )
 
     if settings.RESEND_API_KEY:
         resend.api_key = settings.RESEND_API_KEY
@@ -42,6 +69,9 @@ Rocher Cybersécurité — Cybersécurité as a Service
             "to": [to_email],
             "subject": subject,
             "text": plain,
+            # Le HTML etait construit puis jete : ce message partait en texte
+            # seul, sans structure ni marque.
+            "html": html,
         }
         pdf_file = Path(pdf_path).resolve()
         if pdf_file.exists():
@@ -62,6 +92,7 @@ Rocher Cybersécurité — Cybersécurité as a Service
     msg["To"] = to_email
     msg["Subject"] = subject
     msg.attach(MIMEText(plain, "plain", "utf-8"))
+    msg.attach(MIMEText(html, "html", "utf-8"))
     pdf_file = Path(pdf_path).resolve()
     if pdf_file.exists() and pdf_file.is_file():
         with open(pdf_file, "rb") as f:  # nosec B open
@@ -85,26 +116,47 @@ def send_public_scan_report(
     Contrairement à send_scan_report, aucun PDF n'est joint (le scan gratuit ne génère
     pas de PDF) : on envoie un lien vers le rapport en ligne, débloqué via son token.
     """
-    status_emoji = {"OK": "✅", "WARNING": "⚠️", "CRITICAL": "🚨"}.get(overall_status, "📋")
-    subject = f"[Rocher Cybersécurité] Votre rapport de scan — {site_url} {status_emoji}"
+    libelle = _LIBELLE_STATUT.get(overall_status, overall_status)
+    subject = f"[Rocher Cybersécurité] Votre rapport de scan — {site_url}"
     plain = f"""Bonjour,
 
 Merci d'avoir utilisé le scan de sécurité gratuit de Rocher Cybersécurité.
 
 Site analysé : {site_url}
-Résultat global : {overall_status} {status_emoji}
+Résultat global : {libelle}
 
 Consultez votre rapport complet ici :
 {report_url}
 
-Pour surveiller vos sites en continu, exporter vos rapports de conformité et bien plus,
-découvrez nos offres sur {settings.FRONTEND_URL}.
-
 ---
 Rocher Cybersécurité — Cybersécurité as a Service
+{settings.FRONTEND_URL}
 """
-    html = f"<p>{plain.replace(chr(10), '<br>')}</p>"
-    _send(to_email, subject, html, plain)
+    html = gabarit_html(
+        "Votre rapport de scan est prêt",
+        f"<p>Bonjour,</p>"
+        f"<p>Merci d'avoir utilisé le scan de sécurité gratuit de Rocher "
+        f"Cybersécurité.</p>"
+        f'<table cellpadding="0" cellspacing="0" style="width:100%;margin:20px 0;">'
+        f'<tr><td style="padding:6px 0;color:#94a3b8;">Site analysé</td>'
+        f'<td style="padding:6px 0;text-align:right;"><strong>{site_url}</strong></td></tr>'
+        f'<tr><td style="padding:6px 0;color:#94a3b8;">Résultat global</td>'
+        f'<td style="padding:6px 0;text-align:right;color:'
+        f'{_COULEUR_STATUT.get(overall_status, "#94a3b8")};">'
+        f"<strong>{libelle}</strong></td></tr></table>",
+        "Consulter le rapport complet",
+        report_url,
+    )
+    # `mailto:` plutot qu'une URL : aucun endpoint de desinscription n'existe
+    # pour ce message, et annoncer un lien qui ne desinscrit de rien serait pire
+    # que de ne rien annoncer.
+    _send(
+        to_email,
+        subject,
+        html,
+        plain,
+        desinscription=f"mailto:{SITE_EMAIL}?subject=Desinscription",
+    )
 
 
 def send_ssl_expiry_alert(
