@@ -27,19 +27,30 @@ from reportlab.platypus import (
 )
 
 from app.services.pdf_brand import (
+    BANDEAU_BG,
     BORDER,
     CARD_BG,
+    CARTE_BG,
+    CARTE_BORDURE,
     CYAN,
     DARK_BG,
     FOOTER_H,
     GRAY,
     GREEN,
+    HEADER_BG,
+    JAUGE_CREUX,
+    LIGNE_A,
     MARGIN,
     PAGE_H,
     PAGE_W,
     RED,
-    WHITE,
+    STATUS_BG,
+    TEXTE,
+    TEXTE_BANDEAU,
+    TUILE_BG,
     YELLOW,
+    ajuster_paire,
+    base_sous_plafond,
     get_styles,
     section_rule,
 )
@@ -99,7 +110,7 @@ def _draw_branded_cover(
     band_y = H - BAND_H
     band_cy = H - BAND_H / 2
 
-    canvas.setFillColor(colors.HexColor("#0f0a28"))
+    canvas.setFillColor(BANDEAU_BG)
     canvas.rect(0, band_y, W, BAND_H, fill=1, stroke=0)
     canvas.setFillColor(acc)
     canvas.rect(0, band_y, 2 * mm, BAND_H, fill=1, stroke=0)
@@ -141,22 +152,52 @@ def _draw_branded_cover(
         canvas.setFont("Helvetica-Bold", BAND_H * 0.30)
         canvas.drawCentredString(cx, band_cy - BAND_H * 0.07, initials[:2])
 
-    # Company name in band
-    canvas.setFillColor(WHITE)
-    canvas.setFont("Helvetica-Bold", BAND_H * 0.55)
-    canvas.drawString(M + 15 * mm, band_cy - BAND_H * 0.12, company_name)
+    # ── Nom du cabinet a gauche, type de document a droite ────────────────────
+    #
+    # Les deux etaient dessines a taille fixe : « Cabinet Vasseur — RSSI
+    # externalisé » recouvrait entierement « RAPPORT DE SÉCURITÉ » et la date.
+    # C'est le pire endroit ou laisser ce defaut — le nom vient du consultant,
+    # sa longueur est donc arbitraire, et ce document est celui qu'il presente a
+    # SON client sous SA marque. Meme ajustement que le bandeau maison, via
+    # l'utilitaire partage pour que les deux ne redivergent pas.
+    nom_x = M + 15 * mm
+    titre_droite = "RAPPORT DE SÉCURITÉ"
+    taille_nom, taille_titre, _, _ = ajuster_paire(
+        canvas,
+        company_name,
+        titre_droite,
+        "Helvetica-Bold",
+        BAND_H * 0.55,
+        BAND_H * 0.45,
+        (W - M) - nom_x,
+        ecart_min=6 * mm,
+    )
 
-    # Right: "Rapport de sécurité"
+    canvas.setFillColor(TEXTE_BANDEAU)
+    canvas.setFont("Helvetica-Bold", taille_nom)
+    canvas.drawString(nom_x, band_cy - BAND_H * 0.12, company_name)
+
     canvas.setFillColor(acc)
-    canvas.setFont("Helvetica-Bold", BAND_H * 0.45)
-    canvas.drawRightString(W - M, band_cy + BAND_H * 0.10, "RAPPORT DE SÉCURITÉ")
+    canvas.setFont("Helvetica-Bold", taille_titre)
+    canvas.drawRightString(
+        W - M,
+        base_sous_plafond(
+            band_cy + BAND_H * 0.10, taille_titre, "Helvetica-Bold", band_y + BAND_H - 1.2 * mm
+        ),
+        titre_droite,
+    )
     canvas.setFillColor(GRAY)
     canvas.setFont("Helvetica", BAND_H * 0.35)
     canvas.drawRightString(W - M, band_cy - BAND_H * 0.28, date_str[:10])
 
     # ── Title block ───────────────────────────────────────────────────────────
+    #
+    # Etait a H - 52 mm, soit 26 mm plus bas que son equivalent sur les rapports
+    # de conformite, alors que la carte de synthese se trouve quasiment a la meme
+    # hauteur : le titre, le domaine et la ligne « Généré le… » percutaient le
+    # bord superieur de la carte et son intitule. Remonte pour degager la zone.
     _tx = M
-    ty = H - 52 * mm
+    ty = H - 30 * mm
 
     canvas.setFillColor(acc)
     canvas.roundRect(M, ty - 12 * mm, 3 * mm, 22 * mm, radius=1 * mm, fill=1, stroke=0)
@@ -165,7 +206,7 @@ def _draw_branded_cover(
     canvas.setFont("Helvetica-Bold", 20)
     canvas.drawString(M + 7 * mm, ty, "Audit de cybersécurité")
 
-    canvas.setFillColor(WHITE)
+    canvas.setFillColor(TEXTE)
     canvas.setFont("Helvetica-Bold", 15)
     canvas.drawString(M + 7 * mm, ty - 8 * mm, domain)
 
@@ -183,9 +224,9 @@ def _draw_branded_cover(
     canvas.setFont("Helvetica-Bold", 7)
     canvas.drawString(M, card_y + card_h + 4 * mm, "SYNTHÈSE DE L'AUDIT")
 
-    canvas.setFillColor(colors.HexColor("#111c30"))
+    canvas.setFillColor(CARTE_BG)
     canvas.roundRect(M, card_y, card_w, card_h, radius=4 * mm, fill=1, stroke=0)
-    canvas.setStrokeColor(colors.HexColor("#1e2d4a"))
+    canvas.setStrokeColor(CARTE_BORDURE)
     canvas.setLineWidth(0.8)
     canvas.roundRect(M, card_y, card_w, card_h, radius=4 * mm, fill=0, stroke=1)
     canvas.setStrokeColor(s_col)
@@ -204,7 +245,7 @@ def _draw_branded_cover(
     cy2 = card_y + card_h / 2 + 6 * mm
     r2 = 18 * mm
 
-    canvas.setStrokeColor(colors.HexColor("#1e293b"))
+    canvas.setStrokeColor(LIGNE_A)
     canvas.setLineWidth(11)
     canvas.setLineCap(0)
     p = canvas.beginPath()
@@ -226,7 +267,7 @@ def _draw_branded_cover(
         )
         canvas.drawPath(p2, stroke=1, fill=0)
 
-    canvas.setFillColor(colors.HexColor("#141e30"))
+    canvas.setFillColor(JAUGE_CREUX)
     canvas.circle(cx2, cy2, r2 - 6 * mm, fill=1, stroke=0)
     canvas.setFillColor(s_col)
     canvas.setFont("Helvetica-Bold", 26)
@@ -239,15 +280,15 @@ def _draw_branded_cover(
     canvas.drawCentredString(cx2, card_y + 5.5 * mm, "Score de sécurité")
 
     sep_x = M + left_w + 4 * mm
-    canvas.setStrokeColor(colors.HexColor("#1e293b"))
+    canvas.setStrokeColor(LIGNE_A)
     canvas.setLineWidth(0.8)
     canvas.line(sep_x, card_y + 8 * mm, sep_x, card_y + card_h - 8 * mm)
 
     # KPI 3-cell row (right 62%)
     kpis = [
-        (critical_count, "Critiques", RED, colors.HexColor("#2d0a0a")),
-        (warning_count, "Avertis.", YELLOW, colors.HexColor("#1c1400")),
-        (info_count, "Infos", CYAN, colors.HexColor("#0c1a2e")),
+        (critical_count, "Critiques", RED, STATUS_BG["non_compliant"]),
+        (warning_count, "Avertis.", YELLOW, STATUS_BG["partial"]),
+        (info_count, "Infos", CYAN, HEADER_BG),
     ]
     gx0 = sep_x + 4 * mm
     gw = card_w * 0.62 - 12 * mm
@@ -281,7 +322,7 @@ def _draw_branded_cover(
     canvas.setFont("Helvetica-Bold", 7)
     canvas.drawString(M, url_y + 2 * mm, "DOMAINE AUDITÉ")
 
-    canvas.setFillColor(colors.HexColor("#0e1623"))
+    canvas.setFillColor(TUILE_BG)
     canvas.roundRect(M, url_y - 8 * mm, card_w, 9 * mm, radius=2 * mm, fill=1, stroke=0)
 
     max_dom = 90
@@ -322,7 +363,7 @@ def _draw_branded_page(canvas, doc, *, company_name: str, accent_hex: str) -> No
     canvas.setFillColor(DARK_BG)
     canvas.rect(0, 0, PAGE_W, PAGE_H, fill=1, stroke=0)
 
-    canvas.setFillColor(colors.HexColor("#0f0a28"))
+    canvas.setFillColor(BANDEAU_BG)
     canvas.rect(0, band_y, PAGE_W, BAND_H, fill=1, stroke=0)
     canvas.setFillColor(acc)
     canvas.rect(0, band_y, 2 * mm, BAND_H, fill=1, stroke=0)
@@ -330,13 +371,36 @@ def _draw_branded_page(canvas, doc, *, company_name: str, accent_hex: str) -> No
     canvas.setLineWidth(2.5)
     canvas.line(0, band_y, PAGE_W, band_y)
 
-    canvas.setFillColor(WHITE)
-    canvas.setFont("Helvetica-Bold", BAND_H * 0.55)
-    canvas.drawString(M + 3 * mm, band_cy - BAND_H * 0.12, company_name)
+    # Meme ajustement que sur la couverture. La correction n'avait ete appliquee
+    # qu'a `_draw_branded_cover` : les PAGES DE CONTENU gardaient le defaut, et
+    # le nom du cabinet y recouvrait encore « RAPPORT DE SÉCURITÉ ». Trouve par
+    # le detecteur de chevauchement, pas a l'oeil.
+    nom_x = M + 3 * mm
+    titre_droite = "RAPPORT DE SÉCURITÉ"
+    taille_nom, taille_titre, _, _ = ajuster_paire(
+        canvas,
+        company_name,
+        titre_droite,
+        "Helvetica-Bold",
+        BAND_H * 0.55,
+        BAND_H * 0.45,
+        (PAGE_W - M) - nom_x,
+        ecart_min=6 * mm,
+    )
+
+    canvas.setFillColor(TEXTE_BANDEAU)
+    canvas.setFont("Helvetica-Bold", taille_nom)
+    canvas.drawString(nom_x, band_cy - BAND_H * 0.12, company_name)
 
     canvas.setFillColor(acc)
-    canvas.setFont("Helvetica-Bold", BAND_H * 0.45)
-    canvas.drawRightString(PAGE_W - M, band_cy + BAND_H * 0.10, "RAPPORT DE SÉCURITÉ")
+    canvas.setFont("Helvetica-Bold", taille_titre)
+    canvas.drawRightString(
+        PAGE_W - M,
+        base_sous_plafond(
+            band_cy + BAND_H * 0.10, taille_titre, "Helvetica-Bold", band_y + BAND_H - 1.2 * mm
+        ),
+        titre_droite,
+    )
     canvas.setFillColor(GRAY)
     canvas.setFont("Helvetica", BAND_H * 0.35)
     canvas.drawRightString(PAGE_W - M, band_cy - BAND_H * 0.28, today)

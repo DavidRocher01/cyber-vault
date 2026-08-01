@@ -24,10 +24,12 @@ from reportlab.platypus import (
 )
 
 from app.models.phishing import PhishingCampaign, PhishingTarget
-from app.services.pdf_brand import CYAN, DARK_BG, GRAY
+from app.services.pdf_brand import CYAN, ENTETE_TABLEAU, GRAY, TEXTE, draw_page
 from app.services.phishing_templates import SCENARIO_LABELS
 
-_DARK = DARK_BG  # brand (voir pdf_brand)
+# `_DARK` ne designait pas une couleur mais deux ROLES distincts : la
+# couleur du texte et le fond des en-tetes de tableau. Separes.
+_TEXTE = TEXTE  # brand (voir pdf_brand)
 _CYAN = CYAN  # brand (voir pdf_brand)
 _RED = colors.HexColor("#ef4444")  # variante vive volontaire (!= brand RED)
 _YELLOW = colors.HexColor("#eab308")  # variante vive volontaire (!= brand YELLOW)
@@ -172,13 +174,13 @@ def _compute_report_stats(campaign: PhishingCampaign, targets: list[PhishingTarg
 
 
 def _footer(canvas, doc):
-    canvas.saveState()
-    canvas.setFont("Helvetica", 7)
-    canvas.setFillColor(_GRAY)
-    page_num = f"Page {doc.page}"
-    canvas.drawRightString(_PAGE_W - 20 * mm, 12 * mm, page_num)
-    canvas.drawString(20 * mm, 12 * mm, "Rocher Cybersécurité — Rapport confidentiel")
-    canvas.restoreState()
+    """Bandeau de marque + pied de page, communs a tous les rapports.
+
+    Ce generateur ne posait qu'un pied de page maison, sans bandeau : il etait
+    l'un des rares rapports a ne porter aucune marque en tete, alors que NIS2,
+    ISO 27001, le dossier dark web et les deux rapports de scan en portent un.
+    """
+    draw_page(canvas, doc, "phishing", "RAPPORT DE PHISHING", "")
 
 
 def generate_phishing_report(
@@ -191,7 +193,7 @@ def generate_phishing_report(
         pagesize=A4,
         leftMargin=20 * mm,
         rightMargin=20 * mm,
-        topMargin=20 * mm,
+        topMargin=(14 + 6) * mm,  # sous le bandeau
         bottomMargin=22 * mm,
     )
 
@@ -199,7 +201,8 @@ def generate_phishing_report(
         "ReportTitle",
         fontName="Helvetica-Bold",
         fontSize=22,
-        textColor=_DARK,
+        leading=26,
+        textColor=_TEXTE,
         spaceAfter=4,
     )
     subtitle_style = ParagraphStyle(
@@ -209,15 +212,15 @@ def generate_phishing_report(
         "Section",
         fontName="Helvetica-Bold",
         fontSize=13,
-        textColor=_DARK,
+        leading=16,
+        textColor=_TEXTE,
         spaceBefore=14,
         spaceAfter=6,
     )
     body_style = ParagraphStyle(
-        "Body", fontName="Helvetica", fontSize=10, textColor=_DARK, spaceAfter=4
+        "Body", fontName="Helvetica", fontSize=10, textColor=_TEXTE, spaceAfter=4
     )
     small_style = ParagraphStyle("Small", fontName="Helvetica", fontSize=8, textColor=_GRAY)
-    brand_style = ParagraphStyle("Brand", fontName="Helvetica-Bold", fontSize=11, textColor=_CYAN)
 
     # ── Compute stats (couche de calcul pure, testable) ──────────────────────
     stats = _compute_report_stats(campaign, targets)
@@ -236,7 +239,8 @@ def generate_phishing_report(
     story = []
 
     # ── Header ──────────────────────────────────────────────────────────────
-    story.append(Paragraph("Rocher Cybersécurité", brand_style))
+    # Le nom de marque est desormais porte par le bandeau : le repeter ici
+    # ferait doublon, comme c'etait le cas sur le devis et la facture.
     story.append(Paragraph("Rapport de simulation de phishing", title_style))
     # XML-escape : campaign.name est fourni par l'utilisateur et interprété comme
     # markup par ReportLab (Paragraph) — sans échappement, `<img src=...>` déclenche
@@ -265,7 +269,7 @@ def generate_phishing_report(
                 ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
                 ("FONTSIZE", (0, 0), (-1, -1), 9),
                 ("TEXTCOLOR", (0, 0), (0, -1), _GRAY),
-                ("TEXTCOLOR", (1, 0), (1, -1), _DARK),
+                ("TEXTCOLOR", (1, 0), (1, -1), _TEXTE),
                 ("ROWBACKGROUNDS", (0, 0), (-1, -1), [_LIGHT_BG, colors.white]),
                 ("TOPPADDING", (0, 0), (-1, -1), 4),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
@@ -300,8 +304,8 @@ def generate_phishing_report(
     stats_table.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, 0), _DARK),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("BACKGROUND", (0, 0), (-1, 0), ENTETE_TABLEAU),
+                ("TEXTCOLOR", (0, 0), (-1, 0), _TEXTE),
                 ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                 ("FONTSIZE", (0, 0), (-1, -1), 10),
                 ("ROWBACKGROUNDS", (0, 1), (-1, -1), [_LIGHT_BG, colors.white]),
@@ -345,8 +349,8 @@ def generate_phishing_report(
             ]
         ]
         sc_perf_style = [
-            ("BACKGROUND", (0, 0), (-1, 0), _DARK),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("BACKGROUND", (0, 0), (-1, 0), ENTETE_TABLEAU),
+            ("TEXTCOLOR", (0, 0), (-1, 0), _TEXTE),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
             ("FONTSIZE", (0, 0), (-1, -1), 9),
             ("ROWBACKGROUNDS", (0, 1), (-1, -1), [_LIGHT_BG, colors.white]),
@@ -410,8 +414,8 @@ def generate_phishing_report(
         sc_table.setStyle(
             TableStyle(
                 [
-                    ("BACKGROUND", (0, 0), (-1, 0), _DARK),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("BACKGROUND", (0, 0), (-1, 0), ENTETE_TABLEAU),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), _TEXTE),
                     ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                     ("FONTSIZE", (0, 0), (-1, -1), 9),
                     ("ROWBACKGROUNDS", (0, 1), (-1, -1), [_LIGHT_BG, colors.white]),
@@ -450,8 +454,8 @@ def generate_phishing_report(
         dept_table.setStyle(
             TableStyle(
                 [
-                    ("BACKGROUND", (0, 0), (-1, 0), _DARK),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("BACKGROUND", (0, 0), (-1, 0), ENTETE_TABLEAU),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), _TEXTE),
                     ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                     ("FONTSIZE", (0, 0), (-1, -1), 9),
                     ("ROWBACKGROUNDS", (0, 1), (-1, -1), [_LIGHT_BG, colors.white]),
@@ -495,7 +499,7 @@ def generate_phishing_report(
             TableStyle(
                 [
                     ("BACKGROUND", (0, 0), (-1, 0), _RED),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), _TEXTE),
                     ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                     ("FONTSIZE", (0, 0), (-1, -1), 9),
                     (
@@ -531,8 +535,8 @@ def generate_phishing_report(
         }
         tgt_header = [["Email", "Prénom", "Département", "Scénario", "Statut"]]
         tgt_style = [
-            ("BACKGROUND", (0, 0), (-1, 0), _DARK),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("BACKGROUND", (0, 0), (-1, 0), ENTETE_TABLEAU),
+            ("TEXTCOLOR", (0, 0), (-1, 0), _TEXTE),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
             ("FONTSIZE", (0, 0), (-1, -1), 8),
             ("ROWBACKGROUNDS", (0, 1), (-1, -1), [_LIGHT_BG, colors.white]),

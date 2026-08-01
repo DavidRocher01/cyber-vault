@@ -214,15 +214,21 @@ def build_client_row(
     half: float,
     gap: float,
 ) -> Table:
-    """Ligne client : libellé émetteur (gauche) + encadré coordonnées client (droite)."""
+    """Ligne client : libellé « Destinataire » (gauche) + encadré coordonnées client (droite).
+
+    La cellule de gauche affichait le NOM DE L'ÉMETTEUR, déjà imprimé en entier
+    juste au-dessus par `build_vendor_info()` : « David Rocher » apparaissait donc
+    deux fois sur chaque devis et chaque facture, sans que rien ne désigne
+    l'encadré de droite. Elle porte désormais le libellé de ce qu'elle annonce.
+    """
     vendor_label = Table(
         [
             [
                 _p(
-                    f"<b>{VENDOR['name']}</b>",
-                    fontSize=10,
+                    "DESTINATAIRE",
+                    fontSize=8,
                     fontName="Helvetica-Bold",
-                    textColor=NAVY,
+                    textColor=GRAY,
                 ),
             ]
         ],

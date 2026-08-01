@@ -12,6 +12,7 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import HRFlowable
 
+from app.services.pdf_brand import ENTETE_TABLEAU
 from app.services.pdf_compliance import ComplianceStyle, generate_compliance_pdf
 
 DOC_TYPE = "iso27001"
@@ -40,7 +41,7 @@ _STYLE = ComplianceStyle(
     col1_header="Domaine",
     nc_header="✗ N.C.",
     summary_col_ratios=(0.34, 0.30, 0.09, 0.09, 0.10, 0.08),
-    summary_header_bg=colors.HexColor("#0c0f1a"),
+    summary_header_bg=ENTETE_TABLEAU,
     summary_pad=7,
     summary_has_fontsize_rule=False,
     summary_linebelow=VIOLET,
@@ -66,7 +67,7 @@ _STYLE = ComplianceStyle(
         "Rapport ISO 27001:2022 généré par Rocher Cybersécurité le {date} UTC — "
         "Ce rapport est fourni à titre indicatif et ne constitue pas une certification ISO/IEC 27001."
     ),
-    cover_title1="Rapport de conformite",
+    cover_title1="Rapport de conformité",
     cover_title2="ISO/IEC 27001:2022",
     later_page_title="Conformité ISO 27001:2022",
 )

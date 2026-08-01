@@ -28,7 +28,8 @@ from app.services.pdf_brand import (
     MARGIN,
     PAGE_W,
     RED,
-    WHITE,
+    TEXTE,
+    draw_page,
 )
 
 _AMBER = colors.HexColor("#f59e0b")
@@ -46,6 +47,7 @@ def _styles() -> dict:
             "r_title",
             fontName="Helvetica-Bold",
             fontSize=22,
+            leading=26,
             textColor=CYAN,
             spaceAfter=2,
         ),
@@ -56,6 +58,7 @@ def _styles() -> dict:
             "r_h2",
             fontName="Helvetica-Bold",
             fontSize=13,
+            leading=16,
             textColor=CYAN,
             spaceBefore=14,
             spaceAfter=6,
@@ -64,15 +67,15 @@ def _styles() -> dict:
             "r_body",
             fontName="Helvetica",
             fontSize=10,
-            textColor=WHITE,
+            textColor=TEXTE,
             leading=15,
             spaceAfter=4,
         ),
         "label": ParagraphStyle("r_label", fontName="Helvetica-Bold", fontSize=9, textColor=GRAY),
-        "value": ParagraphStyle("r_value", fontName="Helvetica", fontSize=10, textColor=WHITE),
+        "value": ParagraphStyle("r_value", fontName="Helvetica", fontSize=10, textColor=TEXTE),
         "small": ParagraphStyle("r_small", fontName="Helvetica", fontSize=8, textColor=GRAY),
         "th": ParagraphStyle("r_th", fontName="Helvetica-Bold", fontSize=9, textColor=CYAN),
-        "td": ParagraphStyle("r_td", fontName="Helvetica", fontSize=9, textColor=WHITE),
+        "td": ParagraphStyle("r_td", fontName="Helvetica", fontSize=9, textColor=TEXTE),
         "td_red": ParagraphStyle("r_td_red", fontName="Helvetica-Bold", fontSize=9, textColor=RED),
         "td_grn": ParagraphStyle(
             "r_td_grn", fontName="Helvetica-Bold", fontSize=9, textColor=GREEN
@@ -155,7 +158,7 @@ def generate_rssi_report(
         pagesize=A4,
         leftMargin=MARGIN * mm,
         rightMargin=MARGIN * mm,
-        topMargin=MARGIN * mm,
+        topMargin=(14 + 6) * mm,  # sous le bandeau
         bottomMargin=MARGIN * mm,
     )
     styles = _styles()
@@ -478,5 +481,11 @@ def generate_rssi_report(
         )
     )
 
-    doc.build(story)
+    # Bandeau de marque et pied de page communs. Ce rapport n'en portait
+    # aucun, alors que NIS2, ISO 27001, le dossier dark web et les rapports de
+    # scan en ont un : c'etait l'un des derniers ecarts d'harmonisation.
+    def _page(canvas, doc):
+        draw_page(canvas, doc, "rssi", "RAPPORT RSSI", "")
+
+    doc.build(story, onFirstPage=_page, onLaterPages=_page)
     return buf.getvalue()

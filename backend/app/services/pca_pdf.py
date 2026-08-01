@@ -26,7 +26,8 @@ from app.services.pdf_brand import (
     GRAY,
     MARGIN,
     PAGE_W,
-    WHITE,
+    TEXTE,
+    draw_page,
 )
 
 BLUE = colors.HexColor("#3b82f6")
@@ -38,6 +39,7 @@ def _styles() -> dict:
             "pca_title",
             fontName="Helvetica-Bold",
             fontSize=22,
+            leading=26,
             textColor=CYAN,
             spaceAfter=4,
         ),
@@ -48,6 +50,7 @@ def _styles() -> dict:
             "pca_h2",
             fontName="Helvetica-Bold",
             fontSize=13,
+            leading=16,
             textColor=CYAN,
             spaceBefore=14,
             spaceAfter=6,
@@ -56,14 +59,14 @@ def _styles() -> dict:
             "pca_body",
             fontName="Helvetica",
             fontSize=10,
-            textColor=WHITE,
+            textColor=TEXTE,
             leading=15,
             spaceAfter=4,
         ),
         "label": ParagraphStyle("pca_label", fontName="Helvetica-Bold", fontSize=9, textColor=GRAY),
-        "value": ParagraphStyle("pca_value", fontName="Helvetica", fontSize=10, textColor=WHITE),
+        "value": ParagraphStyle("pca_value", fontName="Helvetica", fontSize=10, textColor=TEXTE),
         "check": ParagraphStyle(
-            "pca_check", fontName="Helvetica", fontSize=10, textColor=WHITE, leading=16
+            "pca_check", fontName="Helvetica", fontSize=10, textColor=TEXTE, leading=16
         ),
     }
 
@@ -80,7 +83,7 @@ def _kv_table(pairs: list[tuple[str, str]], styles: dict, col_w: float) -> Table
             [
                 ("BACKGROUND", (0, 0), (-1, -1), CARD_BG),
                 ("ROWBACKGROUNDS", (0, 0), (-1, -1), [CARD_BG, DARK_BG]),
-                ("TEXTCOLOR", (0, 0), (-1, -1), WHITE),
+                ("TEXTCOLOR", (0, 0), (-1, -1), TEXTE),
                 ("FONTSIZE", (0, 0), (-1, -1), 9),
                 ("TOPPADDING", (0, 0), (-1, -1), 5),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
@@ -99,7 +102,7 @@ def generate_pca_pdf(data: dict) -> bytes:
         pagesize=A4,
         leftMargin=MARGIN,
         rightMargin=MARGIN,
-        topMargin=MARGIN,
+        topMargin=(14 + 6) * mm,  # sous le bandeau
         bottomMargin=MARGIN,
     )
     styles = _styles()
@@ -186,7 +189,7 @@ def generate_pca_pdf(data: dict) -> bytes:
                 [
                     ("BACKGROUND", (0, 0), (-1, 0), CARD_BG),
                     ("ROWBACKGROUNDS", (0, 1), (-1, -1), [CARD_BG, DARK_BG]),
-                    ("TEXTCOLOR", (0, 0), (-1, -1), WHITE),
+                    ("TEXTCOLOR", (0, 0), (-1, -1), TEXTE),
                     ("FONTSIZE", (0, 0), (-1, -1), 9),
                     ("TOPPADDING", (0, 0), (-1, -1), 5),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
@@ -227,7 +230,7 @@ def generate_pca_pdf(data: dict) -> bytes:
                 [
                     ("BACKGROUND", (0, 0), (-1, 0), CARD_BG),
                     ("ROWBACKGROUNDS", (0, 1), (-1, -1), [CARD_BG, DARK_BG]),
-                    ("TEXTCOLOR", (0, 0), (-1, -1), WHITE),
+                    ("TEXTCOLOR", (0, 0), (-1, -1), TEXTE),
                     ("FONTSIZE", (0, 0), (-1, -1), 9),
                     ("TOPPADDING", (0, 0), (-1, -1), 5),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
@@ -281,5 +284,11 @@ def generate_pca_pdf(data: dict) -> bytes:
         )
     )
 
-    doc.build(story)
+    # Bandeau de marque et pied de page communs. Ce rapport n'en portait
+    # aucun, alors que NIS2, ISO 27001, le dossier dark web et les rapports de
+    # scan en ont un : c'etait l'un des derniers ecarts d'harmonisation.
+    def _page(canvas, doc):
+        draw_page(canvas, doc, "pca", "PLAN DE CONTINUITÉ", "")
+
+    doc.build(story, onFirstPage=_page, onLaterPages=_page)
     return buf.getvalue()

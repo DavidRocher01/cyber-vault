@@ -23,20 +23,27 @@ from reportlab.lib.units import mm
 from app.services.pdf_brand import (
     _BAND_COVER_LABEL,
     BORDER,
+    CARTE_BG,
+    CARTE_BORDURE,
     CYAN,
     DARK_BG,
     FOOTER_H,
     GRAY,
     GREEN,
+    JAUGE_CREUX,
+    JAUGE_PISTE,
     MARGIN,
     PAGE_H,
     PAGE_W,
     RED,
     SITE_EMAIL,
-    WHITE,
+    STATUS_BG,
+    TEXTE,
+    TUILE_BG,
     YELLOW,
     _accent_cols,
     _draw_band,
+    ajuster_texte,
     score_color,
 )
 
@@ -103,13 +110,13 @@ def draw_compliance_cover(
     canvas.setFont("Helvetica-Bold", 22)
     canvas.drawString(tx, ty, title_line1)
 
-    canvas.setFillColor(WHITE)
+    canvas.setFillColor(TEXTE)
     canvas.setFont("Helvetica-Bold", 17)
     canvas.drawString(tx, ty - 9 * mm, title_line2)
 
     canvas.setFillColor(GRAY)
     canvas.setFont("Helvetica", 7.5)
-    canvas.drawString(tx, ty - 16 * mm, f"Genere le {date_str}  •  {SITE_EMAIL}")
+    canvas.drawString(tx, ty - 16 * mm, f"Généré le {date_str}  •  {SITE_EMAIL}")
 
     # ── Score card ────────────────────────────────────────────────────────────
     card_y = H - 120 * mm
@@ -120,11 +127,11 @@ def draw_compliance_cover(
 
     canvas.setFillColor(col)
     canvas.setFont("Helvetica-Bold", 7)
-    canvas.drawString(M, card_y + card_h + 4 * mm, "SYNTHESE DE CONFORMITE")
+    canvas.drawString(M + 7 * mm, card_y + card_h + 4 * mm, "SYNTHÈSE DE CONFORMITÉ")
 
-    canvas.setFillColor(colors.HexColor("#111c30"))
+    canvas.setFillColor(CARTE_BG)
     canvas.roundRect(M, card_y, card_w, card_h, radius=4 * mm, fill=1, stroke=0)
-    canvas.setStrokeColor(colors.HexColor("#1e2d4a"))
+    canvas.setStrokeColor(CARTE_BORDURE)
     canvas.setLineWidth(0.8)
     canvas.roundRect(M, card_y, card_w, card_h, radius=4 * mm, fill=0, stroke=1)
     # Top stripe — thick line contained within card's rounded corners
@@ -143,7 +150,7 @@ def draw_compliance_cover(
     cy = card_y + card_h / 2 + 5 * mm
     r = 20 * mm
 
-    canvas.setStrokeColor(colors.HexColor("#1e293b"))
+    canvas.setStrokeColor(JAUGE_PISTE)
     canvas.setLineWidth(13)
     canvas.setLineCap(0)
     p = canvas.beginPath()
@@ -166,7 +173,7 @@ def draw_compliance_cover(
         )
         canvas.drawPath(p2, stroke=1, fill=0)
 
-    canvas.setFillColor(colors.HexColor("#141e30"))
+    canvas.setFillColor(JAUGE_CREUX)
     canvas.circle(cx, cy, r - 7 * mm, fill=1, stroke=0)
     canvas.setFillColor(sc)
     canvas.setFont("Helvetica-Bold", 30)
@@ -176,19 +183,19 @@ def draw_compliance_cover(
     canvas.drawCentredString(cx, card_y + 11 * mm, score_label)
     canvas.setFillColor(GRAY)
     canvas.setFont("Helvetica", 7)
-    canvas.drawCentredString(cx, card_y + 5.5 * mm, f"{total} controles")
+    canvas.drawCentredString(cx, card_y + 5.5 * mm, f"{total} contrôles")
 
     sep_x = M + left_w + 4 * mm
-    canvas.setStrokeColor(colors.HexColor("#1e293b"))
+    canvas.setStrokeColor(JAUGE_PISTE)
     canvas.setLineWidth(0.8)
     canvas.line(sep_x, card_y + 8 * mm, sep_x, card_y + card_h - 8 * mm)
 
     # KPI 2×2 grid (right 60%)
     kpis = [
-        (compliant, "Conformes", GREEN, colors.HexColor("#052e16")),
-        (partial, "Partiels", YELLOW, colors.HexColor("#1c1400")),
-        (nc, "Non conf.", RED, colors.HexColor("#2d0a0a")),
-        (na, "N/A", GRAY, colors.HexColor("#111827")),
+        (compliant, "Conformes", GREEN, STATUS_BG["compliant"]),
+        (partial, "Partiels", YELLOW, STATUS_BG["partial"]),
+        (nc, "Non conf.", RED, STATUS_BG["non_compliant"]),
+        (na, "N/A", GRAY, STATUS_BG["na"]),
     ]
     gx0 = M + left_w + 8 * mm
     gw = right_w - 12 * mm
@@ -230,7 +237,7 @@ def draw_compliance_cover(
 
     canvas.setFillColor(col)
     canvas.setFont("Helvetica-Bold", 7)
-    canvas.drawString(M, dom_top, "RESULTATS PAR DOMAINE")
+    canvas.drawString(M, dom_top, "RÉSULTATS PAR DOMAINE")
 
     for idx, (lbl, pct) in enumerate(domain_scores):
         col_i = idx % ncols
@@ -240,7 +247,7 @@ def draw_compliance_cover(
         cell_h = row_h - gap_h
         d_col = score_color(pct)
 
-        canvas.setFillColor(colors.HexColor("#0e1623"))
+        canvas.setFillColor(TUILE_BG)
         canvas.roundRect(dx, cell_y, col_w, cell_h, radius=2 * mm, fill=1, stroke=0)
 
         # Left accent — thick line contained within rounded corners
@@ -251,16 +258,20 @@ def draw_compliance_cover(
         canvas.line(dx + 2 * mm, cell_y + r_cell, dx + 2 * mm, cell_y + cell_h - r_cell)
 
         inner_x = dx + 7 * mm
-        canvas.setFillColor(WHITE)
-        canvas.setFont("Helvetica-Bold", 7.5)
-        short_lbl = lbl if len(lbl) <= 26 else lbl[:25] + "…"
+        canvas.setFillColor(TEXTE)
+        # Largeur reellement disponible : jusqu'au bord de la carte, moins la
+        # zone du pourcentage et un ecart. Mesuree, pas estimee en caracteres.
+        largeur_pct = canvas.stringWidth(f"{pct}%", "Helvetica-Bold", 8)
+        largeur_lbl = (dx + col_w - 3 * mm) - inner_x - largeur_pct - 2 * mm
+        short_lbl, taille_lbl = ajuster_texte(canvas, lbl, "Helvetica-Bold", 7.5, largeur_lbl)
+        canvas.setFont("Helvetica-Bold", taille_lbl)
         canvas.drawString(inner_x, cell_y + cell_h * 0.55, short_lbl)
 
         bar_x = inner_x
         bar_y = cell_y + cell_h * 0.18
         bar_w = col_w - inner_x + dx - 12 * mm
         bar_h_v = 3.5 * mm
-        canvas.setFillColor(colors.HexColor("#1e293b"))
+        canvas.setFillColor(JAUGE_PISTE)
         canvas.roundRect(bar_x, bar_y, bar_w, bar_h_v, radius=1 * mm, fill=1, stroke=0)
         if pct > 0:
             canvas.setFillColor(d_col)
@@ -350,13 +361,13 @@ def draw_url_scan_cover(
     canvas.setFont("Helvetica-Bold", 22)
     canvas.drawString(tx, ty, "Rapport d'analyse")
 
-    canvas.setFillColor(WHITE)
+    canvas.setFillColor(TEXTE)
     canvas.setFont("Helvetica-Bold", 17)
     canvas.drawString(tx, ty - 9 * mm, "Analyse d'URL")
 
     canvas.setFillColor(GRAY)
     canvas.setFont("Helvetica", 7.5)
-    canvas.drawString(tx, ty - 16 * mm, f"Genere le {date_str}  •  {SITE_EMAIL}")
+    canvas.drawString(tx, ty - 16 * mm, f"Généré le {date_str}  •  {SITE_EMAIL}")
 
     # ── Verdict card ──────────────────────────────────────────────────────────
     card_y = H - 125 * mm
@@ -365,11 +376,11 @@ def draw_url_scan_cover(
 
     canvas.setFillColor(col)
     canvas.setFont("Helvetica-Bold", 7)
-    canvas.drawString(M, card_y + card_h + 4 * mm, "RESULTAT DE L'ANALYSE")
+    canvas.drawString(M + 7 * mm, card_y + card_h + 4 * mm, "RÉSULTAT DE L'ANALYSE")
 
-    canvas.setFillColor(colors.HexColor("#111c30"))
+    canvas.setFillColor(CARTE_BG)
     canvas.roundRect(M, card_y, card_w, card_h, radius=4 * mm, fill=1, stroke=0)
-    canvas.setStrokeColor(colors.HexColor("#1e2d4a"))
+    canvas.setStrokeColor(CARTE_BORDURE)
     canvas.setLineWidth(0.8)
     canvas.roundRect(M, card_y, card_w, card_h, radius=4 * mm, fill=0, stroke=1)
     # Top stripe — contained within card's rounded corners
@@ -390,7 +401,7 @@ def draw_url_scan_cover(
     vcy = card_y + card_h / 2 + 4 * mm
 
     # Verdict circle background
-    canvas.setFillColor(colors.HexColor("#1e293b"))
+    canvas.setFillColor(JAUGE_PISTE)
     canvas.circle(vcx, vcy, 18 * mm, fill=1, stroke=0)
     canvas.setStrokeColor(v_col)
     canvas.setLineWidth(2.5)
@@ -410,7 +421,7 @@ def draw_url_scan_cover(
 
     # Separator
     sep_x = M + left_w + 4 * mm
-    canvas.setStrokeColor(colors.HexColor("#1e293b"))
+    canvas.setStrokeColor(JAUGE_PISTE)
     canvas.setLineWidth(0.8)
     canvas.line(sep_x, card_y + 8 * mm, sep_x, card_y + card_h - 8 * mm)
 
@@ -432,7 +443,7 @@ def draw_url_scan_cover(
     for i, (val, lbl, k_col) in enumerate(kpis):
         kx = gx0 + i * (cell_w + 3 * mm)
         ky = card_y + 7 * mm
-        canvas.setFillColor(colors.HexColor("#1e293b"))
+        canvas.setFillColor(JAUGE_PISTE)
         canvas.roundRect(kx, ky, cell_w, cell_h, radius=2.5 * mm, fill=1, stroke=0)
         # Top stripe — contained within rounded corners
         canvas.setStrokeColor(k_col)
@@ -457,7 +468,7 @@ def draw_url_scan_cover(
     canvas.setFont("Helvetica-Bold", 7)
     canvas.drawString(M, url_y + 2 * mm, "URL ANALYSEE")
 
-    canvas.setFillColor(colors.HexColor("#0e1623"))
+    canvas.setFillColor(TUILE_BG)
     canvas.roundRect(M, url_y - 8 * mm, card_w, 9 * mm, radius=2 * mm, fill=1, stroke=0)
 
     max_url = 90
