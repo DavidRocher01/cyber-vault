@@ -13,15 +13,19 @@ phishing, sensibilisation e-learning et RSSI externalisé.
 
 ## Les quatre offres de pointe
 
-L'entrée dans le produit se fait par une offre, pas par un module. Chacune a sa
-page vitrine **publique**, accessible sans compte.
+L'entrée dans le produit se fait par une offre, pas par un module. L'ordre est
+une priorité commerciale, pas un classement de maturité — il fait foi dans
+[`docs/SALES-BRIEF.md`](docs/SALES-BRIEF.md).
 
-| Offre | Vitrine | Application |
-|-------|---------|-------------|
-| **Conformité NIS2** | `/nis2` | Auto-évaluation 34 critères, PDF prêt à déposer |
-| **Sensibilisation** | `/awareness-pricing` | Parcours e-learning + attestations vérifiables |
-| **RSSI externalisé** | `/rssi-externalise` | Suivi de mission, livrables, rapports client |
-| **Dossier Dark Web** | `/darkweb-offre` | Exposition du domaine dans les fuites connues |
+| # | Offre | Vitrine publique |
+|---|-------|------------------|
+| 1 | **RSSI externalisé** — un RSSI à temps partagé, outillé par la plateforme | `/rssi-externalise` |
+| 2 | **Sensibilisation NIS2** — e-learning, 4 parcours, attestations vérifiables | `/awareness-pricing` |
+| 3 | **Conformité GRC** — NIS2, ISO 27001, PCA : évaluation, score, rapports | `/nis2`, `/iso27001` |
+| 4 | **Analyse de failles & de code** — scan externe et SAST/SCA, en self-service | la landing et `/scan-gratuit` |
+
+Le **Dossier Dark Web** a aussi sa vitrine publique (`/darkweb-offre`) sans être
+une offre de pointe : il se vend comme composante du palier Pro.
 
 > La distinction vitrine / application compte : la vitrine est publique,
 > l'application est derrière `authGuard`. Un lien qui les confond envoie les
