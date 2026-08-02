@@ -36,6 +36,13 @@ async def list_users(
             "email": u.email,
             "is_active": u.is_active,
             "is_rssi_consultant": u.is_rssi_consultant,
+            # Un droit d'administration doit pouvoir s'auditer. Son absence ici
+            # a fait conclure a tort, le 2026-08-02, qu'une promotion avait
+            # echoue : le champ n'etait simplement pas rendu.
+            # `totp_enabled` l'accompagne — un compte admin sans second facteur
+            # est le seul cas ou ce droit reste faiblement protege.
+            "is_admin": u.is_admin,
+            "totp_enabled": u.totp_enabled,
             "plan": p.display_name if p else "Gratuit",
             "plan_name": p.name if p else None,
             "subscription_status": s.status if s else None,
