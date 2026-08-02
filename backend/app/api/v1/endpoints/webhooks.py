@@ -12,7 +12,12 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.services import stripe_webhook_service, subscription_service, user_service
+from app.services import (
+    acquisition_service,
+    stripe_webhook_service,
+    subscription_service,
+    user_service,
+)
 from app.services.invoice_service import create_invoice
 from app.services.stripe_service import construct_webhook_event
 
@@ -127,6 +132,21 @@ async def _handle_checkout_completed(session: dict, db: AsyncSession) -> None:
         subscription_id=subscription_id,
         period_start=period_start,
         period_end=period_end,
+    )
+
+    # Dernière étape du tunnel d'acquisition — enregistrée ICI et pas au clic sur
+    # « s'abonner » : à ce clic, rien n'existe encore (onglet fermé, carte
+    # refusée). Compter les intentions gonflerait le revenu attribué.
+    #
+    # MRR : pour un abonnement annuel, l'équivalent mensuel est le montant annuel
+    # divisé par douze — soit dix mois payés sur douze, deux étant offerts.
+    # Utiliser `price_eur` tel quel surestimerait de 20 %.
+    annuel = bool(plan.stripe_price_id_yearly) and price_id == plan.stripe_price_id_yearly
+    mrr_cents = round(plan.price_eur_yearly / 12) if annuel else plan.price_eur
+    # `valider=False` : le webhook commit a la toute fin, avec son marqueur
+    # d'idempotence. Valider ici casserait cette atomicite.
+    await acquisition_service.enregistrer_abonnement(
+        db, user_id=user.id, montant_mensuel_cents=mrr_cents, valider=False
     )
 
 

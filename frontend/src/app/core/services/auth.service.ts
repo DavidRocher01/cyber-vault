@@ -1,5 +1,7 @@
 import { Injectable, PLATFORM_ID, Inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+
+import { lireProvenance } from './provenance.service';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { tap } from 'rxjs';
@@ -39,6 +41,10 @@ export interface CurrentUser {
   is_active: boolean;
   totp_enabled: boolean;
   is_rssi_consultant: boolean;
+  /** Administration de la plateforme. Distinct de `is_rssi_consultant`, qui est
+   * un rôle client. Le droit reste vérifié côté serveur à chaque appel : ce
+   * champ ne sert qu'à éviter d'afficher un écran de connexion inutile. */
+  is_admin: boolean;
   is_portal_client: boolean;
 }
 
@@ -74,7 +80,14 @@ export class AuthService {
   }
 
   register(email: string, password: string) {
-    return this.http.post(`${API}/auth/register`, { email, password });
+    // Utile pour qui s'inscrit SANS passer par le scan gratuit (arrivee directe
+    // sur /onboarding avec un lien tague). Sinon la source est deja connue, et
+    // le serveur la rattache au compte via l'adresse e-mail.
+    return this.http.post(`${API}/auth/register`, {
+      email,
+      password,
+      ...lireProvenance(isPlatformBrowser(this.platformId)),
+    });
   }
 
   me() {

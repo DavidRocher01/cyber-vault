@@ -123,11 +123,25 @@ describe('AuthService', () => {
     httpMock.post.mockReturnValue(of({ id: 1 }));
     let result: any;
     service.register('new@test.com', 'pw').subscribe(r => (result = r));
-    expect(httpMock.post).toHaveBeenCalledWith(expect.stringContaining('/auth/register'), {
-      email: 'new@test.com',
-      password: 'pw',
-    });
+    expect(httpMock.post).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/register'),
+      // La provenance accompagne desormais l'inscription : elle sert a qui
+      // s'inscrit sans passer par le scan gratuit.
+      expect.objectContaining({ email: 'new@test.com', password: 'pw' })
+    );
     expect(result).toEqual({ id: 1 });
+  });
+
+  it("register() joint la provenance lue dans l'URL, sans rien stocker", () => {
+    httpMock.post.mockReturnValue(of({ id: 1 }));
+    service.register('new@test.com', 'pw').subscribe();
+    const charge = httpMock.post.mock.calls[0][1];
+    expect(charge).toHaveProperty('page_atterrissage');
+    // Aucun identifiant de visiteur ne doit accompagner l'inscription : c'est ce
+    // qui dispense de bandeau de consentement.
+    expect(charge).not.toHaveProperty('visitor_id');
+    expect(sessionStorage.getItem('utm_source')).toBeNull();
+    expect(localStorage.getItem('utm_source')).toBeNull();
   });
 
   it("register() propage l'erreur serveur", () => {

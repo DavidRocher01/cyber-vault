@@ -61,6 +61,7 @@ from app.models.rssi_deliverable import RssiDeliverable  # noqa: F401
 from app.models.rssi_visit import RssiVisit  # noqa: F401
 from app.models.scan import Scan  # noqa: F401
 from app.models.site import Site  # noqa: F401
+from app.models.source_acquisition import SourceAcquisition  # noqa: F401
 from app.models.subscription import Subscription  # noqa: F401
 from app.models.training_progress import TrainingProgress  # noqa: F401
 from app.models.url_scan import UrlScan  # noqa: F401

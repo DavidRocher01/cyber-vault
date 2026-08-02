@@ -2,10 +2,14 @@ from datetime import datetime
 
 from pydantic import BaseModel, EmailStr
 
+from app.schemas.acquisition import ProvenanceIn
 from app.schemas.base import StrictModel
 
 
-class PublicScanCreate(StrictModel):
+class PublicScanCreate(StrictModel, ProvenanceIn):
+    """Le scan gratuit est la première étape du tunnel : c'est ici qu'on relève
+    la provenance, une fois, plutôt que de suivre le visiteur (`ProvenanceIn`)."""
+
     url: str
 
 

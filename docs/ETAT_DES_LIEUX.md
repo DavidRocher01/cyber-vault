@@ -34,11 +34,15 @@ L'historique des livraisons n'est pas ici — il est dans
   les métriques de latence multi-instance. Coût estimé ~10,51 $/mois.
   Checklist : `docs/S2_INFRA_CHECKLIST.md`.
 
-- **Rotation de `ADMIN_API_KEY` — à faire, jamais confirmée.** La clé existe en
-  production (vérifié le 2026-08-02) mais rien ne permet de savoir d'ici si elle
-  a été rotée depuis l'audit. `openssl rand -hex 32` → Secrets Manager
-  `cybervault/prod` → `force-new-deployment`. Checklist :
-  `docs/S6_INFRA_CHECKLIST.md`.
+- **Créer le premier compte admin en production.** Le rôle `users.is_admin`
+  existe depuis le 2026-08-02 (migration `4b6fae2210d3`), mais **aucun compte
+  n'est promu** : la colonne arrive à `false` pour tout le monde, délibérément.
+  Tant que le compte n'existe pas, `X-Admin-Key` reste le seul accès — les deux
+  voies coexistent exprès, couper avant rendrait le back-office inaccessible.
+  Séquence complète, dont le retrait de la clé ensuite :
+  `docs/S6_INFRA_CHECKLIST.md` §0. La rotation de clé qui figurait ici est
+  remplacée par cette bascule : faire tourner un secret partagé ne lui donne ni
+  identité, ni révocation, ni 2FA.
 
 > ⚠️ Ne jamais ajouter une clé à `$secret_names` de `deploy.yml` avant de l'avoir
 > créée dans Secrets Manager : la tâche ECS ne démarrerait pas.
@@ -99,9 +103,17 @@ L'historique des livraisons n'est pas ici — il est dans
   déjà mesurés, ne pas les refaire.
 - **Oracle Staging** — abandonné (quota A1 = 0, pas de PAYG).
 - **« Rocsûr »** — nom abandonné au profit de « Rocher Cybersécurité ».
-- **Analytics maison** — design validé, **pas développé**. Prérequis : un vrai
-  rôle admin (aujourd'hui il n'y a que la clé `X-Admin-Key`). Voir aussi §5 :
-  Stripe et le dashboard admin couvrent déjà le besoin à ce stade.
+- **Mesure d'audience et de conversion** — conception écrite et **entièrement
+  tranchée** le 2026-08-02 : [`ANALYTICS.md`](ANALYTICS.md). Pas développée.
+  La ligne précédente disait « design validé » sans que ce design n'existe nulle
+  part ; c'est réparé.
+  Retenu : attribution au moment de la conversion, **sans identifiant
+  persistant** (principe RGPD, cf. §4), solution **maison sans coût récurrent**,
+  rétention 13 mois. La recommandation Plausible/Matomo du kit marketing est
+  caduque.
+  Prérequis inchangé avant de développer la restitution : un vrai rôle admin —
+  la clé `X-Admin-Key` n'est pas une base acceptable pour exposer des données de
+  conversion.
 - **`tax_behavior=inclusive` chez Stripe** — délibéré, cf. §3.
 
 ---
@@ -134,6 +146,7 @@ L'historique des livraisons n'est pas ici — il est dans
 | `CLAUDE.md` | Règles projet : branches, architecture en couches, sécurité, Alembic, tests |
 | `docs/SALES-BRIEF.md` | Offres et tarifs — source de vérité commerciale |
 | `docs/RESTE_A_FAIRE.md` | Dette et chantiers ouverts, dont le passage à la TVA |
+| `docs/ANALYTICS.md` | Mesure d'audience et de conversion — conception |
 | `docs/MONTEES_DEPENDANCES.md` | Montées de versions et leurs blocages amont |
 | `docs/DEV_SETUP.md` | Installer l'environnement sur un nouveau poste |
 | `docs/SECURITY_AUDIT_2026-07-27.md` | L'audit dont S1→S7 est la remédiation |

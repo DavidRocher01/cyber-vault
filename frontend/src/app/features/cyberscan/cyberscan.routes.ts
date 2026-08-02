@@ -445,6 +445,14 @@ export const CYBERSCAN_ROUTES: Routes = [
           import('./admin/quotes/admin-quotes.component').then(m => m.AdminQuotesComponent),
         title: 'Admin — Devis | Rocher Cybersécurité',
       },
+      {
+        path: 'acquisition',
+        loadComponent: () =>
+          import('./admin/acquisition/admin-acquisition.component').then(
+            m => m.AdminAcquisitionComponent
+          ),
+        title: 'Admin — Acquisition | Rocher Cybersécurité',
+      },
     ],
   },
 ];

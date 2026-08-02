@@ -1,9 +1,13 @@
 from pydantic import BaseModel, EmailStr, Field
 
+from app.schemas.acquisition import ProvenanceIn
 from app.schemas.base import StrictModel
 
 
-class UserCreate(StrictModel):
+class UserCreate(StrictModel, ProvenanceIn):
+    """L'inscription porte la provenance quand l'utilisateur n'est pas passé par
+    le scan gratuit — sinon elle est déjà connue et sera rattachée au compte."""
+
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
 
@@ -26,6 +30,10 @@ class UserOut(BaseModel):
     is_active: bool
     totp_enabled: bool = False
     is_rssi_consultant: bool = False
+    # Administration de la plateforme. Exposé pour que le front sache s'il doit
+    # ouvrir le back-office sans redemander de clé — le droit reste vérifié
+    # côté serveur à chaque appel, ce champ ne fait qu'éviter un écran inutile.
+    is_admin: bool = False
     # True si le compte est rattaché à un RssiClient (client_user_id) — sert au routage
     # post-connexion vers l'espace client. Calculé dans l'endpoint (pas une colonne).
     is_portal_client: bool = False

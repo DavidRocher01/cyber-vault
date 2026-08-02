@@ -15,7 +15,7 @@ from app.core.limiter import _get_real_ip, limiter
 from app.core.ssrf import assert_no_ssrf
 from app.models.public_scan import PublicScan
 from app.schemas.public_scan import PublicScanCreate, PublicScanOut, PublicScanUnlockIn
-from app.services import email_service, public_scan_service
+from app.services import acquisition_service, email_service, public_scan_service
 from app.services.public_scan_service import (
     AlreadyUnlockedError,
     QuotaExceededError,
@@ -55,6 +55,20 @@ async def create_public_scan(
         raise HTTPException(status_code=422, detail="URL non autorisée")
 
     scan = await public_scan_service.create_public_scan(db, url)
+
+    # Première étape du tunnel. `enregistrer` ne lève jamais : une mesure ratée
+    # ne doit pas empêcher un scan de partir.
+    await acquisition_service.enregistrer(
+        db,
+        evenement="scan_gratuit",
+        utm_source=payload.utm_source,
+        utm_medium=payload.utm_medium,
+        utm_campaign=payload.utm_campaign,
+        referer=request.headers.get("referer"),
+        page_atterrissage=payload.page_atterrissage,
+        public_scan_id=scan.id,
+    )
+
     background_tasks.add_task(_run_background, scan.id)
     return _teaser(scan)
 
@@ -114,6 +128,15 @@ async def unlock_public_scan(
     # UNIQUEMENT au déblocage effectif (newly_unlocked) : une ré-consultation avec
     # la même adresse ne redéclenche jamais d'envoi (anti-spam du destinataire).
     if newly_unlocked:
+        # Deuxieme etape du tunnel, comptee UNE seule fois : une re-consultation
+        # avec la meme adresse ne doit pas gonfler la statistique.
+        await acquisition_service.enregistrer(
+            db,
+            evenement="email_debloque",
+            referer=request.headers.get("referer"),
+            public_scan_id=scan.id,
+        )
+
         # Le rapport se consulte sur /demo-result/{token} (le token porte l'état débloqué).
         report_url = f"{settings.FRONTEND_URL}/demo-result/{scan.session_token}"
         background_tasks.add_task(
