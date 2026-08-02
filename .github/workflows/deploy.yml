@@ -104,7 +104,16 @@ jobs:
                # garde applicatif de _get_real_ip. Sans lui le code est un no-op.
                # Il DOIT exister dans Secrets Manager avant sa mise en liste ici,
                # sinon la task ECS refuse de demarrer.
-               (["SECRET_KEY","DATABASE_URL","STRIPE_SECRET_KEY","STRIPE_WEBHOOK_SECRET","SMTP_PASSWORD","ADMIN_API_KEY","RESEND_API_KEY","SENTRY_DSN","ORIGIN_VERIFY_SECRET"]) as $secret_names
+               #
+               # ADMIN_API_KEY RETIRE le 2026-08-02. Le back-office s ouvre
+               # desormais par un compte users.is_admin, protege par 2FA. Ne plus
+               # injecter la cle suffit a tuer le repli : settings.ADMIN_API_KEY
+               # vaut alors une chaine vide, et la comparaison echoue quoi qu il
+               # arrive. Le code du repli sera retire plus tard, avec les 129
+               # appels de test qui passent encore par l en-tete.
+               # Supprimer la cle de Secrets Manager APRES ce deploiement, jamais
+               # avant : l ordre inverse empeche la task de demarrer.
+               (["SECRET_KEY","DATABASE_URL","STRIPE_SECRET_KEY","STRIPE_WEBHOOK_SECRET","SMTP_PASSWORD","RESEND_API_KEY","SENTRY_DSN","ORIGIN_VERIFY_SECRET"]) as $secret_names
                | ([{"name":"STRIPE_PUBLISHABLE_KEY","value":$PK_LIVE},{"name":"S3_BUCKET_NAME","value":$BUCKET},{"name":"TRUSTED_PROXY_COUNT","value":"2"}]) as $env_overrides
                | (($env_overrides | map(.name)) + $secret_names) as $managed
                | del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)
