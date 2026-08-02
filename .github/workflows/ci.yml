@@ -110,6 +110,14 @@ jobs:
         run: python scripts/generate_awareness_catalog.py --check
         working-directory: backend
 
+      - name: Schémas d'architecture synchronisés
+        # Les 9 .mmd derivent des blocs mermaid d'ARCHITECTURE.md. Ils avaient
+        # ete extraits une fois puis jamais regeneres : le 2026-08-02, 02.mmd
+        # decrivait encore un frontend « Angular 20 » corrige en 21 dans la
+        # source. Aucun lien ne pointe vers ces fichiers, donc personne ne les
+        # rouvre — seul un controle peut le voir.
+        run: python scripts/generate_diagrams.py --check
+
       - name: Tarifs retirés encore affichés
         # Aucun env : `app.core.pricing` n'importe que la grille, jamais
         # `Settings`. Verifie hors du projet, sans .env — c'est exactement ce

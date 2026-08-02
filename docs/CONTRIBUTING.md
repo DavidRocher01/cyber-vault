@@ -46,7 +46,8 @@ npm run test:coverage                    # avec couverture
 npm run test:e2e                         # Playwright E2E (backend doit tourner)
 ```
 
-**Seuil de couverture** : 84% minimum backend. Le CI bloque si non atteint.
+**Seuil de couverture** : **90 %** minimum backend (`--cov-fail-under=90` dans
+`backend/pytest.ini`). La CI bloque en dessous.
 
 ## Linting & formatage
 

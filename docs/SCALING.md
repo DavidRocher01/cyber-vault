@@ -12,7 +12,7 @@
 | CPU / RAM | **1 vCPU / 2 Go** | `deploy.yml` (cpu=1024, memory=2048) |
 | Pool connexions DB | **20 + 10 overflow = 30** | `backend/app/core/database.py` |
 | RDS | t4g.micro (PostgreSQL) | infra AWS |
-| Scheduler | APScheduler **in-memory** (pas de Redis) | `scheduler.py` |
+| Scheduler | APScheduler **in-memory** (pas de Redis) | `app/services/scheduler/` |
 
 ## Capacité d'une instance (estimation)
 
@@ -52,7 +52,8 @@ navigation, **~20-30 requêtes actives en parallèle** sans ralentissement.
 3. **Horizontal — passer à 2+ instances** (ECS desiredCount > 1, derrière l'ALB).
    ⚠️ **Nécessite Redis** : sans jobstore partagé, chaque instance exécute le scheduler
    → **double exécution** des tâches planifiées (scans, emails, monitoring). Voir
-   `scheduler.py` (fallback in-memory si `REDIS_URL` absent) — le code est déjà prêt,
+   `app/services/scheduler/core.py` (fallback in-memory si `REDIS_URL` absent) — le code
+   est déjà prêt,
    il suffit de provisionner ElastiCache et de définir `REDIS_URL`.
 4. **Grossir la RDS** (t4g.micro → instance supérieure) si la base devient le goulot.
 

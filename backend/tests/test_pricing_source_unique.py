@@ -136,3 +136,29 @@ async def test_le_seed_ne_recrase_pas_un_plan_existant(db_session):
 
     relu = (await db_session.execute(select(Plan).where(Plan.name == "starter"))).scalar_one()
     assert relu.stripe_price_id == "price_pose_a_la_main"
+
+
+@pytest.mark.asyncio
+async def test_le_script_de_rattrapage_realigne_un_plan_derive(db_session):
+    """`seed_plans.py` a le comportement INVERSE du seed de demarrage : il
+    realigne les plans existants, price_id compris. C'est l'outil a lancer quand
+    une base a derive — et c'est pour ca qu'il ne doit surtout pas porter sa
+    propre copie de la grille, comme c'etait le cas avant le 2026-08-02."""
+    from app.main import _seed_plans
+    from seed_plans import seed
+
+    await _seed_plans()
+    ligne = (await db_session.execute(select(Plan).where(Plan.name == "pro"))).scalar_one()
+    ligne.price_eur = 4900  # tarif d'un autre palier
+    ligne.stripe_price_id = "price_dune_generation_precedente"
+    ligne.stripe_price_id_yearly = ""
+    await db_session.commit()
+
+    await seed()
+
+    attendu = GRILLE_PAR_NOM["pro"]
+    relu = (await db_session.execute(select(Plan).where(Plan.name == "pro"))).scalar_one()
+    await db_session.refresh(relu)
+    assert relu.price_eur == attendu.price_eur
+    assert relu.stripe_price_id == attendu.stripe_price_id
+    assert relu.stripe_price_id_yearly == attendu.stripe_price_id_yearly

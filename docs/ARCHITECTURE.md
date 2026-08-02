@@ -8,8 +8,8 @@
 
 | Couche | Technologies |
 |---|---|
-| **Frontend** | Angular 20 (standalone, signals), SSR/prerendering statique, Vitest, Playwright |
-| **Backend** | FastAPI 0.138 · Starlette 1.3 · SQLAlchemy 2.0 async · Pydantic · PostgreSQL 17 |
+| **Frontend** | Angular 21 (standalone, signals), TypeScript 5.9, SSR/prerendering statique, Vitest, Playwright |
+| **Backend** | FastAPI 0.140 · Starlette 1.3 · SQLAlchemy 2.0 async · Pydantic · PostgreSQL 17 · Python 3.14 |
 | **Sécurité** | JWT (PyJWT) · 2FA TOTP (chiffré Fernet) · vault AES-GCM 256 zero-knowledge (clé PBKDF2) · anti-SSRF · slowapi · bcrypt |
 | **Infra** | AWS ECS Fargate (1 vCPU / 2 Go) · RDS PostgreSQL (t4g.micro) · S3 · CloudFront · Route 53 · Secrets Manager · CloudWatch/SNS — région eu-west-3 |
 | **CI/CD** | GitHub Actions → ECR → ECS ; gates couverture + 0 CVE (pip-audit / npm audit) |
@@ -89,7 +89,7 @@ Séparation stricte des responsabilités côté backend ; chiffrement du coffre 
 
 ```mermaid
 flowchart TB
-    subgraph FE["Frontend — Angular 20 (standalone · signals · SSR prerender)"]
+    subgraph FE["Frontend — Angular 21 (standalone · signals · SSR prerender)"]
       direction TB
       FEfeat["features/ — modules fonctionnels<br/>vault · cyberscan · awareness · rssi · auth"]
       FEcore["core/ — guards (auth · crypto · rssi) · interceptor JWT · services globaux"]

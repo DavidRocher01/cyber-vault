@@ -1,7 +1,18 @@
 """
-Seed the plans table with the 4 Rocher Cybersécurité subscription plans.
-Run once: python seed_plans.py
-Update stripe_price_id after creating prices in Stripe dashboard.
+Réaligne la table `plans` sur la grille tarifaire.
+
+Contrairement au seed de démarrage (`app.main._seed_plans`), qui n'insère que
+les plans absents, ce script **met aussi à jour les plans existants**. C'est
+l'outil de rattrapage quand une base a dérivé.
+
+Lancer : `python seed_plans.py` (depuis `backend/`)
+
+La grille vient de `app.core.pricing`, comme le seed de démarrage, la migration
+`a5875bea88a0` et la garde de facturation. Ce fichier portait auparavant sa
+propre copie des tarifs, avec des `stripe_price_id` vides : changer un prix dans
+`pricing.py` sans y penser aurait suffi à le faire régresser silencieusement au
+prochain lancement. C'est exactement le genre d'écart qui a fait facturer
+9,90 € un abonnement affiché 49 €.
 """
 
 import asyncio
@@ -14,82 +25,50 @@ import app.models.site  # noqa: F401
 import app.models.subscription  # noqa: F401 — force relationship resolution
 import app.models.user  # noqa: F401
 from app.core.database import AsyncSessionLocal
+from app.core.pricing import GRILLE, seed_plan_kwargs
 from app.models.plan import Plan
 
-PLANS = [
-    {
-        "name": "free",
-        "display_name": "Gratuit",
-        "price_eur": 0,  # 0,00 €
-        "max_sites": 1,
-        "scan_interval_days": 30,  # dégustation : 1 scan/mois
-        "tier_level": 1,
-        "allow_conformity_export": False,  # export PDF conformité réservé au payant
-        "stripe_price_id": "",
-    },
-    {
-        "name": "starter",
-        "display_name": "Surveillance Starter",
-        "price_eur": 4900,  # 49,00 €
-        "max_sites": 5,
-        "scan_interval_days": 1,  # quotidien
-        "tier_level": 2,
-        "allow_conformity_export": True,
-        "stripe_price_id": "",  # À créer dans Stripe (nouveau prix)
-    },
-    {
-        "name": "pro",
-        "display_name": "Surveillance Pro",
-        "price_eur": 14900,  # 149,00 €
-        "max_sites": 25,
-        "scan_interval_days": 1,  # quotidien
-        "tier_level": 3,
-        "allow_conformity_export": True,
-        "stripe_price_id": "",  # À créer dans Stripe (nouveau prix)
-    },
-    {
-        "name": "business",
-        "display_name": "Surveillance Business",
-        "price_eur": 39000,  # 390,00 €
-        "max_sites": -1,  # illimité
-        "scan_interval_days": 1,  # quotidien
-        "tier_level": 4,
-        "allow_conformity_export": True,
-        "stripe_price_id": "",  # À créer dans Stripe (nouveau prix)
-    },
-]
+# Champs realignés sur un plan déjà présent. `name` en est absent : c'est la clé
+# de recherche. Les `stripe_price_id` en font partie — les laisser de côté était
+# la faille du script précédent.
+CHAMPS_REALIGNES = (
+    "display_name",
+    "price_eur",
+    "max_sites",
+    "scan_interval_days",
+    "tier_level",
+    "allow_conformity_export",
+    "stripe_price_id",
+    "stripe_price_id_yearly",
+)
 
 
 async def seed():
     async with AsyncSessionLocal() as db:
-        for plan_data in PLANS:
-            result = await db.execute(select(Plan).where(Plan.name == plan_data["name"]))
-            existing = result.scalar_one_or_none()
-            if existing:
-                changed = False
-                for field in (
-                    "price_eur",
-                    "max_sites",
-                    "scan_interval_days",
-                    "tier_level",
-                    "allow_conformity_export",
-                ):
-                    if getattr(existing, field) != plan_data[field]:
-                        setattr(existing, field, plan_data[field])
-                        changed = True
-                if (
-                    plan_data["stripe_price_id"]
-                    and existing.stripe_price_id != plan_data["stripe_price_id"]
-                ):
-                    existing.stripe_price_id = plan_data["stripe_price_id"]
-                    changed = True
-                print(
-                    f"Plan '{plan_data['name']}' {'mis à jour' if changed else 'déjà à jour — ignoré'}"
-                )
+        for plan in GRILLE:
+            attendu = seed_plan_kwargs(plan)
+            result = await db.execute(select(Plan).where(Plan.name == plan.name))
+            existant = result.scalar_one_or_none()
+
+            if not existant:
+                db.add(Plan(**attendu))
+                print(f"Plan '{plan.name}' créé")
                 continue
-            plan = Plan(**plan_data)
-            db.add(plan)
-            print(f"Plan '{plan_data['name']}' créé")
+
+            ecarts = []
+            for champ in CHAMPS_REALIGNES:
+                actuel = getattr(existant, champ)
+                if actuel != attendu[champ]:
+                    ecarts.append(f"{champ}: {actuel!r} -> {attendu[champ]!r}")
+                    setattr(existant, champ, attendu[champ])
+
+            if ecarts:
+                print(f"Plan '{plan.name}' réaligné :")
+                for e in ecarts:
+                    print(f"    {e}")
+            else:
+                print(f"Plan '{plan.name}' déjà conforme")
+
         await db.commit()
     print("Seed terminé.")
 

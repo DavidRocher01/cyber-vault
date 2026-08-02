@@ -1,3 +1,21 @@
+# Idée — Analyse JS profonde en sandbox (brouillon non instruit)
+
+> **Statut : brouillon.** Note de réflexion collée telle quelle, jamais reprise
+> ni arbitrée. Elle ne décrit **pas** le comportement actuel du scanner : rien de
+> ce qui suit n'est implémenté. Ne pas s'y fier pour comprendre le produit —
+> pour ça, voir [`../ARCHITECTURE.md`](../ARCHITECTURE.md) et le module Scanner.
+>
+> Elle traînait à la racine du dépôt sous le nom « Scanner une url suspecte.md »,
+> arrivée par accident dans un commit *awareness* (`4ce7b0a`) sans rapport, sans
+> titre et sans lien entrant. Déplacée ici le 2026-08-02 pour qu'elle soit
+> classée plutôt que perdue.
+>
+> Le fond — navigateur headless en conteneur isolé pour détecter un comportement
+> malicieux au rendu — reste une piste produit valable. À instruire ou à
+> supprimer, mais à décider.
+
+---
+
 Scanner une url suspecte
 
 

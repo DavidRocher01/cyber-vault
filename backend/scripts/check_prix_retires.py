@@ -36,22 +36,34 @@ CIBLES = [
     ("frontend/src", ("*.html", "*.ts")),
     ("docs", ("*.md",)),
 ]
-CIBLES += [(".", ("README.md",))]
+
+# Fichiers isoles, listes un par un. Un `rglob("README.md")` depuis la racine
+# ratissait tout le depot et signalait deux fois les README deja couverts par
+# les entrees ci-dessus.
+FICHIERS_ISOLES = ("README.md",)
 
 # Les migrations decrivent l'histoire : elles DOIVENT citer les anciens montants.
 EXCLUS = ("node_modules", "dist", ".angular", "alembic/versions", "__pycache__")
 
 
 def _fichiers():
+    vus = set()
     for dossier, motifs in CIBLES:
         base = RACINE / dossier
-        if not base.exists():
+        if not base.is_dir():
             continue
         for motif in motifs:
-            for chemin in base.rglob(motif) if base.is_dir() else []:
+            for chemin in base.rglob(motif):
                 relatif = chemin.relative_to(RACINE).as_posix()
-                if not any(exclu in relatif for exclu in EXCLUS):
-                    yield chemin, relatif
+                if relatif in vus or any(exclu in relatif for exclu in EXCLUS):
+                    continue
+                vus.add(relatif)
+                yield chemin, relatif
+    for nom in FICHIERS_ISOLES:
+        chemin = RACINE / nom
+        if chemin.is_file() and nom not in vus:
+            vus.add(nom)
+            yield chemin, nom
 
 
 # Le montant retire, borne des deux cotes : « 9,90 » ne doit pas se declencher

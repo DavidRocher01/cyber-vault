@@ -1,8 +1,18 @@
 # Reste à faire — Cyber-Vault
 
-> Audit du 2026-06-07. Ce document corrige un audit multi-agents initial qui
-> comportait beaucoup de **faux positifs** : la plupart des points « bloquants »
-> étaient en réalité déjà traités. Statut vérifié manuellement ci-dessous.
+> Issu de l'audit du 2026-06-07, qui corrigeait un audit multi-agents initial
+> truffé de **faux positifs** — la plupart des points « bloquants » étaient déjà
+> traités.
+>
+> **Tenue du document** : un point réglé se **supprime**, il ne se coche pas. La
+> trace reste dans git ; une rubrique « fait » finit par occuper toute la place
+> et personne ne lit plus le reste.
+>
+> Passe de vérification du **2026-08-02** : retirés les exclusions de couverture
+> (levées le 2026-07-30), le `BasePdfBuilder` à extraire (`pdf_brand.py` le fait
+> déjà — le document se contredisait lui-même quinze lignes plus bas), le staging
+> Oracle (abandonné), et une incohérence de seuil de couverture citant deux
+> valeurs fausses toutes les deux.
 
 ---
 
@@ -19,8 +29,10 @@
   « crashs SSR » signalés étaient des handlers déclenchés uniquement côté
   navigateur. `clipboard.service` durci par cohérence.
 - **CI déjà mature** : ruff + mypy + bandit + pip-audit + alembic check + pytest
-  `--cov-fail-under=81` (backend) ; ESLint + Vitest + build AOT (frontend) ; E2E
+  `--cov-fail-under=90` (backend) ; ESLint + Vitest + build AOT (frontend) ; E2E
   Playwright. Lint ET typecheck frontend SONT présents (via ESLint + build).
+  S'y ajoutent des contrôles qui ne sont pas des tests : lisibilité des PDF,
+  tarifs retirés, cohérence des runtimes, syntaxe shell des workflows.
 - **Colonnes mortes `gophish_*`** : déjà supprimées des modèles.
 - **Outils sécu** (bandit/semgrep/checkov) : déjà hors de `requirements.prod.txt`.
 - **Deps prod manquantes** (email-validator, httpx, dnspython, boto3) : ajoutées.
@@ -65,11 +77,6 @@
 - **TTL des tokens newsletter** : `confirmation_token`/`unsubscribe_token` sans
   expiration → ajouter `token_created_at` + check TTL (faible sévérité, opt-in).
 - **Timeout DNS** sur la vérification de domaine phishing (`socket.getaddrinfo`).
-- **Couverture réelle** : plusieurs gros services exclus du calcul via
-  `.coveragerc` (`phishing_service`, `phishing_templates`, `scan_service`,
-  `public_scan_service`) → écrire des tests puis les réintégrer au coverage.
-- **Incohérence doc** : CLAUDE.md mentionne 84 % de couverture, le seuil réel
-  est 81 % (`pytest.ini`). Aligner l'un sur l'autre.
 
 ### Frontend
 - **Accessibilité (a11y)** : quasi aucun `aria-*`/`role`/`alt` dans `features/`.
@@ -82,9 +89,9 @@
   features sous-jacentes sont stables.
 
 ### Dette / refacto (gros, à cadrer — ne pas faire à l'aveugle)
-- Monolithes : `phishing_templates.py` (~950 l), `scheduler.py`, composants
-  `dashboard`/`client-detail`/`awareness-module`.
-- 6 services PDF quasi-dupliqués → extraire un `BasePdfBuilder`.
+- Monolithes restants : composants `dashboard` / `client-detail` /
+  `awareness-module`. Côté backend, `phishing_templates`, `scheduler` et
+  `email_service` ont été découpés en packages — ne plus les compter ici.
 - Imports lazy ↔ cycles (darkweb↔email, scan↔email, rssi↔rssi_pdf) → module
   `notifications/` événementiel.
 - `cyber-scanner` chargé via `sys.path.insert` → packager proprement.
@@ -94,8 +101,6 @@
 ## 🔴 Nécessite TON intervention (hors code / décisions)
 
 ### Infra / Ops (accès AWS/Oracle requis)
-- **Staging Oracle** : provisionner l'instance (scripts `staging/` prêts), DNS
-  `staging.rochercybersecurite.com`, hash bcrypt Caddy, secrets staging.
 - **Secrets à configurer** : `S3_BUCKET_NAME` + `AWS_REGION` (livrables RSSI),
   domaine email ImprovMX (MX + Secrets Manager), vérifier OIDC GitHub→AWS.
 - **Sécurité ops à vérifier/activer** : WAF CloudFront, chiffrement RDS at-rest,
@@ -154,5 +159,5 @@
   : code critique sans filet E2E complet → session dédiée avec régression.
 - TTL token newsletter : migration pour token opt-in non sensible (valeur faible).
 
-**#3 infra/produit — nécessite ton intervention** (inchangé) : staging Oracle,
+**#3 infra/produit — nécessite ton intervention** (inchangé) :
 secrets AWS (S3/region, email ImprovMX), WAF/RDS/backups, décisions produit.

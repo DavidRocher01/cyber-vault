@@ -59,7 +59,7 @@ compte démo **prod** vit en prod, pas en local.
 |-------|---------|------|
 | Git | récent | cloner / committer |
 | Python | **3.14** (cf. `.python-version`) | backend FastAPI |
-| Node.js | **24** (cf. `.nvmrc`) | frontend Angular 20 |
+| Node.js | **24** (cf. `.nvmrc`) | frontend Angular 21 |
 | PostgreSQL | **17** | base de dev native (port 5432) |
 | Docker Desktop | récent | parité prod / edge (voir §8) |
 | `gh` (GitHub CLI) | récent | PRs, relance CI |

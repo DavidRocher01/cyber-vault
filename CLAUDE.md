@@ -5,7 +5,7 @@
 **Cyber-Vault** est une plateforme SaaS de cybersécurité B2B/B2C déployée sur AWS ECS Fargate.
 Elle combine un gestionnaire de mots de passe zero-knowledge, des modules de conformité (NIS2, ISO 27001, PCA), un scanner de vulnérabilités, un module Dark Web, un RSSI externalisé, et des outils de sensibilisation.
 
-Stack : **FastAPI 0.138.1** + **Starlette 1.3.1** + **SQLAlchemy 2.0 async** + **PostgreSQL 17** (backend) / **Angular 20 standalone** (frontend) / **GitHub Actions** (CI) / **AWS ECS Fargate + RDS** (prod).
+Stack : **FastAPI 0.140.7** + **Starlette 1.3.1** + **SQLAlchemy 2.0 async** + **PostgreSQL 17** (backend) / **Angular 21 standalone** (frontend) / **GitHub Actions** (CI) / **AWS ECS Fargate + RDS** (prod).
 
 **Versions de runtime — une seule source de vérité :** `.python-version` (3.14) et
 `.nvmrc` (24), à la racine. Les workflows les lisent via `python-version-file` /
