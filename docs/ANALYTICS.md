@@ -159,10 +159,24 @@ Côté Angular : tout accès à `window`/`localStorage` derrière `isPlatformBro
 
 ---
 
-## Restitution
+## Restitution — un onglet dédié dans l'admin
 
-Étendre le tableau de bord admin existant (`admin_stats.py`), et non construire
-un outil séparé. Trois vues suffisent :
+**Décidé : un onglet à part, pas un bloc de plus dans « Vue d'ensemble ».**
+L'acquisition répond à une question commerciale, la vue d'ensemble à une question
+d'exploitation ; les mélanger rendrait les deux illisibles.
+
+Concrètement, dans `admin-shell.component.ts` :
+
+```ts
+{ path: '/admin/acquisition', label: 'Acquisition', icon: 'trending_up', exact: false },
+```
+
+Le shell existe déjà et porte sept onglets (vue d'ensemble, contacts, blog,
+utilisateurs, scans publics, factures, devis) : c'est un huitième, pas une
+nouvelle interface. Côté backend, un module dédié plutôt qu'un ajout à
+`admin_stats.py`, dont ce n'est pas le sujet.
+
+Trois vues suffisent :
 
 1. **Sources → revenu** : par `utm_source`, le nombre d'inscriptions et
    d'abonnements payants. C'est la vue qui justifie tout le reste.
