@@ -7,7 +7,26 @@ All Stripe API calls are mocked — no real network calls.
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+from app.core.pricing import COMPORTEMENT_TVA_ATTENDU
+
 MODULE = "app.services.stripe_service"
+
+
+def prix_stripe(montant=4900, intervalle="month", **surcharges):
+    """Un objet Price plausible. `recurring` doit rester un vrai dict : le code
+    appelle `.get('interval')` dessus, ce qu'un MagicMock accepterait sans rien
+    verifier."""
+    champs = {
+        "active": True,
+        "unit_amount": montant,
+        "currency": "eur",
+        "recurring": {"interval": intervalle},
+        "tax_behavior": COMPORTEMENT_TVA_ATTENDU,
+    }
+    champs.update(surcharges)
+    return MagicMock(**champs)
 
 
 # ── create_customer ──────────────────────────────────────────────────────────
@@ -44,15 +63,29 @@ class TestCreateCheckoutSession:
         price_id="price_x",
         success_url="https://app.com/success",
         cancel_url="https://app.com/cancel",
+        montant_attendu=4900,
+        intervalle_attendu="month",
     ):
         mock_session = MagicMock()
         mock_session.url = "https://checkout.stripe.com/pay/cs_test_abc"
-        with patch(
-            f"{MODULE}.stripe.checkout.Session.create", return_value=mock_session
-        ) as mock_create:
+        # La garde de facturation interroge Stripe avant d'ouvrir la session :
+        # on lui repond un prix conforme pour rester sur le chemin nominal.
+        with (
+            patch(f"{MODULE}.stripe.Price.retrieve", return_value=prix_stripe(montant_attendu)),
+            patch(
+                f"{MODULE}.stripe.checkout.Session.create", return_value=mock_session
+            ) as mock_create,
+        ):
             from app.services.stripe_service import create_checkout_session
 
-            url = create_checkout_session(customer_id, price_id, success_url, cancel_url)
+            url = create_checkout_session(
+                customer_id,
+                price_id,
+                success_url,
+                cancel_url,
+                montant_attendu=montant_attendu,
+                intervalle_attendu=intervalle_attendu,
+            )
         return url, mock_create
 
     def test_returns_session_url(self):
@@ -163,3 +196,108 @@ class TestConstructWebhookEvent:
         args = mock_construct.call_args[0]
         assert args[0] == b"raw_body"
         assert args[1] == "t=123,v1=abc"
+
+
+# ── verifier_prix : la garde de facturation ──────────────────────────────────
+
+
+class TestVerifierPrix:
+    """Ce que ces tests protegent : un `stripe_price_id` n'est qu'une chaine en
+    base. Rien n'empeche qu'il designe un tarif d'une generation precedente —
+    sept prix perimes sont restes actifs chez Stripe jusqu'au 2026-08-02. Sans
+    cette garde, un checkout aurait debite 9,90 EUR un abonnement affiche 49 EUR
+    sans lever la moindre erreur."""
+
+    def _verifier(self, prix, montant=4900, intervalle="month"):
+        from app.services.stripe_service import verifier_prix
+
+        with patch(f"{MODULE}.stripe.Price.retrieve", return_value=prix):
+            verifier_prix("price_x", montant, intervalle)
+
+    def test_prix_conforme_passe(self):
+        self._verifier(prix_stripe(4900))
+
+    def test_montant_different_refuse(self):
+        from app.services.stripe_service import PrixStripeIncoherentError
+
+        # Le cas reel : la base pointe encore le prix de juin a 14,90 EUR.
+        with pytest.raises(PrixStripeIncoherentError, match="1490c au lieu de 4900c"):
+            self._verifier(prix_stripe(1490))
+
+    def test_prix_archive_refuse(self):
+        from app.services.stripe_service import PrixStripeIncoherentError
+
+        with pytest.raises(PrixStripeIncoherentError, match="archive"):
+            self._verifier(prix_stripe(4900, active=False))
+
+    def test_mauvaise_devise_refuse(self):
+        from app.services.stripe_service import PrixStripeIncoherentError
+
+        with pytest.raises(PrixStripeIncoherentError, match="devise"):
+            self._verifier(prix_stripe(4900, currency="usd"))
+
+    def test_mauvais_intervalle_refuse(self):
+        """Facturer a l'annee un prix mensuel : douze fois trop peu percu."""
+        from app.services.stripe_service import PrixStripeIncoherentError
+
+        with pytest.raises(PrixStripeIncoherentError, match="intervalle"):
+            self._verifier(prix_stripe(49000, intervalle="month"), 49000, "year")
+
+    def test_recurrence_lue_sous_forme_objet(self):
+        """`Price.recurring` est type `Recurring | dict`. A l'execution c'est un
+        StripeObject derivant de dict, mais le type annonce les deux : la
+        premiere version n'en lisait qu'une seule, et mypy l'a refusee en CI."""
+        from app.services.stripe_service import PrixStripeIncoherentError
+
+        objet = MagicMock()
+        objet.interval = "year"
+        self._verifier(prix_stripe(49000, recurring=objet), 49000, "year")
+        with pytest.raises(PrixStripeIncoherentError, match="intervalle"):
+            self._verifier(prix_stripe(49000, recurring=objet), 49000, "month")
+
+    def test_recurrence_absente_refuse(self):
+        """Un prix ponctuel (sans recurrence) vendu comme un abonnement."""
+        from app.services.stripe_service import PrixStripeIncoherentError
+
+        with pytest.raises(PrixStripeIncoherentError, match="intervalle None"):
+            self._verifier(prix_stripe(4900, recurring=None))
+
+    def test_tax_behavior_different_refuse(self):
+        """Le jour ou la franchise en base de TVA tombera, `inclusive` mangerait
+        20 % de marge en silence. La grille declare ce qu'elle attend."""
+        from app.services.stripe_service import PrixStripeIncoherentError
+
+        autre = "exclusive" if COMPORTEMENT_TVA_ATTENDU == "inclusive" else "inclusive"
+        with pytest.raises(PrixStripeIncoherentError, match="tax_behavior"):
+            self._verifier(prix_stripe(4900, tax_behavior=autre))
+
+    def test_tous_les_ecarts_sont_rapportes(self):
+        """Un message qui ne dirait que le premier probleme ferait perdre un
+        aller-retour a chaque correction."""
+        from app.services.stripe_service import PrixStripeIncoherentError
+
+        with pytest.raises(PrixStripeIncoherentError) as err:
+            self._verifier(prix_stripe(1490, currency="usd", active=False))
+        message = str(err.value)
+        assert "archive" in message
+        assert "1490c" in message
+        assert "usd" in message
+
+    def test_aucune_session_creee_si_le_prix_diverge(self):
+        """Le point essentiel : on refuse AVANT d'ouvrir le paiement."""
+        from app.services.stripe_service import PrixStripeIncoherentError, create_checkout_session
+
+        with (
+            patch(f"{MODULE}.stripe.Price.retrieve", return_value=prix_stripe(1490)),
+            patch(f"{MODULE}.stripe.checkout.Session.create") as session_create,
+        ):
+            with pytest.raises(PrixStripeIncoherentError):
+                create_checkout_session(
+                    "cus_x",
+                    "price_x",
+                    "https://app.com/ok",
+                    "https://app.com/ko",
+                    montant_attendu=4900,
+                    intervalle_attendu="month",
+                )
+        session_create.assert_not_called()

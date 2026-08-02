@@ -32,14 +32,79 @@ def create_customer(email: str) -> str:
     return customer.id
 
 
+class PrixStripeIncoherentError(RuntimeError):
+    """Le prix Stripe ne correspond pas a ce que l'application s'apprete a facturer."""
+
+
+def _intervalle(recurrence: object) -> str | None:
+    """Periodicite d'un prix, quelle que soit la forme rendue par le SDK.
+
+    `Price.recurring` est type `Recurring | dict`. A l'execution c'est un
+    StripeObject, qui derive de dict — d'ou le `.get()` qui fonctionnait tout en
+    faisant echouer mypy sur la branche `Recurring`. On lit les deux formes
+    plutot que de parier sur l'une.
+    """
+    if recurrence is None:
+        return None
+    if isinstance(recurrence, dict):
+        valeur = recurrence.get("interval")
+    else:
+        valeur = getattr(recurrence, "interval", None)
+    return valeur if isinstance(valeur, str) else None
+
+
+def verifier_prix(price_id: str, montant_attendu: int, intervalle_attendu: str) -> None:
+    """Compare le prix Stripe a ce qui a ete montre au client. Leve si ca diverge.
+
+    Un `stripe_price_id` n'est qu'une chaine en base : rien n'empeche qu'il
+    designe un tarif d'une generation precedente. C'est arrive — sept prix
+    perimes sont restes actifs chez Stripe jusqu'au 2026-08-02, dont deux
+    encore referencees par des migrations. Un checkout aurait alors debite
+    9,90 EUR un abonnement affiche 49 EUR, sans la moindre erreur.
+
+    D'ou ce controle, appele juste avant chaque creation de session : on refuse
+    de facturer plutot que de facturer le mauvais montant. Cout : un appel API
+    supplementaire par clic sur « s'abonner », ce qui est rare.
+
+    `montant_attendu` est en centimes, `intervalle_attendu` vaut 'month' ou 'year'.
+    """
+    from app.core.pricing import COMPORTEMENT_TVA_ATTENDU
+
+    prix = stripe.Price.retrieve(price_id)
+    intervalle = _intervalle(prix.recurring)
+    ecarts = []
+
+    if not prix.active:
+        ecarts.append("prix archive chez Stripe")
+    if prix.unit_amount != montant_attendu:
+        ecarts.append(f"montant {prix.unit_amount}c au lieu de {montant_attendu}c")
+    if (prix.currency or "").lower() != "eur":
+        ecarts.append(f"devise {prix.currency} au lieu de eur")
+    if intervalle != intervalle_attendu:
+        ecarts.append(f"intervalle {intervalle} au lieu de {intervalle_attendu}")
+    if prix.tax_behavior != COMPORTEMENT_TVA_ATTENDU:
+        ecarts.append(f"tax_behavior {prix.tax_behavior} au lieu de {COMPORTEMENT_TVA_ATTENDU}")
+
+    if ecarts:
+        raise PrixStripeIncoherentError(f"{price_id} : " + " ; ".join(ecarts))
+
+
 def create_checkout_session(
     customer_id: str,
     price_id: str,
     success_url: str,
     cancel_url: str,
+    montant_attendu: int,
+    intervalle_attendu: str,
     metadata: dict | None = None,
 ) -> str:
-    """Create a Stripe Checkout Session and return the URL."""
+    """Create a Stripe Checkout Session and return the URL.
+
+    `montant_attendu` / `intervalle_attendu` sont OBLIGATOIRES : on ne peut pas
+    ouvrir un paiement sans declarer ce qu'on croit facturer. C'est le seul
+    moyen de garantir que le debit correspond a l'affichage.
+    """
+    verifier_prix(price_id, montant_attendu, intervalle_attendu)
     kwargs: dict = dict(
         customer=customer_id,
         payment_method_types=["card"],

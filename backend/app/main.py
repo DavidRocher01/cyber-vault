@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
 from loguru import logger
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -20,6 +21,7 @@ from app.core.database import AsyncSessionLocal, get_db
 from app.core.limiter import limiter
 from app.core.logging import setup_logging
 from app.services.scheduler import start_scheduler, stop_scheduler
+from app.services.stripe_service import PrixStripeIncoherentError
 
 setup_logging(settings.APP_ENV)
 
@@ -65,64 +67,25 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 async def _seed_plans() -> None:
-    """Insert default plans if they don't exist yet (idempotent).
-    stripe_price_id is intentionally excluded — set it via admin or migration
-    to avoid overwriting live Stripe IDs on restart.
+    """Insère les plans manquants (idempotent : ne touche jamais une ligne existante).
+
+    La grille vient de `app.core.pricing`, `stripe_price_id` compris. Ces
+    identifiants étaient auparavant exclus du seed pour ne pas écraser ceux de
+    production au redémarrage : la précaution ne servait à rien — on n'insère
+    que les plans absents — et elle laissait une base reconstruite sans aucun
+    moyen de facturer correctement.
     """
     from sqlalchemy import select
 
     from app.core.database import AsyncSessionLocal
+    from app.core.pricing import GRILLE, seed_plan_kwargs
     from app.models.plan import Plan
 
-    # Grille tarifaire (tranchée 2026-07-25, cf. project_pricing_review) :
-    #   Gratuit  0€    — 1 site,   scan mensuel (30 j), pas d'export conformite (degustation)
-    #   Starter  49€   — 5 sites,  scan quotidien (1),  export conformite
-    #   Pro      149€  — 25 sites, scan quotidien (1),  export conformite
-    #   Business 390€  — sites illimites (-1), scan quotidien (1), export conformite
-    # price_eur en centimes. stripe_price_id volontairement exclu (pose par migration/admin).
-    PLANS = [
-        {
-            "name": "free",
-            "display_name": "Gratuit",
-            "price_eur": 0,
-            "max_sites": 1,
-            "scan_interval_days": 30,
-            "tier_level": 1,
-            "allow_conformity_export": False,
-        },
-        {
-            "name": "starter",
-            "display_name": "Surveillance Starter",
-            "price_eur": 4900,
-            "max_sites": 5,
-            "scan_interval_days": 1,
-            "tier_level": 2,
-            "allow_conformity_export": True,
-        },
-        {
-            "name": "pro",
-            "display_name": "Surveillance Pro",
-            "price_eur": 14900,
-            "max_sites": 25,
-            "scan_interval_days": 1,
-            "tier_level": 3,
-            "allow_conformity_export": True,
-        },
-        {
-            "name": "business",
-            "display_name": "Surveillance Business",
-            "price_eur": 39000,
-            "max_sites": -1,
-            "scan_interval_days": 1,
-            "tier_level": 4,
-            "allow_conformity_export": True,
-        },
-    ]
     async with AsyncSessionLocal() as db:
-        for plan_data in PLANS:
-            result = await db.execute(select(Plan).where(Plan.name == plan_data["name"]))
+        for plan in GRILLE:
+            result = await db.execute(select(Plan).where(Plan.name == plan.name))
             if not result.scalar_one_or_none():
-                db.add(Plan(**plan_data))
+                db.add(Plan(**seed_plan_kwargs(plan)))
         await db.commit()
     logger.info("Plans seeded")
 
@@ -199,6 +162,29 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+async def _prix_incoherent_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Une incohérence de tarif ne doit jamais devenir un débit.
+
+    `stripe_service.verifier_prix` lève avant d'ouvrir la session de paiement.
+    Le handler est posé ici, et pas dans l'endpoint, pour qu'un futur appelant
+    de `create_checkout_session` ne puisse pas oublier de la traiter : le pire
+    scénario reste un refus visible, jamais un prélèvement silencieux.
+    """
+    logger.error(f"Tarif Stripe incohérent, paiement refusé : {exc}")
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": (
+                "La configuration de facturation est momentanément incohérente. "
+                "Aucun paiement n'a été engagé — merci de réessayer plus tard."
+            )
+        },
+    )
+
+
+app.add_exception_handler(PrixStripeIncoherentError, _prix_incoherent_handler)
 
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(

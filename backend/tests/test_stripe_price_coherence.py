@@ -11,6 +11,7 @@ import stripe
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from app.core.pricing import COMPORTEMENT_TVA_ATTENDU
 from app.models.plan import Plan
 
 pytestmark = pytest.mark.skipif(
@@ -48,9 +49,17 @@ async def test_plan_prices_match_stripe(pg_url):
             mismatches.append(
                 f"{plan.name}: DB={plan.price_eur}c vs Stripe={stripe_price.unit_amount}c"
             )
-        if stripe_price.tax_behavior != "exclusive":
+        # Un prix archivé reste référençable en base : le checkout échouerait
+        # au moment du paiement, pas avant. Sept l'ont été le 2026-08-02.
+        if not stripe_price.active:
+            mismatches.append(f"{plan.name}: prix archivé chez Stripe ({plan.stripe_price_id})")
+        # Attendu déclaré dans la grille, et non codé en dur ici : cette
+        # assertion exigeait 'exclusive' alors que les six prix LIVE sont en
+        # 'inclusive' — elle aurait échoué au premier lancement avec la clé.
+        if stripe_price.tax_behavior != COMPORTEMENT_TVA_ATTENDU:
             mismatches.append(
-                f"{plan.name}: tax_behavior={stripe_price.tax_behavior} (expected 'exclusive')"
+                f"{plan.name}: tax_behavior={stripe_price.tax_behavior} "
+                f"(attendu '{COMPORTEMENT_TVA_ATTENDU}')"
             )
 
         # Facturation annuelle (2 mois offerts) : le prix annuel Stripe doit valoir

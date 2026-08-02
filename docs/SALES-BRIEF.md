@@ -31,6 +31,9 @@
 - **Analyse de code (SAST/SCA)** : Bandit, Semgrep, pip‑audit — détection de failles dans le code source.
 - **Scripts de remédiation** prêts à l'emploi (UFW, SSH, Nginx…).
 - **Dark Web** : surveillance de fuites (e‑mails) + **Dark Web Dossier** B2B (exposition d'un domaine, scoring de risque, monitoring, PDF).
+  Page vitrine publique : `/darkweb-offre`. Elle dit explicitement ce que le dossier **ne fait pas** —
+  il ne retire pas les données du dark web, personne ne le peut. À reprendre tel quel face à un
+  prospect : c'est un argument de crédibilité, pas une réserve.
 - **Coffre‑fort de mots de passe zero‑knowledge** (chiffrement AES‑GCM côté client).
 - **Sensibilisation / e‑learning NIS2** : 28 modules, 4 parcours par profil, quiz, gamification,
   attestations vérifiables publiquement — voir §2, offre de pointe n°2. Et **simulation de phishing**.
@@ -131,15 +134,37 @@ groupes** (exigences de sécurité "supply chain").
 ---
 
 ## 5. Grille tarifaire (HT / mois, sans engagement, Stripe)
-_La différenciation se fait par les **fonctionnalités** ; sites surveillés et fréquence de scan sont **illimités/quotidiens sur tous les plans**._
 
-| Plan | Prix | Inclus (en plus du précédent) |
-|---|---|---|
-| **Gratuit** | 0 € | Sites illimités · scan quotidien · sécurité de base · **NIS2 + ISO 27001** · alerte e‑mail critique · rapport PDF |
-| **Starter** | 14,90 € | **Analyse de code (SAST/SCA)** · scripts de remédiation |
-| **Pro** | 49 € | Analyse avancée (Threat Intel, TLS profond) · **surveillance Dark Web + Dossier** |
-| **Business** | 149 € | Analyse experte (JWT, redirections, clickjacking) |
-| **Sur devis** | — | API REST, webhooks, account manager dédié, rapport marque blanche, support prioritaire |
+_Mise à jour le 2026-08-01 d'après la grille réellement en production
+(`/api/v1/plans`) et la migration `5bd2b7bbc548` du 2026-07-26. La version
+précédente de ce paragraphe décrivait la grille d'AVANT cette refonte : elle
+annonçait des prix trois fois inférieurs et un plan Gratuit illimité._
+
+_La différenciation se fait par les **fonctionnalités**, mais aussi par le
+**nombre de sites** et la **fréquence de scan** — le Gratuit est volontairement
+limité._
+
+| Plan | Prix | Sites | Scan | Inclus (en plus du précédent) |
+|---|---|---|---|---|
+| **Gratuit** | 0 € | 1 | mensuel | Sécurité de base · auto‑évaluation **NIS2 + ISO 27001** · alerte e‑mail critique |
+| **Starter** | 49 € | 5 | quotidien | **Export PDF de conformité** · **analyse de code (SAST/SCA)** · scripts de remédiation |
+| **Pro** | 149 € | 25 | quotidien | Analyse avancée (Threat Intel, TLS profond, empreinte technologique, takeover, méthodes HTTP) · **surveillance Dark Web + Dossier** |
+| **Business** | 390 € | illimités | quotidien | Contrôles applicatifs (JWT, clickjacking, redirections ouvertes, listing de répertoires) |
+| **Sur devis** | — | — | — | API REST, webhooks, account manager dédié, rapport marque blanche, support prioritaire |
+
+> ⚠️ **L'export PDF de conformité est le verrou de monétisation.** Le Gratuit
+> permet de faire l'auto‑évaluation NIS2 et ISO 27001 et de voir son score, mais
+> **pas d'exporter le rapport** (`allow_conformity_export = False`). C'est
+> l'argument de bascule vers Starter — ne jamais laisser croire que le PDF est
+> inclus dans le gratuit.
+
+> ⚠️ **À vérifier avant tout encaissement : ce que Stripe facture réellement.**
+> Les prix affichés viennent de `price_eur` ; le débit vient du
+> `stripe_price_id`. Les deux sont posés séparément — les identifiants Stripe
+> par un script manuel hors chaîne Alembic. Un test de cohérence existe
+> (`test_stripe_price_coherence.py`) mais il est **ignoré partout**, faute de
+> `STRIPE_SECRET_KEY` en CI. Personne n'a donc jamais confirmé que le montant
+> annoncé est celui qui sera prélevé.
 
 > ⚠️ Le **RSSI externalisé** est une **prestation de service** (forfait/abonnement dédié), pas un simple
 > palier du SaaS — à tarifer au cas par cas (à cadrer avec moi si un prospect avance).
@@ -194,7 +219,11 @@ n'offrent pas.
 ## 7. À NE PAS promettre (pas encore finalisé) — pour éviter de sur‑vendre
 - **Assurance RC Pro + volet cyber : en cours de souscription.** ⚠️ Ne pas s'engager sur des **scans intrusifs /
   pentests** chez un client tant que la couverture n'est pas active.
-- **Délivrabilité e‑mail** (boîte de contact / transactionnels) : configuration domaine en cours de finalisation.
+- ~~**Délivrabilité e‑mail** : configuration domaine en cours de finalisation.~~ **Résolu le
+  2026-08-01** : SPF, DKIM et DMARC passent et s'alignent, vérifié sur les en‑têtes reçus. Le
+  domaine reste **jeune, donc sans réputation d'envoi** — un premier message peut encore arriver
+  en indésirable. Ne rien promettre sur la délivrabilité tant que le volume n'a pas construit
+  cette réputation.
 - **Médiateur de la consommation** (obligatoire pour vendre en **B2C**) : à trancher — privilégier le **B2B** pour démarrer.
 - **Nom commercial "Rocsûr"** : non verrouillé (marque + domaine à vérifier).
 - Pas de certification ISO/HDS **de l'entreprise elle‑même** revendicable à ce stade (on **outille** la conformité du client, on n'est pas encore certifié).

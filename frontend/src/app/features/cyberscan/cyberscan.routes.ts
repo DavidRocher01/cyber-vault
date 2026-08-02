@@ -191,11 +191,6 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Ressources — Rocher Cybersécurité',
   },
   {
-    path: 'audit-pme',
-    loadComponent: () => import('./audit-pme/audit-pme.component').then(m => m.AuditPmeComponent),
-    title: 'Audit sécurité PME — Rocher Cybersécurité',
-  },
-  {
     path: 'bonnes-pratiques',
     loadComponent: () =>
       import('./bonnes-pratiques/bonnes-pratiques.component').then(m => m.BonnesPratiquesComponent),
