@@ -192,16 +192,29 @@ code à maintenir sans retour.
 
 ---
 
-## Ce qui reste à trancher
+## Décisions arrêtées (2026-08-02)
 
-1. **Faire ou acheter le comptage d'audience.** Le kit marketing recommande
-   Plausible (~9 €/mois) ou Matomo auto-hébergé
-   (`kit_cyberscan/01_BRIEF_STRATEGIQUE.md`). Tous deux sont compatibles avec le
-   principe ci-dessus : sans cookie, sans identifiant persistant, hébergés dans
-   l'UE — Matomo auto-hébergé ne fait même sortir aucune donnée.
-   Ils ne savent en revanche pas relier une visite à un abonnement payant. Les
-   deux peuvent donc coexister : un tiers pour le volume de trafic, l'approche A
-   pour l'attribution économique.
-   ⚠️ Un tiers qui reçoit de la donnée de navigation doit apparaître dans la
-   politique de confidentialité et, si l'hébergement sort de l'UE, être écarté.
-2. **Rétention du détail** : 13 mois proposés, à confirmer.
+Rien ne reste ouvert. Ce qui suit est tranché ; le rouvrir demande une raison
+nouvelle, pas une préférence.
+
+1. **Approche A** — attribution au moment de la conversion, sans identifiant
+   persistant. Voir la décision et son raisonnement plus haut.
+2. **Solution maison, sans coût récurrent.** Ni Plausible (~9 €/mois) ni Matomo
+   auto-hébergé, que le kit marketing recommandait
+   (`kit_cyberscan/01_BRIEF_STRATEGIQUE.md`) : cette recommandation est
+   **caduque**. Les deux étaient compatibles avec le principe RGPD, mais l'un
+   coûte un abonnement et l'autre une instance à héberger et à maintenir — pour
+   un volume de trafic qu'on ne mesure même pas encore.
+   Le comptage de pages vues sera donc maison lui aussi, agrégé côté serveur, et
+   ne sortira d'aucune infrastructure déjà en place.
+3. **Rétention** — détail à **13 mois**, agrégats sans limite puisque anonymes.
+   Branché sur `app/services/scheduler/retention.py`, qui purge déjà
+   `public_scans` à 90 jours : un job de plus, pas une mécanique de plus.
+
+### Ce que « maison et gratuit » implique vraiment
+
+Le coût n'est pas nul, il est déplacé : pas d'abonnement, mais du code à écrire
+et à maintenir. C'est tenable **parce que le périmètre est petit** — deux tables,
+un endpoint, trois vues. Il le restera tant qu'on ne cherchera pas à reconstruire
+un Matomo : la tentation viendra, et la réponse est non. Ce système répond à une
+question, pas à toutes.

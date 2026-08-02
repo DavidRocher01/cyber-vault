@@ -99,11 +99,17 @@ L'historique des livraisons n'est pas ici — il est dans
   déjà mesurés, ne pas les refaire.
 - **Oracle Staging** — abandonné (quota A1 = 0, pas de PAYG).
 - **« Rocsûr »** — nom abandonné au profit de « Rocher Cybersécurité ».
-- **Mesure d'audience et de conversion** — conception écrite le 2026-08-02 dans
-  [`ANALYTICS.md`](ANALYTICS.md), **pas développée**. La ligne précédente disait
-  « design validé » sans que ce design n'existe nulle part : c'est réparé.
-  Prérequis inchangé : un vrai rôle admin (aujourd'hui il n'y a que la clé
-  `X-Admin-Key`). Deux points restent à trancher, ils sont en fin de document.
+- **Mesure d'audience et de conversion** — conception écrite et **entièrement
+  tranchée** le 2026-08-02 : [`ANALYTICS.md`](ANALYTICS.md). Pas développée.
+  La ligne précédente disait « design validé » sans que ce design n'existe nulle
+  part ; c'est réparé.
+  Retenu : attribution au moment de la conversion, **sans identifiant
+  persistant** (principe RGPD, cf. §4), solution **maison sans coût récurrent**,
+  rétention 13 mois. La recommandation Plausible/Matomo du kit marketing est
+  caduque.
+  Prérequis inchangé avant de développer la restitution : un vrai rôle admin —
+  la clé `X-Admin-Key` n'est pas une base acceptable pour exposer des données de
+  conversion.
 - **`tax_behavior=inclusive` chez Stripe** — délibéré, cf. §3.
 
 ---
