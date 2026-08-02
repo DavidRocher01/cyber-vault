@@ -243,6 +243,25 @@ class TestVerifierPrix:
         with pytest.raises(PrixStripeIncoherentError, match="intervalle"):
             self._verifier(prix_stripe(49000, intervalle="month"), 49000, "year")
 
+    def test_recurrence_lue_sous_forme_objet(self):
+        """`Price.recurring` est type `Recurring | dict`. A l'execution c'est un
+        StripeObject derivant de dict, mais le type annonce les deux : la
+        premiere version n'en lisait qu'une seule, et mypy l'a refusee en CI."""
+        from app.services.stripe_service import PrixStripeIncoherentError
+
+        objet = MagicMock()
+        objet.interval = "year"
+        self._verifier(prix_stripe(49000, recurring=objet), 49000, "year")
+        with pytest.raises(PrixStripeIncoherentError, match="intervalle"):
+            self._verifier(prix_stripe(49000, recurring=objet), 49000, "month")
+
+    def test_recurrence_absente_refuse(self):
+        """Un prix ponctuel (sans recurrence) vendu comme un abonnement."""
+        from app.services.stripe_service import PrixStripeIncoherentError
+
+        with pytest.raises(PrixStripeIncoherentError, match="intervalle None"):
+            self._verifier(prix_stripe(4900, recurring=None))
+
     def test_tax_behavior_different_refuse(self):
         """Le jour ou la franchise en base de TVA tombera, `inclusive` mangerait
         20 % de marge en silence. La grille declare ce qu'elle attend."""

@@ -36,6 +36,23 @@ class PrixStripeIncoherentError(RuntimeError):
     """Le prix Stripe ne correspond pas a ce que l'application s'apprete a facturer."""
 
 
+def _intervalle(recurrence: object) -> str | None:
+    """Periodicite d'un prix, quelle que soit la forme rendue par le SDK.
+
+    `Price.recurring` est type `Recurring | dict`. A l'execution c'est un
+    StripeObject, qui derive de dict — d'ou le `.get()` qui fonctionnait tout en
+    faisant echouer mypy sur la branche `Recurring`. On lit les deux formes
+    plutot que de parier sur l'une.
+    """
+    if recurrence is None:
+        return None
+    if isinstance(recurrence, dict):
+        valeur = recurrence.get("interval")
+    else:
+        valeur = getattr(recurrence, "interval", None)
+    return valeur if isinstance(valeur, str) else None
+
+
 def verifier_prix(price_id: str, montant_attendu: int, intervalle_attendu: str) -> None:
     """Compare le prix Stripe a ce qui a ete montre au client. Leve si ca diverge.
 
@@ -54,7 +71,7 @@ def verifier_prix(price_id: str, montant_attendu: int, intervalle_attendu: str) 
     from app.core.pricing import COMPORTEMENT_TVA_ATTENDU
 
     prix = stripe.Price.retrieve(price_id)
-    recurrence = prix.recurring or {}
+    intervalle = _intervalle(prix.recurring)
     ecarts = []
 
     if not prix.active:
@@ -63,8 +80,8 @@ def verifier_prix(price_id: str, montant_attendu: int, intervalle_attendu: str) 
         ecarts.append(f"montant {prix.unit_amount}c au lieu de {montant_attendu}c")
     if (prix.currency or "").lower() != "eur":
         ecarts.append(f"devise {prix.currency} au lieu de eur")
-    if recurrence.get("interval") != intervalle_attendu:
-        ecarts.append(f"intervalle {recurrence.get('interval')} au lieu de {intervalle_attendu}")
+    if intervalle != intervalle_attendu:
+        ecarts.append(f"intervalle {intervalle} au lieu de {intervalle_attendu}")
     if prix.tax_behavior != COMPORTEMENT_TVA_ATTENDU:
         ecarts.append(f"tax_behavior {prix.tax_behavior} au lieu de {COMPORTEMENT_TVA_ATTENDU}")
 
