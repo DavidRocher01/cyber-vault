@@ -16,6 +16,7 @@ from loguru import logger
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.public_scan import PublicScan
 from app.models.source_acquisition import SourceAcquisition
 from app.models.subscription import Subscription
 
@@ -80,8 +81,9 @@ async def enregistrer(
     user_id: int | None = None,
     public_scan_id: int | None = None,
     montant_mensuel_cents: int | None = None,
+    valider: bool = True,
 ) -> SourceAcquisition | None:
-    """Écrit une conversion, et la valide. Ne lève jamais.
+    """Écrit une conversion. Ne lève jamais.
 
     La mesure ne doit pas pouvoir casser ce qu'elle mesure : si l'écriture
     échoue, l'inscription ou le scan de l'utilisateur aboutit quand même. On
@@ -89,9 +91,14 @@ async def enregistrer(
 
     ⚠️ **Appeler après que l'écriture métier a été validée.** Un `flush` seul ne
     suffit pas — la ligne serait annulée à la fermeture de la session, ce qui
-    donnait un onglet désespérément vide — mais le `commit` ci-dessous valide
-    aussi tout ce qui traînerait de non validé dans la même session. Aux trois
-    points d'appel, le scan ou le compte est déjà en base.
+    donnait un onglet désespérément vide — mais le `commit` valide aussi tout ce
+    qui traînerait de non validé dans la même session. Aux points d'appel HTTP,
+    le scan ou le compte est déjà en base.
+
+    `valider=False` pour le webhook Stripe, qui valide lui-même à la toute fin,
+    en même temps que son marqueur d'idempotence : commiter avant persisterait
+    l'abonnement sans le marqueur, et un échec ultérieur ferait rejouer
+    l'événement sur un abonnement déjà actif.
     """
     if evenement not in ETAPES:
         logger.warning(f"Étape d'acquisition inconnue, ignorée : {evenement!r}")
@@ -109,11 +116,15 @@ async def enregistrer(
             montant_mensuel_cents=montant_mensuel_cents,
         )
         db.add(ligne)
-        await db.commit()
+        if valider:
+            await db.commit()
+        else:
+            await db.flush()
         return ligne
     except Exception as exc:  # noqa: BLE001 — voir la docstring
         logger.warning(f"Acquisition non enregistrée ({evenement}) : {exc}")
-        await db.rollback()
+        if valider:
+            await db.rollback()
         return None
 
 
@@ -201,18 +212,30 @@ async def par_page(db: AsyncSession, *, jours: int = 90, limite: int = 10) -> li
     ]
 
 
-async def rattacher_au_compte(db: AsyncSession, *, public_scan_id: int, user_id: int) -> int:
-    """Relie les conversions anonymes d'un scan au compte créé ensuite.
+async def rattacher_par_email(db: AsyncSession, *, email: str, user_id: int) -> int:
+    """Relie les conversions anonymes d'un scan au compte cree ensuite.
 
-    Seul recoupement autorisé, et il reste dans le périmètre : il ne relie pas
-    une NAVIGATION à une personne, mais deux actions volontaires de la même
-    personne — un scan qu'elle a lancé, un compte qu'elle a créé.
+    Sans ce rattachement, la chaine casse au milieu : la source vit sur la ligne
+    du scan gratuit, qui n'a pas de `user_id`, tandis que l'inscription a un
+    `user_id` mais pas de source. Le revenu ne pourrait alors jamais etre
+    rattache au canal qui l'a produit.
+
+    **Le lien passe par l'e-mail, pas par un identifiant d'appareil.** Rien
+    n'est ecrit dans le navigateur : on rapproche deux actions volontaires de la
+    meme personne — une adresse saisie pour recevoir un rapport, la meme adresse
+    saisie pour creer un compte. C'est le seul recoupement que la conception
+    autorise (cf. `docs/ANALYTICS.md`), et il ne relie aucune navigation.
     """
+    scans = (
+        (await db.execute(select(PublicScan.id).where(PublicScan.email == email))).scalars().all()
+    )
+    if not scans:
+        return 0
     lignes = (
         (
             await db.execute(
                 select(SourceAcquisition).where(
-                    SourceAcquisition.public_scan_id == public_scan_id,
+                    SourceAcquisition.public_scan_id.in_(scans),
                     SourceAcquisition.user_id.is_(None),
                 )
             )
@@ -222,7 +245,57 @@ async def rattacher_au_compte(db: AsyncSession, *, public_scan_id: int, user_id:
     )
     for ligne in lignes:
         ligne.user_id = user_id
+    if lignes:
+        await db.commit()
     return len(lignes)
+
+
+async def source_du_compte(db: AsyncSession, *, user_id: int) -> dict[str, str | None]:
+    """La provenance d'origine d'un compte : celle de sa PREMIERE ligne qui en
+    porte une.
+
+    Sert a faire heriter l'abonnement de la source qui l'a amene. Le webhook
+    Stripe connait le montant, jamais le canal : sans cet heritage, tout le
+    revenu atterrirait sous « direct » et le tableau serait faux sans le dire.
+    """
+    ligne = (
+        await db.execute(
+            select(SourceAcquisition)
+            .where(
+                SourceAcquisition.user_id == user_id,
+                SourceAcquisition.utm_source.is_not(None),
+            )
+            .order_by(SourceAcquisition.cree_le.asc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if ligne is None:
+        return {"utm_source": None, "utm_medium": None, "utm_campaign": None}
+    return {
+        "utm_source": ligne.utm_source,
+        "utm_medium": ligne.utm_medium,
+        "utm_campaign": ligne.utm_campaign,
+    }
+
+
+async def enregistrer_abonnement(
+    db: AsyncSession, *, user_id: int, montant_mensuel_cents: int, valider: bool = True
+) -> SourceAcquisition | None:
+    """Derniere etape du tunnel, appelee depuis le webhook Stripe.
+
+    Pas au clic sur « s'abonner » : a ce moment-la rien n'existe encore, on peut
+    fermer l'onglet ou se faire refuser la carte. Compter les intentions
+    gonflerait le revenu attribue, donc fausserait la decision d'investissement
+    que ce tableau doit eclairer.
+    """
+    return await enregistrer(
+        db,
+        evenement="abonnement",
+        user_id=user_id,
+        montant_mensuel_cents=montant_mensuel_cents,
+        valider=valider,
+        **await source_du_compte(db, user_id=user_id),
+    )
 
 
 async def mrr_par_source_confirme(db: AsyncSession, *, jours: int = 90) -> int:

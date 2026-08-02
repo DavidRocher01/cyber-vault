@@ -95,6 +95,11 @@ async def register(request: Request, payload: UserCreate, db: AsyncSession = Dep
         user_id=user.id,
     )
 
+    # Si cette adresse avait déjà servi à débloquer un rapport, les conversions
+    # anonymes du scan portent la source — mais pas encore de `user_id`. Sans ce
+    # rattachement, le revenu ne pourrait jamais remonter au canal d'origine.
+    await acquisition_service.rattacher_par_email(db, email=payload.email, user_id=user.id)
+
     logger.info("New user registered (id={})", user.id)
     return user
 

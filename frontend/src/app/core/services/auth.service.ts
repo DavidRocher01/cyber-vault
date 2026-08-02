@@ -1,5 +1,7 @@
 import { Injectable, PLATFORM_ID, Inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+
+import { lireProvenance } from './provenance.service';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { tap } from 'rxjs';
@@ -78,7 +80,14 @@ export class AuthService {
   }
 
   register(email: string, password: string) {
-    return this.http.post(`${API}/auth/register`, { email, password });
+    // Utile pour qui s'inscrit SANS passer par le scan gratuit (arrivee directe
+    // sur /onboarding avec un lien tague). Sinon la source est deja connue, et
+    // le serveur la rattache au compte via l'adresse e-mail.
+    return this.http.post(`${API}/auth/register`, {
+      email,
+      password,
+      ...lireProvenance(isPlatformBrowser(this.platformId)),
+    });
   }
 
   me() {

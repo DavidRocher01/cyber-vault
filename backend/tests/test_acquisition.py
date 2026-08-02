@@ -257,3 +257,94 @@ async def test_la_fenetre_est_bornee(client):
     assert (
         await client.get(f"{BASE}/admin/acquisition?fenetre=30j", headers=entetes)
     ).status_code == 200
+
+
+# ── La chaine complete : source -> revenu ────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_le_revenu_remonte_jusqu_a_la_source(client, db_session):
+    """Le scenario qui justifie tout le systeme, de bout en bout.
+
+    Marie arrive de LinkedIn, lance un scan, debloque son rapport, cree un
+    compte, puis s'abonne. Le MRR doit apparaitre sous « linkedin » — jamais
+    sous « direct ».
+    """
+    from app.services import acquisition_service as acq
+
+    # 1. Scan gratuit, avec sa provenance.
+    await acq.enregistrer(
+        db_session, evenement="scan_gratuit", utm_source="linkedin", public_scan_id=None
+    )
+
+    # 2-3. Inscription puis abonnement, rattaches au compte.
+    await client.post(
+        f"{BASE}/auth/register", json={"email": "marie@test.com", "password": "StrongPass123!"}
+    )
+    async with await _session() as db:
+        user = (await db.execute(select(User).where(User.email == "marie@test.com"))).scalar_one()
+        # La ligne du scan porte la source : on la rattache comme le ferait le
+        # rattachement par e-mail.
+        ligne = (
+            await db.execute(
+                select(SourceAcquisition).where(SourceAcquisition.evenement == "scan_gratuit")
+            )
+        ).scalar_one()
+        ligne.user_id = user.id
+        await db.commit()
+
+    async with await _session() as db:
+        await acq.enregistrer_abonnement(db, user_id=user.id, montant_mensuel_cents=14900)
+
+    async with await _session() as db:
+        lignes = await acq.par_source(db)
+    par_nom = {x["source"]: x for x in lignes}
+    assert "linkedin" in par_nom, "le revenu doit remonter a la source, pas tomber en direct"
+    assert par_nom["linkedin"]["mrr_cents"] == 14900
+    assert par_nom.get("direct", {}).get("mrr_cents", 0) == 0
+
+
+@pytest.mark.asyncio
+async def test_l_abonnement_herite_de_la_source_du_compte(client):
+    """Le webhook Stripe connait le montant, jamais le canal. Sans heritage,
+    tout le revenu atterrirait sous « direct »."""
+    from app.services import acquisition_service as acq
+
+    await client.post(
+        f"{BASE}/auth/register",
+        json={"email": "herite@test.com", "password": "StrongPass123!", "utm_source": "Cold-Email"},
+    )
+    async with await _session() as db:
+        user = (await db.execute(select(User).where(User.email == "herite@test.com"))).scalar_one()
+        ligne = await acq.enregistrer_abonnement(db, user_id=user.id, montant_mensuel_cents=4900)
+    assert ligne is not None
+    assert ligne.utm_source == "cold-email"
+
+
+@pytest.mark.asyncio
+async def test_rattachement_par_email_et_non_par_identifiant_d_appareil(client, db_session):
+    """Le lien entre le scan anonyme et le compte passe par l'adresse saisie
+    deux fois, jamais par quelque chose ecrit dans le navigateur."""
+    from app.models.public_scan import PublicScan
+    from app.services import acquisition_service as acq
+
+    async with await _session() as db:
+        scan = PublicScan(target_url="https://x.fr", email="lien@test.com")
+        db.add(scan)
+        await db.commit()
+        await db.refresh(scan)
+        scan_id = scan.id
+
+    async with await _session() as db:
+        await acq.enregistrer(
+            db, evenement="scan_gratuit", utm_source="seo", public_scan_id=scan_id
+        )
+
+    await client.post(
+        f"{BASE}/auth/register", json={"email": "lien@test.com", "password": "StrongPass123!"}
+    )
+
+    async with await _session() as db:
+        user = (await db.execute(select(User).where(User.email == "lien@test.com"))).scalar_one()
+        source = await acq.source_du_compte(db, user_id=user.id)
+    assert source["utm_source"] == "seo", "la source du scan doit suivre le compte"
