@@ -34,11 +34,19 @@
 
 ## Pré-requis (J-1)
 
-- [ ] **Créer les 3 produits/prix Stripe** (mode LIVE) correspondant aux nouveaux tarifs :
-  - Surveillance Starter — 14,90 €
-  - Surveillance Pro — 49,00 €
-  - Surveillance Business — 149,00 €
+- [ ] **Créer les 3 produits/prix Stripe** (mode LIVE) correspondant à la grille
+      **réellement facturée** — corrigée le 2026-08-01, elle datait d'avant la
+      refonte du 2026-07-26 et aurait fait créer des prix Stripe INFÉRIEURS à
+      ceux affichés sur le site :
+  - Surveillance Starter — 49,00 €
+  - Surveillance Pro — 149,00 €
+  - Surveillance Business — 390,00 €
   - Noter les `price_id` (`price_live_…`) → ils serviront au backfill.
+  - Ces mêmes montants sont documentés dans `backend/scripts/set_stripe_price_ids.py`,
+    qui écrit les identifiants en base. En cas de doute, c'est lui qui fait foi.
+  - [ ] **Après le backfill**, lancer `pytest tests/test_stripe_price_coherence.py`
+        avec `STRIPE_SECRET_KEY` : c'est le seul contrôle qui compare le prix
+        AFFICHÉ au prix DÉBITÉ. Il est ignoré en CI faute de secret.
 - [ ] **Vérifier AWS Secrets Manager** (`cybervault/prod`) contient bien :
   `SECRET_KEY`, `DATABASE_URL`, `STRIPE_SECRET_KEY` (sk_live), `STRIPE_WEBHOOK_SECRET` (whsec), `ADMIN_API_KEY`, `RESEND_API_KEY`, `SENTRY_DSN`, `SMTP_PASSWORD`.
 - [ ] **Vérifier GitHub Secrets** : `AWS_DEPLOY_ROLE_ARN`, `AWS_SM_ARN`, `ECS_CLUSTER`, `ECS_SERVICE`, `S3_BUCKET_NAME`, `CLOUDFRONT_DISTRIBUTION_ID`, `STRIPE_PUBLISHABLE_KEY` (pk_live).

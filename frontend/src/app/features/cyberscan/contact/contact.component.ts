@@ -23,7 +23,7 @@ export const NEED_OPTIONS = [
     value: 'partenaire-sensibilisation',
     label: `Partenaire consultant RSSI — formation de vos clients (-${Math.round(REMISE_PARTENAIRE * 100)} %)`,
   },
-  { value: 'abonnement', label: 'Abonnement surveillance continue (14,90–149 €/mois)' },
+  { value: 'abonnement', label: 'Abonnement surveillance continue (49–390 €/mois)' },
   { value: 'autre', label: 'Autre / Demande de devis' },
 ];
 
