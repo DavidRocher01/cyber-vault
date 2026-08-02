@@ -34,18 +34,20 @@ jamais.
 | `08` | Abonnement Stripe (checkout + webhook) | séquence |
 | `09` | Scan de sécurité (déclenchement + anti-SSRF) | séquence |
 
-## Les `.svg` ne sont pas régénérés automatiquement
+## Obtenir une image
 
-Leur rendu demande `mermaid-cli`, qui n'est **pas** une dépendance du projet.
-Ils peuvent donc retarder sur les `.mmd`, et aucun contrôle ne le détecte.
+GitHub rend les blocs Mermaid de `ARCHITECTURE.md` nativement : pour lire un
+schéma, il suffit d'ouvrir le document.
 
-Pour les rafraîchir ponctuellement, sans rien installer durablement :
+Pour une image de fichier — présentation, dossier client, due diligence — la
+produire à la demande, sans rien installer durablement :
 
 ```bash
-npx -y @mermaid-js/mermaid-cli -i docs/diagrams/02.mmd -o docs/diagrams/02.svg
+npx -y @mermaid-js/mermaid-cli -i docs/diagrams/02.mmd -o /tmp/02.svg
 ```
 
-Aucun document du dépôt ne les référence aujourd'hui : ils servent à illustrer
-un support externe (présentation, dossier client, due diligence). Si cet usage
-disparaît, mieux vaut les supprimer que les laisser diverger — GitHub rend les
-blocs Mermaid de `ARCHITECTURE.md` nativement.
+Neuf `.svg` étaient versionnés ici jusqu'au 2026-08-02 (444 Ko). Aucun document
+ne les référençait, et leur rendu demande `mermaid-cli`, qui n'est pas une
+dépendance du projet : ils ne pouvaient que retarder sur les `.mmd` sans qu'aucun
+contrôle ne le voie. Supprimés — une image se régénère en une commande, une copie
+périmée se propage en silence.
