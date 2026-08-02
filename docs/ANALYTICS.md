@@ -206,6 +206,44 @@ code à maintenir sans retour.
 
 ---
 
+## Conventions de taguage
+
+Sans `?utm_source=` dans le lien publié, il n'y a **rien à mesurer** : c'est la
+seule partie du système qui ne se code pas. Les liens à taguer vivent hors du
+dépôt — dans LinkedIn, dans un client mail, dans une signature.
+
+Le vocabulaire doit rester **court et stable**. La normalisation serveur fusionne
+les casses (« LinkedIn » et « linkedin » comptent ensemble), mais pas les
+synonymes : `linkedin` et `linkedin-post` feraient deux lignes dans le tableau et
+disperseraient le revenu. Un canal, une étiquette, pour toujours.
+
+| Canal | Lien à publier |
+|-------|----------------|
+| Post LinkedIn | `https://rochercybersecurite.com/scan-gratuit?utm_source=linkedin` |
+| Cold e-mail | `https://rochercybersecurite.com/scan-gratuit?utm_source=cold-email` |
+| Signature e-mail | `https://rochercybersecurite.com/?utm_source=signature` |
+| Carte de visite, QR | `https://rochercybersecurite.com/?utm_source=qr` |
+| Salon, événement | `https://rochercybersecurite.com/?utm_source=evenement` |
+
+`utm_campaign` sert à distinguer deux opérations sur le **même** canal — par
+exemple `?utm_source=linkedin&utm_campaign=serie-nis2`. Inutile tant qu'il n'y a
+qu'une campagne par canal.
+
+### Ne PAS taguer les e-mails transactionnels
+
+Le rapport de scan, les alertes, la réinitialisation de mot de passe : ce ne sont
+pas des canaux d'acquisition. Les personnes qui les reçoivent sont **déjà**
+entrées par un canal, et le clic sur ces e-mails est une étape du tunnel, pas une
+source.
+
+Les taguer ferait apparaître une ligne « e-mail » qui volerait des inscriptions à
+LinkedIn ou au référencement, et donnerait l'impression qu'un canal interne
+recrute des clients. Le revenu, lui, resterait correctement attribué — l'abonnement
+hérite de la **première** source connue du compte — mais les colonnes
+intermédiaires deviendraient trompeuses.
+
+---
+
 ## Décisions arrêtées (2026-08-02)
 
 Rien ne reste ouvert. Ce qui suit est tranché ; le rouvrir demande une raison

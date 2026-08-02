@@ -270,7 +270,7 @@ Le tout pour 490€ HT.
 et vous le lirez jamais.)
 
 Si vous êtes dirigeant TPE/PME et que vous voulez tester :
-- Soit le scan gratuit sur [URL]
+- Soit le scan gratuit sur https://rochercybersecurite.com/scan-gratuit?utm_source=linkedin
 - Soit on prend 15 min en visio pour voir si ça matche votre besoin
 
 Pas de pitch commercial. Juste une discussion.
