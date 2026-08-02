@@ -65,20 +65,33 @@ l'inscription. Permet de reconstituer le chemin entier, page par page.
   biaise la mesure qu'on cherchait à obtenir.
 - Coût : semaine de développement, plus une décision juridique.
 
-### Recommandation
+### Décision : approche A, et B est écartée
 
-**Commencer par A.** Elle répond à la question économique — quelle source produit
-des clients — pour une fraction du coût et sans bandeau. Elle donne aussi la
-ligne de base qui manque aujourd'hui : on ne sait même pas combien de visiteurs
-arrivent.
+**Tranché par David.** Le principe est plus large que ce chantier : *respecter le
+RGPD à tout prix, pour ne pas être en contradiction avec ce que nous vendons.*
 
-Passer à B seulement si, une fois A en place, la question « où décrochent-ils ? »
-devient bloquante. À ce moment-là le trafic justifiera l'investissement, et le
-bandeau se discutera sur des chiffres plutôt que sur une intuition.
+La nuance mérite d'être posée, car elle n'est pas juridique. **B serait légale**
+avec un bandeau de consentement en règle. Ce qui est écarté, ce n'est pas
+l'illégalité, c'est l'**incohérence commerciale** : une entreprise qui vend de la
+conformité NIS2 et des audits de sécurité ne peut pas demander à ses propres
+visiteurs l'autorisation de les pister. La position la plus solide n'est pas
+« nous respectons le RGPD », c'est **« nous n'avons pas besoin de bandeau, parce
+que nous ne vous pistons pas »**.
 
-Pour une entreprise qui vend de la conformité NIS2, poser un bandeau de
-consentement pour son propre suivi n'est pas neutre commercialement. Ce n'est pas
-un argument décisif, mais il mérite d'être posé.
+Conséquences concrètes, à traiter comme des contraintes et non des préférences :
+
+- **aucun identifiant de visiteur persistant** — ni cookie, ni `localStorage`,
+  ni empreinte de navigateur ;
+- **aucun recoupement** entre navigation anonyme et compte client ;
+- **aucun tiers** ne reçoit de donnée de navigation sans que ce soit un choix
+  explicite et documenté ;
+- le renoncement assumé : **on ne saura pas où décrochent ceux qui ne
+  convertissent pas.** C'est le prix de la cohérence, et il est accepté.
+
+Si la question du décrochage devient un jour bloquante, la réponse n'est pas de
+rouvrir B : c'est de mesurer autrement — tests A/B côté serveur sur une page,
+entretiens utilisateurs, ou instrumentation d'un parcours unique et borné dans le
+temps.
 
 ---
 
@@ -181,11 +194,14 @@ code à maintenir sans retour.
 
 ## Ce qui reste à trancher
 
-1. **A ou B** — voir la recommandation ci-dessus.
-2. **Faire ou acheter.** Plausible (~9 €/mois) ou Matomo auto-hébergé couvrent
-   l'audience en une journée, et le kit marketing les recommande déjà
-   (`kit_cyberscan/01_BRIEF_STRATEGIQUE.md`). Ils ne savent en revanche pas
-   relier une visite à un abonnement payant : c'est justement la question posée
-   ici. Les deux peuvent coexister — un tiers pour l'audience brute, l'approche A
+1. **Faire ou acheter le comptage d'audience.** Le kit marketing recommande
+   Plausible (~9 €/mois) ou Matomo auto-hébergé
+   (`kit_cyberscan/01_BRIEF_STRATEGIQUE.md`). Tous deux sont compatibles avec le
+   principe ci-dessus : sans cookie, sans identifiant persistant, hébergés dans
+   l'UE — Matomo auto-hébergé ne fait même sortir aucune donnée.
+   Ils ne savent en revanche pas relier une visite à un abonnement payant. Les
+   deux peuvent donc coexister : un tiers pour le volume de trafic, l'approche A
    pour l'attribution économique.
-3. **Rétention du détail** : 13 mois proposés, à confirmer.
+   ⚠️ Un tiers qui reçoit de la donnée de navigation doit apparaître dans la
+   politique de confidentialité et, si l'hébergement sort de l'UE, être écarté.
+2. **Rétention du détail** : 13 mois proposés, à confirmer.
