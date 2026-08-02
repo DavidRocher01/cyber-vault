@@ -32,6 +32,23 @@
 
 ---
 
+## ⏳ Déclenché par un événement (rien à faire avant)
+
+- **Passage à la TVA — reprendre le mot « HT » sur le site.** Déclencheur :
+  dépassement du seuil de franchise en base (art. 293 B du CGI), ou option
+  volontaire pour la TVA.
+  **Les montants ne changent pas** : la grille de juillet 2026 (49 / 149 / 390 €)
+  a été relevée en avance de phase pour absorber les 20 % ce jour-là, et les prix
+  Stripe sont en `tax_behavior=inclusive` pour cette raison — **ne pas les
+  basculer en `exclusive`**, cela ferait payer 58,80 € au lieu de 49 (cf.
+  `backend/app/core/pricing.py`).
+  Ce qui devient faux, c'est le libellé : « 49 € HT » vaudra 40,83 € HT pour
+  49 € TTC. À reprendre dans les CGV, les mentions légales et les pages de
+  tarifs. Penser aussi aux clients PME assujettis, qui lisent le montant HT sur
+  leur facture puisque c'est celui qu'ils récupèrent.
+
+---
+
 ## 🟠 Reste réel — bounded (faisable en code, à planifier)
 
 > **Montées de dépendances** : traitées à part dans
