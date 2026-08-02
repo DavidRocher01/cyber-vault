@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,7 +9,13 @@ import { AdminAuthService } from './admin-auth.service';
   selector: 'app-admin-shell',
   imports: [RouterLink, RouterLinkActive, RouterOutlet, ReactiveFormsModule, MatIconModule],
   template: `
-    @if (!auth.authenticated()) {
+    @if (auth.verificationEnCours()) {
+      <!-- Sans cet etat, l'ecran de cle s'afficherait une fraction de seconde
+           avant d'etre remplace : un clignotement a chaque ouverture. -->
+      <div class="min-h-screen bg-gray-950 flex items-center justify-center">
+        <p class="text-gray-600 text-sm">Vérification de l'accès…</p>
+      </div>
+    } @else if (!auth.authenticated()) {
       <div class="min-h-screen bg-gray-950 flex items-center justify-center px-4">
         <form
           [formGroup]="keyForm"
@@ -20,6 +26,10 @@ import { AdminAuthService } from './admin-auth.service';
             <mat-icon class="text-cyan-400">admin_panel_settings</mat-icon>
             <h1 class="text-white font-bold text-lg">Administration Rocher Cybersécurité</h1>
           </div>
+          <p class="text-gray-500 text-xs leading-relaxed">
+            Connectez-vous avec un compte administrateur pour accéder au back-office. La clé
+            ci-dessous est un accès de secours, appelé à disparaître.
+          </p>
           <input
             formControlName="key"
             type="password"
@@ -67,20 +77,11 @@ import { AdminAuthService } from './admin-auth.service';
             }
           </nav>
           <div class="px-3 py-4 border-t border-gray-800 space-y-1">
-            <a
-              routerLink="/admin/ba61c5a60113/agenda"
-              class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors text-sm"
-            >
-              <mat-icon class="text-base !h-4 !w-4">calendar_month</mat-icon>
-              Agenda
-            </a>
-            <a
-              routerLink="/admin/newsletter"
-              class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors text-sm"
-            >
-              <mat-icon class="text-base !h-4 !w-4">mail</mat-icon>
-              Newsletter
-            </a>
+            @if (auth.parCompte()) {
+              <p class="px-3 pb-2 text-[11px] text-gray-600 leading-relaxed">
+                Connecté par compte administrateur
+              </p>
+            }
             <button
               type="button"
               (click)="auth.logout()"
@@ -100,7 +101,7 @@ import { AdminAuthService } from './admin-auth.service';
     }
   `,
 })
-export class AdminShellComponent {
+export class AdminShellComponent implements OnInit {
   auth = inject(AdminAuthService);
   private fb = inject(FormBuilder);
 
@@ -108,6 +109,13 @@ export class AdminShellComponent {
   authError = signal('');
 
   keyForm = this.fb.group({ key: ['', Validators.required] });
+
+  ngOnInit(): void {
+    // Un compte administrateur entre sans rien saisir. Un echec n'est pas une
+    // erreur : la plupart des visiteurs de /admin ne sont pas connectes, on
+    // retombe alors sur la cle de secours.
+    this.auth.verifierCompte().subscribe();
+  }
 
   navItems = [
     { path: '/admin', label: "Vue d'ensemble", icon: 'dashboard', exact: true },
@@ -117,6 +125,13 @@ export class AdminShellComponent {
     { path: '/admin/scans', label: 'Scans publics', icon: 'radar', exact: false },
     { path: '/admin/invoices', label: 'Factures', icon: 'receipt_long', exact: false },
     { path: '/admin/quotes', label: 'Devis', icon: 'request_quote', exact: false },
+    { path: '/admin/acquisition', label: 'Acquisition', icon: 'trending_up', exact: false },
+    // Agenda et Newsletter etaient codes en dur sous la liste, dans un bloc a
+    // part : plus ternes, et surtout SANS routerLinkActive, donc ils ne
+    // s'allumaient jamais quand on etait dessus. Rapatries ici, ils se
+    // comportent comme les autres.
+    { path: '/admin/ba61c5a60113/agenda', label: 'Agenda', icon: 'calendar_month', exact: false },
+    { path: '/admin/newsletter', label: 'Newsletter', icon: 'mail', exact: false },
   ];
 
   login() {

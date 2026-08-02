@@ -13,6 +13,9 @@ import { AdminAuthService } from './admin-auth.service';
 function make() {
   const auth = {
     authenticated: signal(false),
+    parCompte: signal(false),
+    verificationEnCours: signal(false),
+    verifierCompte: vi.fn().mockReturnValue(of(false)),
     verify: vi.fn(),
     login: vi.fn(),
     logout: vi.fn(),
@@ -28,8 +31,22 @@ function make() {
 }
 
 describe('AdminShellComponent — navItems', () => {
-  it('déclare 7 entrées de navigation', () => {
-    expect(make().comp.navItems).toHaveLength(7);
+  it('déclare 10 entrées de navigation', () => {
+    // Agenda et Newsletter etaient codes en dur SOUS la liste, sans
+    // routerLinkActive : ils ne s'allumaient jamais. Rapatries le 2026-08-02,
+    // avec le nouvel onglet Acquisition.
+    expect(make().comp.navItems).toHaveLength(10);
+  });
+
+  it('Agenda et Newsletter sont dans la liste, comme les autres', () => {
+    const chemins = make().comp.navItems.map(i => i.path);
+    expect(chemins).toContain('/admin/ba61c5a60113/agenda');
+    expect(chemins).toContain('/admin/newsletter');
+  });
+
+  it("l'onglet Acquisition est declare", () => {
+    const chemins = make().comp.navItems.map(i => i.path);
+    expect(chemins).toContain('/admin/acquisition');
   });
 
   it("la 1re entrée est la vue d'ensemble /admin en correspondance exacte", () => {

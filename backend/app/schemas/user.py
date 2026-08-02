@@ -30,6 +30,10 @@ class UserOut(BaseModel):
     is_active: bool
     totp_enabled: bool = False
     is_rssi_consultant: bool = False
+    # Administration de la plateforme. Exposé pour que le front sache s'il doit
+    # ouvrir le back-office sans redemander de clé — le droit reste vérifié
+    # côté serveur à chaque appel, ce champ ne fait qu'éviter un écran inutile.
+    is_admin: bool = False
     # True si le compte est rattaché à un RssiClient (client_user_id) — sert au routage
     # post-connexion vers l'espace client. Calculé dans l'endpoint (pas une colonne).
     is_portal_client: bool = False

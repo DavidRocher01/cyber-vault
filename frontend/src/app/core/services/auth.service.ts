@@ -39,6 +39,10 @@ export interface CurrentUser {
   is_active: boolean;
   totp_enabled: boolean;
   is_rssi_consultant: boolean;
+  /** Administration de la plateforme. Distinct de `is_rssi_consultant`, qui est
+   * un rôle client. Le droit reste vérifié côté serveur à chaque appel : ce
+   * champ ne sert qu'à éviter d'afficher un écran de connexion inutile. */
+  is_admin: boolean;
   is_portal_client: boolean;
 }
 
