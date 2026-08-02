@@ -1,8 +1,22 @@
-# État des lieux — Cyber-Vault (au 2026-07-29)
+# État des lieux — Cyber-Vault
 
-Snapshot de reprise : où en est le projet, quoi est en prod / sur `develop` /
-à faire. Utile notamment pour reprendre depuis un **autre poste** (le contexte de
-travail détaillé n'est pas dans git). Mettre à jour ce fichier au fil de l'eau.
+Ce fichier ne contient **que ce que git ne sait pas dire** : des décisions, leurs
+raisons, et ce qui attend quelqu'un plutôt que du code. Utile pour reprendre le
+projet depuis un autre poste, ou après une interruption.
+
+L'historique des livraisons n'est pas ici — il est dans
+`git log master --merges`, qui est toujours à jour, alors qu'une liste
+« récemment livré » ne l'est jamais.
+
+> **Comment le tenir.** Ce document est permanent : il n'a pas de date globale,
+> chaque fait porte la sienne. Une ligne sans date est suspecte. Quand un point
+> est réglé, on le supprime — la trace reste dans git ; on ne le déplace pas dans
+> une rubrique « fait », qui grossit jusqu'à ce que plus personne ne lise le
+> reste.
+>
+> La version précédente était datée « au 2026-07-29 » et annonçait comme trou
+> ouvert un ALB fermé depuis. Un état des lieux qui se périme en silence est pire
+> qu'une absence d'état des lieux.
 
 > Rappel workflow : travailler sur `develop`, **jamais** committer sur `master` ;
 > merge prod uniquement sur **confirmation explicite**. Voir `CLAUDE.md`,
@@ -10,137 +24,121 @@ travail détaillé n'est pas dans git). Mettre à jour ce fichier au fil de l'ea
 
 ---
 
-## 1. Chantier en cours — Remédiation audit sécurité 2026-07-27
+## 1. En attente de quelqu'un — infra
 
-Audit `docs/SECURITY_AUDIT_2026-07-27.md` (17 findings : 0 HIGH, 6 MEDIUM,
-7 LOW, 4 INFO). Remédiation en **7 lots S1→S7, livrés dans l'ordre**.
+- **ElastiCache Redis / Valkey — différé, assumé** (décision 2026-07-30).
+  `REDIS_URL` est absente de Secrets Manager, vérifié le 2026-08-02. Le service
+  tourne en `desiredCount: 1` et `--workers 1` : un seul processus, donc les
+  compteurs `memory://` du rate-limiting sont de fait globaux. **Ce n'est pas une
+  faille active**, c'est un prérequis pour scaler à plus d'une tâche — et pour
+  les métriques de latence multi-instance. Coût estimé ~10,51 $/mois.
+  Checklist : `docs/S2_INFRA_CHECKLIST.md`.
 
-**Statut : les 7 lots sont EN PRODUCTION depuis le 2026-07-29** (merge `159e6ec`,
-migration `d3b47ded55b3` appliquée, recette post-prod verte).
+- **Rotation de `ADMIN_API_KEY` — à faire, jamais confirmée.** La clé existe en
+  production (vérifié le 2026-08-02) mais rien ne permet de savoir d'ici si elle
+  a été rotée depuis l'audit. `openssl rand -hex 32` → Secrets Manager
+  `cybervault/prod` → `force-new-deployment`. Checklist :
+  `docs/S6_INFRA_CHECKLIST.md`.
 
-⚠️ **Une partie de S2 et S6 est livrée en code NO-OP tant que l'infra ne suit
-pas.** Détail vérifié le 2026-07-30, les deux moitiés de S2 n'ont PAS le même
-statut — c'est important, on s'était trompé dans les deux sens :
-
-- **Compteurs de rate-limit partagés (Redis/Valkey) — PAS un trou aujourd'hui.**
-  Le conteneur tourne en `--workers 1` et le service en `desiredCount: 1` : il y
-  a un seul processus, donc les compteurs `memory://` sont de fait globaux. C'est
-  un **prérequis pour scaler**, pas une faille active. Décision 2026-07-30 :
-  **différé**, on reste à une tâche.
-- **Verrou X-Origin-Verify — trou RÉEL et ouvert.** L'ALB `cybervault-alb` est
-  `internet-facing` et répond en direct (vérifié : `/health` → 200 en HTTP comme
-  en HTTPS, CloudFront contourné). Un attaquant peut donc forger
-  `X-Forwarded-For` et **changer sa clé de rate-limit à volonté**, ce qui annule
-  la protection des endpoints publics non authentifiés. Le code du garde est déjà
-  livré (`_get_real_ip`), il est no-op tant que `ORIGIN_VERIFY_SECRET` n'existe
-  pas des deux côtés. **Correction gratuite** — voir §2, action B.
-- **S6** : rotation de `ADMIN_API_KEY` non faite.
-
-| Lot | Objet | Commit | État réel |
-|-----|-------|--------|-----------|
-| S1 | Durcissement surface publique non-auth (mailbombing unlock, recon anonyme, escape HTML) | `f50c10a` | ✅ actif en prod |
-| S2 | Rate-limiting (Redis, X-Origin-Verify, TRUSTED_PROXY_COUNT) | `75cb704` | 🟡 partiel — compteurs OK à 1 tâche, **verrou ALB manquant** (§2) |
-| S3 | Intégrité monétisation (quota URL monotone, gate plan `current_period_end`, plafond scan/IP) + migration `d3b47ded55b3` | `f779491` | ✅ actif en prod |
-| S4 | Injection/robustesse entrées Dark Web (`_csv_safe`, `_parse_emails_csv`, lecture CSV bornée 413) | `f7d3454` | ✅ actif en prod |
-| S5 | RGPD (export Art.20 complet, purge/rétention 90j public_scans+darkweb, scrubbing PII Sentry) | `bd534ce` | ✅ actif en prod |
-| S6 | Auth admin front (clé `X-Admin-Key` en mémoire seule, SSR-safe) | `0d76aeb` | ✅ actif ; ⚠️ rotation de clé non faite (§2) |
-| S7 | Registre d'acceptation du risque (doc) | `ec06e70` | 📄 docs-only |
-
-**Correctifs livrés après coup** (bugs trouvés dans les logs post-déploiement) :
-`8f4596a` notifications `created_at` en timestamptz — les notifications in-app et
-les emails d'alerte de scan URL étaient **cassés depuis un moment**, silencieusement
-(`except` avalé en warning). Déployé et vérifié le 2026-07-29.
+> ⚠️ Ne jamais ajouter une clé à `$secret_names` de `deploy.yml` avant de l'avoir
+> créée dans Secrets Manager : la tâche ECS ne démarrerait pas.
 
 ---
 
-## 2. Actions INFRA en attente (utilisateur, hors code)
+## 2. En attente de quelqu'un — business et légal
 
-N'empêchent PAS le merge (les fixes code correspondants sont des no-op activables).
+- **Facturation électronique — échéance réglementaire au 1er septembre 2026.**
+  Toutes les entreprises assujetties doivent être en capacité de **recevoir** des
+  factures électroniques via une **Plateforme Agréée** (PA). Le PPF a été
+  abandonné comme plateforme d'échange en octobre 2024 : passer par une PA est
+  donc obligatoire, il n'y a pas d'option « portail public gratuit ».
+  À faire : choisir une PA et s'y raccorder. Aucune ligne de code n'en dépend
+  aujourd'hui — c'est une démarche, pas un chantier technique.
 
-- **S2** → `docs/S2_INFRA_CHECKLIST.md` : (A) provisionner **ElastiCache Redis** +
-  injecter `REDIS_URL` (~12-15 $/mois) ; (B) **verrouiller l'ALB derrière
-  CloudFront** (header X-Origin-Verify + règle listener 403) + `ORIGIN_VERIFY_SECRET`.
-  ⚠️ ne pas ajouter ces clés à `$secret_names` de `deploy.yml` avant de les créer
-  dans Secrets Manager (sinon la task ECS ne démarre pas).
-- **S6** → `docs/S6_INFRA_CHECKLIST.md` : **rotation `ADMIN_API_KEY`**
-  (`openssl rand -hex 32` → Secrets Manager `cybervault/prod` → force-new-deployment).
+- **Assurance RC Pro cyber** — à souscrire **avant les premiers contrats
+  clients** ; vérifier explicitement que le **pentest / scan intrusif est
+  couvert**.
 
----
-
-## 3. Actions BUSINESS / LÉGALES en attente
-
-- **Assurance RC Pro cyber** — à souscrire **avant les 1ers contrats clients** ;
-  vérifier que le **pentest/scan intrusif est couvert**.
-- **Médiateur de la consommation (B2C)** — décision à trancher : adhérer
-  (~120-200 €/an) **si B2C**, ou passer **B2B-only**. Seul placeholder restant du
+- **Médiateur de la consommation** — à trancher : adhérer (~120-200 €/an) **si
+  B2C**, ou assumer un positionnement **B2B-only**. Seul placeholder restant du
   pack légal.
-- **Email de contact (changement de domaine)** — ImprovMX créé ; **config MX +
-  Secrets Manager à finaliser**. Nettoyage dev : remplacer le SMTP Gmail
-  `activatecyberscan` par **Resend** dans le `.env` local (prod déjà OK).
-- **INPI** — dépôt marque « Rocher Cybersécurité » **n°5272918** (classes 9+42) ;
-  **surveiller les mails BOPI / opposition**.
+
+- **E-mail de contact (changement de domaine)** — ImprovMX créé ; **config MX +
+  Secrets Manager à finaliser**. Côté poste de dev : remplacer le SMTP Gmail
+  `activatecyberscan` par Resend dans le `.env` local (la production est déjà
+  sur Resend).
+
+- **INPI** — marque « Rocher Cybersécurité » déposée sous le **n°5272918**
+  (classes 9 + 42). Surveiller les mails BOPI et les oppositions.
 
 ---
 
-## 4. Récemment livré EN PROD (contexte)
+## 3. Déclenché par un événement — rien à faire avant
 
-- **Refonte tarifaire complète** (grille 0/49/149/390, facturation annuelle,
-  gate email scan gratuit, CGV, TVA franchise en base) — migration `256304ec94d2`,
-  Stripe LIVE backfillé. Piège tracé : backfill Stripe **juste après** le deploy.
-- **Resserrage freemium** (plafond scan URL 5/mois au Gratuit, verrou export
-  NIS2/ISO).
-- **Rebranding « Rocher Cybersécurité »** (branded house ; domaines
-  rochercybersecurite.com/.fr + 301 depuis cyberscanapp.com). « Rocsûr »
-  **abandonné** (ne pas reproposer).
-- **Scan gratuit — gate email (LOT 1)** en prod ; reste **lot 2** = Turnstile +
-  cache domaine.
-- **Audit hebdo CI** réparé (security-weekly) ; secret `RESEND_API_KEY` rafraîchi.
-- Modules livrés : Dark Web Dossier, RSSI externalisé, refonte Phishing,
-  observabilité/alerting CloudWatch, recette post-prod, admin plan-override.
+- **Passage à la TVA** → le détail est dans
+  [`RESTE_A_FAIRE.md`](RESTE_A_FAIRE.md). En un mot : **les montants ne changent
+  pas**, seul le libellé « HT » devra être repris. Ne pas basculer les prix
+  Stripe en `exclusive`.
+
+- **Premier client payant** → snapshot RDS avant toute migration lourde, et
+  régénération des PDF déjà stockés. Les deux sont sans objet tant qu'il n'y a
+  aucune donnée client réelle.
+
+- **Ouverture du scan gratuit à du vrai trafic** → écrire le webhook de rebonds
+  Resend avant, sous peine de dégrader la réputation d'envoi sans le voir.
 
 ---
 
-## 5. Décisions & différés ACTÉS (ne pas reproposer spontanément)
+## 4. Décisions actées — ne pas reproposer spontanément
 
-- **Sécurité différée** (décision 2026-07-22, cf. `docs/S7_RISK_ACCEPTANCE.md`) :
-  CSP + Trusted Types CloudFront (SPA), rotation clés `.env` S-3, Vault AAD,
-  RGPD S-8 effacement, IP-pinning S-5, consentement phishing S-6, Dark Web emails
-  tiers, TOTP replay.
-- **Oracle Staging** — abandonné (quota A1=0, pas de PAYG).
-- **Analytics maison** — design validé mais **pas développé** ; prérequis = créer
-  un **vrai rôle admin** (aucune UI admin réelle aujourd'hui, juste la clé
-  `X-Admin-Key`).
-
----
-
-## 6. En cours / backlog non-bloquant
-
-- ~~**Sensibilisation NIS2** — module en cours~~ → **CONSTRUIT et promu offre de
-  pointe n°2** le 2026-07-30. Les trois chantiers annoncés « en cours »
-  (attestations PDF+QR, gamification, multi-tenancy) étaient en réalité
-  implémentés et testés. 28 modules, 4 parcours, 198 tests. Voir
-  `SALES-BRIEF.md` §2 et §5.1. Reste : les quotas ne sont pas appliqués par le
-  code (bloquant pour un passage en self-service, sans effet en vente sur devis).
-- **Observabilité** — reste Redis multi-instance (limiter+scheduler) + métriques
-  de latence (lié à l'action infra S2).
-- **Montées de dépendances** — 4 chantiers restants (ESLint 9, Angular 22,
-  Stripe 15, Tailwind 4), dans cet ordre, avec prérequis et validation par
-  chantier : voir `docs/MONTEES_DEPENDANCES.md`. Aucune urgence sécurité (0 CVE
-  en prod), mais les prérequis sont déjà levés.
-- Dette technique — la majorité des gros refactos restants sont des **décisions**
-  différées, pas de la dette bloquante.
+- **Sécurité différée** (2026-07-22, registre `docs/S7_RISK_ACCEPTANCE.md`) :
+  CSP + Trusted Types CloudFront, rotation clés `.env` S-3, Vault AAD, RGPD S-8
+  effacement, IP-pinning S-5, consentement phishing S-6, e-mails tiers Dark Web,
+  replay TOTP.
+- **Référencement** — repoussé à après l'amélioration du site. Les constats sont
+  déjà mesurés, ne pas les refaire.
+- **Oracle Staging** — abandonné (quota A1 = 0, pas de PAYG).
+- **« Rocsûr »** — nom abandonné au profit de « Rocher Cybersécurité ».
+- **Analytics maison** — design validé, **pas développé**. Prérequis : un vrai
+  rôle admin (aujourd'hui il n'y a que la clé `X-Admin-Key`). Voir aussi §5 :
+  Stripe et le dashboard admin couvrent déjà le besoin à ce stade.
+- **`tax_behavior=inclusive` chez Stripe** — délibéré, cf. §3.
 
 ---
 
-## 7. Où retrouver le contexte dans le repo
+## 5. Backlog non bloquant
 
-- `CLAUDE.md` — règles projet (branches, archi couches, sécurité, Alembic, tests).
-- `docs/DEV_SETUP.md` — installer l'env sur un nouveau poste.
-- `docs/SECURITY_AUDIT_2026-07-27.md` — l'audit en cours de remédiation.
-- `docs/S2_INFRA_CHECKLIST.md` / `docs/S6_INFRA_CHECKLIST.md` — actions infra.
-- `docs/S7_RISK_ACCEPTANCE.md` — risques acceptés/différés.
-- `docs/GITHUB_SECRETS.md` — secrets CI/CD.
+- **Montées de dépendances** — état réel au 2026-08-02 : ESLint 10 ✅,
+  Stripe 15.4.0 ✅ (Dependabot `0497ffa`), Angular **arrêté à 21.2.19** car
+  bloqué en amont par `@ngrx/component-store` et `lucide-angular`, **Tailwind 4**
+  restant et sans filet de validation visuelle. Détail et prérequis :
+  `docs/MONTEES_DEPENDANCES.md`.
+  Le SDK Stripe a bougé, **pas la version d'API serveur** : elle reste épinglée
+  à `2024-06-20`. La monter est une décision distincte, encore à prendre.
+- **Sensibilisation NIS2** — construite et promue offre de pointe n°2
+  (2026-07-30) : 28 modules, 4 parcours, 198 tests. Reste que **les quotas ne
+  sont pas appliqués par le code** : bloquant pour un passage en self-service,
+  sans effet tant que la vente se fait sur devis.
+- **Scan gratuit** — le gate e-mail (lot 1) est en production ; reste le lot 2 :
+  Turnstile + cache domaine.
+- **Observabilité** — métriques de latence multi-instance, liées à Redis (§1).
+- **Dette technique** — l'essentiel des gros refactos restants sont des
+  **décisions différées**, pas de la dette bloquante.
 
-> ⚠️ Ce fichier est un instantané au **2026-07-29**. Les dates/statuts « en prod »
-> ou « sur develop » peuvent avoir évolué — vérifier `git log`, `git branch`, et
-> l'état réel avant d'agir.
+---
+
+## 6. Où retrouver le reste
+
+| Fichier | Contenu |
+|---------|---------|
+| `CLAUDE.md` | Règles projet : branches, architecture en couches, sécurité, Alembic, tests |
+| `docs/SALES-BRIEF.md` | Offres et tarifs — source de vérité commerciale |
+| `docs/RESTE_A_FAIRE.md` | Dette et chantiers ouverts, dont le passage à la TVA |
+| `docs/MONTEES_DEPENDANCES.md` | Montées de versions et leurs blocages amont |
+| `docs/DEV_SETUP.md` | Installer l'environnement sur un nouveau poste |
+| `docs/SECURITY_AUDIT_2026-07-27.md` | L'audit dont S1→S7 est la remédiation |
+| `docs/S2_INFRA_CHECKLIST.md`, `docs/S6_INFRA_CHECKLIST.md` | Les deux actions infra du §1 |
+| `docs/S7_RISK_ACCEPTANCE.md` | Risques acceptés et différés |
+| `docs/RELEASE_RUNBOOK.md` | Mise en production, dont la procédure de changement de grille tarifaire |
+| `docs/GITHUB_SECRETS.md` | Secrets CI/CD |
+| `git log master --merges` | Ce qui est parti en production, et quand |
