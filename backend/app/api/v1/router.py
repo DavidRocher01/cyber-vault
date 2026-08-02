@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
+    admin_acquisition,
     admin_invoices,
     admin_quotes,
     admin_scans,
@@ -64,6 +65,7 @@ api_router.include_router(public_scans.router)
 api_router.include_router(blog.router)
 api_router.include_router(contact.router)
 api_router.include_router(bookings.router)
+api_router.include_router(admin_acquisition.router)
 api_router.include_router(admin_stats.router)
 api_router.include_router(admin_users.router)
 api_router.include_router(admin_scans.router)

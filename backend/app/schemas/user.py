@@ -1,9 +1,13 @@
 from pydantic import BaseModel, EmailStr, Field
 
+from app.schemas.acquisition import ProvenanceIn
 from app.schemas.base import StrictModel
 
 
-class UserCreate(StrictModel):
+class UserCreate(StrictModel, ProvenanceIn):
+    """L'inscription porte la provenance quand l'utilisateur n'est pas passé par
+    le scan gratuit — sinon elle est déjà connue et sera rattachée au compte."""
+
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
 

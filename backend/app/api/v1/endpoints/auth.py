@@ -35,7 +35,7 @@ from app.schemas.user import (
     UserLogin,
     UserOut,
 )
-from app.services import auth_service
+from app.services import acquisition_service, auth_service
 from app.services.email_service import send_password_reset
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -80,6 +80,21 @@ async def register(request: Request, payload: UserCreate, db: AsyncSession = Dep
         email=payload.email,
         hashed_password=await asyncio.to_thread(hash_password, payload.password),
     )
+
+    # Troisième étape du tunnel. La provenance n'est utile ici que pour qui
+    # s'inscrit SANS être passé par le scan gratuit ; sinon elle est déjà connue,
+    # et c'est le rattachement au compte qui la relie (cf. `docs/ANALYTICS.md`).
+    await acquisition_service.enregistrer(
+        db,
+        evenement="inscription",
+        utm_source=payload.utm_source,
+        utm_medium=payload.utm_medium,
+        utm_campaign=payload.utm_campaign,
+        referer=request.headers.get("referer"),
+        page_atterrissage=payload.page_atterrissage,
+        user_id=user.id,
+    )
+
     logger.info("New user registered (id={})", user.id)
     return user
 
