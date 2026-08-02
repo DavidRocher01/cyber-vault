@@ -1,7 +1,25 @@
 #!/usr/bin/env python3
 """
-Backfill des `plans.stripe_price_id` après la migration `reprice_plans_v2`
-(qui vide les price IDs). Script idempotent et hors chaîne Alembic
+Pose manuelle des `plans.stripe_price_id`. **Ce n'est plus le chemin normal.**
+
+Depuis le 2026-08-02, la source de vérité est `app/core/pricing.py` :
+  - le seed de démarrage y lit les identifiants pour toute base neuve ;
+  - la migration `a5875bea88a0` les pose sur les bases déjà en service ;
+  - `test_pricing_source_unique.py` échoue si un identifiant de la grille
+    n'apparaît dans aucune migration.
+
+C'est précisément l'usage exclusif de ce script qui avait créé le trou : les
+identifiants de production n'existaient nulle part dans le dépôt, et les seules
+valeurs versionnées — celles de trois migrations d'avril — pointaient des prix à
+9,90 / 39,90 / 49,90 €. Une base reconstruite serait repartie en facturant
+9,90 € un abonnement affiché 49 €.
+
+Le script reste utile pour un dépannage ponctuel : basculer un plan sur un
+nouveau prix sans attendre un déploiement. Dans ce cas, reporter ensuite la
+valeur dans `pricing.py` et écrire la migration correspondante, sinon le
+prochain redémarrage sur base neuve repartira sur l'ancienne.
+
+Script idempotent et hors chaîne Alembic
 (cf. dette #2 : le data/seed reste hors des migrations de schéma).
 
 Pré-requis : avoir créé les 3 produits/prix en mode LIVE dans Stripe et noté

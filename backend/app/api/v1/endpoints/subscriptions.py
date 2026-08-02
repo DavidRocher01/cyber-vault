@@ -87,7 +87,10 @@ async def create_checkout(
         return {"checkout_url": f"{FRONTEND_URL}/dashboard"}
 
     # Production: real Stripe flow. Le price_id porte l'intervalle de facturation.
-    price_id = plan.stripe_price_id_yearly if interval == "yearly" else plan.stripe_price_id
+    annuel = interval == "yearly"
+    price_id = plan.stripe_price_id_yearly if annuel else plan.stripe_price_id
+    montant_attendu = plan.price_eur_yearly if annuel else plan.price_eur
+    intervalle_attendu = "year" if annuel else "month"
     if not price_id:
         detail = (
             "Yearly billing not configured for this plan yet"
@@ -109,6 +112,8 @@ async def create_checkout(
         price_id=price_id,
         success_url=f"{FRONTEND_URL}/dashboard?subscribed=true",
         cancel_url=f"{FRONTEND_URL}/?checkout=cancel",
+        montant_attendu=montant_attendu,
+        intervalle_attendu=intervalle_attendu,
     )
     return {"checkout_url": checkout_url}
 
@@ -166,11 +171,14 @@ async def purchase_extra_sites(
     if not price_id:
         raise HTTPException(status_code=400, detail="Add-on non configuré")
 
-    checkout_url = stripe_service.create_checkout_session(
+    checkout_url = await asyncio.to_thread(
+        stripe_service.create_checkout_session,
         customer_id=sub.stripe_customer_id,
         price_id=price_id,
         success_url=f"{FRONTEND_URL}/dashboard?addon=extra_sites",
         cancel_url=f"{FRONTEND_URL}/dashboard",
+        montant_attendu=ADDON_EXTRA_SITES_PRICE_EUR,
+        intervalle_attendu="month",
         metadata={"addon_type": "extra_sites", "user_id": str(current_user.id)},
     )
     return {"checkout_url": checkout_url}

@@ -110,6 +110,19 @@ jobs:
         run: python scripts/generate_awareness_catalog.py --check
         working-directory: backend
 
+      - name: Tarifs retirés encore affichés
+        # Aucun env : `app.core.pricing` n'importe que la grille, jamais
+        # `Settings`. Verifie hors du projet, sans .env — c'est exactement ce
+        # masquage-la qui avait fait echouer l'etape PDF a son premier passage.
+        # La grille a change trois fois en 2026. A chaque fois des montants sont
+        # restes ecrits en dur dans des pages que personne ne rouvrait : le
+        # 2026-08-01, cinq surfaces annoncaient encore des prix perimes, dont un
+        # article intitule « combien ca coute vraiment » affichant 9,90 EUR pour
+        # un abonnement facture 49. Le code etait juste, c'est la copie qui
+        # mentait — aucun test ne pouvait le voir.
+        run: python scripts/check_prix_retires.py
+        working-directory: backend
+
       - name: Lisibilité des PDF (texte invisible, chevauchements)
         env:
           # Plusieurs generateurs importent `Settings`, qui exige ces deux

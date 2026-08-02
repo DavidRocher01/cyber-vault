@@ -19,7 +19,7 @@
 
 `alembic upgrade head` les applique dans cet ordre :
 
-1. `6f5b7d420f72` — **reprice_plans_v2** : change les prix (14,90 / 49 / 149 €) et **vide `stripe_price_id`**. ⚠️ Voir § Stripe.
+1. `6f5b7d420f72` — **reprice_plans_v2** : change les prix (14,90 / 49 / 149 €) et **vide `stripe_price_id`**. ⚠️ Voir § Stripe. <!-- prix-historique : grille de juin 2026, remplacée depuis -->
 2. `b8c4d2e9f1a3` — **json → jsonb** : `ALTER COLUMN TYPE` sur `blog_posts.tags`, `scans.results_json`, `darkweb_dossiers.top_sources_json`, `rssi_clients.extra_data` + index GIN sur tags. 🟡 Lock + réécriture (cf. § Fenêtre).
 3. `d7e2f3a4b5c6` — **crypto_salt** : ajoute la colonne, backfille un sel aléatoire par user, passe `NOT NULL`.
 4. `e9f1a2b3c4d5` — **vault_encrypted_fields** : ajoute `title/username/url/notes_encrypted` (nullable, additif).
@@ -34,19 +34,37 @@
 
 ## Pré-requis (J-1)
 
-- [ ] **Créer les 3 produits/prix Stripe** (mode LIVE) correspondant à la grille
-      **réellement facturée** — corrigée le 2026-08-01, elle datait d'avant la
-      refonte du 2026-07-26 et aurait fait créer des prix Stripe INFÉRIEURS à
-      ceux affichés sur le site :
-  - Surveillance Starter — 49,00 €
-  - Surveillance Pro — 149,00 €
-  - Surveillance Business — 390,00 €
-  - Noter les `price_id` (`price_live_…`) → ils serviront au backfill.
-  - Ces mêmes montants sont documentés dans `backend/scripts/set_stripe_price_ids.py`,
-    qui écrit les identifiants en base. En cas de doute, c'est lui qui fait foi.
-  - [ ] **Après le backfill**, lancer `pytest tests/test_stripe_price_coherence.py`
-        avec `STRIPE_SECRET_KEY` : c'est le seul contrôle qui compare le prix
-        AFFICHÉ au prix DÉBITÉ. Il est ignoré en CI faute de secret.
+- [x] **Prix Stripe** — plus rien à créer : les six prix LIVE existent
+      (49 / 149 / 390 € par mois, 490 / 1 490 / 3 900 € par an), et les sept
+      générations précédentes ont été archivées le 2026-08-02. Leurs
+      identifiants sont versionnés dans `backend/app/core/pricing.py`, qui fait
+      désormais foi — le seed les pose sur une base neuve, la migration
+      `a5875bea88a0` sur une base existante.
+  - Vérifié le 2026-08-02 : les sessions de paiement créées par la production
+    depuis le 26 juillet portent bien les prix de juillet. L'affichage et le
+    débit correspondent.
+
+### Si un tarif change
+
+1. Modifier `GRILLE` dans `backend/app/core/pricing.py`.
+2. Créer les nouveaux prix chez Stripe (un montant est **immuable** : on ne
+   modifie pas un prix, on en crée un autre), reporter les `price_...`.
+3. Ajouter les anciens montants à `LIBELLES_RETIRES` — `check_prix_retires.py`
+   fera alors échouer la CI tant qu'ils traînent dans une page publique.
+4. Écrire une migration de données qui pose les nouveaux identifiants.
+   `test_pricing_source_unique.py` échoue tant qu'elle manque.
+5. Corriger les articles de blog concernés : ils vivent en base, aucun contrôle
+   ne les voit (modèle : `f7fb572e4e16_blog_tarifs_grille_juillet_2026.py`).
+6. Archiver les anciens prix chez Stripe. Si l'un est le prix par défaut de son
+   produit, repointer d'abord ce défaut — Stripe refuse sinon.
+7. Lancer `pytest tests/test_stripe_price_coherence.py` avec `STRIPE_SECRET_KEY`
+   (ignoré en CI faute de secret) : il compare l'affiché au débité.
+
+> Le filet en production : `stripe_service.verifier_prix` interroge Stripe avant
+> chaque ouverture de session et **refuse de facturer** si le montant,
+> l'intervalle, la devise, l'état d'archivage ou le `tax_behavior` ne
+> correspondent pas. Une erreur de configuration devient une 503 visible, jamais
+> un prélèvement au mauvais montant.
 - [ ] **Vérifier AWS Secrets Manager** (`cybervault/prod`) contient bien :
   `SECRET_KEY`, `DATABASE_URL`, `STRIPE_SECRET_KEY` (sk_live), `STRIPE_WEBHOOK_SECRET` (whsec), `ADMIN_API_KEY`, `RESEND_API_KEY`, `SENTRY_DSN`, `SMTP_PASSWORD`.
 - [ ] **Vérifier GitHub Secrets** : `AWS_DEPLOY_ROLE_ARN`, `AWS_SM_ARN`, `ECS_CLUSTER`, `ECS_SERVICE`, `S3_BUCKET_NAME`, `CLOUDFRONT_DISTRIBUTION_ID`, `STRIPE_PUBLISHABLE_KEY` (pk_live).
