@@ -99,9 +99,11 @@ L'historique des livraisons n'est pas ici — il est dans
   déjà mesurés, ne pas les refaire.
 - **Oracle Staging** — abandonné (quota A1 = 0, pas de PAYG).
 - **« Rocsûr »** — nom abandonné au profit de « Rocher Cybersécurité ».
-- **Analytics maison** — design validé, **pas développé**. Prérequis : un vrai
-  rôle admin (aujourd'hui il n'y a que la clé `X-Admin-Key`). Voir aussi §5 :
-  Stripe et le dashboard admin couvrent déjà le besoin à ce stade.
+- **Mesure d'audience et de conversion** — conception écrite le 2026-08-02 dans
+  [`ANALYTICS.md`](ANALYTICS.md), **pas développée**. La ligne précédente disait
+  « design validé » sans que ce design n'existe nulle part : c'est réparé.
+  Prérequis inchangé : un vrai rôle admin (aujourd'hui il n'y a que la clé
+  `X-Admin-Key`). Deux points restent à trancher, ils sont en fin de document.
 - **`tax_behavior=inclusive` chez Stripe** — délibéré, cf. §3.
 
 ---
@@ -134,6 +136,7 @@ L'historique des livraisons n'est pas ici — il est dans
 | `CLAUDE.md` | Règles projet : branches, architecture en couches, sécurité, Alembic, tests |
 | `docs/SALES-BRIEF.md` | Offres et tarifs — source de vérité commerciale |
 | `docs/RESTE_A_FAIRE.md` | Dette et chantiers ouverts, dont le passage à la TVA |
+| `docs/ANALYTICS.md` | Mesure d'audience et de conversion — conception |
 | `docs/MONTEES_DEPENDANCES.md` | Montées de versions et leurs blocages amont |
 | `docs/DEV_SETUP.md` | Installer l'environnement sur un nouveau poste |
 | `docs/SECURITY_AUDIT_2026-07-27.md` | L'audit dont S1→S7 est la remédiation |
