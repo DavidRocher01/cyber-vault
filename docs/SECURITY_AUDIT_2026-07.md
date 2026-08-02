@@ -1,5 +1,16 @@
 # Audit de sécurité — cyber-vault (2026-07-19)
 
+> **Archive — remplacé par
+> [`SECURITY_AUDIT_2026-07-27.md`](SECURITY_AUDIT_2026-07-27.md).**
+> Ses correctifs ont été livrés, et l'audit suivant a explicitement revérifié
+> qu'ils tenaient : « les correctifs S-1/S-5 de l'audit 2026-07-19 tiennent,
+> aucune régression ».
+>
+> Conservé pour l'historique — la trajectoire de remédiation vaut d'être lisible,
+> notamment en due diligence. **Ne pas le traiter comme une liste de travaux à
+> faire** : c'est l'audit du 27 juillet qui fait foi, et sa remédiation S1→S7 est
+> en production depuis le 2026-07-29.
+
 Revue multi-agents exhaustive (11 axes A–K, vérification adverse). Baseline bandit : 0 High / 0 Medium.
 
 **Résultat : 10 findings confirmés** (sur 34 bruts ; 1 réfuté, 23 low/info). Sévérités ajustées après vérification adverse.

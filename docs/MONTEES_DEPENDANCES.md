@@ -99,7 +99,15 @@ stores. Deux corrections manuelles ont été nécessaires — le typage généri
 `Uint8Array` depuis TS 5.7 dans `crypto.service.ts`, et une projection de
 contenu `NG8011` dans `consultant-profile`.
 
-### 3. Stripe 10.5.0 → 15.3.1
+### 3. Stripe 10.5.0 → 15.4.0 — ✅ FAIT
+
+Monté par Dependabot (`0497ffa`, PR #87) jusqu'en **15.4.0**, et non 15.3.1 comme
+prévu ici. La version d'API serveur reste épinglée à `2024-06-20` : conformément
+au plan ci-dessous, seul le SDK a bougé. Le passage à une version d'API plus
+récente reste une décision distincte, à prendre séparément.
+
+Ce qui suit décrit le chantier tel qu'il avait été préparé, et reste valable pour
+la montée d'API :
 
 - **Ce que ça implique** : cinq majeures. Surface d'usage modeste — 10 points
   d'API sur 3 fichiers (`checkout.Session.create`, `Webhook.construct_event`,

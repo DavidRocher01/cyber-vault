@@ -49,3 +49,21 @@ Le frontend doit être un SPA (Single Page Application) avec :
 - CLAUDE.md documente les conventions Angular du projet
 - Chaque feature a son propre dossier avec composants + store + service
 - Guard `cryptoGuard` protège les routes sensibles (vault)
+
+---
+
+## Évolution depuis (note, pas révision)
+
+> Un ADR consigne une décision **à sa date**. Le corps ci-dessus reste donc écrit
+> au présent d'Angular 19 et ne doit pas être réécrit : le relire, c'est
+> comprendre ce qui était connu au moment du choix.
+
+- **2026-07-31** — Le frontend est monté en **Angular 21** (TypeScript 5.9,
+  ESLint 10 en configuration « flat »). La décision de fond — standalone,
+  signals, ComponentStore par feature — n'a pas été remise en cause : les trois
+  montées successives l'ont confortée.
+- **Angular 22 est bloqué en amont**, par `@ngrx/component-store` (pas de v22) et
+  `lucide-angular`. Détail et prérequis : `docs/MONTEES_DEPENDANCES.md`.
+- La dépendance à `@ngrx/component-store` est aujourd'hui le principal frein à la
+  montée de version. Si elle devait redevenir bloquante durablement, c'est cet
+  ADR qu'il faudrait **remplacer** par un nouveau, pas amender.

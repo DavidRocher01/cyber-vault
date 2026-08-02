@@ -263,8 +263,10 @@ class TestVerifierPrix:
             self._verifier(prix_stripe(4900, recurring=None))
 
     def test_tax_behavior_different_refuse(self):
-        """Le jour ou la franchise en base de TVA tombera, `inclusive` mangerait
-        20 % de marge en silence. La grille declare ce qu'elle attend."""
+        """`inclusive` est un choix assume : les prix de juillet 2026 ont ete
+        releves en avance de phase pour ne pas bouger au passage a la TVA. Un
+        prix bascule en `exclusive` ferait payer 58,80 EUR au lieu de 49 —
+        d'ou le refus."""
         from app.services.stripe_service import PrixStripeIncoherentError
 
         autre = "exclusive" if COMPORTEMENT_TVA_ATTENDU == "inclusive" else "inclusive"

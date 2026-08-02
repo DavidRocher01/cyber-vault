@@ -7,12 +7,13 @@ Ce document recense les patterns surprenants ou non-évidents du code.
 
 ## Backend
 
-### Colonnes `gophish_*` mortes dans `phishing_campaigns`
+### Le moteur phishing est du code maison
 
-Les colonnes `gophish_campaign_id`, `gophish_group_id`, `gophish_template_id`, `gophish_page_id`
-sont les vestiges d'une intégration GoPhish abandonnée mi-2026.
-Le moteur phishing utilise désormais du code maison (`phishing_service.py` + `phishing_templates.py`).
-Ces colonnes sont à supprimer dans un futur refacto (migration Alembic nécessaire).
+Une intégration GoPhish a été abandonnée mi-2026. Le moteur actuel est interne :
+`phishing_service.py` pour la logique, et le package `phishing_templates/`
+(`engine.py`, `emails.py`, `landings.py`) pour les gabarits.
+
+Les colonnes `gophish_*` de `phishing_campaigns` ont été retirées des modèles.
 
 ### `max_sites` utilisé comme quota de scans
 
@@ -39,27 +40,30 @@ Si `APP_ENV=development`, les checkouts Stripe sont simulés sans vrai paiement.
 Garde ajoutée : si `FRONTEND_URL` contient `rochercybersecurite.com`, le démarrage crashe.
 Ne jamais déployer avec `APP_ENV=development` en prod.
 
-### _seed_plans dans main.py ET dans seed_plans.py
+### Les tarifs ont trois points d'entrée, une seule vérité
 
-Deux sources de vérité pour les plans initiaux :
-- `main.py::_seed_plans()` : crée les plans au boot si absents (n'écrase pas les Stripe IDs)
-- `backend/seed_plans.py` : script standalone pour réinitialiser les plans complets
+`app/core/pricing.py` fait foi. Trois mécanismes y lisent la même grille, et
+aucun ne porte de copie :
 
-Si tu mets à jour les prix, modifier les deux + créer une migration Alembic.
+- `main.py::_seed_plans()` — insère les plans **absents** au démarrage, ne
+  touche jamais une ligne existante ;
+- `seed_plans.py` — script de rattrapage qui, lui, **réaligne** les plans
+  existants sur la grille ;
+- la migration `a5875bea88a0` — pose les `stripe_price_id` sur les bases en
+  service.
 
-### Migration fantôme `5e6403bce97c_add_vault_items.py`
+Pour changer un tarif, suivre la procédure de `docs/RELEASE_RUNBOOK.md` :
+modifier la grille, créer les prix chez Stripe, écrire une migration.
+`test_pricing_source_unique.py` échoue tant que la migration manque.
 
-Cette migration a `upgrade = pass`. Elle existait pour forcer une tête Alembic unique
-après une fusion de branches. Inoffensive, ne pas supprimer (casserait la chaîne).
+### Aucun service n'est exclu de la mesure de couverture
 
-### `phishing_service.py` splitté en deux
-
-Avant mai 2026, `phishing_service.py` contenait ~1 550 lignes (logique + templates HTML).
-Splitté en :
-- `phishing_service.py` : logique métier (envoi, tracking, campagnes)
-- `phishing_templates.py` : templates HTML (950 lignes)
-
-Les deux sont dans l'omit coverage (`.coveragerc`) car non testables unitairement sans fixtures lourdes.
+Cinq l'étaient jusqu'au 2026-07-30, sur la présomption qu'ils n'étaient pas
+testés. Mesure faite, quatre l'étaient déjà — ils étaient invisibles, pas à
+découvert. Le cinquième, `newsletter_email`, était le seul vrai angle mort, et
+c'est justement l'exclusion qui l'empêchait de se voir. `.coveragerc` documente
+chaque exclusion restante et sa raison ; il n'en reste que des non-applicatives
+(migrations, configuration de connexion).
 
 ---
 

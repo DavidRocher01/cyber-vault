@@ -10,7 +10,7 @@ versionné) et, si tu y tiens, le **contexte Claude** (voir la fin).
 |---|---|---|
 | Git | — | cloner le repo |
 | Python | **3.14** | backend (iso-prod) |
-| Node.js | **20** | frontend Angular 20 |
+| Node.js | **24** (cf. `.nvmrc`) | frontend Angular 21 |
 | PostgreSQL | **17** | base locale (iso-prod) |
 | Docker | — | `make prod-check` (parité prod Linux) — optionnel |
 | AWS CLI | v2 | ops prod (ECS, logs, alarmes, Secrets Manager) |

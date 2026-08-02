@@ -29,15 +29,25 @@ from dataclasses import dataclass
 MOIS_FACTURES_A_L_ANNEE = 10
 
 # Comportement TVA des prix Stripe. Les six prix LIVE sont en `inclusive`, et
-# c'est sans conséquence aujourd'hui : Rocher Cybersécurité est en franchise en
-# base de TVA (art. 293 B du CGI), aucune TVA n'est collectée, HT = TTC.
+# c'est un choix, pas un oubli.
 #
-# ATTENTION le jour où la franchise tombe (dépassement du seuil, ou option
-# volontaire pour la TVA) : `inclusive` signifie que la TVA serait prise *dans*
-# les 49 €, pas ajoutée par-dessus — soit 20 % de marge perdue en silence, alors
-# que les CGV annoncent des prix HT. Et `tax_behavior` est IMMUABLE chez Stripe :
-# il faudra créer six nouveaux prix en `exclusive`, reporter leurs identifiants
-# ici, puis archiver les anciens.
+# Rocher Cybersécurité est aujourd'hui en franchise en base de TVA (art. 293 B
+# du CGI) : aucune TVA n'est collectée, HT = TTC. La grille de juillet 2026
+# (49 / 149 / 390 €) a été relevée **en avance de phase**, pour que les prix
+# affichés n'aient PAS à bouger le jour où la franchise tombera. Ce jour-là,
+# `inclusive` fera exactement ce qu'on attend : le client continuera de payer
+# 49 €, dont la TVA sera reversée — l'absorption des 20 % est délibérée et déjà
+# financée par la hausse.
+#
+# Ne pas « corriger » ce réglage en `exclusive` : cela ferait payer 58,80 € au
+# lieu de 49 € et casserait la promesse de stabilité tarifaire. `tax_behavior`
+# étant immuable chez Stripe, une bascule imposerait en plus de recréer les six
+# prix.
+#
+# Ce qui restera à faire au passage à la TVA, en revanche : les CGV et les pages
+# publiques annoncent des prix « HT », ce qui est exact sous franchise mais
+# deviendra faux — 49 € TTC valant 40,83 € HT. C'est le libellé qu'il faudra
+# reprendre, pas les montants.
 #
 # La garde de facturation compare cette constante au prix réel avant tout débit :
 # tant que les deux disent la même chose, la situation est celle qu'on croit.
