@@ -34,11 +34,15 @@ L'historique des livraisons n'est pas ici — il est dans
   les métriques de latence multi-instance. Coût estimé ~10,51 $/mois.
   Checklist : `docs/S2_INFRA_CHECKLIST.md`.
 
-- **Rotation de `ADMIN_API_KEY` — à faire, jamais confirmée.** La clé existe en
-  production (vérifié le 2026-08-02) mais rien ne permet de savoir d'ici si elle
-  a été rotée depuis l'audit. `openssl rand -hex 32` → Secrets Manager
-  `cybervault/prod` → `force-new-deployment`. Checklist :
-  `docs/S6_INFRA_CHECKLIST.md`.
+- **Créer le premier compte admin en production.** Le rôle `users.is_admin`
+  existe depuis le 2026-08-02 (migration `4b6fae2210d3`), mais **aucun compte
+  n'est promu** : la colonne arrive à `false` pour tout le monde, délibérément.
+  Tant que le compte n'existe pas, `X-Admin-Key` reste le seul accès — les deux
+  voies coexistent exprès, couper avant rendrait le back-office inaccessible.
+  Séquence complète, dont le retrait de la clé ensuite :
+  `docs/S6_INFRA_CHECKLIST.md` §0. La rotation de clé qui figurait ici est
+  remplacée par cette bascule : faire tourner un secret partagé ne lui donne ni
+  identité, ni révocation, ni 2FA.
 
 > ⚠️ Ne jamais ajouter une clé à `$secret_names` de `deploy.yml` avant de l'avoir
 > créée dans Secrets Manager : la tâche ECS ne démarrerait pas.

@@ -6,10 +6,54 @@ session), et l'accès `sessionStorage` non gardé du constructeur a disparu
 (SSR-safe par construction). Ce document liste les actions **infra**, à réaliser
 côté AWS, qui complètent la défense en profondeur.
 
-## 1. Rotation d'`ADMIN_API_KEY` (recommandé — action simple)
+## 0. Bascule vers un vrai rôle admin — **remplace la rotation**
 
-La clé admin est un **secret partagé statique, long-lived**. Le fix code réduit
-sa surface d'exposition côté navigateur, mais la clé elle-même devrait tourner :
+> Décidé le 2026-08-02. La rotation décrite au §1 ne fait que renouveler un
+> secret partagé ; elle ne lui donne ni identité, ni révocation, ni 2FA. La
+> réponse de fond est `users.is_admin` (migration `4b6fae2210d3`) : le droit est
+> porté par un compte.
+
+`require_admin` accepte **les deux voies** depuis cette migration — un compte
+`is_admin`, ou la clé historique. Ce double support est temporaire : couper la
+clé avant qu'un compte admin n'existe en base rendrait le back-office de
+production inaccessible.
+
+### Séquence, dans cet ordre
+
+1. **Déployer** la migration `4b6fae2210d3` (colonne à `false` pour tous — aucun
+   compte n'est promu automatiquement, c'est délibéré).
+
+2. **Créer le compte admin**, en accès direct au conteneur — donc avec des
+   droits AWS, jamais depuis le produit :
+
+   ```bash
+   TASK_ID=$(aws ecs list-tasks --cluster cybervault-prod \
+     --service-name cybervault-prod --query 'taskArns[0]' --output text --region eu-west-3)
+
+   aws ecs execute-command --cluster cybervault-prod --task "$TASK_ID" \
+     --container cybervault-backend --interactive --region eu-west-3 \
+     --command "python scripts/create_admin.py vous@exemple.fr 'MotDePasseFort123!'"
+   ```
+
+3. **Vérifier** que le compte ouvre bien le back-office, et **activer sa 2FA** —
+   c'est tout l'intérêt de la manœuvre.
+
+4. **Alors seulement**, retirer la voie de repli : supprimer la branche
+   `X-Admin-Key` de `require_admin`, l'écran de saisie de clé côté front, puis
+   `ADMIN_API_KEY` de Secrets Manager et de `$secret_names` dans `deploy.yml`.
+
+⚠️ **Ne pas sauter l'étape 3.** Tant qu'elle n'est pas faite, la clé reste le
+seul accès garanti.
+
+Les nouvelles surfaces d'administration n'utilisent pas `require_admin` mais
+`get_admin_user`, qui **n'accepte que des comptes** : ce qu'on construit
+aujourd'hui n'hérite pas du secret qu'on retire.
+
+## 1. Rotation d'`ADMIN_API_KEY` — utile seulement si la bascule tarde
+
+Si la bascule du §0 n'est pas menée à court terme, faire tourner la clé en
+attendant. Ce n'est qu'une mesure d'attente : elle renouvelle le secret sans
+corriger ce qui est reproché — un secret partagé statique, sans identité :
 
 ```bash
 # Générer une nouvelle clé (32 octets hex, non réutilisée)
@@ -49,5 +93,8 @@ basculer en mode bloquant une fois les sources légitimes recensées.
 | Action | Type | Statut |
 |--------|------|--------|
 | Clé admin non persistée + SSR-safe | Code | ✅ livré (S6) |
-| Rotation `ADMIN_API_KEY` | Infra | ⏳ à faire (user) |
+| Rôle `users.is_admin` + double voie d'accès | Code | ✅ livré (2026-08-02) |
+| Créer le compte admin en prod, activer sa 2FA | Infra | ⏳ à faire (user) |
+| Retirer `X-Admin-Key` (code, front, Secrets Manager) | Code + infra | ⏳ après vérification |
+| Rotation `ADMIN_API_KEY` | Infra | ↩️ remplacée par la bascule ci-dessus |
 | CSP SPA CloudFront | Infra | ⏸️ différé (décision 2026-07-22) |

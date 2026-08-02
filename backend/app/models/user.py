@@ -50,6 +50,20 @@ class User(Base):
         Boolean, default=False, nullable=False, server_default="false"
     )
 
+    # Administration de la plateforme (back-office). Distinct de
+    # `is_rssi_consultant`, qui est un rôle CLIENT : un consultant RSSI gère ses
+    # propres clients, un admin voit tout le back-office.
+    #
+    # Remplace `ADMIN_API_KEY`, un secret partagé statique sans identité ni
+    # révocation, releve par l'audit du 2026-07-27. Un droit porte par un compte
+    # est traçable, révocable, et protégé par la 2FA du compte.
+    #
+    # Ne s'accorde jamais par une API : uniquement via
+    # `scripts/create_admin.py`, en accès direct au conteneur.
+    is_admin: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, server_default="false"
+    )
+
     display_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     company_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(30), nullable=True)

@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
 """
-Create or elevate an admin account in production.
+Cree ou promeut un compte ADMINISTRATEUR de la plateforme.
 
-Usage (inside ECS container):
+Le script portait deja ce nom sans poser aucun droit d'administration : il
+creait un compte consultant RSSI dote du plan le plus eleve. Depuis la migration
+`4b6fae2210d3`, il pose `users.is_admin`, qui est le vrai droit back-office.
+
+C'est le SEUL chemin pour accorder l'administration. Aucune API ne l'expose :
+il faut un acces direct au conteneur, donc deja des droits AWS. Un droit
+d'administration ne doit pas pouvoir s'obtenir depuis le produit lui-meme.
+
+Usage (dans le conteneur ECS):
     python scripts/create_admin.py <email> <password>
 
 Run via ECS exec:
@@ -57,6 +65,7 @@ async def main(email: str, password: str) -> None:
             user.hashed_password = hash_password(password)
             user.is_active = True
             user.is_rssi_consultant = True
+            user.is_admin = True
             user.failed_login_attempts = 0
             user.locked_until = None
         else:
@@ -66,6 +75,7 @@ async def main(email: str, password: str) -> None:
                 hashed_password=hash_password(password),
                 is_active=True,
                 is_rssi_consultant=True,
+                is_admin=True,
             )
             db.add(user)
             await db.flush()

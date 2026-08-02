@@ -15,12 +15,49 @@ from app.services.awareness_magic_link import decode_learner_jwt
 bearer = HTTPBearer(auto_error=False)
 
 
-def require_admin(x_admin_key: str = Header(default="")) -> None:
-    """Dependency shared by all admin endpoints — validates the X-Admin-Key header."""
-    if not settings.ADMIN_API_KEY or not secrets.compare_digest(
+def _cle_admin_valide(x_admin_key: str) -> bool:
+    """Vrai si l'en-tête correspond au secret partagé historique."""
+    return bool(settings.ADMIN_API_KEY) and secrets.compare_digest(
         x_admin_key, settings.ADMIN_API_KEY
-    ):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès refusé")
+    )
+
+
+async def require_admin(
+    x_admin_key: str = Header(default=""),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    db: AsyncSession = Depends(get_db),
+) -> User | None:
+    """Accès au back-office. Accepte un compte `is_admin`, ou la clé historique.
+
+    Les deux voies coexistent **le temps de la bascule**, et dans cet ordre :
+
+    1. un compte connecté portant `is_admin` — la voie cible. Le droit est
+       attaché à une identité : traçable, révocable, couvert par la 2FA du
+       compte ;
+    2. `X-Admin-Key` — un secret partagé statique, sans identité ni révocation,
+       relevé par l'audit du 2026-07-27. **Voie de repli, à supprimer** une fois
+       le premier compte admin créé et vérifié en production.
+
+    Le double support n'est pas une facilité : couper la clé avant d'avoir un
+    compte admin en base rendrait le back-office de production inaccessible,
+    sans moyen de se rattraper autrement qu'en accès direct au conteneur.
+
+    Retourne l'utilisateur admin, ou `None` si l'accès passe encore par la clé.
+    Les appelants n'utilisent pas ce retour aujourd'hui — il permettra de tracer
+    QUI agit quand la clé aura disparu.
+    """
+    if credentials is not None:
+        user_id = decode_access_token(credentials.credentials)
+        if user_id:
+            result = await db.execute(select(User).where(User.id == int(user_id)))
+            user = result.scalar_one_or_none()
+            if user and user.is_active and user.is_admin:
+                return user
+
+    if _cle_admin_valide(x_admin_key):
+        return None
+
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès refusé")
 
 
 async def get_current_user(
@@ -65,6 +102,22 @@ async def get_current_learner(
     if learner is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Learner introuvable")
     return learner
+
+
+async def get_admin_user(current_user: User = Depends(get_current_user)) -> User:
+    """Variante stricte : exige un compte admin, jamais la clé partagée.
+
+    À utiliser pour toute NOUVELLE surface d'administration — l'onglet
+    Acquisition en premier (cf. `docs/ANALYTICS.md`). Ce qu'on construit
+    aujourd'hui ne doit pas hériter du secret partagé qu'on est en train de
+    retirer.
+    """
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Accès réservé aux administrateurs",
+        )
+    return current_user
 
 
 async def get_rssi_consultant(
