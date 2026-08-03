@@ -1,9 +1,10 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { FormArray, FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { AdminAuthService } from '../admin/admin-auth.service';
 import { environment } from '../../../../environments/environment';
 
 interface Stats {
@@ -43,8 +44,8 @@ const ACCENT = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7'
       </nav>
 
       <div style="max-width:820px;margin:0 auto;padding:40px 24px;">
-        <!-- Clé admin -->
-        @if (!apiKeySet()) {
+        <!-- Accès réservé aux comptes administrateurs -->
+        @if (!adminAuth.verificationEnCours() && !adminAuth.authenticated()) {
           <div
             style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:32px;text-align:center;"
           >
@@ -52,37 +53,19 @@ const ACCENT = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7'
               style="font-size:40px;width:40px;height:40px;color:#f59e0b;margin-bottom:16px;"
               >lock</mat-icon
             >
-            <h2 style="color:#f1f5f9;margin:0 0 8px;">Accès admin requis</h2>
+            <h2 style="color:#f1f5f9;margin:0 0 8px;">Accès réservé</h2>
             <p style="color:#64748b;font-size:14px;margin:0 0 24px;">
-              Entrez votre clé admin pour continuer.
+              Connectez-vous avec un compte administrateur pour accéder à cette page.
             </p>
-            <form
-              (ngSubmit)="submitKey()"
-              style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;"
+            <a
+              routerLink="/auth/login"
+              style="display:inline-block;background:#0891b2;color:#fff;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:600;text-decoration:none;"
+              >Se connecter</a
             >
-              <input
-                type="password"
-                [(ngModel)]="keyInput"
-                [ngModelOptions]="{ standalone: true }"
-                placeholder="Admin API Key"
-                style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px 16px;color:#f1f5f9;font-size:14px;width:280px;outline:none;"
-              />
-              <button
-                type="submit"
-                style="background:#0891b2;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;"
-              >
-                Valider
-              </button>
-            </form>
-            @if (keyError()) {
-              <p style="color:#f87171;font-size:13px;margin:12px 0 0;">
-                Clé invalide ou erreur réseau.
-              </p>
-            }
           </div>
         }
 
-        @if (apiKeySet()) {
+        @if (adminAuth.authenticated()) {
           <!-- Stats -->
           <div
             style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px;"
@@ -316,7 +299,7 @@ const ACCENT = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7'
               (click)="logout()"
               style="background:none;border:none;color:#475569;font-size:13px;cursor:pointer;text-decoration:underline;"
             >
-              Changer de clé admin
+              Quitter le back-office
             </button>
           </div>
         }
@@ -327,10 +310,9 @@ const ACCENT = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7'
 export class NewsletterAdminComponent implements OnInit {
   private http = inject(HttpClient);
   private fb = inject(FormBuilder);
+  /** Public : le gabarit s'appuie dessus pour décider quoi afficher. */
+  adminAuth = inject(AdminAuthService);
 
-  apiKeySet = signal(false);
-  keyInput = '';
-  keyError = signal(false);
   stats = signal<Stats | null>(null);
   sending = signal(false);
   savingSchedule = signal(false);
@@ -362,40 +344,17 @@ export class NewsletterAdminComponent implements OnInit {
   }
 
   ngOnInit() {
-    const saved = sessionStorage.getItem('admin_key');
-    if (saved) {
-      this.apiKeySet.set(true);
-      this.keyInput = saved;
+    this.adminAuth.verifierCompte().subscribe(estAdmin => {
+      if (!estAdmin) return;
       this.loadStats();
       this.loadSchedule();
-    }
-  }
-
-  private headers() {
-    return new HttpHeaders({ 'X-Admin-Key': this.keyInput });
-  }
-
-  submitKey() {
-    this.keyError.set(false);
-    this.http
-      .get<Stats>(`${environment.apiUrl}/newsletter/admin/stats`, { headers: this.headers() })
-      .subscribe({
-        next: data => {
-          sessionStorage.setItem('admin_key', this.keyInput);
-          this.apiKeySet.set(true);
-          this.stats.set(data);
-          this.loadSchedule();
-        },
-        error: () => this.keyError.set(true),
-      });
+    });
   }
 
   loadStats() {
-    this.http
-      .get<Stats>(`${environment.apiUrl}/newsletter/admin/stats`, { headers: this.headers() })
-      .subscribe({
-        next: data => this.stats.set(data),
-      });
+    this.http.get<Stats>(`${environment.apiUrl}/newsletter/admin/stats`).subscribe({
+      next: data => this.stats.set(data),
+    });
   }
 
   loadSchedule() {
@@ -428,17 +387,13 @@ export class NewsletterAdminComponent implements OnInit {
     const items = (this.scheduleForm.get('articles') as FormArray)
       .getRawValue()
       .filter((a: Article) => a.actu_title && a.actu_url && a.actu_source && a.reflex);
-    this.http
-      .put<
-        Article[]
-      >(`${environment.apiUrl}/newsletter/admin/schedule`, items, { headers: this.headers() })
-      .subscribe({
-        next: () => {
-          this.savingSchedule.set(false);
-          this.saveOk.set(true);
-        },
-        error: () => this.savingSchedule.set(false),
-      });
+    this.http.put<Article[]>(`${environment.apiUrl}/newsletter/admin/schedule`, items).subscribe({
+      next: () => {
+        this.savingSchedule.set(false);
+        this.saveOk.set(true);
+      },
+      error: () => this.savingSchedule.set(false),
+    });
   }
 
   fetchOgImage(index: number) {
@@ -451,7 +406,6 @@ export class NewsletterAdminComponent implements OnInit {
         image_url: string | null;
       }>(`${environment.apiUrl}/newsletter/admin/og-image`, {
         params: { url },
-        headers: this.headers(),
       })
       .subscribe({
         next: res => {
@@ -467,11 +421,9 @@ export class NewsletterAdminComponent implements OnInit {
       .post<{
         sent: number;
         message: string;
-      }>(
-        `${environment.apiUrl}/newsletter/admin/send-from-schedule`,
-        { edition: this.editionNumber },
-        { headers: this.headers() }
-      )
+      }>(`${environment.apiUrl}/newsletter/admin/send-from-schedule`, {
+        edition: this.editionNumber,
+      })
       .subscribe({
         next: res => {
           this.sending.set(false);
@@ -484,10 +436,10 @@ export class NewsletterAdminComponent implements OnInit {
       });
   }
 
+  /** Ne déconnecte que du back-office : la session applicative reste ouverte,
+   * comme sur les autres écrans admin. */
   logout() {
-    sessionStorage.removeItem('admin_key');
-    this.apiKeySet.set(false);
-    this.keyInput = '';
+    this.adminAuth.logout();
     this.stats.set(null);
   }
 }

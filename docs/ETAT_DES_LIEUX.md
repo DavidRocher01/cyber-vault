@@ -116,9 +116,14 @@ L'historique des livraisons n'est pas ici — il est dans
   conversion.
 - **`tax_behavior=inclusive` chez Stripe** — délibéré, cf. §3.
 - **Dépôt de documents par les clients** — conception écrite le 2026-08-03 dans
-  [`DEPOT_DOCUMENTS.md`](DEPOT_DOCUMENTS.md), **pas développée**. Trois points à
-  trancher y figurent, dont un bloquant : sans analyse antivirus, le dépôt ne
-  doit pas être ouvert aux clients.
+  [`DEPOT_DOCUMENTS.md`](DEPOT_DOCUMENTS.md), **pas développée**. Le point
+  bloquant est tranché le 2026-08-03 : l'antivirus sera **GuardDuty Malware
+  Protection for S3**, activé seul et non GuardDuty en entier. Restent deux
+  points ouverts, ni l'un ni l'autre bloquant : la durée de rétention, et le
+  rattachement de preuves aux critères NIS2.
+  Conséquence à ne pas perdre : le scan étant asynchrone, un document déposé
+  n'est **pas téléchargeable tant qu'il n'est pas déclaré sain**. Ce n'est pas un
+  détail d'implémentation, c'est un état visible dans l'interface.
 
 ---
 

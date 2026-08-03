@@ -92,10 +92,15 @@ la cybersécurité, c'est le manque qui se défend le plus mal — le critère e
 celui déjà posé ailleurs : non pas « est-ce légal » mais « défendable devant un
 prospect à qui nous vendons de la conformité ».
 
-Option recommandée : **GuardDuty Malware Protection for S3**. Managé, aucun
+**Décidé le 2026-08-03 : GuardDuty Malware Protection for S3.** Managé, aucun
 service à maintenir, et surtout **la donnée ne sort pas d'AWS** — ce qu'un
 service d'analyse tiers ne permettrait pas sans contredire le principe RGPD posé
 dans `ANALYTICS.md`.
+
+> ⚠️ **N'activer QUE Malware Protection for S3.** Ce service est disponible seul
+> depuis 2024. Activer GuardDuty « en entier » enclencherait aussi l'analyse des
+> journaux VPC, DNS et CloudTrail, facturée séparément et sans commune mesure
+> avec les quelques centimes ci-dessous. La confusion est facile et coûteuse.
 
 **Le coût ne se pose pas à cette échelle.** Relevé sur la page de tarification
 AWS le 2026-08-03 : 0,09 $ par Go analysé et 0,215 $ par millier d'objets, avec
@@ -187,10 +192,35 @@ sans analyse antivirus, c'est accepter de distribuer ce qu'on reçoit.
 
 ---
 
+## Décidé
+
+**Antivirus : GuardDuty Malware Protection for S3** (2026-08-03). Managé, la
+donnée reste dans AWS, et le palier gratuit couvre largement le volume attendu.
+Les alternatives sont écartées : ClamAV coûte du temps et une Lambda
+surdimensionnée, les services d'analyse tiers conservent les fichiers soumis.
+
+### Ce que cette décision impose au produit
+
+Le scan est **asynchrone** : l'objet est déposé, puis analysé, puis étiqueté.
+Trois conséquences que la conception doit assumer.
+
+- **Un état, pas un lien.** Un document porte `en_analyse`, `sain` ou `rejete`.
+  Tant qu'il n'est pas sain, aucune URL présignée n'est délivrée — ni au
+  consultant, ni au client qui vient de le déposer.
+- **L'interface doit montrer l'attente.** Un fichier qui apparaît sans être
+  téléchargeable ressemble à une panne si rien ne l'explique.
+- **Un fichier infecté est supprimé, pas mis en quarantaine consultable.** On ne
+  garde pas de dépôt malveillant « pour analyse » : ce serait s'en constituer
+  un stock.
+
+Reste à préciser au moment de la construction : lecture de l'étiquette S3 par
+sondage, ou réaction à l'événement EventBridge. Le second évite un sondage
+inutile mais ajoute un chemin asynchrone à tester.
+
+---
+
 ## À trancher
 
-1. **Antivirus** : GuardDuty Malware Protection, ou renoncer à ouvrir le dépôt.
-   Il n'y a pas de troisième voie acceptable pour ce produit.
-2. **Rétention** : durée fixe, ou liée à la fin du suivi RSSI ?
-3. **NIS2** : chantier à part ou intégré dès le début ? Il change la nature du
+1. **Rétention** : durée fixe, ou liée à la fin du suivi RSSI ?
+2. **NIS2** : chantier à part ou intégré dès le début ? Il change la nature du
    produit et mérite sa propre décision.
