@@ -34,15 +34,18 @@ L'historique des livraisons n'est pas ici — il est dans
   les métriques de latence multi-instance. Coût estimé ~10,51 $/mois.
   Checklist : `docs/S2_INFRA_CHECKLIST.md`.
 
-- **Créer le premier compte admin en production.** Le rôle `users.is_admin`
-  existe depuis le 2026-08-02 (migration `4b6fae2210d3`), mais **aucun compte
-  n'est promu** : la colonne arrive à `false` pour tout le monde, délibérément.
-  Tant que le compte n'existe pas, `X-Admin-Key` reste le seul accès — les deux
-  voies coexistent exprès, couper avant rendrait le back-office inaccessible.
-  Séquence complète, dont le retrait de la clé ensuite :
-  `docs/S6_INFRA_CHECKLIST.md` §0. La rotation de clé qui figurait ici est
-  remplacée par cette bascule : faire tourner un secret partagé ne lui donne ni
-  identité, ni révocation, ni 2FA.
+- **Activer GuardDuty Malware Protection for S3** — et **lui seul**, pas
+  GuardDuty en entier, dont l'analyse des journaux VPC/DNS/CloudTrail est
+  facturée séparément et sans commune mesure. L'ordre compte : activer sur le
+  bucket → vérifier que les objets sont étiquetés → brancher le verdict sur
+  `depot_service.enregistrer_verdict` → **et seulement là** passer
+  `ANTIVIRUS_DEPOT_ACTIF` à vrai. L'inverse coupe les téléchargements sans
+  qu'aucune alerte ne se déclenche. Détail : `docs/DEPOT_DOCUMENTS.md`.
+
+- **Plafond de taille de corps de requête sur l'ALB ou CloudFront.** La lecture
+  bornée livrée le 2026-08-03 protège la mémoire, pas la réception : Starlette
+  analyse le corps multipart avant que le code applicatif ne s'exécute. Vaut
+  pour toute la plateforme, pas seulement le dépôt de documents.
 
 > ⚠️ Ne jamais ajouter une clé à `$secret_names` de `deploy.yml` avant de l'avoir
 > créée dans Secrets Manager : la tâche ECS ne démarrerait pas.
@@ -111,19 +114,18 @@ L'historique des livraisons n'est pas ici — il est dans
   persistant** (principe RGPD, cf. §4), solution **maison sans coût récurrent**,
   rétention 13 mois. La recommandation Plausible/Matomo du kit marketing est
   caduque.
-  Prérequis inchangé avant de développer la restitution : un vrai rôle admin —
-  la clé `X-Admin-Key` n'est pas une base acceptable pour exposer des données de
-  conversion.
+  Le prérequis qui figurait ici — un vrai rôle admin, la clé partagée n'étant
+  pas une base acceptable pour exposer des données de conversion — est levé
+  depuis le 2026-08-02.
 - **`tax_behavior=inclusive` chez Stripe** — délibéré, cf. §3.
-- **Dépôt de documents par les clients** — conception écrite le 2026-08-03 dans
-  [`DEPOT_DOCUMENTS.md`](DEPOT_DOCUMENTS.md), **pas développée**. Le point
-  bloquant est tranché le 2026-08-03 : l'antivirus sera **GuardDuty Malware
-  Protection for S3**, activé seul et non GuardDuty en entier. Restent deux
-  points ouverts, ni l'un ni l'autre bloquant : la durée de rétention, et le
-  rattachement de preuves aux critères NIS2.
-  Conséquence à ne pas perdre : le scan étant asynchrone, un document déposé
-  n'est **pas téléchargeable tant qu'il n'est pas déclaré sain**. Ce n'est pas un
-  détail d'implémentation, c'est un état visible dans l'interface.
+- **Dépôt de documents par les clients** — conception dans
+  [`DEPOT_DOCUMENTS.md`](DEPOT_DOCUMENTS.md). Antivirus tranché le 2026-08-03 :
+  **GuardDuty Malware Protection for S3**, activé seul. Étapes 1 et 2a livrées
+  le même jour (signature de début de fichier, registre `fichiers_deposes`,
+  règle de délivrance sur les deux voies) ; l'activation GuardDuty est en §1.
+  Restent à trancher, ni l'un ni l'autre bloquant : la durée de rétention, et le
+  rattachement de preuves aux critères NIS2 — ce dernier change la nature du
+  produit et mérite son propre cadrage.
 
 ---
 

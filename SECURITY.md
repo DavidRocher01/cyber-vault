@@ -15,7 +15,7 @@ Cyber-Vault est une plateforme SaaS de cybersécurité. Ce document décrit les 
 | **Repudiation** | Déni d'action | Logs structurés (Loguru) + Sentry |
 | **Information Disclosure** | Fuite de données sensibles | Zero-knowledge vault (chiffrement AES-256-GCM côté client) |
 | **Denial of Service** | Épuisement des ressources | Rate limiting SlowAPI multi-niveaux |
-| **Elevation of Privilege** | Accès non autorisé aux ressources admin | RBAC + `ADMIN_API_KEY` sur routes admin |
+| **Elevation of Privilege** | Accès non autorisé aux ressources admin | RBAC + rôle `users.is_admin` (compte nominatif, 2FA) sur routes admin |
 
 ---
 

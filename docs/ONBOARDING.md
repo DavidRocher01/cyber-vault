@@ -47,12 +47,11 @@ SECRET_KEY=<openssl rand -hex 32>  # min 64 chars
 DATABASE_URL=postgresql+asyncpg://cybervault:cybervault@localhost:5432/cybervault
 ALLOWED_ORIGINS=["http://localhost:4200"]
 FRONTEND_URL=http://localhost:4200
-ADMIN_API_KEY=<openssl rand -hex 32>
 # REDIS_URL vide => APScheduler/limiter in-memory (comme la prod, mono-instance)
 ```
 
-Ces 6 variables suffisent à **booter** l'app et lancer les tests. **`backend/.env.example`
-est la référence complète (34 variables)** : les fonctionnalités suivantes ne
+Ces 5 variables suffisent à **booter** l'app et lancer les tests. **`backend/.env.example`
+est la référence complète (33 variables)** : les fonctionnalités suivantes ne
 marchent que si tu renseignes leurs clés (sinon elles sont inertes ou en mode dev) :
 - **Stripe** (`STRIPE_*`, addons) — paiement/checkout (en dev, checkout mock via `is_dev_mode`).
 - **Email** : `RESEND_API_KEY` (+ `RESEND_FROM`) ou `SMTP_*` — invitations RSSI, resets, contact.

@@ -135,7 +135,6 @@ async def test_admin_stats_counts_registered_user(entetes_admin):
 @pytest.mark.asyncio
 async def test_admin_stats_counts_new_contact_message(entetes_admin):
     contact_settings = MagicMock()
-    contact_settings.ADMIN_API_KEY = "test-secret-key"
     contact_settings.CONTACT_EMAIL = "admin@test.com"
     with patch("app.api.v1.endpoints.contact.settings", contact_settings):
         with patch("app.api.v1.endpoints.contact.send_contact_email"):

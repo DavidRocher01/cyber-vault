@@ -132,14 +132,27 @@ déclaré sain.** Il faut donc un état (`en_analyse` / `sain` / `rejete`) et un
 écran qui l'affiche, pas un simple lien. Un fichier infecté est supprimé, jamais
 mis en quarantaine consultable.
 
-### Le type MIME vient du client
+### ~~Le type MIME vient du client~~ — fait le 2026-08-03
 
-`validate_upload` compare `content_type` à une liste blanche. Cet en-tête est
-envoyé par le navigateur : il se falsifie en une ligne. La liste blanche
-d'extensions est du même ordre.
+`validate_upload` comparait `content_type` et l'extension à deux listes
+blanches. Les deux valeurs venant du client, cela ne contraignait rien : un
+`.pdf` contenant `<!DOCTYPE html><script>` et annoncé `application/pdf` passait
+les deux contrôles, était stocké, et le consultant le téléchargeait ensuite.
 
-Il faut vérifier les **octets de tête**. Un `.pdf` qui commence par `<!DOCTYPE
-html>` doit être refusé, quoi qu'annonce le client.
+La signature de début de fichier est désormais vérifiée contre l'extension
+déclarée. `validate_upload` prend les **octets** et non une taille annoncée — la
+taille s'en déduit, ce qui supprime au passage tout écart entre ce que
+l'appelant déclare et ce qui est stocké.
+
+Ce que ce contrôle **ne fait pas** : pour les formats à base d'archive (docx,
+xlsx, odt, ods), il établit qu'il s'agit d'un ZIP, pas que le ZIP contienne un
+document. Descendre plus bas signifierait ouvrir l'archive — donc parser une
+entrée fournie par l'utilisateur, exactement la surface d'attaque que la
+règle « lu, pas traité » écarte. C'est l'antivirus qui couvre le contenu.
+
+Un garde-fou vérifie que toute extension de la liste blanche possède une
+signature : en ajouter une sans signature la ferait refuser systématiquement —
+panne silencieuse côté utilisateur, contrôle absent côté sécurité.
 
 ### Aucune rétention
 
@@ -181,8 +194,9 @@ ce chantier.
 | Étape | Contenu | Condition |
 |---|---|---|
 | 0 | Plafond de corps de requête côté ALB/CloudFront | indépendant, vaut déjà |
-| 1 | Vérification des octets de tête dans `validate_upload` | code seul |
-| 2 | Analyse antivirus + état du document | prérequis à toute ouverture aux clients |
+| ~~1~~ | ~~Vérification des octets de tête dans `validate_upload`~~ | **fait le 2026-08-03** |
+| 2a | Registre des fichiers, état d'analyse, règle de délivrance | **fait le 2026-08-03** |
+| 2b | Activer GuardDuty et brancher le verdict | **action infra requise** |
 | 3 | Dépôt côté portail RSSI (`origine` sur `RssiDeliverable`) | après 1 et 2 |
 | 4 | Rétention et effacement des documents déposés | avec l'étape 3 |
 | 5 | Preuves rattachées aux critères NIS2 / ISO | chantier distinct, à cadrer |
@@ -198,6 +212,44 @@ sans analyse antivirus, c'est accepter de distribuer ce qu'on reçoit.
 donnée reste dans AWS, et le palier gratuit couvre largement le volume attendu.
 Les alternatives sont écartées : ClamAV coûte du temps et une Lambda
 surdimensionnée, les services d'analyse tiers conservent les fichiers soumis.
+
+### État au 2026-08-03 : la moitié applicative est faite
+
+Ce qui existe désormais dans le code :
+
+- une table **`fichiers_deposes`** — un registre. Le dépôt renvoyait une clé sans
+  que rien ne garde trace de ce qui était stocké ; un fichier téléversé puis
+  abandonné n'existait donc nulle part, occupant S3 sans titulaire ni date. La
+  rétention et le quota butaient tous deux là-dessus ;
+- l'état `en_analyse` / `sain` / `rejete` porté par le fichier, **pas par le
+  livrable** — le dépôt précède la création du livrable, et une colonne sur
+  celui-ci ne verrait pas les fichiers jamais rattachés ;
+- **la règle de délivrance sur les deux voies** : côté consultant et côté
+  portail client. Ne la poser que côté consultant laisserait passer exactement
+  ce qu'elle prétend arrêter, puisque c'est le client qu'on protège.
+
+Deux bords assumés, l'un et l'autre destinés à ne rien casser :
+
+**Un fichier antérieur au registre reste téléchargeable.** Les refuser rendrait
+indisponibles d'un coup tous les livrables déjà déposés en production. Ces
+fichiers n'ont jamais été analysés — ils ne l'auraient pas été davantage sans
+registre.
+
+**Le réglage `ANTIVIRUS_DEPOT_ACTIF` est faux par défaut**, et les dépôts sont
+alors enregistrés directement sains. À vrai sans GuardDuty en service, chaque
+dépôt resterait bloqué en `en_analyse` : une porte fermée dont personne ne
+détient la clé, et rien pour signaler la panne.
+
+### Reste à faire — et l'ordre compte
+
+1. Activer **Malware Protection for S3** sur le bucket (et lui seul).
+2. Vérifier que les objets déposés sont bien étiquetés par GuardDuty.
+3. Brancher le verdict sur `depot_service.enregistrer_verdict` — étiquette S3
+   relue, ou événement EventBridge. Le second évite un sondage mais ajoute un
+   chemin asynchrone à tester.
+4. **Alors seulement** passer `ANTIVIRUS_DEPOT_ACTIF` à vrai.
+
+Inverser 4 et 1 coupe les téléchargements sans qu'aucune alerte ne se déclenche.
 
 ### Ce que cette décision impose au produit
 

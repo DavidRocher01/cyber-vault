@@ -107,13 +107,13 @@ git checkout develop
   `eu-west-3`) — à ne **pas** mettre en dev.
 - **Assisté (recommandé)** : `make bootstrap-env` (ou
   `python scripts/bootstrap_dev_env.py`) génère un `backend/.env` de dev prêt à
-  l'emploi — `SECRET_KEY`/`ADMIN_API_KEY` aléatoires, Postgres local, CORS
+  l'emploi — `SECRET_KEY` aléatoire, Postgres local, CORS
   `localhost:4200`, Sentry off, phishing local. Refuse d'écraser un `.env`
   existant sans `--force` ; `--print` pour prévisualiser. Les secrets de services
   tiers (Stripe/Resend/HIBP…) restent **vides**, à compléter seulement si besoin.
 
 Clés attendues (cf. `backend/.env.example`) : `SECRET_KEY` (≥64 chars),
-`DATABASE_URL`, `ALLOWED_ORIGINS`, `FRONTEND_URL`, `ADMIN_API_KEY`, `STRIPE_*`,
+`DATABASE_URL`, `ALLOWED_ORIGINS`, `FRONTEND_URL`, `STRIPE_*`,
 `RESEND_API_KEY` / `RESEND_FROM`, `SENTRY_DSN`, `HIBP_API_KEY`, `AWS_REGION`,
 `PHISHING_*`, (`REDIS_URL` optionnel — absent = APScheduler/limiter in-memory,
 comme la prod).
@@ -184,6 +184,57 @@ pre-commit install --hook-type commit-msg
 Les hooks lancent ruff / ruff format / mypy / bandit / détection de secrets, et
 imposent le **Conventional Commit** (`feat|fix|refactor|test|docs|chore|perf|ci|build:`).
 Sauter ces hooks fait échouer la CI.
+
+### Windows — mypy bloqué par Smart App Control
+
+Symptôme, constaté le 2026-08-03 :
+
+```
+ImportError: DLL load failed while importing 08ae81f72d5a2b5fa9e0__mypyc:
+Une stratégie de contrôle d'application a bloqué ce fichier.
+```
+
+**Ce n'est ni un bug de mypy ni une erreur de code.** Smart App Control est
+actif sur ce poste (`HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy` →
+`VerifiedAndReputablePolicyState = 1`) et refuse de charger les binaires non
+signés qui n'ont pas de réputation établie. La roue officielle de mypy embarque
+une extension compilée par mypyc, non signée. Le journal
+`Microsoft-Windows-CodeIntegrity/Operational` le confirme (événements 3033/3077).
+
+Détail révélateur : le mypy du cache pre-commit, **construit pour Python 3.12**,
+passe sans problème, alors que celui du venv, construit pour **Python 3.14**,
+est bloqué. Même fichier logique, réputation différente — la 3.14 est trop
+récente pour être connue du service de réputation.
+
+**Correctif, sans dégrader la sécurité du poste :**
+
+```bash
+cd backend
+python -m pip install --no-binary mypy --force-reinstall --no-cache-dir mypy
+```
+
+L'archive source donne un mypy **pur Python**, sans extension compilée, donc
+rien à bloquer. Même version (2.3.0, celle épinglée dans `requirements.txt`),
+environ 38 s sur l'ensemble de `app/` au lieu de quelques secondes.
+
+⚠️ **Un `pip install -r requirements.txt` réinstalle la roue compilée** et
+ramène le blocage. Rejouer la commande ci-dessus après coup.
+
+**La version de Python n'y est pour rien** — `.python-version` reste à 3.14, le
+venv aussi. Le correctif retire une extension compilée, il ne change pas le
+runtime. La 3.14 n'apparaît dans le diagnostic que parce que la réputation d'un
+binaire se calcule par fichier, et qu'un binaire construit pour une version de
+Python récente est, par construction, peu répandu.
+
+Corollaire à garder en tête : **mypy n'est pas le seul paquet compilé par
+mypyc**. Ce venv en contient deux autres, `tomli` et `charset_normalizer`, tous
+deux en cp314 et aujourd'hui non bloqués (aucun événement CodeIntegrity les
+concernant). Rien ne garantit que ça dure. Devant un `ImportError: DLL load
+failed` sur un autre paquet, chercher d'abord du côté du même mécanisme.
+
+Ne **pas** désactiver Smart App Control pour contourner : la bascule est
+irréversible sans réinstallation de Windows, et affaiblir le poste de
+développement d'une entreprise qui vend de la cybersécurité se défendrait mal.
 
 ---
 
@@ -332,8 +383,9 @@ uniques) ; vérifier **une seule tête** (`make migrate-status`) avant tout push
 - `docs/ETAT_DES_LIEUX.md` — **état des lieux** : où en est le projet (dev/prod),
   décisions et actions en attente. À lire en premier pour reprendre le contexte.
 - `docs/SECURITY_AUDIT_2026-07-27.md` — audit de sécurité en cours de remédiation.
-- `docs/S2_INFRA_CHECKLIST.md` / `docs/S6_INFRA_CHECKLIST.md` — actions infra en
-  attente (ElastiCache/ALB, rotation `ADMIN_API_KEY`).
+- `docs/S2_INFRA_CHECKLIST.md` — action infra en attente (ElastiCache/Redis).
+  `docs/S6_INFRA_CHECKLIST.md` est soldé : la bascule vers le rôle admin est
+  faite, la clé partagée n'existe plus.
 - `docs/S7_RISK_ACCEPTANCE.md` — registre des risques acceptés/différés.
 - `docs/GITHUB_SECRETS.md` — secrets CI/CD.
 - `infra/` — `Caddyfile`, `dev-db-init.sql`, `CSP.md`, alerting.

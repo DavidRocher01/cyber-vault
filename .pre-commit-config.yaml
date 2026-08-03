@@ -1,3 +1,14 @@
+# Sans cette ligne, un hook qui ne declare pas ses etapes tourne a TOUTES les
+# etapes installees — ici `pre-commit` ET `commit-msg`. Chaque commit rejouait
+# donc les dix hooks une seconde fois, avec pour seul fichier
+# `.git/COMMIT_EDITMSG` : tous ceux qui portent un filtre `files:` affichaient
+# alors « no files to check ».
+#
+# Cout reel : du temps perdu a chaque commit, et surtout une sortie trompeuse —
+# le 2026-08-03 elle m'a fait conclure a tort que mypy ne verifiait plus rien.
+# Le hook Conventional Commit garde son `stages: [commit-msg]` explicite.
+default_stages: [pre-commit]
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0

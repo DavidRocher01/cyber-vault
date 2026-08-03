@@ -96,3 +96,16 @@ class InvoiceStatus(StrEnum):
     PENDING = "pending"
     FAILED = "failed"
     REFUNDED = "refunded"
+
+
+class StatutAnalyse(StrEnum):
+    """Cycle de vie d'un fichier deposé, du dépôt au verdict antivirus.
+
+    L'analyse est asynchrone : GuardDuty étiquette l'objet S3 après coup. Un
+    fichier n'est donc pas téléchargeable dès son dépôt — c'est une contrainte
+    du produit, pas un détail d'implémentation. Cf. `docs/DEPOT_DOCUMENTS.md`.
+    """
+
+    EN_ANALYSE = "en_analyse"
+    SAIN = "sain"
+    REJETE = "rejete"

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Génère un backend/.env de DÉVELOPPEMENT prêt à l'emploi.
 
-Repart de backend/.env.example, génère les secrets locaux (SECRET_KEY,
-ADMIN_API_KEY) et pose des valeurs de dev sûres (Postgres local, CORS localhost,
+Repart de backend/.env.example, génère les secrets locaux (SECRET_KEY) et
+pose des valeurs de dev sûres (Postgres local, CORS localhost,
 Sentry off, phishing localhost). Les secrets de services TIERS (Stripe, Resend,
 HIBP...) restent vides : ce script ne va JAMAIS chercher de vraie valeur prod
 (celles-ci vivent dans AWS Secrets Manager `cybervault/prod`, jamais en dev).
@@ -32,7 +32,6 @@ TARGET = REPO_ROOT / "backend" / ".env"
 DEV_OVERRIDES: dict[str, object] = {
     "APP_ENV": "development",
     "SECRET_KEY": lambda: secrets.token_hex(32),  # 64 hex chars
-    "ADMIN_API_KEY": lambda: secrets.token_hex(32),
     "DATABASE_URL": "postgresql+asyncpg://postgres:password@localhost:5432/cybervault",
     "ALLOWED_ORIGINS": '["http://localhost:4200"]',
     "FRONTEND_URL": "http://localhost:4200",
@@ -150,7 +149,7 @@ def main() -> int:
 
     TARGET.write_text(content, encoding="utf-8")
     print(f"[OK] écrit : {TARGET}")
-    print("  • SECRET_KEY et ADMIN_API_KEY générés aléatoirement (dev)")
+    print("  • SECRET_KEY générée aléatoirement (dev)")
     print("  • DATABASE_URL -> Postgres local :5432/cybervault")
     print("  • CORS/FRONTEND -> http://localhost:4200 ; Sentry off ; phishing local")
     print("\n  À compléter À LA MAIN seulement si tu en as besoin en dev :")

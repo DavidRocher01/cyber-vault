@@ -105,14 +105,16 @@ jobs:
                # Il DOIT exister dans Secrets Manager avant sa mise en liste ici,
                # sinon la task ECS refuse de demarrer.
                #
-               # ADMIN_API_KEY RETIRE le 2026-08-02. Le back-office s ouvre
-               # desormais par un compte users.is_admin, protege par 2FA. Ne plus
-               # injecter la cle suffit a tuer le repli : settings.ADMIN_API_KEY
-               # vaut alors une chaine vide, et la comparaison echoue quoi qu il
-               # arrive. Le code du repli sera retire plus tard, avec les 129
-               # appels de test qui passent encore par l en-tete.
-               # Supprimer la cle de Secrets Manager APRES ce deploiement, jamais
-               # avant : l ordre inverse empeche la task de demarrer.
+               # ADMIN_API_KEY : bascule TERMINEE. Retiree de cette liste le
+               # 2026-08-02, code du repli supprime le 2026-08-03 (backend et
+               # frontend), secret supprime de Secrets Manager et verifie le
+               # meme jour. Le back-office s ouvre par un compte users.is_admin
+               # protege par 2FA. Ne rien remettre ici.
+               #
+               # L ordre suivi est la seule raison pour laquelle le back-office
+               # n a jamais ete inaccessible : retirer de la liste D ABORD,
+               # supprimer le secret ENSUITE. L inverse empeche la task de
+               # demarrer, puisqu elle reclame un secret qui n existe plus.
                (["SECRET_KEY","DATABASE_URL","STRIPE_SECRET_KEY","STRIPE_WEBHOOK_SECRET","SMTP_PASSWORD","RESEND_API_KEY","SENTRY_DSN","ORIGIN_VERIFY_SECRET"]) as $secret_names
                | ([{"name":"STRIPE_PUBLISHABLE_KEY","value":$PK_LIVE},{"name":"S3_BUCKET_NAME","value":$BUCKET},{"name":"TRUSTED_PROXY_COUNT","value":"2"}]) as $env_overrides
                | (($env_overrides | map(.name)) + $secret_names) as $managed
