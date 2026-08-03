@@ -42,6 +42,14 @@ L'historique des livraisons n'est pas ici — il est dans
   `ANTIVIRUS_DEPOT_ACTIF` à vrai. L'inverse coupe les téléchargements sans
   qu'aucune alerte ne se déclenche. Détail : `docs/DEPOT_DOCUMENTS.md`.
 
+- **Domaine d'expédition des simulations de phishing** — décidé le 2026-08-03 :
+  un **domaine dédié fixe**, distinct de `rochercybersecurite.com`. À faire
+  **avant la première vraie campagne**, dans cet ordre : acheter le domaine →
+  le vérifier chez Resend (SPF + DKIM) → renseigner `PHISHING_FROM_EMAIL` →
+  déployer. Injecter une adresse dont le domaine n'est pas vérifié chez Resend
+  fait **échouer les envois**. Raisonnement complet et écart constaté sur
+  `PHISHING_BASE_URL` : `docs/PHISHING_REDESIGN.md` §5c.
+
 - **Plafond de taille de corps de requête sur l'ALB ou CloudFront.** La lecture
   bornée livrée le 2026-08-03 protège la mémoire, pas la réception : Starlette
   analyse le corps multipart avant que le code applicatif ne s'exécute. Vaut

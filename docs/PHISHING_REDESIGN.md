@@ -60,6 +60,7 @@
 ## Risques à porter explicitement
 
 - **Délivrabilité look-alike** : domaine neuf = 0 réputation → spam. SPF/DKIM/DMARC + vérif Resend + warm-up, par domaine. (Le niveau « sous-domaine maîtrisé » évite ce risque au quotidien.)
+- **ÉCART CONSTATÉ LE 2026-08-03** : la décision du lot 5 parle d'un « sous-domaine maîtrisé », mais la production expose `PHISHING_BASE_URL = https://rochercybersecurite.com/api/v1` — le domaine principal, à nu. L'interface affichant `sending_domain` à partir de cette valeur, l'écran « Domaine d'envoi » annonce donc le domaine de marque à l'opérateur. À corriger en même temps que le 5c, ou à assumer explicitement.
 - **Légal/consentement** : enregistrer un typosquat du domaine d'un client pour piéger ses employés = test autorisé **uniquement avec mandat écrit**. Case de consentement + traçabilité obligatoires dans le parcours premium.
 - **Envoi de vrais mails en recette** : la recette post-prod ne doit **jamais** envoyer de phishing réel — prévoir un mode simulation / cibles canari.
 
@@ -75,6 +76,39 @@
 - **Lot 5 — Domaine d'envoi.** **Décision 2026-07-18 : OPTION 1 (sous-domaine maîtrisé seul).** Le domaine look-alike acheté est ÉCARTÉ pour l'instant (procédure ops multi-étapes disproportionnée : registrar + DNS pointant vers notre infra + **certificat CloudFront custom par domaine** + SPF/DKIM/DMARC + Resend + mandat, à refaire par domaine).
   - **5a — Fix landing cross-host. ✅ FAIT.** `get_landing_html(base=...)` + `/l` passe `_tracking_base(campaign)` → la landing poste sur le MÊME host qui l'a servie.
   - **5 opt1 — Transparence. ✅ FAIT.** Serialize expose `sending_domain` (host du tracking base) ; l'édition affiche une section « Domaine d'envoi » (sous-domaine maîtrisé) + note que le domaine look-alike sera une option premium ultérieure. Section `c.domain` renommée « Domaine de l'entreprise cible ».
+  - **5c — Adresse d'EXPÉDITION : domaine dédié fixe. Décidé le 2026-08-03.**
+    Question distincte de celle tranchée ci-dessus, et qui ne lui coûte rien :
+    le domaine des pages d'atterrissage a été arbitré sur le prix de l'ops
+    (**certificat CloudFront personnalisé par domaine**) ; une adresse
+    d'expédition ne demande que des enregistrements DNS vérifiés chez Resend —
+    ni CloudFront, ni certificat, ni coût par client. Le code les traite déjà
+    séparément (`_tracking_base()` d'un côté, `_adresse_expediteur()` de
+    l'autre).
+    **Pourquoi séparer du domaine principal.** Le but d'une bonne simulation est
+    que les salariés SIGNALENT le message. Or « Signaler comme hameçonnage »
+    remonte à Microsoft et Google, et les signalements répétés pèsent sur la
+    réputation du domaine expéditeur. Envoyer depuis `rochercybersecurite.com`
+    revient donc à fabriquer volontairement des signaux « ce domaine envoie du
+    phishing » contre le domaine qui porte les réinitialisations de mot de passe
+    et les factures — et plus la simulation réussit, plus le dégât est grand.
+    La liste blanche du client fait passer le message ; elle n'empêche pas le
+    signalement. Cela entre aussi en contradiction avec le passage prévu de
+    DMARC en `quarantine` sur le domaine principal.
+    Un **sous-domaine** n'isole que partiellement : la réputation par
+    sous-domaine existe chez les grands fournisseurs, mais le domaine
+    d'organisation reste un facteur et DMARC les relie.
+    **UN domaine fixe pour toutes les campagnes**, et non le `lookalike_domain`
+    de chacune : ce dernier serait plus réaliste — adresse et page alignées,
+    comme le vrai hameçonnage — mais multiplierait les vérifications Resend, une
+    par domaine et par client. À rebasculer si une campagne l'exige.
+    **Mise en œuvre**, dans cet ordre : acheter le domaine (ne PAS le faire
+    ressembler à `rochercybersecurite.com`, sinon l'association se fait et
+    l'isolation est perdue) → le vérifier dans Resend (SPF + DKIM) → mettre
+    l'adresse dans la configuration → déployer. DMARC peut y rester permissif :
+    il ne protège aucune marque.
+    ⚠️ Injecter une adresse dont le domaine n'est pas vérifié chez Resend fait
+    **échouer les envois**, pas seulement dégrader la délivrabilité.
+
   - **5b — Domaine acheté (DIFFÉRÉ).** À reprendre SI un client exige le réalisme max : `sending_mode`, suggestions, DNS-TXT UI, mandat, gating premium — ET l'ops CloudFront custom-domain. Le back look-alike (`generate_lookalikes`, `domain-verify`, colonne `lookalike_domain`) reste en place, dormant.
 - **Lot 6 — Tests & recette + suppression. ✅ FAIT.** Endpoint `DELETE /campaigns/{id}` (204, cibles en cascade, ownership) + bouton « Supprimer » sur la liste (confirmation, `stopPropagation`) + service `deleteCampaign`. Couverture : 3 tests backend (delete, cascade, 404 cross-user), tests service + composant frontend, E2E « suppression campagne » (crée un brouillon → liste → dialog accept → 204 → disparaît). **Recette post-prod** `test_10_phishing.py` : cycle create → cible (`/targets/single`) → config (scénario+CGU) → vérif `sending_domain` → cancel → delete, **AUCUN lancement = zéro mail réel** ; `_wipe_canary` nettoie les campagnes préfixées MARKER. La recette tourne comme **gate de déploiement** (échec → rollback ECS).
 
