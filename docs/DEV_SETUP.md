@@ -220,6 +220,18 @@ environ 38 s sur l'ensemble de `app/` au lieu de quelques secondes.
 ⚠️ **Un `pip install -r requirements.txt` réinstalle la roue compilée** et
 ramène le blocage. Rejouer la commande ci-dessus après coup.
 
+**La version de Python n'y est pour rien** — `.python-version` reste à 3.14, le
+venv aussi. Le correctif retire une extension compilée, il ne change pas le
+runtime. La 3.14 n'apparaît dans le diagnostic que parce que la réputation d'un
+binaire se calcule par fichier, et qu'un binaire construit pour une version de
+Python récente est, par construction, peu répandu.
+
+Corollaire à garder en tête : **mypy n'est pas le seul paquet compilé par
+mypyc**. Ce venv en contient deux autres, `tomli` et `charset_normalizer`, tous
+deux en cp314 et aujourd'hui non bloqués (aucun événement CodeIntegrity les
+concernant). Rien ne garantit que ça dure. Devant un `ImportError: DLL load
+failed` sur un autre paquet, chercher d'abord du côté du même mécanisme.
+
 Ne **pas** désactiver Smart App Control pour contourner : la bascule est
 irréversible sans réinstallation de Windows, et affaiblir le poste de
 développement d'une entreprise qui vend de la cybersécurité se défendrait mal.
