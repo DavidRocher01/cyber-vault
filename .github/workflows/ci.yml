@@ -185,7 +185,15 @@ jobs:
           # conteneur PostgreSQL : l'isolation est acquise sans decoupage de
           # bases. Volontairement PAS dans addopts — lancer un seul fichier en
           # local demarrerait alors autant de conteneurs que de coeurs.
-          pytest tests/ --tb=short -n auto \
+          #
+          # `--dist loadfile` et non le `load` par defaut : les tests d'un meme
+          # fichier restent sur le MEME worker, donc dans leur ordre d'ecriture.
+          # `load` les eparpille, ce qui reveillerait de facon INTERMITTENTE
+          # toute dependance d'un test envers l'etat laisse par un precedent —
+          # le pire mode de defaillance, parce qu'il ne se reproduit pas.
+          # Le cout est une repartition un peu moins equilibree ; avec ~90
+          # fichiers pour 4 coeurs, il est negligeable.
+          pytest tests/ --tb=short -n auto --dist loadfile \
             --cov-report=json:../coverage.json \
             --cov-report=html:../coverage-html \
             --junit-xml=../test-results/backend-junit.xml \
