@@ -426,7 +426,9 @@ async def test_run_code_scan_git_clone_failure():
     db = _make_mock_db(scan)
 
     # git clone returns non-zero exit code
-    with patch("app.services.code_scan.runner.base._run", return_value=(1, "", "fatal: not found")):
+    with patch(
+        "app.services.code_scan.tasks._run_subprocess", return_value=(1, "", "fatal: not found")
+    ):
         with patch("shutil.rmtree"):
             await run_code_scan(1, db)
 
@@ -443,7 +445,9 @@ async def test_run_code_scan_token_not_stored_in_error_message():
     clone_url = f"https://{token}@github.com/user/private-repo.git"
     stderr_with_token = f"fatal: Authentication failed for '{clone_url}'"
 
-    with patch("app.services.code_scan.runner.base._run", return_value=(1, "", stderr_with_token)):
+    with patch(
+        "app.services.code_scan.tasks._run_subprocess", return_value=(1, "", stderr_with_token)
+    ):
         with patch("shutil.rmtree"):
             await run_code_scan(1, db, clone_url=clone_url)
 
@@ -456,7 +460,7 @@ async def test_run_code_scan_sets_started_at():
     scan = _make_mock_scan()
     db = _make_mock_db(scan)
 
-    with patch("app.services.code_scan.runner.base._run", return_value=(1, "", "error")):
+    with patch("app.services.code_scan.tasks._run_subprocess", return_value=(1, "", "error")):
         with patch("shutil.rmtree"):
             await run_code_scan(1, db)
 

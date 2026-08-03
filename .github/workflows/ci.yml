@@ -353,8 +353,24 @@ jobs:
 
   # ── E2E Playwright ──────────────────────────────────────────────────────────
   e2e:
-    name: E2E Playwright
+    name: E2E Playwright ${{ matrix.shard }}/2
     runs-on: ubuntu-latest
+    # Decoupage en 2 lots. Mesure sur le run 30792461975 : 91 s de preparation
+    # pour 386 s de tests — le decoupage porte donc sur 81 % du job.
+    #
+    # Pourquoi des JOBS et non des workers Playwright : la config declare
+    # `workers: 1` et `fullyParallel: false` parce que tous les tests partagent
+    # une seule base. Deux shards sont deux jobs distincts, chacun avec son
+    # PostgreSQL et son backend — la contrainte tombe.
+    #
+    # Pourquoi 2 et pas 4 : la preparation (91 s) est payee par shard, et le job
+    # backend plafonne deja le pipeline a ~7 min 25. A 2 shards l'E2E descend
+    # vers ~4 min 45 et cesse d'etre le chemin critique ; aller plus loin
+    # consommerait des minutes de CI sans gagner une seconde de mur.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     # Aucun `needs` : ce job monte son PROPRE PostgreSQL, installe ses propres
     # dependances et build le front lui-meme — il ne consomme aucun artefact des
     # autres jobs. Il attendait pourtant la fin du backend, et demarrait trois
@@ -442,12 +458,12 @@ jobs:
         working-directory: frontend
 
       - name: Playwright tests
-        run: npm run test:e2e
+        run: npx playwright test --shard=${{ matrix.shard }}/2
         working-directory: frontend
 
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: frontend/playwright-report/
