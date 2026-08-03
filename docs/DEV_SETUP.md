@@ -185,6 +185,45 @@ Les hooks lancent ruff / ruff format / mypy / bandit / détection de secrets, et
 imposent le **Conventional Commit** (`feat|fix|refactor|test|docs|chore|perf|ci|build:`).
 Sauter ces hooks fait échouer la CI.
 
+### Windows — mypy bloqué par Smart App Control
+
+Symptôme, constaté le 2026-08-03 :
+
+```
+ImportError: DLL load failed while importing 08ae81f72d5a2b5fa9e0__mypyc:
+Une stratégie de contrôle d'application a bloqué ce fichier.
+```
+
+**Ce n'est ni un bug de mypy ni une erreur de code.** Smart App Control est
+actif sur ce poste (`HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy` →
+`VerifiedAndReputablePolicyState = 1`) et refuse de charger les binaires non
+signés qui n'ont pas de réputation établie. La roue officielle de mypy embarque
+une extension compilée par mypyc, non signée. Le journal
+`Microsoft-Windows-CodeIntegrity/Operational` le confirme (événements 3033/3077).
+
+Détail révélateur : le mypy du cache pre-commit, **construit pour Python 3.12**,
+passe sans problème, alors que celui du venv, construit pour **Python 3.14**,
+est bloqué. Même fichier logique, réputation différente — la 3.14 est trop
+récente pour être connue du service de réputation.
+
+**Correctif, sans dégrader la sécurité du poste :**
+
+```bash
+cd backend
+python -m pip install --no-binary mypy --force-reinstall --no-cache-dir mypy
+```
+
+L'archive source donne un mypy **pur Python**, sans extension compilée, donc
+rien à bloquer. Même version (2.3.0, celle épinglée dans `requirements.txt`),
+environ 38 s sur l'ensemble de `app/` au lieu de quelques secondes.
+
+⚠️ **Un `pip install -r requirements.txt` réinstalle la roue compilée** et
+ramène le blocage. Rejouer la commande ci-dessus après coup.
+
+Ne **pas** désactiver Smart App Control pour contourner : la bascule est
+irréversible sans réinstallation de Windows, et affaiblir le poste de
+développement d'une entreprise qui vend de la cybersécurité se défendrait mal.
+
 ---
 
 ## 8. VS Code — extensions & config
