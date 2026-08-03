@@ -21,7 +21,7 @@
 
 ## Playbooks par type
 
-### Compromission d'un secret (SECRET_KEY, ADMIN_API_KEY, clé Stripe…)
+### Compromission d'un secret (SECRET_KEY, clé Stripe…)
 1. Générer un nouveau secret, le mettre à jour (Secrets Manager / env de la plateforme).
 2. Redéployer.
 3. ⚠️ **SECRET_KEY** : sert aussi à chiffrer les graines TOTP (2FA). La rotation

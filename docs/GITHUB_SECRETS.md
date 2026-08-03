@@ -34,7 +34,6 @@ Le secret AWS Secrets Manager doit contenir ces clés JSON :
   "STRIPE_SECRET_KEY": "sk_live_...",
   "STRIPE_WEBHOOK_SECRET": "whsec_...",
   "SMTP_PASSWORD": "...",
-  "ADMIN_API_KEY": "...",
   "RESEND_API_KEY": "re_...",
   "SENTRY_DSN": "https://...@sentry.io/..."
 }

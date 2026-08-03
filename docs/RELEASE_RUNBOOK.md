@@ -66,7 +66,7 @@
 > correspondent pas. Une erreur de configuration devient une 503 visible, jamais
 > un prélèvement au mauvais montant.
 - [ ] **Vérifier AWS Secrets Manager** (`cybervault/prod`) contient bien :
-  `SECRET_KEY`, `DATABASE_URL`, `STRIPE_SECRET_KEY` (sk_live), `STRIPE_WEBHOOK_SECRET` (whsec), `ADMIN_API_KEY`, `RESEND_API_KEY`, `SENTRY_DSN`, `SMTP_PASSWORD`.
+  `SECRET_KEY`, `DATABASE_URL`, `STRIPE_SECRET_KEY` (sk_live), `STRIPE_WEBHOOK_SECRET` (whsec), `RESEND_API_KEY`, `SENTRY_DSN`, `SMTP_PASSWORD`.
 - [ ] **Vérifier GitHub Secrets** : `AWS_DEPLOY_ROLE_ARN`, `AWS_SM_ARN`, `ECS_CLUSTER`, `ECS_SERVICE`, `S3_BUCKET_NAME`, `CLOUDFRONT_DISTRIBUTION_ID`, `STRIPE_PUBLISHABLE_KEY` (pk_live).
 - [ ] **`TRUSTED_PROXY_COUNT=2`** dans l'environnement ECS (CloudFront + ALB = 2 hops ; défaut=1 → IP client faussée pour le rate-limit). Variable non-secrète, à mettre dans la task definition.
 - [ ] **CI verte** sur `develop` (Backend/Frontend/E2E/Rapport).

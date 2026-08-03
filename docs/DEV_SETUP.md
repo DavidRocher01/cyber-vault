@@ -107,13 +107,13 @@ git checkout develop
   `eu-west-3`) — à ne **pas** mettre en dev.
 - **Assisté (recommandé)** : `make bootstrap-env` (ou
   `python scripts/bootstrap_dev_env.py`) génère un `backend/.env` de dev prêt à
-  l'emploi — `SECRET_KEY`/`ADMIN_API_KEY` aléatoires, Postgres local, CORS
+  l'emploi — `SECRET_KEY` aléatoire, Postgres local, CORS
   `localhost:4200`, Sentry off, phishing local. Refuse d'écraser un `.env`
   existant sans `--force` ; `--print` pour prévisualiser. Les secrets de services
   tiers (Stripe/Resend/HIBP…) restent **vides**, à compléter seulement si besoin.
 
 Clés attendues (cf. `backend/.env.example`) : `SECRET_KEY` (≥64 chars),
-`DATABASE_URL`, `ALLOWED_ORIGINS`, `FRONTEND_URL`, `ADMIN_API_KEY`, `STRIPE_*`,
+`DATABASE_URL`, `ALLOWED_ORIGINS`, `FRONTEND_URL`, `STRIPE_*`,
 `RESEND_API_KEY` / `RESEND_FROM`, `SENTRY_DSN`, `HIBP_API_KEY`, `AWS_REGION`,
 `PHISHING_*`, (`REDIS_URL` optionnel — absent = APScheduler/limiter in-memory,
 comme la prod).
@@ -332,8 +332,9 @@ uniques) ; vérifier **une seule tête** (`make migrate-status`) avant tout push
 - `docs/ETAT_DES_LIEUX.md` — **état des lieux** : où en est le projet (dev/prod),
   décisions et actions en attente. À lire en premier pour reprendre le contexte.
 - `docs/SECURITY_AUDIT_2026-07-27.md` — audit de sécurité en cours de remédiation.
-- `docs/S2_INFRA_CHECKLIST.md` / `docs/S6_INFRA_CHECKLIST.md` — actions infra en
-  attente (ElastiCache/ALB, rotation `ADMIN_API_KEY`).
+- `docs/S2_INFRA_CHECKLIST.md` — action infra en attente (ElastiCache/Redis).
+  `docs/S6_INFRA_CHECKLIST.md` est soldé : la bascule vers le rôle admin est
+  faite, la clé partagée n'existe plus.
 - `docs/S7_RISK_ACCEPTANCE.md` — registre des risques acceptés/différés.
 - `docs/GITHUB_SECRETS.md` — secrets CI/CD.
 - `infra/` — `Caddyfile`, `dev-db-init.sql`, `CSP.md`, alerting.

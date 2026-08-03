@@ -24,7 +24,6 @@ services:
       SMTP_USER: ${SMTP_USER}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       SMTP_FROM: ${SMTP_FROM}
-      ADMIN_API_KEY: ${ADMIN_API_KEY}
       SENTRY_DSN: ${SENTRY_DSN:-}
       HIBP_API_KEY: ${HIBP_API_KEY:-}
       # Prod réelle = CloudFront + ALB = 2 hops (sinon IP client faussée pour le rate-limit).

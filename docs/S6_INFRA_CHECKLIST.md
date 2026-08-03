@@ -1,10 +1,16 @@
-# S6 — Durcissement auth admin frontend : actions infra utilisateur
+# S6 — Durcissement auth admin frontend
 
-Le **volet code** de S6 est livré (voir `admin-auth.service.ts`) : la clé admin
-`X-Admin-Key` n'est plus persistée nulle part (mémoire seule, re-saisie par
-session), et l'accès `sessionStorage` non gardé du constructeur a disparu
-(SSR-safe par construction). Ce document liste les actions **infra**, à réaliser
-côté AWS, qui complètent la défense en profondeur.
+> **Soldé le 2026-08-03**, sauf la CSP (§2), volontairement différée.
+>
+> La bascule est terminée de bout en bout : le rôle `users.is_admin` existe, un
+> compte admin nominatif avec 2FA est en production, le code de la clé partagée
+> a été retiré du backend comme du frontend, et `ADMIN_API_KEY` a été supprimée
+> de Secrets Manager — vérifié le 2026-08-03, la clé n'y figure plus.
+>
+> La procédure ci-dessous est conservée parce qu'elle documente l'ordre suivi,
+> et que cet ordre est ce qui a évité de rendre le back-office inaccessible. La
+> section « rotation de la clé » a été retirée : elle décrivait comment faire
+> tourner un secret qui n'existe plus.
 
 ## 0. Bascule vers un vrai rôle admin — **remplace la rotation**
 
@@ -49,33 +55,7 @@ Les nouvelles surfaces d'administration n'utilisent pas `require_admin` mais
 `get_admin_user`, qui **n'accepte que des comptes** : ce qu'on construit
 aujourd'hui n'hérite pas du secret qu'on retire.
 
-## 1. Rotation d'`ADMIN_API_KEY` — utile seulement si la bascule tarde
-
-Si la bascule du §0 n'est pas menée à court terme, faire tourner la clé en
-attendant. Ce n'est qu'une mesure d'attente : elle renouvelle le secret sans
-corriger ce qui est reproché — un secret partagé statique, sans identité :
-
-```bash
-# Générer une nouvelle clé (32 octets hex, non réutilisée)
-NEW_KEY=$(openssl rand -hex 32)
-
-# Mettre à jour le secret dans Secrets Manager (prod eu-west-3)
-aws secretsmanager put-secret-value \
-  --secret-id cybervault/prod \
-  --secret-string "$(aws secretsmanager get-secret-value --secret-id cybervault/prod \
-      --query SecretString --output text \
-      | jq --arg k "$NEW_KEY" '.ADMIN_API_KEY=$k')" \
-  --region eu-west-3
-
-# Forcer un nouveau déploiement ECS pour recharger le secret
-aws ecs update-service --cluster cybervault-prod --service cybervault-prod \
-  --force-new-deployment --region eu-west-3
-```
-
-Après rotation : la nouvelle clé doit être re-saisie dans l'écran de connexion
-admin (`/admin/...`). L'ancienne clé cesse immédiatement d'être valide.
-
-## 2. CSP sur la SPA — **déjà acté DIFFÉRÉ** (ne pas relancer spontanément)
+## 1. CSP sur la SPA — **déjà acté DIFFÉRÉ** (ne pas relancer spontanément)
 
 L'audit recommande une CSP sur la SPA (CloudFront) pour couper le canal
 d'exfiltration en cas de XSS. **Cette action fait partie des items volontairement
@@ -94,7 +74,7 @@ basculer en mode bloquant une fois les sources légitimes recensées.
 |--------|------|--------|
 | Clé admin non persistée + SSR-safe | Code | ✅ livré (S6) |
 | Rôle `users.is_admin` + double voie d'accès | Code | ✅ livré (2026-08-02) |
-| Créer le compte admin en prod, activer sa 2FA | Infra | ⏳ à faire (user) |
-| Retirer `X-Admin-Key` (code, front, Secrets Manager) | Code + infra | ⏳ après vérification |
-| Rotation `ADMIN_API_KEY` | Infra | ↩️ remplacée par la bascule ci-dessus |
+| Créer le compte admin en prod, activer sa 2FA | Infra | ✅ fait (2026-08-02) |
+| Retirer `X-Admin-Key` du code et du front | Code | ✅ fait (2026-08-02 / 08-03) |
+| Supprimer `ADMIN_API_KEY` de Secrets Manager | Infra | ✅ fait et vérifié (2026-08-03) |
 | CSP SPA CloudFront | Infra | ⏸️ différé (décision 2026-07-22) |
