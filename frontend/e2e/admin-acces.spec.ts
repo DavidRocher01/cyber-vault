@@ -34,7 +34,13 @@ async function aucunMarqueurDeBackOffice(page: import('@playwright/test').Page) 
 test.describe("Back-office — garde d'accès", () => {
   test('un visiteur anonyme ne voit pas le back-office', async ({ page }) => {
     await page.goto('/admin');
-    await expect(page.getByRole('link', { name: /se connecter/i })).toBeVisible();
+
+    // L'ecran de refus du shell ne s'affiche PAS ici : l'appel a /users/me
+    // repond 401, l'intercepteur echoue a rafraichir la session et renvoie a
+    // l'accueil (`router.navigate(['/'])`). On quitte donc /admin avant tout
+    // rendu. La propriete qui compte tient quand meme, et c'est elle qu'on
+    // verifie — pas le chemin emprunte pour y arriver.
+    await expect(page).not.toHaveURL(/\/admin/);
     await aucunMarqueurDeBackOffice(page);
   });
 

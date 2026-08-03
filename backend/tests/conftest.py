@@ -71,6 +71,17 @@ def pg_container():
 
 @pytest.fixture(scope="session")
 def pg_url(pg_container):
+    """URL de la base de test.
+
+    Sous xdist, chaque worker est un PROCESSUS distinct : cette fixture de
+    session s'execute donc une fois par worker, et chacun demarre son propre
+    conteneur. L'isolation entre workers est acquise par construction — pas
+    besoin de decouper des bases a l'interieur d'un conteneur partage.
+
+    Cout : un PostgreSQL par worker (~50 Mo, alpine, fsync desactive), demarres
+    en parallele. C'est le prix du parallelisme, et il est modeste au regard des
+    ~0,28 s de preparation que chaque test paie.
+    """
     return pg_container.get_connection_url().replace(
         "postgresql+psycopg2://", "postgresql+asyncpg://", 1
     )
