@@ -21,6 +21,7 @@ import json
 import secrets
 import uuid
 from datetime import UTC, datetime
+from email.utils import parseaddr
 
 import resend
 from loguru import logger
@@ -443,6 +444,33 @@ def _extract_company_name(domain: str | None) -> str:
     return " ".join(w.capitalize() for w in name.replace("-", " ").replace("_", " ").split())
 
 
+def _adresse_expediteur() -> str:
+    """Adresse NUE de l'expéditeur des simulations, sans nom d'affichage.
+
+    L'appelant compose ensuite `Nom <adresse>` : lui rendre autre chose qu'une
+    adresse nue produit un en-tête invalide.
+
+    C'est exactement ce qui arrivait jusqu'au 2026-08-03. Le code faisait
+    `PHISHING_FROM_EMAIL or RESEND_FROM`, or les deux réglages n'ont pas le même
+    format : le premier est une adresse nue, le second une adresse RFC 5322
+    complète avec nom d'affichage. Aucun des deux n'étant injecté dans la tâche
+    ECS, le repli s'appliquait et produisait des chevrons imbriqués —
+
+        Support Microsoft 365 <Rocher Cybersécurité <no-reply@exemple.com>>
+
+    que `email.utils.parseaddr` réduit à un nom vide ET une adresse vide. Les
+    simulations ne pouvaient pas partir.
+
+    Les tests ne l'ont pas vu parce qu'ils vérifiaient tous des morceaux du nom
+    d'affichage (`"Acme" in from_addr`), jamais la validité de l'adresse.
+
+    `parseaddr` accepte les deux formes et rend toujours l'adresse seule : le
+    repli redevient sûr quel que soit le format de `RESEND_FROM`.
+    """
+    brute = settings.PHISHING_FROM_EMAIL or settings.RESEND_FROM
+    return parseaddr(brute)[1] or brute
+
+
 def _build_email(
     campaign: PhishingCampaign,
     target: PhishingTarget,
@@ -473,8 +501,7 @@ def _build_email(
     html: str = tpl["html"](greeting, click_url, pixel_url, ctx)
     text: str = tpl["text"](greeting, click_url, ctx)
 
-    from_email = settings.PHISHING_FROM_EMAIL or settings.RESEND_FROM
-    from_addr = f"{from_name} <{from_email}>"
+    from_addr = f"{from_name} <{_adresse_expediteur()}>"
     reply_to: str | None = None
     if tpl.get("internal"):
         host = _lookalike_host(campaign)

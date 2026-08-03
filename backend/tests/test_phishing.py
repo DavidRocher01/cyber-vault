@@ -17,6 +17,7 @@ Sections:
 
 import json
 from datetime import UTC, datetime
+from email.utils import parseaddr
 from types import SimpleNamespace
 
 import pytest
@@ -279,6 +280,46 @@ class TestBuildEmail:
             self._make_campaign(domain=None), self._make_target(), "x", "ceo-fraud"
         )
         assert from_addr.startswith("Direction Générale <")
+
+    # ── Validite de l'en-tete From ─────────────────────────────────────────────
+    #
+    # Les tests ci-dessus verifient tous des morceaux du NOM D'AFFICHAGE. Aucun
+    # ne regardait la partie adresse — c'est pour ca qu'un en-tete a chevrons
+    # imbriques a survecu jusqu'au 2026-08-03, alors qu'il ne pouvait pas partir.
+
+    def test_from_est_une_adresse_analysable(self, monkeypatch):
+        """En production, ni PHISHING_FROM_EMAIL ni RESEND_FROM ne sont injectes
+        dans la tache ECS : les deux defauts de classe s'appliquent, et le repli
+        composait `Nom <Nom <adresse>>`.
+
+        `parseaddr` sur cet en-tete rend un nom vide ET une adresse vide.
+        """
+        monkeypatch.setattr(phishing_service.settings, "PHISHING_FROM_EMAIL", "")
+        monkeypatch.setattr(
+            phishing_service.settings,
+            "RESEND_FROM",
+            "Rocher Cybersécurité <no-reply@rochercybersecurite.com>",
+        )
+        from_addr, _, _, _, _ = phishing_service._build_email(
+            self._make_campaign(domain=None), self._make_target(), "x", "ceo-fraud"
+        )
+        nom, adresse = parseaddr(from_addr)
+        assert adresse == "no-reply@rochercybersecurite.com"
+        assert nom == "Direction Générale"
+        assert from_addr.count("<") == 1
+
+    def test_from_reste_valide_avec_une_adresse_nue(self, monkeypatch):
+        """L'autre format : PHISHING_FROM_EMAIL renseigne, adresse nue."""
+        monkeypatch.setattr(phishing_service.settings, "PHISHING_FROM_EMAIL", "alerte@exemple.com")
+        from_addr, _, _, _, _ = phishing_service._build_email(
+            self._make_campaign(domain=None), self._make_target(), "x", "ceo-fraud"
+        )
+        assert parseaddr(from_addr)[1] == "alerte@exemple.com"
+
+    def test_le_reglage_dedie_a_la_priorite_sur_le_repli(self, monkeypatch):
+        monkeypatch.setattr(phishing_service.settings, "PHISHING_FROM_EMAIL", "phish@exemple.com")
+        monkeypatch.setattr(phishing_service.settings, "RESEND_FROM", "Autre <autre@exemple.com>")
+        assert phishing_service._adresse_expediteur() == "phish@exemple.com"
 
     def test_subject_company_suffix_injected_for_internal(self):
         _, subject, _, _, _ = phishing_service._build_email(
