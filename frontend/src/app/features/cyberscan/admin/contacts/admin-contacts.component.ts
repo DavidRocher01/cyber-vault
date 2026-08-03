@@ -41,28 +41,19 @@ export class AdminContactsComponent implements OnInit {
   }
 
   load() {
-    this.http
-      .get<ContactMessage[]>('/api/v1/contact/admin/messages', { headers: this.auth.headers() })
-      .subscribe({
-        next: m => {
-          this.messages.set(m);
-          this.loading.set(false);
-        },
-        error: () => this.loading.set(false),
-      });
+    this.http.get<ContactMessage[]>('/api/v1/contact/admin/messages').subscribe({
+      next: m => {
+        this.messages.set(m);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false),
+    });
   }
 
   updateStatus(id: number, status: string) {
-    this.http
-      .patch(
-        `/api/v1/contact/admin/messages/${id}/status`,
-        { status },
-        { headers: this.auth.headers() }
-      )
-      .subscribe({
-        next: () =>
-          this.messages.update(msgs => msgs.map(m => (m.id === id ? { ...m, status } : m))),
-      });
+    this.http.patch(`/api/v1/contact/admin/messages/${id}/status`, { status }).subscribe({
+      next: () => this.messages.update(msgs => msgs.map(m => (m.id === id ? { ...m, status } : m))),
+    });
   }
 
   toggleExpand(id: number) {

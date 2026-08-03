@@ -10,7 +10,7 @@ Targets branches NOT exercised by test_admin_stats.py:
 """
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,19 +27,12 @@ from app.models.subscription import Subscription
 from app.models.user import User
 
 BASE = "/api/v1"
-KEY = "test-secret-key"
-HEADERS = {"x-admin-key": KEY}
 
 
-def _admin_settings():
-    mock = MagicMock()
-    mock.ADMIN_API_KEY = KEY
-    return patch("app.core.deps.settings", mock)
-
-
-async def _get_stats() -> dict:
+async def _get_stats(entetes_admin: dict) -> dict:
+    """En-tetes en argument : un helper ne recoit pas de fixture."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        r = await c.get(f"{BASE}/admin/stats", headers=HEADERS)
+        r = await c.get(f"{BASE}/admin/stats", headers=entetes_admin)
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -47,7 +40,7 @@ async def _get_stats() -> dict:
 # ── active_subscriptions branch ─────────────────────────────────────────────────
 
 
-async def test_stats_counts_only_active_subscriptions(db_session: AsyncSession):
+async def test_stats_counts_only_active_subscriptions(db_session: AsyncSession, entetes_admin):
     user = User(email="sub_owner@test.com", hashed_password="x")
     db_session.add(user)
     await db_session.flush()
@@ -73,8 +66,7 @@ async def test_stats_counts_only_active_subscriptions(db_session: AsyncSession):
     )
     await db_session.commit()
 
-    with _admin_settings():
-        data = await _get_stats()
+    data = await _get_stats(entetes_admin)
 
     assert data["active_subscriptions"] == 2
 
@@ -82,7 +74,7 @@ async def test_stats_counts_only_active_subscriptions(db_session: AsyncSession):
 # ── newsletter_subscribers branch (confirmed_at) ────────────────────────────────
 
 
-async def test_stats_counts_only_confirmed_newsletter(db_session: AsyncSession):
+async def test_stats_counts_only_confirmed_newsletter(db_session: AsyncSession, entetes_admin):
     now = datetime.now(UTC)
     db_session.add_all(
         [
@@ -108,8 +100,7 @@ async def test_stats_counts_only_confirmed_newsletter(db_session: AsyncSession):
     )
     await db_session.commit()
 
-    with _admin_settings():
-        data = await _get_stats()
+    data = await _get_stats(entetes_admin)
 
     assert data["newsletter_subscribers"] == 2
 
@@ -117,7 +108,9 @@ async def test_stats_counts_only_confirmed_newsletter(db_session: AsyncSession):
 # ── bookings_this_month + recent_bookings branch ────────────────────────────────
 
 
-async def test_stats_bookings_confirmed_join_and_excludes_cancelled(db_session: AsyncSession):
+async def test_stats_bookings_confirmed_join_and_excludes_cancelled(
+    db_session: AsyncSession, entetes_admin
+):
     now = datetime.now(UTC)
     slot = BookingSlot(date="2026-07-15", time="10:00", created_at=now)
     db_session.add(slot)
@@ -147,8 +140,7 @@ async def test_stats_bookings_confirmed_join_and_excludes_cancelled(db_session: 
     )
     await db_session.commit()
 
-    with _admin_settings():
-        data = await _get_stats()
+    data = await _get_stats(entetes_admin)
 
     # Only the confirmed booking counts this month.
     assert data["bookings_this_month"] == 1
@@ -163,7 +155,9 @@ async def test_stats_bookings_confirmed_join_and_excludes_cancelled(db_session: 
 # ── revenue_per_month aggregation branch ────────────────────────────────────────
 
 
-async def test_stats_revenue_aggregates_current_month_invoices(db_session: AsyncSession):
+async def test_stats_revenue_aggregates_current_month_invoices(
+    db_session: AsyncSession, entetes_admin
+):
     now = datetime.now(UTC)
     db_session.add_all(
         [
@@ -195,8 +189,7 @@ async def test_stats_revenue_aggregates_current_month_invoices(db_session: Async
     )
     await db_session.commit()
 
-    with _admin_settings():
-        data = await _get_stats()
+    data = await _get_stats(entetes_admin)
 
     # The last (current) month bucket should carry the summed cents.
     revenue = data["revenue_per_month"]
@@ -209,7 +202,7 @@ async def test_stats_revenue_aggregates_current_month_invoices(db_session: Async
 # ── weekly_activity scans bucketing branch ──────────────────────────────────────
 
 
-async def test_stats_weekly_activity_counts_scans(db_session: AsyncSession):
+async def test_stats_weekly_activity_counts_scans(db_session: AsyncSession, entetes_admin):
     now = datetime.now(UTC)
     user = User(email="scan_owner@test.com", hashed_password="x")
     db_session.add(user)
@@ -227,8 +220,7 @@ async def test_stats_weekly_activity_counts_scans(db_session: AsyncSession):
     )
     await db_session.commit()
 
-    with _admin_settings():
-        data = await _get_stats()
+    data = await _get_stats(entetes_admin)
 
     total_scans = sum(b["scans"] for b in data["weekly_activity"])
     assert total_scans == 2
@@ -237,7 +229,7 @@ async def test_stats_weekly_activity_counts_scans(db_session: AsyncSession):
 # ── recent_contacts ordering/limit branch ───────────────────────────────────────
 
 
-async def test_stats_recent_contacts_limited_to_five(db_session: AsyncSession):
+async def test_stats_recent_contacts_limited_to_five(db_session: AsyncSession, entetes_admin):
     from app.models.contact_message import ContactMessage
 
     now = datetime.now(UTC)
@@ -256,8 +248,7 @@ async def test_stats_recent_contacts_limited_to_five(db_session: AsyncSession):
     )
     await db_session.commit()
 
-    with _admin_settings():
-        data = await _get_stats()
+    data = await _get_stats(entetes_admin)
 
     # new_contacts counts all 7, but recent_contacts is capped at 5.
     assert data["new_contacts"] == 7
@@ -267,28 +258,26 @@ async def test_stats_recent_contacts_limited_to_five(db_session: AsyncSession):
 # ── POST /admin/awareness/sync-content ──────────────────────────────────────────
 
 
-async def test_sync_content_requires_admin_key():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.post(f"{BASE}/admin/awareness/sync-content")
-    assert r.status_code == 403
+async def test_sync_content_sans_authentification_401():
+    # Sans authentification, ce n'est plus une cle absente (403) mais une
+    # identite absente (401).
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.post(f"{BASE}/admin/awareness/sync-content")
+    assert r.status_code == 401
 
 
-async def test_sync_content_success():
+async def test_sync_content_success(entetes_admin):
     fake_summary = {"programs": 3, "modules": 12, "errors": []}
-    with _admin_settings():
-        with patch(
-            "app.services.awareness_content_importer.import_from_directory",
-            new=AsyncMock(return_value=fake_summary),
-        ):
-            with patch("app.api.v1.endpoints.admin_stats.Path") as mock_path:
-                mock_path.return_value.parents.__getitem__.return_value = mock_path.return_value
-                mock_path.return_value.__truediv__.return_value = mock_path.return_value
-                mock_path.return_value.exists.return_value = True
-                async with AsyncClient(
-                    transport=ASGITransport(app=app), base_url="http://test"
-                ) as c:
-                    r = await c.post(f"{BASE}/admin/awareness/sync-content", headers=HEADERS)
+    with patch(
+        "app.services.awareness_content_importer.import_from_directory",
+        new=AsyncMock(return_value=fake_summary),
+    ):
+        with patch("app.api.v1.endpoints.admin_stats.Path") as mock_path:
+            mock_path.return_value.parents.__getitem__.return_value = mock_path.return_value
+            mock_path.return_value.__truediv__.return_value = mock_path.return_value
+            mock_path.return_value.exists.return_value = True
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+                r = await c.post(f"{BASE}/admin/awareness/sync-content", headers=entetes_admin)
     assert r.status_code == 200
     body = r.json()
     assert body["status"] == "ok"
@@ -297,31 +286,27 @@ async def test_sync_content_success():
     assert body["errors"] == []
 
 
-async def test_sync_content_missing_directory():
-    with _admin_settings():
-        with patch("app.api.v1.endpoints.admin_stats.Path") as mock_path:
-            mock_path.return_value.parents.__getitem__.return_value = mock_path.return_value
-            mock_path.return_value.__truediv__.return_value = mock_path.return_value
-            mock_path.return_value.exists.return_value = False
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-                r = await c.post(f"{BASE}/admin/awareness/sync-content", headers=HEADERS)
+async def test_sync_content_missing_directory(entetes_admin):
+    with patch("app.api.v1.endpoints.admin_stats.Path") as mock_path:
+        mock_path.return_value.parents.__getitem__.return_value = mock_path.return_value
+        mock_path.return_value.__truediv__.return_value = mock_path.return_value
+        mock_path.return_value.exists.return_value = False
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.post(f"{BASE}/admin/awareness/sync-content", headers=entetes_admin)
     assert r.status_code == 200
     assert "error" in r.json()
 
 
-async def test_sync_content_importer_raises_returns_error():
-    with _admin_settings():
-        with patch(
-            "app.services.awareness_content_importer.import_from_directory",
-            new=AsyncMock(side_effect=RuntimeError("boom")),
-        ):
-            with patch("app.api.v1.endpoints.admin_stats.Path") as mock_path:
-                mock_path.return_value.parents.__getitem__.return_value = mock_path.return_value
-                mock_path.return_value.__truediv__.return_value = mock_path.return_value
-                mock_path.return_value.exists.return_value = True
-                async with AsyncClient(
-                    transport=ASGITransport(app=app), base_url="http://test"
-                ) as c:
-                    r = await c.post(f"{BASE}/admin/awareness/sync-content", headers=HEADERS)
+async def test_sync_content_importer_raises_returns_error(entetes_admin):
+    with patch(
+        "app.services.awareness_content_importer.import_from_directory",
+        new=AsyncMock(side_effect=RuntimeError("boom")),
+    ):
+        with patch("app.api.v1.endpoints.admin_stats.Path") as mock_path:
+            mock_path.return_value.parents.__getitem__.return_value = mock_path.return_value
+            mock_path.return_value.__truediv__.return_value = mock_path.return_value
+            mock_path.return_value.exists.return_value = True
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+                r = await c.post(f"{BASE}/admin/awareness/sync-content", headers=entetes_admin)
     assert r.status_code == 200
     assert r.json()["error"] == "boom"

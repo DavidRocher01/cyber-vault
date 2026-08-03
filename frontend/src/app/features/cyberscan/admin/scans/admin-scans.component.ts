@@ -41,7 +41,7 @@ export class AdminScansComponent implements OnInit {
   });
 
   ngOnInit() {
-    this.http.get<AdminScan[]>('/api/v1/admin/scans', { headers: this.auth.headers() }).subscribe({
+    this.http.get<AdminScan[]>('/api/v1/admin/scans').subscribe({
       next: s => {
         this.scans.set(s);
         this.loading.set(false);

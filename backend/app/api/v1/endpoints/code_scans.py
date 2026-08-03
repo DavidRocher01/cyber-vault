@@ -27,12 +27,16 @@ from app.schemas.cyberscan import (
 )
 from app.services import code_scan_crud_service
 from app.services.code_scan_service import run_code_scan, run_code_scan_zip
+from app.services.storage import FichierTropVolumineuxError, lire_borne
 
 _SCAN_IN_PROGRESS = (
     "Un scan est déjà en cours. Attendez qu'il se termine avant d'en lancer un nouveau."
 )
 
 router = APIRouter(prefix="/code-scans", tags=["code-scans"])
+
+# Archive de code : plus large que les CSV, le depot reste borne.
+_MAX_ZIP_BYTES = 50 * 1024 * 1024
 
 _GIT_ALLOWED_HOSTS = {"github.com", "gitlab.com", "bitbucket.org"}
 
@@ -88,9 +92,12 @@ async def upload_code_scan(
     if not file.filename or not file.filename.lower().endswith(".zip"):
         raise HTTPException(status_code=422, detail="Seuls les fichiers .zip sont acceptés")
 
-    content = await file.read()
-    if len(content) > 50 * 1024 * 1024:
-        raise HTTPException(status_code=413, detail="Fichier trop volumineux (max 50 MB)")
+    # Lecture BORNEE : 50 Mo verifies APRES un `read()` complet laissaient passer
+    # l'integralite du corps en memoire avant tout controle.
+    try:
+        content = await lire_borne(file, _MAX_ZIP_BYTES)
+    except FichierTropVolumineuxError as exc:
+        raise HTTPException(status_code=413, detail=str(exc))
 
     fd, zip_path = tempfile.mkstemp(suffix=".zip", prefix="rochercybersecurite_upload_")
     os.close(fd)

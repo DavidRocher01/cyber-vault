@@ -2,10 +2,9 @@
 
 Conception : `docs/ANALYTICS.md`.
 
-Ces routes utilisent `get_admin_user`, **pas** `require_admin` : elles n'acceptent
-qu'un compte administrateur identifié, jamais la clé partagée `X-Admin-Key`. Ce
-qu'on construit maintenant ne doit pas hériter du secret qu'on est en train de
-retirer (cf. `docs/S6_INFRA_CHECKLIST.md` §0).
+L'accès exige un compte administrateur identifié. Il existait ici une dépendance
+distincte, `get_admin_user`, tant que `require_admin` acceptait encore la clé
+partagée : depuis son retrait le 2026-08-02, les deux ont fusionné.
 """
 
 from typing import Literal
@@ -14,7 +13,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_admin_user
+from app.core.deps import require_admin
 from app.models.user import User
 from app.services import acquisition_service
 
@@ -29,7 +28,7 @@ FENETRES: dict[str, int] = {"30j": 30, "90j": 90, "12m": 365}
 async def vue_acquisition(
     fenetre: Literal["30j", "90j", "12m"] = "90j",
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_admin_user),
+    _admin: User = Depends(require_admin),
 ) -> dict:
     """Tout ce qu'affiche l'onglet, en un appel.
 

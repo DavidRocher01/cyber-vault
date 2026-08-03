@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 import { signal } from '@angular/core';
 import { FormArray, FormBuilder } from '@angular/forms';
@@ -24,16 +26,31 @@ const ARTICLES = [
   },
 ];
 
-function make() {
+/**
+ * Faux service d'accès back-office. Depuis le 2026-08-03 le composant ne demande
+ * plus de clé : il interroge `AdminAuthService`, comme les autres écrans admin.
+ */
+function fauxAdminAuth(estAdmin: boolean) {
+  const authenticated = signal(false);
+  return {
+    authenticated,
+    verificationEnCours: signal(false),
+    verifierCompte: vi.fn(() => {
+      authenticated.set(estAdmin);
+      return of(estAdmin);
+    }),
+    logout: vi.fn(() => authenticated.set(false)),
+  };
+}
+
+function make(estAdmin = true) {
   const comp = Object.create(NewsletterAdminComponent.prototype) as NewsletterAdminComponent;
-  (comp as any).apiKeySet = signal(false);
-  (comp as any).keyError = signal(false);
+  (comp as any).adminAuth = fauxAdminAuth(estAdmin);
   (comp as any).stats = signal(null);
   (comp as any).sending = signal(false);
   (comp as any).savingSchedule = signal(false);
   (comp as any).saveOk = signal(false);
   (comp as any).sendResult = signal(null);
-  (comp as any).keyInput = '';
   (comp as any).editionNumber = 1;
   const fb = new FormBuilder();
   (comp as any).fb = fb;
@@ -52,24 +69,56 @@ function make() {
   return comp;
 }
 
-describe('NewsletterAdminComponent — submitKey()', () => {
-  it('active apiKeySet et charge stats si clé valide', () => {
-    const comp = make();
-    (comp as any).keyInput = 'valid';
+describe('NewsletterAdminComponent — ngOnInit()', () => {
+  it('charge les données quand le compte est administrateur', () => {
+    const comp = make(true);
     (comp as any).http = {
       get: vi.fn((url: string) => (url.includes('stats') ? of(STATS) : of([]))),
     };
-    comp.submitKey();
-    expect(comp.apiKeySet()).toBe(true);
+    comp.ngOnInit();
     expect(comp.stats()).toEqual(STATS);
   });
 
-  it('affiche keyError si clé invalide', () => {
+  it("ne demande rien au serveur quand le compte n'est pas administrateur", () => {
+    const comp = make(false);
+    const getSpy = vi.fn().mockReturnValue(of(STATS));
+    (comp as any).http = { get: getSpy };
+    comp.ngOnInit();
+    expect(getSpy).not.toHaveBeenCalled();
+    expect(comp.stats()).toBeNull();
+  });
+});
+
+describe('NewsletterAdminComponent — plus aucune trace de la clé partagée', () => {
+  // Garde-fou. Cette page a survécu au retrait de `X-Admin-Key` : elle envoyait
+  // encore l'en-tête et exigeait une saisie, alors que le serveur ne l'acceptait
+  // plus et que l'intercepteur posait déjà le jeton. Résultat, un écran qui
+  // avait l'air de protéger quelque chose et que n'importe quelle chaîne
+  // ouvrait.
+  //
+  // On lit le FICHIER et non `Component.toString()` : celui-ci ne rend que le
+  // corps de classe (~3,4 kio), pas le gabarit, où se trouvait justement le
+  // formulaire de saisie. Vérifié le 2026-08-03.
+  it('ne contient plus ni saisie de clé, ni en-tête maison, ni stockage local', () => {
+    // Chemin depuis la racine du frontend : sous jsdom, `import.meta.url` est
+    // une URL http, pas file — `new URL(...)` y échoue.
+    const source = readFileSync(
+      resolve(
+        process.cwd(),
+        'src/app/features/cyberscan/newsletter-admin/newsletter-admin.component.ts'
+      ),
+      'utf8'
+    );
+    const corpsEtGabarit = source.slice(source.indexOf('@Component'));
+    expect(corpsEtGabarit).not.toContain('X-Admin-Key');
+    expect(corpsEtGabarit).not.toContain('admin_key');
+    expect(corpsEtGabarit).not.toContain('sessionStorage');
+  });
+
+  it('ne conserve aucune méthode de la clé partagée', () => {
     const comp = make();
-    (comp as any).http = { get: vi.fn().mockReturnValue(throwError(() => new Error('403'))) };
-    comp.submitKey();
-    expect(comp.keyError()).toBe(true);
-    expect(comp.apiKeySet()).toBe(false);
+    expect((comp as any).submitKey).toBeUndefined();
+    expect((comp as any).headers).toBeUndefined();
   });
 });
 
@@ -137,12 +186,12 @@ describe('NewsletterAdminComponent — sendFromSchedule()', () => {
 });
 
 describe('NewsletterAdminComponent — logout()', () => {
-  it('remet tout à zéro', () => {
+  it('referme le back-office et vide les données affichées', () => {
     const comp = make();
-    (comp as any).apiKeySet.set(true);
+    (comp as any).adminAuth.authenticated.set(true);
     (comp as any).stats.set(STATS);
     comp.logout();
-    expect(comp.apiKeySet()).toBe(false);
+    expect((comp as any).adminAuth.authenticated()).toBe(false);
     expect(comp.stats()).toBeNull();
   });
 });

@@ -9,31 +9,24 @@
       </h1>
     </div>
 
-    <!-- Auth -->
-    @if (!authenticated()) {
+    <!-- Acces : compte administrateur, plus de cle a saisir -->
+    @if (verificationEnCours()) {
+      <p class="text-gray-600 text-sm text-center py-8">Vérification de l'accès…</p>
+    } @else if (!authenticated()) {
       <div class="max-w-sm mx-auto">
-        <form
-          [formGroup]="keyForm"
-          (ngSubmit)="login()"
-          class="bg-gray-800/50 border border-gray-700 rounded-2xl p-6 space-y-4"
-        >
-          <h2 class="text-white font-semibold">Clé administrateur</h2>
-          <input
-            formControlName="key"
-            type="password"
-            placeholder="Clé admin"
-            class="w-full px-4 py-2.5 rounded-lg bg-gray-900 border border-gray-600 text-white text-sm outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
-          />
-          @if (authError()) {
-            <p class="text-red-400 text-sm">{{ authError() }}</p>
-          }
-          <button
-            type="submit"
-            class="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm transition-all"
+        <div class="bg-gray-800/50 border border-gray-700 rounded-2xl p-6 text-center">
+          <h2 class="text-white font-semibold">Accès réservé</h2>
+          <p class="text-gray-500 text-sm mt-2 leading-relaxed">
+            L'agenda est réservé aux comptes administrateurs. Connectez-vous avec un compte
+            disposant de ce droit.
+          </p>
+          <a
+            routerLink="/auth"
+            class="inline-block mt-4 px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm transition-colors"
           >
-            Connexion
-          </button>
-        </form>
+            Se connecter
+          </a>
+        </div>
       </div>
     }
 

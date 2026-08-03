@@ -16,6 +16,10 @@
 pytest==9.1.1
 pytest-asyncio==1.4.0
 pytest-cov==7.1.0
+# Parallelisation de la suite : 2 466 tests strictement sequentiels, dont ~0,28 s
+# de preparation chacun. Une base PostgreSQL par worker (cf. conftest) evite que
+# les TRUNCATE ne se marchent dessus.
+pytest-xdist==3.8.0
 testcontainers[postgres]==4.14.2
 aiosqlite==0.22.1
 

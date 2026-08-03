@@ -54,7 +54,7 @@ export class AdminUsersComponent implements OnInit {
   });
 
   ngOnInit() {
-    this.http.get<AdminUser[]>('/api/v1/admin/users', { headers: this.auth.headers() }).subscribe({
+    this.http.get<AdminUser[]>('/api/v1/admin/users').subscribe({
       next: u => {
         this.users.set(u);
         this.loading.set(false);
@@ -90,11 +90,7 @@ export class AdminUsersComponent implements OnInit {
         id: number;
         plan: string;
         plan_name: string;
-      }>(
-        `/api/v1/admin/users/${user.id}/plan`,
-        { plan_name: planName },
-        { headers: this.auth.headers() }
-      )
+      }>(`/api/v1/admin/users/${user.id}/plan`, { plan_name: planName })
       .subscribe({
         next: res => {
           this.users.update(list =>
@@ -123,7 +119,7 @@ export class AdminUsersComponent implements OnInit {
       .patch<{
         id: number;
         is_rssi_consultant: boolean;
-      }>(`/api/v1/admin/users/${user.id}/rssi`, {}, { headers: this.auth.headers() })
+      }>(`/api/v1/admin/users/${user.id}/rssi`, {})
       .subscribe({
         next: res => {
           this.users.update(list =>

@@ -75,9 +75,11 @@ async def test_create_no_auth_returns_401(http_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_sync_catalog_no_auth_returns_403(http_client: AsyncClient):
+async def test_sync_catalog_sans_authentification_401(http_client: AsyncClient):
+    # Sans authentification, ce n'est plus une cle absente (403) mais une
+    # identite absente (401) : le back-office n'a plus de porte anonyme.
     r = await http_client.post(f"{ENDPOINT}/catalog/sync")
-    assert r.status_code == 403
+    assert r.status_code == 401
 
 
 # ── Create dossier ────────────────────────────────────────────────────────────

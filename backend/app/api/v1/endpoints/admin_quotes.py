@@ -6,29 +6,21 @@ GET  /admin/quotes/{id}/pdf — download PDF
 """
 
 import asyncio
-import secrets
 from datetime import date
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel, EmailStr, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.core.database import get_db
+from app.core.deps import require_admin
 from app.models.quote import Quote
 from app.services import quote_service, user_admin_service
 from app.services.quote_pdf import generate_quote_pdf
 from app.services.quote_service import create_quote, send_quote_by_email
 
 router = APIRouter(prefix="/admin/quotes", tags=["admin"])
-
-
-def _require_admin(x_admin_key: str = Header(default="")) -> None:
-    if not settings.ADMIN_API_KEY or not secrets.compare_digest(
-        x_admin_key, settings.ADMIN_API_KEY
-    ):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès refusé")
 
 
 class QuoteItem(BaseModel):
@@ -106,7 +98,7 @@ def _serialize(q: Quote) -> dict:
 
 
 @router.post(
-    "", dependencies=[Depends(_require_admin)], status_code=201, summary="[Admin] Créer un devis"
+    "", dependencies=[Depends(require_admin)], status_code=201, summary="[Admin] Créer un devis"
 )
 async def admin_create_quote(
     body: QuoteCreateRequest,
@@ -137,7 +129,7 @@ async def admin_create_quote(
     return _serialize(quote)
 
 
-@router.get("", dependencies=[Depends(_require_admin)], summary="[Admin] Lister les devis")
+@router.get("", dependencies=[Depends(require_admin)], summary="[Admin] Lister les devis")
 async def admin_list_quotes(db: AsyncSession = Depends(get_db)):
     quotes = await quote_service.list_all_quotes(db)
     return [_serialize(q) for q in quotes]
@@ -145,7 +137,7 @@ async def admin_list_quotes(db: AsyncSession = Depends(get_db)):
 
 @router.get(
     "/{quote_id}/pdf",
-    dependencies=[Depends(_require_admin)],
+    dependencies=[Depends(require_admin)],
     summary="[Admin] Télécharger le devis (PDF)",
 )
 async def admin_download_quote_pdf(

@@ -35,7 +35,7 @@ async def become_consultant(
     """Active le role consultant RSSI sur le compte connecte (DEV_MODE only).
 
     Remplace, pour l'E2E, le toggle admin `PATCH /admin/users/{id}/rssi` qui
-    exige la clef ADMIN_API_KEY (absente de l'environnement E2E)."""
+    exige un compte administrateur — l'E2E n'en dispose pas."""
     current_user.is_rssi_consultant = True
     await db.commit()
     return {"id": current_user.id, "is_rssi_consultant": True}

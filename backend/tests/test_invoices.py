@@ -22,8 +22,6 @@ from app.main import app
 
 BASE = "/api/v1"
 WEBHOOK_URL = f"{BASE}/webhooks/stripe"
-ADMIN_KEY = "test-admin-key"
-ADMIN_HEADERS = {"x-admin-key": ADMIN_KEY}
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -48,7 +46,8 @@ def _make_webhook_event(event_type: str, data: dict) -> dict:
     }
 
 
-async def _create_invoice_via_admin(client: AsyncClient, **overrides) -> dict:
+async def _create_invoice_via_admin(client: AsyncClient, entetes: dict, **overrides) -> dict:
+    """En-tetes en argument : un helper ne recoit pas de fixture."""
     payload = {
         "client_name": "Jean Dupont",
         "client_email": "jean@dupont.fr",
@@ -56,8 +55,7 @@ async def _create_invoice_via_admin(client: AsyncClient, **overrides) -> dict:
         "amount_cents": 29000,
         **overrides,
     }
-    with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-        r = await client.post(f"{BASE}/admin/invoices", json=payload, headers=ADMIN_HEADERS)
+    r = await client.post(f"{BASE}/admin/invoices", json=payload, headers=entetes)
     assert r.status_code == 201, r.text
     return r.json()
 
@@ -203,25 +201,24 @@ async def test_list_invoices_empty_for_new_user():
 
 
 @pytest.mark.asyncio
-async def test_list_invoices_returns_only_own():
+async def test_list_invoices_returns_only_own(entetes_admin):
     """Un utilisateur ne voit que ses propres factures."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h1 = await _register_login(c, "inv_own1@test.com")
         h2 = await _register_login(c, "inv_own2@test.com")
 
         # Crée une facture liée à user1 via admin
-        with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-            await c.post(
-                f"{BASE}/admin/invoices",
-                headers=ADMIN_HEADERS,
-                json={
-                    "client_name": "User1",
-                    "client_email": "inv_own1@test.com",
-                    "description": "Audit",
-                    "amount_cents": 10000,
-                    "user_email": "inv_own1@test.com",
-                },
-            )
+        await c.post(
+            f"{BASE}/admin/invoices",
+            headers=entetes_admin,
+            json={
+                "client_name": "User1",
+                "client_email": "inv_own1@test.com",
+                "description": "Audit",
+                "amount_cents": 10000,
+                "user_email": "inv_own1@test.com",
+            },
+        )
 
         r1 = await c.get(f"{BASE}/invoices", headers=h1)
         r2 = await c.get(f"{BASE}/invoices", headers=h2)
@@ -231,23 +228,22 @@ async def test_list_invoices_returns_only_own():
 
 
 @pytest.mark.asyncio
-async def test_list_invoices_pagination():
+async def test_list_invoices_pagination(entetes_admin):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _register_login(c, "inv_page@test.com")
 
-        with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-            for i in range(3):
-                await c.post(
-                    f"{BASE}/admin/invoices",
-                    headers=ADMIN_HEADERS,
-                    json={
-                        "client_name": f"Client {i}",
-                        "client_email": "inv_page@test.com",
-                        "description": f"Audit {i}",
-                        "amount_cents": 10000,
-                        "user_email": "inv_page@test.com",
-                    },
-                )
+        for i in range(3):
+            await c.post(
+                f"{BASE}/admin/invoices",
+                headers=entetes_admin,
+                json={
+                    "client_name": f"Client {i}",
+                    "client_email": "inv_page@test.com",
+                    "description": f"Audit {i}",
+                    "amount_cents": 10000,
+                    "user_email": "inv_page@test.com",
+                },
+            )
 
         r = await c.get(f"{BASE}/invoices?page=1&per_page=2", headers=h)
 
@@ -261,16 +257,16 @@ async def test_list_invoices_pagination():
 
 
 @pytest.mark.asyncio
-async def test_get_invoice_returns_correct_data():
+async def test_get_invoice_returns_correct_data(entetes_admin):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _register_login(c, "inv_get@test.com")
 
-        with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-            created = await _create_invoice_via_admin(
-                c,
-                user_email="inv_get@test.com",
-                client_email="inv_get@test.com",
-            )
+        created = await _create_invoice_via_admin(
+            c,
+            entetes_admin,
+            user_email="inv_get@test.com",
+            client_email="inv_get@test.com",
+        )
 
         r = await c.get(f"{BASE}/invoices/{created['id']}", headers=h)
 
@@ -280,17 +276,17 @@ async def test_get_invoice_returns_correct_data():
 
 
 @pytest.mark.asyncio
-async def test_get_invoice_other_user_returns_404():
+async def test_get_invoice_other_user_returns_404(entetes_admin):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h_owner = await _register_login(c, "inv_o1@test.com")
         h_other = await _register_login(c, "inv_o2@test.com")
 
-        with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-            created = await _create_invoice_via_admin(
-                c,
-                user_email="inv_o1@test.com",
-                client_email="inv_o1@test.com",
-            )
+        created = await _create_invoice_via_admin(
+            c,
+            entetes_admin,
+            user_email="inv_o1@test.com",
+            client_email="inv_o1@test.com",
+        )
 
         r = await c.get(f"{BASE}/invoices/{created['id']}", headers=h_other)
 
@@ -309,16 +305,16 @@ async def test_get_invoice_unknown_returns_404():
 
 
 @pytest.mark.asyncio
-async def test_download_invoice_pdf_returns_pdf():
+async def test_download_invoice_pdf_returns_pdf(entetes_admin):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _register_login(c, "inv_pdf@test.com")
 
-        with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-            created = await _create_invoice_via_admin(
-                c,
-                user_email="inv_pdf@test.com",
-                client_email="inv_pdf@test.com",
-            )
+        created = await _create_invoice_via_admin(
+            c,
+            entetes_admin,
+            user_email="inv_pdf@test.com",
+            client_email="inv_pdf@test.com",
+        )
 
         r = await c.get(f"{BASE}/invoices/{created['id']}/pdf", headers=h)
 
@@ -328,17 +324,17 @@ async def test_download_invoice_pdf_returns_pdf():
 
 
 @pytest.mark.asyncio
-async def test_download_invoice_pdf_other_user_returns_404():
+async def test_download_invoice_pdf_other_user_returns_404(entetes_admin):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h_owner = await _register_login(c, "inv_pdfown@test.com")
         h_spy = await _register_login(c, "inv_pdfspy@test.com")
 
-        with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-            created = await _create_invoice_via_admin(
-                c,
-                user_email="inv_pdfown@test.com",
-                client_email="inv_pdfown@test.com",
-            )
+        created = await _create_invoice_via_admin(
+            c,
+            entetes_admin,
+            user_email="inv_pdfown@test.com",
+            client_email="inv_pdfown@test.com",
+        )
 
         r = await c.get(f"{BASE}/invoices/{created['id']}/pdf", headers=h_spy)
 
@@ -349,20 +345,19 @@ async def test_download_invoice_pdf_other_user_returns_404():
 
 
 @pytest.mark.asyncio
-async def test_admin_create_invoice_returns_201():
+async def test_admin_create_invoice_returns_201(entetes_admin):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-            r = await c.post(
-                f"{BASE}/admin/invoices",
-                headers=ADMIN_HEADERS,
-                json={
-                    "client_name": "Société Test",
-                    "client_email": "contact@societe.fr",
-                    "client_address": "1 rue du Test, 75000 Paris",
-                    "description": "Audit cybersécurité Flash",
-                    "amount_cents": 29000,
-                },
-            )
+        r = await c.post(
+            f"{BASE}/admin/invoices",
+            headers=entetes_admin,
+            json={
+                "client_name": "Société Test",
+                "client_email": "contact@societe.fr",
+                "client_address": "1 rue du Test, 75000 Paris",
+                "description": "Audit cybersécurité Flash",
+                "amount_cents": 29000,
+            },
+        )
 
     assert r.status_code == 201
     data = r.json()
@@ -373,61 +368,58 @@ async def test_admin_create_invoice_returns_201():
 
 
 @pytest.mark.asyncio
-async def test_admin_create_invoice_wrong_key_returns_403():
+async def test_admin_create_invoice_compte_ordinaire_403(entetes_non_admin):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-            r = await c.post(
-                f"{BASE}/admin/invoices",
-                headers={"x-admin-key": "wrong"},
-                json={
-                    "client_name": "Test",
-                    "client_email": "t@t.fr",
-                    "description": "Test",
-                    "amount_cents": 1000,
-                },
-            )
+        r = await c.post(
+            f"{BASE}/admin/invoices",
+            headers=entetes_non_admin,
+            json={
+                "client_name": "Test",
+                "client_email": "t@t.fr",
+                "description": "Test",
+                "amount_cents": 1000,
+            },
+        )
     assert r.status_code == 403
 
 
 @pytest.mark.asyncio
-async def test_admin_create_invoice_links_user_account():
+async def test_admin_create_invoice_links_user_account(entetes_admin):
     """Si user_email correspond à un compte, user_id doit être renseigné."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         await _register_login(c, "inv_link@test.com")
 
-        with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-            r = await c.post(
-                f"{BASE}/admin/invoices",
-                headers=ADMIN_HEADERS,
-                json={
-                    "client_name": "Linked User",
-                    "client_email": "inv_link@test.com",
-                    "description": "Audit",
-                    "amount_cents": 29000,
-                    "user_email": "inv_link@test.com",
-                },
-            )
+        r = await c.post(
+            f"{BASE}/admin/invoices",
+            headers=entetes_admin,
+            json={
+                "client_name": "Linked User",
+                "client_email": "inv_link@test.com",
+                "description": "Audit",
+                "amount_cents": 29000,
+                "user_email": "inv_link@test.com",
+            },
+        )
 
     assert r.status_code == 201
     assert r.json()["user_id"] is not None
 
 
 @pytest.mark.asyncio
-async def test_admin_create_invoice_unknown_user_email_still_creates():
+async def test_admin_create_invoice_unknown_user_email_still_creates(entetes_admin):
     """user_email inconnu → facture créée sans user_id."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-            r = await c.post(
-                f"{BASE}/admin/invoices",
-                headers=ADMIN_HEADERS,
-                json={
-                    "client_name": "Inconnu",
-                    "client_email": "inconnu@test.fr",
-                    "description": "Audit",
-                    "amount_cents": 29000,
-                    "user_email": "nope@nowhere.com",
-                },
-            )
+        r = await c.post(
+            f"{BASE}/admin/invoices",
+            headers=entetes_admin,
+            json={
+                "client_name": "Inconnu",
+                "client_email": "inconnu@test.fr",
+                "description": "Audit",
+                "amount_cents": 29000,
+                "user_email": "nope@nowhere.com",
+            },
+        )
 
     assert r.status_code == 201
     assert r.json()["user_id"] is None
@@ -437,19 +429,19 @@ async def test_admin_create_invoice_unknown_user_email_still_creates():
 
 
 @pytest.mark.asyncio
-async def test_admin_list_invoices_requires_key():
+async def test_admin_list_invoices_sans_authentification_401():
+    # Sans authentification, ce n'est plus une cle absente (403) mais une
+    # identite absente (401).
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-            r = await c.get(f"{BASE}/admin/invoices")
-    assert r.status_code == 403
+        r = await c.get(f"{BASE}/admin/invoices")
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_admin_list_invoices_returns_list():
+async def test_admin_list_invoices_returns_list(entetes_admin):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-            await _create_invoice_via_admin(c)
-            r = await c.get(f"{BASE}/admin/invoices", headers=ADMIN_HEADERS)
+        await _create_invoice_via_admin(c, entetes_admin)
+        r = await c.get(f"{BASE}/admin/invoices", headers=entetes_admin)
 
     assert r.status_code == 200
     assert isinstance(r.json(), list)
@@ -460,11 +452,10 @@ async def test_admin_list_invoices_returns_list():
 
 
 @pytest.mark.asyncio
-async def test_admin_pdf_download_returns_pdf():
+async def test_admin_pdf_download_returns_pdf(entetes_admin):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-            created = await _create_invoice_via_admin(c)
-            r = await c.get(f"{BASE}/admin/invoices/{created['id']}/pdf", headers=ADMIN_HEADERS)
+        created = await _create_invoice_via_admin(c, entetes_admin)
+        r = await c.get(f"{BASE}/admin/invoices/{created['id']}/pdf", headers=entetes_admin)
 
     assert r.status_code == 200
     assert r.headers["content-type"] == "application/pdf"
@@ -472,10 +463,9 @@ async def test_admin_pdf_download_returns_pdf():
 
 
 @pytest.mark.asyncio
-async def test_admin_pdf_unknown_invoice_returns_404():
+async def test_admin_pdf_unknown_invoice_returns_404(entetes_admin):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        with patch("app.core.config.settings.ADMIN_API_KEY", ADMIN_KEY):
-            r = await c.get(f"{BASE}/admin/invoices/99999/pdf", headers=ADMIN_HEADERS)
+        r = await c.get(f"{BASE}/admin/invoices/99999/pdf", headers=entetes_admin)
     assert r.status_code == 404
 
 

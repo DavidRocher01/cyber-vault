@@ -46,8 +46,12 @@ from app.models.user import User
 from app.services import phishing_service
 from app.services.domain_lookalike import generate_lookalikes
 from app.services.phishing_report_pdf import generate_phishing_report
+from app.services.storage import FichierTropVolumineuxError, lire_borne
 
 router = APIRouter(prefix="/phishing", tags=["phishing"])
+
+# Plafond de lecture, aligne sur le dossier Dark Web (remediation S4).
+_MAX_CSV_BYTES = 2 * 1024 * 1024
 
 # Conserve une référence forte aux tâches détachées : sans cela, asyncio peut
 # les garbage-collecter avant la fin (la tâche serait annulée silencieusement).
@@ -386,7 +390,12 @@ async def upload_targets(
             detail="Seuls les fichiers CSV sont acceptés.",
         )
 
-    content_bytes = await file.read()
+    # Lecture BORNEE : un `read()` nu chargeait tout en memoire sans le moindre
+    # plafond — un abonne authentifie faisait tomber la tache de production.
+    try:
+        content_bytes = await lire_borne(file, _MAX_CSV_BYTES)
+    except FichierTropVolumineuxError as exc:
+        raise HTTPException(status_code=413, detail=str(exc))
     try:
         csv_content = content_bytes.decode("utf-8-sig")
     except UnicodeDecodeError:

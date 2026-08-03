@@ -76,10 +76,6 @@ export class AdminQuotesComponent implements OnInit {
     items: this.fb.array([this.newItemGroup()]),
   });
 
-  private get headers(): HttpHeaders {
-    return this.auth.headers();
-  }
-
   get itemsArray(): FormArray {
     return this.form.get('items') as FormArray;
   }
@@ -122,7 +118,7 @@ export class AdminQuotesComponent implements OnInit {
 
   load() {
     this.loading.set(true);
-    this.http.get<AdminQuote[]>(`${API}/admin/quotes`, { headers: this.headers }).subscribe({
+    this.http.get<AdminQuote[]>(`${API}/admin/quotes`).subscribe({
       next: data => {
         this.quotes.set(data);
         this.loading.set(false);
@@ -150,7 +146,7 @@ export class AdminQuotesComponent implements OnInit {
       })),
     };
     this.creating.set(true);
-    this.http.post<AdminQuote>(`${API}/admin/quotes`, body, { headers: this.headers }).subscribe({
+    this.http.post<AdminQuote>(`${API}/admin/quotes`, body).subscribe({
       next: q => {
         this.quotes.update(list => [q, ...list]);
         this.form.reset();
@@ -176,7 +172,6 @@ export class AdminQuotesComponent implements OnInit {
     this.downloading.set(q.id);
     this.http
       .get(`${API}/admin/quotes/${q.id}/pdf`, {
-        headers: this.headers,
         responseType: 'blob',
       })
       .subscribe({

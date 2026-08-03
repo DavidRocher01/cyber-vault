@@ -115,6 +115,15 @@ L'historique des livraisons n'est pas ici — il est dans
   la clé `X-Admin-Key` n'est pas une base acceptable pour exposer des données de
   conversion.
 - **`tax_behavior=inclusive` chez Stripe** — délibéré, cf. §3.
+- **Dépôt de documents par les clients** — conception écrite le 2026-08-03 dans
+  [`DEPOT_DOCUMENTS.md`](DEPOT_DOCUMENTS.md), **pas développée**. Le point
+  bloquant est tranché le 2026-08-03 : l'antivirus sera **GuardDuty Malware
+  Protection for S3**, activé seul et non GuardDuty en entier. Restent deux
+  points ouverts, ni l'un ni l'autre bloquant : la durée de rétention, et le
+  rattachement de preuves aux critères NIS2.
+  Conséquence à ne pas perdre : le scan étant asynchrone, un document déposé
+  n'est **pas téléchargeable tant qu'il n'est pas déclaré sain**. Ce n'est pas un
+  détail d'implémentation, c'est un état visible dans l'interface.
 
 ---
 
@@ -147,6 +156,7 @@ L'historique des livraisons n'est pas ici — il est dans
 | `docs/SALES-BRIEF.md` | Offres et tarifs — source de vérité commerciale |
 | `docs/RESTE_A_FAIRE.md` | Dette et chantiers ouverts, dont le passage à la TVA |
 | `docs/ANALYTICS.md` | Mesure d'audience et de conversion — conception |
+| `docs/DEPOT_DOCUMENTS.md` | Dépôt de documents par les clients — conception |
 | `docs/MONTEES_DEPENDANCES.md` | Montées de versions et leurs blocages amont |
 | `docs/DEV_SETUP.md` | Installer l'environnement sur un nouveau poste |
 | `docs/SECURITY_AUDIT_2026-07-27.md` | L'audit dont S1→S7 est la remédiation |

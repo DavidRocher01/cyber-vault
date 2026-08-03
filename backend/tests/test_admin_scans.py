@@ -4,7 +4,6 @@ Covers: auth guard, empty list, list with data, required fields, limit param.
 """
 
 from datetime import UTC, datetime
-from unittest.mock import MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -13,12 +12,6 @@ from app.main import app
 from app.models.public_scan import PublicScan
 
 BASE = "/api/v1"
-
-
-def _admin_settings():
-    mock = MagicMock()
-    mock.ADMIN_API_KEY = "test-secret-key"
-    return patch("app.core.deps.settings", mock)
 
 
 async def _seed_scan(
@@ -41,18 +34,18 @@ async def _seed_scan(
 
 
 @pytest.mark.asyncio
-async def test_admin_scans_no_key_returns_403():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/admin/scans")
-    assert r.status_code == 403
+# Sans authentification, ce n'est plus une cle absente (403) mais une
+# identite absente (401) : le back-office ne connait plus de porte anonyme.
+async def test_admin_scans_sans_authentification_401():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/admin/scans")
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_admin_scans_wrong_key_returns_403():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/admin/scans", headers={"x-admin-key": "wrong"})
+async def test_admin_scans_wrong_key_returns_403(entetes_non_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/admin/scans", headers=entetes_non_admin)
     assert r.status_code == 403
 
 
@@ -60,28 +53,25 @@ async def test_admin_scans_wrong_key_returns_403():
 
 
 @pytest.mark.asyncio
-async def test_admin_scans_valid_key_returns_200():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/admin/scans", headers={"x-admin-key": "test-secret-key"})
+async def test_admin_scans_valid_key_returns_200(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/admin/scans", headers=entetes_admin)
     assert r.status_code == 200
     assert isinstance(r.json(), list)
 
 
 @pytest.mark.asyncio
-async def test_admin_scans_empty_db_returns_empty_list():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/admin/scans", headers={"x-admin-key": "test-secret-key"})
+async def test_admin_scans_empty_db_returns_empty_list(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/admin/scans", headers=entetes_admin)
     assert r.json() == []
 
 
 @pytest.mark.asyncio
-async def test_admin_scans_shows_seeded_scan():
+async def test_admin_scans_shows_seeded_scan(entetes_admin):
     await _seed_scan("https://example.com")
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/admin/scans", headers={"x-admin-key": "test-secret-key"})
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/admin/scans", headers=entetes_admin)
     scans = r.json()
     assert len(scans) == 1
     assert scans[0]["target_url"] == "https://example.com"
@@ -90,11 +80,10 @@ async def test_admin_scans_shows_seeded_scan():
 
 
 @pytest.mark.asyncio
-async def test_admin_scans_response_has_required_fields():
+async def test_admin_scans_response_has_required_fields(entetes_admin):
     await _seed_scan("https://fields-test.com")
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/admin/scans", headers={"x-admin-key": "test-secret-key"})
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/admin/scans", headers=entetes_admin)
     scan = r.json()[0]
     for key in (
         "id",
@@ -109,37 +98,34 @@ async def test_admin_scans_response_has_required_fields():
 
 
 @pytest.mark.asyncio
-async def test_admin_scans_failed_scan_has_no_overall_status():
+async def test_admin_scans_failed_scan_has_no_overall_status(entetes_admin):
     await _seed_scan("https://failed.com", status="failed", overall_status=None)
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/admin/scans", headers={"x-admin-key": "test-secret-key"})
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/admin/scans", headers=entetes_admin)
     scan = r.json()[0]
     assert scan["status"] == "failed"
     assert scan["overall_status"] is None
 
 
 @pytest.mark.asyncio
-async def test_admin_scans_limit_parameter():
+async def test_admin_scans_limit_parameter(entetes_admin):
     for i in range(5):
         await _seed_scan(f"https://site{i}.com")
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(
-                f"{BASE}/admin/scans?limit=3",
-                headers={"x-admin-key": "test-secret-key"},
-            )
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(
+            f"{BASE}/admin/scans?limit=3",
+            headers=entetes_admin,
+        )
     assert r.status_code == 200
     assert len(r.json()) == 3
 
 
 @pytest.mark.asyncio
-async def test_admin_scans_ordered_by_created_at_desc():
+async def test_admin_scans_ordered_by_created_at_desc(entetes_admin):
     await _seed_scan("https://older.com", status="completed")
     await _seed_scan("https://newer.com", status="pending", overall_status=None)
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/admin/scans", headers={"x-admin-key": "test-secret-key"})
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/admin/scans", headers=entetes_admin)
     scans = r.json()
     assert scans[0]["target_url"] == "https://newer.com"
     assert scans[1]["target_url"] == "https://older.com"

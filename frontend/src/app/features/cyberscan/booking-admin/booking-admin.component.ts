@@ -1,11 +1,13 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import { Slot } from '../booking/booking.service';
 import { extractApiError } from '../../../core/http-error';
+import { AuthService } from '../../../core/services/auth.service';
 
 interface AdminBooking {
   id: number;
@@ -22,16 +24,17 @@ interface AdminBooking {
 @Component({
   standalone: true,
   selector: 'app-booking-admin',
-  imports: [NgClass, ReactiveFormsModule, MatIconModule, NavButtonsComponent],
+  imports: [NgClass, RouterLink, ReactiveFormsModule, MatIconModule, NavButtonsComponent],
   templateUrl: './booking-admin.component.html',
 })
-export class BookingAdminComponent {
+export class BookingAdminComponent implements OnInit {
   private http = inject(HttpClient);
   private fb = inject(FormBuilder);
+  private auth = inject(AuthService);
 
-  adminKey = signal('');
   authenticated = signal(false);
   authError = signal('');
+  verificationEnCours = signal(true);
 
   slots = signal<Slot[]>([]);
   bookings = signal<AdminBooking[]>([]);
@@ -40,8 +43,6 @@ export class BookingAdminComponent {
   addError = signal('');
   addSuccess = signal('');
 
-  keyForm = this.fb.group({ key: ['', Validators.required] });
-
   slotForm = this.fb.group({
     date: ['', Validators.required],
     time: ['', Validators.required],
@@ -49,44 +50,36 @@ export class BookingAdminComponent {
     label: ['Appel découverte'],
   });
 
-  private headers(): HttpHeaders {
-    return new HttpHeaders({ 'X-Admin-Key': this.adminKey() });
-  }
-
-  login() {
-    const key = this.keyForm.value.key ?? '';
-    this.authError.set('');
-    this.http
-      .get<
-        Slot[]
-      >(`/api/v1/bookings/admin/slots`, { headers: new HttpHeaders({ 'X-Admin-Key': key }) })
-      .subscribe({
-        next: () => {
-          this.adminKey.set(key);
-          this.authenticated.set(true);
-          this.loadData();
-        },
-        error: () => this.authError.set('Clé admin incorrecte.'),
-      });
+  ngOnInit(): void {
+    // L'agenda portait sa PROPRE saisie de cle admin — une troisieme copie du
+    // portail, morte depuis le retrait du secret partage le 2026-08-02. Elle
+    // s'aligne desormais sur le shell : un compte `is_admin` entre sans rien
+    // saisir, l'intercepteur posant deja le jeton.
+    this.auth.me().subscribe({
+      next: user => {
+        this.authenticated.set(user.is_admin === true);
+        this.verificationEnCours.set(false);
+      },
+      error: () => {
+        this.authenticated.set(false);
+        this.verificationEnCours.set(false);
+      },
+    });
   }
 
   loadData() {
     this.loading.set(true);
     const month = this.currentMonth();
-    this.http
-      .get<Slot[]>(`/api/v1/bookings/admin/slots?month=${month}`, { headers: this.headers() })
-      .subscribe({
-        next: s => this.slots.set(s),
-      });
-    this.http
-      .get<AdminBooking[]>(`/api/v1/bookings/admin/bookings`, { headers: this.headers() })
-      .subscribe({
-        next: b => {
-          this.bookings.set(b);
-          this.loading.set(false);
-        },
-        error: () => this.loading.set(false),
-      });
+    this.http.get<Slot[]>(`/api/v1/bookings/admin/slots?month=${month}`).subscribe({
+      next: s => this.slots.set(s),
+    });
+    this.http.get<AdminBooking[]>(`/api/v1/bookings/admin/bookings`).subscribe({
+      next: b => {
+        this.bookings.set(b);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false),
+    });
   }
 
   addSlot() {
@@ -100,7 +93,7 @@ export class BookingAdminComponent {
     this.http
       .post<
         Slot[]
-      >('/api/v1/bookings/admin/slots', { slots: [{ date, time, duration_minutes, label }] }, { headers: this.headers() })
+      >('/api/v1/bookings/admin/slots', { slots: [{ date, time, duration_minutes, label }] })
       .subscribe({
         next: () => {
           this.addSuccess.set('Créneau ajouté !');
@@ -111,17 +104,15 @@ export class BookingAdminComponent {
   }
 
   deleteSlot(id: number) {
-    this.http.delete(`/api/v1/bookings/admin/slots/${id}`, { headers: this.headers() }).subscribe({
+    this.http.delete(`/api/v1/bookings/admin/slots/${id}`).subscribe({
       next: () => this.loadData(),
     });
   }
 
   cancelBooking(id: number) {
-    this.http
-      .patch(`/api/v1/bookings/admin/bookings/${id}/cancel`, {}, { headers: this.headers() })
-      .subscribe({
-        next: () => this.loadData(),
-      });
+    this.http.patch(`/api/v1/bookings/admin/bookings/${id}/cancel`, {}).subscribe({
+      next: () => this.loadData(),
+    });
   }
 
   prevMonth() {

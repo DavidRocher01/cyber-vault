@@ -1,15 +1,14 @@
-"""Le role admin porte sur un COMPTE, plus sur un secret partage.
+"""Le droit d'administration porte sur un COMPTE.
 
-`ADMIN_API_KEY` etait un secret statique : aucune identite derriere, aucune
-revocation possible, aucune 2FA. L'audit du 2026-07-27 l'a releve. `users.is_admin`
-attache le droit a un compte, donc a quelqu'un.
+`ADMIN_API_KEY` etait un secret partage statique : aucune identite derriere,
+aucune revocation possible, aucune 2FA. L'audit du 2026-07-27 l'a releve.
 
-La cle reste acceptee LE TEMPS DE LA BASCULE, sinon couper avant d'avoir cree un
-compte admin rendrait le back-office de production inaccessible. Ces tests
-verrouillent les deux voies, et surtout ce qui doit rester refuse.
+La bascule s'est faite en deux temps — d'abord la cle neutralisee en production
+(retiree de l'injection de secrets), puis le code du repli supprime le
+2026-08-02. Il ne reste qu'une porte : `users.is_admin`.
+
+Ces tests verrouillent surtout ce qui doit RESTER refuse.
 """
-
-from unittest.mock import patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -19,8 +18,6 @@ from app.main import app
 from app.models.user import User
 
 BASE = "/api/v1"
-DEPS = "app.core.deps"
-CLE = "cle-admin-de-test"
 
 
 async def _session():
@@ -81,22 +78,13 @@ async def test_admin_et_consultant_sont_deux_roles_distincts(client):
     assert user.is_admin is False
 
 
-# ── require_admin : les deux voies, pendant la bascule ───────────────────────
+# ── La seule porte ───────────────────────────────────────────────────────────
 
 
 @pytest.mark.asyncio
 async def test_un_compte_admin_ouvre_le_back_office(client):
     entetes = await _compte(client, "patron@test.com", admin=True)
     r = await client.get(f"{BASE}/admin/stats", headers=entetes)
-    assert r.status_code == 200
-
-
-@pytest.mark.asyncio
-async def test_la_cle_historique_fonctionne_encore(client):
-    """Voie de repli : sans elle, la bascule couperait l'acces en production."""
-    with patch(f"{DEPS}.settings") as reglages:
-        reglages.ADMIN_API_KEY = CLE
-        r = await client.get(f"{BASE}/admin/stats", headers={"X-Admin-Key": CLE})
     assert r.status_code == 200
 
 
@@ -109,32 +97,24 @@ async def test_un_compte_ordinaire_reste_refuse(client):
 
 
 @pytest.mark.asyncio
-async def test_sans_rien_c_est_refuse(client):
+async def test_sans_authentification_401(client):
+    """Il n'y a plus de porte anonyme : c'est une identite qui manque, pas une
+    cle. Le code passe donc de 403 a 401."""
     r = await client.get(f"{BASE}/admin/stats")
-    assert r.status_code == 403
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_mauvaise_cle_refusee(client):
-    with patch(f"{DEPS}.settings") as reglages:
-        reglages.ADMIN_API_KEY = CLE
-        r = await client.get(f"{BASE}/admin/stats", headers={"X-Admin-Key": "pas-la-bonne"})
-    assert r.status_code == 403
-
-
-@pytest.mark.asyncio
-async def test_cle_non_configuree_ne_laisse_pas_passer_une_cle_vide(client):
-    """Si `ADMIN_API_KEY` est vide, l'en-tete vide ne doit pas etre accepte —
-    sinon une prod mal configuree ouvrirait son back-office a tout le monde."""
-    with patch(f"{DEPS}.settings") as reglages:
-        reglages.ADMIN_API_KEY = ""
-        r = await client.get(f"{BASE}/admin/stats", headers={"X-Admin-Key": ""})
-    assert r.status_code == 403
+async def test_l_ancienne_cle_n_ouvre_plus_rien(client):
+    """Non-regression de la bascule : presenter un en-tete `X-Admin-Key`, quelle
+    qu'en soit la valeur, ne doit plus avoir le moindre effet."""
+    r = await client.get(f"{BASE}/admin/stats", headers={"X-Admin-Key": "n-importe-quoi"})
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio
 async def test_un_compte_desactive_perd_l_acces(client):
-    """Desactiver le compte doit suffire a revoquer l'administration : c'est
+    """Desactiver le compte suffit a revoquer l'administration : c'est
     precisement ce qu'un secret partage ne permettait pas."""
     entetes = await _compte(client, "revoque@test.com", admin=True)
     async with await _session() as db:
@@ -142,42 +122,16 @@ async def test_un_compte_desactive_perd_l_acces(client):
         user.is_active = False
         await db.commit()
     r = await client.get(f"{BASE}/admin/stats", headers=entetes)
-    assert r.status_code == 403
-
-
-# ── get_admin_user : la voie stricte, pour les nouvelles surfaces ────────────
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_la_voie_stricte_refuse_la_cle_partagee(client):
-    """`get_admin_user` n'accepte QUE des comptes. Les surfaces construites
-    maintenant — a commencer par l'onglet Acquisition — ne doivent pas heriter
-    du secret qu'on est en train de retirer."""
-    from fastapi import Depends
-
-    from app.core.deps import get_admin_user
-
-    @app.get("/_test_surface_stricte")
-    async def _surface(admin: User = Depends(get_admin_user)):
-        return {"email": admin.email}
-
-    try:
-        with patch(f"{DEPS}.settings") as reglages:
-            reglages.ADMIN_API_KEY = CLE
-            r = await client.get("/_test_surface_stricte", headers={"X-Admin-Key": CLE})
-        assert r.status_code == 401, "la cle partagee ne doit pas ouvrir une surface stricte"
-
-        entetes = await _compte(client, "stricte@test.com", admin=True)
-        r = await client.get("/_test_surface_stricte", headers=entetes)
-        assert r.status_code == 200
-        assert r.json()["email"] == "stricte@test.com"
-
-        ordinaire = await _compte(client, "ordinaire@test.com")
-        r = await client.get("/_test_surface_stricte", headers=ordinaire)
-        assert r.status_code == 403
-    finally:
-        app.router.routes[:] = [
-            route
-            for route in app.router.routes
-            if getattr(route, "path", None) != "/_test_surface_stricte"
-        ]
+async def test_le_droit_est_auditable(client):
+    """Un droit qu'on ne peut pas lire est mal outille. Son absence de la liste
+    avait fait conclure a tort qu'une promotion en production avait echoue."""
+    entetes = await _compte(client, "auditeur@test.com", admin=True)
+    r = await client.get(f"{BASE}/admin/users", headers=entetes)
+    assert r.status_code == 200
+    fiche = next(u for u in r.json() if u["email"] == "auditeur@test.com")
+    assert fiche["is_admin"] is True
+    assert fiche["totp_enabled"] is False

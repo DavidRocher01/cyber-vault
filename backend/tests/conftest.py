@@ -71,6 +71,17 @@ def pg_container():
 
 @pytest.fixture(scope="session")
 def pg_url(pg_container):
+    """URL de la base de test.
+
+    Sous xdist, chaque worker est un PROCESSUS distinct : cette fixture de
+    session s'execute donc une fois par worker, et chacun demarre son propre
+    conteneur. L'isolation entre workers est acquise par construction — pas
+    besoin de decouper des bases a l'interieur d'un conteneur partage.
+
+    Cout : un PostgreSQL par worker (~50 Mo, alpine, fsync desactive), demarres
+    en parallele. C'est le prix du parallelisme, et il est modeste au regard des
+    ~0,28 s de preparation que chaque test paie.
+    """
     return pg_container.get_connection_url().replace(
         "postgresql+psycopg2://", "postgresql+asyncpg://", 1
     )
@@ -220,6 +231,48 @@ async def register_and_login(
     await client.post(f"{BASE}/auth/register", json={"email": email, "password": password})
     r = await client.post(f"{BASE}/auth/login", json={"email": email, "password": password})
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+
+@pytest_asyncio.fixture
+async def entetes_admin(http_client: AsyncClient) -> dict:
+    """En-tetes d'un compte ADMINISTRATEUR.
+
+    Remplace l'en-tete `x-admin-key` qui authentifiait les tests du back-office
+    jusqu'au 2026-08-02. Le secret partage a ete retire : le droit est porte par
+    `users.is_admin`, donc par une identite.
+
+    La promotion se fait en base et non par une route : aucune API n'expose ce
+    droit, et c'est deliberé — un droit d'administration ne doit pas pouvoir
+    s'obtenir depuis le produit.
+    """
+    from sqlalchemy import select
+
+    import app.core.database as _db
+    from app.models.user import User
+
+    email = "admin@test.com"
+    await http_client.post(
+        f"{BASE}/auth/register", json={"email": email, "password": "StrongPass123!"}
+    )
+    async with _db.AsyncSessionLocal() as db:
+        user = (await db.execute(select(User).where(User.email == email))).scalar_one()
+        user.is_admin = True
+        await db.commit()
+    r = await http_client.post(
+        f"{BASE}/auth/login", json={"email": email, "password": "StrongPass123!"}
+    )
+    return {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+
+@pytest_asyncio.fixture
+async def entetes_non_admin(http_client: AsyncClient) -> dict:
+    """Compte connecte SANS droit d'administration.
+
+    Le cas qui compte pour les gardes : etre authentifie ne suffit pas. Il
+    remplace les anciens tests « mauvaise cle », qui ne verifiaient qu'une
+    comparaison de chaines.
+    """
+    return await register_and_login(http_client, "simple-utilisateur@test.com")
 
 
 _PLAN_DEFAULTS = {

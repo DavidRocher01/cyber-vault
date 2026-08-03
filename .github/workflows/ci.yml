@@ -174,7 +174,26 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p ../test-results
-          pytest tests/ --tb=short \
+          # `-n auto` : la suite etait strictement sequentielle, et sa preparation
+          # domine — ~0,28 s par test, dont 88,9 ms de creation de moteur et
+          # 138,3 ms de TRUNCATE (53 tables), mesure. Les corps de test
+          # n'apparaissent meme pas au classement des durees.
+          # Mesure locale sur 8 coeurs : 17 min 14 -> 5 min 27, couverture
+          # comprise et inchangee (94 %).
+          #
+          # Chaque worker etant un PROCESSUS distinct, il demarre son propre
+          # conteneur PostgreSQL : l'isolation est acquise sans decoupage de
+          # bases. Volontairement PAS dans addopts — lancer un seul fichier en
+          # local demarrerait alors autant de conteneurs que de coeurs.
+          #
+          # `--dist loadfile` et non le `load` par defaut : les tests d'un meme
+          # fichier restent sur le MEME worker, donc dans leur ordre d'ecriture.
+          # `load` les eparpille, ce qui reveillerait de facon INTERMITTENTE
+          # toute dependance d'un test envers l'etat laisse par un precedent —
+          # le pire mode de defaillance, parce qu'il ne se reproduit pas.
+          # Le cout est une repartition un peu moins equilibree ; avec ~90
+          # fichiers pour 4 coeurs, il est negligeable.
+          pytest tests/ --tb=short -n auto --dist loadfile \
             --cov-report=json:../coverage.json \
             --cov-report=html:../coverage-html \
             --junit-xml=../test-results/backend-junit.xml \
@@ -344,7 +363,29 @@ jobs:
   e2e:
     name: E2E Playwright
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
+    # UN SEUL JOB — le decoupage en 2 shards a ete essaye puis retire le
+    # 2026-08-03, mesures a l'appui (runs 30795421333 et 30796526002).
+    #
+    # Playwright repartit les tests par FICHIER et non par duree. Nos specs
+    # etant de tailles tres inegales, la coupe est tombee a 314 s contre 83 s.
+    # Le shard lourd faisait 7 min 23 la ou le job unique fait 7 min 57 : trente
+    # secondes gagnees pour le double de minutes CI.
+    #
+    # Et surtout, equilibrer n'y changerait rien : le job backend tient 7 min 37
+    # (dont 361 s de pytest) et plafonne le pipeline. Meme a 200 s par shard,
+    # l'ensemble resterait a ~8 min 30. Tant que le backend est le chemin
+    # critique, decouper l'E2E ne peut rien rapporter.
+    #
+    # Ce qui est GARDE de cette tentative : le cache des navigateurs plus bas,
+    # qui manquait deja avant et qui, lui, paie dans tous les cas.
+    #
+    # Aucun `needs` : ce job monte son PROPRE PostgreSQL, installe ses propres
+    # dependances et build le front lui-meme — il ne consomme aucun artefact des
+    # autres jobs. Il attendait pourtant la fin du backend, et demarrait trois
+    # secondes apres : 8 minutes de mur ajoutees pour rien.
+    #
+    # Le pipeline passe ainsi de ~21 min a ~13 min, sans toucher a un seul test.
+    # `test-report` continue d'attendre backend + frontend, lui en a besoin.
     timeout-minutes: 20
 
     services:
@@ -420,12 +461,39 @@ jobs:
         run: npm ci
         working-directory: frontend
 
+      # Sans cache, cette etape telecharge Chromium a chaque run : 24 s en
+      # temps normal, mais 255 s mesurees sur le run 30795421333. J'avais
+      # attribue ce pic a deux shards telechargeant en parallele ; le run
+      # suivant l'a dementi (21 et 24 s pour les deux shards, cache vide). Le
+      # pic etait donc un alea reseau, pas une contention.
+      #
+      # Le cache reste justifie pour cette raison meme : il supprime une etape
+      # dont la duree n'est pas maitrisee.
+      #
+      # La cle porte sur le lock du frontend : une montee de Playwright change
+      # le lock et invalide le cache, sinon on servirait un navigateur
+      # incompatible avec le binaire de test.
+      - name: Cache des navigateurs Playwright
+        id: cache-playwright
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        # `--with-deps` installe des paquets systeme APT, hors du cache : on ne
+        # le passe que sur un cache manquant. Sinon seul le navigateur est
+        # verifie, ce qui est immediat quand il est deja la.
+        run: |
+          if [ "${{ steps.cache-playwright.outputs.cache-hit }}" = "true" ]; then
+            npx playwright install chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
         working-directory: frontend
 
       - name: Playwright tests
-        run: npm run test:e2e
+        run: npx playwright test
         working-directory: frontend
 
       - name: Upload Playwright report

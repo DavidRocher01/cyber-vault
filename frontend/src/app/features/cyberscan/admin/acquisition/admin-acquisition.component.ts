@@ -330,9 +330,7 @@ export class AdminAcquisitionComponent implements OnInit {
     this.chargement.set(true);
     this.erreur.set('');
     this.http
-      .get<VueAcquisition>(`/api/v1/admin/acquisition?fenetre=${this.fenetre()}`, {
-        headers: this.auth.headers(),
-      })
+      .get<VueAcquisition>(`/api/v1/admin/acquisition?fenetre=${this.fenetre()}`, {})
       .subscribe({
         next: d => {
           this.donnees.set(d);
