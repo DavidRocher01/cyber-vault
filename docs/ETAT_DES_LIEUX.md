@@ -42,13 +42,16 @@ L'historique des livraisons n'est pas ici — il est dans
   `ANTIVIRUS_DEPOT_ACTIF` à vrai. L'inverse coupe les téléchargements sans
   qu'aucune alerte ne se déclenche. Détail : `docs/DEPOT_DOCUMENTS.md`.
 
-- **Domaine d'expédition des simulations de phishing** — décidé le 2026-08-03 :
-  un **domaine dédié fixe**, distinct de `rochercybersecurite.com`. À faire
-  **avant la première vraie campagne**, dans cet ordre : acheter le domaine →
-  le vérifier chez Resend (SPF + DKIM) → renseigner `PHISHING_FROM_EMAIL` →
-  déployer. Injecter une adresse dont le domaine n'est pas vérifié chez Resend
-  fait **échouer les envois**. Raisonnement complet et écart constaté sur
-  `PHISHING_BASE_URL` : `docs/PHISHING_REDESIGN.md` §5c.
+- **Sous-domaine d'expédition des simulations de phishing** — décidé le
+  2026-08-03, **gratuit** : un sous-domaine dédié, pas l'apex, pas un domaine
+  acheté. À faire **avant la première vraie campagne**, dans cet ordre : choisir
+  le sous-domaine → le vérifier chez Resend (SPF + DKIM) → poser `sp=` sur le
+  DMARC de l'apex, sans quoi le passage prévu en `quarantine` s'appliquerait
+  aussi aux simulations → renseigner `PHISHING_FROM_EMAIL` → déployer.
+  Renseigner une adresse non vérifiée chez Resend fait **échouer les envois**.
+  À rouvrir quand une vraie campagne sera planifiée chez un client : un domaine
+  acheté devient alors proportionné. Raisonnement :
+  `docs/PHISHING_REDESIGN.md` §5c.
 
 - **Plafond de taille de corps de requête sur l'ALB ou CloudFront.** La lecture
   bornée livrée le 2026-08-03 protège la mémoire, pas la réception : Starlette

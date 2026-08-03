@@ -76,37 +76,43 @@
 - **Lot 5 — Domaine d'envoi.** **Décision 2026-07-18 : OPTION 1 (sous-domaine maîtrisé seul).** Le domaine look-alike acheté est ÉCARTÉ pour l'instant (procédure ops multi-étapes disproportionnée : registrar + DNS pointant vers notre infra + **certificat CloudFront custom par domaine** + SPF/DKIM/DMARC + Resend + mandat, à refaire par domaine).
   - **5a — Fix landing cross-host. ✅ FAIT.** `get_landing_html(base=...)` + `/l` passe `_tracking_base(campaign)` → la landing poste sur le MÊME host qui l'a servie.
   - **5 opt1 — Transparence. ✅ FAIT.** Serialize expose `sending_domain` (host du tracking base) ; l'édition affiche une section « Domaine d'envoi » (sous-domaine maîtrisé) + note que le domaine look-alike sera une option premium ultérieure. Section `c.domain` renommée « Domaine de l'entreprise cible ».
-  - **5c — Adresse d'EXPÉDITION : domaine dédié fixe. Décidé le 2026-08-03.**
-    Question distincte de celle tranchée ci-dessus, et qui ne lui coûte rien :
-    le domaine des pages d'atterrissage a été arbitré sur le prix de l'ops
-    (**certificat CloudFront personnalisé par domaine**) ; une adresse
-    d'expédition ne demande que des enregistrements DNS vérifiés chez Resend —
-    ni CloudFront, ni certificat, ni coût par client. Le code les traite déjà
-    séparément (`_tracking_base()` d'un côté, `_adresse_expediteur()` de
-    l'autre).
-    **Pourquoi séparer du domaine principal.** Le but d'une bonne simulation est
-    que les salariés SIGNALENT le message. Or « Signaler comme hameçonnage »
-    remonte à Microsoft et Google, et les signalements répétés pèsent sur la
-    réputation du domaine expéditeur. Envoyer depuis `rochercybersecurite.com`
-    revient donc à fabriquer volontairement des signaux « ce domaine envoie du
-    phishing » contre le domaine qui porte les réinitialisations de mot de passe
-    et les factures — et plus la simulation réussit, plus le dégât est grand.
-    La liste blanche du client fait passer le message ; elle n'empêche pas le
-    signalement. Cela entre aussi en contradiction avec le passage prévu de
-    DMARC en `quarantine` sur le domaine principal.
-    Un **sous-domaine** n'isole que partiellement : la réputation par
-    sous-domaine existe chez les grands fournisseurs, mais le domaine
-    d'organisation reste un facteur et DMARC les relie.
-    **UN domaine fixe pour toutes les campagnes**, et non le `lookalike_domain`
-    de chacune : ce dernier serait plus réaliste — adresse et page alignées,
-    comme le vrai hameçonnage — mais multiplierait les vérifications Resend, une
-    par domaine et par client. À rebasculer si une campagne l'exige.
-    **Mise en œuvre**, dans cet ordre : acheter le domaine (ne PAS le faire
-    ressembler à `rochercybersecurite.com`, sinon l'association se fait et
-    l'isolation est perdue) → le vérifier dans Resend (SPF + DKIM) → mettre
-    l'adresse dans la configuration → déployer. DMARC peut y rester permissif :
-    il ne protège aucune marque.
-    ⚠️ Injecter une adresse dont le domaine n'est pas vérifié chez Resend fait
+  - **5c — Adresse d'EXPÉDITION : sous-domaine dédié, gratuit. Décidé le 2026-08-03.**
+    Question distincte de celle tranchée ci-dessus : le domaine des pages
+    d'atterrissage a été arbitré sur le prix de l'ops (**certificat CloudFront
+    personnalisé par domaine**) ; une adresse d'expédition ne demande que des
+    enregistrements DNS. Le code les traite déjà séparément (`_tracking_base()`
+    d'un côté, `_adresse_expediteur()` de l'autre).
+    **Pourquoi ne pas rester sur l'apex.** Le but d'une bonne simulation est que
+    les salariés SIGNALENT le message. « Signaler comme hameçonnage » remonte à
+    Microsoft et Google, et les signalements répétés pèsent sur la réputation du
+    domaine expéditeur. Envoyer depuis `rochercybersecurite.com` à nu revient à
+    fabriquer des signaux « ce domaine envoie du phishing » contre celui qui
+    porte les réinitialisations de mot de passe et les factures. La liste blanche
+    du client fait passer le message ; elle n'empêche pas le signalement.
+    **Pourquoi un sous-domaine suffit aujourd'hui — et c'est gratuit.** Les
+    filtres jugent d'abord le domaine exact qui signe (le `d=` DKIM). Un
+    sous-domaine portant sa propre clé DKIM, son propre SPF et **sa propre
+    politique DMARC** est isolé pour l'essentiel. Le levier qui rend ça
+    défendable : la balise `sp=` sur le DMARC de l'apex fixe explicitement la
+    politique des sous-domaines, ce qui permet de passer l'apex en `quarantine`
+    sans que le sous-domaine d'envoi en hérite.
+    **Le risque résiduel est assumé** : un report de réputation vers le domaine
+    d'organisation reste possible chez certains fournisseurs. Il est
+    proportionnel au volume, et le volume est nul aujourd'hui.
+    **DÉCLENCHEUR DE RÉVISION — à ne pas oublier.** Reprendre la question au
+    moment où **une première vraie campagne est planifiée chez un client**. À ce
+    stade seulement, un domaine dédié acheté (10-15 €/an) devient proportionné.
+    Ne pas attendre d'observer une dégradation : quand elle se voit sur les
+    e-mails transactionnels, le mal est fait et la réputation se répare
+    lentement.
+    **UN sous-domaine fixe pour toutes les campagnes**, et non le
+    `lookalike_domain` de chacune : ce dernier serait plus réaliste — adresse et
+    page alignées — mais multiplierait les vérifications Resend, une par domaine
+    et par client.
+    **Mise en œuvre**, dans cet ordre : choisir le sous-domaine → le vérifier
+    dans Resend (SPF + DKIM) → poser `sp=` sur le DMARC de l'apex → renseigner
+    `PHISHING_FROM_EMAIL` → déployer.
+    ⚠️ Renseigner une adresse dont le domaine n'est pas vérifié chez Resend fait
     **échouer les envois**, pas seulement dégrader la délivrabilité.
 
   - **5b — Domaine acheté (DIFFÉRÉ).** À reprendre SI un client exige le réalisme max : `sending_mode`, suggestions, DNS-TXT UI, mandat, gating premium — ET l'ops CloudFront custom-domain. Le back look-alike (`generate_lookalikes`, `domain-verify`, colonne `lookalike_domain`) reste en place, dormant.
