@@ -361,24 +361,24 @@ jobs:
 
   # ── E2E Playwright ──────────────────────────────────────────────────────────
   e2e:
-    name: E2E Playwright ${{ matrix.shard }}/2
+    name: E2E Playwright
     runs-on: ubuntu-latest
-    # Decoupage en 2 lots. Mesure sur le run 30792461975 : 91 s de preparation
-    # pour 386 s de tests — le decoupage porte donc sur 81 % du job.
+    # UN SEUL JOB — le decoupage en 2 shards a ete essaye puis retire le
+    # 2026-08-03, mesures a l'appui (runs 30795421333 et 30796526002).
     #
-    # Pourquoi des JOBS et non des workers Playwright : la config declare
-    # `workers: 1` et `fullyParallel: false` parce que tous les tests partagent
-    # une seule base. Deux shards sont deux jobs distincts, chacun avec son
-    # PostgreSQL et son backend — la contrainte tombe.
+    # Playwright repartit les tests par FICHIER et non par duree. Nos specs
+    # etant de tailles tres inegales, la coupe est tombee a 314 s contre 83 s.
+    # Le shard lourd faisait 7 min 23 la ou le job unique fait 7 min 57 : trente
+    # secondes gagnees pour le double de minutes CI.
     #
-    # Pourquoi 2 et pas 4 : la preparation (91 s) est payee par shard, et le job
-    # backend plafonne deja le pipeline a ~7 min 25. A 2 shards l'E2E descend
-    # vers ~4 min 45 et cesse d'etre le chemin critique ; aller plus loin
-    # consommerait des minutes de CI sans gagner une seconde de mur.
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2]
+    # Et surtout, equilibrer n'y changerait rien : le job backend tient 7 min 37
+    # (dont 361 s de pytest) et plafonne le pipeline. Meme a 200 s par shard,
+    # l'ensemble resterait a ~8 min 30. Tant que le backend est le chemin
+    # critique, decouper l'E2E ne peut rien rapporter.
+    #
+    # Ce qui est GARDE de cette tentative : le cache des navigateurs plus bas,
+    # qui manquait deja avant et qui, lui, paie dans tous les cas.
+    #
     # Aucun `needs` : ce job monte son PROPRE PostgreSQL, installe ses propres
     # dependances et build le front lui-meme — il ne consomme aucun artefact des
     # autres jobs. Il attendait pourtant la fin du backend, et demarrait trois
@@ -461,13 +461,18 @@ jobs:
         run: npm ci
         working-directory: frontend
 
-      # Mesure sur le run 30795421333 : cette etape est passee de 24 s a 255 s
-      # des lors que DEUX shards s'installent en meme temps — Chromium et ses
-      # dependances systeme, telecharges deux fois en parallele. C'est ce qui a
-      # dégrade le pipeline, pas le decoupage lui-meme.
+      # Sans cache, cette etape telecharge Chromium a chaque run : 24 s en
+      # temps normal, mais 255 s mesurees sur le run 30795421333. J'avais
+      # attribue ce pic a deux shards telechargeant en parallele ; le run
+      # suivant l'a dementi (21 et 24 s pour les deux shards, cache vide). Le
+      # pic etait donc un alea reseau, pas une contention.
       #
-      # La cle inclut la version de Playwright : une montee invalide le cache,
-      # sinon on servirait un navigateur incompatible avec le binaire de test.
+      # Le cache reste justifie pour cette raison meme : il supprime une etape
+      # dont la duree n'est pas maitrisee.
+      #
+      # La cle porte sur le lock du frontend : une montee de Playwright change
+      # le lock et invalide le cache, sinon on servirait un navigateur
+      # incompatible avec le binaire de test.
       - name: Cache des navigateurs Playwright
         id: cache-playwright
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
@@ -488,12 +493,12 @@ jobs:
         working-directory: frontend
 
       - name: Playwright tests
-        run: npx playwright test --shard=${{ matrix.shard }}/2
+        run: npx playwright test
         working-directory: frontend
 
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: playwright-report-${{ matrix.shard }}
+          name: playwright-report
           path: frontend/playwright-report/
