@@ -295,7 +295,10 @@ async def test_import_csv_too_large_rejected(http_client: AsyncClient):
         files={"file": ("big.csv", big, "text/csv")},
         headers=h,
     )
-    assert r.status_code == 422
+    # 413 et non 422 depuis le 2026-08-03 : cet endpoint etait le seul a repondre
+    # 422 sur un depassement de taille, les trois autres points de depot
+    # renvoyaient deja 413 — le code semantiquement juste pour un corps trop gros.
+    assert r.status_code == 413
     assert "volumineux" in r.json()["detail"]
 
 

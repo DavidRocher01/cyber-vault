@@ -461,8 +461,30 @@ jobs:
         run: npm ci
         working-directory: frontend
 
+      # Mesure sur le run 30795421333 : cette etape est passee de 24 s a 255 s
+      # des lors que DEUX shards s'installent en meme temps — Chromium et ses
+      # dependances systeme, telecharges deux fois en parallele. C'est ce qui a
+      # dégrade le pipeline, pas le decoupage lui-meme.
+      #
+      # La cle inclut la version de Playwright : une montee invalide le cache,
+      # sinon on servirait un navigateur incompatible avec le binaire de test.
+      - name: Cache des navigateurs Playwright
+        id: cache-playwright
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        # `--with-deps` installe des paquets systeme APT, hors du cache : on ne
+        # le passe que sur un cache manquant. Sinon seul le navigateur est
+        # verifie, ce qui est immediat quand il est deja la.
+        run: |
+          if [ "${{ steps.cache-playwright.outputs.cache-hit }}" = "true" ]; then
+            npx playwright install chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
         working-directory: frontend
 
       - name: Playwright tests

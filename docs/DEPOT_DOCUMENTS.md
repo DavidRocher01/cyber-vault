@@ -95,8 +95,32 @@ prospect à qui nous vendons de la conformité ».
 Option recommandée : **GuardDuty Malware Protection for S3**. Managé, aucun
 service à maintenir, et surtout **la donnée ne sort pas d'AWS** — ce qu'un
 service d'analyse tiers ne permettrait pas sans contredire le principe RGPD posé
-dans `ANALYTICS.md`. Facturation à l'objet et au Go analysé, négligeable au
-volume attendu.
+dans `ANALYTICS.md`.
+
+**Le coût ne se pose pas à cette échelle.** Relevé sur la page de tarification
+AWS le 2026-08-03 : 0,09 $ par Go analysé et 0,215 $ par millier d'objets, avec
+un **palier gratuit mensuel de 1 000 objets et 1 Go** (chiffres Virginie du
+Nord ; Paris est légèrement au-dessus). Dix clients déposant dix documents de
+2 Mo par mois font 100 objets et 200 Mo — entièrement dans le gratuit. Il
+faudrait dépasser mille documents mensuels pour commencer à payer, et deux mille
+documents pour trois gigaoctets coûteraient environ 0,40 $.
+
+> AWS a réduit le prix au Go de 85 % en février 2025 (0,60 → 0,09 $). Toute
+> estimation antérieure à cette date est fausse d'un facteur sept.
+
+### Les alternatives, et leur vrai prix
+
+**ClamAV en Lambda** — logiciel libre, mais sa base de signatures dépasse le
+gigaoctet en mémoire : Lambda largement dimensionnée, mises à jour de signatures
+à gérer, démarrages à froid. Gratuit en licence, pas en temps.
+
+**ClamAV dans la tâche ECS** — écarté : la tâche a 2 Go au total, la base en
+consommerait la moitié. C'est ce même dimensionnement qui rendait la lecture non
+bornée dangereuse.
+
+**VirusTotal et services équivalents** — **à écarter fermement**. Ils conservent
+les fichiers soumis et les rendent accessibles à leurs abonnés. Envoyer
+l'analyse de risques d'une PME cliente à un tiers serait indéfendable.
 
 Conséquence de conception : **un document n'est téléchargeable qu'une fois
 déclaré sain.** Il faut donc un état (`en_analyse` / `sain` / `rejete`) et un
