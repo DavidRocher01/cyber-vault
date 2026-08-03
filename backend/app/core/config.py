@@ -55,9 +55,6 @@ class Settings(BaseSettings):
     # AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY lues automatiquement par boto3
     # (variables d'env standard ou IAM role ECS en prod)
 
-    # Admin
-    ADMIN_API_KEY: str = ""
-
     # Contact form recipient
     CONTACT_EMAIL: str = "contact@rochercybersecurite.com"
 

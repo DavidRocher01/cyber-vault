@@ -4,8 +4,6 @@ Covers: public list/detail, admin list (all incl. unpublished), admin detail,
 admin create/update/delete, auth guards.
 """
 
-from unittest.mock import MagicMock, patch
-
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -26,34 +24,32 @@ VALID_ARTICLE = {
 }
 
 
-def _admin_settings():
-    mock = MagicMock()
-    mock.ADMIN_API_KEY = "test-secret-key"
-    return patch("app.core.deps.settings", mock)
-
-
 # ── Auth guard ─────────────────────────────────────────────────────────────────
 
 
 @pytest.mark.asyncio
-async def test_admin_list_no_key_returns_403():
+# Sans authentification, ce n'est plus une cle absente (403) mais une
+# identite absente (401) : le back-office ne connait plus de porte anonyme.
+async def test_admin_list_sans_authentification_401():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get(f"{BASE}/blog/admin/articles")
-    assert r.status_code == 403
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_admin_list_wrong_key_returns_403():
+async def test_admin_list_wrong_key_returns_403(entetes_non_admin):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        r = await c.get(f"{BASE}/blog/admin/articles", headers={"x-admin-key": "wrong"})
+        r = await c.get(f"{BASE}/blog/admin/articles", headers=entetes_non_admin)
     assert r.status_code == 403
 
 
 @pytest.mark.asyncio
-async def test_admin_create_no_key_returns_403():
+# Sans authentification, ce n'est plus une cle absente (403) mais une
+# identite absente (401) : le back-office ne connait plus de porte anonyme.
+async def test_admin_create_sans_authentification_401():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.post(f"{BASE}/blog/admin/articles", json=VALID_ARTICLE)
-    assert r.status_code == 403
+    assert r.status_code == 401
 
 
 # ── Public endpoints ───────────────────────────────────────────────────────────
@@ -68,21 +64,20 @@ async def test_public_list_empty_returns_empty():
 
 
 @pytest.mark.asyncio
-async def test_public_list_returns_only_published():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await c.post(
-                f"{BASE}/blog/admin/articles",
-                json=VALID_ARTICLE,
-                headers={"x-admin-key": "test-secret-key"},
-            )
-            draft = {**VALID_ARTICLE, "slug": "draft-article", "isPublished": False}
-            await c.post(
-                f"{BASE}/blog/admin/articles",
-                json=draft,
-                headers={"x-admin-key": "test-secret-key"},
-            )
-            r = await c.get(f"{BASE}/blog/articles")
+async def test_public_list_returns_only_published(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        await c.post(
+            f"{BASE}/blog/admin/articles",
+            json=VALID_ARTICLE,
+            headers=entetes_admin,
+        )
+        draft = {**VALID_ARTICLE, "slug": "draft-article", "isPublished": False}
+        await c.post(
+            f"{BASE}/blog/admin/articles",
+            json=draft,
+            headers=entetes_admin,
+        )
+        r = await c.get(f"{BASE}/blog/articles")
     assert r.status_code == 200
     slugs = [a["slug"] for a in r.json()]
     assert "test-article" in slugs
@@ -90,15 +85,14 @@ async def test_public_list_returns_only_published():
 
 
 @pytest.mark.asyncio
-async def test_public_detail_returns_article():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await c.post(
-                f"{BASE}/blog/admin/articles",
-                json=VALID_ARTICLE,
-                headers={"x-admin-key": "test-secret-key"},
-            )
-            r = await c.get(f"{BASE}/blog/articles/test-article")
+async def test_public_detail_returns_article(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        await c.post(
+            f"{BASE}/blog/admin/articles",
+            json=VALID_ARTICLE,
+            headers=entetes_admin,
+        )
+        r = await c.get(f"{BASE}/blog/articles/test-article")
     assert r.status_code == 200
     assert r.json()["htmlContent"] == "<p>Content here.</p>"
 
@@ -111,16 +105,15 @@ async def test_public_detail_unknown_returns_404():
 
 
 @pytest.mark.asyncio
-async def test_public_detail_draft_returns_404():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            draft = {**VALID_ARTICLE, "slug": "hidden-draft", "isPublished": False}
-            await c.post(
-                f"{BASE}/blog/admin/articles",
-                json=draft,
-                headers={"x-admin-key": "test-secret-key"},
-            )
-            r = await c.get(f"{BASE}/blog/articles/hidden-draft")
+async def test_public_detail_draft_returns_404(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        draft = {**VALID_ARTICLE, "slug": "hidden-draft", "isPublished": False}
+        await c.post(
+            f"{BASE}/blog/admin/articles",
+            json=draft,
+            headers=entetes_admin,
+        )
+        r = await c.get(f"{BASE}/blog/articles/hidden-draft")
     assert r.status_code == 404
 
 
@@ -128,31 +121,29 @@ async def test_public_detail_draft_returns_404():
 
 
 @pytest.mark.asyncio
-async def test_admin_list_empty_returns_empty():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(
-                f"{BASE}/blog/admin/articles",
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_list_empty_returns_empty(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(
+            f"{BASE}/blog/admin/articles",
+            headers=entetes_admin,
+        )
     assert r.status_code == 200
     assert r.json() == []
 
 
 @pytest.mark.asyncio
-async def test_admin_list_includes_drafts():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            draft = {**VALID_ARTICLE, "slug": "my-draft", "isPublished": False}
-            await c.post(
-                f"{BASE}/blog/admin/articles",
-                json=draft,
-                headers={"x-admin-key": "test-secret-key"},
-            )
-            r = await c.get(
-                f"{BASE}/blog/admin/articles",
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_list_includes_drafts(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        draft = {**VALID_ARTICLE, "slug": "my-draft", "isPublished": False}
+        await c.post(
+            f"{BASE}/blog/admin/articles",
+            json=draft,
+            headers=entetes_admin,
+        )
+        r = await c.get(
+            f"{BASE}/blog/admin/articles",
+            headers=entetes_admin,
+        )
     assert r.status_code == 200
     assert any(a["slug"] == "my-draft" for a in r.json())
 
@@ -161,48 +152,45 @@ async def test_admin_list_includes_drafts():
 
 
 @pytest.mark.asyncio
-async def test_admin_detail_returns_html_content():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await c.post(
-                f"{BASE}/blog/admin/articles",
-                json=VALID_ARTICLE,
-                headers={"x-admin-key": "test-secret-key"},
-            )
-            r = await c.get(
-                f"{BASE}/blog/admin/articles/test-article",
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_detail_returns_html_content(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        await c.post(
+            f"{BASE}/blog/admin/articles",
+            json=VALID_ARTICLE,
+            headers=entetes_admin,
+        )
+        r = await c.get(
+            f"{BASE}/blog/admin/articles/test-article",
+            headers=entetes_admin,
+        )
     assert r.status_code == 200
     assert r.json()["htmlContent"] == "<p>Content here.</p>"
 
 
 @pytest.mark.asyncio
-async def test_admin_detail_draft_accessible():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            draft = {**VALID_ARTICLE, "slug": "admin-only-draft", "isPublished": False}
-            await c.post(
-                f"{BASE}/blog/admin/articles",
-                json=draft,
-                headers={"x-admin-key": "test-secret-key"},
-            )
-            r = await c.get(
-                f"{BASE}/blog/admin/articles/admin-only-draft",
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_detail_draft_accessible(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        draft = {**VALID_ARTICLE, "slug": "admin-only-draft", "isPublished": False}
+        await c.post(
+            f"{BASE}/blog/admin/articles",
+            json=draft,
+            headers=entetes_admin,
+        )
+        r = await c.get(
+            f"{BASE}/blog/admin/articles/admin-only-draft",
+            headers=entetes_admin,
+        )
     assert r.status_code == 200
     assert r.json()["isPublished"] is False
 
 
 @pytest.mark.asyncio
-async def test_admin_detail_unknown_returns_404():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(
-                f"{BASE}/blog/admin/articles/no-such-slug",
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_detail_unknown_returns_404(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(
+            f"{BASE}/blog/admin/articles/no-such-slug",
+            headers=entetes_admin,
+        )
     assert r.status_code == 404
 
 
@@ -210,14 +198,13 @@ async def test_admin_detail_unknown_returns_404():
 
 
 @pytest.mark.asyncio
-async def test_admin_create_returns_201():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.post(
-                f"{BASE}/blog/admin/articles",
-                json=VALID_ARTICLE,
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_create_returns_201(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.post(
+            f"{BASE}/blog/admin/articles",
+            json=VALID_ARTICLE,
+            headers=entetes_admin,
+        )
     assert r.status_code == 201
     data = r.json()
     assert data["slug"] == "test-article"
@@ -226,15 +213,14 @@ async def test_admin_create_returns_201():
 
 
 @pytest.mark.asyncio
-async def test_admin_create_missing_title_returns_422():
-    with _admin_settings():
-        payload = {**VALID_ARTICLE, "title": ""}
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.post(
-                f"{BASE}/blog/admin/articles",
-                json=payload,
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_create_missing_title_returns_422(entetes_admin):
+    payload = {**VALID_ARTICLE, "title": ""}
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.post(
+            f"{BASE}/blog/admin/articles",
+            json=payload,
+            headers=entetes_admin,
+        )
     assert r.status_code == 422
 
 
@@ -242,38 +228,36 @@ async def test_admin_create_missing_title_returns_422():
 
 
 @pytest.mark.asyncio
-async def test_admin_update_returns_updated_content():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await c.post(
-                f"{BASE}/blog/admin/articles",
-                json=VALID_ARTICLE,
-                headers={"x-admin-key": "test-secret-key"},
-            )
-            updated = {
-                **VALID_ARTICLE,
-                "title": "Titre modifié",
-                "htmlContent": "<p>Nouveau contenu.</p>",
-            }
-            r = await c.put(
-                f"{BASE}/blog/admin/articles/test-article",
-                json=updated,
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_update_returns_updated_content(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        await c.post(
+            f"{BASE}/blog/admin/articles",
+            json=VALID_ARTICLE,
+            headers=entetes_admin,
+        )
+        updated = {
+            **VALID_ARTICLE,
+            "title": "Titre modifié",
+            "htmlContent": "<p>Nouveau contenu.</p>",
+        }
+        r = await c.put(
+            f"{BASE}/blog/admin/articles/test-article",
+            json=updated,
+            headers=entetes_admin,
+        )
     assert r.status_code == 200
     assert r.json()["title"] == "Titre modifié"
     assert r.json()["htmlContent"] == "<p>Nouveau contenu.</p>"
 
 
 @pytest.mark.asyncio
-async def test_admin_update_unknown_returns_404():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.put(
-                f"{BASE}/blog/admin/articles/no-such-slug",
-                json=VALID_ARTICLE,
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_update_unknown_returns_404(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.put(
+            f"{BASE}/blog/admin/articles/no-such-slug",
+            json=VALID_ARTICLE,
+            headers=entetes_admin,
+        )
     assert r.status_code == 404
 
 
@@ -281,44 +265,41 @@ async def test_admin_update_unknown_returns_404():
 
 
 @pytest.mark.asyncio
-async def test_admin_delete_returns_204():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await c.post(
-                f"{BASE}/blog/admin/articles",
-                json=VALID_ARTICLE,
-                headers={"x-admin-key": "test-secret-key"},
-            )
-            r = await c.delete(
-                f"{BASE}/blog/admin/articles/test-article",
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_delete_returns_204(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        await c.post(
+            f"{BASE}/blog/admin/articles",
+            json=VALID_ARTICLE,
+            headers=entetes_admin,
+        )
+        r = await c.delete(
+            f"{BASE}/blog/admin/articles/test-article",
+            headers=entetes_admin,
+        )
     assert r.status_code == 204
 
 
 @pytest.mark.asyncio
-async def test_admin_delete_then_public_returns_404():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await c.post(
-                f"{BASE}/blog/admin/articles",
-                json=VALID_ARTICLE,
-                headers={"x-admin-key": "test-secret-key"},
-            )
-            await c.delete(
-                f"{BASE}/blog/admin/articles/test-article",
-                headers={"x-admin-key": "test-secret-key"},
-            )
-            r = await c.get(f"{BASE}/blog/articles/test-article")
+async def test_admin_delete_then_public_returns_404(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        await c.post(
+            f"{BASE}/blog/admin/articles",
+            json=VALID_ARTICLE,
+            headers=entetes_admin,
+        )
+        await c.delete(
+            f"{BASE}/blog/admin/articles/test-article",
+            headers=entetes_admin,
+        )
+        r = await c.get(f"{BASE}/blog/articles/test-article")
     assert r.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_admin_delete_unknown_returns_404():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.delete(
-                f"{BASE}/blog/admin/articles/no-such-slug",
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_delete_unknown_returns_404(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.delete(
+            f"{BASE}/blog/admin/articles/no-such-slug",
+            headers=entetes_admin,
+        )
     assert r.status_code == 404

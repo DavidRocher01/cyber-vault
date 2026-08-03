@@ -3,8 +3,7 @@ Integration tests — /api/v1/contact
 Covers: submit (200), validation errors (422), admin list/update endpoints.
 """
 
-from contextlib import contextmanager
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -105,18 +104,6 @@ def test_contact_invalid_need_type_schema():
 # ── Admin helpers ──────────────────────────────────────────────────────────────
 
 
-@contextmanager
-def _admin_settings():
-    mock = MagicMock()
-    mock.ADMIN_API_KEY = "test-secret-key"
-    mock.CONTACT_EMAIL = "admin@test.com"
-    with (
-        patch("app.api.v1.endpoints.contact.settings", mock),
-        patch("app.core.deps.settings", mock),
-    ):
-        yield
-
-
 async def _submit_contact(client, name="Jean Dupont"):
     with patch("app.api.v1.endpoints.contact.send_contact_email"):
         return await client.post(
@@ -134,18 +121,18 @@ async def _submit_contact(client, name="Jean Dupont"):
 
 
 @pytest.mark.asyncio
-async def test_admin_messages_no_key_returns_403():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/contact/admin/messages")
-    assert r.status_code == 403
+# Sans authentification, ce n'est plus une cle absente (403) mais une
+# identite absente (401) : le back-office ne connait plus de porte anonyme.
+async def test_admin_messages_sans_authentification_401():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/contact/admin/messages")
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_admin_messages_wrong_key_returns_403():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/contact/admin/messages", headers={"x-admin-key": "wrong"})
+async def test_admin_messages_wrong_key_returns_403(entetes_non_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/contact/admin/messages", headers=entetes_non_admin)
     assert r.status_code == 403
 
 
@@ -153,26 +140,24 @@ async def test_admin_messages_wrong_key_returns_403():
 
 
 @pytest.mark.asyncio
-async def test_admin_messages_valid_key_returns_list():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(
-                f"{BASE}/contact/admin/messages",
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_messages_valid_key_returns_list(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(
+            f"{BASE}/contact/admin/messages",
+            headers=entetes_admin,
+        )
     assert r.status_code == 200
     assert isinstance(r.json(), list)
 
 
 @pytest.mark.asyncio
-async def test_admin_messages_shows_submitted_message():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await _submit_contact(c)
-            r = await c.get(
-                f"{BASE}/contact/admin/messages",
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_messages_shows_submitted_message(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        await _submit_contact(c)
+        r = await c.get(
+            f"{BASE}/contact/admin/messages",
+            headers=entetes_admin,
+        )
     messages = r.json()
     assert len(messages) == 1
     assert messages[0]["name"] == "Jean Dupont"
@@ -180,14 +165,13 @@ async def test_admin_messages_shows_submitted_message():
 
 
 @pytest.mark.asyncio
-async def test_admin_messages_response_has_required_fields():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await _submit_contact(c)
-            r = await c.get(
-                f"{BASE}/contact/admin/messages",
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_messages_response_has_required_fields(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        await _submit_contact(c)
+        r = await c.get(
+            f"{BASE}/contact/admin/messages",
+            headers=entetes_admin,
+        )
     msg = r.json()[0]
     for key in (
         "id",
@@ -207,75 +191,72 @@ async def test_admin_messages_response_has_required_fields():
 
 
 @pytest.mark.asyncio
-async def test_admin_update_status_no_key_returns_403():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.patch(f"{BASE}/contact/admin/messages/1/status", json={"status": "handled"})
-    assert r.status_code == 403
+# Sans authentification, ce n'est plus une cle absente (403) mais une
+# identite absente (401) : le back-office ne connait plus de porte anonyme.
+async def test_admin_update_status_sans_authentification_401():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.patch(f"{BASE}/contact/admin/messages/1/status", json={"status": "handled"})
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_admin_update_status_to_handled():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await _submit_contact(c)
-            msgs = await c.get(
-                f"{BASE}/contact/admin/messages",
-                headers={"x-admin-key": "test-secret-key"},
-            )
-            msg_id = msgs.json()[0]["id"]
-            r = await c.patch(
-                f"{BASE}/contact/admin/messages/{msg_id}/status",
-                json={"status": "handled"},
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_update_status_to_handled(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        await _submit_contact(c)
+        msgs = await c.get(
+            f"{BASE}/contact/admin/messages",
+            headers=entetes_admin,
+        )
+        msg_id = msgs.json()[0]["id"]
+        r = await c.patch(
+            f"{BASE}/contact/admin/messages/{msg_id}/status",
+            json={"status": "handled"},
+            headers=entetes_admin,
+        )
     assert r.status_code == 200
     assert "mis à jour" in r.json()["message"]
 
 
 @pytest.mark.asyncio
-async def test_admin_update_status_to_archived():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await _submit_contact(c)
-            msgs = await c.get(
-                f"{BASE}/contact/admin/messages",
-                headers={"x-admin-key": "test-secret-key"},
-            )
-            msg_id = msgs.json()[0]["id"]
-            r = await c.patch(
-                f"{BASE}/contact/admin/messages/{msg_id}/status",
-                json={"status": "archived"},
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_update_status_to_archived(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        await _submit_contact(c)
+        msgs = await c.get(
+            f"{BASE}/contact/admin/messages",
+            headers=entetes_admin,
+        )
+        msg_id = msgs.json()[0]["id"]
+        r = await c.patch(
+            f"{BASE}/contact/admin/messages/{msg_id}/status",
+            json={"status": "archived"},
+            headers=entetes_admin,
+        )
     assert r.status_code == 200
 
 
 @pytest.mark.asyncio
-async def test_admin_update_status_invalid_value_returns_422():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await _submit_contact(c)
-            msgs = await c.get(
-                f"{BASE}/contact/admin/messages",
-                headers={"x-admin-key": "test-secret-key"},
-            )
-            msg_id = msgs.json()[0]["id"]
-            r = await c.patch(
-                f"{BASE}/contact/admin/messages/{msg_id}/status",
-                json={"status": "invalid"},
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_update_status_invalid_value_returns_422(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        await _submit_contact(c)
+        msgs = await c.get(
+            f"{BASE}/contact/admin/messages",
+            headers=entetes_admin,
+        )
+        msg_id = msgs.json()[0]["id"]
+        r = await c.patch(
+            f"{BASE}/contact/admin/messages/{msg_id}/status",
+            json={"status": "invalid"},
+            headers=entetes_admin,
+        )
     assert r.status_code == 422
 
 
 @pytest.mark.asyncio
-async def test_admin_update_status_unknown_id_returns_404():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.patch(
-                f"{BASE}/contact/admin/messages/99999/status",
-                json={"status": "handled"},
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_update_status_unknown_id_returns_404(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.patch(
+            f"{BASE}/contact/admin/messages/99999/status",
+            json={"status": "handled"},
+            headers=entetes_admin,
+        )
     assert r.status_code == 404

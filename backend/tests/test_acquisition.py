@@ -208,11 +208,10 @@ async def test_le_tunnel_rend_toutes_les_etapes_meme_a_zero(db_session):
 
 @pytest.mark.asyncio
 async def test_l_onglet_exige_un_compte_admin(client):
-    """Les donnees de conversion ne doivent pas etre accessibles par le secret
-    partage qu'on est en train de retirer (cf. S6_INFRA_CHECKLIST §0)."""
-    with patch("app.core.deps.settings") as reglages:
-        reglages.ADMIN_API_KEY = "cle-partagee"
-        r = await client.get(f"{BASE}/admin/acquisition", headers={"X-Admin-Key": "cle-partagee"})
+    """Les donnees de conversion n'ont jamais ete accessibles autrement que par
+    un compte identifie — l'onglet a ete construit apres le retrait du secret
+    partage, et n'en a donc jamais herite."""
+    r = await client.get(f"{BASE}/admin/acquisition", headers={"X-Admin-Key": "n-importe-quoi"})
     assert r.status_code == 401
 
     await client.post(

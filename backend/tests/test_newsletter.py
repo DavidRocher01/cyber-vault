@@ -4,7 +4,6 @@ Covers: double opt-in flow, confirm, unsubscribe redirects,
         admin stats/list/send-issue, auth guard, edge cases.
 """
 
-from contextlib import contextmanager
 from datetime import UTC
 from unittest.mock import DEFAULT, MagicMock, patch
 
@@ -39,19 +38,6 @@ def _no_email():
         send_newsletter_welcome=DEFAULT,
         send_unsubscribe_confirmation=DEFAULT,
     )
-
-
-@contextmanager
-def _admin_settings():
-    """Patch settings so ADMIN_API_KEY is set."""
-    mock = MagicMock()
-    mock.ADMIN_API_KEY = "test-secret-key"
-    mock.FRONTEND_URL = "http://localhost:4200"
-    with (
-        patch("app.api.v1.endpoints.newsletter.settings", mock),
-        patch("app.core.deps.settings", mock),
-    ):
-        yield
 
 
 # ── Subscribe ──────────────────────────────────────────────────────────────────
@@ -248,18 +234,18 @@ async def test_resubscribe_confirmed_unsubscribed():
 
 
 @pytest.mark.asyncio
-async def test_admin_stats_no_key_returns_403():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/newsletter/admin/stats")
-    assert r.status_code == 403
+# Sans authentification, ce n'est plus une cle absente (403) mais une
+# identite absente (401) : le back-office ne connait plus de porte anonyme.
+async def test_admin_stats_sans_authentification_401():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/newsletter/admin/stats")
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_admin_stats_wrong_key_returns_403():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/newsletter/admin/stats", headers={"x-admin-key": "wrong"})
+async def test_admin_stats_wrong_key_returns_403(entetes_non_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/newsletter/admin/stats", headers=entetes_non_admin)
     assert r.status_code == 403
 
 
@@ -267,13 +253,12 @@ async def test_admin_stats_wrong_key_returns_403():
 
 
 @pytest.mark.asyncio
-async def test_admin_stats_valid_key_returns_counts():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(
-                f"{BASE}/newsletter/admin/stats",
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_stats_valid_key_returns_counts(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(
+            f"{BASE}/newsletter/admin/stats",
+            headers=entetes_admin,
+        )
     assert r.status_code == 200
     data = r.json()
     assert "total" in data
@@ -286,13 +271,12 @@ async def test_admin_stats_valid_key_returns_counts():
 
 
 @pytest.mark.asyncio
-async def test_admin_subscribers_returns_list():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(
-                f"{BASE}/newsletter/admin/subscribers",
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_subscribers_returns_list(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(
+            f"{BASE}/newsletter/admin/subscribers",
+            headers=entetes_admin,
+        )
     assert r.status_code == 200
     assert isinstance(r.json(), list)
 
@@ -301,7 +285,7 @@ async def test_admin_subscribers_returns_list():
 
 
 @pytest.mark.asyncio
-async def test_admin_send_issue_returns_sent_count():
+async def test_admin_send_issue_returns_sent_count(entetes_admin):
     issue_payload = {
         "edition": 1,
         "flash_title": "Test Attack",
@@ -311,14 +295,13 @@ async def test_admin_send_issue_returns_sent_count():
         "legal_title": "NIS2 Update",
         "legal_body": "New NIS2 requirements apply.",
     }
-    with _admin_settings():
-        with patch("app.api.v1.endpoints.newsletter.send_newsletter_issue") as mock_send:
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-                r = await c.post(
-                    f"{BASE}/newsletter/admin/send-issue",
-                    json=issue_payload,
-                    headers={"x-admin-key": "test-secret-key"},
-                )
+    with patch("app.api.v1.endpoints.newsletter.send_newsletter_issue") as mock_send:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.post(
+                f"{BASE}/newsletter/admin/send-issue",
+                json=issue_payload,
+                headers=entetes_admin,
+            )
     assert r.status_code == 200
     data = r.json()
     assert "sent" in data
@@ -327,7 +310,9 @@ async def test_admin_send_issue_returns_sent_count():
 
 
 @pytest.mark.asyncio
-async def test_admin_send_issue_no_key_returns_403():
+# Sans authentification, ce n'est plus une cle absente (403) mais une
+# identite absente (401) : le back-office ne connait plus de porte anonyme.
+async def test_admin_send_issue_sans_authentification_401():
     issue_payload = {
         "edition": 1,
         "flash_title": "T",
@@ -337,10 +322,9 @@ async def test_admin_send_issue_no_key_returns_403():
         "legal_title": "T",
         "legal_body": "T",
     }
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.post(f"{BASE}/newsletter/admin/send-issue", json=issue_payload)
-    assert r.status_code == 403
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.post(f"{BASE}/newsletter/admin/send-issue", json=issue_payload)
+    assert r.status_code == 401
 
 
 # ── Schedule ───────────────────────────────────────────────────────────────────
@@ -372,14 +356,13 @@ async def test_get_schedule_returns_list():
 
 
 @pytest.mark.asyncio
-async def test_admin_update_schedule_replaces_items():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.put(
-                f"{BASE}/newsletter/admin/schedule",
-                json=_SCHEDULE_PAYLOAD,
-                headers={"x-admin-key": "test-secret-key"},
-            )
+async def test_admin_update_schedule_replaces_items(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.put(
+            f"{BASE}/newsletter/admin/schedule",
+            json=_SCHEDULE_PAYLOAD,
+            headers=entetes_admin,
+        )
     assert r.status_code == 200
     data = r.json()
     assert len(data) == 2
@@ -390,26 +373,26 @@ async def test_admin_update_schedule_replaces_items():
 
 
 @pytest.mark.asyncio
-async def test_admin_update_schedule_no_key_returns_403():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.put(f"{BASE}/newsletter/admin/schedule", json=_SCHEDULE_PAYLOAD)
-    assert r.status_code == 403
+# Sans authentification, ce n'est plus une cle absente (403) mais une
+# identite absente (401) : le back-office ne connait plus de porte anonyme.
+async def test_admin_update_schedule_sans_authentification_401():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.put(f"{BASE}/newsletter/admin/schedule", json=_SCHEDULE_PAYLOAD)
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_admin_update_schedule_duplicate_positions_returns_422():
+async def test_admin_update_schedule_duplicate_positions_returns_422(entetes_admin):
     bad_payload = [
         {**_SCHEDULE_PAYLOAD[0]},
         {**_SCHEDULE_PAYLOAD[0], "actu_title": "Duplicate"},  # same position=1
     ]
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.put(
-                f"{BASE}/newsletter/admin/schedule",
-                json=bad_payload,
-                headers={"x-admin-key": "test-secret-key"},
-            )
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.put(
+            f"{BASE}/newsletter/admin/schedule",
+            json=bad_payload,
+            headers=entetes_admin,
+        )
     assert r.status_code == 422
 
 
@@ -417,78 +400,77 @@ async def test_admin_update_schedule_duplicate_positions_returns_422():
 
 
 @pytest.mark.asyncio
-async def test_admin_send_from_schedule_no_items_returns_400():
+async def test_admin_send_from_schedule_no_items_returns_400(entetes_admin):
     """Empty schedule → 400."""
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.post(
-                f"{BASE}/newsletter/admin/send-from-schedule",
-                json={"edition": 42},
-                headers={"x-admin-key": "test-secret-key"},
-            )
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.post(
+            f"{BASE}/newsletter/admin/send-from-schedule",
+            json={"edition": 42},
+            headers=entetes_admin,
+        )
     assert r.status_code == 400
     assert "planning" in r.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
-async def test_admin_send_from_schedule_with_items_returns_sent():
+async def test_admin_send_from_schedule_with_items_returns_sent(entetes_admin):
     """Populate schedule first, then send — returns count (0 if no active subscribers)."""
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await c.put(
-                f"{BASE}/newsletter/admin/schedule",
-                json=_SCHEDULE_PAYLOAD,
-                headers={"x-admin-key": "test-secret-key"},
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        await c.put(
+            f"{BASE}/newsletter/admin/schedule",
+            json=_SCHEDULE_PAYLOAD,
+            headers=entetes_admin,
+        )
+        with patch("app.api.v1.endpoints.newsletter.send_newsletter_articles"):
+            r = await c.post(
+                f"{BASE}/newsletter/admin/send-from-schedule",
+                json={"edition": 7},
+                headers=entetes_admin,
             )
-            with patch("app.api.v1.endpoints.newsletter.send_newsletter_articles"):
-                r = await c.post(
-                    f"{BASE}/newsletter/admin/send-from-schedule",
-                    json={"edition": 7},
-                    headers={"x-admin-key": "test-secret-key"},
-                )
     assert r.status_code == 200
     assert "sent" in r.json()
     assert r.json()["sent"] >= 0
 
 
 @pytest.mark.asyncio
-async def test_admin_send_from_schedule_no_key_returns_403():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.post(f"{BASE}/newsletter/admin/send-from-schedule", json={"edition": 1})
-    assert r.status_code == 403
+# Sans authentification, ce n'est plus une cle absente (403) mais une
+# identite absente (401) : le back-office ne connait plus de porte anonyme.
+async def test_admin_send_from_schedule_sans_authentification_401():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.post(f"{BASE}/newsletter/admin/send-from-schedule", json={"edition": 1})
+    assert r.status_code == 401
 
 
 # ── OG image ───────────────────────────────────────────────────────────────────
 
 
 @pytest.mark.asyncio
-async def test_admin_og_image_no_key_returns_403():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/newsletter/admin/og-image?url=https://example.com")
-    assert r.status_code == 403
+# Sans authentification, ce n'est plus une cle absente (403) mais une
+# identite absente (401) : le back-office ne connait plus de porte anonyme.
+async def test_admin_og_image_sans_authentification_401():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/newsletter/admin/og-image?url=https://example.com")
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_admin_og_image_returns_null_on_exception():
+async def test_admin_og_image_returns_null_on_exception(entetes_admin):
     """SSRF block or network error → {"image_url": null}, not 500."""
-    with _admin_settings():
-        with patch(
-            "app.api.v1.endpoints.newsletter.assert_no_ssrf",
-            side_effect=Exception("blocked"),
-        ):
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-                r = await c.get(
-                    f"{BASE}/newsletter/admin/og-image?url=https://example.com",
-                    headers={"x-admin-key": "test-secret-key"},
-                )
+    with patch(
+        "app.api.v1.endpoints.newsletter.assert_no_ssrf",
+        side_effect=Exception("blocked"),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.get(
+                f"{BASE}/newsletter/admin/og-image?url=https://example.com",
+                headers=entetes_admin,
+            )
     assert r.status_code == 200
     assert r.json() == {"image_url": None}
 
 
 @pytest.mark.asyncio
-async def test_admin_og_image_returns_image_url_from_og_tag():
+async def test_admin_og_image_returns_image_url_from_og_tag(entetes_admin):
     """When page contains og:image, return the URL."""
     from unittest.mock import AsyncMock
 
@@ -506,19 +488,16 @@ async def test_admin_og_image_returns_image_url_from_og_tag():
     mock_ctx.__aenter__ = AsyncMock(return_value=mock_http)
     mock_ctx.__aexit__ = AsyncMock(return_value=False)
 
-    with _admin_settings():
-        with patch("app.api.v1.endpoints.newsletter.assert_no_ssrf"):
-            with patch(
-                "app.api.v1.endpoints.newsletter.httpx.AsyncClient",
-                return_value=mock_ctx,
-            ):
-                async with AsyncClient(
-                    transport=ASGITransport(app=app), base_url="http://test"
-                ) as c:
-                    r = await c.get(
-                        f"{BASE}/newsletter/admin/og-image?url=https://example.com",
-                        headers={"x-admin-key": "test-secret-key"},
-                    )
+    with patch("app.api.v1.endpoints.newsletter.assert_no_ssrf"):
+        with patch(
+            "app.api.v1.endpoints.newsletter.httpx.AsyncClient",
+            return_value=mock_ctx,
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+                r = await c.get(
+                    f"{BASE}/newsletter/admin/og-image?url=https://example.com",
+                    headers=entetes_admin,
+                )
     assert r.status_code == 200
     assert r.json()["image_url"] == "https://example.com/thumb.jpg"
 
@@ -527,14 +506,13 @@ async def test_admin_og_image_returns_image_url_from_og_tag():
 
 
 @pytest.mark.asyncio
-async def test_admin_get_newsletter_content_returns_default():
+async def test_admin_get_newsletter_content_returns_default(entetes_admin):
     """No setting in DB → returns built-in default content."""
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(
-                f"{BASE}/newsletter/admin/content",
-                headers={"x-admin-key": "test-secret-key"},
-            )
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(
+            f"{BASE}/newsletter/admin/content",
+            headers=entetes_admin,
+        )
     assert r.status_code == 200
     data = r.json()
     assert "flash_title" in data
@@ -543,7 +521,7 @@ async def test_admin_get_newsletter_content_returns_default():
 
 
 @pytest.mark.asyncio
-async def test_admin_update_newsletter_content_saves_and_returns():
+async def test_admin_update_newsletter_content_saves_and_returns(entetes_admin):
     payload = {
         "flash_title": "Test Flash",
         "flash_body": "Corps du flash test.",
@@ -552,13 +530,12 @@ async def test_admin_update_newsletter_content_saves_and_returns():
         "legal_title": "Test Legal",
         "legal_body": "Corps legal test.",
     }
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.put(
-                f"{BASE}/newsletter/admin/content",
-                json=payload,
-                headers={"x-admin-key": "test-secret-key"},
-            )
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.put(
+            f"{BASE}/newsletter/admin/content",
+            json=payload,
+            headers=entetes_admin,
+        )
     assert r.status_code == 200
     assert r.json()["flash_title"] == "Test Flash"
     assert r.json()["reflex_body"] == "Corps du reflex test."

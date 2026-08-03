@@ -14,7 +14,6 @@ Targets branches NOT exercised by test_newsletter.py:
 All email senders and outbound HTTP are mocked; nothing hits the network.
 """
 
-from contextlib import contextmanager
 from datetime import UTC, datetime
 from unittest.mock import DEFAULT, AsyncMock, MagicMock, patch
 
@@ -40,18 +39,6 @@ def _no_email():
         send_newsletter_welcome=DEFAULT,
         send_unsubscribe_confirmation=DEFAULT,
     )
-
-
-@contextmanager
-def _admin_settings():
-    mock = MagicMock()
-    mock.ADMIN_API_KEY = "test-secret-key"
-    mock.FRONTEND_URL = "http://localhost:4200"
-    with (
-        patch("app.api.v1.endpoints.newsletter.settings", mock),
-        patch("app.core.deps.settings", mock),
-    ):
-        yield
 
 
 def _session_local():
@@ -88,14 +75,11 @@ async def _seed_subscriber(
         await db.commit()
 
 
-_ADMIN_HEADERS = {"x-admin-key": "test-secret-key"}
-
-
 # ── admin/send-issue with active subscribers (count > 0) ───────────────────────
 
 
 @pytest.mark.asyncio
-async def test_admin_send_issue_queues_one_task_per_active_subscriber():
+async def test_admin_send_issue_queues_one_task_per_active_subscriber(entetes_admin):
     await _seed_subscriber("iss1@test.com", is_active=True, confirmed=True)
     await _seed_subscriber("iss2@test.com", is_active=True, confirmed=True)
     # An inactive subscriber must NOT receive the issue.
@@ -110,14 +94,13 @@ async def test_admin_send_issue_queues_one_task_per_active_subscriber():
         "legal_title": "L",
         "legal_body": "LB",
     }
-    with _admin_settings():
-        with patch("app.api.v1.endpoints.newsletter.send_newsletter_issue") as mock_send:
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-                r = await c.post(
-                    f"{BASE}/newsletter/admin/send-issue",
-                    json=payload,
-                    headers=_ADMIN_HEADERS,
-                )
+    with patch("app.api.v1.endpoints.newsletter.send_newsletter_issue") as mock_send:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.post(
+                f"{BASE}/newsletter/admin/send-issue",
+                json=payload,
+                headers=entetes_admin,
+            )
     assert r.status_code == 200
     assert r.json()["sent"] == 2
     assert mock_send.call_count == 2
@@ -129,7 +112,7 @@ async def test_admin_send_issue_queues_one_task_per_active_subscriber():
 
 
 @pytest.mark.asyncio
-async def test_admin_send_from_schedule_queues_per_active_subscriber():
+async def test_admin_send_from_schedule_queues_per_active_subscriber(entetes_admin):
     schedule = [
         {
             "position": 1,
@@ -143,19 +126,18 @@ async def test_admin_send_from_schedule_queues_per_active_subscriber():
     await _seed_subscriber("sched2@test.com", is_active=True, confirmed=True)
     await _seed_subscriber("schedoff@test.com", is_active=False, confirmed=True)
 
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await c.put(
-                f"{BASE}/newsletter/admin/schedule",
-                json=schedule,
-                headers=_ADMIN_HEADERS,
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        await c.put(
+            f"{BASE}/newsletter/admin/schedule",
+            json=schedule,
+            headers=entetes_admin,
+        )
+        with patch("app.api.v1.endpoints.newsletter.send_newsletter_articles") as mock_send:
+            r = await c.post(
+                f"{BASE}/newsletter/admin/send-from-schedule",
+                json={"edition": 9},
+                headers=entetes_admin,
             )
-            with patch("app.api.v1.endpoints.newsletter.send_newsletter_articles") as mock_send:
-                r = await c.post(
-                    f"{BASE}/newsletter/admin/send-from-schedule",
-                    json={"edition": 9},
-                    headers=_ADMIN_HEADERS,
-                )
     assert r.status_code == 200
     assert r.json()["sent"] == 2
     assert mock_send.call_count == 2
@@ -169,15 +151,14 @@ async def test_admin_send_from_schedule_queues_per_active_subscriber():
 
 
 @pytest.mark.asyncio
-async def test_admin_stats_counts_active_pending_and_inactive():
+async def test_admin_stats_counts_active_pending_and_inactive(entetes_admin):
     await _seed_subscriber("act@test.com", is_active=True, confirmed=True)
     await _seed_subscriber("pend@test.com", is_active=False, confirmed=False, pending_token=True)
     # Inactive with no confirmation token (unsubscribed) — neither active nor pending.
     await _seed_subscriber("gone@test.com", is_active=False, confirmed=True)
 
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/newsletter/admin/stats", headers=_ADMIN_HEADERS)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/newsletter/admin/stats", headers=entetes_admin)
     assert r.status_code == 200
     data = r.json()
     assert data["total"] == 3
@@ -189,7 +170,7 @@ async def test_admin_stats_counts_active_pending_and_inactive():
 
 
 @pytest.mark.asyncio
-async def test_admin_subscribers_pagination_and_ordering():
+async def test_admin_subscribers_pagination_and_ordering(entetes_admin):
     # subscribed_at ordered desc → most recent first.
     async with _session_local()() as db:
         for i in range(3):
@@ -203,13 +184,12 @@ async def test_admin_subscribers_pagination_and_ordering():
             )
         await db.commit()
 
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r_all = await c.get(f"{BASE}/newsletter/admin/subscribers", headers=_ADMIN_HEADERS)
-            r_page = await c.get(
-                f"{BASE}/newsletter/admin/subscribers?skip=1&limit=1",
-                headers=_ADMIN_HEADERS,
-            )
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r_all = await c.get(f"{BASE}/newsletter/admin/subscribers", headers=entetes_admin)
+        r_page = await c.get(
+            f"{BASE}/newsletter/admin/subscribers?skip=1&limit=1",
+            headers=entetes_admin,
+        )
     assert r_all.status_code == 200
     emails = [s["email"] for s in r_all.json()]
     assert emails == ["page2@test.com", "page1@test.com", "page0@test.com"]
@@ -221,22 +201,22 @@ async def test_admin_subscribers_pagination_and_ordering():
 
 
 @pytest.mark.asyncio
-async def test_admin_subscribers_invalid_limit_returns_422():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(
-                f"{BASE}/newsletter/admin/subscribers?limit=9999",
-                headers=_ADMIN_HEADERS,
-            )
+async def test_admin_subscribers_invalid_limit_returns_422(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(
+            f"{BASE}/newsletter/admin/subscribers?limit=9999",
+            headers=entetes_admin,
+        )
     assert r.status_code == 422
 
 
 @pytest.mark.asyncio
-async def test_admin_subscribers_no_key_returns_403():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/newsletter/admin/subscribers")
-    assert r.status_code == 403
+# Sans authentification, ce n'est plus une cle absente (403) mais une
+# identite absente (401) : le back-office ne connait plus de porte anonyme.
+async def test_admin_subscribers_sans_authentification_401():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/newsletter/admin/subscribers")
+    assert r.status_code == 401
 
 
 # ── get content — corrupted JSON falls back to default ─────────────────────────
@@ -271,27 +251,28 @@ async def test_admin_get_newsletter_content_empty_value_text_returns_default():
 
 
 @pytest.mark.asyncio
-async def test_admin_content_no_key_returns_403():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r_get = await c.get(f"{BASE}/newsletter/admin/content")
-            r_put = await c.put(
-                f"{BASE}/newsletter/admin/content",
-                json={
-                    "flash_title": "a",
-                    "flash_body": "b",
-                    "reflex_title": "c",
-                    "reflex_body": "d",
-                    "legal_title": "e",
-                    "legal_body": "f",
-                },
-            )
-    assert r_get.status_code == 403
-    assert r_put.status_code == 403
+# Sans authentification, ce n'est plus une cle absente (403) mais une
+# identite absente (401) : le back-office ne connait plus de porte anonyme.
+async def test_admin_content_sans_authentification_401():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r_get = await c.get(f"{BASE}/newsletter/admin/content")
+        r_put = await c.put(
+            f"{BASE}/newsletter/admin/content",
+            json={
+                "flash_title": "a",
+                "flash_body": "b",
+                "reflex_title": "c",
+                "reflex_body": "d",
+                "legal_title": "e",
+                "legal_body": "f",
+            },
+        )
+    assert r_get.status_code == 401
+    assert r_put.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_admin_update_content_updates_existing_row():
+async def test_admin_update_content_updates_existing_row(entetes_admin):
     """Second PUT hits the 'setting is not None' branch (update, not insert)."""
     first = {
         "flash_title": "v1",
@@ -302,13 +283,10 @@ async def test_admin_update_content_updates_existing_row():
         "legal_body": "lb1",
     }
     second = {**first, "flash_title": "v2"}
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            await c.put(f"{BASE}/newsletter/admin/content", json=first, headers=_ADMIN_HEADERS)
-            r2 = await c.put(
-                f"{BASE}/newsletter/admin/content", json=second, headers=_ADMIN_HEADERS
-            )
-            r_get = await c.get(f"{BASE}/newsletter/admin/content", headers=_ADMIN_HEADERS)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        await c.put(f"{BASE}/newsletter/admin/content", json=first, headers=entetes_admin)
+        r2 = await c.put(f"{BASE}/newsletter/admin/content", json=second, headers=entetes_admin)
+        r_get = await c.get(f"{BASE}/newsletter/admin/content", headers=entetes_admin)
     assert r2.status_code == 200
     assert r_get.json()["flash_title"] == "v2"
 
@@ -317,15 +295,14 @@ async def test_admin_update_content_updates_existing_row():
 
 
 @pytest.mark.asyncio
-async def test_admin_update_schedule_empty_list_returns_422():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.put(f"{BASE}/newsletter/admin/schedule", json=[], headers=_ADMIN_HEADERS)
+async def test_admin_update_schedule_empty_list_returns_422(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.put(f"{BASE}/newsletter/admin/schedule", json=[], headers=entetes_admin)
     assert r.status_code == 422
 
 
 @pytest.mark.asyncio
-async def test_admin_update_schedule_too_many_items_returns_422():
+async def test_admin_update_schedule_too_many_items_returns_422(entetes_admin):
     items = [
         {
             "position": i,
@@ -336,9 +313,8 @@ async def test_admin_update_schedule_too_many_items_returns_422():
         }
         for i in range(1, 8)  # 7 items > 6
     ]
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.put(f"{BASE}/newsletter/admin/schedule", json=items, headers=_ADMIN_HEADERS)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.put(f"{BASE}/newsletter/admin/schedule", json=items, headers=entetes_admin)
     assert r.status_code == 422
 
 
@@ -374,31 +350,28 @@ def _mock_httpx_client(resp):
 
 
 @pytest.mark.asyncio
-async def test_admin_og_image_no_meta_tag_returns_none():
+async def test_admin_og_image_no_meta_tag_returns_none(entetes_admin):
     resp = MagicMock()
     resp.is_redirect = False
     resp.text = "<html><head><title>No og image here</title></head></html>"
     resp.url = "https://example.com"
 
-    with _admin_settings():
-        with patch("app.api.v1.endpoints.newsletter.assert_no_ssrf"):
-            with patch(
-                "app.api.v1.endpoints.newsletter.httpx.AsyncClient",
-                return_value=_mock_httpx_client(resp),
-            ):
-                async with AsyncClient(
-                    transport=ASGITransport(app=app), base_url="http://test"
-                ) as c:
-                    r = await c.get(
-                        f"{BASE}/newsletter/admin/og-image?url=https://example.com",
-                        headers=_ADMIN_HEADERS,
-                    )
+    with patch("app.api.v1.endpoints.newsletter.assert_no_ssrf"):
+        with patch(
+            "app.api.v1.endpoints.newsletter.httpx.AsyncClient",
+            return_value=_mock_httpx_client(resp),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+                r = await c.get(
+                    f"{BASE}/newsletter/admin/og-image?url=https://example.com",
+                    headers=entetes_admin,
+                )
     assert r.status_code == 200
     assert r.json() == {"image_url": None}
 
 
 @pytest.mark.asyncio
-async def test_admin_og_image_reverse_order_and_relative_root_url():
+async def test_admin_og_image_reverse_order_and_relative_root_url(entetes_admin):
     """content=... before property=og:image, and a root-relative image path."""
     html = '<meta content="/static/thumb.png" property="og:image">'
     resp = MagicMock()
@@ -406,25 +379,22 @@ async def test_admin_og_image_reverse_order_and_relative_root_url():
     resp.text = html
     resp.url = "https://cdn.example.com/article"
 
-    with _admin_settings():
-        with patch("app.api.v1.endpoints.newsletter.assert_no_ssrf"):
-            with patch(
-                "app.api.v1.endpoints.newsletter.httpx.AsyncClient",
-                return_value=_mock_httpx_client(resp),
-            ):
-                async with AsyncClient(
-                    transport=ASGITransport(app=app), base_url="http://test"
-                ) as c:
-                    r = await c.get(
-                        f"{BASE}/newsletter/admin/og-image?url=https://cdn.example.com/article",
-                        headers=_ADMIN_HEADERS,
-                    )
+    with patch("app.api.v1.endpoints.newsletter.assert_no_ssrf"):
+        with patch(
+            "app.api.v1.endpoints.newsletter.httpx.AsyncClient",
+            return_value=_mock_httpx_client(resp),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+                r = await c.get(
+                    f"{BASE}/newsletter/admin/og-image?url=https://cdn.example.com/article",
+                    headers=entetes_admin,
+                )
     assert r.status_code == 200
     assert r.json()["image_url"] == "https://cdn.example.com/static/thumb.png"
 
 
 @pytest.mark.asyncio
-async def test_admin_og_image_protocol_relative_url():
+async def test_admin_og_image_protocol_relative_url(entetes_admin):
     """A // protocol-relative og:image gets an https: prefix."""
     html = '<meta property="og:image" content="//cdn.example.com/pic.jpg" />'
     resp = MagicMock()
@@ -432,25 +402,22 @@ async def test_admin_og_image_protocol_relative_url():
     resp.text = html
     resp.url = "https://example.com/page"
 
-    with _admin_settings():
-        with patch("app.api.v1.endpoints.newsletter.assert_no_ssrf"):
-            with patch(
-                "app.api.v1.endpoints.newsletter.httpx.AsyncClient",
-                return_value=_mock_httpx_client(resp),
-            ):
-                async with AsyncClient(
-                    transport=ASGITransport(app=app), base_url="http://test"
-                ) as c:
-                    r = await c.get(
-                        f"{BASE}/newsletter/admin/og-image?url=https://example.com/page",
-                        headers=_ADMIN_HEADERS,
-                    )
+    with patch("app.api.v1.endpoints.newsletter.assert_no_ssrf"):
+        with patch(
+            "app.api.v1.endpoints.newsletter.httpx.AsyncClient",
+            return_value=_mock_httpx_client(resp),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+                r = await c.get(
+                    f"{BASE}/newsletter/admin/og-image?url=https://example.com/page",
+                    headers=entetes_admin,
+                )
     assert r.status_code == 200
     assert r.json()["image_url"] == "https://cdn.example.com/pic.jpg"
 
 
 @pytest.mark.asyncio
-async def test_admin_og_image_follows_redirect():
+async def test_admin_og_image_follows_redirect(entetes_admin):
     """First response is a redirect -> a second client fetches the location."""
     redirect_resp = MagicMock()
     redirect_resp.is_redirect = True
@@ -463,18 +430,15 @@ async def test_admin_og_image_follows_redirect():
 
     clients = [_mock_httpx_client(redirect_resp), _mock_httpx_client(final_resp)]
 
-    with _admin_settings():
-        with patch("app.api.v1.endpoints.newsletter.assert_no_ssrf"):
-            with patch(
-                "app.api.v1.endpoints.newsletter.httpx.AsyncClient",
-                side_effect=lambda *a, **k: clients.pop(0),
-            ):
-                async with AsyncClient(
-                    transport=ASGITransport(app=app), base_url="http://test"
-                ) as c:
-                    r = await c.get(
-                        f"{BASE}/newsletter/admin/og-image?url=https://example.com/start",
-                        headers=_ADMIN_HEADERS,
-                    )
+    with patch("app.api.v1.endpoints.newsletter.assert_no_ssrf"):
+        with patch(
+            "app.api.v1.endpoints.newsletter.httpx.AsyncClient",
+            side_effect=lambda *a, **k: clients.pop(0),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+                r = await c.get(
+                    f"{BASE}/newsletter/admin/og-image?url=https://example.com/start",
+                    headers=entetes_admin,
+                )
     assert r.status_code == 200
     assert r.json()["image_url"] == "https://final.example.com/i.png"

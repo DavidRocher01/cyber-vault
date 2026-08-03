@@ -1,13 +1,12 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { AdminAuthService } from './admin-auth.service';
 
 @Component({
   standalone: true,
   selector: 'app-admin-shell',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, ReactiveFormsModule, MatIconModule],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, MatIconModule],
   template: `
     @if (auth.verificationEnCours()) {
       <!-- Sans cet etat, l'ecran de cle s'afficherait une fraction de seconde
@@ -17,41 +16,22 @@ import { AdminAuthService } from './admin-auth.service';
       </div>
     } @else if (!auth.authenticated()) {
       <div class="min-h-screen bg-gray-950 flex items-center justify-center px-4">
-        <form
-          [formGroup]="keyForm"
-          (ngSubmit)="login()"
-          class="bg-gray-800/50 border border-gray-700 rounded-2xl p-8 w-full max-w-sm space-y-4"
+        <div
+          class="bg-gray-800/50 border border-gray-700 rounded-2xl p-8 w-full max-w-sm text-center"
         >
-          <div class="flex items-center gap-2 mb-2">
-            <mat-icon class="text-cyan-400">admin_panel_settings</mat-icon>
-            <h1 class="text-white font-bold text-lg">Administration Rocher Cybersécurité</h1>
-          </div>
-          <p class="text-gray-500 text-xs leading-relaxed">
-            Connectez-vous avec un compte administrateur pour accéder au back-office. La clé
-            ci-dessous est un accès de secours, appelé à disparaître.
+          <mat-icon class="text-cyan-400 !h-8 !w-8 text-3xl">admin_panel_settings</mat-icon>
+          <h1 class="text-white font-bold text-lg mt-3">Administration</h1>
+          <p class="text-gray-500 text-sm mt-2 leading-relaxed">
+            Cet espace est réservé aux comptes administrateurs. Connectez-vous avec un compte
+            disposant de ce droit.
           </p>
-          <input
-            formControlName="key"
-            type="password"
-            placeholder="Clé admin"
-            class="w-full px-4 py-2.5 rounded-lg bg-gray-900 border text-white text-sm outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
-            [class.border-gray-600]="!(keyForm.get('key')?.invalid && keyForm.get('key')?.touched)"
-            [class.border-red-500]="keyForm.get('key')?.invalid && keyForm.get('key')?.touched"
-          />
-          @if (keyForm.get('key')?.invalid && keyForm.get('key')?.touched) {
-            <p class="mt-1 text-xs text-red-400">La clé est requise.</p>
-          }
-          @if (authError()) {
-            <p class="text-red-400 text-sm">{{ authError() }}</p>
-          }
-          <button
-            type="submit"
-            [disabled]="verifying()"
-            class="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm transition-all disabled:opacity-50"
+          <a
+            routerLink="/auth"
+            class="inline-block mt-5 px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm transition-colors"
           >
-            {{ verifying() ? 'Vérification...' : 'Connexion' }}
-          </button>
-        </form>
+            Se connecter
+          </a>
+        </div>
       </div>
     } @else {
       <div class="min-h-screen bg-gray-950 flex">
@@ -77,11 +57,6 @@ import { AdminAuthService } from './admin-auth.service';
             }
           </nav>
           <div class="px-3 py-4 border-t border-gray-800 space-y-1">
-            @if (auth.parCompte()) {
-              <p class="px-3 pb-2 text-[11px] text-gray-600 leading-relaxed">
-                Connecté par compte administrateur
-              </p>
-            }
             <button
               type="button"
               (click)="auth.logout()"
@@ -103,12 +78,6 @@ import { AdminAuthService } from './admin-auth.service';
 })
 export class AdminShellComponent implements OnInit {
   auth = inject(AdminAuthService);
-  private fb = inject(FormBuilder);
-
-  verifying = signal(false);
-  authError = signal('');
-
-  keyForm = this.fb.group({ key: ['', Validators.required] });
 
   ngOnInit(): void {
     // Un compte administrateur entre sans rien saisir. Un echec n'est pas une
@@ -133,24 +102,4 @@ export class AdminShellComponent implements OnInit {
     { path: '/admin/ba61c5a60113/agenda', label: 'Agenda', icon: 'calendar_month', exact: false },
     { path: '/admin/newsletter', label: 'Newsletter', icon: 'mail', exact: false },
   ];
-
-  login() {
-    if (this.keyForm.invalid) {
-      this.keyForm.markAllAsTouched();
-      return;
-    }
-    const key = this.keyForm.value.key ?? '';
-    this.authError.set('');
-    this.verifying.set(true);
-    this.auth.verify(key).subscribe({
-      next: () => {
-        this.auth.login(key);
-        this.verifying.set(false);
-      },
-      error: () => {
-        this.authError.set('Clé admin incorrecte.');
-        this.verifying.set(false);
-      },
-    });
-  }
 }

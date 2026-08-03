@@ -3,8 +3,7 @@ Integration tests — /api/v1/admin/quotes
 Covers: auth guard, create quote, list quotes, PDF download (404 + success).
 """
 
-from contextlib import contextmanager
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -12,14 +11,6 @@ from httpx import ASGITransport, AsyncClient
 from app.main import app
 
 BASE = "/api/v1"
-
-
-@contextmanager
-def _admin_settings():
-    mock = MagicMock()
-    mock.ADMIN_API_KEY = "test-admin-key"
-    with patch("app.api.v1.endpoints.admin_quotes.settings", mock):
-        yield
 
 
 _QUOTE_PAYLOAD = {
@@ -39,18 +30,18 @@ _QUOTE_PAYLOAD = {
 
 
 @pytest.mark.asyncio
-async def test_admin_quotes_no_key_returns_403():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/admin/quotes")
-    assert r.status_code == 403
+# Sans authentification, ce n'est plus une cle absente (403) mais une
+# identite absente (401) : le back-office ne connait plus de porte anonyme.
+async def test_admin_quotes_sans_authentification_401():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/admin/quotes")
+    assert r.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_admin_quotes_wrong_key_returns_403():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/admin/quotes", headers={"x-admin-key": "wrong"})
+async def test_admin_quotes_wrong_key_returns_403(entetes_non_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/admin/quotes", headers=entetes_non_admin)
     assert r.status_code == 403
 
 
@@ -58,10 +49,9 @@ async def test_admin_quotes_wrong_key_returns_403():
 
 
 @pytest.mark.asyncio
-async def test_admin_list_quotes_empty_returns_list():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(f"{BASE}/admin/quotes", headers={"x-admin-key": "test-admin-key"})
+async def test_admin_list_quotes_empty_returns_list(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(f"{BASE}/admin/quotes", headers=entetes_admin)
     assert r.status_code == 200
     assert isinstance(r.json(), list)
 
@@ -70,15 +60,14 @@ async def test_admin_list_quotes_empty_returns_list():
 
 
 @pytest.mark.asyncio
-async def test_admin_create_quote_returns_201():
-    with _admin_settings():
-        with patch("app.api.v1.endpoints.admin_quotes.send_quote_by_email"):
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-                r = await c.post(
-                    f"{BASE}/admin/quotes",
-                    json=_QUOTE_PAYLOAD,
-                    headers={"x-admin-key": "test-admin-key"},
-                )
+async def test_admin_create_quote_returns_201(entetes_admin):
+    with patch("app.api.v1.endpoints.admin_quotes.send_quote_by_email"):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.post(
+                f"{BASE}/admin/quotes",
+                json=_QUOTE_PAYLOAD,
+                headers=entetes_admin,
+            )
     assert r.status_code == 201
     data = r.json()
     assert data["client_name"] == "Acme Corp"
@@ -89,61 +78,57 @@ async def test_admin_create_quote_returns_201():
 
 
 @pytest.mark.asyncio
-async def test_admin_create_quote_appears_in_list():
-    with _admin_settings():
-        with patch("app.api.v1.endpoints.admin_quotes.send_quote_by_email"):
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-                await c.post(
-                    f"{BASE}/admin/quotes",
-                    json=_QUOTE_PAYLOAD,
-                    headers={"x-admin-key": "test-admin-key"},
-                )
-                r = await c.get(f"{BASE}/admin/quotes", headers={"x-admin-key": "test-admin-key"})
+async def test_admin_create_quote_appears_in_list(entetes_admin):
+    with patch("app.api.v1.endpoints.admin_quotes.send_quote_by_email"):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            await c.post(
+                f"{BASE}/admin/quotes",
+                json=_QUOTE_PAYLOAD,
+                headers=entetes_admin,
+            )
+            r = await c.get(f"{BASE}/admin/quotes", headers=entetes_admin)
     assert r.status_code == 200
     assert len(r.json()) >= 1
     assert any(q["client_name"] == "Acme Corp" for q in r.json())
 
 
 @pytest.mark.asyncio
-async def test_admin_create_quote_invalid_items_returns_422():
+async def test_admin_create_quote_invalid_items_returns_422(entetes_admin):
     """Empty items list → 422 from field validator."""
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.post(
-                f"{BASE}/admin/quotes",
-                json={**_QUOTE_PAYLOAD, "items": []},
-                headers={"x-admin-key": "test-admin-key"},
-            )
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.post(
+            f"{BASE}/admin/quotes",
+            json={**_QUOTE_PAYLOAD, "items": []},
+            headers=entetes_admin,
+        )
     assert r.status_code == 422
 
 
 @pytest.mark.asyncio
-async def test_admin_create_quote_negative_quantity_returns_422():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.post(
-                f"{BASE}/admin/quotes",
-                json={
-                    **_QUOTE_PAYLOAD,
-                    "items": [{"description": "Bad", "quantity": 0, "unit_price_cents": 1000}],
-                },
-                headers={"x-admin-key": "test-admin-key"},
-            )
+async def test_admin_create_quote_negative_quantity_returns_422(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.post(
+            f"{BASE}/admin/quotes",
+            json={
+                **_QUOTE_PAYLOAD,
+                "items": [{"description": "Bad", "quantity": 0, "unit_price_cents": 1000}],
+            },
+            headers=entetes_admin,
+        )
     assert r.status_code == 422
 
 
 @pytest.mark.asyncio
-async def test_admin_create_quote_negative_price_returns_422():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.post(
-                f"{BASE}/admin/quotes",
-                json={
-                    **_QUOTE_PAYLOAD,
-                    "items": [{"description": "Bad", "quantity": 1, "unit_price_cents": -1}],
-                },
-                headers={"x-admin-key": "test-admin-key"},
-            )
+async def test_admin_create_quote_negative_price_returns_422(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.post(
+            f"{BASE}/admin/quotes",
+            json={
+                **_QUOTE_PAYLOAD,
+                "items": [{"description": "Bad", "quantity": 1, "unit_price_cents": -1}],
+            },
+            headers=entetes_admin,
+        )
     assert r.status_code == 422
 
 
@@ -151,37 +136,33 @@ async def test_admin_create_quote_negative_price_returns_422():
 
 
 @pytest.mark.asyncio
-async def test_admin_download_quote_pdf_not_found_returns_404():
-    with _admin_settings():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-            r = await c.get(
-                f"{BASE}/admin/quotes/99999/pdf",
-                headers={"x-admin-key": "test-admin-key"},
-            )
+async def test_admin_download_quote_pdf_not_found_returns_404(entetes_admin):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.get(
+            f"{BASE}/admin/quotes/99999/pdf",
+            headers=entetes_admin,
+        )
     assert r.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_admin_download_quote_pdf_returns_pdf():
-    with _admin_settings():
-        with patch("app.api.v1.endpoints.admin_quotes.send_quote_by_email"):
-            with patch(
-                "app.api.v1.endpoints.admin_quotes.generate_quote_pdf",
-                return_value=b"%PDF-1.4 fake",
-            ):
-                async with AsyncClient(
-                    transport=ASGITransport(app=app), base_url="http://test"
-                ) as c:
-                    created = await c.post(
-                        f"{BASE}/admin/quotes",
-                        json=_QUOTE_PAYLOAD,
-                        headers={"x-admin-key": "test-admin-key"},
-                    )
-                    quote_id = created.json()["id"]
-                    r = await c.get(
-                        f"{BASE}/admin/quotes/{quote_id}/pdf",
-                        headers={"x-admin-key": "test-admin-key"},
-                    )
+async def test_admin_download_quote_pdf_returns_pdf(entetes_admin):
+    with patch("app.api.v1.endpoints.admin_quotes.send_quote_by_email"):
+        with patch(
+            "app.api.v1.endpoints.admin_quotes.generate_quote_pdf",
+            return_value=b"%PDF-1.4 fake",
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+                created = await c.post(
+                    f"{BASE}/admin/quotes",
+                    json=_QUOTE_PAYLOAD,
+                    headers=entetes_admin,
+                )
+                quote_id = created.json()["id"]
+                r = await c.get(
+                    f"{BASE}/admin/quotes/{quote_id}/pdf",
+                    headers=entetes_admin,
+                )
     assert r.status_code == 200
     assert r.headers["content-type"] == "application/pdf"
     assert "attachment" in r.headers["content-disposition"]

@@ -54,15 +54,13 @@ export class AdminBlogComponent implements OnInit {
   }
 
   load() {
-    this.http
-      .get<BlogPost[]>('/api/v1/blog/admin/articles', { headers: this.auth.headers() })
-      .subscribe({
-        next: a => {
-          this.articles.set(a);
-          this.loading.set(false);
-        },
-        error: () => this.loading.set(false),
-      });
+    this.http.get<BlogPost[]>('/api/v1/blog/admin/articles').subscribe({
+      next: a => {
+        this.articles.set(a);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false),
+    });
   }
 
   openNew() {
@@ -77,26 +75,22 @@ export class AdminBlogComponent implements OnInit {
     this.editingSlug.set(article.slug);
     this.saveMsg.set('');
     this.saveError.set('');
-    this.http
-      .get<BlogPost>(`/api/v1/blog/admin/articles/${article.slug}`, {
-        headers: this.auth.headers(),
-      })
-      .subscribe({
-        next: a => {
-          this.form.setValue({
-            slug: a.slug,
-            title: a.title,
-            description: a.description,
-            date: a.date,
-            readTime: a.readTime,
-            category: a.category,
-            tags: a.tags.join(', '),
-            htmlContent: a.htmlContent ?? '',
-            isPublished: a.isPublished,
-          });
-          this.view.set('edit');
-        },
-      });
+    this.http.get<BlogPost>(`/api/v1/blog/admin/articles/${article.slug}`, {}).subscribe({
+      next: a => {
+        this.form.setValue({
+          slug: a.slug,
+          title: a.title,
+          description: a.description,
+          date: a.date,
+          readTime: a.readTime,
+          category: a.category,
+          tags: a.tags.join(', '),
+          htmlContent: a.htmlContent ?? '',
+          isPublished: a.isPublished,
+        });
+        this.view.set('edit');
+      },
+    });
   }
 
   save() {
@@ -124,10 +118,8 @@ export class AdminBlogComponent implements OnInit {
     this.saveError.set('');
     const currentSlug = this.editingSlug();
     const req = currentSlug
-      ? this.http.put(`/api/v1/blog/admin/articles/${currentSlug}`, payload, {
-          headers: this.auth.headers(),
-        })
-      : this.http.post('/api/v1/blog/admin/articles', payload, { headers: this.auth.headers() });
+      ? this.http.put(`/api/v1/blog/admin/articles/${currentSlug}`, payload, {})
+      : this.http.post('/api/v1/blog/admin/articles', payload);
     req.subscribe({
       next: () => {
         this.saveMsg.set('Enregistré ✓');
@@ -142,11 +134,9 @@ export class AdminBlogComponent implements OnInit {
   }
 
   delete(slug: string) {
-    this.http
-      .delete(`/api/v1/blog/admin/articles/${slug}`, { headers: this.auth.headers() })
-      .subscribe({
-        next: () => this.articles.update(a => a.filter(x => x.slug !== slug)),
-      });
+    this.http.delete(`/api/v1/blog/admin/articles/${slug}`).subscribe({
+      next: () => this.articles.update(a => a.filter(x => x.slug !== slug)),
+    });
   }
 
   togglePublish(article: BlogPost) {
@@ -156,13 +146,11 @@ export class AdminBlogComponent implements OnInit {
       htmlContent: article.htmlContent ?? '',
       isPublished: !article.isPublished,
     };
-    this.http
-      .put(`/api/v1/blog/admin/articles/${article.slug}`, payload, { headers: this.auth.headers() })
-      .subscribe({
-        next: () =>
-          this.articles.update(a =>
-            a.map(x => (x.slug === article.slug ? { ...x, isPublished: !x.isPublished } : x))
-          ),
-      });
+    this.http.put(`/api/v1/blog/admin/articles/${article.slug}`, payload).subscribe({
+      next: () =>
+        this.articles.update(a =>
+          a.map(x => (x.slug === article.slug ? { ...x, isPublished: !x.isPublished } : x))
+        ),
+    });
   }
 }

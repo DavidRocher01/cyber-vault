@@ -1,11 +1,8 @@
-import secrets
-
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import decode_access_token
 from app.models.awareness_learner import AwarenessLearner
@@ -13,51 +10,6 @@ from app.models.user import User
 from app.services.awareness_magic_link import decode_learner_jwt
 
 bearer = HTTPBearer(auto_error=False)
-
-
-def _cle_admin_valide(x_admin_key: str) -> bool:
-    """Vrai si l'en-tête correspond au secret partagé historique."""
-    return bool(settings.ADMIN_API_KEY) and secrets.compare_digest(
-        x_admin_key, settings.ADMIN_API_KEY
-    )
-
-
-async def require_admin(
-    x_admin_key: str = Header(default=""),
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
-    db: AsyncSession = Depends(get_db),
-) -> User | None:
-    """Accès au back-office. Accepte un compte `is_admin`, ou la clé historique.
-
-    Les deux voies coexistent **le temps de la bascule**, et dans cet ordre :
-
-    1. un compte connecté portant `is_admin` — la voie cible. Le droit est
-       attaché à une identité : traçable, révocable, couvert par la 2FA du
-       compte ;
-    2. `X-Admin-Key` — un secret partagé statique, sans identité ni révocation,
-       relevé par l'audit du 2026-07-27. **Voie de repli, à supprimer** une fois
-       le premier compte admin créé et vérifié en production.
-
-    Le double support n'est pas une facilité : couper la clé avant d'avoir un
-    compte admin en base rendrait le back-office de production inaccessible,
-    sans moyen de se rattraper autrement qu'en accès direct au conteneur.
-
-    Retourne l'utilisateur admin, ou `None` si l'accès passe encore par la clé.
-    Les appelants n'utilisent pas ce retour aujourd'hui — il permettra de tracer
-    QUI agit quand la clé aura disparu.
-    """
-    if credentials is not None:
-        user_id = decode_access_token(credentials.credentials)
-        if user_id:
-            result = await db.execute(select(User).where(User.id == int(user_id)))
-            user = result.scalar_one_or_none()
-            if user and user.is_active and user.is_admin:
-                return user
-
-    if _cle_admin_valide(x_admin_key):
-        return None
-
-    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès refusé")
 
 
 async def get_current_user(
@@ -77,6 +29,29 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Utilisateur introuvable"
         )
     return user
+
+
+async def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    """Accès au back-office : exige un compte portant `users.is_admin`.
+
+    Le droit est attaché à une identité — traçable, révocable en désactivant le
+    compte, et couvert par sa 2FA.
+
+    Historique, parce que la forme de cette fonction s'explique par là : jusqu'au
+    2026-08-02 elle acceptait aussi un en-tête `X-Admin-Key`, secret partagé
+    statique sans identité ni révocation, relevé par l'audit du 2026-07-27. Cette
+    voie a d'abord été neutralisée en production (la clé n'est plus injectée dans
+    la task), puis retirée du code ici.
+
+    Retourne l'utilisateur : les appelants peuvent ainsi tracer QUI agit, ce
+    qu'un secret partagé ne permettait pas.
+    """
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Accès réservé aux administrateurs",
+        )
+    return current_user
 
 
 async def get_current_learner(
@@ -102,22 +77,6 @@ async def get_current_learner(
     if learner is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Learner introuvable")
     return learner
-
-
-async def get_admin_user(current_user: User = Depends(get_current_user)) -> User:
-    """Variante stricte : exige un compte admin, jamais la clé partagée.
-
-    À utiliser pour toute NOUVELLE surface d'administration — l'onglet
-    Acquisition en premier (cf. `docs/ANALYTICS.md`). Ce qu'on construit
-    aujourd'hui ne doit pas hériter du secret partagé qu'on est en train de
-    retirer.
-    """
-    if not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Accès réservé aux administrateurs",
-        )
-    return current_user
 
 
 async def get_rssi_consultant(

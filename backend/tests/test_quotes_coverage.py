@@ -15,9 +15,8 @@ Targets branches NOT covered by test_quote_acceptance.py and test_admin_quotes.p
   * admin list ordering (created_at desc) with several quotes
 """
 
-from contextlib import contextmanager
 from datetime import date
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
@@ -29,16 +28,6 @@ from app.models.user import User
 
 BASE = "/api/v1"
 
-
-@contextmanager
-def _admin_settings():
-    mock = MagicMock()
-    mock.ADMIN_API_KEY = "test-admin-key"
-    with patch("app.api.v1.endpoints.admin_quotes.settings", mock):
-        yield
-
-
-_HEADERS = {"x-admin-key": "test-admin-key"}
 
 _QUOTE_PAYLOAD = {
     "client_name": "Acme Corp",
@@ -130,7 +119,7 @@ async def test_reject_wrong_token_does_not_touch_other_quote():
 # ── Admin create: user_email links to an existing user (uncovered branch) ────────
 
 
-async def test_admin_create_quote_links_existing_user():
+async def test_admin_create_quote_links_existing_user(entetes_admin):
     async with db_mod.AsyncSessionLocal() as session:
         user = User(email="linked@test.com", hashed_password="x")
         session.add(user)
@@ -138,14 +127,13 @@ async def test_admin_create_quote_links_existing_user():
         await session.refresh(user)
         user_id = user.id
 
-    with _admin_settings():
-        with patch("app.api.v1.endpoints.admin_quotes.send_quote_by_email"):
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-                r = await c.post(
-                    f"{BASE}/admin/quotes",
-                    json={**_QUOTE_PAYLOAD, "user_email": "linked@test.com"},
-                    headers=_HEADERS,
-                )
+    with patch("app.api.v1.endpoints.admin_quotes.send_quote_by_email"):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.post(
+                f"{BASE}/admin/quotes",
+                json={**_QUOTE_PAYLOAD, "user_email": "linked@test.com"},
+                headers=entetes_admin,
+            )
     assert r.status_code == 201
     quote_id = r.json()["id"]
 
@@ -157,15 +145,14 @@ async def test_admin_create_quote_links_existing_user():
 # ── Admin create: user_email with no matching user → user_id stays None ──────────
 
 
-async def test_admin_create_quote_unknown_user_email_leaves_user_id_none():
-    with _admin_settings():
-        with patch("app.api.v1.endpoints.admin_quotes.send_quote_by_email"):
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-                r = await c.post(
-                    f"{BASE}/admin/quotes",
-                    json={**_QUOTE_PAYLOAD, "user_email": "ghost@nowhere.test"},
-                    headers=_HEADERS,
-                )
+async def test_admin_create_quote_unknown_user_email_leaves_user_id_none(entetes_admin):
+    with patch("app.api.v1.endpoints.admin_quotes.send_quote_by_email"):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.post(
+                f"{BASE}/admin/quotes",
+                json={**_QUOTE_PAYLOAD, "user_email": "ghost@nowhere.test"},
+                headers=entetes_admin,
+            )
     assert r.status_code == 201
     quote_id = r.json()["id"]
 
@@ -177,15 +164,14 @@ async def test_admin_create_quote_unknown_user_email_leaves_user_id_none():
 # ── Admin create: explicit issue_date is honoured ────────────────────────────────
 
 
-async def test_admin_create_quote_with_explicit_issue_date():
-    with _admin_settings():
-        with patch("app.api.v1.endpoints.admin_quotes.send_quote_by_email"):
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-                r = await c.post(
-                    f"{BASE}/admin/quotes",
-                    json={**_QUOTE_PAYLOAD, "issue_date": "2026-01-15"},
-                    headers=_HEADERS,
-                )
+async def test_admin_create_quote_with_explicit_issue_date(entetes_admin):
+    with patch("app.api.v1.endpoints.admin_quotes.send_quote_by_email"):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.post(
+                f"{BASE}/admin/quotes",
+                json={**_QUOTE_PAYLOAD, "issue_date": "2026-01-15"},
+                headers=entetes_admin,
+            )
     assert r.status_code == 201
     data = r.json()
     assert data["issue_date"] == "2026-01-15"
@@ -199,12 +185,11 @@ async def test_admin_create_quote_with_explicit_issue_date():
 # ── Admin create: client_address None serializes cleanly ─────────────────────────
 
 
-async def test_admin_create_quote_without_address_serializes_none():
+async def test_admin_create_quote_without_address_serializes_none(entetes_admin):
     payload = {k: v for k, v in _QUOTE_PAYLOAD.items() if k != "client_address"}
-    with _admin_settings():
-        with patch("app.api.v1.endpoints.admin_quotes.send_quote_by_email"):
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-                r = await c.post(f"{BASE}/admin/quotes", json=payload, headers=_HEADERS)
+    with patch("app.api.v1.endpoints.admin_quotes.send_quote_by_email"):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            r = await c.post(f"{BASE}/admin/quotes", json=payload, headers=entetes_admin)
     assert r.status_code == 201
     assert r.json()["client_address"] is None
 
@@ -212,21 +197,20 @@ async def test_admin_create_quote_without_address_serializes_none():
 # ── Admin list: ordering is created_at desc (most recent first) ──────────────────
 
 
-async def test_admin_list_quotes_orders_newest_first():
-    with _admin_settings():
-        with patch("app.api.v1.endpoints.admin_quotes.send_quote_by_email"):
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-                first = await c.post(
-                    f"{BASE}/admin/quotes",
-                    json={**_QUOTE_PAYLOAD, "subject": "First"},
-                    headers=_HEADERS,
-                )
-                second = await c.post(
-                    f"{BASE}/admin/quotes",
-                    json={**_QUOTE_PAYLOAD, "subject": "Second"},
-                    headers=_HEADERS,
-                )
-                r = await c.get(f"{BASE}/admin/quotes", headers=_HEADERS)
+async def test_admin_list_quotes_orders_newest_first(entetes_admin):
+    with patch("app.api.v1.endpoints.admin_quotes.send_quote_by_email"):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            first = await c.post(
+                f"{BASE}/admin/quotes",
+                json={**_QUOTE_PAYLOAD, "subject": "First"},
+                headers=entetes_admin,
+            )
+            second = await c.post(
+                f"{BASE}/admin/quotes",
+                json={**_QUOTE_PAYLOAD, "subject": "Second"},
+                headers=entetes_admin,
+            )
+            r = await c.get(f"{BASE}/admin/quotes", headers=entetes_admin)
 
     assert first.status_code == 201
     assert second.status_code == 201

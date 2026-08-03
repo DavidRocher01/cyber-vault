@@ -56,17 +56,13 @@ export class AdminInvoicesComponent implements OnInit {
     issue_date: [''],
   });
 
-  private get headers(): HttpHeaders {
-    return this.auth.headers();
-  }
-
   ngOnInit() {
     this.load();
   }
 
   load() {
     this.loading.set(true);
-    this.http.get<AdminInvoice[]>(`${API}/admin/invoices`, { headers: this.headers }).subscribe({
+    this.http.get<AdminInvoice[]>(`${API}/admin/invoices`).subscribe({
       next: data => {
         this.invoices.set(data);
         this.loading.set(false);
@@ -89,30 +85,27 @@ export class AdminInvoicesComponent implements OnInit {
       issue_date: v.issue_date || null,
     };
     this.creating.set(true);
-    this.http
-      .post<AdminInvoice>(`${API}/admin/invoices`, body, { headers: this.headers })
-      .subscribe({
-        next: inv => {
-          this.invoices.update(list => [inv, ...list]);
-          this.form.reset();
-          this.showForm.set(false);
-          this.creating.set(false);
-          this.snack.open(`Facture ${inv.invoice_number} créée`, 'OK', { duration: 4000 });
-        },
-        error: err => {
-          this.creating.set(false);
-          this.snack.open(extractApiError(err, 'Erreur lors de la création'), 'Fermer', {
-            duration: 5000,
-          });
-        },
-      });
+    this.http.post<AdminInvoice>(`${API}/admin/invoices`, body).subscribe({
+      next: inv => {
+        this.invoices.update(list => [inv, ...list]);
+        this.form.reset();
+        this.showForm.set(false);
+        this.creating.set(false);
+        this.snack.open(`Facture ${inv.invoice_number} créée`, 'OK', { duration: 4000 });
+      },
+      error: err => {
+        this.creating.set(false);
+        this.snack.open(extractApiError(err, 'Erreur lors de la création'), 'Fermer', {
+          duration: 5000,
+        });
+      },
+    });
   }
 
   download(inv: AdminInvoice) {
     this.downloading.set(inv.id);
     this.http
       .get(`${API}/admin/invoices/${inv.id}/pdf`, {
-        headers: this.headers,
         responseType: 'blob',
       })
       .subscribe({

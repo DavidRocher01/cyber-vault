@@ -222,6 +222,48 @@ async def register_and_login(
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
+@pytest_asyncio.fixture
+async def entetes_admin(http_client: AsyncClient) -> dict:
+    """En-tetes d'un compte ADMINISTRATEUR.
+
+    Remplace l'en-tete `x-admin-key` qui authentifiait les tests du back-office
+    jusqu'au 2026-08-02. Le secret partage a ete retire : le droit est porte par
+    `users.is_admin`, donc par une identite.
+
+    La promotion se fait en base et non par une route : aucune API n'expose ce
+    droit, et c'est deliberé — un droit d'administration ne doit pas pouvoir
+    s'obtenir depuis le produit.
+    """
+    from sqlalchemy import select
+
+    import app.core.database as _db
+    from app.models.user import User
+
+    email = "admin@test.com"
+    await http_client.post(
+        f"{BASE}/auth/register", json={"email": email, "password": "StrongPass123!"}
+    )
+    async with _db.AsyncSessionLocal() as db:
+        user = (await db.execute(select(User).where(User.email == email))).scalar_one()
+        user.is_admin = True
+        await db.commit()
+    r = await http_client.post(
+        f"{BASE}/auth/login", json={"email": email, "password": "StrongPass123!"}
+    )
+    return {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+
+@pytest_asyncio.fixture
+async def entetes_non_admin(http_client: AsyncClient) -> dict:
+    """Compte connecte SANS droit d'administration.
+
+    Le cas qui compte pour les gardes : etre authentifie ne suffit pas. Il
+    remplace les anciens tests « mauvaise cle », qui ne verifiaient qu'une
+    comparaison de chaines.
+    """
+    return await register_and_login(http_client, "simple-utilisateur@test.com")
+
+
 _PLAN_DEFAULTS = {
     # (name, price_eur) — prix alignés sur la grille prod (Gratuit/Starter/Pro/Business).
     # NB : ce helper existe pour le GATING par tier (require_min_tier), pas pour tester les

@@ -55,7 +55,7 @@ export class AdminDashboardComponent implements OnInit {
   loading = signal(true);
 
   ngOnInit() {
-    this.http.get<Stats>('/api/v1/admin/stats', { headers: this.auth.headers() }).subscribe({
+    this.http.get<Stats>('/api/v1/admin/stats').subscribe({
       next: s => {
         this.stats.set(s);
         this.loading.set(false);
