@@ -179,6 +179,7 @@ async def download_my_deliverable(
     client: RssiClient = Depends(get_current_rssi_client),
     db: AsyncSession = Depends(get_db),
 ):
+    from app.services import depot_service
     from app.services.storage import get_download_url
 
     deliverable = await portal_service.get_client_deliverable(db, deliverable_id, client.id)
@@ -186,6 +187,14 @@ async def download_my_deliverable(
         raise HTTPException(status_code=404, detail="Livrable non trouvé")
     if not deliverable.file_url:
         raise HTTPException(status_code=404, detail="Aucun fichier associé")
+
+    # Meme regle que cote consultant, et c'est ici qu'elle compte le plus : le
+    # client est celui qu'on protege quand la plateforme sert de vecteur.
+    if not await depot_service.est_telechargeable(db, deliverable.file_url):
+        raise HTTPException(
+            status_code=409,
+            detail="Ce document est en cours de vérification. Il sera disponible sous peu.",
+        )
     return {"url": get_download_url(deliverable.file_url)}
 
 

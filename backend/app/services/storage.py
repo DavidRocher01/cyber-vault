@@ -35,6 +35,49 @@ _ALLOWED_EXTENSIONS = {
 }
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
 
+# Signatures de debut de fichier ("magic bytes"), par extension declaree.
+#
+# POURQUOI. L'extension et l'en-tete `Content-Type` viennent tous deux du
+# client : la premiere est un bout de chaine, le second un en-tete multipart que
+# n'importe quel outil pose a sa guise. Deux listes blanches comparees a des
+# valeurs fournies par l'appelant ne contraignent donc rien. Les octets, eux,
+# sont la seule chose qu'on tienne vraiment.
+_ZIP = (b"PK\x03\x04",)  # OOXML et OpenDocument sont des archives ZIP
+_OLE2 = (b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",)  # conteneur Word/Excel 97-2003
+
+_SIGNATURES: dict[str, tuple[bytes, ...]] = {
+    ".pdf": (b"%PDF-",),
+    ".png": (b"\x89PNG\r\n\x1a\n",),
+    ".jpg": (b"\xff\xd8\xff",),
+    ".jpeg": (b"\xff\xd8\xff",),
+    ".docx": _ZIP,
+    ".xlsx": _ZIP,
+    ".odt": _ZIP,
+    ".ods": _ZIP,
+    ".doc": _OLE2,
+    ".xls": _OLE2,
+}
+
+
+def _signature_coherente(contenu: bytes, extension: str) -> bool:
+    """L'en-tete des octets correspond-il a l'extension annoncee ?
+
+    Un fichier vide ou plus court que la signature attendue est refuse : on
+    n'accepte pas ce qu'on ne peut pas verifier.
+
+    CE QUE CE CONTROLE NE FAIT PAS. Pour les formats a base d'archive — docx,
+    xlsx, odt, ods — il etablit qu'il s'agit d'un ZIP, pas que le ZIP contienne
+    un document. Descendre plus bas voudrait dire ouvrir l'archive, donc parser
+    une entree fournie par l'utilisateur : exactement la surface d'attaque que
+    la conception (`docs/DEPOT_DOCUMENTS.md`) ecarte en commencant par des
+    documents « lus » et non « traites ». C'est l'antivirus, etape suivante, qui
+    couvre le contenu.
+    """
+    signatures = _SIGNATURES.get(extension)
+    if signatures is None:  # extension hors liste blanche — deja refusee avant
+        return False
+    return any(contenu.startswith(s) for s in signatures)
+
 
 class FichierTropVolumineuxError(ValueError):
     """Le corps envoyé dépasse le plafond autorisé pour ce point de dépôt."""
@@ -65,8 +108,22 @@ async def lire_borne(fichier: UploadFile, max_octets: int) -> bytes:
     return contenu
 
 
-def validate_upload(filename: str, content_type: str, size: int) -> None:
-    """Raise ValueError with a user-facing message if the file is invalid."""
+def validate_upload(filename: str, content_type: str, content: bytes) -> None:
+    """Refuse un dépôt invalide, avec un message destiné à l'utilisateur.
+
+    Prend les OCTETS et non une taille déclarée : la taille s'en déduit, ce qui
+    supprime tout écart entre ce que l'appelant annonce et ce qui sera stocké,
+    et rend possible le contrôle de signature ci-dessous.
+
+    Les trois contrôles ne se valent pas. L'extension et le `Content-Type`
+    disent l'INTENTION du client — utiles pour un message clair, faciles à
+    falsifier. La signature dit ce que le fichier EST. Le `Content-Type` reste
+    volontairement souple : le durcir ferait rejeter des dépôts légitimes (les
+    navigateurs envoient volontiers `application/octet-stream` pour un .docx)
+    sans rien ajouter, puisque les octets tranchent désormais.
+
+    Lève `ValueError`, aux endpoints de la traduire en 422.
+    """
     ext = Path(filename).suffix.lower()
     if ext not in _ALLOWED_EXTENSIONS:
         raise ValueError(
@@ -74,8 +131,13 @@ def validate_upload(filename: str, content_type: str, size: int) -> None:
         )
     if content_type not in _ALLOWED_MIME_TYPES:
         raise ValueError("Type de fichier non autorisé.")
-    if size > MAX_UPLOAD_BYTES:
+    if len(content) > MAX_UPLOAD_BYTES:
         raise ValueError("Fichier trop volumineux (max 20 Mo).")
+    if not _signature_coherente(content, ext):
+        raise ValueError(
+            f"Le contenu du fichier ne correspond pas à un {ext.lstrip('.').upper()}. "
+            "Renommer un fichier ne change pas sa nature."
+        )
 
 
 def _s3_key(user_id: int, client_id: int, original_name: str) -> str:

@@ -55,6 +55,20 @@ class Settings(BaseSettings):
     # AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY lues automatiquement par boto3
     # (variables d'env standard ou IAM role ECS en prod)
 
+    # Analyse antivirus des fichiers déposés — GuardDuty Malware Protection
+    # for S3, cf. `docs/DEPOT_DOCUMENTS.md`.
+    #
+    # FAUX PAR DÉFAUT, ET CE DÉFAUT COMPTE. Tant que GuardDuty n'analyse pas
+    # réellement le bucket, activer ce réglage laisserait chaque dépôt bloqué en
+    # `en_analyse` : plus aucun livrable téléchargeable, sans que rien ne soit
+    # tombé en panne. L'ordre est donc : activer Malware Protection sur le
+    # bucket, vérifier que les objets sont bien étiquetés, PUIS passer ce
+    # réglage à vrai.
+    #
+    # À faux, les dépôts sont enregistrés directement comme sains : le registre
+    # se remplit et la rétention devient possible, sans rien bloquer.
+    ANTIVIRUS_DEPOT_ACTIF: bool = False
+
     # Contact form recipient
     CONTACT_EMAIL: str = "contact@rochercybersecurite.com"
 

@@ -5,51 +5,62 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 # ── validate_upload ────────────────────────────────────────────────────────────
+#
+# Depuis le 2026-08-03, `validate_upload` prend les OCTETS et non une taille
+# declaree : la taille s'en deduit, et la signature de debut de fichier est
+# verifiee. Les corps ci-dessous sont donc de vraies entetes, pas des longueurs.
+
+PDF = b"%PDF-1.4\n1 0 obj\n"
+PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 16
+JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 16
+ZIP = b"PK\x03\x04" + b"\x00" * 16  # docx, xlsx, odt, ods
+OLE2 = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\x00" * 16  # doc, xls
+
+DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
 def test_validate_pdf_ok():
     from app.services.storage import validate_upload
 
-    validate_upload("rapport.pdf", "application/pdf", 1024)  # no exception
+    validate_upload("rapport.pdf", "application/pdf", PDF)  # no exception
 
 
 def test_validate_docx_ok():
     from app.services.storage import validate_upload
 
-    validate_upload(
-        "doc.docx",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        512,
-    )
+    validate_upload("doc.docx", DOCX_MIME, ZIP)
 
 
 def test_validate_xlsx_ok():
     from app.services.storage import validate_upload
 
-    validate_upload(
-        "data.xlsx",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        2048,
-    )
+    validate_upload("data.xlsx", XLSX_MIME, ZIP)
 
 
 def test_validate_png_ok():
     from app.services.storage import validate_upload
 
-    validate_upload("image.png", "image/png", 500_000)
+    validate_upload("image.png", "image/png", PNG)
 
 
 def test_validate_jpeg_ok():
     from app.services.storage import validate_upload
 
-    validate_upload("photo.jpg", "image/jpeg", 300_000)
+    validate_upload("photo.jpg", "image/jpeg", JPEG)
+
+
+def test_validate_doc_ole2_ok():
+    from app.services.storage import validate_upload
+
+    validate_upload("vieux.doc", "application/msword", OLE2)
 
 
 def test_validate_invalid_extension_raises():
     from app.services.storage import validate_upload
 
     with pytest.raises(ValueError, match="Extension"):
-        validate_upload("script.exe", "application/octet-stream", 100)
+        validate_upload("script.exe", "application/octet-stream", b"MZ\x90\x00")
 
 
 def test_validate_invalid_mime_type_raises():
@@ -57,13 +68,13 @@ def test_validate_invalid_mime_type_raises():
 
     # extension ok but MIME type forbidden
     with pytest.raises(ValueError, match="non autorisé"):
-        validate_upload("file.pdf", "text/html", 100)
+        validate_upload("file.pdf", "text/html", PDF)
 
 
 def test_validate_too_large_raises():
-    from app.services.storage import validate_upload
+    from app.services.storage import MAX_UPLOAD_BYTES, validate_upload
 
-    big = 21 * 1024 * 1024  # 21 MB > 20 MB limit
+    big = PDF + b"A" * MAX_UPLOAD_BYTES  # > 20 MB
     with pytest.raises(ValueError, match="volumineux"):
         validate_upload("big.pdf", "application/pdf", big)
 
@@ -71,13 +82,86 @@ def test_validate_too_large_raises():
 def test_validate_exactly_max_size_ok():
     from app.services.storage import MAX_UPLOAD_BYTES, validate_upload
 
-    validate_upload("maxsize.pdf", "application/pdf", MAX_UPLOAD_BYTES)  # exactly 20 MB — ok
+    contenu = PDF + b"A" * (MAX_UPLOAD_BYTES - len(PDF))
+    assert len(contenu) == MAX_UPLOAD_BYTES
+    validate_upload("maxsize.pdf", "application/pdf", contenu)  # exactement 20 Mo — ok
 
 
 def test_validate_odt_ok():
     from app.services.storage import validate_upload
 
-    validate_upload("doc.odt", "application/vnd.oasis.opendocument.text", 1024)
+    validate_upload("doc.odt", "application/vnd.oasis.opendocument.text", ZIP)
+
+
+# ── Signature de debut de fichier ──────────────────────────────────────────────
+#
+# Le coeur du controle ajoute le 2026-08-03 : l'extension et le `Content-Type`
+# viennent du client et se falsifient d'une ligne. Ces tests decrivent ce qui
+# passait AVANT et ne passe plus.
+
+
+def test_validate_html_deguise_en_pdf_refuse():
+    """Le cas d'ecole : une page HTML renommee en .pdf, annoncee en PDF.
+
+    Extension et `Content-Type` etaient tous deux dans les listes blanches —
+    ce depot passait sans broncher jusqu'au 2026-08-03.
+    """
+    from app.services.storage import validate_upload
+
+    with pytest.raises(ValueError, match="ne correspond pas"):
+        validate_upload("piege.pdf", "application/pdf", b"<!DOCTYPE html><script>")
+
+
+def test_validate_executable_deguise_en_docx_refuse():
+    from app.services.storage import validate_upload
+
+    with pytest.raises(ValueError, match="ne correspond pas"):
+        validate_upload("facture.docx", DOCX_MIME, b"MZ\x90\x00\x03\x00\x00\x00")
+
+
+def test_validate_fichier_vide_refuse():
+    """On n'accepte pas ce qu'on ne peut pas verifier."""
+    from app.services.storage import validate_upload
+
+    with pytest.raises(ValueError, match="ne correspond pas"):
+        validate_upload("vide.pdf", "application/pdf", b"")
+
+
+def test_validate_contenu_plus_court_que_la_signature_refuse():
+    from app.services.storage import validate_upload
+
+    with pytest.raises(ValueError, match="ne correspond pas"):
+        validate_upload("tronque.png", "image/png", b"\x89PN")
+
+
+def test_validate_signature_doit_etre_au_tout_debut():
+    """Un PDF valide commence par `%PDF-`. Precede de quoi que ce soit, il est
+    refuse : tolerer un decalage rouvrirait la porte aux fichiers polyglottes.
+    """
+    from app.services.storage import validate_upload
+
+    with pytest.raises(ValueError, match="ne correspond pas"):
+        validate_upload("decale.pdf", "application/pdf", b"GIF89a" + PDF)
+
+
+def test_validate_signature_croisee_entre_formats_autorises_refuse():
+    """Deux formats de la liste blanche ne sont pas interchangeables : un PNG
+    renomme en .pdf reste refuse, alors que les deux sont acceptes par ailleurs.
+    """
+    from app.services.storage import validate_upload
+
+    with pytest.raises(ValueError, match="ne correspond pas"):
+        validate_upload("image.pdf", "application/pdf", PNG)
+
+
+def test_toute_extension_autorisee_a_une_signature():
+    """Garde-fou : ajouter une extension a la liste blanche sans lui donner de
+    signature la ferait refuser systematiquement — panne silencieuse cote
+    utilisateur, et controle absent cote securite.
+    """
+    from app.services.storage import _ALLOWED_EXTENSIONS, _SIGNATURES
+
+    assert set(_SIGNATURES) == _ALLOWED_EXTENSIONS
 
 
 # ── get_download_url — local path ──────────────────────────────────────────────

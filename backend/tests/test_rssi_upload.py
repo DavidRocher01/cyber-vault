@@ -5,9 +5,10 @@ from httpx import AsyncClient
 
 BASE = "/api/v1"
 
-# Minimal valid PDF bytes (1-byte body — enough for content-type + extension checks)
+# Entetes reelles. Depuis le 2026-08-03 le depot verifie la SIGNATURE du
+# fichier : un corps quelconque ne suffit plus, meme avec la bonne extension.
 _PDF_BYTES = b"%PDF-1.4 fake content"
-_DOCX_BYTES = b"PK fake docx content"
+_DOCX_BYTES = b"PK\x03\x04" + b"fake docx content"
 
 
 async def _auth(http_client: AsyncClient, email: str) -> dict:
@@ -149,7 +150,51 @@ async def test_upload_too_large_rejected(http_client: AsyncClient):
         files={"file": ("big.pdf", big, "application/pdf")},
         headers=h,
     )
+    # 413 et non 422 depuis le 2026-08-03 : cet endpoint lisait deja de facon
+    # bornee, mais avec son propre `read(MAX + 1)` et un 422. Il passe par
+    # `lire_borne` comme les quatre autres points de depot, et repond donc le
+    # code prevu pour un corps trop volumineux.
+    assert r.status_code == 413
+
+
+@pytest.mark.asyncio
+async def test_upload_html_deguise_en_pdf_rejected(http_client: AsyncClient):
+    """Bout en bout : extension et `Content-Type` conformes, contenu non.
+
+    Avant le controle de signature, ce depot etait accepte et stocke — le
+    consultant telechargeait ensuite un fichier dont la nature n'avait jamais
+    ete verifiee.
+    """
+    h = await _auth_consultant(http_client, "upload_deguise@test.com")
+    c = await _create_client(http_client, h)
+    r = await http_client.post(
+        f"{BASE}/rssi/clients/{c['id']}/deliverables/upload",
+        files={"file": ("rapport.pdf", b"<!DOCTYPE html><script>", "application/pdf")},
+        headers=h,
+    )
     assert r.status_code == 422
+    assert "ne correspond pas" in r.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_upload_docx_success(http_client: AsyncClient):
+    """Le format a base d'archive reste accepte : le controle verifie l'entete
+    ZIP, il n'ouvre pas l'archive.
+    """
+    h = await _auth_consultant(http_client, "upload_docx@test.com")
+    c = await _create_client(http_client, h)
+    r = await http_client.post(
+        f"{BASE}/rssi/clients/{c['id']}/deliverables/upload",
+        files={
+            "file": (
+                "note.docx",
+                _DOCX_BYTES,
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+        },
+        headers=h,
+    )
+    assert r.status_code == 200, r.text
 
 
 # ── Download endpoint ──────────────────────────────────────────────────────────

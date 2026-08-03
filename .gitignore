@@ -48,3 +48,7 @@ Thumbs.db
 
 # Echantillons PDF generes par scripts/preview_pdfs.py (confort local, jamais versionne)
 backend/previsualisation_pdf/
+
+# Depots ecrits par le repli disque local de storage.py (S3 absent en dev).
+# Les tests d'upload en creent a chaque execution.
+backend/uploads/

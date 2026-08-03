@@ -32,8 +32,10 @@ from app.models.enums import (  # noqa: F401
     ProgressStatus,
     QuoteStatus,
     ScanStatus,
+    StatutAnalyse,
     SubscriptionStatus,
 )
+from app.models.fichier_depose import FichierDepose  # noqa: F401
 from app.models.finding_status import FindingStatus  # noqa: F401
 from app.models.invoice import Invoice  # noqa: F401
 from app.models.iso27001_assessment import Iso27001Assessment  # noqa: F401

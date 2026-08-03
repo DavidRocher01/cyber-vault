@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -8,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import get_rssi_consultant
 from app.models.user import User
-from app.services import rssi_deliverable_service
+from app.services import depot_service, rssi_deliverable_service
 
 from ._shared import _get_client_or_404
 
@@ -140,22 +141,43 @@ async def upload_deliverable_file(
     db: AsyncSession = Depends(get_db),
 ):
     """Upload a file for a client deliverable and return its storage key."""
-    from app.services.storage import MAX_UPLOAD_BYTES, upload_file, validate_upload
+    from app.services.storage import (
+        MAX_UPLOAD_BYTES,
+        FichierTropVolumineuxError,
+        lire_borne,
+        upload_file,
+        validate_upload,
+    )
 
     await _get_client_or_404(client_id, current_user.id, db)
 
-    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    try:
+        content = await lire_borne(file, MAX_UPLOAD_BYTES)
+    except FichierTropVolumineuxError as exc:
+        raise HTTPException(status_code=413, detail=str(exc))
     try:
         validate_upload(
             filename=file.filename or "upload",
             content_type=file.content_type or "",
-            size=len(content),
+            content=content,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
     key = upload_file(content, file.filename or "upload", current_user.id, client_id)
-    return {"key": key, "filename": file.filename}
+    # Le fichier entre au registre : c'est lui qui porte l'état d'analyse, et
+    # sans lui ni la rétention ni le quota n'auraient de prise. Cf.
+    # `app/services/depot_service.py`.
+    fichier = await depot_service.enregistrer_depot(
+        db,
+        cle_stockage=key,
+        nom_original=Path(file.filename or "upload").name,
+        taille_octets=len(content),
+        type_mime=file.content_type or "",
+        depose_par_id=current_user.id,
+        client_id=client_id,
+    )
+    return {"key": key, "filename": file.filename, "statut_analyse": fichier.statut_analyse}
 
 
 @router.get("/clients/{client_id}/deliverables/{deliverable_id}/download")
@@ -177,6 +199,16 @@ async def download_deliverable_file(
         raise HTTPException(status_code=404, detail="Livrable non trouvé")
     if not deliverable.file_url:
         raise HTTPException(status_code=404, detail="Aucun fichier attaché à ce livrable")
+
+    # LA règle du chantier : rien ne sort tant que le fichier n'est pas réputé
+    # sain. 409 et non 403 — ce n'est pas un refus de droit, c'est un état qui
+    # n'est pas encore le bon, et qui peut le devenir.
+    if not await depot_service.est_telechargeable(db, deliverable.file_url):
+        raise HTTPException(
+            status_code=409,
+            detail="Ce fichier est en cours d'analyse antivirus, ou a été rejeté. "
+            "Il ne peut pas être téléchargé.",
+        )
 
     url = get_download_url(deliverable.file_url)
     return {"url": url}
