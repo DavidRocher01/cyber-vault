@@ -42,6 +42,7 @@ from app.services.darkweb_dossier_service import (
     process_dossier,
     sync_breach_catalog,
 )
+from app.services.storage import FichierTropVolumineuxError, lire_borne
 
 router = APIRouter(prefix="/darkweb-dossier", tags=["darkweb-dossier"])
 
@@ -207,14 +208,14 @@ async def create_dossier(
             detail=f"Limite atteinte — maximum {_MAX_DOSSIERS_PER_USER} dossiers par compte",
         )
 
-    # Lecture BORNÉE avant parsing : on lit au plus _MAX_CSV_BYTES+1 octets et on rejette
-    # si le fichier dépasse le cap, pour éviter de charger un CSV géant en RAM (finding #14).
-    raw = await emails_csv.read(_MAX_CSV_BYTES + 1)
-    if len(raw) > _MAX_CSV_BYTES:
-        raise HTTPException(
-            status_code=413,
-            detail=f"Fichier CSV trop volumineux — maximum {_MAX_CSV_BYTES // (1024 * 1024)} Mo",
-        )
+    # Lecture BORNÉE avant parsing (finding #14). Ce patron est ne ici, puis a
+    # ete remonte dans `storage.lire_borne` le 2026-08-03 : il vivait en dur a
+    # cet endroit seul, et les trois autres points de depot ne l'avaient jamais
+    # recu — dont un sans le moindre plafond.
+    try:
+        raw = await lire_borne(emails_csv, _MAX_CSV_BYTES)
+    except FichierTropVolumineuxError as exc:
+        raise HTTPException(status_code=413, detail=str(exc))
     emails = _parse_emails_csv(raw)
     if not emails:
         raise HTTPException(status_code=400, detail="Aucun email valide trouvé dans le fichier CSV")

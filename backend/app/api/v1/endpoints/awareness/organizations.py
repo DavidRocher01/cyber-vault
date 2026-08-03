@@ -17,10 +17,14 @@ from app.schemas.awareness import (
 )
 from app.services import awareness_organization_service
 from app.services.awareness_csv_import import import_learners_from_csv
+from app.services.storage import FichierTropVolumineuxError, lire_borne
 
 from .helpers import _get_org_or_404
 
 router = APIRouter()
+
+# Plafond de lecture, aligne sur le dossier Dark Web (remediation S4).
+_MAX_CSV_BYTES = 2 * 1024 * 1024
 
 
 # ── Organizations ──────────────────────────────────────────────────────────────
@@ -124,8 +128,11 @@ async def import_learners_csv(
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=422, detail="Fichier CSV requis.")
 
-    content = await file.read()
-    if len(content) > 2 * 1024 * 1024:  # 2 MB max
-        raise HTTPException(status_code=422, detail="Fichier trop volumineux (max 2 MB).")
+    # Lecture BORNEE : le plafond etait verifie APRES un `read()` complet, donc
+    # la memoire etait deja consommee — un message d'erreur, pas un rempart.
+    try:
+        content = await lire_borne(file, _MAX_CSV_BYTES)
+    except FichierTropVolumineuxError as exc:
+        raise HTTPException(status_code=413, detail=str(exc))
 
     return await import_learners_from_csv(db, org_id, content)

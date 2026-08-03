@@ -5,6 +5,8 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 
+from fastapi import UploadFile
+
 from app.core.config import settings
 
 _LOCAL_UPLOAD_DIR = Path("uploads") / "rssi"
@@ -32,6 +34,35 @@ _ALLOWED_EXTENSIONS = {
     ".jpeg",
 }
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
+
+
+class FichierTropVolumineuxError(ValueError):
+    """Le corps envoyé dépasse le plafond autorisé pour ce point de dépôt."""
+
+    def __init__(self, max_octets: int) -> None:
+        self.max_octets = max_octets
+        super().__init__(f"Fichier trop volumineux — maximum {max_octets // (1024 * 1024)} Mo")
+
+
+async def lire_borne(fichier: UploadFile, max_octets: int) -> bytes:
+    """Lit AU PLUS `max_octets + 1` octets, et refuse au-delà.
+
+    L'ordre est tout : `await fichier.read()` puis `if len(...) > cap` charge
+    d'abord l'intégralité en mémoire, et ne mesure qu'ensuite. Le plafond n'est
+    alors qu'un message d'erreur, pas un rempart — la production tourne sur une
+    seule tâche de 2 Go, et un abonné authentifie suffit a la faire tomber.
+
+    Ce patron existait depuis la remediation S4 (finding #14) mais vivait en
+    dur dans un seul endpoint : les trois autres points de depot ne l'avaient
+    jamais recu. Il est ici pour que la bonne facon soit aussi la plus simple.
+
+    Leve `FichierTropVolumineuxError` — aux endpoints de la traduire en 413,
+    les services ne connaissant pas HTTP.
+    """
+    contenu = await fichier.read(max_octets + 1)
+    if len(contenu) > max_octets:
+        raise FichierTropVolumineuxError(max_octets)
+    return contenu
 
 
 def validate_upload(filename: str, content_type: str, size: int) -> None:
