@@ -42,19 +42,6 @@ L'historique des livraisons n'est pas ici — il est dans
   `ANTIVIRUS_DEPOT_ACTIF` à vrai. L'inverse coupe les téléchargements sans
   qu'aucune alerte ne se déclenche. Détail : `docs/DEPOT_DOCUMENTS.md`.
 
-- **Renseigner `PHISHING_FROM_EMAIL` dans Secrets Manager** —
-  `no-reply@cyberscanapp.com`. Décidé le 2026-08-03, **gratuit** : l'ancien
-  domaine de marque est déjà vérifié chez Resend et n'envoie plus rien. Tant que
-  la valeur n'y est pas, **aucune campagne ne peut être lancée** — la garde
-  refuse d'envoyer depuis le domaine transactionnel, délibérément. Une fois
-  posée, forcer un redéploiement suffit ; aucun changement de code.
-  ⚠️ **Ne pas supprimer `cyberscanapp.com` de Resend** : l'offre annonce
-  « 1 domain » et le compte en a deux. Le second est hérité et probablement
-  irremplaçable sans passer à Pro (20 $/mois).
-  Le nom est imparfait pour le réalisme — « cyberscan » évoque un outil de
-  sécurité. À reprendre avec un domaine fade quand une campagne facturée le
-  justifiera. Raisonnement : `docs/PHISHING_REDESIGN.md` §5c.
-
 - **Rotation de secrets — différée le 2026-08-04, connue.** Une capture d'écran
   de la console Secrets Manager a exposé des valeurs de production. Entièrement
   lisibles : `RESEND_API_KEY`, `SMTP_PASSWORD`, `STRIPE_WEBHOOK_SECRET`.
@@ -142,6 +129,17 @@ L'historique des livraisons n'est pas ici — il est dans
   pas une base acceptable pour exposer des données de conversion — est levé
   depuis le 2026-08-02.
 - **`tax_behavior=inclusive` chez Stripe** — délibéré, cf. §3.
+- **Domaine d'expédition des simulations de phishing** — `cyberscanapp.com`,
+  décidé le 2026-08-03 et **en service depuis le 2026-08-04**
+  (`PHISHING_FROM_EMAIL = noreply@cyberscanapp.com`, révision 147). Gratuit :
+  l'ancien domaine de marque était déjà vérifié chez Resend et n'envoyait plus
+  rien. Domaine entièrement distinct, donc isolation de réputation totale.
+  ⚠️ **Ne pas le supprimer de Resend.** L'offre annonce « 1 domain » et le
+  compte en a deux ; le second est hérité et probablement irremplaçable sans
+  passer à Pro (20 $/mois).
+  Le nom reste imparfait pour le réalisme — « cyberscan » évoque un outil de
+  sécurité. À reprendre avec un domaine fade quand une campagne facturée le
+  justifiera, pas avant. Raisonnement : `docs/PHISHING_REDESIGN.md` §5c.
 - **Dépôt de documents par les clients** — conception dans
   [`DEPOT_DOCUMENTS.md`](DEPOT_DOCUMENTS.md). Antivirus tranché le 2026-08-03 :
   **GuardDuty Malware Protection for S3**, activé seul. Étapes 1 et 2a livrées
