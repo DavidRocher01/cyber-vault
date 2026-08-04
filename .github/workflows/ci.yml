@@ -439,6 +439,15 @@ jobs:
           SECRET_KEY: ci-test-secret-key
           DATABASE_URL: postgresql+asyncpg://postgres:password@localhost:5432/cybervault
           ALLOWED_ORIGINS: '["http://localhost:4200"]'
+          # MEME RAISON QUE DANS LE JOB BACKEND, et l'oubli ici a coute un run :
+          # le lancement de campagne refuse d'envoyer si les simulations
+          # partiraient du domaine transactionnel. Sans cette variable, l'E2E
+          # `launch — campagne passe au statut sending` recoit 409 et la page ne
+          # navigue jamais.
+          # Le backend est demarré à DEUX endroits dans cette CI (ici pour l'E2E,
+          # et via pytest dans le job Backend) : toute variable qui conditionne
+          # un comportement doit être posée aux DEUX.
+          PHISHING_FROM_EMAIL: no-reply@simulation-ci.invalid
         run: |
           uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/uvicorn.log 2>&1 &
           echo $! > /tmp/uvicorn.pid
