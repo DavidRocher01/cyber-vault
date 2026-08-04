@@ -55,6 +55,17 @@ L'historique des livraisons n'est pas ici — il est dans
   sécurité. À reprendre avec un domaine fade quand une campagne facturée le
   justifiera. Raisonnement : `docs/PHISHING_REDESIGN.md` §5c.
 
+- **Rotation de secrets — différée le 2026-08-04, connue.** Une capture d'écran
+  de la console Secrets Manager a exposé des valeurs de production. Entièrement
+  lisibles : `RESEND_API_KEY`, `SMTP_PASSWORD`, `STRIPE_WEBHOOK_SECRET`.
+  Partiellement : `STRIPE_SECRET_KEY` (`sk_live_`), `SECRET_KEY`,
+  `DATABASE_URL`, `ORIGIN_VERIFY_SECRET`.
+  La plus sensible est la clé Resend : elle permet d'envoyer des courriels
+  signés DKIM depuis les domaines vérifiés.
+  ⚠️ **`SECRET_KEY` ne se fait pas tourner à la légère** : elle chiffre aussi
+  les graines TOTP, sa rotation casse la 2FA de tous les comptes. Chantier
+  séparé, avec re-chiffrement. Cf. `docs/RUNBOOK_INCIDENT.md`.
+
 - **Plafond de taille de corps de requête sur l'ALB ou CloudFront.** La lecture
   bornée livrée le 2026-08-03 protège la mémoire, pas la réception : Starlette
   analyse le corps multipart avant que le code applicatif ne s'exécute. Vaut
