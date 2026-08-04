@@ -42,16 +42,18 @@ L'historique des livraisons n'est pas ici — il est dans
   `ANTIVIRUS_DEPOT_ACTIF` à vrai. L'inverse coupe les téléchargements sans
   qu'aucune alerte ne se déclenche. Détail : `docs/DEPOT_DOCUMENTS.md`.
 
-- **Sous-domaine d'expédition des simulations de phishing** — décidé le
-  2026-08-03, **gratuit** : un sous-domaine dédié, pas l'apex, pas un domaine
-  acheté. À faire **avant la première vraie campagne**, dans cet ordre : choisir
-  le sous-domaine → le vérifier chez Resend (SPF + DKIM) → poser `sp=` sur le
-  DMARC de l'apex, sans quoi le passage prévu en `quarantine` s'appliquerait
-  aussi aux simulations → renseigner `PHISHING_FROM_EMAIL` → déployer.
-  Renseigner une adresse non vérifiée chez Resend fait **échouer les envois**.
-  À rouvrir quand une vraie campagne sera planifiée chez un client : un domaine
-  acheté devient alors proportionné. Raisonnement :
-  `docs/PHISHING_REDESIGN.md` §5c.
+- **Renseigner `PHISHING_FROM_EMAIL` dans Secrets Manager** —
+  `no-reply@cyberscanapp.com`. Décidé le 2026-08-03, **gratuit** : l'ancien
+  domaine de marque est déjà vérifié chez Resend et n'envoie plus rien. Tant que
+  la valeur n'y est pas, **aucune campagne ne peut être lancée** — la garde
+  refuse d'envoyer depuis le domaine transactionnel, délibérément. Une fois
+  posée, forcer un redéploiement suffit ; aucun changement de code.
+  ⚠️ **Ne pas supprimer `cyberscanapp.com` de Resend** : l'offre annonce
+  « 1 domain » et le compte en a deux. Le second est hérité et probablement
+  irremplaçable sans passer à Pro (20 $/mois).
+  Le nom est imparfait pour le réalisme — « cyberscan » évoque un outil de
+  sécurité. À reprendre avec un domaine fade quand une campagne facturée le
+  justifiera. Raisonnement : `docs/PHISHING_REDESIGN.md` §5c.
 
 - **Plafond de taille de corps de requête sur l'ALB ou CloudFront.** La lecture
   bornée livrée le 2026-08-03 protège la mémoire, pas la réception : Starlette

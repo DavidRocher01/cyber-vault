@@ -76,44 +76,57 @@
 - **Lot 5 — Domaine d'envoi.** **Décision 2026-07-18 : OPTION 1 (sous-domaine maîtrisé seul).** Le domaine look-alike acheté est ÉCARTÉ pour l'instant (procédure ops multi-étapes disproportionnée : registrar + DNS pointant vers notre infra + **certificat CloudFront custom par domaine** + SPF/DKIM/DMARC + Resend + mandat, à refaire par domaine).
   - **5a — Fix landing cross-host. ✅ FAIT.** `get_landing_html(base=...)` + `/l` passe `_tracking_base(campaign)` → la landing poste sur le MÊME host qui l'a servie.
   - **5 opt1 — Transparence. ✅ FAIT.** Serialize expose `sending_domain` (host du tracking base) ; l'édition affiche une section « Domaine d'envoi » (sous-domaine maîtrisé) + note que le domaine look-alike sera une option premium ultérieure. Section `c.domain` renommée « Domaine de l'entreprise cible ».
-  - **5c — Adresse d'EXPÉDITION : sous-domaine dédié, gratuit. Décidé le 2026-08-03.**
-    Question distincte de celle tranchée ci-dessus : le domaine des pages
-    d'atterrissage a été arbitré sur le prix de l'ops (**certificat CloudFront
-    personnalisé par domaine**) ; une adresse d'expédition ne demande que des
-    enregistrements DNS. Le code les traite déjà séparément (`_tracking_base()`
-    d'un côté, `_adresse_expediteur()` de l'autre).
-    **Pourquoi ne pas rester sur l'apex.** Le but d'une bonne simulation est que
-    les salariés SIGNALENT le message. « Signaler comme hameçonnage » remonte à
-    Microsoft et Google, et les signalements répétés pèsent sur la réputation du
-    domaine expéditeur. Envoyer depuis `rochercybersecurite.com` à nu revient à
-    fabriquer des signaux « ce domaine envoie du phishing » contre celui qui
-    porte les réinitialisations de mot de passe et les factures. La liste blanche
-    du client fait passer le message ; elle n'empêche pas le signalement.
-    **Pourquoi un sous-domaine suffit aujourd'hui — et c'est gratuit.** Les
-    filtres jugent d'abord le domaine exact qui signe (le `d=` DKIM). Un
-    sous-domaine portant sa propre clé DKIM, son propre SPF et **sa propre
-    politique DMARC** est isolé pour l'essentiel. Le levier qui rend ça
-    défendable : la balise `sp=` sur le DMARC de l'apex fixe explicitement la
-    politique des sous-domaines, ce qui permet de passer l'apex en `quarantine`
-    sans que le sous-domaine d'envoi en hérite.
-    **Le risque résiduel est assumé** : un report de réputation vers le domaine
-    d'organisation reste possible chez certains fournisseurs. Il est
-    proportionnel au volume, et le volume est nul aujourd'hui.
-    **DÉCLENCHEUR DE RÉVISION — à ne pas oublier.** Reprendre la question au
-    moment où **une première vraie campagne est planifiée chez un client**. À ce
-    stade seulement, un domaine dédié acheté (10-15 €/an) devient proportionné.
-    Ne pas attendre d'observer une dégradation : quand elle se voit sur les
-    e-mails transactionnels, le mal est fait et la réputation se répare
-    lentement.
-    **UN sous-domaine fixe pour toutes les campagnes**, et non le
-    `lookalike_domain` de chacune : ce dernier serait plus réaliste — adresse et
-    page alignées — mais multiplierait les vérifications Resend, une par domaine
-    et par client.
-    **Mise en œuvre**, dans cet ordre : choisir le sous-domaine → le vérifier
-    dans Resend (SPF + DKIM) → poser `sp=` sur le DMARC de l'apex → renseigner
-    `PHISHING_FROM_EMAIL` → déployer.
-    ⚠️ Renseigner une adresse dont le domaine n'est pas vérifié chez Resend fait
-    **échouer les envois**, pas seulement dégrader la délivrabilité.
+  - **5c — Adresse d'EXPÉDITION : `cyberscanapp.com`. Décidé le 2026-08-03.**
+    Question distincte du domaine des pages d'atterrissage, arbitré ci-dessus
+    sur le prix de l'ops (certificat CloudFront par domaine) : une adresse
+    d'expédition ne demande que des enregistrements DNS. Le code les traite déjà
+    séparément (`_tracking_base()` / `_adresse_expediteur()`).
+    **Pourquoi pas l'apex.** Le but d'une bonne simulation est que les salariés
+    SIGNALENT le message. Ces signalements remontent à Microsoft et Google et
+    pèsent sur la réputation du domaine expéditeur. Envoyer depuis
+    `rochercybersecurite.com` revient à nuire délibérément au domaine qui porte
+    les réinitialisations de mot de passe et les factures — d'autant plus que la
+    simulation réussit. La liste blanche du client fait passer le message, elle
+    n'empêche pas le signalement. Cela contredit aussi le passage prévu de DMARC
+    en `quarantine` sur l'apex.
+    **Pourquoi `cyberscanapp.com`, et pourquoi c'est gratuit.** L'ancien domaine
+    de marque est **déjà vérifié chez Resend** (constaté le 2026-08-03), n'envoie
+    plus rien — aucune référence dans le code ni dans la configuration de
+    production — et ne sert qu'à une redirection CloudFront. C'est un domaine
+    entièrement distinct, donc l'isolation de réputation est totale, pas
+    partielle comme le serait un sous-domaine, et il a sa propre clé DKIM par
+    construction.
+    ⚠️ **Le second emplacement Resend est hérité.** L'offre actuelle annonce
+    « 1 domain » et le compte en a deux. **Ne pas supprimer `cyberscanapp.com`
+    de Resend** : il est probable qu'on ne puisse pas le remplacer sans passer à
+    l'offre Pro (20 $/mois). Vérifier auprès du support avant tout échange.
+    **Sa limite, assumée : le nom est mauvais pour le réalisme.** « cyberscan »
+    évoque un outil de sécurité — pour qui inspecte l'adresse, l'incohérence
+    avec « Microsoft 365 » n'oriente pas vers « spam » mais vers « test ». Un
+    domaine fade et sans signification serait meilleur. Ce n'est pas un danger :
+    une simulation moins crédible sous-estime la vulnérabilité, elle n'abîme
+    rien. À reprendre quand une campagne facturée le justifiera.
+    **UN domaine fixe**, pas le `lookalike_domain` de chaque campagne : ce
+    dernier serait plus réaliste mais multiplierait les vérifications Resend,
+    une par domaine et par client.
+    **Où vit la valeur, et pourquoi.** `PHISHING_FROM_EMAIL` est injectée depuis
+    **Secrets Manager** (`$secret_names` de `deploy.yml`). Ce n'est pas un
+    secret, c'est une adresse — mais l'y garder rend un changement de domaine
+    aussi simple qu'une édition de champ suivie d'un redémarrage forcé, **sans
+    commit, sans CI, sans relecture**. Écrite en dur dans le workflow, elle
+    imposerait un passage complet du pipeline à chaque changement.
+    **Ce qui protège une future migration : la garde.**
+    `verifier_domaine_expedition()` refuse d'envoyer si les simulations
+    partiraient du domaine transactionnel. Elle **ne connaît aucun nom de
+    domaine** — elle compare les deux réglages entre eux — donc elle survit à
+    n'importe quel changement sans être modifiée. Elle remplace le repli
+    silencieux de `PHISHING_FROM_EMAIL or RESEND_FROM`, qui renvoyait au domaine
+    principal dès que la valeur manquait : exactement le scénario d'une
+    migration bâclée. Posée au lancement de campagne (409) ET sur le chemin
+    d'envoi, le planificateur ne repassant pas par l'endpoint.
+    La CI pose un `PHISHING_FROM_EMAIL` factice plutôt que de désactiver la
+    garde en test : elle exerce ainsi le vrai chemin de production. Sans lui,
+    quatre tests de lancement recevraient 409 au lieu de 202 — vérifié.
 
   - **5b — Domaine acheté (DIFFÉRÉ).** À reprendre SI un client exige le réalisme max : `sending_mode`, suggestions, DNS-TXT UI, mandat, gating premium — ET l'ops CloudFront custom-domain. Le back look-alike (`generate_lookalikes`, `domain-verify`, colonne `lookalike_domain`) reste en place, dormant.
 - **Lot 6 — Tests & recette + suppression. ✅ FAIT.** Endpoint `DELETE /campaigns/{id}` (204, cibles en cascade, ownership) + bouton « Supprimer » sur la liste (confirmation, `stopPropagation`) + service `deleteCampaign`. Couverture : 3 tests backend (delete, cascade, 404 cross-user), tests service + composant frontend, E2E « suppression campagne » (crée un brouillon → liste → dialog accept → 204 → disparaît). **Recette post-prod** `test_10_phishing.py` : cycle create → cible (`/targets/single`) → config (scénario+CGU) → vérif `sending_domain` → cancel → delete, **AUCUN lancement = zéro mail réel** ; `_wipe_canary` nettoie les campagnes préfixées MARKER. La recette tourne comme **gate de déploiement** (échec → rollback ECS).

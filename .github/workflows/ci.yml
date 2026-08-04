@@ -171,6 +171,16 @@ jobs:
         env:
           SECRET_KEY: ci-test-secret-key
           DATABASE_URL: postgresql+asyncpg://postgres:password@localhost:5432/cybervault_test
+          # Le lancement d'une campagne de phishing refuse d'envoyer si les
+          # simulations partiraient du domaine transactionnel — repli silencieux
+          # de `PHISHING_FROM_EMAIL or RESEND_FROM` quand la valeur est absente.
+          # Sans .env, un runner tomberait justement dans ce cas et les tests de
+          # lancement recevraient 409 au lieu de 202.
+          # On pose donc un couple VALIDE plutot que de desactiver la garde en
+          # test : la CI exerce ainsi le vrai chemin de production. Domaine
+          # factice et distinct du defaut de RESEND_FROM ; aucun mail n'est
+          # envoye, le SDK Resend est mocke.
+          PHISHING_FROM_EMAIL: no-reply@simulation-ci.invalid
         run: |
           set -o pipefail
           mkdir -p ../test-results

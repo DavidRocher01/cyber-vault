@@ -521,6 +521,13 @@ async def launch_campaign(
             detail="Vous devez accepter les conditions générales avant de lancer la campagne.",
         )
 
+    # Le domaine d'expédition est vérifié ICI, avant le premier envoi : une fois
+    # la campagne lancée, le batch part sans repasser par un contrôle humain.
+    try:
+        phishing_service.verifier_domaine_expedition()
+    except phishing_service.DomaineExpeditionInvalideError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+
     # Gating par plan AU LANCEMENT (l'envoi réel) et seulement en mode entreprise
     # directe : le consultant lance via sa prestation (campagne rattachée à un client).
     if campaign.rssi_client_id is None:
