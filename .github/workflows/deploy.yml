@@ -115,7 +115,15 @@ jobs:
                # n a jamais ete inaccessible : retirer de la liste D ABORD,
                # supprimer le secret ENSUITE. L inverse empeche la task de
                # demarrer, puisqu elle reclame un secret qui n existe plus.
-               (["SECRET_KEY","DATABASE_URL","STRIPE_SECRET_KEY","STRIPE_WEBHOOK_SECRET","SMTP_PASSWORD","RESEND_API_KEY","SENTRY_DSN","ORIGIN_VERIFY_SECRET"]) as $secret_names
+               # PHISHING_FROM_EMAIL n est PAS un secret — c est une adresse.
+               # Il vit tout de meme dans Secrets Manager, et c est deliberé :
+               # en changer la valeur devient alors une edition de champ suivie
+               # d un redemarrage force, sans commit, sans CI, sans relecture.
+               # Le mettre en dur ici imposerait un passage complet du pipeline
+               # a chaque changement de domaine d expedition.
+               # Il EXISTE deja dans le secret (verifie le 2026-08-03) : l ajouter
+               # a cette liste ne peut donc pas empecher la task de demarrer.
+               (["SECRET_KEY","DATABASE_URL","STRIPE_SECRET_KEY","STRIPE_WEBHOOK_SECRET","SMTP_PASSWORD","RESEND_API_KEY","SENTRY_DSN","ORIGIN_VERIFY_SECRET","PHISHING_FROM_EMAIL"]) as $secret_names
                | ([{"name":"STRIPE_PUBLISHABLE_KEY","value":$PK_LIVE},{"name":"S3_BUCKET_NAME","value":$BUCKET},{"name":"TRUSTED_PROXY_COUNT","value":"2"}]) as $env_overrides
                | (($env_overrides | map(.name)) + $secret_names) as $managed
                | del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)

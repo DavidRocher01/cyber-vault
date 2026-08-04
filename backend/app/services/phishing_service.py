@@ -471,6 +471,43 @@ def _adresse_expediteur() -> str:
     return parseaddr(brute)[1] or brute
 
 
+class DomaineExpeditionInvalideError(RuntimeError):
+    """Le domaine d'expédition des simulations n'est pas séparé du transactionnel."""
+
+
+def _domaine(adresse: str) -> str:
+    return adresse.rsplit("@", 1)[-1].strip().lower()
+
+
+def verifier_domaine_expedition() -> None:
+    """Refuse d'envoyer des simulations depuis le domaine transactionnel.
+
+    POURQUOI CETTE GARDE EXISTE. Le but d'une bonne simulation est que les
+    salariés SIGNALENT le message. Ces signalements remontent à Microsoft et
+    Google et pèsent sur la réputation du domaine expéditeur. L'envoyer depuis
+    celui qui porte les réinitialisations de mot de passe et les factures revient
+    donc à leur nuire délibérément — et d'autant plus que la simulation réussit.
+
+    ELLE NE CONNAÎT AUCUN NOM DE DOMAINE. Elle compare l'expéditeur des
+    simulations à l'expéditeur transactionnel : elle continue donc de protéger
+    après n'importe quel changement de domaine, sans être modifiée.
+
+    Le repli silencieux qu'elle remplace était le vrai danger : `PHISHING_FROM_
+    EMAIL or RESEND_FROM` fait qu'une valeur absente, vide ou mal saisie renvoie
+    au domaine principal SANS que rien ne le signale. C'est exactement le
+    scénario d'une migration de domaine bâclée. Mieux vaut refuser bruyamment
+    que délivrer discrètement.
+    """
+    simulation = _domaine(_adresse_expediteur())
+    transactionnel = _domaine(parseaddr(settings.RESEND_FROM)[1] or settings.RESEND_FROM)
+    if not simulation or simulation == transactionnel:
+        raise DomaineExpeditionInvalideError(
+            "Les simulations partiraient du domaine transactionnel "
+            f"({transactionnel or 'indéterminé'}). Renseignez PHISHING_FROM_EMAIL "
+            "avec une adresse sur un domaine distinct, vérifié chez Resend."
+        )
+
+
 def _build_email(
     campaign: PhishingCampaign,
     target: PhishingTarget,
@@ -518,6 +555,11 @@ def _send_phishing_email(
     text: str,
     reply_to: str | None = None,
 ) -> None:
+    # Seconde barrière, sur le chemin d'envoi lui-même. Le contrôle au
+    # lancement ne couvre pas les campagnes lancées AVANT l'existence de cette
+    # garde, ni un changement de configuration survenu depuis : le planificateur
+    # reprend une campagne déjà `sending` sans repasser par l'endpoint.
+    verifier_domaine_expedition()
     resend.api_key = settings.RESEND_API_KEY
     payload: dict = {
         "from": from_addr,

@@ -42,6 +42,19 @@ L'historique des livraisons n'est pas ici — il est dans
   `ANTIVIRUS_DEPOT_ACTIF` à vrai. L'inverse coupe les téléchargements sans
   qu'aucune alerte ne se déclenche. Détail : `docs/DEPOT_DOCUMENTS.md`.
 
+- **Renseigner `PHISHING_FROM_EMAIL` dans Secrets Manager** —
+  `no-reply@cyberscanapp.com`. Décidé le 2026-08-03, **gratuit** : l'ancien
+  domaine de marque est déjà vérifié chez Resend et n'envoie plus rien. Tant que
+  la valeur n'y est pas, **aucune campagne ne peut être lancée** — la garde
+  refuse d'envoyer depuis le domaine transactionnel, délibérément. Une fois
+  posée, forcer un redéploiement suffit ; aucun changement de code.
+  ⚠️ **Ne pas supprimer `cyberscanapp.com` de Resend** : l'offre annonce
+  « 1 domain » et le compte en a deux. Le second est hérité et probablement
+  irremplaçable sans passer à Pro (20 $/mois).
+  Le nom est imparfait pour le réalisme — « cyberscan » évoque un outil de
+  sécurité. À reprendre avec un domaine fade quand une campagne facturée le
+  justifiera. Raisonnement : `docs/PHISHING_REDESIGN.md` §5c.
+
 - **Plafond de taille de corps de requête sur l'ALB ou CloudFront.** La lecture
   bornée livrée le 2026-08-03 protège la mémoire, pas la réception : Starlette
   analyse le corps multipart avant que le code applicatif ne s'exécute. Vaut
