@@ -341,6 +341,48 @@ en cours.
 Le mode de panne est bénin : si la tâche s'arrête, les fichiers restent
 `en_analyse` et rien n'est délivré.
 
+### La permission IAM qui n'existe nulle part dans le dépôt
+
+Découverte le 2026-08-05, par le premier dépôt réel — et par rien d'autre.
+
+Le rôle `cybervault-ecs-task-role` porte une politique **en ligne**,
+`cybervault-rssi-s3`, créée à la main dans la console. Elle n'accordait que
+`PutObject`, `GetObject` et `DeleteObject`. **Lire une balise est une permission
+distincte** : `lire_balise` recevait un `AccessDenied`, le code l'attrapait, et
+le fichier restait en `en_analyse` jusqu'au renoncement.
+
+Les tests ne pouvaient pas l'attraper — ils simulent `lire_balise`. **Une
+permission ne se vérifie que dans l'environnement réel.**
+
+`s3:GetObjectTagging` a été ajoutée, et l'effet vérifié par
+`aws iam simulate-principal-policy` → `allowed`.
+
+**Le vrai enseignement n'est pas la permission manquante, c'est que cette
+politique ne vit que dans la console.** Si le compte est reconstruit, elle est
+perdue, et personne ne le saura avant que les téléchargements cessent en
+silence. Contenu à recréer à l'identique :
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject",
+        "s3:GetObjectTagging"
+      ],
+      "Resource": "arn:aws:s3:::cybervault-rssi-deliverables-prod/rssi-deliverables/*"
+    }
+  ]
+}
+```
+
+`s3:PutObjectTagging` n'est **pas** nécessaire : GuardDuty écrit les balises
+avec son propre rôle, pas avec celui de la tâche.
+
 ### Reste à faire — et l'ordre compte
 
 1. Activer **Malware Protection for S3** sur le bucket (et lui seul).

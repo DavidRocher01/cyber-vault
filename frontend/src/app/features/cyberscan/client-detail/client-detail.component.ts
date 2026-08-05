@@ -705,7 +705,12 @@ export class ClientDetailComponent implements OnInit {
     if (!deliverable.file_url) return;
     this.rssi.getDeliverableDownloadUrl(this.clientId, deliverable.id).subscribe({
       next: ({ url }) => window.open(url, '_blank', 'noopener'),
-      error: () => this.snack.open("Impossible d'ouvrir le fichier", 'Fermer', { duration: 4000 }),
+      // `snackApiError` et non un message fixe : depuis l'analyse antivirus, un
+      // refus n'est plus forcement une panne. Le serveur repond 409 avec « en
+      // cours de verification » quand le fichier attend son verdict — dire
+      // « Impossible d'ouvrir le fichier » laisse croire a une erreur alors
+      // qu'il suffit d'attendre. Constate en production le 2026-08-05.
+      error: (err: { error?: { detail?: string } }) => snackApiError(this.snack, err),
     });
   }
 
