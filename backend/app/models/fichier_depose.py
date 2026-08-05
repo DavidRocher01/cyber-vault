@@ -40,14 +40,30 @@ class FichierDepose(Base):
     taille_octets: Mapped[int] = mapped_column(Integer, nullable=False)
     type_mime: Mapped[str] = mapped_column(String(120), nullable=False)
 
-    # Qui a déposé. `ondelete=CASCADE` : le compte parti, ses dépôts n'ont plus
-    # de titulaire — les garder serait conserver des données sans base légale.
-    depose_par_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    # `SET NULL` ET NON `CASCADE` SUR LES DEUX — corrigé le 2026-08-04.
+    #
+    # La première version cascadait. L'intention était RGPD : le compte parti,
+    # ses dépôts n'ont plus de titulaire. L'effet obtenu était l'inverse. La
+    # cascade efface la LIGNE ; elle ne touche pas à l'objet sur S3, que seul du
+    # code applicatif sait supprimer. Un client supprimé laissait donc le fichier
+    # stocké **et** effaçait la seule trace permettant de le retrouver — soit
+    # exactement ce que ce registre existe pour empêcher, réintroduit par
+    # l'autre bout.
+    #
+    # Avec `SET NULL`, la ligne survit, perd son rattachement, et devient un
+    # orphelin au sens de `purger_orphelins` : objet effacé PUIS ligne, avec
+    # réessai si le stockage résiste. Le fichier disparaît réellement sous
+    # `DELAI_ORPHELIN_JOURS`, au lieu de rester indéfiniment sans titulaire.
+    #
+    # `depose_par_id` est donc nullable : perdre le déposant n'empêche pas de
+    # purger, et le conserver après suppression du compte serait précisément la
+    # donnée sans base légale qu'on voulait éviter.
+    depose_par_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     # Client RSSI concerné, quand le dépôt s'inscrit dans un suivi.
     client_id: Mapped[int | None] = mapped_column(
-        ForeignKey("rssi_clients.id", ondelete="CASCADE"), nullable=True, index=True
+        ForeignKey("rssi_clients.id", ondelete="SET NULL"), nullable=True, index=True
     )
 
     statut_analyse: Mapped[str] = mapped_column(

@@ -185,6 +185,24 @@ Les hooks lancent ruff / ruff format / mypy / bandit / détection de secrets, et
 imposent le **Conventional Commit** (`feat|fix|refactor|test|docs|chore|perf|ci|build:`).
 Sauter ces hooks fait échouer la CI.
 
+### Le schéma de test ne vient pas des migrations
+
+La suite construit ses tables avec `Base.metadata.create_all`, donc depuis les
+**modèles**. La production, elle, obtient son schéma des **migrations**. Les deux
+peuvent diverger sans que rien ne le signale : une migration oubliée ou
+incomplète laisse tous les tests au vert, puisqu'ils ne l'utilisent pas.
+
+C'est `alembic check` qui ferme cet écart, lancé en CI après `upgrade head`. Il
+compare le schéma migré aux modèles et échoue en nommant la dérive.
+
+Avant de committer un changement de modèle, le réflexe utile :
+
+```bash
+cd backend && python -m alembic check
+```
+
+« No new upgrade operations detected » = les deux concordent.
+
 ### Windows — mypy bloqué par Smart App Control
 
 Symptôme, constaté le 2026-08-03 :

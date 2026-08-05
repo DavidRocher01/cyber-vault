@@ -77,7 +77,7 @@ async def test_purge_expired_data_removes_only_expired_and_unmonitored(db_sessio
 
     counts = await purge_expired_data(db_session, NOW)
 
-    assert counts == {"public_scans": 1, "darkweb_dossiers": 1}
+    assert counts == {"public_scans": 1, "darkweb_dossiers": 1, "fichiers_orphelins": 0}
 
     # public_scans : seul le récent survit
     remaining_scans = (await db_session.execute(select(PublicScan.target_url))).scalars().all()
@@ -102,5 +102,5 @@ async def test_purge_expired_data_noop_when_nothing_expired(db_session):
 
     counts = await purge_expired_data(db_session, NOW)
 
-    assert counts == {"public_scans": 0, "darkweb_dossiers": 0}
+    assert counts == {"public_scans": 0, "darkweb_dossiers": 0, "fichiers_orphelins": 0}
     assert await _count(db_session, PublicScan) == 1

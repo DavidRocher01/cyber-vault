@@ -154,16 +154,46 @@ Un garde-fou vérifie que toute extension de la liste blanche possède une
 signature : en ajouter une sans signature la ferait refuser systématiquement —
 panne silencieuse côté utilisateur, contrôle absent côté sécurité.
 
-### Aucune rétention
+### Rétention — trois régimes, pas un seul
 
-Le job nocturne purge `public_scans` et les dossiers Dark Web à 90 jours. Des
-documents clients — analyses de risques, inventaires, rapports d'incident — sont
-plus sensibles que ce qui est déjà purgé, et n'ont aujourd'hui **ni durée de
-conservation ni effacement**.
+La question posée au départ — « la durée se rattache-t-elle au document ou à la
+relation contractuelle ? » — était mal formulée. Le job de purge existant avait
+déjà tranché ce type de question pour le Dark Web : **c'est la finalité qui
+commande, pas une horloge.** Un dossier surveillé est conservé tant que la
+surveillance tourne ; un dossier ponctuel est purgé.
 
-À trancher : la durée se rattache-t-elle au document ou à la relation
-contractuelle ? Un livrable RSSI n'a probablement pas à survivre à la fin du
-suivi.
+Appliqué aux documents, cela donne **trois régimes juridiquement distincts**, et
+l'axe qui les sépare est le champ `origine` prévu à l'étape 3.
+
+| Cas | Régime | Traitement |
+|---|---|---|
+| **Orphelin** — déposé, jamais rattaché | aucune finalité | **7 jours. Fait le 2026-08-04.** |
+| Déposé par le **client** | sous-traitance, art. 28-3-g | effacer **ou restituer**, à sa main, en fin de mission |
+| Produit par le **consultant** | responsabilité professionnelle | conserver ; ordre de grandeur 5 ans |
+
+**Ce que la loi impose vraiment.** Aucun texte ne fixe de durée : l'article
+5-1-e demande une durée *justifiée par la finalité*. En revanche l'article
+**28-3-g** s'applique directement aux documents déposés par le client — à la fin
+de la prestation, le sous-traitant efface **ou restitue**, **au choix du
+responsable de traitement**. Le choix n'appartient donc pas à la plateforme, et
+une purge unilatérale ne suffit pas : il faut que la restitution ait été
+possible.
+
+**Ce qui tire en sens inverse.** Les livrables produits par le consultant sont
+sa preuve en cas de litige sur la qualité de la prestation. La prescription de
+droit commun est de **5 ans** (art. 2224 du Code civil) : les effacer peu après
+la fin de mission reviendrait à détruire sa propre défense. À faire confirmer
+par un conseil, au même titre que la RC Pro.
+
+**Un manque à corriger avant d'ouvrir le dépôt.** La politique de
+confidentialité publiée énumère les durées (compte, scans, journaux,
+facturation) mais **ne dit rien des documents déposés**. L'article 13 impose
+d'informer sur les durées de conservation : la ligne devra y être ajoutée en
+même temps que l'étape 3.
+
+**Ce qui est développé, et pourquoi seulement cela.** Seul le cas de l'orphelin
+est implémenté. Les deux autres reposent sur la distinction `origine`, qui
+n'existe pas encore dans le modèle — coder maintenant reviendrait à deviner.
 
 ---
 
@@ -198,7 +228,8 @@ ce chantier.
 | 2a | Registre des fichiers, état d'analyse, règle de délivrance | **fait le 2026-08-03** |
 | 2b | Activer GuardDuty et brancher le verdict | **action infra requise** |
 | 3 | Dépôt côté portail RSSI (`origine` sur `RssiDeliverable`) | après 1 et 2 |
-| 4 | Rétention et effacement des documents déposés | avec l'étape 3 |
+| 4a | ~~Purge des dépôts orphelins + suppression S3~~ | **fait le 2026-08-04** |
+| 4b | Rétention des documents rattachés (client vs consultant) | avec l'étape 3, `origine` requis |
 | 5 | Preuves rattachées aux critères NIS2 / ISO | chantier distinct, à cadrer |
 
 **L'étape 2 n'est pas négociable avant l'étape 3.** Ouvrir le dépôt aux clients

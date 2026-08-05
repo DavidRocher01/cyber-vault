@@ -9,8 +9,9 @@ pour la rendre applicable. Cf. `docs/DEPOT_DOCUMENTS.md`.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
+from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -100,6 +101,68 @@ async def enregistrer_verdict(
     await db.commit()
     await db.refresh(fichier)
     return fichier
+
+
+DELAI_ORPHELIN_JOURS = 7
+
+
+async def purger_orphelins(
+    db: AsyncSession, now: datetime, delai_jours: int = DELAI_ORPHELIN_JOURS
+) -> int:
+    """Efface les fichiers déposés que plus rien ne référence. Renvoie le compte.
+
+    UN ORPHELIN, C'EST QUOI. Le dépôt renvoie une clé de stockage, puis un second
+    appel crée le livrable qui la référence. Entre les deux, rien ne garantit que
+    le second arrive : un abandon en cours de route, un onglet fermé, une erreur
+    réseau, et le fichier reste sur S3 sans qu'aucun livrable ne le désigne. Il
+    n'a alors plus aucune finalité — c'est le cas le plus simple de l'article
+    5-1-e du RGPD, et le seul qui ne prête à aucune discussion.
+
+    POURQUOI UN DÉLAI DE GRÂCE. Purger immédiatement casserait le flux normal :
+    entre le dépôt et la création du livrable il s'écoule quelques secondes, mais
+    rien n'interdit à un utilisateur de laisser le formulaire ouvert. Sept jours
+    laissent la place à toutes les lenteurs plausibles sans conserver ce qui ne
+    sert à rien.
+
+    L'ORDRE EST LE POINT CRITIQUE. On efface l'objet stocké, PUIS la ligne. Si la
+    suppression de l'objet échoue, la ligne reste et le prochain passage
+    réessaiera. L'ordre inverse perdrait la trace d'un fichier toujours présent
+    sur S3 — soit exactement le problème que ce registre a été créé pour
+    résoudre, réintroduit par l'autre bout.
+
+    Un échec sur un fichier n'interrompt pas les autres : une clé illisible ne
+    doit pas geler la purge de tout le reste.
+    """
+    from app.models.rssi_deliverable import RssiDeliverable
+    from app.services import storage
+
+    limite = now - timedelta(days=delai_jours)
+    referencees = select(RssiDeliverable.file_url).where(RssiDeliverable.file_url.is_not(None))
+    resultat = await db.execute(
+        select(FichierDepose).where(
+            FichierDepose.depose_le < limite,
+            FichierDepose.cle_stockage.not_in(referencees),
+        )
+    )
+    orphelins = list(resultat.scalars().all())
+
+    purges = 0
+    for fichier in orphelins:
+        try:
+            storage.supprimer_fichier(fichier.cle_stockage)
+        except Exception as exc:  # noqa: BLE001 — un fichier ne doit pas bloquer les autres
+            logger.warning(
+                "Purge des orphelins : échec sur {}, ligne conservée pour réessai ({})",
+                fichier.cle_stockage,
+                exc,
+            )
+            continue
+        await db.delete(fichier)
+        purges += 1
+
+    if purges:
+        await db.commit()
+    return purges
 
 
 async def octets_deposes_par_client(db: AsyncSession, client_id: int) -> int:

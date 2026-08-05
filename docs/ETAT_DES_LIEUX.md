@@ -42,18 +42,28 @@ L'historique des livraisons n'est pas ici — il est dans
   `ANTIVIRUS_DEPOT_ACTIF` à vrai. L'inverse coupe les téléchargements sans
   qu'aucune alerte ne se déclenche. Détail : `docs/DEPOT_DOCUMENTS.md`.
 
-- **Renseigner `PHISHING_FROM_EMAIL` dans Secrets Manager** —
-  `no-reply@cyberscanapp.com`. Décidé le 2026-08-03, **gratuit** : l'ancien
-  domaine de marque est déjà vérifié chez Resend et n'envoie plus rien. Tant que
-  la valeur n'y est pas, **aucune campagne ne peut être lancée** — la garde
-  refuse d'envoyer depuis le domaine transactionnel, délibérément. Une fois
-  posée, forcer un redéploiement suffit ; aucun changement de code.
-  ⚠️ **Ne pas supprimer `cyberscanapp.com` de Resend** : l'offre annonce
-  « 1 domain » et le compte en a deux. Le second est hérité et probablement
-  irremplaçable sans passer à Pro (20 $/mois).
-  Le nom est imparfait pour le réalisme — « cyberscan » évoque un outil de
-  sécurité. À reprendre avec un domaine fade quand une campagne facturée le
-  justifiera. Raisonnement : `docs/PHISHING_REDESIGN.md` §5c.
+- **Rotation de secrets — différée le 2026-08-04, connue.** Une capture d'écran
+  de la console Secrets Manager a exposé des valeurs de production. Entièrement
+  lisibles : `RESEND_API_KEY`, `SMTP_PASSWORD`, `STRIPE_WEBHOOK_SECRET`.
+  Partiellement : `STRIPE_SECRET_KEY` (`sk_live_`), `SECRET_KEY`,
+  `DATABASE_URL`, `ORIGIN_VERIFY_SECRET`.
+  La plus sensible est la clé Resend : elle permet d'envoyer des courriels
+  signés DKIM depuis les domaines vérifiés.
+  ⚠️ **`SECRET_KEY` ne se fait pas tourner à la légère** : elle chiffre aussi
+  les graines TOTP, sa rotation casse la 2FA de tous les comptes. Chantier
+  séparé, avec re-chiffrement. Cf. `docs/RUNBOOK_INCIDENT.md`.
+
+- **Créer un utilisateur IAM dédié aux opérations** — constaté le 2026-08-04 :
+  les appels AWS s'authentifient avec le **compte racine**
+  (`arn:aws:iam::328646895533:root`). AWS le déconseille explicitement pour
+  l'usage courant, et c'est un point qu'un audit relève d'emblée.
+  Ce n'est pas urgent — mais c'est difficile à défendre devant un prospect à qui
+  l'on vend de la conformité, qui est le critère retenu ailleurs dans ce
+  document. Ce que le compte racine a de particulier : ses droits ne se
+  restreignent pas, et sa compromission ne se contient pas.
+  À faire : un utilisateur IAM avec les droits nécessaires (ECS, Secrets
+  Manager, S3, CloudFront, Route 53), MFA sur le racine, et ne s'en servir que
+  pour ce que lui seul permet.
 
 - **Plafond de taille de corps de requête sur l'ALB ou CloudFront.** La lecture
   bornée livrée le 2026-08-03 protège la mémoire, pas la réception : Starlette
@@ -131,6 +141,17 @@ L'historique des livraisons n'est pas ici — il est dans
   pas une base acceptable pour exposer des données de conversion — est levé
   depuis le 2026-08-02.
 - **`tax_behavior=inclusive` chez Stripe** — délibéré, cf. §3.
+- **Domaine d'expédition des simulations de phishing** — `cyberscanapp.com`,
+  décidé le 2026-08-03 et **en service depuis le 2026-08-04**
+  (`PHISHING_FROM_EMAIL = noreply@cyberscanapp.com`, révision 147). Gratuit :
+  l'ancien domaine de marque était déjà vérifié chez Resend et n'envoyait plus
+  rien. Domaine entièrement distinct, donc isolation de réputation totale.
+  ⚠️ **Ne pas le supprimer de Resend.** L'offre annonce « 1 domain » et le
+  compte en a deux ; le second est hérité et probablement irremplaçable sans
+  passer à Pro (20 $/mois).
+  Le nom reste imparfait pour le réalisme — « cyberscan » évoque un outil de
+  sécurité. À reprendre avec un domaine fade quand une campagne facturée le
+  justifiera, pas avant. Raisonnement : `docs/PHISHING_REDESIGN.md` §5c.
 - **Dépôt de documents par les clients** — conception dans
   [`DEPOT_DOCUMENTS.md`](DEPOT_DOCUMENTS.md). Antivirus tranché le 2026-08-03 :
   **GuardDuty Malware Protection for S3**, activé seul. Étapes 1 et 2a livrées

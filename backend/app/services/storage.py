@@ -152,6 +152,35 @@ def upload_file(content: bytes, original_name: str, user_id: int, client_id: int
     return _upload_local(content, original_name, user_id, client_id)
 
 
+def supprimer_fichier(key: str) -> None:
+    """Efface l'objet stocké sous `key`. Idempotent.
+
+    Effacer un fichier déjà absent n'est PAS une erreur : la purge doit pouvoir
+    rejouer sans se bloquer sur un objet qu'un passage précédent avait déjà
+    supprimé, ou qu'un ménage manuel a retiré. S3 traite `delete_object` sur une
+    clé inexistante comme un succès ; le repli disque fait de même avec
+    `missing_ok`.
+
+    Ne rattrape PAS les autres erreurs (droits, réseau) : l'appelant doit savoir
+    que l'objet est toujours là, pour garder sa ligne de registre et réessayer.
+    Perdre la trace d'un fichier qu'on n'a pas réussi à effacer, c'est le
+    condamner à rester sur S3 sans que rien ne s'en souvienne.
+    """
+    if settings.S3_BUCKET_NAME and key.startswith("rssi-deliverables/"):
+        import boto3
+
+        s3 = boto3.client("s3", region_name=settings.AWS_REGION)
+        s3.delete_object(Bucket=settings.S3_BUCKET_NAME, Key=key)
+        return
+    # Repli disque local. `Path(key).name` ne suffit pas ici : la clé porte le
+    # chemin complet renvoyé par `_upload_local`. On refuse toutefois de sortir
+    # du répertoire de dépôt, une clé venant de la base restant une donnée.
+    chemin = Path(key)
+    if chemin.is_absolute() or ".." in chemin.parts:
+        raise ValueError(f"Clé de stockage refusée : {key!r}")
+    chemin.unlink(missing_ok=True)
+
+
 def get_download_url(key: str, expires: int = 3600) -> str:
     """Return a download URL for a stored key (presigned if S3, local path if local)."""
     if settings.S3_BUCKET_NAME and key.startswith("rssi-deliverables/"):
