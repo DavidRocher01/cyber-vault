@@ -24,6 +24,18 @@
 
 <div class="min-h-screen bg-gray-950 text-gray-100 p-4 md:p-8">
   <div class="max-w-6xl mx-auto">
+    <!-- Retour à l'accueil. Cette console est la racine du fil d'Ariane de la
+         fiche client (« RSSI Externalisé › nom du client ») : l'échelon
+         au-dessus est donc la marque. Même idiome discret que ce fil-là, pour
+         ne pas concurrencer le titre juste en dessous. -->
+    <a
+      routerLink="/"
+      class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-cyan-300 transition-colors mb-6"
+    >
+      <mat-icon class="!text-[1.1rem] !w-[1.1rem] !h-[1.1rem] text-cyan-400">shield</mat-icon>
+      <span class="font-semibold">Rocher Cybersécurité</span>
+    </a>
+
     <!-- Header -->
     <div class="flex items-center justify-between gap-4 mb-8">
       <div>
