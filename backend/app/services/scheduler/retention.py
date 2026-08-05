@@ -6,6 +6,12 @@ dont la finalité est expirée :
 - **public_scans** : leads anonymes du scan gratuit (email + ip_hash salé +
   results_json). Aucun rattachement compte, finalité = livraison ponctuelle du
   rapport → purge dure après `PUBLIC_SCAN_RETENTION_DAYS` jours.
+- **fichiers_deposes** ORPHELINS : fichiers stockés que plus aucun livrable ne
+  référence. Le dépôt rend une clé, un second appel crée le livrable ; si ce
+  second appel n'arrive jamais, le fichier reste sur S3 sans finalité. Purge
+  après `DELAI_ORPHELIN_JOURS` jours — délai de grâce, le temps que le flux
+  normal se termine. Contrairement aux deux autres, cette purge efface AUSSI
+  l'objet stocké, pas seulement la ligne.
 - **darkweb_dossiers** NON surveillés : dossiers Dark Web B2B (emails de salariés
   exposés) dont la surveillance mensuelle est désactivée (`monitor_active=False`).
   Un dossier surveillé a une finalité ACTIVE (alerte sur nouvelles fuites) et est
@@ -26,6 +32,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import AsyncSessionLocal
 from app.models.darkweb_dossier import DarkwebDossier
 from app.models.public_scan import PublicScan
+from app.services import depot_service
 
 PUBLIC_SCAN_RETENTION_DAYS = 90
 DARKWEB_DOSSIER_RETENTION_DAYS = 90
@@ -52,9 +59,15 @@ async def purge_expired_data(db: AsyncSession, now: datetime) -> dict[str, int]:
     )
     await db.commit()
 
+    # Après le commit : cette purge-ci touche au stockage objet, pas seulement à
+    # la base. La garder à part évite qu'un échec S3 fasse retomber les deux
+    # suppressions ci-dessus, qui n'ont rien à voir avec elle.
+    orphelins = await depot_service.purger_orphelins(db, now)
+
     return {
         "public_scans": public_result.rowcount or 0,
         "darkweb_dossiers": darkweb_result.rowcount or 0,
+        "fichiers_orphelins": orphelins,
     }
 
 
@@ -62,9 +75,11 @@ async def _run_data_retention_purge() -> None:
     """Job nocturne (05:00 UTC) : purge les PII expirées (public_scans + Dark Web)."""
     async with AsyncSessionLocal() as db:
         counts = await purge_expired_data(db, datetime.now(UTC))
-    if counts["public_scans"] or counts["darkweb_dossiers"]:
+    if any(counts.values()):
         logger.info(
-            "Purge rétention RGPD : {} public_scans, {} darkweb_dossiers supprimés",
+            "Purge rétention RGPD : {} public_scans, {} darkweb_dossiers, "
+            "{} fichiers orphelins supprimés",
             counts["public_scans"],
             counts["darkweb_dossiers"],
+            counts["fichiers_orphelins"],
         )

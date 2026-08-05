@@ -40,30 +40,37 @@ repos:
         files: ^backend/
 
   # Python: type checking (mode progressif — erreurs critiques uniquement)
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.3.0
+  #
+  # `language: system` — le hook utilise le mypy du venv du projet, PAS un
+  # environnement isole que pre-commit installerait lui-meme.
+  #
+  # Pourquoi : le mypy des roues officielles embarque une extension compilee par
+  # mypyc, non signee, que Smart App Control bloque sur ce poste (constate le
+  # 2026-08-03 sur le venv, puis le 2026-08-04 sur le cache pre-commit —
+  # ImportError: DLL load failed while importing fscache). Le venv du projet
+  # porte une version PURE PYTHON, installee exprès, qui n a rien a bloquer.
+  # Sans cela le hook echoue et aucun commit ne passe.
+  #
+  # Contrepartie assumee : la version de mypy suit desormais requirements.txt au
+  # lieu d etre epinglee ici. C est la meme que celle de la CI, ce qui evite au
+  # passage qu un ecart entre les deux ne se creuse en silence.
+  # Cf. docs/DEV_SETUP.md, section « Windows — mypy bloque par Smart App Control ».
+  - repo: local
     hooks:
       - id: mypy
-        files: ^backend/app/
-        args:
-          - "--ignore-missing-imports"
-          - "--no-strict-optional"
-          - "--allow-untyped-defs"
-          - "--allow-incomplete-defs"
-          - "--no-warn-return-any"
-          - "--disable-error-code=name-defined"
-          - "--disable-error-code=attr-defined"
-          - "--disable-error-code=index"
-          - "--disable-error-code=misc"
-          - "--disable-error-code=import-untyped"
-          - "--disable-error-code=arg-type"
-          - "--disable-error-code=return-value"
-          - "--disable-error-code=operator"
-          - "--disable-error-code=call-overload"
-          - "--disable-error-code=var-annotated"
-        additional_dependencies:
-          - pydantic>=2.0
-          - sqlalchemy[mypy]>=2.0
+        name: mypy
+        # EXACTEMENT la commande de la CI, depuis le meme repertoire. Les deux ne
+        # peuvent donc pas diverger : un type qui passe ici passe la-bas.
+        #
+        # `pass_filenames: false` est indispensable. Avec les fichiers passes un
+        # par un depuis la racine du depot, mypy resout `backend.app.main` au
+        # lieu de `app.main` et invente des erreurs — trois, mesurees le
+        # 2026-08-04, dont un « FastAPI vs Module » qui n existe pas.
+        # Meme idiome que les hooks prettier et eslint plus bas.
+        entry: cmd /c "cd backend && .venv\Scripts\python -m mypy app/"
+        language: system
+        pass_filenames: false
+        files: ^backend/app/.*\.py$
 
   # Python: security audit
   - repo: https://github.com/PyCQA/bandit
