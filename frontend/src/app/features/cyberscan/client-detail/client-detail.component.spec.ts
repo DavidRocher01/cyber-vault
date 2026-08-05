@@ -575,4 +575,24 @@ describe('ClientDetailComponent — openDeliverableFile()', () => {
     expect(openSpy).toHaveBeenCalledWith('https://dl/x', '_blank', 'noopener');
     openSpy.mockRestore();
   });
+
+  // Depuis l'analyse antivirus (2026-08-05), un refus n'est plus forcement une
+  // panne : le serveur repond 409 « en cours de verification » tant que le
+  // fichier attend son verdict. Le gestionnaire affichait un texte fixe et
+  // jetait ce detail — l'utilisateur lisait « Impossible d'ouvrir le fichier »
+  // et croyait a une erreur alors qu'il suffisait d'attendre. Constate en
+  // production.
+  it('remonte le message du serveur au lieu d’un texte fixe', () => {
+    const c = makeComp();
+    (c as any).rssi = {
+      getDeliverableDownloadUrl: vi
+        .fn()
+        .mockReturnValue(
+          throwError(() => ({ error: { detail: 'Ce document est en cours de vérification.' } }))
+        ),
+    };
+    c.openDeliverableFile({ id: 3, file_url: 'key' } as never);
+    const message = (c as any).snack.open.mock.calls[0][0] as string;
+    expect(message).toContain('vérification');
+  });
 });
