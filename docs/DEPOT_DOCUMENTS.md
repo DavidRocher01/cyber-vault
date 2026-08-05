@@ -279,9 +279,26 @@ Plan `70cfe8f2f02d87c32d65`, statut `ACTIVE`, sur
 préfixe mal saisi échouerait en silence), balisage `ENABLED`, rôle
 `GuardDutyS3MalwareScanRole-rssi-deliverables`.
 
-Vérifié par un dépôt de test réel : objet étiqueté en **moins de 45 secondes**,
-balise `GuardDutyMalwareScanStatus` = `NO_THREATS_FOUND`. Le fichier de test a
-été supprimé.
+Vérifié par deux dépôts de test réels, tous deux supprimés ensuite :
+
+| Fichier | Verdict | Délai |
+|---|---|---|
+| PDF anodin | `NO_THREATS_FOUND` | < 45 s |
+| **EICAR** (faux virus standard, 68 octets) | **`THREATS_FOUND`** | **20 s** |
+
+Le second compte plus que le premier : il établit que la détection **détecte**,
+et pas seulement qu'elle s'exécute. Sans lui, on aurait supposé que
+`THREATS_FOUND` fonctionne.
+
+**Aucun détecteur GuardDuty n'existe dans le compte** (`list-detectors` rend une
+liste vide) : Malware Protection for S3 tourne bien seul, sans enclencher —
+ni facturer — l'analyse des journaux VPC, DNS et CloudTrail. Conséquence à
+connaître : sans détecteur, il n'y a pas de « findings » dans la console
+GuardDuty. La balise sur l'objet est le canal de vérité.
+
+Un objet `malware-protection-resource-validation-object` de 0 octet subsiste
+dans le bucket : c'est GuardDuty qui l'a écrit à l'activation pour vérifier ses
+propres droits. Ne pas le supprimer.
 
 **CINQ statuts, pas deux.** L'écran d'activation les nomme :
 `NO_THREATS_FOUND`, `THREATS_FOUND`, `UNSUPPORTED`, `ACCESS_DENIED`, `FAILED`.
