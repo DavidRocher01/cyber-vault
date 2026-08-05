@@ -149,7 +149,7 @@ async def test_fichier_rejete_refuse(http_client: AsyncClient):
     client_id, cle, deliverable_id = await _client_et_depot(http_client, h)
 
     async with _db_mod.AsyncSessionLocal() as db:
-        await depot_service.enregistrer_verdict(db, cle_stockage=cle, sain=False)
+        await depot_service.enregistrer_verdict(db, cle_stockage=cle, balise="THREATS_FOUND")
 
     r = await http_client.get(
         f"{BASE}/rssi/clients/{client_id}/deliverables/{deliverable_id}/download", headers=h
@@ -257,7 +257,7 @@ async def test_portail_refuse_un_fichier_non_sain(http_client: AsyncClient):
             type_mime="application/pdf",
             depose_par_id=1,
         )
-        await depot_service.enregistrer_verdict(db, cle_stockage=cle, sain=False)
+        await depot_service.enregistrer_verdict(db, cle_stockage=cle, balise="THREATS_FOUND")
 
     r = await http_client.get(
         f"{BASE}/portal/deliverables/{deliverable_id}/download", headers=client_h
@@ -307,7 +307,7 @@ async def test_verdict_sur_cle_inconnue_ne_cree_rien(http_client: AsyncClient):
     async with _db_mod.AsyncSessionLocal() as db:
         avant = (await db.execute(select(func.count(FichierDepose.id)))).scalar_one()
         resultat = await depot_service.enregistrer_verdict(
-            db, cle_stockage="cle/qui/n/existe/pas", sain=True
+            db, cle_stockage="cle/qui/n/existe/pas", balise="NO_THREATS_FOUND"
         )
         apres = (await db.execute(select(func.count(FichierDepose.id)))).scalar_one()
     assert resultat is None
@@ -325,7 +325,9 @@ async def test_verdict_horodate_l_analyse(http_client: AsyncClient):
     async with _db_mod.AsyncSessionLocal() as db:
         avant = await depot_service.fichier_par_cle(db, cle)
         assert avant.analyse_le is None
-        apres = await depot_service.enregistrer_verdict(db, cle_stockage=cle, sain=True)
+        apres = await depot_service.enregistrer_verdict(
+            db, cle_stockage=cle, balise="NO_THREATS_FOUND"
+        )
     assert apres.statut_analyse == StatutAnalyse.SAIN
     assert apres.analyse_le is not None
 
@@ -353,3 +355,69 @@ async def test_antivirus_actif_met_le_depot_en_analyse(http_client: AsyncClient,
     assert depot_service.statut_a_l_enregistrement() == StatutAnalyse.EN_ANALYSE
     monkeypatch.setattr(depot_service.settings, "ANTIVIRUS_DEPOT_ACTIF", False)
     assert depot_service.statut_a_l_enregistrement() == StatutAnalyse.SAIN
+
+
+# ── Les CINQ statuts de GuardDuty ──────────────────────────────────────────────
+#
+# Constate sur l'ecran d'activation le 2026-08-05 : GuardDuty rend cinq statuts,
+# pas deux. `enregistrer_verdict` prenait un booleen et ne pouvait donc exprimer
+# que « sain » ou « rejete » — un scan en echec devenait l'un des deux selon
+# l'appelant, les deux etant faux.
+#
+# Le nom de balise `GuardDutyMalwareScanStatus` et le statut NO_THREATS_FOUND ont
+# ete confirmes en production le meme jour, sur un depot de test etiquete en
+# moins de 45 secondes.
+
+
+@pytest.mark.parametrize(
+    ("balise", "attendu"),
+    [
+        ("NO_THREATS_FOUND", StatutAnalyse.SAIN),
+        ("THREATS_FOUND", StatutAnalyse.REJETE),
+        ("UNSUPPORTED", StatutAnalyse.INDETERMINE),
+        ("ACCESS_DENIED", StatutAnalyse.INDETERMINE),
+        ("FAILED", StatutAnalyse.INDETERMINE),
+    ],
+)
+def test_correspondance_des_cinq_statuts(balise, attendu):
+    from app.services import depot_service
+
+    assert depot_service.statut_depuis_balise(balise) == attendu
+
+
+@pytest.mark.parametrize("inconnu", ["", "PAS_UN_STATUT", "STATUT_INVENTE_PAR_AWS_DEMAIN"])
+def test_un_statut_inconnu_ne_devient_jamais_sain(inconnu):
+    """LE test qui compte : le defaut doit rester ferme.
+
+    AWS peut ajouter un statut demain. L'interpreter comme sain reviendrait a
+    delivrer un fichier sur la foi d'une valeur qu'on ne sait pas lire.
+    """
+    from app.services import depot_service
+
+    assert depot_service.statut_depuis_balise(inconnu) == StatutAnalyse.INDETERMINE
+
+
+@pytest.mark.asyncio
+async def test_un_scan_en_echec_n_ouvre_pas_le_telechargement(http_client: AsyncClient):
+    """Bout en bout : FAILED n'est ni sain ni rejete, et ne delivre pas."""
+    import app.core.database as _db_mod
+    from app.services import depot_service
+
+    h = await _auth_consultant(http_client, "av_echec@test.com")
+    client_id, cle, deliverable_id = await _client_et_depot(http_client, h)
+
+    async with _db_mod.AsyncSessionLocal() as db:
+        fichier = await depot_service.enregistrer_verdict(db, cle_stockage=cle, balise="FAILED")
+    assert fichier.statut_analyse == StatutAnalyse.INDETERMINE
+
+    r = await http_client.get(
+        f"{BASE}/rssi/clients/{client_id}/deliverables/{deliverable_id}/download", headers=h
+    )
+    assert r.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_la_casse_et_les_espaces_ne_perturbent_pas(http_client: AsyncClient):
+    from app.services import depot_service
+
+    assert depot_service.statut_depuis_balise(" no_threats_found ") == StatutAnalyse.SAIN

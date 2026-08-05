@@ -109,3 +109,16 @@ class StatutAnalyse(StrEnum):
     EN_ANALYSE = "en_analyse"
     SAIN = "sain"
     REJETE = "rejete"
+    # L'analyse a répondu, mais sans verdict exploitable. GuardDuty rend cinq
+    # statuts et non deux : au-delà de NO_THREATS_FOUND et THREATS_FOUND, il
+    # peut renvoyer UNSUPPORTED (format qu'il ne sait pas ouvrir), ACCESS_DENIED
+    # (droits insuffisants sur l'objet) ou FAILED.
+    #
+    # Ces trois-là ne sont ni sains ni rejetés, et les ranger dans l'un des deux
+    # serait faux dans les deux sens : « sain » délivrerait un fichier jamais
+    # vérifié, « rejeté » accuserait un fichier probablement inoffensif.
+    #
+    # Ils sont aussi TERMINAUX — l'analyse ne se rejouera pas d'elle-même. Les
+    # laisser en `en_analyse` les rendrait indiscernables d'un scan en cours, et
+    # personne ne saurait qu'il y a quelque chose à regarder.
+    INDETERMINE = "indetermine"

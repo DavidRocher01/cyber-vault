@@ -34,36 +34,13 @@ L'historique des livraisons n'est pas ici — il est dans
   les métriques de latence multi-instance. Coût estimé ~10,51 $/mois.
   Checklist : `docs/S2_INFRA_CHECKLIST.md`.
 
-- **Activer GuardDuty Malware Protection for S3** — et **lui seul**, pas
-  GuardDuty en entier, dont l'analyse des journaux VPC/DNS/CloudTrail est
-  facturée séparément et sans commune mesure. L'ordre compte : activer sur le
-  bucket → vérifier que les objets sont étiquetés → brancher le verdict sur
-  `depot_service.enregistrer_verdict` → **et seulement là** passer
-  `ANTIVIRUS_DEPOT_ACTIF` à vrai. L'inverse coupe les téléchargements sans
-  qu'aucune alerte ne se déclenche. Détail : `docs/DEPOT_DOCUMENTS.md`.
-
-- **Rotation de secrets — différée le 2026-08-04, connue.** Une capture d'écran
-  de la console Secrets Manager a exposé des valeurs de production. Entièrement
-  lisibles : `RESEND_API_KEY`, `SMTP_PASSWORD`, `STRIPE_WEBHOOK_SECRET`.
-  Partiellement : `STRIPE_SECRET_KEY` (`sk_live_`), `SECRET_KEY`,
-  `DATABASE_URL`, `ORIGIN_VERIFY_SECRET`.
-  La plus sensible est la clé Resend : elle permet d'envoyer des courriels
-  signés DKIM depuis les domaines vérifiés.
-  ⚠️ **`SECRET_KEY` ne se fait pas tourner à la légère** : elle chiffre aussi
-  les graines TOTP, sa rotation casse la 2FA de tous les comptes. Chantier
-  séparé, avec re-chiffrement. Cf. `docs/RUNBOOK_INCIDENT.md`.
-
-- **Créer un utilisateur IAM dédié aux opérations** — constaté le 2026-08-04 :
-  les appels AWS s'authentifient avec le **compte racine**
-  (`arn:aws:iam::328646895533:root`). AWS le déconseille explicitement pour
-  l'usage courant, et c'est un point qu'un audit relève d'emblée.
-  Ce n'est pas urgent — mais c'est difficile à défendre devant un prospect à qui
-  l'on vend de la conformité, qui est le critère retenu ailleurs dans ce
-  document. Ce que le compte racine a de particulier : ses droits ne se
-  restreignent pas, et sa compromission ne se contient pas.
-  À faire : un utilisateur IAM avec les droits nécessaires (ECS, Secrets
-  Manager, S3, CloudFront, Route 53), MFA sur le racine, et ne s'en servir que
-  pour ce que lui seul permet.
+- **Brancher le verdict antivirus** — GuardDuty est **activé et vérifié**
+  depuis le 2026-08-05 (plan ACTIVE, balisage confirmé sur un dépôt de test en
+  moins de 45 s). Le code sait traduire les cinq statuts ; il reste à décider
+  COMMENT le verdict remonte : relecture de la balise, ou événement EventBridge.
+  Le second évite un sondage mais ajoute un chemin asynchrone à tester.
+  `ANTIVIRUS_DEPOT_ACTIF` reste à **faux** jusque-là — à vrai sans verdict
+  branché, chaque dépôt resterait bloqué en `en_analyse`.
 
 - **Plafond de taille de corps de requête sur l'ALB ou CloudFront.** La lecture
   bornée livrée le 2026-08-03 protège la mémoire, pas la réception : Starlette

@@ -84,10 +84,45 @@ async def est_telechargeable(db: AsyncSession, cle_stockage: str) -> bool:
     return fichier.statut_analyse == StatutAnalyse.SAIN
 
 
+# Balise posée par GuardDuty sur chaque objet analysé. Nom confirmé en
+# production le 2026-08-05, sur un dépôt de test étiqueté en moins de 45 s.
+BALISE_GUARDDUTY = "GuardDutyMalwareScanStatus"
+
+# Les CINQ statuts que GuardDuty peut rendre, et non deux.
+#
+# `UNSUPPORTED`, `ACCESS_DENIED` et `FAILED` ne sont ni sains ni rejetés, et les
+# ranger dans l'un des deux serait faux dans les deux sens : « sain »
+# délivrerait un fichier jamais vérifié, « rejeté » accuserait un fichier
+# probablement inoffensif. Ils vont donc en `indetermine` — un état terminal qui
+# n'ouvre pas le téléchargement et qui se voit.
+_CORRESPONDANCE = {
+    "NO_THREATS_FOUND": StatutAnalyse.SAIN,
+    "THREATS_FOUND": StatutAnalyse.REJETE,
+    "UNSUPPORTED": StatutAnalyse.INDETERMINE,
+    "ACCESS_DENIED": StatutAnalyse.INDETERMINE,
+    "FAILED": StatutAnalyse.INDETERMINE,
+}
+
+
+def statut_depuis_balise(valeur: str) -> StatutAnalyse:
+    """Traduit une valeur de balise GuardDuty en état du registre.
+
+    UNE VALEUR INCONNUE DEVIENT `indetermine`, JAMAIS `sain`. AWS peut ajouter un
+    statut demain ; le défaut doit rester fermé. Ouvrir sur l'inconnu serait
+    délivrer un fichier sur la foi d'une valeur qu'on ne sait pas interpréter.
+    """
+    return _CORRESPONDANCE.get(valeur.strip().upper(), StatutAnalyse.INDETERMINE)
+
+
 async def enregistrer_verdict(
-    db: AsyncSession, *, cle_stockage: str, sain: bool
+    db: AsyncSession, *, cle_stockage: str, balise: str
 ) -> FichierDepose | None:
     """Consigne le résultat de l'analyse pour un fichier du registre.
+
+    Prend la valeur BRUTE de la balise GuardDuty plutôt qu'un booléen. La
+    première version prenait `sain: bool` et ne pouvait donc exprimer que deux
+    des cinq réponses possibles — un scan en échec y devenait « rejeté » ou
+    « sain » selon l'appelant, les deux étant faux.
 
     Renvoie `None` si la clé est inconnue — un verdict portant sur un objet
     qu'on n'a pas enregistré ne doit pas créer de ligne : ce serait accepter
@@ -96,7 +131,7 @@ async def enregistrer_verdict(
     fichier = await fichier_par_cle(db, cle_stockage)
     if fichier is None:
         return None
-    fichier.statut_analyse = StatutAnalyse.SAIN if sain else StatutAnalyse.REJETE
+    fichier.statut_analyse = statut_depuis_balise(balise)
     fichier.analyse_le = datetime.now(UTC)
     await db.commit()
     await db.refresh(fichier)

@@ -226,7 +226,8 @@ ce chantier.
 | 0 | Plafond de corps de requête côté ALB/CloudFront | indépendant, vaut déjà |
 | ~~1~~ | ~~Vérification des octets de tête dans `validate_upload`~~ | **fait le 2026-08-03** |
 | 2a | Registre des fichiers, état d'analyse, règle de délivrance | **fait le 2026-08-03** |
-| 2b | Activer GuardDuty et brancher le verdict | **action infra requise** |
+| ~~2b~~ | ~~Activer GuardDuty Malware Protection for S3~~ | **fait le 2026-08-05** |
+| 2c | Brancher le verdict : relire la balise ou écouter EventBridge | décision d'infra à prendre |
 | 3 | Dépôt côté portail RSSI (`origine` sur `RssiDeliverable`) | après 1 et 2 |
 | 4a | ~~Purge des dépôts orphelins + suppression S3~~ | **fait le 2026-08-04** |
 | 4b | Rétention des documents rattachés (client vs consultant) | avec l'étape 3, `origine` requis |
@@ -270,6 +271,24 @@ registre.
 alors enregistrés directement sains. À vrai sans GuardDuty en service, chaque
 dépôt resterait bloqué en `en_analyse` : une porte fermée dont personne ne
 détient la clé, et rien pour signaler la panne.
+
+### Activé le 2026-08-05, et vérifié
+
+Plan `70cfe8f2f02d87c32d65`, statut `ACTIVE`, sur
+`cybervault-rssi-deliverables-prod`, **tous les objets** (pas de préfixe : un
+préfixe mal saisi échouerait en silence), balisage `ENABLED`, rôle
+`GuardDutyS3MalwareScanRole-rssi-deliverables`.
+
+Vérifié par un dépôt de test réel : objet étiqueté en **moins de 45 secondes**,
+balise `GuardDutyMalwareScanStatus` = `NO_THREATS_FOUND`. Le fichier de test a
+été supprimé.
+
+**CINQ statuts, pas deux.** L'écran d'activation les nomme :
+`NO_THREATS_FOUND`, `THREATS_FOUND`, `UNSUPPORTED`, `ACCESS_DENIED`, `FAILED`.
+Les trois derniers ne sont ni sains ni rejetés — les ranger dans l'un des deux
+serait faux dans les deux sens. Ils vont en `indetermine`, un état terminal qui
+n'ouvre pas le téléchargement et qui se voit. **Une valeur inconnue y va
+aussi** : AWS peut ajouter un statut demain, le défaut doit rester fermé.
 
 ### Reste à faire — et l'ordre compte
 

@@ -152,6 +152,30 @@ def upload_file(content: bytes, original_name: str, user_id: int, client_id: int
     return _upload_local(content, original_name, user_id, client_id)
 
 
+def lire_balise(key: str, nom: str) -> str | None:
+    """Rend la valeur d'une balise S3, ou `None` si absente.
+
+    Sert à relire le verdict que GuardDuty pose sur l'objet après analyse. Rend
+    `None` — et non une chaîne vide — quand la balise n'est pas là : l'appelant
+    doit pouvoir distinguer « pas encore analysé » de « analysé sans verdict ».
+
+    Sans bucket S3 configuré (développement, repli disque), il n'y a pas de
+    balise : `None` est alors la réponse honnête, et l'antivirus est de toute
+    façon inactif dans ce cas.
+    """
+    if not settings.S3_BUCKET_NAME:
+        return None
+
+    import boto3
+
+    s3 = boto3.client("s3", region_name=settings.AWS_REGION)
+    reponse = s3.get_object_tagging(Bucket=settings.S3_BUCKET_NAME, Key=key)
+    for balise in reponse.get("TagSet", []):
+        if balise.get("Key") == nom:
+            return str(balise.get("Value", ""))
+    return None
+
+
 def supprimer_fichier(key: str) -> None:
     """Efface l'objet stocké sous `key`. Idempotent.
 
