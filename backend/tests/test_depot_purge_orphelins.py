@@ -175,3 +175,79 @@ async def test_le_job_de_retention_compte_les_orphelins(db_session):
         counts = await purge_expired_data(db_session, MAINTENANT)
 
     assert counts["fichiers_orphelins"] == 1
+
+
+# ── Suppression du client ou du compte ─────────────────────────────────────────
+#
+# Regression corrigee le 2026-08-04. Les cles etrangeres du registre cascadaient.
+# Or une cascade efface la LIGNE sans toucher a l'objet sur S3, que seul du code
+# applicatif sait supprimer : supprimer un client laissait donc le fichier stocke
+# ET effacait la seule trace permettant de le retrouver. Les deux suppressions
+# sont atteignables — DELETE /rssi/clients/{id} et DELETE /users/me.
+#
+# En `SET NULL`, la ligne survit, devient orpheline, et la purge l'efface
+# proprement : objet PUIS ligne.
+
+
+@pytest.mark.asyncio
+async def test_supprimer_le_client_ne_perd_pas_la_trace_du_fichier(db_session):
+    from sqlalchemy import delete as sql_delete
+
+    from app.models.rssi_client import RssiClient
+
+    uid = await _un_utilisateur(db_session)
+    client = RssiClient(consultant_user_id=uid, name="Client", status="active")
+    db_session.add(client)
+    await db_session.flush()
+    cle = "uploads/rssi/9/9/client-supprime.pdf"
+    fichier = await _depose(db_session, cle, jours=1, user_id=uid)
+    fichier.client_id = client.id
+    await db_session.commit()
+
+    await db_session.execute(sql_delete(RssiClient).where(RssiClient.id == client.id))
+    await db_session.commit()
+    db_session.expire_all()  # la fixture a expire_on_commit=False
+
+    survivant = await depot_service.fichier_par_cle(db_session, cle)
+    assert survivant is not None, "la trace du fichier a disparu avec le client"
+    assert survivant.client_id is None
+
+
+@pytest.mark.asyncio
+async def test_supprimer_le_compte_ne_perd_pas_la_trace_du_fichier(db_session):
+    from sqlalchemy import delete as sql_delete
+
+    from app.models.user import User
+
+    uid = await _un_utilisateur(db_session)
+    cle = "uploads/rssi/9/9/compte-supprime.pdf"
+    await _depose(db_session, cle, jours=1, user_id=uid)
+
+    await db_session.execute(sql_delete(User).where(User.id == uid))
+    await db_session.commit()
+    db_session.expire_all()  # la fixture a expire_on_commit=False
+
+    survivant = await depot_service.fichier_par_cle(db_session, cle)
+    assert survivant is not None, "la trace du fichier a disparu avec le compte"
+    assert survivant.depose_par_id is None
+
+
+@pytest.mark.asyncio
+async def test_le_fichier_detache_finit_reellement_efface(db_session):
+    """Le bout de la chaine : detache, puis purge — objet compris."""
+    from sqlalchemy import delete as sql_delete
+
+    from app.models.user import User
+
+    uid = await _un_utilisateur(db_session)
+    cle = "uploads/rssi/9/9/detache-puis-purge.pdf"
+    await _depose(db_session, cle, jours=30, user_id=uid)
+    await db_session.execute(sql_delete(User).where(User.id == uid))
+    await db_session.commit()
+
+    with patch("app.services.storage.supprimer_fichier") as efface:
+        n = await depot_service.purger_orphelins(db_session, MAINTENANT)
+
+    assert n == 1
+    efface.assert_called_once_with(cle)
+    assert await depot_service.fichier_par_cle(db_session, cle) is None
