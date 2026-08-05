@@ -154,17 +154,32 @@ jobs:
           python scripts/check_pdf_lisibilite.py
         working-directory: backend
 
-      - name: Alembic migrations (up + down + up)
+      - name: Alembic migrations (up + down + up + check)
         env:
           SECRET_KEY: ci-test-secret-key
           DATABASE_URL: postgresql+asyncpg://postgres:password@localhost:5432/cybervault_test
         # Applique toute la chaîne depuis zéro, puis teste la réversibilité de la dernière
         # migration (downgrade -1) et sa ré-application. Attrape une migration non réversible
         # AVANT qu'elle ne casse un déploiement (le deploy joue `alembic upgrade head`).
+        #
+        # `alembic check` ferme un angle mort que les tests ne peuvent PAS voir.
+        # La suite construit son schéma avec `Base.metadata.create_all`, donc
+        # depuis les MODÈLES ; la production, elle, l'obtient des MIGRATIONS.
+        # Rien ne comparait les deux.
+        #
+        # Concrètement : une migration oubliée ou incomplète laissait les 2514
+        # tests au vert — ils n'utilisent pas les migrations — et cette étape au
+        # vert aussi, puisque la chaîne s'applique très bien. Seule la production
+        # gardait l'ancien schéma. C'est passé près le 2026-08-04 avec le
+        # correctif SET NULL du registre de dépôts.
+        #
+        # Vérifié en ajoutant un champ à un modèle sans migration : `check`
+        # échoue en nommant la colonne, les tests passent quand même.
         run: |
           python -m alembic upgrade head
           python -m alembic downgrade -1
           python -m alembic upgrade head
+          python -m alembic check
         working-directory: backend
 
       - name: Pytest + couverture
