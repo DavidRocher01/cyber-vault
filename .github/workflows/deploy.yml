@@ -124,7 +124,24 @@ jobs:
                # Il EXISTE deja dans le secret (verifie le 2026-08-03) : l ajouter
                # a cette liste ne peut donc pas empecher la task de demarrer.
                (["SECRET_KEY","DATABASE_URL","STRIPE_SECRET_KEY","STRIPE_WEBHOOK_SECRET","SMTP_PASSWORD","RESEND_API_KEY","SENTRY_DSN","ORIGIN_VERIFY_SECRET","PHISHING_FROM_EMAIL"]) as $secret_names
-               | ([{"name":"STRIPE_PUBLISHABLE_KEY","value":$PK_LIVE},{"name":"S3_BUCKET_NAME","value":$BUCKET},{"name":"TRUSTED_PROXY_COUNT","value":"2"}]) as $env_overrides
+               # ANTIVIRUS_DEPOT_ACTIF : arme ici, et ICI SEULEMENT.
+               #
+               # Le defaut de classe reste FAUX pour que le developpement et les
+               # tests ne dependent pas d un bucket S3. Sans S3 il n y a pas de
+               # balise a relire : a vrai, chaque depot resterait en `en_analyse`
+               # jusqu au renoncement, et plus rien ne serait telechargeable.
+               #
+               # A vrai en production, un depot attend son verdict avant d etre
+               # delivre — 20 a 45 s de scan, plus l intervalle de 2 min de la
+               # tache de relecture. Les fichiers deja deposes ne sont pas
+               # concernes : ils portent deja `sain`.
+               #
+               # PREREQUIS, tous verifies le 2026-08-05 : plan GuardDuty ACTIVE
+               # sur le bucket, balisage ENABLED, detection confirmee par un test
+               # EICAR, et tache `depot_rafraichir_analyses` presente dans
+               # l image deployee. Armer sans l un d eux bloque les
+               # telechargements sans qu aucune alerte ne se declenche.
+               | ([{"name":"STRIPE_PUBLISHABLE_KEY","value":$PK_LIVE},{"name":"S3_BUCKET_NAME","value":$BUCKET},{"name":"TRUSTED_PROXY_COUNT","value":"2"},{"name":"ANTIVIRUS_DEPOT_ACTIF","value":"true"}]) as $env_overrides
                | (($env_overrides | map(.name)) + $secret_names) as $managed
                | del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)
                | .cpu = $CPU

@@ -84,10 +84,45 @@ async def est_telechargeable(db: AsyncSession, cle_stockage: str) -> bool:
     return fichier.statut_analyse == StatutAnalyse.SAIN
 
 
+# Balise posée par GuardDuty sur chaque objet analysé. Nom confirmé en
+# production le 2026-08-05, sur un dépôt de test étiqueté en moins de 45 s.
+BALISE_GUARDDUTY = "GuardDutyMalwareScanStatus"
+
+# Les CINQ statuts que GuardDuty peut rendre, et non deux.
+#
+# `UNSUPPORTED`, `ACCESS_DENIED` et `FAILED` ne sont ni sains ni rejetés, et les
+# ranger dans l'un des deux serait faux dans les deux sens : « sain »
+# délivrerait un fichier jamais vérifié, « rejeté » accuserait un fichier
+# probablement inoffensif. Ils vont donc en `indetermine` — un état terminal qui
+# n'ouvre pas le téléchargement et qui se voit.
+_CORRESPONDANCE = {
+    "NO_THREATS_FOUND": StatutAnalyse.SAIN,
+    "THREATS_FOUND": StatutAnalyse.REJETE,
+    "UNSUPPORTED": StatutAnalyse.INDETERMINE,
+    "ACCESS_DENIED": StatutAnalyse.INDETERMINE,
+    "FAILED": StatutAnalyse.INDETERMINE,
+}
+
+
+def statut_depuis_balise(valeur: str) -> StatutAnalyse:
+    """Traduit une valeur de balise GuardDuty en état du registre.
+
+    UNE VALEUR INCONNUE DEVIENT `indetermine`, JAMAIS `sain`. AWS peut ajouter un
+    statut demain ; le défaut doit rester fermé. Ouvrir sur l'inconnu serait
+    délivrer un fichier sur la foi d'une valeur qu'on ne sait pas interpréter.
+    """
+    return _CORRESPONDANCE.get(valeur.strip().upper(), StatutAnalyse.INDETERMINE)
+
+
 async def enregistrer_verdict(
-    db: AsyncSession, *, cle_stockage: str, sain: bool
+    db: AsyncSession, *, cle_stockage: str, balise: str
 ) -> FichierDepose | None:
     """Consigne le résultat de l'analyse pour un fichier du registre.
+
+    Prend la valeur BRUTE de la balise GuardDuty plutôt qu'un booléen. La
+    première version prenait `sain: bool` et ne pouvait donc exprimer que deux
+    des cinq réponses possibles — un scan en échec y devenait « rejeté » ou
+    « sain » selon l'appelant, les deux étant faux.
 
     Renvoie `None` si la clé est inconnue — un verdict portant sur un objet
     qu'on n'a pas enregistré ne doit pas créer de ligne : ce serait accepter
@@ -96,11 +131,73 @@ async def enregistrer_verdict(
     fichier = await fichier_par_cle(db, cle_stockage)
     if fichier is None:
         return None
-    fichier.statut_analyse = StatutAnalyse.SAIN if sain else StatutAnalyse.REJETE
+    fichier.statut_analyse = statut_depuis_balise(balise)
     fichier.analyse_le = datetime.now(UTC)
     await db.commit()
     await db.refresh(fichier)
     return fichier
+
+
+DELAI_RENONCEMENT_ANALYSE = timedelta(hours=1)
+
+
+async def rafraichir_analyses(
+    db: AsyncSession, now: datetime, delai_renoncement: timedelta = DELAI_RENONCEMENT_ANALYSE
+) -> dict[str, int]:
+    """Relit la balise GuardDuty des fichiers encore en analyse. Renvoie les compteurs.
+
+    POURQUOI RELIRE PLUTOT QU'ECOUTER. EventBridge supposerait une cible : une
+    Lambda (infrastructure absente du projet), un endpoint HTTP (qu'il faudrait
+    authentifier, faute de quoi n'importe qui pourrait annoncer qu'un fichier est
+    sain — le trou même que ce chantier ferme, rouvert par la porte de service),
+    ou une file SQS (qu'il faudrait interroger, donc sonder quand même).
+
+    La relecture inverse le sens de la confiance : c'est NOUS qui allons lire,
+    avec nos propres identifiants IAM. Rien d'extérieur n'affirme quoi que ce
+    soit. Et sans détecteur GuardDuty dans le compte — vérifié le 2026-08-05 —
+    la balise est de toute façon déjà le seul canal de vérité.
+
+    LE COUT EST BORNE PAR CONSTRUCTION. Seuls les fichiers `en_analyse` sont
+    interrogés : aucun fichier en attente, aucun appel S3. Le délai de
+    renoncement est ce qui garantit cette borne dans le temps — sans lui, un
+    objet que GuardDuty n'étiquette jamais serait relu à chaque passage,
+    indéfiniment, et c'est la seule façon dont ce travail pourrait finir par
+    coûter quelque chose.
+
+    Un fichier abandonné passe en `indetermine` et non en `sain` : il devient
+    visible au lieu de rester indiscernable d'un scan en cours.
+    """
+    from app.services import storage
+
+    resultat = await db.execute(
+        select(FichierDepose).where(FichierDepose.statut_analyse == StatutAnalyse.EN_ANALYSE)
+    )
+    en_attente = list(resultat.scalars().all())
+
+    compteurs = {"lus": 0, "tranches": 0, "abandonnes": 0}
+    for fichier in en_attente:
+        try:
+            balise = storage.lire_balise(fichier.cle_stockage, BALISE_GUARDDUTY)
+        except Exception as exc:  # noqa: BLE001 — un fichier ne doit pas bloquer les autres
+            logger.warning("Relecture d'analyse : échec sur {} ({})", fichier.cle_stockage, exc)
+            continue
+        compteurs["lus"] += 1
+
+        if balise is not None:
+            fichier.statut_analyse = statut_depuis_balise(balise)
+            fichier.analyse_le = now
+            compteurs["tranches"] += 1
+        elif now - fichier.depose_le > delai_renoncement:
+            fichier.statut_analyse = StatutAnalyse.INDETERMINE
+            fichier.analyse_le = now
+            compteurs["abandonnes"] += 1
+            logger.warning(
+                "Analyse abandonnée après {} : {}", delai_renoncement, fichier.cle_stockage
+            )
+
+    if compteurs["tranches"] or compteurs["abandonnes"]:
+        await db.commit()
+    return compteurs
 
 
 DELAI_ORPHELIN_JOURS = 7

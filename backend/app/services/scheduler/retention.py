@@ -83,3 +83,23 @@ async def _run_data_retention_purge() -> None:
             counts["darkweb_dossiers"],
             counts["fichiers_orphelins"],
         )
+
+
+async def _run_rafraichir_analyses() -> None:
+    """Relit la balise GuardDuty des fichiers encore en analyse (toutes les 2 min).
+
+    Les scans prennent 20 a 45 secondes (mesure du 2026-08-05). Deux minutes
+    laissent donc la marge sans faire attendre.
+
+    Le cout est borne par construction : la requete ne rend que les fichiers
+    `en_analyse`, donc aucun fichier en attente = aucun appel S3. Cf.
+    `depot_service.rafraichir_analyses`.
+    """
+    async with AsyncSessionLocal() as db:
+        c = await depot_service.rafraichir_analyses(db, datetime.now(UTC))
+    if c["tranches"] or c["abandonnes"]:
+        logger.info(
+            "Analyses antivirus : {} verdicts enregistres, {} abandonnees",
+            c["tranches"],
+            c["abandonnes"],
+        )
