@@ -46,7 +46,10 @@ def start_scheduler() -> None:
     from app.services.scheduler.darkweb import _run_darkweb_monitoring
     from app.services.scheduler.monthly_digest import _send_monthly_digest_job
     from app.services.scheduler.newsletter import _send_biweekly_newsletter
-    from app.services.scheduler.retention import _run_data_retention_purge
+    from app.services.scheduler.retention import (
+        _run_data_retention_purge,
+        _run_rafraichir_analyses,
+    )
     from app.services.scheduler.scans import _schedule_due_scans
     from app.services.scheduler.ssl_alerts import _check_ssl_alerts
 
@@ -84,6 +87,15 @@ def start_scheduler() -> None:
         send_pending_batch,
         trigger=IntervalTrigger(minutes=15),
         id="phishing_batch",
+        replace_existing=True,
+    )
+    # Verdict antivirus des fichiers deposes — relecture de la balise GuardDuty.
+    # 2 minutes : les scans prennent 20 a 45 s (mesure du 2026-08-05). Le cout
+    # est nul quand rien n attend, la requete ne rendant que les `en_analyse`.
+    scheduler.add_job(
+        _run_rafraichir_analyses,
+        trigger=IntervalTrigger(minutes=2),
+        id="depot_rafraichir_analyses",
         replace_existing=True,
     )
     # Dark web monitoring — daily at 03:00 UTC, processes dossiers whose next_monitor_at is due

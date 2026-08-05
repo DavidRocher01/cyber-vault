@@ -227,7 +227,7 @@ ce chantier.
 | ~~1~~ | ~~Vérification des octets de tête dans `validate_upload`~~ | **fait le 2026-08-03** |
 | 2a | Registre des fichiers, état d'analyse, règle de délivrance | **fait le 2026-08-03** |
 | ~~2b~~ | ~~Activer GuardDuty Malware Protection for S3~~ | **fait le 2026-08-05** |
-| 2c | Brancher le verdict : relire la balise ou écouter EventBridge | décision d'infra à prendre |
+| ~~2c~~ | ~~Brancher le verdict~~ | **fait le 2026-08-05 — relecture de balise** |
 | 3 | Dépôt côté portail RSSI (`origine` sur `RssiDeliverable`) | après 1 et 2 |
 | 4a | ~~Purge des dépôts orphelins + suppression S3~~ | **fait le 2026-08-04** |
 | 4b | Rétention des documents rattachés (client vs consultant) | avec l'étape 3, `origine` requis |
@@ -306,6 +306,40 @@ Les trois derniers ne sont ni sains ni rejetés — les ranger dans l'un des deu
 serait faux dans les deux sens. Ils vont en `indetermine`, un état terminal qui
 n'ouvre pas le téléchargement et qui se voit. **Une valeur inconnue y va
 aussi** : AWS peut ajouter un statut demain, le défaut doit rester fermé.
+
+### Le verdict remonte par RELECTURE, pas par EventBridge
+
+Décidé le 2026-08-05. EventBridge supposerait une cible, et les trois possibles
+posent le même problème :
+
+- une **Lambda** — infrastructure absente du projet, qui déploie tout en
+  impératif depuis `deploy.yml` ;
+- un **endpoint HTTP** — qu'il faudrait authentifier, faute de quoi n'importe
+  qui pourrait annoncer qu'un fichier est sain. C'est le trou que tout ce
+  chantier ferme, rouvert par la porte de service ;
+- une **file SQS** — qu'il faudrait interroger, donc sonder quand même, avec
+  une file en plus.
+
+**La relecture inverse le sens de la confiance** : c'est nous qui allons lire,
+avec nos propres identifiants IAM. Rien d'extérieur n'affirme quoi que ce soit,
+la chaîne ne quitte jamais AWS. Pour un produit qui vend de la sécurité, cette
+différence pèse plus que trente secondes de latence. Et sans détecteur
+GuardDuty, la balise est de toute façon déjà le seul canal de vérité.
+
+Tâche `depot_rafraichir_analyses`, toutes les **2 minutes** — les scans prennent
+20 à 45 s. Deux garde-fous :
+
+**Le coût est borné par construction.** La requête ne rend que les fichiers
+`en_analyse` : aucun fichier en attente, aucun appel S3. Un test l'impose, et il
+échoue si l'on retire le filtre — vérifié.
+
+**Renoncement à 1 heure.** Un fichier jamais étiqueté passe en `indetermine`.
+Sans ce délai il serait relu indéfiniment — la seule façon dont cette tâche
+pourrait finir par coûter quelque chose — et resterait indiscernable d'un scan
+en cours.
+
+Le mode de panne est bénin : si la tâche s'arrête, les fichiers restent
+`en_analyse` et rien n'est délivré.
 
 ### Reste à faire — et l'ordre compte
 

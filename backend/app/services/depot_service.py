@@ -138,6 +138,68 @@ async def enregistrer_verdict(
     return fichier
 
 
+DELAI_RENONCEMENT_ANALYSE = timedelta(hours=1)
+
+
+async def rafraichir_analyses(
+    db: AsyncSession, now: datetime, delai_renoncement: timedelta = DELAI_RENONCEMENT_ANALYSE
+) -> dict[str, int]:
+    """Relit la balise GuardDuty des fichiers encore en analyse. Renvoie les compteurs.
+
+    POURQUOI RELIRE PLUTOT QU'ECOUTER. EventBridge supposerait une cible : une
+    Lambda (infrastructure absente du projet), un endpoint HTTP (qu'il faudrait
+    authentifier, faute de quoi n'importe qui pourrait annoncer qu'un fichier est
+    sain — le trou même que ce chantier ferme, rouvert par la porte de service),
+    ou une file SQS (qu'il faudrait interroger, donc sonder quand même).
+
+    La relecture inverse le sens de la confiance : c'est NOUS qui allons lire,
+    avec nos propres identifiants IAM. Rien d'extérieur n'affirme quoi que ce
+    soit. Et sans détecteur GuardDuty dans le compte — vérifié le 2026-08-05 —
+    la balise est de toute façon déjà le seul canal de vérité.
+
+    LE COUT EST BORNE PAR CONSTRUCTION. Seuls les fichiers `en_analyse` sont
+    interrogés : aucun fichier en attente, aucun appel S3. Le délai de
+    renoncement est ce qui garantit cette borne dans le temps — sans lui, un
+    objet que GuardDuty n'étiquette jamais serait relu à chaque passage,
+    indéfiniment, et c'est la seule façon dont ce travail pourrait finir par
+    coûter quelque chose.
+
+    Un fichier abandonné passe en `indetermine` et non en `sain` : il devient
+    visible au lieu de rester indiscernable d'un scan en cours.
+    """
+    from app.services import storage
+
+    resultat = await db.execute(
+        select(FichierDepose).where(FichierDepose.statut_analyse == StatutAnalyse.EN_ANALYSE)
+    )
+    en_attente = list(resultat.scalars().all())
+
+    compteurs = {"lus": 0, "tranches": 0, "abandonnes": 0}
+    for fichier in en_attente:
+        try:
+            balise = storage.lire_balise(fichier.cle_stockage, BALISE_GUARDDUTY)
+        except Exception as exc:  # noqa: BLE001 — un fichier ne doit pas bloquer les autres
+            logger.warning("Relecture d'analyse : échec sur {} ({})", fichier.cle_stockage, exc)
+            continue
+        compteurs["lus"] += 1
+
+        if balise is not None:
+            fichier.statut_analyse = statut_depuis_balise(balise)
+            fichier.analyse_le = now
+            compteurs["tranches"] += 1
+        elif now - fichier.depose_le > delai_renoncement:
+            fichier.statut_analyse = StatutAnalyse.INDETERMINE
+            fichier.analyse_le = now
+            compteurs["abandonnes"] += 1
+            logger.warning(
+                "Analyse abandonnée après {} : {}", delai_renoncement, fichier.cle_stockage
+            )
+
+    if compteurs["tranches"] or compteurs["abandonnes"]:
+        await db.commit()
+    return compteurs
+
+
 DELAI_ORPHELIN_JOURS = 7
 
 
