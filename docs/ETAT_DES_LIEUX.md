@@ -75,16 +75,6 @@ L'historique des livraisons n'est pas ici — il est dans
   clés ni la MFA. L'ordre correct est : les clés statiques d'abord, cet
   utilisateur ensuite.
 
-- **Ajouter les documents déposés à la politique de confidentialité.** Elle
-  énumère les durées (compte, scans, journaux, facturation) mais **ne dit rien
-  des documents remis par les clients**, alors que le dépôt est ouvert depuis le
-  2026-08-05. L'article 13 du RGPD impose d'informer sur les durées de
-  conservation.
-  À écrire : documents remis par le client, effacés 90 jours après la fin de la
-  mission ; livrables produits par le consultant, conservés au titre de la
-  responsabilité professionnelle. Page
-  `frontend/src/app/features/cyberscan/politique-confidentialite/`.
-
 - **Plafond de taille de corps de requête sur l'ALB ou CloudFront.** La lecture
   bornée livrée le 2026-08-03 protège la mémoire, pas la réception : Starlette
   analyse le corps multipart avant que le code applicatif ne s'exécute. Vaut
