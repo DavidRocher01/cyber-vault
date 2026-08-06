@@ -249,7 +249,12 @@ ce chantier.
 | ~~3~~ | ~~Dépôt côté portail RSSI~~ | **backend fait le 2026-08-05 — interface à faire** |
 | 4a | ~~Purge des dépôts orphelins + suppression S3~~ | **fait le 2026-08-04** |
 | ~~4b~~ | ~~Rétention des documents rattachés~~ | **fait le 2026-08-05** |
-| 5 | Preuves rattachées aux critères NIS2 / ISO | chantier distinct, à cadrer |
+| ~~5a~~ | ~~Catalogue NIS2 sorti de la couche de routage~~ | **fait le 2026-08-07** |
+| 5b | `client_id` sur les évaluations + unicité `NULLS NOT DISTINCT` | cadré le 2026-08-07 |
+| 5c | Table de preuves, purge générique, quota par compte, rétention | cadré le 2026-08-07 |
+| 5d | Interface RSSI — rattacher une pièce au dossier client | après 5c |
+| 5e | Interface abonné direct — dépôt sur l'auto-évaluation | après 5c |
+| 5f | Export PDF auditeur listant les preuves | **le livrable réel** |
 
 **L'étape 2 n'est pas négociable avant l'étape 3.** Ouvrir le dépôt aux clients
 sans analyse antivirus, c'est accepter de distribuer ce qu'on reçoit.
@@ -257,6 +262,61 @@ sans analyse antivirus, c'est accepter de distribuer ce qu'on reçoit.
 ---
 
 ## Décidé
+
+**Trois sujets, un seul modèle** (2026-08-07). Les évaluations NIS2 et ISO sont
+aujourd'hui uniques par `user_id` — un consultant ne peut donc pas détenir un
+dossier par client. La colonne `client_id` nullable règle les trois cas d'un
+coup : `NULL` = mon auto-évaluation (abonné direct, comportement actuel),
+renseignée = le dossier monté pour ce client.
+
+L'unicité devient `UNIQUE (user_id, client_id) NULLS NOT DISTINCT`. **Ce dernier
+point n'est pas un raffinement.** PostgreSQL considère par défaut deux NULL
+comme distincts : sans lui, un même compte pourrait créer une infinité
+d'auto-évaluations, et `upsert_assessment` — qui fait un `scalar_one_or_none()`
+— se mettrait à lever une exception dès la deuxième. Disponible à partir de
+PostgreSQL 15, et la plateforme est en 17. Vérifié aussi côté SQLAlchemy 2.0.49
+(`postgresql_nulls_not_distinct`).
+
+**Le dépôt de pièces est réservé aux plans payants** (2026-08-07). Par
+cohérence avec l'export de conformité, déjà gardé par
+`require_conformity_export` : le plan Gratuit fait l'auto-évaluation mais
+n'exporte pas. Ce choix borne aussi la facture S3, que le quota par client ne
+couvre pas pour un abonné hors RSSI.
+
+**L'abonné qui veut NIS2 seul est un cas de premier rang** (2026-08-07) — ni
+consultant, ni client d'un RSSI fractionné. Conséquence : la surface de dépôt
+est construite **générique dès 5c**, indexée sur le sujet de l'évaluation, le
+portail RSSI devenant un appelant parmi deux. La construire d'abord côté RSSI
+puis la porter referait le chemin deux fois.
+
+### Ce que ce cas casse, et qui doit être réglé dans 5c
+
+**La purge des orphelins effacerait la preuve au bout de 7 jours.** Elle
+considère comme référencé tout fichier présent dans `RssiDeliverable.file_url`.
+Un abonné hors RSSI n'a par construction aucun `RssiDeliverable` : sa pièce est
+orpheline dès le dépôt. La notion de « fichier référencé » est de forme RSSI et
+doit devenir générique — c'est ce qui rend ce cas possible, pas un détail.
+
+**Le quota ne peut pas être appelé.** `verifier_quota(db, client_id, ...)` exige
+un client RSSI. Sans lui, un abonné direct dispose d'un stockage illimité —
+exactement le risque que ce quota a été écrit pour éviter.
+
+**La rétention n'a plus de repère.** Les 90 jours partent de `cloture_le`, et un
+abonné direct n'a pas de mission qui se clôt. Sa durée devient la vie de son
+compte. Or `delete_account` fait `db.delete(user)` + cascade, et
+`depose_par_id` est en `SET NULL` : la ligne de registre survit avec ses deux
+clés à `NULL`, et l'objet S3 n'est supprimé par aucun chemin explicite —
+seulement ramassé sept jours plus tard par la purge des orphelins, par effet de
+bord. Sur une demande d'effacement RGPD, ce délai doit être un choix assumé.
+
+**Une pièce rattachée ne peut plus être purgée à 90 jours.** Rattacher un
+document en change la finalité : il devient une pièce du dossier, au même titre
+qu'un livrable consultant. Mais la politique de confidentialité annonce
+« effacés 90 jours après la fin de votre mission », et ne couvre pas non plus
+l'abonné sans mission. **Les deux régimes doivent y être écrits dans le même lot
+que le code** — sinon on publie un engagement que le code ne tient pas, ce qu'on
+s'est déjà interdit pour les livrables consultant.
+
 
 **Antivirus : GuardDuty Malware Protection for S3** (2026-08-03). Managé, la
 donnée reste dans AWS, et le palier gratuit couvre largement le volume attendu.

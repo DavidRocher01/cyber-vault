@@ -5,11 +5,8 @@ Couvre la fonction _compute_score() et les constantes NIS2_CATEGORIES.
 Ces tests sont rapides et ne nécessitent pas de client HTTP.
 """
 
-from app.api.v1.endpoints.nis2 import (
-    ALL_ITEM_IDS,
-    NIS2_CATEGORIES,
-)
 from app.services.assessment_service import compute_assessment_score
+from app.services.nis2_catalogue import ALL_ITEM_IDS, NIS2_CATEGORIES
 
 
 def _compute_score(items):

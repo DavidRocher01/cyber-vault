@@ -54,15 +54,15 @@ def _statuts(categories: list[dict]) -> dict[str, str]:
 
 
 def ech_nis2() -> bytes:
-    from app.api.v1.endpoints.nis2 import NIS2_CATEGORIES
+    from app.services.nis2_catalogue import NIS2_CATEGORIES
     from app.services.nis2_pdf import generate_nis2_pdf
 
     return generate_nis2_pdf(NIS2_CATEGORIES, _statuts(NIS2_CATEGORIES), 62, _DATE, _EMAIL)
 
 
 def ech_nis2_auditeur() -> bytes:
-    from app.api.v1.endpoints.nis2 import NIS2_CATEGORIES
     from app.services.nis2_auditor_pdf import generate_nis2_auditor_pdf
+    from app.services.nis2_catalogue import NIS2_CATEGORIES
 
     return generate_nis2_auditor_pdf(
         categories=NIS2_CATEGORIES,
