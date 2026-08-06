@@ -208,7 +208,7 @@
                   [(ngModel)]="titreDepot"
                   [ngModelOptions]="{ standalone: true }"
                   type="text"
-                  placeholder="Intitule du document"
+                  placeholder="Intitulé du document"
                   class="w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-100 outline-none focus:border-cyan-600"
                 />
                 <div class="flex items-center gap-2">
@@ -245,7 +245,7 @@
             @if (quota(); as q) {
               <div class="flex flex-col gap-1.5">
                 <div class="flex items-baseline justify-between text-xs">
-                  <span class="text-gray-500">Espace utilise</span>
+                  <span class="text-gray-500">Espace utilisé</span>
                   <span class="text-gray-400 tabular-nums">
                     {{ formatOctets(q.utilise_octets) }} sur {{ formatOctets(q.quota_octets) }}
                   </span>
