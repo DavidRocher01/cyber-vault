@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 import { signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
@@ -448,5 +450,34 @@ describe('ConsultantDashboardComponent — deleteClient()', () => {
     c.deleteClient({ id: 8, name: 'Acme' } as any);
     expect(c.deletingId()).toBeNull();
     expect(open).toHaveBeenCalledWith('Nope', 'Fermer', expect.anything());
+  });
+});
+
+// ── Retour a l'accueil ─────────────────────────────────────────────────────────
+
+describe('ConsultantDashboardComponent — retour a l’accueil', () => {
+  // Cette console etait la seule page du parcours consultant sans chemin de
+  // retour vers l'accueil : la fiche client a son fil d'Ariane, les pages
+  // d'authentification ont la marque cliquable, celle-ci n'avait rien.
+  //
+  // On lit le FICHIER de gabarit et non le composant rendu : le spec instancie
+  // la classe via Object.create, il ne compile pas le template. Meme raison que
+  // pour la page Admin Newsletter — un controle sur `Component.toString()` ne
+  // verrait pas le gabarit et passerait au vert a tort.
+  function gabarit(): string {
+    return readFileSync(
+      resolve(
+        process.cwd(),
+        'src/app/features/cyberscan/consultant-dashboard/consultant-dashboard.component.html'
+      ),
+      'utf8'
+    );
+  }
+
+  it('expose un lien vers la racine, porte par la marque', () => {
+    const html = gabarit();
+    const lien = html.match(/<a[^>]*routerLink="\/"[\s\S]{0,400}?<\/a>/);
+    expect(lien, 'aucun lien routerLink="/" dans le gabarit').not.toBeNull();
+    expect(lien![0]).toContain('Rocher Cybersécurité');
   });
 });

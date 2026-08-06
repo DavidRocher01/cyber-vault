@@ -34,13 +34,46 @@ L'historique des livraisons n'est pas ici — il est dans
   les métriques de latence multi-instance. Coût estimé ~10,51 $/mois.
   Checklist : `docs/S2_INFRA_CHECKLIST.md`.
 
-- **Brancher le verdict antivirus** — GuardDuty est **activé et vérifié**
-  depuis le 2026-08-05 (plan ACTIVE, balisage confirmé sur un dépôt de test en
-  moins de 45 s). Le code sait traduire les cinq statuts ; il reste à décider
-  COMMENT le verdict remonte : relecture de la balise, ou événement EventBridge.
-  Le second évite un sondage mais ajoute un chemin asynchrone à tester.
-  `ANTIVIRUS_DEPOT_ACTIF` reste à **faux** jusque-là — à vrai sans verdict
-  branché, chaque dépôt resterait bloqué en `en_analyse`.
+- **Vérifier la purge des orphelins vers le 12 août 2026.** Deux objets S3
+  déposés le 2026-08-05 sont devenus orphelins (leurs livrables ont été
+  supprimés). La purge nocturne doit les effacer sept jours après leur dépôt,
+  objet S3 compris. C'est le seul maillon du chantier qui n'aura pas été observé
+  en conditions réelles.
+  Bucket : `cybervault-rssi-deliverables-prod`. Ne pas supprimer l'objet
+  `malware-protection-resource-validation-object`, écrit par GuardDuty.
+
+- **Rotation de secrets — différée le 2026-08-04, connue.** Une capture d'écran
+  de la console Secrets Manager a exposé des valeurs de production. Entièrement
+  lisibles : `RESEND_API_KEY`, `SMTP_PASSWORD`, `STRIPE_WEBHOOK_SECRET`.
+  Partiellement : `STRIPE_SECRET_KEY` (`sk_live_`), `SECRET_KEY`,
+  `DATABASE_URL`, `ORIGIN_VERIFY_SECRET`.
+  La plus sensible est la clé Resend : elle permet d'envoyer des courriels
+  signés DKIM depuis les domaines vérifiés.
+  ⚠️ **`SECRET_KEY` ne se fait pas tourner à la légère** : elle chiffre aussi
+  les graines TOTP, sa rotation casse la 2FA de tous les comptes. Chantier
+  séparé, avec re-chiffrement. Cf. `docs/RUNBOOK_INCIDENT.md`.
+
+- **Supprimer les clés de `cybervault-deploy`** — **désactivées le 2026-08-05**,
+  pas encore supprimées. Laisser passer quelques jours, vérifier qu'aucun
+  déploiement ne casse, puis `delete-access-key`. Réactivation d'une commande en
+  cas de besoin : `update-access-key --status Active`.
+  Ce que c'était : deux clés d'accès **statiques et actives** sur un utilisateur
+  portant `PowerUserAccess` — tout sauf IAM et Organizations. L'une n'avait
+  **jamais** servi, l'autre pas depuis le **22 avril 2026**. La CI ayant basculé
+  sur un rôle assumé par OIDC, plus rien ne les utilisait. Une clé statique ne
+  demande ni MFA, ni session, ni présence.
+  Retirer aussi `AWSAppRunnerFullAccess` — App Runner n'est pas utilisé — et se
+  demander si cet utilisateur a encore une raison d'exister.
+
+- **Utilisateur IAM nominatif pour l'usage interactif — souhaitable, pas
+  urgent.** Les appels se font sous le compte racine, ce qu'AWS déconseille.
+  Mais le risque réel est faible, vérifié le 2026-08-05 : **aucune clé d'accès
+  racine n'existe** et **la MFA racine est active** ; la session est temporaire
+  et expire.
+  La version précédente de cette entrée présentait le point comme un constat
+  d'audit sérieux, sur la seule foi d'un `arn:…:root`, sans avoir vérifié ni les
+  clés ni la MFA. L'ordre correct est : les clés statiques d'abord, cet
+  utilisateur ensuite.
 
 - **Plafond de taille de corps de requête sur l'ALB ou CloudFront.** La lecture
   bornée livrée le 2026-08-03 protège la mémoire, pas la réception : Starlette
@@ -131,11 +164,16 @@ L'historique des livraisons n'est pas ici — il est dans
   justifiera, pas avant. Raisonnement : `docs/PHISHING_REDESIGN.md` §5c.
 - **Dépôt de documents par les clients** — conception dans
   [`DEPOT_DOCUMENTS.md`](DEPOT_DOCUMENTS.md). Antivirus tranché le 2026-08-03 :
-  **GuardDuty Malware Protection for S3**, activé seul. Étapes 1 et 2a livrées
-  le même jour (signature de début de fichier, registre `fichiers_deposes`,
-  règle de délivrance sur les deux voies) ; l'activation GuardDuty est en §1.
-  Restent à trancher, ni l'un ni l'autre bloquant : la durée de rétention, et le
-  rattachement de preuves aux critères NIS2 — ce dernier change la nature du
+  **GuardDuty Malware Protection for S3**, activé seul, **en service depuis le
+  2026-08-05** et prouvé de bout en bout sur un dépôt réel.
+  Livrées : signature de début de fichier, registre `fichiers_deposes`, règle de
+  délivrance sur les deux voies, traduction des cinq statuts GuardDuty, purge
+  des orphelins.
+  **Restent l'étape 3** — ouvrir le dépôt côté portail client, débloquée par
+  l'antivirus, c'est le besoin d'origine — **et l'étape 4b**, la rétention des
+  documents rattachés, qui dépend du champ `origine` apporté par l'étape 3. Le
+  cadrage juridique des trois régimes est écrit dans DEPOT_DOCUMENTS.
+  L'étape 5, les preuves rattachées aux critères NIS2, change la nature du
   produit et mérite son propre cadrage.
 
 ---
