@@ -60,10 +60,34 @@ async def create_client(db: AsyncSession, *, consultant_user_id: int, values: di
     return client
 
 
+# Statuts qui marquent la FIN de la prestation. `active` est le seul qui ne
+# l'est pas — un client en pause reste un client suivi.
+STATUTS_MISSION_CLOSE = ("inactive", "churned")
+
+
 async def update_client(db: AsyncSession, client: RssiClient, values: dict) -> RssiClient:
-    """Applique un patch partiel au client et met à jour updated_at."""
+    """Applique un patch partiel au client, met à jour updated_at et la clôture.
+
+    LA DATE DE CLOTURE SE POSE ICI, et nulle part ailleurs : c'est le seul point
+    de passage des modifications de client. Elle commande la rétention des
+    documents que le client a remis — art. 28-3-g du RGPD, la prestation
+    terminée, le sous-traitant efface ou restitue.
+
+    Elle est POSEE au passage en `inactive` / `churned`, et EFFACEE au retour en
+    `active`. Un client repris ne doit pas voir ses documents purgés sur la foi
+    d'une interruption passée ; et la date ne se repousse pas si le statut ne
+    change pas, sans quoi une simple correction d'adresse reporterait
+    l'échéance.
+    """
+    ancien_statut = client.status
     for field, value in values.items():
         setattr(client, field, value)
+
+    if client.status in STATUTS_MISSION_CLOSE and ancien_statut not in STATUTS_MISSION_CLOSE:
+        client.cloture_le = datetime.now(UTC)
+    elif client.status not in STATUTS_MISSION_CLOSE:
+        client.cloture_le = None
+
     client.updated_at = datetime.now(UTC)
     await db.commit()
     await db.refresh(client)

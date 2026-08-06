@@ -56,3 +56,16 @@ class RssiClient(Base):
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Quand la mission a pris fin. Nul tant qu'elle est active.
+    #
+    # POURQUOI UNE COLONNE DEDIEE. La retention des documents remis par le client
+    # part de la fin de prestation (art. 28-3-g du RGPD). `updated_at` ne peut
+    # pas servir de repere : il bouge a chaque modification, donc un simple
+    # changement de numero de telephone repousserait l'echeance.
+    #
+    # Pose et efface par `update_client`, seul point de passage des
+    # modifications. Cf. `docs/DEPOT_DOCUMENTS.md`.
+    cloture_le: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
