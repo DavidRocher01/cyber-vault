@@ -42,6 +42,39 @@ L'historique des livraisons n'est pas ici — il est dans
   Bucket : `cybervault-rssi-deliverables-prod`. Ne pas supprimer l'objet
   `malware-protection-resource-validation-object`, écrit par GuardDuty.
 
+- **Rotation de secrets — différée le 2026-08-04, connue.** Une capture d'écran
+  de la console Secrets Manager a exposé des valeurs de production. Entièrement
+  lisibles : `RESEND_API_KEY`, `SMTP_PASSWORD`, `STRIPE_WEBHOOK_SECRET`.
+  Partiellement : `STRIPE_SECRET_KEY` (`sk_live_`), `SECRET_KEY`,
+  `DATABASE_URL`, `ORIGIN_VERIFY_SECRET`.
+  La plus sensible est la clé Resend : elle permet d'envoyer des courriels
+  signés DKIM depuis les domaines vérifiés.
+  ⚠️ **`SECRET_KEY` ne se fait pas tourner à la légère** : elle chiffre aussi
+  les graines TOTP, sa rotation casse la 2FA de tous les comptes. Chantier
+  séparé, avec re-chiffrement. Cf. `docs/RUNBOOK_INCIDENT.md`.
+
+- **Supprimer les clés de `cybervault-deploy`** — **désactivées le 2026-08-05**,
+  pas encore supprimées. Laisser passer quelques jours, vérifier qu'aucun
+  déploiement ne casse, puis `delete-access-key`. Réactivation d'une commande en
+  cas de besoin : `update-access-key --status Active`.
+  Ce que c'était : deux clés d'accès **statiques et actives** sur un utilisateur
+  portant `PowerUserAccess` — tout sauf IAM et Organizations. L'une n'avait
+  **jamais** servi, l'autre pas depuis le **22 avril 2026**. La CI ayant basculé
+  sur un rôle assumé par OIDC, plus rien ne les utilisait. Une clé statique ne
+  demande ni MFA, ni session, ni présence.
+  Retirer aussi `AWSAppRunnerFullAccess` — App Runner n'est pas utilisé — et se
+  demander si cet utilisateur a encore une raison d'exister.
+
+- **Utilisateur IAM nominatif pour l'usage interactif — souhaitable, pas
+  urgent.** Les appels se font sous le compte racine, ce qu'AWS déconseille.
+  Mais le risque réel est faible, vérifié le 2026-08-05 : **aucune clé d'accès
+  racine n'existe** et **la MFA racine est active** ; la session est temporaire
+  et expire.
+  La version précédente de cette entrée présentait le point comme un constat
+  d'audit sérieux, sur la seule foi d'un `arn:…:root`, sans avoir vérifié ni les
+  clés ni la MFA. L'ordre correct est : les clés statiques d'abord, cet
+  utilisateur ensuite.
+
 - **Plafond de taille de corps de requête sur l'ALB ou CloudFront.** La lecture
   bornée livrée le 2026-08-03 protège la mémoire, pas la réception : Starlette
   analyse le corps multipart avant que le code applicatif ne s'exécute. Vaut
