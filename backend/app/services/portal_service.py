@@ -81,3 +81,38 @@ async def get_client_deliverable(
         )
     )
     return result.scalar_one_or_none()
+
+
+async def creer_depot_client(
+    db: AsyncSession,
+    *,
+    client_id: int,
+    titre: str,
+    cle_stockage: str,
+    depose_le: date,
+) -> RssiDeliverable:
+    """Crée le livrable correspondant à un document remis PAR LE CLIENT.
+
+    Un livrable reste un livrable ; ce qui change est son `origine`. C'est ce
+    champ qui portera plus tard les deux régimes de rétention — sous-traitance
+    côté client, preuve professionnelle côté consultant.
+
+    `doc_type` vaut `autre` : la nomenclature existante (compte-rendu, rapport,
+    recommandation, contrat) décrit ce que le CONSULTANT produit. La faire
+    choisir au client lui demanderait de qualifier son document dans un
+    vocabulaire qui n'est pas le sien.
+    """
+    from app.models.enums import OrigineDepot
+
+    livrable = RssiDeliverable(
+        client_id=client_id,
+        title=titre,
+        doc_type="autre",
+        file_url=cle_stockage,
+        delivered_at=depose_le,
+        origine=OrigineDepot.CLIENT,
+    )
+    db.add(livrable)
+    await db.commit()
+    await db.refresh(livrable)
+    return livrable

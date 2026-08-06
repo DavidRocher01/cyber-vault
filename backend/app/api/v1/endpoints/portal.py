@@ -1,4 +1,9 @@
-"""Portail client RSSI — vues LECTURE SEULE de la mission d'un client.
+"""Portail client RSSI — la mission d'un client, vue par lui.
+
+Longtemps en LECTURE SEULE. Depuis l'étape 3 du dépôt de documents, le client
+peut aussi **remettre** un document : politique de sécurité relue, preuve de
+mise en œuvre, inventaire demandé lors d'une visite. C'est le besoin d'origine
+du chantier, et il n'a pu être ouvert qu'une fois l'antivirus en service.
 
 Toutes les routes dépendent de `get_current_rssi_client` : elles sont scopées au RssiClient
 rattaché au compte connecté (client_user_id). Un client ne voit donc QUE ses propres données.
@@ -7,8 +12,9 @@ notion, extra_data, file_url S3).
 """
 
 from datetime import UTC, date, datetime
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -65,6 +71,25 @@ class PortalDeliverableOut(BaseModel):
     delivered_at: date
     notes: str | None
     has_file: bool
+    # Le client doit distinguer ce qu'il a remis de ce qu'on lui a livré.
+    origine: str
+    # `en_analyse` / `sain` / `rejete` / `indetermine`. Exposé pour que
+    # l'interface puisse expliquer une attente au lieu de la subir : un fichier
+    # qui apparaît sans être téléchargeable ressemble sinon à une panne.
+    statut_analyse: str | None
+
+
+class PortalQuotaOut(BaseModel):
+    """Où en est le client de son espace de dépôt.
+
+    Exposé pour que la zone de dépôt puisse l'AFFICHER, et pas seulement le
+    faire subir : un plafond découvert au moment d'être bloqué est une mauvaise
+    surprise ; annoncé, c'est une information.
+    """
+
+    utilise_octets: int
+    quota_octets: int
+    taille_max_fichier_octets: int
 
 
 class PortalMeOut(BaseModel):
@@ -159,18 +184,135 @@ async def list_my_deliverables(
     client: RssiClient = Depends(get_current_rssi_client),
     db: AsyncSession = Depends(get_db),
 ):
+    from app.services import depot_service
+
     deliverables = await portal_service.list_client_deliverables(db, client.id)
-    return [
-        PortalDeliverableOut(
-            id=d.id,
-            title=d.title,
-            doc_type=d.doc_type,
-            delivered_at=d.delivered_at,
-            notes=d.notes,
-            has_file=bool(d.file_url),
+    sorties = []
+    for d in deliverables:
+        statut = None
+        if d.file_url:
+            fichier = await depot_service.fichier_par_cle(db, d.file_url)
+            # `None` pour un fichier antérieur au registre : l'interface saura
+            # qu'il n'y a pas d'attente à expliquer, plutôt que d'inventer un
+            # état qu'on n'a pas.
+            statut = fichier.statut_analyse if fichier else None
+        sorties.append(
+            PortalDeliverableOut(
+                id=d.id,
+                title=d.title,
+                doc_type=d.doc_type,
+                delivered_at=d.delivered_at,
+                notes=d.notes,
+                has_file=bool(d.file_url),
+                origine=d.origine,
+                statut_analyse=statut,
+            )
         )
-        for d in deliverables
-    ]
+    return sorties
+
+
+@router.get("/quota", response_model=PortalQuotaOut)
+async def mon_quota(
+    client: RssiClient = Depends(get_current_rssi_client),
+    db: AsyncSession = Depends(get_db),
+):
+    """L'espace utilisé et les deux plafonds qui s'appliquent au client."""
+    from app.core.config import settings
+    from app.services import depot_service
+    from app.services.storage import MAX_UPLOAD_BYTES
+
+    return PortalQuotaOut(
+        utilise_octets=await depot_service.octets_deposes_par_client(db, client.id),
+        quota_octets=settings.QUOTA_DEPOT_CLIENT_OCTETS,
+        taille_max_fichier_octets=MAX_UPLOAD_BYTES,
+    )
+
+
+@router.post("/deliverables", response_model=PortalDeliverableOut, status_code=201)
+async def deposer_un_document(
+    fichier: UploadFile = File(...),
+    titre: str = Form(...),
+    client: RssiClient = Depends(get_current_rssi_client),
+    db: AsyncSession = Depends(get_db),
+):
+    """Le client remet un document à son consultant.
+
+    UN SEUL APPEL, ET C'EST DÉLIBÉRÉ. Le consultant dépose en deux temps —
+    téléverser, récupérer une clé, créer le livrable — et c'est précisément cet
+    intervalle qui fabrique les orphelins que la purge doit ensuite rattraper.
+    Ici l'objet, le registre et le livrable naissent ensemble : pas de fenêtre.
+
+    L'ORDRE DES CONTRÔLES EST CELUI DU COÛT CROISSANT. On lit de façon bornée,
+    on valide la signature, on vérifie le quota — tout cela avant d'écrire quoi
+    que ce soit sur S3. Refuser après stockage laisserait un objet en place tout
+    en annonçant un refus.
+
+    L'antivirus s'applique sans rien de spécifique : le fichier entre au
+    registre avec l'état que `statut_a_l_enregistrement` décide, et la règle de
+    délivrance vaut déjà pour cette route de téléchargement.
+    """
+    from app.models.enums import OrigineDepot
+    from app.services import depot_service
+    from app.services.storage import (
+        MAX_UPLOAD_BYTES,
+        FichierTropVolumineuxError,
+        lire_borne,
+        upload_file,
+        validate_upload,
+    )
+
+    titre_propre = titre.strip()
+    if not titre_propre:
+        raise HTTPException(status_code=422, detail="Le titre du document est requis.")
+
+    try:
+        contenu = await lire_borne(fichier, MAX_UPLOAD_BYTES)
+    except FichierTropVolumineuxError as exc:
+        raise HTTPException(status_code=413, detail=str(exc))
+
+    nom = Path(fichier.filename or "document").name
+    try:
+        validate_upload(
+            filename=nom,
+            content_type=fichier.content_type or "",
+            content=contenu,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+    try:
+        await depot_service.verifier_quota(db, client.id, len(contenu))
+    except depot_service.QuotaDepassementError as exc:
+        raise HTTPException(status_code=413, detail=str(exc))
+
+    # `client.client_user_id` et non le consultant : le déposant est le client.
+    cle = upload_file(contenu, nom, client.client_user_id, client.id)
+    enregistre = await depot_service.enregistrer_depot(
+        db,
+        cle_stockage=cle,
+        nom_original=nom,
+        taille_octets=len(contenu),
+        type_mime=fichier.content_type or "",
+        depose_par_id=client.client_user_id,
+        client_id=client.id,
+    )
+    livrable = await portal_service.creer_depot_client(
+        db,
+        client_id=client.id,
+        titre=titre_propre,
+        cle_stockage=cle,
+        depose_le=datetime.now(UTC).date(),
+    )
+    return PortalDeliverableOut(
+        id=livrable.id,
+        title=livrable.title,
+        doc_type=livrable.doc_type,
+        delivered_at=livrable.delivered_at,
+        notes=livrable.notes,
+        has_file=True,
+        origine=OrigineDepot.CLIENT,
+        statut_analyse=enregistre.statut_analyse,
+    )
 
 
 @router.get("/deliverables/{deliverable_id}/download")

@@ -17,6 +17,7 @@ import {
   RssiAction,
   ActivityLogEntry,
   RssiDeliverable,
+  StatutAnalyse,
   RssiSite,
   UnlinkedSite,
 } from '../services/rssi.service';
@@ -699,6 +700,43 @@ export class ClientDetailComponent implements OnInit {
         },
         error: (err: { error?: { detail?: string } }) => snackApiError(this.snack, err),
       });
+  }
+
+  // ── Origine et état d'analyse des documents ─────────────────────────────────
+  //
+  // Ajoutés avec l'ouverture du dépôt côté client (étape 3). Le consultant doit
+  // pouvoir distinguer ce qu'il a livré de ce que son client lui a remis, et
+  // savoir qu'un document tout juste reçu attend sa vérification.
+
+  /**
+   * `sain` ne rend PAS de puce : c'est le cas normal, et une pastille verte sur
+   * chaque ligne fatiguerait l'œil sans rien apprendre. On ne signale que ce qui
+   * demande de l'attention ou de la patience.
+   */
+  private static ANALYSE_DEPOT: Record<string, [string, string]> = {
+    en_analyse: ['Vérification', 'bg-amber-500/10 text-amber-400 border-amber-600/30'],
+    rejete: ['Refusé', 'bg-red-500/10 text-red-400 border-red-600/30'],
+    indetermine: ['Non vérifiable', 'bg-violet-500/10 text-violet-400 border-violet-600/30'],
+  };
+
+  analyseLibelle(statut: StatutAnalyse): string | null {
+    return statut ? (ClientDetailComponent.ANALYSE_DEPOT[statut]?.[0] ?? null) : null;
+  }
+
+  analyseClasses(statut: StatutAnalyse): string {
+    return statut ? (ClientDetailComponent.ANALYSE_DEPOT[statut]?.[1] ?? '') : '';
+  }
+
+  /** Un fichier n'est ouvrable que s'il est réputé sain — ou antérieur au registre. */
+  fichierOuvrable(d: RssiDeliverable): boolean {
+    return !!d.file_url && (d.statut_analyse === null || d.statut_analyse === 'sain');
+  }
+
+  /** Y a-t-il un document reçu du client qui attend sa vérification ? */
+  depotEnAttente(): boolean {
+    return this.deliverables().some(
+      d => d.origine === 'client' && d.statut_analyse === 'en_analyse'
+    );
   }
 
   openDeliverableFile(deliverable: RssiDeliverable) {

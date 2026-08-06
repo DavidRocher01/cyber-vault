@@ -4,6 +4,7 @@ from sqlalchemy import Date, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.models.enums import OrigineDepot
 
 
 class RssiDeliverable(Base):
@@ -17,6 +18,15 @@ class RssiDeliverable(Base):
     doc_type: Mapped[str] = mapped_column(String(50), nullable=False, default="autre")
     # compte_rendu | rapport | recommandation | contrat | autre
     file_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # `consultant` par défaut, y compris pour les lignes existantes : tout ce qui
+    # a été déposé avant l'ouverture du portail vient du consultant.
+    origine: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default=OrigineDepot.CONSULTANT,
+        server_default=OrigineDepot.CONSULTANT.value,
+        index=True,
+    )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     delivered_at: Mapped[date] = mapped_column(Date, nullable=False)
     created_at: Mapped[datetime] = mapped_column(

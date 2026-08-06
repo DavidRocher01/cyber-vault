@@ -122,3 +122,18 @@ class StatutAnalyse(StrEnum):
     # laisser en `en_analyse` les rendrait indiscernables d'un scan en cours, et
     # personne ne saurait qu'il y a quelque chose à regarder.
     INDETERMINE = "indetermine"
+
+
+class OrigineDepot(StrEnum):
+    """Qui a produit le document. Un livrable reste un livrable ; ce qui change
+    est qui l'a déposé.
+
+    Cette distinction n'est pas cosmétique : elle porte deux régimes juridiques
+    opposés. Un document déposé par le CLIENT relève de la sous-traitance
+    (art. 28-3-g : effacer ou restituer en fin de prestation, à son choix) ;
+    un livrable produit par le CONSULTANT est sa preuve en cas de litige, et
+    doit survivre à la mission. Cf. `docs/DEPOT_DOCUMENTS.md`.
+    """
+
+    CONSULTANT = "consultant"
+    CLIENT = "client"

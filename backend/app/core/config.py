@@ -69,6 +69,19 @@ class Settings(BaseSettings):
     # se remplit et la rétention devient possible, sans rien bloquer.
     ANTIVIRUS_DEPOT_ACTIF: bool = False
 
+    # Quota de dépôt par client RSSI, en octets. 500 Mo.
+    #
+    # POURQUOI UN QUOTA. `docs/DEPOT_DOCUMENTS.md` pose la contrainte : le dépôt
+    # doit rester attaché à un objet, jamais devenir un espace de stockage. Sans
+    # plafond, un client à 49 €/mois dispose d'un disque illimité et la facture
+    # S3 suit. Ouvrir le dépôt aux clients est précisément le moment où ça
+    # cesse d'être théorique.
+    #
+    # 500 Mo = vingt-cinq fichiers au plafond unitaire de 20 Mo. Large pour des
+    # politiques de sécurité, inventaires et rapports d'incident ; trop étroit
+    # pour héberger autre chose.
+    QUOTA_DEPOT_CLIENT_OCTETS: int = 500 * 1024 * 1024
+
     # Contact form recipient
     CONTACT_EMAIL: str = "contact@rochercybersecurite.com"
 

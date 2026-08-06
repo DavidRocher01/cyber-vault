@@ -31,6 +31,15 @@ export interface PortalAction {
   completed_at: string | null;
 }
 
+/** `consultant` : livre par le consultant. `client` : remis par le client. */
+export type OrigineDepot = 'consultant' | 'client';
+
+/**
+ * Etat de l'analyse antivirus. `null` pour un fichier anterieur au registre :
+ * il n'y a alors aucune attente a expliquer, et inventer un etat serait faux.
+ */
+export type StatutAnalyse = 'en_analyse' | 'sain' | 'rejete' | 'indetermine' | null;
+
 export interface PortalDeliverable {
   id: number;
   title: string;
@@ -38,6 +47,14 @@ export interface PortalDeliverable {
   delivered_at: string;
   notes: string | null;
   has_file: boolean;
+  origine: OrigineDepot;
+  statut_analyse: StatutAnalyse;
+}
+
+export interface PortalQuota {
+  utilise_octets: number;
+  quota_octets: number;
+  taille_max_fichier_octets: number;
 }
 
 export interface PortalMe {
@@ -78,5 +95,19 @@ export class ClientPortalService {
   }
   downloadReport() {
     return this.http.get(`${this.base}/report`, { responseType: 'blob' });
+  }
+  getQuota() {
+    return this.http.get<PortalQuota>(`${this.base}/quota`);
+  }
+  /**
+   * Depose un document. UN SEUL appel : l'objet, le registre et le livrable
+   * naissent ensemble cote serveur, sans la fenetre d'orphelin qu'un depot en
+   * deux temps laisserait ouverte.
+   */
+  deposerDocument(fichier: File, titre: string) {
+    const corps = new FormData();
+    corps.append('fichier', fichier);
+    corps.append('titre', titre);
+    return this.http.post<PortalDeliverable>(`${this.base}/deliverables`, corps);
   }
 }

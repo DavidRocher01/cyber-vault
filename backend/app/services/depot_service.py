@@ -268,3 +268,32 @@ async def octets_deposes_par_client(db: AsyncSession, client_id: int) -> int:
         select(FichierDepose.taille_octets).where(FichierDepose.client_id == client_id)
     )
     return sum(result.scalars().all())
+
+
+class QuotaDepassementError(ValueError):
+    """Le client a atteint son plafond de stockage."""
+
+    def __init__(self, utilise: int, quota: int) -> None:
+        self.utilise = utilise
+        self.quota = quota
+        super().__init__(
+            f"Quota de dépôt atteint — {utilise // (1024 * 1024)} Mo utilisés "
+            f"sur {quota // (1024 * 1024)} Mo. Supprimez un document ou "
+            f"contactez votre consultant."
+        )
+
+
+async def verifier_quota(db: AsyncSession, client_id: int, taille_ajoutee: int) -> None:
+    """Refuse un dépôt qui ferait dépasser le quota du client.
+
+    POURQUOI UN QUOTA. `docs/DEPOT_DOCUMENTS.md` pose la contrainte : le dépôt
+    doit rester attaché à un objet, jamais devenir un espace de stockage. Sans
+    plafond, un abonné dispose d'un disque illimité et la facture S3 suit.
+    Ouvrir le dépôt aux clients est le moment où ça cesse d'être théorique.
+
+    Vérifié AVANT d'écrire sur S3 : refuser après stockage laisserait l'objet
+    en place tout en annonçant un refus, et il faudrait le rattraper.
+    """
+    utilise = await octets_deposes_par_client(db, client_id)
+    if utilise + taille_ajoutee > settings.QUOTA_DEPOT_CLIENT_OCTETS:
+        raise QuotaDepassementError(utilise, settings.QUOTA_DEPOT_CLIENT_OCTETS)

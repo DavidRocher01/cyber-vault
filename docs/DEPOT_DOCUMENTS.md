@@ -228,7 +228,7 @@ ce chantier.
 | 2a | Registre des fichiers, état d'analyse, règle de délivrance | **fait le 2026-08-03** |
 | ~~2b~~ | ~~Activer GuardDuty Malware Protection for S3~~ | **fait le 2026-08-05** |
 | ~~2c~~ | ~~Brancher le verdict~~ | **fait le 2026-08-05 — relecture de balise** |
-| 3 | Dépôt côté portail RSSI (`origine` sur `RssiDeliverable`) | après 1 et 2 |
+| ~~3~~ | ~~Dépôt côté portail RSSI~~ | **backend fait le 2026-08-05 — interface à faire** |
 | 4a | ~~Purge des dépôts orphelins + suppression S3~~ | **fait le 2026-08-04** |
 | 4b | Rétention des documents rattachés (client vs consultant) | avec l'étape 3, `origine` requis |
 | 5 | Preuves rattachées aux critères NIS2 / ISO | chantier distinct, à cadrer |

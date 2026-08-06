@@ -188,6 +188,12 @@ export type DeliverableDocType =
   | 'contrat'
   | 'autre';
 
+/** `consultant` : livre par le consultant. `client` : remis par le client. */
+export type OrigineDepot = 'consultant' | 'client';
+
+/** `null` pour un fichier anterieur au registre : aucune attente a expliquer. */
+export type StatutAnalyse = 'en_analyse' | 'sain' | 'rejete' | 'indetermine' | null;
+
 export interface RssiDeliverable {
   id: number;
   client_id: number;
@@ -198,6 +204,8 @@ export interface RssiDeliverable {
   delivered_at: string;
   created_at: string;
   updated_at: string;
+  origine: OrigineDepot;
+  statut_analyse: StatutAnalyse;
 }
 
 export interface RssiDeliverableCreate {
