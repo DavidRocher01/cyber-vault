@@ -775,6 +775,26 @@
                         >
                           {{ docTypeLabel(d.doc_type) }}
                         </span>
+
+                        <!-- Ce que le CLIENT a remis, par opposition a ce que le
+                             consultant a livre. Rien sur ses propres livrables :
+                             c'est le cas par defaut. -->
+                        @if (d.origine === 'client') {
+                          <span
+                            class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded text-cyan-400 border border-cyan-700/40 bg-cyan-500/5"
+                            >Du client</span
+                          >
+                        }
+
+                        <!-- Rien pour `sain` : c'est le cas normal. On ne signale
+                             que ce qui demande de l'attention ou de la patience. -->
+                        @if (analyseLibelle(d.statut_analyse); as libelle) {
+                          <span
+                            class="text-[11px] font-medium px-2 py-0.5 rounded-full border"
+                            [ngClass]="analyseClasses(d.statut_analyse)"
+                            >{{ libelle }}</span
+                          >
+                        }
                       </div>
                       <div class="flex items-center gap-3 flex-wrap text-xs text-gray-400">
                         <span>
@@ -785,7 +805,7 @@
                           >
                           {{ formatDate(d.delivered_at) }}
                         </span>
-                        @if (d.file_url) {
+                        @if (fichierOuvrable(d)) {
                           <button
                             type="button"
                             (click)="openDeliverableFile(d)"

@@ -44,6 +44,13 @@ class RssiDeliverableOut(BaseModel):
     delivered_at: date
     created_at: datetime
     updated_at: datetime
+    # `consultant` ou `client`. Le consultant doit distinguer ce qu'il a livre
+    # de ce que son client lui a remis.
+    origine: str
+    # `en_analyse` / `sain` / `rejete` / `indetermine`, ou `None` pour un fichier
+    # anterieur au registre — il n'y a alors aucune attente a expliquer, et
+    # inventer un etat serait faux.
+    statut_analyse: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -55,7 +62,20 @@ async def list_deliverables(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
-    return await rssi_deliverable_service.list_client_deliverables(db, client_id)
+    livrables = await rssi_deliverable_service.list_client_deliverables(db, client_id)
+
+    # L'etat d'analyse vit dans le registre, pas sur le livrable : c'est une
+    # propriete du FICHIER, et un livrable peut n'en avoir aucun.
+    sorties = []
+    for d in livrables:
+        statut = None
+        if d.file_url:
+            fichier = await depot_service.fichier_par_cle(db, d.file_url)
+            statut = fichier.statut_analyse if fichier else None
+        sortie = RssiDeliverableOut.model_validate(d)
+        sortie.statut_analyse = statut
+        sorties.append(sortie)
+    return sorties
 
 
 @router.post(

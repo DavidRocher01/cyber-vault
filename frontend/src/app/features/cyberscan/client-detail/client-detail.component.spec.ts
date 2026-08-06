@@ -596,3 +596,92 @@ describe('ClientDetailComponent — openDeliverableFile()', () => {
     expect(message).toContain('vérification');
   });
 });
+
+// ── Origine et etat d'analyse (etape 3) ───────────────────────────────────────
+//
+// Le consultant recoit desormais des documents de ses clients. Il doit pouvoir
+// distinguer ce qu'il a livre de ce qu'on lui a remis, et ne pas ouvrir un
+// fichier qui n'a pas ete verifie.
+
+describe('ClientDetailComponent — etat d analyse des documents', () => {
+  function c(): ClientDetailComponent {
+    return Object.create(ClientDetailComponent.prototype) as ClientDetailComponent;
+  }
+
+  it('n affiche AUCUNE puce pour un fichier sain', () => {
+    // Le cas normal ne se signale pas : une pastille verte sur chaque ligne
+    // fatiguerait l'oeil sans rien apprendre.
+    expect(c().analyseLibelle('sain')).toBeNull();
+  });
+
+  it('n affiche aucune puce pour un fichier anterieur au registre', () => {
+    expect(c().analyseLibelle(null)).toBeNull();
+  });
+
+  it('nomme les etats qui demandent de l attention', () => {
+    const comp = c();
+    expect(comp.analyseLibelle('en_analyse')).toContain('Vérification');
+    expect(comp.analyseLibelle('rejete')).toContain('Refusé');
+    expect(comp.analyseLibelle('indetermine')).toContain('Non vérifiable');
+  });
+
+  it('distingue non-verifiable de refuse par la couleur', () => {
+    // `indetermine` n'est ni vert ni rouge : l'analyse n'a pas abouti.
+    expect(c().analyseClasses('indetermine')).toContain('violet');
+    expect(c().analyseClasses('rejete')).toContain('red');
+  });
+});
+
+describe('ClientDetailComponent — ce que le consultant peut ouvrir', () => {
+  function c(): ClientDetailComponent {
+    return Object.create(ClientDetailComponent.prototype) as ClientDetailComponent;
+  }
+  const doc = (statut: unknown, file_url: string | null = 'cle') =>
+    ({ id: 1, file_url, statut_analyse: statut }) as never;
+
+  it('ouvre un fichier sain, et un fichier anterieur au registre', () => {
+    const comp = c();
+    expect(comp.fichierOuvrable(doc('sain'))).toBe(true);
+    expect(comp.fichierOuvrable(doc(null))).toBe(true);
+  });
+
+  it('REFUSE d ouvrir ce qui n a pas ete verifie', () => {
+    const comp = c();
+    expect(comp.fichierOuvrable(doc('en_analyse'))).toBe(false);
+    expect(comp.fichierOuvrable(doc('rejete'))).toBe(false);
+    expect(comp.fichierOuvrable(doc('indetermine'))).toBe(false);
+  });
+
+  it('n ouvre rien sans fichier attache', () => {
+    expect(c().fichierOuvrable(doc('sain', null))).toBe(false);
+  });
+});
+
+describe('ClientDetailComponent — depot en attente', () => {
+  function comp(livrables: unknown[]): ClientDetailComponent {
+    const c = Object.create(ClientDetailComponent.prototype) as ClientDetailComponent;
+    (c as never as { deliverables: unknown }).deliverables = signal(livrables);
+    return c;
+  }
+
+  it('signale un document du client encore en verification', () => {
+    expect(comp([{ origine: 'client', statut_analyse: 'en_analyse' }]).depotEnAttente()).toBe(true);
+  });
+
+  it('ne signale rien quand tout est verifie', () => {
+    expect(
+      comp([
+        { origine: 'client', statut_analyse: 'sain' },
+        { origine: 'consultant', statut_analyse: 'sain' },
+      ]).depotEnAttente()
+    ).toBe(false);
+  });
+
+  it('ne signale pas un livrable du CONSULTANT en cours de verification', () => {
+    // Le bandeau annonce une reception ; un livrable qu'on vient de deposer
+    // soi-meme n'est pas une reception.
+    expect(comp([{ origine: 'consultant', statut_analyse: 'en_analyse' }]).depotEnAttente()).toBe(
+      false
+    );
+  });
+});
