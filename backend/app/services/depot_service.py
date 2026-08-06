@@ -297,3 +297,73 @@ async def verifier_quota(db: AsyncSession, client_id: int, taille_ajoutee: int) 
     utilise = await octets_deposes_par_client(db, client_id)
     if utilise + taille_ajoutee > settings.QUOTA_DEPOT_CLIENT_OCTETS:
         raise QuotaDepassementError(utilise, settings.QUOTA_DEPOT_CLIENT_OCTETS)
+
+
+async def purger_documents_clients_clos(
+    db: AsyncSession, now: datetime, delai_jours: int | None = None
+) -> int:
+    """Efface les documents REMIS PAR LE CLIENT dont la mission est close depuis
+    assez longtemps. Renvoie le compte.
+
+    L'ARTICLE 28-3-g, ET POURQUOI IL Y A UN DELAI. Pour les documents que le
+    client dépose, la plateforme est sous-traitante : à la fin de la prestation,
+    elle efface **ou restitue**, au choix du responsable de traitement. Le délai
+    EST la restitution possible — le portail reste accessible après la clôture,
+    donc le client peut récupérer ses documents pendant toute cette période.
+    Effacer sans délai serait supprimer sans avoir laissé le choix.
+
+    CE QUI N'EST JAMAIS TOUCHE : les livrables produits par le CONSULTANT. Ils
+    sont sa preuve en cas de litige sur la qualité de la prestation, et la
+    prescription de droit commun est de cinq ans. Les purger avec le reste
+    reviendrait à détruire sa propre défense. C'est le champ `origine` qui sépare
+    les deux régimes, et c'est toute sa raison d'être.
+
+    L'ORDRE, comme pour les orphelins : objet stocké, PUIS registre, PUIS
+    livrable. Si l'objet résiste, rien n'est supprimé et le passage suivant
+    réessaiera — perdre la trace d'un fichier qu'on n'a pas su effacer, c'est le
+    condamner à rester sur S3 sans que rien ne s'en souvienne.
+
+    Une mission sans `cloture_le` n'est jamais purgée : aucune date n'est
+    inventée.
+    """
+    from app.models.enums import OrigineDepot
+    from app.models.rssi_client import RssiClient
+    from app.models.rssi_deliverable import RssiDeliverable
+    from app.services import storage
+
+    jours = settings.RETENTION_DEPOT_CLIENT_JOURS if delai_jours is None else delai_jours
+    limite = now - timedelta(days=jours)
+
+    resultat = await db.execute(
+        select(RssiDeliverable)
+        .join(RssiClient, RssiClient.id == RssiDeliverable.client_id)
+        .where(
+            RssiDeliverable.origine == OrigineDepot.CLIENT,
+            RssiClient.cloture_le.is_not(None),
+            RssiClient.cloture_le < limite,
+        )
+    )
+    a_purger = list(resultat.scalars().all())
+
+    purges = 0
+    for livrable in a_purger:
+        fichier = await fichier_par_cle(db, livrable.file_url) if livrable.file_url else None
+        if livrable.file_url:
+            try:
+                storage.supprimer_fichier(livrable.file_url)
+            except Exception as exc:  # noqa: BLE001 — un document ne bloque pas les autres
+                logger.warning(
+                    "Rétention client : échec sur {}, conservé pour réessai ({})",
+                    livrable.file_url,
+                    exc,
+                )
+                continue
+        if fichier is not None:
+            await db.delete(fichier)
+        await db.delete(livrable)
+        purges += 1
+
+    if purges:
+        await db.commit()
+        logger.info("Rétention art. 28-3-g : {} documents clients effacés", purges)
+    return purges

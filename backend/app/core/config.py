@@ -82,6 +82,22 @@ class Settings(BaseSettings):
     # pour héberger autre chose.
     QUOTA_DEPOT_CLIENT_OCTETS: int = 500 * 1024 * 1024
 
+    # Délai avant effacement des documents REMIS PAR LE CLIENT, à compter de la
+    # fin de la mission. 90 jours.
+    #
+    # Ce n'est pas une durée de conservation arbitraire : l'article 28-3-g du
+    # RGPD impose au sous-traitant d'effacer **ou de restituer** en fin de
+    # prestation, au choix du responsable de traitement. Le délai EST la
+    # restitution possible — le portail reste accessible après la clôture, donc
+    # le client peut récupérer ses documents pendant ces 90 jours.
+    #
+    # Effacer sans ce délai serait supprimer sans avoir laissé le choix.
+    #
+    # ⚠️ Ne s'applique QU'AUX documents d'origine `client`. Les livrables produits
+    # par le consultant sont sa preuve en cas de litige sur la prestation et
+    # doivent survivre à la mission — prescription de droit commun, 5 ans.
+    RETENTION_DEPOT_CLIENT_JOURS: int = 90
+
     # Contact form recipient
     CONTACT_EMAIL: str = "contact@rochercybersecurite.com"
 

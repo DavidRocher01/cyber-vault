@@ -168,8 +168,8 @@ l'axe qui les sépare est le champ `origine` prévu à l'étape 3.
 | Cas | Régime | Traitement |
 |---|---|---|
 | **Orphelin** — déposé, jamais rattaché | aucune finalité | **7 jours. Fait le 2026-08-04.** |
-| Déposé par le **client** | sous-traitance, art. 28-3-g | effacer **ou restituer**, à sa main, en fin de mission |
-| Produit par le **consultant** | responsabilité professionnelle | conserver ; ordre de grandeur 5 ans |
+| Déposé par le **client** | sous-traitance, art. 28-3-g | **90 jours après la clôture. Fait le 2026-08-05.** |
+| Produit par le **consultant** | responsabilité professionnelle | **jamais purgé automatiquement. Fait le 2026-08-05.** |
 
 **Ce que la loi impose vraiment.** Aucun texte ne fixe de durée : l'article
 5-1-e demande une durée *justifiée par la finalité*. En revanche l'article
@@ -191,9 +191,27 @@ facturation) mais **ne dit rien des documents déposés**. L'article 13 impose
 d'informer sur les durées de conservation : la ligne devra y être ajoutée en
 même temps que l'étape 3.
 
-**Ce qui est développé, et pourquoi seulement cela.** Seul le cas de l'orphelin
-est implémenté. Les deux autres reposent sur la distinction `origine`, qui
-n'existe pas encore dans le modèle — coder maintenant reviendrait à deviner.
+**Les trois régimes sont implémentés depuis le 2026-08-05.**
+
+Le délai de 90 jours **est** la restitution exigée par l'article 28-3-g. Le
+portail reste accessible après la clôture de la mission — vérifié :
+`get_current_rssi_client` ne filtre pas sur le statut — donc le client peut
+récupérer ses documents pendant toute la période. Effacer sans ce délai
+reviendrait à supprimer sans avoir laissé le choix.
+
+**Une colonne dédiée `cloture_le`, et pas `updated_at`.** Ce dernier bouge à
+chaque modification : une simple correction d'adresse aurait repoussé l'échéance
+de 90 jours, indéfiniment. La date est posée au passage en `inactive` /
+`churned`, effacée au retour en `active` — un client repris ne doit pas voir ses
+documents purgés sur la foi d'une interruption passée.
+
+**Une mission close sans date n'est jamais purgée.** Aucune date n'est inventée
+rétroactivement : on ne détruit pas de données sur la foi d'un repère fabriqué.
+Sans conséquence, le dépôt client n'existant que depuis le 2026-08-05.
+
+Les livrables du **consultant** ne sont jamais touchés. Un test le vérifie sur
+une mission close depuis plus de huit ans, et il tombe si le filtre d'origine
+disparaît de la requête.
 
 ---
 
@@ -230,7 +248,7 @@ ce chantier.
 | ~~2c~~ | ~~Brancher le verdict~~ | **fait le 2026-08-05 — relecture de balise** |
 | ~~3~~ | ~~Dépôt côté portail RSSI~~ | **backend fait le 2026-08-05 — interface à faire** |
 | 4a | ~~Purge des dépôts orphelins + suppression S3~~ | **fait le 2026-08-04** |
-| 4b | Rétention des documents rattachés (client vs consultant) | avec l'étape 3, `origine` requis |
+| ~~4b~~ | ~~Rétention des documents rattachés~~ | **fait le 2026-08-05** |
 | 5 | Preuves rattachées aux critères NIS2 / ISO | chantier distinct, à cadrer |
 
 **L'étape 2 n'est pas négociable avant l'étape 3.** Ouvrir le dépôt aux clients

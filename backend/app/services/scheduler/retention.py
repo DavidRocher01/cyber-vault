@@ -12,6 +12,11 @@ dont la finalité est expirée :
   après `DELAI_ORPHELIN_JOURS` jours — délai de grâce, le temps que le flux
   normal se termine. Contrairement aux deux autres, cette purge efface AUSSI
   l'objet stocké, pas seulement la ligne.
+- **documents remis par le CLIENT**, mission close depuis
+  `RETENTION_DEPOT_CLIENT_JOURS` : art. 28-3-g du RGPD, le sous-traitant efface
+  ou restitue en fin de prestation. Le délai EST la restitution possible, le
+  portail restant accessible après la clôture. Les livrables produits par le
+  CONSULTANT ne sont JAMAIS purgés : ils sont sa preuve en cas de litige.
 - **darkweb_dossiers** NON surveillés : dossiers Dark Web B2B (emails de salariés
   exposés) dont la surveillance mensuelle est désactivée (`monitor_active=False`).
   Un dossier surveillé a une finalité ACTIVE (alerte sur nouvelles fuites) et est
@@ -63,11 +68,13 @@ async def purge_expired_data(db: AsyncSession, now: datetime) -> dict[str, int]:
     # la base. La garder à part évite qu'un échec S3 fasse retomber les deux
     # suppressions ci-dessus, qui n'ont rien à voir avec elle.
     orphelins = await depot_service.purger_orphelins(db, now)
+    documents_clients = await depot_service.purger_documents_clients_clos(db, now)
 
     return {
         "public_scans": public_result.rowcount or 0,
         "darkweb_dossiers": darkweb_result.rowcount or 0,
         "fichiers_orphelins": orphelins,
+        "documents_clients": documents_clients,
     }
 
 
@@ -78,10 +85,11 @@ async def _run_data_retention_purge() -> None:
     if any(counts.values()):
         logger.info(
             "Purge rétention RGPD : {} public_scans, {} darkweb_dossiers, "
-            "{} fichiers orphelins supprimés",
+            "{} fichiers orphelins, {} documents clients supprimés",
             counts["public_scans"],
             counts["darkweb_dossiers"],
             counts["fichiers_orphelins"],
+            counts["documents_clients"],
         )
 
 
