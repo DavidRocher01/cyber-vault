@@ -162,9 +162,106 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section>
           <h2 class="text-lg font-bold mb-4">Vos documents</h2>
+
+          <!-- Zone de depot. Visible en permanence, et c'est le point : un
+               client qui ignore qu'il peut remettre un document ne le remettra
+               pas. Elle annonce aussi formats et plafond AVANT qu'ils ne
+               deviennent des refus. -->
+          <div class="mb-4 flex flex-col gap-3">
+            @if (!fichierChoisi()) {
+              <label
+                (dragover)="surSurvol($event, true)"
+                (dragleave)="surSurvol($event, false)"
+                (drop)="surDepose($event)"
+                [class]="
+                  'flex flex-col items-center gap-2 rounded-xl border border-dashed px-4 py-6 text-center cursor-pointer transition-colors ' +
+                  (survol()
+                    ? 'border-cyan-500 bg-cyan-500/10'
+                    : 'border-gray-600 bg-gray-800/30 hover:border-cyan-600/60')
+                "
+              >
+                <mat-icon class="text-cyan-400 !text-[1.6rem] !w-[1.6rem] !h-[1.6rem]"
+                  >upload_file</mat-icon
+                >
+                <span class="text-sm font-medium text-gray-200">
+                  Glissez un document, ou parcourez vos fichiers
+                </span>
+                <span class="text-xs text-gray-500">
+                  PDF, Word, Excel, images ·
+                  {{ formatOctets(quota()?.taille_max_fichier_octets ?? 0) }} maximum par fichier
+                </span>
+                <input type="file" class="hidden" (change)="surFichier($event)" />
+              </label>
+            } @else {
+              <div class="rounded-xl border border-gray-700 bg-gray-800/50 p-4 flex flex-col gap-3">
+                <div class="flex items-center gap-2 text-sm text-gray-200 min-w-0">
+                  <mat-icon
+                    class="text-cyan-400 !text-[1.2rem] !w-[1.2rem] !h-[1.2rem] flex-shrink-0"
+                    >description</mat-icon
+                  >
+                  <span class="truncate">{{ fichierChoisi()!.name }}</span>
+                  <span class="text-xs text-gray-500 flex-shrink-0">{{
+                    formatOctets(fichierChoisi()!.size)
+                  }}</span>
+                </div>
+                <input
+                  [(ngModel)]="titreDepot"
+                  [ngModelOptions]="{ standalone: true }"
+                  type="text"
+                  placeholder="Intitule du document"
+                  class="w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-100 outline-none focus:border-cyan-600"
+                />
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    (click)="deposer()"
+                    [disabled]="depotEnCours() || !titreDepot.trim()"
+                    class="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500 disabled:opacity-50"
+                  >
+                    {{ depotEnCours() ? 'Envoi...' : 'Transmettre' }}
+                  </button>
+                  <button
+                    type="button"
+                    (click)="annulerDepot()"
+                    [disabled]="depotEnCours()"
+                    class="rounded-lg px-3 py-2 text-sm text-gray-400 hover:text-gray-200"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            }
+
+            @if (depotErreur()) {
+              <!-- Le message vient du serveur : format refuse, quota atteint,
+                   fichier trop lourd. Un texte generique obligerait a deviner. -->
+              <p
+                class="rounded-lg border border-red-700/40 bg-red-500/10 px-3 py-2 text-xs text-red-300"
+              >
+                {{ depotErreur() }}
+              </p>
+            }
+
+            @if (quota(); as q) {
+              <div class="flex flex-col gap-1.5">
+                <div class="flex items-baseline justify-between text-xs">
+                  <span class="text-gray-500">Espace utilise</span>
+                  <span class="text-gray-400 tabular-nums">
+                    {{ formatOctets(q.utilise_octets) }} sur {{ formatOctets(q.quota_octets) }}
+                  </span>
+                </div>
+                <div class="h-1.5 rounded-full bg-gray-800 overflow-hidden">
+                  <div
+                    class="h-full rounded-full bg-cyan-500 transition-all"
+                    [style.width.%]="quotaPourcent()"
+                  ></div>
+                </div>
+              </div>
+            }
+          </div>
           @if (deliverables().length === 0) {
             <p class="text-sm text-gray-500 rounded-xl border border-gray-800 bg-gray-800/30 p-6">
-              Aucun document partagé pour l'instant.
+              Aucun document pour l'instant. Vous pouvez en transmettre un ci-dessus.
             </p>
           } @else {
             <div class="flex flex-col gap-2">
@@ -182,7 +279,29 @@
                       {{ docTypeLabel(d.doc_type) }} · {{ formatDate(d.delivered_at) }}
                     </p>
                   </div>
-                  @if (d.has_file) {
+
+                  <!-- Repond a la seule question qu'on se pose en parcourant la
+                       liste : qu'est-ce que j'ai deja envoye ? -->
+                  @if (d.origine === 'client') {
+                    <span
+                      class="flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-cyan-400 border border-cyan-700/40 bg-cyan-500/5"
+                      >Vous</span
+                    >
+                  }
+
+                  <!-- Rien pour `sain` : c'est le cas normal. On ne signale que
+                       ce qui demande de l'attention ou de la patience. -->
+                  @if (analyseLibelle(d.statut_analyse); as libelle) {
+                    <span
+                      [class]="
+                        'flex-shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium ' +
+                        analyseClasses(d.statut_analyse)
+                      "
+                      >{{ libelle }}</span
+                    >
+                  }
+
+                  @if (ouvrable(d)) {
                     <button
                       type="button"
                       (click)="openDeliverable(d.id)"

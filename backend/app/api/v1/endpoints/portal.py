@@ -79,6 +79,19 @@ class PortalDeliverableOut(BaseModel):
     statut_analyse: str | None
 
 
+class PortalQuotaOut(BaseModel):
+    """Où en est le client de son espace de dépôt.
+
+    Exposé pour que la zone de dépôt puisse l'AFFICHER, et pas seulement le
+    faire subir : un plafond découvert au moment d'être bloqué est une mauvaise
+    surprise ; annoncé, c'est une information.
+    """
+
+    utilise_octets: int
+    quota_octets: int
+    taille_max_fichier_octets: int
+
+
 class PortalMeOut(BaseModel):
     name: str
     formula: str | None
@@ -196,6 +209,23 @@ async def list_my_deliverables(
             )
         )
     return sorties
+
+
+@router.get("/quota", response_model=PortalQuotaOut)
+async def mon_quota(
+    client: RssiClient = Depends(get_current_rssi_client),
+    db: AsyncSession = Depends(get_db),
+):
+    """L'espace utilisé et les deux plafonds qui s'appliquent au client."""
+    from app.core.config import settings
+    from app.services import depot_service
+    from app.services.storage import MAX_UPLOAD_BYTES
+
+    return PortalQuotaOut(
+        utilise_octets=await depot_service.octets_deposes_par_client(db, client.id),
+        quota_octets=settings.QUOTA_DEPOT_CLIENT_OCTETS,
+        taille_max_fichier_octets=MAX_UPLOAD_BYTES,
+    )
 
 
 @router.post("/deliverables", response_model=PortalDeliverableOut, status_code=201)

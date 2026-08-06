@@ -269,3 +269,43 @@ async def test_le_quota_est_verifie_avant_d_ecrire(http_client: AsyncClient, mon
         )
     assert r.status_code == 413
     ecrit.assert_not_called()
+
+
+# ── Le quota, vu par le client ─────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_le_client_voit_son_quota(http_client: AsyncClient):
+    """Un plafond decouvert au moment d'etre bloque est une mauvaise surprise."""
+    h, _ = await _client_du_portail(http_client, "quota_vu@test.com")
+
+    avant = await http_client.get(f"{BASE}/portal/quota", headers=h)
+    assert avant.status_code == 200
+    assert avant.json()["utilise_octets"] == 0
+    assert avant.json()["quota_octets"] > 0
+    assert avant.json()["taille_max_fichier_octets"] == 20 * 1024 * 1024
+
+    await http_client.post(
+        f"{BASE}/portal/deliverables",
+        files={"fichier": ("doc.pdf", _PDF, "application/pdf")},
+        data={"titre": "Doc"},
+        headers=h,
+    )
+
+    apres = await http_client.get(f"{BASE}/portal/quota", headers=h)
+    assert apres.json()["utilise_octets"] == len(_PDF)
+
+
+@pytest.mark.asyncio
+async def test_le_quota_d_un_client_ne_compte_pas_celui_d_un_autre(http_client: AsyncClient):
+    hA, _ = await _client_du_portail(http_client, "quota_iso_a@test.com")
+    hB, _ = await _client_du_portail(http_client, "quota_iso_b@test.com")
+
+    await http_client.post(
+        f"{BASE}/portal/deliverables",
+        files={"fichier": ("a.pdf", _PDF, "application/pdf")},
+        data={"titre": "A"},
+        headers=hA,
+    )
+
+    assert (await http_client.get(f"{BASE}/portal/quota", headers=hB)).json()["utilise_octets"] == 0

@@ -1,4 +1,5 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { Title } from '@angular/platform-browser';
 import { forkJoin } from 'rxjs';
@@ -11,13 +12,15 @@ import {
   PortalAction,
   PortalVisit,
   PortalDeliverable,
+  PortalQuota,
+  StatutAnalyse,
 } from '../services/client-portal.service';
 import { formatFrDate } from '../../../shared/date-utils';
 
 @Component({
   standalone: true,
   selector: 'app-client-portal',
-  imports: [MatIconModule, NavButtonsComponent, ScoreGaugeComponent],
+  imports: [FormsModule, MatIconModule, NavButtonsComponent, ScoreGaugeComponent],
   templateUrl: './client-portal.component.html',
 })
 export class ClientPortalComponent implements OnInit {
@@ -32,6 +35,14 @@ export class ClientPortalComponent implements OnInit {
   error = signal(false);
   reportLoading = signal(false);
 
+  // ── Dépôt de document ───────────────────────────────────────────────────────
+  quota = signal<PortalQuota | null>(null);
+  depotEnCours = signal(false);
+  depotErreur = signal<string | null>(null);
+  survol = signal(false);
+  fichierChoisi = signal<File | null>(null);
+  titreDepot = '';
+
   ngOnInit() {
     this.title.setTitle('Mon espace sécurité | Rocher Cybersécurité');
     forkJoin({
@@ -39,8 +50,10 @@ export class ClientPortalComponent implements OnInit {
       actions: this.service.getActions(),
       visits: this.service.getVisits(),
       deliverables: this.service.getDeliverables(),
+      quota: this.service.getQuota(),
     }).subscribe({
-      next: ({ me, actions, visits, deliverables }) => {
+      next: ({ me, actions, visits, deliverables, quota }) => {
+        this.quota.set(quota);
         this.me.set(me);
         this.actions.set(actions);
         this.visits.set(visits);
@@ -52,6 +65,103 @@ export class ClientPortalComponent implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  // ── Dépôt ───────────────────────────────────────────────────────────────────
+
+  surFichier(event: Event) {
+    const input = event.target as HTMLInputElement;
+    this.choisir(input.files?.[0] ?? null);
+    input.value = ''; // permet de rechoisir le même fichier après une erreur
+  }
+
+  surDepose(event: DragEvent) {
+    event.preventDefault();
+    this.survol.set(false);
+    this.choisir(event.dataTransfer?.files?.[0] ?? null);
+  }
+
+  surSurvol(event: DragEvent, actif: boolean) {
+    event.preventDefault();
+    this.survol.set(actif);
+  }
+
+  private choisir(f: File | null) {
+    if (!f) return;
+    this.depotErreur.set(null);
+    this.fichierChoisi.set(f);
+    // Le nom du fichier est un titre par défaut acceptable : le client peut le
+    // remplacer, mais n'a rien à saisir s'il n'en a pas envie.
+    if (!this.titreDepot.trim()) {
+      this.titreDepot = f.name.replace(/\.[^.]+$/, '');
+    }
+  }
+
+  annulerDepot() {
+    this.fichierChoisi.set(null);
+    this.titreDepot = '';
+    this.depotErreur.set(null);
+  }
+
+  deposer() {
+    const f = this.fichierChoisi();
+    if (!f || !this.titreDepot.trim()) return;
+    this.depotEnCours.set(true);
+    this.depotErreur.set(null);
+    this.service.deposerDocument(f, this.titreDepot.trim()).subscribe({
+      next: livrable => {
+        // En tête de liste : le client vient de le déposer, il le cherche là.
+        this.deliverables.set([livrable, ...this.deliverables()]);
+        this.annulerDepot();
+        this.depotEnCours.set(false);
+        this.service.getQuota().subscribe({ next: q => this.quota.set(q) });
+      },
+      error: (err: { error?: { detail?: string } }) => {
+        // Le serveur explique POURQUOI — format refusé, quota atteint, taille.
+        // Un message générique obligerait le client à deviner.
+        this.depotErreur.set(err?.error?.detail ?? "Le dépôt n'a pas abouti.");
+        this.depotEnCours.set(false);
+      },
+    });
+  }
+
+  quotaPourcent(): number {
+    const q = this.quota();
+    if (!q || q.quota_octets === 0) return 0;
+    return Math.min(100, Math.round((q.utilise_octets / q.quota_octets) * 100));
+  }
+
+  formatOctets(n: number): string {
+    if (n < 1024) return `${n} o`;
+    if (n < 1024 * 1024) return `${Math.round(n / 1024)} Ko`;
+    const mo = n / (1024 * 1024);
+    return `${mo < 10 ? mo.toFixed(1) : Math.round(mo)} Mo`;
+  }
+
+  // ── État d'analyse ──────────────────────────────────────────────────────────
+
+  /**
+   * `sain` ne rend PAS de puce : c'est le cas normal, et une pastille verte sur
+   * chaque ligne fatiguerait l'œil sans rien apprendre. On ne signale que ce qui
+   * demande de l'attention ou de la patience.
+   */
+  private static ANALYSE: Record<string, [string, string]> = {
+    en_analyse: ['Vérification en cours', 'bg-amber-500/10 text-amber-400 border-amber-600/30'],
+    rejete: ['Refusé', 'bg-red-500/10 text-red-400 border-red-600/30'],
+    indetermine: ['Non vérifiable', 'bg-violet-500/10 text-violet-400 border-violet-600/30'],
+  };
+
+  analyseLibelle(statut: StatutAnalyse): string | null {
+    return statut ? (ClientPortalComponent.ANALYSE[statut]?.[0] ?? null) : null;
+  }
+
+  analyseClasses(statut: StatutAnalyse): string {
+    return statut ? (ClientPortalComponent.ANALYSE[statut]?.[1] ?? '') : '';
+  }
+
+  /** Un fichier n'est ouvrable que s'il est réputé sain — ou antérieur au registre. */
+  ouvrable(d: PortalDeliverable): boolean {
+    return d.has_file && (d.statut_analyse === null || d.statut_analyse === 'sain');
   }
 
   openDeliverable(id: number) {
