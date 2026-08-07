@@ -317,6 +317,33 @@ l'export, un plan inconnu laissait passer un PDF ; ici il laisserait passer une
 plan Gratuit est toujours semé, donc un compte sans abonnement retombe dessus et
 reçoit un 403 ; et le quota s'applique de toute façon.
 
+### Ce que l'étape 5f a tranché
+
+**Le document auditeur gagne une section 4 qui rattache chaque pièce au contrôle
+qu'elle appuie**, et le tableau de détail gagne une colonne comptant les pièces.
+C'est cette section qui sépare un questionnaire rempli d'un dossier opposable :
+sans elle, l'auditeur lisait des réponses déclarées sans savoir ce qui les
+étayait.
+
+**Une pièce dont l'analyse antivirus n'est pas concluante n'y figure pas.** La
+présenter à un auditeur reviendrait à la dire vérifiée alors que la plateforme
+refuse elle-même de la servir. Mais elle n'est **pas passée sous silence** : le
+rapport annonce combien de documents ont été écartés et pourquoi. Une omission
+muette se lirait comme « rien n'a été déposé pour ce contrôle ».
+
+**Le rapport ne prête aucune valeur probante aux pièces.** Il écrit que la
+plateforme a contrôlé leur innocuité, pas leur contenu, et que l'appréciation
+revient à l'auditeur. Laisser l'ambiguïté serait vendre une garantie qu'on ne
+tient pas.
+
+**Sans aucune pièce, le document le dit** plutôt que d'afficher une section
+vide : les réponses constituent alors une déclaration de l'entité, non étayée.
+
+**Un décalage introduit et rattrapé :** ajouter la colonne « Pièces » au tableau
+de détail a déplacé la colonne du statut de l'index 1 à l'index 2, alors que la
+couleur du statut visait toujours l'index 1. Vu au rendu, pas à la relecture —
+d'où l'intérêt de regarder le PDF produit et pas seulement le texte extrait.
+
 ---
 
 ## Séquencement proposé
@@ -336,7 +363,7 @@ reçoit un 403 ; et le quota s'applique de toute façon.
 | ~~5c~~ | ~~Table de preuves, purge générique, quota, rétention~~ | **fait le 2026-08-07** |
 | 5d | Interface RSSI — rattacher une pièce au dossier client | après 5c |
 | ~~5e~~ | ~~Abonné direct — dépôt sur l'auto-évaluation~~ | **fait le 2026-08-07** |
-| 5f | Export PDF auditeur listant les preuves | **le livrable réel** |
+| ~~5f~~ | ~~Export PDF auditeur listant les preuves~~ | **fait le 2026-08-07** |
 
 **L'étape 2 n'est pas négociable avant l'étape 3.** Ouvrir le dépôt aux clients
 sans analyse antivirus, c'est accepter de distribuer ce qu'on reçoit.

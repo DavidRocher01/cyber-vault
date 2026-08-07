@@ -349,11 +349,18 @@ async def export_auditor_pdf(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Generate a formal NIS2 'prêt-à-déposer' document for certified auditor review."""
+    """Generate a formal NIS2 'prêt-à-déposer' document for certified auditor review.
+
+    DEPUIS L'ETAPE 5f, IL EMBARQUE LES PIECES JUSTIFICATIVES. C'est ce qui fait
+    la difference entre un questionnaire rempli et un dossier opposable :
+    l'auditeur voit quel document appuie quel controle, et non seulement la
+    reponse declaree.
+    """
     assessment = await nis2_service.get_user_assessment(db, current_user.id)
     items = json.loads(assessment.items_json) if assessment else {}
     score = compute_assessment_score(items, ALL_ITEM_IDS)
     updated_at = assessment.updated_at if assessment else None
+    pieces = await _pieces_deposees(db, assessment)
 
     # Try to get company name from brand profile
     brand = await brand_service.get_brand_profile(db, current_user.id)
@@ -369,6 +376,7 @@ async def export_auditor_pdf(
         user_email=current_user.email,
         updated_at=updated_at,
         company_name=company_name,
+        pieces=pieces,
     )
 
     return StreamingResponse(

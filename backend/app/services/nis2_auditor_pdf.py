@@ -2,12 +2,16 @@
 nis2_auditor_pdf.py — "Prêt-à-déposer" NIS2 document for certified auditor review.
 
 Produces a formal PDF structured for regulatory submission:
-  1. Cover — attestation, entity info, score
-  2. Table of contents (static)
-  3. Compliance summary by domain
-  4. Detailed findings per category (conformant / partial / non-conformant)
+  1. Attestation — entity info, score
+  2. Compliance summary by domain
+  3. Detailed findings per category, with the number of supporting documents
+  4. Supporting documents, mapped to the control each one backs
   5. Action plan — non-conformant items with priority
   6. Auditor declaration block (signature placeholder)
+
+LA SECTION 4 EST CE QUI DISTINGUE CE DOCUMENT D'UN QUESTIONNAIRE. Sans elle,
+l'auditeur lit des reponses sans savoir ce qui les appuie : une conformite sans
+preuve est une declaration ; avec preuves, c'est un dossier opposable.
 """
 
 from __future__ import annotations
@@ -127,6 +131,30 @@ def _domain_scores(categories: list, items: dict) -> list[tuple[str, int]]:
     return result
 
 
+def _pieces_retenues(pieces: dict[str, list[dict]] | None) -> tuple[dict[str, list[dict]], int]:
+    """Sépare les pièces opposables de celles qu'on ne peut pas produire.
+
+    UNE PIÈCE DONT L'ANALYSE N'EST PAS CONCLUANTE N'EST PAS UNE PREUVE. La faire
+    figurer dans un document destiné à un auditeur reviendrait à la lui présenter
+    comme vérifiée, alors que la plateforme refuse elle-même de la servir.
+
+    Elle n'est pas non plus passée sous silence : le compte des écartées est
+    renvoyé et le rapport l'annonce. Une omission muette laisserait croire que
+    l'utilisateur n'a rien déposé pour ce critère.
+    """
+    if not pieces:
+        return {}, 0
+
+    retenues: dict[str, list[dict]] = {}
+    ecartees = 0
+    for item_id, liste in pieces.items():
+        saines = [p for p in liste if p.get("statut_analyse") == "sain"]
+        ecartees += len(liste) - len(saines)
+        if saines:
+            retenues[item_id] = saines
+    return retenues, ecartees
+
+
 def generate_nis2_auditor_pdf(
     *,
     categories: list[dict[str, Any]],
@@ -135,10 +163,12 @@ def generate_nis2_auditor_pdf(
     user_email: str,
     updated_at: datetime | None,
     company_name: str = "",
+    pieces: dict[str, list[dict]] | None = None,
 ) -> bytes:
     date_str = (updated_at or datetime.now()).strftime("%d/%m/%Y à %Hh%M")
     today_str = datetime.now().strftime("%d/%m/%Y")
     domain_scores = _domain_scores(categories, items)
+    retenues, ecartees = _pieces_retenues(pieces)
 
     total = sum(1 for _ in (item for cat in categories for item in cat["items"]))
     compliant = sum(
@@ -266,17 +296,24 @@ def generate_nis2_auditor_pdf(
 
     for cat in categories:
         story.append(Paragraph(cat.get("label", cat.get("name", "")), styles["subsection"]))
-        rows = [["Contrôle", "Statut"]]
+        rows = [["Contrôle", "Pièces", "Statut"]]
         for item in cat["items"]:
             st = items.get(item["id"], "non_compliant")
-            rows.append([item["label"], STATUS_LABEL.get(st, st)])
+            n = len(retenues.get(item["id"], []))
+            rows.append([item["label"], str(n) if n else "—", STATUS_LABEL.get(st, st)])
 
-        det_tbl = Table(rows, colWidths=[doc.width * 0.75, doc.width * 0.25])
+        det_tbl = Table(rows, colWidths=[doc.width * 0.62, doc.width * 0.13, doc.width * 0.25])
         cell_colors = []
         for i, item in enumerate(cat["items"], start=1):
             st = items.get(item["id"], "non_compliant")
             col = STATUS_COLOR.get(st, GRAY)
-            cell_colors.append(("TEXTCOLOR", (1, i), (1, i), col))
+            # Colonne 2 depuis l'ajout de « Pièces » en colonne 1 : la couleur
+            # doit suivre le statut, pas le compte de documents.
+            cell_colors.append(("TEXTCOLOR", (2, i), (2, i), col))
+            # Un critère appuyé par une pièce se repère d'un coup d'œil ; sans
+            # pièce, le tiret reste discret plutôt que de crier un manque.
+            a_des_pieces = bool(retenues.get(item["id"]))
+            cell_colors.append(("TEXTCOLOR", (1, i), (1, i), CYAN if a_des_pieces else GRAY))
 
         det_tbl.setStyle(
             TableStyle(
@@ -304,9 +341,93 @@ def generate_nis2_auditor_pdf(
         story.append(det_tbl)
         story.append(Spacer(1, 4 * mm))
 
-    # ── 4. Plan d'action ──────────────────────────────────────────────────
+    # ── 4. Pièces justificatives ──────────────────────────────────────────
+    #
+    # LA SECTION QUI FAIT LA DIFFÉRENCE ENTRE UN QUESTIONNAIRE ET UN DOSSIER.
+    # Sans elle, ce document reste une déclaration sur l'honneur : l'auditeur
+    # lit des réponses sans savoir ce qui les appuie. Elle rattache chaque pièce
+    # au critère qu'elle documente, et n'invente rien — elle liste ce que
+    # l'utilisateur a déposé, pas ce qu'il aurait dû déposer.
     story.append(PageBreak())
-    story.append(Paragraph("4. Plan d'action — mesures prioritaires", styles["section"]))
+    story.append(Paragraph("4. Pièces justificatives fournies", styles["section"]))
+    story.append(section_rule(doc.width, "nis2"))
+    story.append(Spacer(1, 3 * mm))
+
+    if retenues:
+        libelles = {
+            item["id"]: (cat.get("label", ""), item["label"])
+            for cat in categories
+            for item in cat["items"]
+        }
+        piece_rows = [["Domaine", "Contrôle appuyé", "Document"]]
+        for item_id, liste in retenues.items():
+            # Un critère absent du catalogue ne devrait pas exister — la couche
+            # service le refuse au rattachement — mais l'affichage ne doit pas
+            # tomber pour autant : on rend l'identifiant brut plutôt que rien.
+            domaine, controle = libelles.get(item_id, ("—", item_id))
+            for piece in liste:
+                piece_rows.append([domaine, controle, piece.get("nom", "—")])
+
+        pieces_tbl = Table(
+            piece_rows, colWidths=[doc.width * 0.22, doc.width * 0.45, doc.width * 0.33]
+        )
+        pieces_tbl.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), ENTETE_TABLEAU),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), CYAN),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("BACKGROUND", (0, 1), (-1, -1), CARD_BG),
+                    ("TEXTCOLOR", (0, 1), (-1, -1), TEXTE),
+                    ("FONTSIZE", (0, 0), (-1, -1), 7.5),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                    ("GRID", (0, 0), (-1, -1), 0.3, BORDER),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [LIGNE_A, LIGNE_B]),
+                ]
+            )
+        )
+        story.append(pieces_tbl)
+        story.append(Spacer(1, 3 * mm))
+        story.append(
+            Paragraph(
+                "Ces documents ont été déposés par l'entité et ont passé le contrôle "
+                "antivirus de la plateforme. Leur contenu n'a pas été analysé : "
+                "l'appréciation de leur valeur probante revient à l'auditeur.",
+                styles["small"],
+            )
+        )
+    else:
+        story.append(
+            Paragraph(
+                "Aucune pièce justificative n'a été rattachée aux contrôles. "
+                "Les réponses ci-dessus constituent une déclaration de l'entité, "
+                "non étayée par des documents.",
+                styles["small"],
+            )
+        )
+
+    # ANNONCÉ, JAMAIS TU. Passer les pièces écartées sous silence laisserait
+    # croire que rien n'a été déposé pour ces contrôles.
+    if ecartees:
+        pluriel = ecartees > 1
+        story.append(Spacer(1, 2 * mm))
+        story.append(
+            Paragraph(
+                f"{ecartees} document{'s' if pluriel else ''} déposé"
+                f"{'s' if pluriel else ''} ne figure"
+                f"{'nt' if pluriel else ''} pas dans cette liste : "
+                f"{'leur' if pluriel else 'sa'} vérification antivirus "
+                f"n'est pas concluante à ce jour.",
+                styles["small"],
+            )
+        )
+    story.append(Spacer(1, 6 * mm))
+
+    # ── 5. Plan d'action ──────────────────────────────────────────────────
+    story.append(PageBreak())
+    story.append(Paragraph("5. Plan d'action — mesures prioritaires", styles["section"]))
     story.append(section_rule(doc.width, "nis2"))
     story.append(Spacer(1, 3 * mm))
 
@@ -376,7 +497,7 @@ def generate_nis2_auditor_pdf(
     story.append(Spacer(1, 8 * mm))
 
     # ── 5. Déclaration de l'auditeur ─────────────────────────────────────
-    story.append(Paragraph("5. Déclaration et attestation", styles["section"]))
+    story.append(Paragraph("6. Déclaration et attestation", styles["section"]))
     story.append(section_rule(doc.width, "nis2"))
     story.append(Spacer(1, 3 * mm))
 
