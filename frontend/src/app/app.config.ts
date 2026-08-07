@@ -1,4 +1,4 @@
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { ApplicationConfig, ErrorHandler, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideHttpClient, withInterceptors, withFetch } from '@angular/common/http';
@@ -7,6 +7,7 @@ import { provideHotToastConfig } from '@ngneat/hot-toast';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { ChunkReloadHandler } from './core/chunk-reload.handler';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -19,5 +20,9 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([authInterceptor]), withFetch()),
     provideClientHydration(),
     provideHotToastConfig({ position: 'bottom-center', duration: 3000 }),
+    // Un onglet ouvert pendant un deploiement demande des morceaux que
+    // `s3 sync --delete` a supprimes : la navigation echoue en silence et le
+    // clic parait mort. Vu en production le 2026-08-07.
+    { provide: ErrorHandler, useClass: ChunkReloadHandler },
   ],
 };
