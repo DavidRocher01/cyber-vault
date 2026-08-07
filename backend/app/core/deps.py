@@ -163,3 +163,35 @@ async def require_conformity_export(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="L'export des rapports de conformité nécessite un abonnement payant.",
         )
+
+
+async def require_conformity_pieces(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Autorise le dépôt de pièces justificatives — plans payants uniquement.
+
+    MÊME DRAPEAU QUE L'EXPORT, DÉLIBÉRÉMENT. Rattacher des preuves et exporter le
+    rapport servent le même usage : constituer un dossier opposable. Les séparer
+    en deux options vendrait un dossier qu'on ne peut pas produire, ou l'inverse.
+
+    LE FAIL-OPEN N'A PAS LA MÊME PORTÉE ICI QUE SUR L'EXPORT. Un plan inconnu y
+    laissait passer un PDF ; ici il laisserait passer une écriture sur S3, donc
+    de la facture. Deux choses le bornent : en production le plan Gratuit est
+    toujours semé (`allow_conformity_export=False`), donc un compte sans
+    abonnement retombe dessus et reçoit un 403 ; et le quota de dépôt s'applique
+    de toute façon, plan connu ou non.
+
+    CE QUI N'EST PAS GARDÉ, ET C'EST VOULU : retirer une pièce et la télécharger.
+    Un abonné qui repasse au Gratuit doit pouvoir récupérer et effacer ce qu'il a
+    déposé. Mettre ses propres documents derrière un péage les retiendrait en
+    otage — ce n'est ni défendable ni compatible avec ce qu'on vend.
+    """
+    from app.services.subscription_service import get_active_plan
+
+    plan = await get_active_plan(db, current_user.id)
+    if plan is not None and not plan.allow_conformity_export:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Le dépôt de pièces justificatives nécessite un abonnement payant.",
+        )

@@ -16,6 +16,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { signal, computed } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { Nis2Component, Nis2Category, Nis2Status } from './nis2.component';
+import { PieceJustificative } from '../services/cyberscan.service';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -43,6 +44,10 @@ function make(): Nis2Component {
   // Données
   (c as any).categories = signal<Nis2Category[]>([]);
   (c as any).items = signal<Record<string, Nis2Status>>({});
+  // Pièces justificatives déposées par l'utilisateur — distinctes de `preuves`
+  // ci-dessus, qui sont les mesures de la plateforme.
+  (c as any).pieces = signal<Record<string, PieceJustificative[]>>({});
+  (c as any).depotEnCours = signal<string | null>(null);
 
   // Constantes
   (c as any).CYCLE = ['non_compliant', 'partial', 'compliant', 'na'];
@@ -1036,5 +1041,129 @@ describe('Template — blocs de remédiation et de preuve', () => {
   it('la preuve est présentée comme une mesure, pas comme une réponse', () => {
     // Le libellé ne doit pas suggérer que l'item est rempli.
     expect(tpl).toContain('Mesuré sur votre plateforme');
+  });
+});
+
+// ── Pièces justificatives (étape 5e) ─────────────────────────────────────────
+
+describe('pièces justificatives', () => {
+  const sain: PieceJustificative = {
+    id: 1,
+    nom: 'politique.pdf',
+    taille_octets: 2048,
+    statut_analyse: 'sain',
+    rattache_le: '2026-08-07T10:00:00Z',
+  };
+
+  it('regroupe les pièces par critère', () => {
+    const c = make();
+    (c as any).pieces.set({ rssi: [sain] });
+    expect(c.piecesDe('rssi')).toEqual([sain]);
+    expect(c.piecesDe('policy')).toEqual([]);
+  });
+
+  it("n'ouvre QUE ce que l'antivirus a déclaré sain", () => {
+    // Un statut inconnu ne vaut jamais « sain » — même règle que côté serveur.
+    const c = make();
+    expect(c.pieceOuvrable(sain)).toBe(true);
+    for (const statut of ['en_analyse', 'rejete', 'indetermine', 'PAS_VU']) {
+      expect(c.pieceOuvrable({ ...sain, statut_analyse: statut })).toBe(false);
+    }
+  });
+
+  it('le dépôt ajoute la pièce sous son critère', () => {
+    const c = make();
+    (c as any).complianceApi = { deposerPiece: vi.fn().mockReturnValue(of(sain)) };
+    (c as any).snack = { open: vi.fn() };
+
+    const input = { files: [new File(['x'], 'politique.pdf')], value: 'x' };
+    c.deposerPiece('rssi', { target: input } as unknown as Event);
+
+    expect(c.piecesDe('rssi')).toEqual([sain]);
+    expect((c as any).depotEnCours()).toBe(null);
+  });
+
+  it('le champ fichier est vidé, sinon redéposer le même fichier ne déclenche rien', () => {
+    const c = make();
+    (c as any).complianceApi = { deposerPiece: vi.fn().mockReturnValue(of(sain)) };
+    (c as any).snack = { open: vi.fn() };
+
+    const input = { files: [new File(['x'], 'politique.pdf')], value: 'politique.pdf' };
+    c.deposerPiece('rssi', { target: input } as unknown as Event);
+
+    expect(input.value).toBe('');
+  });
+
+  it("affiche le message du serveur, seul indice utile à l'utilisateur", () => {
+    // Quota atteint, contenu incohérent, abonnement requis : un texte générique
+    // priverait l'utilisateur de la seule information exploitable.
+    const c = make();
+    const snack = { open: vi.fn() };
+    (c as any).snack = snack;
+    (c as any).complianceApi = {
+      deposerPiece: vi
+        .fn()
+        .mockReturnValue(throwError(() => ({ error: { detail: 'Quota de dépôt atteint' } }))),
+    };
+
+    const input = { files: [new File(['x'], 'p.pdf')], value: '' };
+    c.deposerPiece('rssi', { target: input } as unknown as Event);
+
+    expect(snack.open).toHaveBeenCalledWith('Quota de dépôt atteint', 'Fermer', expect.anything());
+    expect((c as any).depotEnCours()).toBe(null);
+  });
+
+  it('le retrait enlève la pièce de son critère', () => {
+    const c = make();
+    (c as any).pieces.set({ rssi: [sain] });
+    (c as any).complianceApi = { retirerPiece: vi.fn().mockReturnValue(of(void 0)) };
+    (c as any).snack = { open: vi.fn() };
+
+    c.retirerPiece('rssi', sain);
+
+    expect(c.piecesDe('rssi')).toEqual([]);
+  });
+
+  it('un dépôt sans fichier sélectionné ne déclenche aucun appel', () => {
+    const c = make();
+    const api = { deposerPiece: vi.fn() };
+    (c as any).complianceApi = api;
+
+    c.deposerPiece('rssi', { target: { files: [] } } as unknown as Event);
+
+    expect(api.deposerPiece).not.toHaveBeenCalled();
+  });
+});
+
+describe('gabarit — pièces justificatives', () => {
+  // Le gabarit est relu depuis le disque : `Component.toString()` ne rend
+  // que le corps de classe, jamais le template.
+  const tpl = readFileSync(resolve(__dirname, './nis2.component.html'), 'utf-8');
+  it("le dépôt n'est proposé qu'aux plans payants", () => {
+    // Décision produit : déposer coûte du stockage. Le serveur garde la route,
+    // l'écran ne doit pas proposer un bouton qui répondra 403.
+    expect(tpl).toContain('@if (canExport())');
+    expect(tpl).toContain('Joindre une pièce');
+  });
+
+  it("retirer une pièce reste possible sans condition d'abonnement", () => {
+    // Un compte revenu au Gratuit doit pouvoir faire le ménage dans ses propres
+    // documents. Le bouton de retrait doit donc vivre HORS du bloc gardé.
+    //
+    // Le gabarit contient DEUX `@if (canExport())` : celui des boutons d'export
+    // en haut de page, et celui du dépôt. C'est le second qui nous intéresse —
+    // on l'ancre sur son libellé plutôt que sur la condition, qui n'est pas
+    // discriminante.
+    const iDepot = tpl.indexOf('Joindre une pièce');
+    const gardeDuDepot = tpl.lastIndexOf('@if (canExport())', iDepot);
+    const iRetrait = tpl.indexOf('retirerPiece(');
+
+    expect(iDepot).toBeGreaterThan(-1);
+    expect(iRetrait).toBeGreaterThan(-1);
+    expect(iRetrait).toBeLessThan(gardeDuDepot);
+  });
+
+  it("une pièce non vérifiée n'est pas présentée comme cliquable", () => {
+    expect(tpl).toContain('@if (pieceOuvrable(piece))');
   });
 });

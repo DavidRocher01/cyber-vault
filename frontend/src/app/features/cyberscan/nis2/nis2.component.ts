@@ -6,6 +6,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { ComplianceApiService } from '../services/compliance-api.service';
+import { PieceJustificative } from '../services/cyberscan.service';
 import { BillingService } from '../services/billing.service';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
 import {
@@ -95,6 +96,12 @@ export class Nis2Component implements OnInit {
 
   categories = signal<Nis2Category[]>([]);
   preuves = signal<Record<string, Nis2Preuve>>({});
+  // Documents déposés par l'utilisateur, par critère. À ne pas confondre avec
+  // `preuves` juste au-dessus, qui sont les mesures de la plateforme.
+  pieces = signal<Record<string, PieceJustificative[]>>({});
+  // Critère dont le dépôt est en cours — pour n'afficher le spinner que sur la
+  // ligne concernée, et non sur les 34.
+  depotEnCours = signal<string | null>(null);
   items = signal<Record<string, Nis2Status>>({});
   score = signal(0);
   updatedAt = signal<string | null>(null);
@@ -119,6 +126,7 @@ export class Nis2Component implements OnInit {
         this.categories.set((data.categories ?? []) as Nis2Category[]);
         this.items.set((data.items ?? {}) as Record<string, Nis2Status>);
         this.preuves.set((data.preuves ?? {}) as Record<string, Nis2Preuve>);
+        this.pieces.set(data.pieces ?? {});
         this.score.set(data.score ?? 0);
         this.updatedAt.set(data.updated_at ?? null);
         this.loading.set(false);
@@ -137,6 +145,95 @@ export class Nis2Component implements OnInit {
   /** Mesure détenue par la plateforme pour cet item, s'il y en a une. */
   preuve(itemId: string): Nis2Preuve | null {
     return this.preuves()[itemId] ?? null;
+  }
+
+  // ── Pièces justificatives ──────────────────────────────────────────────────
+
+  /** Documents que l'utilisateur a déposés pour ce critère. */
+  piecesDe(itemId: string): PieceJustificative[] {
+    return this.pieces()[itemId] ?? [];
+  }
+
+  /** Vrai seulement si l'analyse antivirus a conclu que le fichier est sain.
+   *
+   * Toute autre valeur — en analyse, rejeté, indéterminé — n'ouvre pas le
+   * document. Une valeur inconnue ne vaut jamais « sain » : c'est la même règle
+   * que côté serveur, et l'écran ne doit pas proposer un lien qui répondra 409.
+   */
+  pieceOuvrable(piece: PieceJustificative): boolean {
+    return piece.statut_analyse === 'sain';
+  }
+
+  etatPiece(piece: PieceJustificative): string {
+    switch (piece.statut_analyse) {
+      case 'sain':
+        return 'Vérifié';
+      case 'en_analyse':
+        return 'Analyse antivirus en cours';
+      case 'rejete':
+        return 'Rejeté par l’antivirus';
+      default:
+        return 'Vérification non concluante';
+    }
+  }
+
+  tailleLisible(octets: number): string {
+    if (octets < 1024) return `${octets} o`;
+    if (octets < 1024 * 1024) return `${Math.round(octets / 1024)} Ko`;
+    return `${(octets / (1024 * 1024)).toFixed(1)} Mo`;
+  }
+
+  deposerPiece(itemId: string, evt: Event) {
+    const input = evt.target as HTMLInputElement;
+    const fichier = input.files?.[0];
+    if (!fichier) return;
+    // Le champ est vidé tout de suite : sans cela, redéposer le même fichier
+    // après une erreur ne déclencherait aucun évènement `change`.
+    input.value = '';
+
+    this.depotEnCours.set(itemId);
+    this.complianceApi.deposerPiece(itemId, fichier).subscribe({
+      next: piece => {
+        this.pieces.update(m => ({ ...m, [itemId]: [...(m[itemId] ?? []), piece] }));
+        this.depotEnCours.set(null);
+        this.snack.open('Pièce ajoutée', 'Fermer', { duration: 3000 });
+      },
+      error: err => {
+        this.depotEnCours.set(null);
+        // Le message du serveur est celui qui informe : quota atteint, contenu
+        // qui ne correspond pas à l'extension, abonnement requis. Le remplacer
+        // par un texte générique priverait l'utilisateur du seul indice utile.
+        this.snack.open(err?.error?.detail ?? 'Le dépôt a échoué. Réessayez.', 'Fermer', {
+          duration: 6000,
+        });
+      },
+    });
+  }
+
+  retirerPiece(itemId: string, piece: PieceJustificative) {
+    this.complianceApi.retirerPiece(piece.id).subscribe({
+      next: () => {
+        this.pieces.update(m => ({
+          ...m,
+          [itemId]: (m[itemId] ?? []).filter(p => p.id !== piece.id),
+        }));
+        this.snack.open('Pièce retirée', 'Fermer', { duration: 3000 });
+      },
+      error: err =>
+        this.snack.open(err?.error?.detail ?? 'Le retrait a échoué.', 'Fermer', {
+          duration: 5000,
+        }),
+    });
+  }
+
+  ouvrirPiece(piece: PieceJustificative) {
+    this.complianceApi.lienPiece(piece.id).subscribe({
+      next: r => window.open(r.url, '_blank'),
+      error: err =>
+        this.snack.open(err?.error?.detail ?? 'Ouverture impossible.', 'Fermer', {
+          duration: 5000,
+        }),
+    });
   }
 
   /** Vrai si l'item a été EXPLICITEMENT renseigné comme un écart.

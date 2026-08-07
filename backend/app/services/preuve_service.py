@@ -116,6 +116,25 @@ async def detacher(db: AsyncSession, *, assessment_id: int, preuve_id: int) -> b
     return True
 
 
+async def cle_de_la_piece(db: AsyncSession, *, assessment_id: int, preuve_id: int) -> str | None:
+    """Cle de stockage d'une piece, si elle appartient bien a cette evaluation.
+
+    `assessment_id` fait partie du filtre et non d'une verification faite
+    ensuite : sans lui, connaitre un identifiant de piece suffirait a obtenir un
+    lien de telechargement sur le document d'un autre.
+    """
+    return (
+        await db.execute(
+            select(FichierDepose.cle_stockage)
+            .join(PreuveCritere, PreuveCritere.fichier_id == FichierDepose.id)
+            .where(
+                PreuveCritere.id == preuve_id,
+                PreuveCritere.nis2_assessment_id == assessment_id,
+            )
+        )
+    ).scalar_one_or_none()
+
+
 async def preuves_par_critere(db: AsyncSession, assessment_id: int) -> dict[str, list[dict]]:
     """Les pieces d'une evaluation, regroupees par critere.
 

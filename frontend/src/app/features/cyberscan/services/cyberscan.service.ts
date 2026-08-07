@@ -220,4 +220,23 @@ export interface ComplianceAssessment {
    *  aujourd'hui). Ne remplissent jamais le questionnaire : l'utilisateur
    *  déclare, la plateforme mesure. */
   preuves?: Record<string, unknown>;
+  /** Documents que l'utilisateur a lui-même déposés, par critère.
+   *
+   *  DISTINCT DE `preuves` CI-DESSUS, ET LE NOM LE DIT. `preuves` = ce que la
+   *  plateforme mesure toute seule. `pieces` = ce que l'utilisateur fournit.
+   *  Les confondre laisserait croire que la plateforme a produit ce qu'il a
+   *  déposé. */
+  pieces?: Record<string, PieceJustificative[]>;
+}
+
+/** Une pièce justificative rattachée à un critère de conformité. */
+export interface PieceJustificative {
+  id: number;
+  nom: string;
+  taille_octets: number;
+  /** `sain`, `en_analyse`, `rejete` ou `indetermine`. Seul `sain` est
+   *  téléchargeable — l'écran doit le montrer plutôt que de proposer un lien
+   *  qui répondra 409. */
+  statut_analyse: string;
+  rattache_le: string;
 }

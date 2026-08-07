@@ -280,6 +280,43 @@ apparaître : l'abonné sans mission, dont les documents vivent avec son compte,
 la pièce rattachée qui échappe aux 90 jours. Cette exemption est annoncée, pas
 tacite — avec la mention explicite qu'elle ne retire aucun droit.
 
+### Ce que l'étape 5e a tranché
+
+**Trois routes, et deux d'entre elles ne sont volontairement pas gardées.**
+Déposer coûte du stockage : plans payants, décision du 2026-08-07. **Retirer et
+télécharger ne le sont pas.** Un abonné qui repasse au Gratuit doit pouvoir
+récupérer et effacer ses propres documents ; les mettre derrière un péage les
+retiendrait en otage, ce qui n'est pas défendable sur un produit qui vend de la
+conformité. Un test parcourt exactement ce scénario : dépôt en payant,
+rétrogradation, puis dépôt refusé mais téléchargement et retrait toujours
+possibles.
+
+**`preuves` et `pieces` sont deux champs distincts**, et le nom les sépare
+exprès. `preuves` porte les mesures que la plateforme détient déjà (la formation
+suivie) ; `pieces` porte les documents que l'utilisateur a lui-même déposés. Les
+réunir sous un seul nom laisserait croire que la plateforme a produit ce que
+l'utilisateur a fourni.
+
+**Le dépôt et le rattachement se font en un seul appel**, comme côté portail. En
+deux temps, le fichier existerait un instant sans être référencé par rien — et
+la purge des orphelins finirait par l'effacer.
+
+**L'évaluation est créée si elle n'existe pas.** Exiger d'avoir enregistré son
+auto-évaluation avant de joindre une pièce imposerait un ordre que rien ne
+justifie. Une évaluation vide rend exactement ce que rendait son absence : items
+vides, score à zéro.
+
+**La clé de stockage ne dit plus « None ».** `upload_file` exigeait un
+`client_id` entier ; un dépôt hors suivi RSSI aurait écrit le littéral `None`
+dans le chemin, sous un préfixe `rssi-deliverables` qui mentait sur la nature du
+fichier. Le segment est désormais explicite.
+
+**Le gate est en fail-open, et ça n'a pas la même portée qu'ailleurs.** Sur
+l'export, un plan inconnu laissait passer un PDF ; ici il laisserait passer une
+écriture sur S3, donc de la facture. Deux choses le bornent : en production le
+plan Gratuit est toujours semé, donc un compte sans abonnement retombe dessus et
+reçoit un 403 ; et le quota s'applique de toute façon.
+
 ---
 
 ## Séquencement proposé
@@ -298,7 +335,7 @@ tacite — avec la mention explicite qu'elle ne retire aucun droit.
 | ~~5b~~ | ~~`client_id` + unicité `NULLS NOT DISTINCT`~~ | **fait le 2026-08-07** |
 | ~~5c~~ | ~~Table de preuves, purge générique, quota, rétention~~ | **fait le 2026-08-07** |
 | 5d | Interface RSSI — rattacher une pièce au dossier client | après 5c |
-| 5e | Interface abonné direct — dépôt sur l'auto-évaluation | après 5c |
+| ~~5e~~ | ~~Abonné direct — dépôt sur l'auto-évaluation~~ | **fait le 2026-08-07** |
 | 5f | Export PDF auditeur listant les preuves | **le livrable réel** |
 
 **L'étape 2 n'est pas négociable avant l'étape 3.** Ouvrir le dépôt aux clients

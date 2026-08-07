@@ -314,6 +314,91 @@
                         Combler cet écart : {{ item.remediation.produit }}
                       </a>
                     }
+
+                    <!-- Pieces justificatives.
+                         Une conformite sans preuve est une declaration ; avec
+                         preuves, c'est un dossier opposable. -->
+                    @if (piecesDe(item.id).length) {
+                      <ul class="mt-2 flex flex-col gap-1">
+                        @for (piece of piecesDe(item.id); track piece.id) {
+                          <li
+                            class="flex items-center gap-2 rounded-lg border border-slate-700/60 bg-slate-800/40 px-2.5 py-1.5"
+                          >
+                            <mat-icon
+                              class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem] flex-shrink-0"
+                              [class.text-emerald-400]="pieceOuvrable(piece)"
+                              [class.text-amber-400]="!pieceOuvrable(piece)"
+                              >{{
+                                pieceOuvrable(piece) ? 'description' : 'hourglass_empty'
+                              }}</mat-icon
+                            >
+                            <!-- Le nom n'est cliquable que si le fichier est
+                                 reputé sain : proposer un lien qui repondra 409
+                                 serait une promesse que le serveur ne tient pas. -->
+                            @if (pieceOuvrable(piece)) {
+                              <button
+                                type="button"
+                                class="text-xs text-cyan-300 hover:text-cyan-200 underline-offset-2 hover:underline truncate"
+                                (click)="ouvrirPiece(piece)"
+                              >
+                                {{ piece.nom }}
+                              </button>
+                            } @else {
+                              <span
+                                class="text-xs text-slate-300 truncate"
+                                [matTooltip]="etatPiece(piece)"
+                                >{{ piece.nom }}</span
+                              >
+                            }
+                            <span class="text-[0.7rem] text-slate-500 flex-shrink-0">{{
+                              tailleLisible(piece.taille_octets)
+                            }}</span>
+                            @if (!pieceOuvrable(piece)) {
+                              <span class="text-[0.7rem] text-amber-400 flex-shrink-0">{{
+                                etatPiece(piece)
+                              }}</span>
+                            }
+                            <!-- Retirer n'est jamais garde par l'abonnement :
+                                 un compte revenu au Gratuit doit pouvoir faire
+                                 le menage dans ses propres documents. -->
+                            <button
+                              type="button"
+                              class="ml-auto flex-shrink-0 text-slate-500 hover:text-red-400 transition-colors"
+                              [attr.aria-label]="'Retirer ' + piece.nom"
+                              matTooltip="Retirer cette pièce"
+                              (click)="retirerPiece(item.id, piece)"
+                            >
+                              <mat-icon class="!text-[0.9rem] !w-[0.9rem] !h-[0.9rem]"
+                                >close</mat-icon
+                              >
+                            </button>
+                          </li>
+                        }
+                      </ul>
+                    }
+
+                    @if (canExport()) {
+                      <label
+                        class="mt-2 inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                      >
+                        @if (depotEnCours() === item.id) {
+                          <mat-spinner diameter="14"></mat-spinner>
+                          <span>Dépôt en cours…</span>
+                        } @else {
+                          <mat-icon class="!text-[0.85rem] !w-[0.85rem] !h-[0.85rem]"
+                            >attach_file</mat-icon
+                          >
+                          <span>Joindre une pièce</span>
+                        }
+                        <input
+                          type="file"
+                          class="hidden"
+                          accept=".pdf,.doc,.docx,.xls,.xlsx,.odt,.ods,.png,.jpg,.jpeg"
+                          [disabled]="depotEnCours() !== null"
+                          (change)="deposerPiece(item.id, $event)"
+                        />
+                      </label>
+                    }
                   </div>
 
                   <!-- Quick set buttons -->

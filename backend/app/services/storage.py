@@ -140,13 +140,28 @@ def validate_upload(filename: str, content_type: str, content: bytes) -> None:
         )
 
 
-def _s3_key(user_id: int, client_id: int, original_name: str) -> str:
+# Segment de chemin des depots qui ne relevent d'aucun suivi RSSI : les pieces
+# justificatives d'un abonne qui utilise la conformite seul. Sans lui, un
+# `client_id` a None se serait ecrit « None » dans la cle, sous un prefixe
+# `rssi-deliverables` qui aurait de surcroit menti sur la nature du fichier.
+SEGMENT_HORS_SUIVI = "conformite"
+
+
+def _segment_client(client_id: int | None) -> str:
+    return SEGMENT_HORS_SUIVI if client_id is None else str(client_id)
+
+
+def _s3_key(user_id: int, client_id: int | None, original_name: str) -> str:
     safe = Path(original_name).name.replace(" ", "_")
-    return f"rssi-deliverables/{user_id}/{client_id}/{uuid.uuid4().hex}_{safe}"
+    return f"rssi-deliverables/{user_id}/{_segment_client(client_id)}/{uuid.uuid4().hex}_{safe}"
 
 
-def upload_file(content: bytes, original_name: str, user_id: int, client_id: int) -> str:
-    """Upload a file and return its storage key."""
+def upload_file(content: bytes, original_name: str, user_id: int, client_id: int | None) -> str:
+    """Upload a file and return its storage key.
+
+    `client_id` peut etre nul depuis l'etape 5e : une piece justificative
+    deposee hors de tout suivi RSSI n'appartient a aucun client.
+    """
     if settings.S3_BUCKET_NAME:
         return _upload_s3(content, original_name, user_id, client_id)
     return _upload_local(content, original_name, user_id, client_id)
@@ -216,7 +231,7 @@ def get_download_url(key: str, expires: int = 3600) -> str:
 # ── S3 backend ─────────────────────────────────────────────────────────────────
 
 
-def _upload_s3(content: bytes, original_name: str, user_id: int, client_id: int) -> str:
+def _upload_s3(content: bytes, original_name: str, user_id: int, client_id: int | None) -> str:
     import boto3  # lazy import — only needed when S3 is configured
 
     key = _s3_key(user_id, client_id, original_name)
@@ -244,13 +259,13 @@ def _presign_s3(key: str, expires: int) -> str:
 # ── Local filesystem backend ───────────────────────────────────────────────────
 
 
-def _upload_local(content: bytes, original_name: str, user_id: int, client_id: int) -> str:
-    dest_dir = _LOCAL_UPLOAD_DIR / str(user_id) / str(client_id)
+def _upload_local(content: bytes, original_name: str, user_id: int, client_id: int | None) -> str:
+    dest_dir = _LOCAL_UPLOAD_DIR / str(user_id) / _segment_client(client_id)
     dest_dir.mkdir(parents=True, exist_ok=True)
     safe = Path(original_name).name.replace(" ", "_")
     filename = f"{uuid.uuid4().hex}_{safe}"
     path = dest_dir / filename
     path.write_bytes(content)
-    return str(Path("uploads") / "rssi" / str(user_id) / str(client_id) / filename).replace(
-        "\\", "/"
-    )
+    return str(
+        Path("uploads") / "rssi" / str(user_id) / _segment_client(client_id) / filename
+    ).replace("\\", "/")
