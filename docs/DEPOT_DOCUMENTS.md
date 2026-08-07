@@ -237,6 +237,51 @@ ce chantier.
 
 ---
 
+### Ce que l'étape 5c a tranché
+
+**« Référencé » ne veut plus dire « désigné par un `RssiDeliverable` ».** Un
+fichier rattaché à un critère est référencé, quel que soit le parcours. Sans ce
+changement, la pièce d'un abonné direct était orpheline dès le dépôt et la purge
+nocturne l'effaçait au bout de sept jours.
+
+**Les deux purges utilisent un `exists()` corrélé, pas un `not_in`.** Ce n'est
+pas une préférence de style : avec un `file_url` à NULL, un `not_in` rend NULL —
+ni vrai ni faux — et le livrable sans fichier aurait été épargné par accident.
+Un test fixe ce cas.
+
+**Le périmètre du quota est explicite à l'appel, jamais deviné.** La signature
+n'acceptait qu'un `client_id` : un abonné hors RSSI ne pouvait pas être compté du
+tout, donc disposait d'un stockage illimité. `verifier_quota` exige désormais
+exactement un périmètre — `client_id` **ou** `user_id` — et lève si on lui en
+donne deux ou aucun. Le stockage des clients ne pèse pas sur le quota personnel
+du consultant, sinon leur activité bloquerait son propre dépôt.
+
+**La suppression de compte efface les objets S3 explicitement.** La cascade de la
+base ne sait rien de S3, et les deux clés étrangères sont en `SET NULL` : la
+ligne survivait avec ses deux clés nulles et l'objet n'était ramassé que sept
+jours plus tard, par effet de bord. L'appel se fait **avant** `db.delete(user)`,
+sans quoi les fiches clients — en CASCADE — auraient déjà disparu et plus rien ne
+relierait leurs fichiers au compte.
+
+**L'exemption a une limite, et c'est le point le plus important.** Elle protège
+les preuves des purges liées au **temps**, pas du droit à l'effacement. Si elle
+valait aussi contre une demande de suppression de compte, rattacher une pièce
+deviendrait un moyen de retenir des données malgré l'exercice d'un droit. Un test
+le vérifie.
+
+**`item_id` n'a pas de clé étrangère** — le catalogue est du code, pas une table.
+C'est la couche service qui le valide contre `ALL_ITEM_IDS`. Sans ce contrôle,
+une pièce rattachée à un identifiant erroné serait acceptée, stockée, comptée au
+quota, n'apparaîtrait nulle part, et échapperait à la purge puisqu'elle sert
+formellement de preuve : un fichier invisible et impérissable.
+
+**La politique de confidentialité couvre maintenant les deux cas** que 5c fait
+apparaître : l'abonné sans mission, dont les documents vivent avec son compte, et
+la pièce rattachée qui échappe aux 90 jours. Cette exemption est annoncée, pas
+tacite — avec la mention explicite qu'elle ne retire aucun droit.
+
+---
+
 ## Séquencement proposé
 
 | Étape | Contenu | Condition |
@@ -251,7 +296,7 @@ ce chantier.
 | ~~4b~~ | ~~Rétention des documents rattachés~~ | **fait le 2026-08-05** |
 | ~~5a~~ | ~~Catalogue NIS2 sorti de la couche de routage~~ | **fait le 2026-08-07** |
 | ~~5b~~ | ~~`client_id` + unicité `NULLS NOT DISTINCT`~~ | **fait le 2026-08-07** |
-| 5c | Table de preuves, purge générique, quota par compte, rétention | cadré le 2026-08-07 |
+| ~~5c~~ | ~~Table de preuves, purge générique, quota, rétention~~ | **fait le 2026-08-07** |
 | 5d | Interface RSSI — rattacher une pièce au dossier client | après 5c |
 | 5e | Interface abonné direct — dépôt sur l'auto-évaluation | après 5c |
 | 5f | Export PDF auditeur listant les preuves | **le livrable réel** |
@@ -312,7 +357,7 @@ que les dossiers clients ne disparaissent, donc en échec dès qu'un consultant 
 détenait plus d'un. Vérifié en semant le cas puis en tentant la contrainte :
 violation d'unicité. Le fichier a été repris à la main.
 
-### Ce que ce cas casse, et qui doit être réglé dans 5c
+### Ce que ce cas cassait — réglé le 2026-08-07 (étape 5c)
 
 **La purge des orphelins effacerait la preuve au bout de 7 jours.** Elle
 considère comme référencé tout fichier présent dans `RssiDeliverable.file_url`.

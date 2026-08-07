@@ -12,7 +12,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 from loguru import logger
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -229,16 +229,31 @@ async def purger_orphelins(
 
     Un échec sur un fichier n'interrompt pas les autres : une clé illisible ne
     doit pas geler la purge de tout le reste.
+
+    DEUX FAÇONS D'ÊTRE RÉFÉRENCÉ, ET LA SECONDE A ÉTÉ AJOUTÉE À L'ÉTAPE 5c.
+    Jusque-là, « référencé » voulait dire « désigné par un `RssiDeliverable` ».
+    C'était une définition de forme RSSI : un abonné qui veut NIS2 seul n'en a
+    aucun, donc sa pièce justificative était orpheline **dès la seconde où il la
+    déposait**, et cette purge l'aurait effacée au bout de sept jours. Un fichier
+    rattaché à un critère de conformité est référencé, quel que soit le parcours.
     """
+    from app.models.preuve_critere import PreuveCritere
     from app.models.rssi_deliverable import RssiDeliverable
     from app.services import storage
 
     limite = now - timedelta(days=delai_jours)
     referencees = select(RssiDeliverable.file_url).where(RssiDeliverable.file_url.is_not(None))
+    # `exists()` corrélé sur l'identifiant, et non un `not_in` sur les clés : on
+    # compare des `id`, jamais des chaînes, et aucun NULL ne traîne dans la
+    # comparaison.
+    sert_de_preuve = (
+        select(PreuveCritere.id).where(PreuveCritere.fichier_id == FichierDepose.id).exists()
+    )
     resultat = await db.execute(
         select(FichierDepose).where(
             FichierDepose.depose_le < limite,
             FichierDepose.cle_stockage.not_in(referencees),
+            ~sert_de_preuve,
         )
     )
     orphelins = list(resultat.scalars().all())
@@ -270,6 +285,66 @@ async def octets_deposes_par_client(db: AsyncSession, client_id: int) -> int:
     return sum(result.scalars().all())
 
 
+async def purger_fichiers_du_compte(db: AsyncSession, user_id: int) -> int:
+    """Efface les fichiers d'un compte qu'on supprime. Renvoie le compte.
+
+    POURQUOI CETTE FONCTION EXISTE. `delete_account` se contentait d'un
+    `db.delete(user)` et laissait la base faire le reste. Or `depose_par_id` et
+    `client_id` sont en SET NULL : la ligne de registre survivait avec ses deux
+    clés à NULL, et **l'objet S3 n'était supprimé par aucun chemin explicite**.
+    Il n'était ramassé que sept jours plus tard par la purge des orphelins, par
+    effet de bord. Sur une demande d'effacement RGPD, ce délai doit être un choix
+    assumé, pas un accident.
+
+    DEUX PÉRIMÈTRES. Ce que le compte a déposé lui-même, et ce qui appartient aux
+    clients qu'il suit — `consultant_user_id` est en CASCADE, donc ces fiches
+    disparaissent avec lui et leurs fichiers n'auraient plus rien pour les
+    désigner. Il faut donc les traiter AVANT de supprimer le compte, tant que le
+    lien existe encore.
+
+    UNE PIÈCE RATTACHÉE À UN CRITÈRE N'EST PAS ÉPARGNÉE ICI, et c'est délibéré.
+    L'exemption de l'étape 5c protège les preuves des purges liées au TEMPS, pas
+    du droit à l'effacement de celui à qui elles appartiennent. Confondre les
+    deux transformerait le rattachement d'une pièce en moyen de retenir des
+    données malgré une demande de suppression.
+
+    L'ORDRE, comme partout ailleurs : objet stocké, PUIS ligne de registre. Un
+    échec sur un fichier n'interrompt pas les autres.
+    """
+    from app.models.rssi_client import RssiClient
+    from app.services import storage
+
+    ses_clients = select(RssiClient.id).where(RssiClient.consultant_user_id == user_id)
+    resultat = await db.execute(
+        select(FichierDepose).where(
+            or_(
+                FichierDepose.depose_par_id == user_id,
+                FichierDepose.client_id.in_(ses_clients),
+            )
+        )
+    )
+    fichiers = list(resultat.scalars().all())
+
+    efface = 0
+    for fichier in fichiers:
+        try:
+            storage.supprimer_fichier(fichier.cle_stockage)
+        except Exception as exc:  # noqa: BLE001 — un fichier ne bloque pas les autres
+            logger.warning(
+                "Suppression de compte : échec sur {}, conservé pour la purge ({})",
+                fichier.cle_stockage,
+                exc,
+            )
+            continue
+        await db.delete(fichier)
+        efface += 1
+
+    if efface:
+        await db.flush()
+        logger.info("Suppression de compte : {} fichiers effacés", efface)
+    return efface
+
+
 class QuotaDepassementError(ValueError):
     """Le client a atteint son plafond de stockage."""
 
@@ -283,18 +358,54 @@ class QuotaDepassementError(ValueError):
         )
 
 
-async def verifier_quota(db: AsyncSession, client_id: int, taille_ajoutee: int) -> None:
-    """Refuse un dépôt qui ferait dépasser le quota du client.
+async def octets_deposes_par_compte(db: AsyncSession, user_id: int) -> int:
+    """Somme des tailles déposées par un compte, hors suivi RSSI.
+
+    `client_id.is_(None)` : on ne compte que ce que l'abonné dépose pour
+    lui-même. Sans ce filtre, un consultant verrait le stockage de ses clients
+    imputé sur son propre plafond, et serait bloqué par leur activité.
+    """
+    result = await db.execute(
+        select(FichierDepose.taille_octets).where(
+            FichierDepose.depose_par_id == user_id,
+            FichierDepose.client_id.is_(None),
+        )
+    )
+    return sum(result.scalars().all())
+
+
+async def verifier_quota(
+    db: AsyncSession,
+    taille_ajoutee: int,
+    *,
+    client_id: int | None = None,
+    user_id: int | None = None,
+) -> None:
+    """Refuse un dépôt qui ferait dépasser le plafond de stockage.
 
     POURQUOI UN QUOTA. `docs/DEPOT_DOCUMENTS.md` pose la contrainte : le dépôt
     doit rester attaché à un objet, jamais devenir un espace de stockage. Sans
     plafond, un abonné dispose d'un disque illimité et la facture S3 suit.
     Ouvrir le dépôt aux clients est le moment où ça cesse d'être théorique.
 
+    DEUX PÉRIMÈTRES DEPUIS L'ÉTAPE 5c. La signature n'acceptait qu'un
+    `client_id`, donc un abonné qui veut NIS2 seul — sans consultant ni RSSI
+    fractionné — ne pouvait pas être compté du tout : il aurait disposé d'un
+    stockage sans limite, exactement le risque que ce quota existe pour écarter.
+    Le périmètre est désormais explicite à l'appel, jamais deviné.
+
     Vérifié AVANT d'écrire sur S3 : refuser après stockage laisserait l'objet
     en place tout en annonçant un refus, et il faudrait le rattraper.
     """
-    utilise = await octets_deposes_par_client(db, client_id)
+    if (client_id is None) == (user_id is None):
+        raise ValueError("Indiquer exactement un périmètre : client_id OU user_id.")
+
+    if client_id is not None:
+        utilise = await octets_deposes_par_client(db, client_id)
+    else:
+        assert user_id is not None  # noqa: S101 — garanti par le contrôle ci-dessus
+        utilise = await octets_deposes_par_compte(db, user_id)
+
     if utilise + taille_ajoutee > settings.QUOTA_DEPOT_CLIENT_OCTETS:
         raise QuotaDepassementError(utilise, settings.QUOTA_DEPOT_CLIENT_OCTETS)
 
@@ -325,14 +436,35 @@ async def purger_documents_clients_clos(
 
     Une mission sans `cloture_le` n'est jamais purgée : aucune date n'est
     inventée.
+
+    UNE PIÈCE RATTACHÉE À UN CRITÈRE ÉCHAPPE À CETTE PURGE (étape 5c). Rattacher
+    un document en change la finalité : il cesse d'être une pièce remise au titre
+    de la mission pour devenir un élément du dossier de conformité, que le
+    consultant doit pouvoir produire. C'est le même raisonnement qui exempte déjà
+    ses propres livrables.
+
+    Ce n'est pas une échappatoire silencieuse : la politique de confidentialité
+    l'annonce, au même titre que le délai de 90 jours lui-même.
     """
     from app.models.enums import OrigineDepot
+    from app.models.preuve_critere import PreuveCritere
     from app.models.rssi_client import RssiClient
     from app.models.rssi_deliverable import RssiDeliverable
     from app.services import storage
 
     jours = settings.RETENTION_DEPOT_CLIENT_JOURS if delai_jours is None else delai_jours
     limite = now - timedelta(days=jours)
+
+    # `exists()` corrélé plutôt qu'un `not_in` : avec un `file_url` à NULL, la
+    # comparaison interne n'est jamais vraie, l'`exists` vaut donc faux et la
+    # ligne reste purgeable. Un `not_in` aurait rendu NULL, et le livrable sans
+    # fichier — aujourd'hui purgé — aurait été épargné par accident.
+    sert_de_preuve = (
+        select(PreuveCritere.id)
+        .join(FichierDepose, FichierDepose.id == PreuveCritere.fichier_id)
+        .where(FichierDepose.cle_stockage == RssiDeliverable.file_url)
+        .exists()
+    )
 
     resultat = await db.execute(
         select(RssiDeliverable)
@@ -341,6 +473,7 @@ async def purger_documents_clients_clos(
             RssiDeliverable.origine == OrigineDepot.CLIENT,
             RssiClient.cloture_le.is_not(None),
             RssiClient.cloture_le < limite,
+            ~sert_de_preuve,
         )
     )
     a_purger = list(resultat.scalars().all())

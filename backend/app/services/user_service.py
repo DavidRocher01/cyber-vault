@@ -362,7 +362,21 @@ async def export_account_data(db: AsyncSession, user: User) -> dict:
 
 
 async def delete_account(db: AsyncSession, user: User) -> None:
-    """Supprime le compte et toutes ses donnees associees (cascade)."""
+    """Supprime le compte et toutes ses donnees associees.
+
+    LES FICHIERS D'ABORD, ET C'EST L'ORDRE QUI COMPTE. La cascade de la base ne
+    sait rien de S3. `depose_par_id` et `client_id` sont en SET NULL : sans cet
+    appel prealable, la ligne de registre survivrait avec ses deux cles a NULL et
+    l'objet stocke ne serait supprime par aucun chemin explicite — seulement
+    ramasse sept jours plus tard par la purge des orphelins, par effet de bord.
+
+    Il faut aussi le faire AVANT `db.delete(user)` : les fiches clients du
+    consultant sont en CASCADE, et une fois parties plus rien ne relie leurs
+    fichiers a ce compte.
+    """
+    from app.services import depot_service
+
+    await depot_service.purger_fichiers_du_compte(db, user.id)
     await db.delete(user)
     await db.commit()
 
