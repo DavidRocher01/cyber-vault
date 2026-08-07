@@ -49,7 +49,9 @@
           <mat-icon class="!text-[1rem] !w-[1rem] !h-[1rem]">restart_alt</mat-icon>
           Réinitialiser
         </button>
-        @if (canExport()) {
+        <!-- EXPORT SIMPLE : pas d'équivalent serveur pour un dossier client.
+             Le proposer en mode client afficherait un bouton qui échouerait. -->
+        @if (canExport() && !modeClient()) {
           <button
             type="button"
             (click)="exportPdf()"
@@ -63,6 +65,12 @@
             }
             Exporter PDF
           </button>
+        }
+        <!-- DOCUMENT AUDITEUR : le serveur ne le garde PAS derrière un plan en
+             mode client — `get_rssi_consultant` suffit. Le cacher ici sur la
+             foi de l'abonnement du consultant masquerait un bouton que le
+             serveur accepte. -->
+        @if (canExport() || modeClient()) {
           <button
             type="button"
             (click)="exportAuditorPdf()"
@@ -377,7 +385,9 @@
                       </ul>
                     }
 
-                    @if (canExport()) {
+                    <!-- En mode client, `get_rssi_consultant` remplace la garde
+                         d'abonnement côté serveur : l'écran suit. -->
+                    @if (canExport() || modeClient()) {
                       <label
                         class="mt-2 inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
                       >

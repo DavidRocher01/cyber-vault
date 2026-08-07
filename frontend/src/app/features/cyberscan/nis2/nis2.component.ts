@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -79,6 +79,7 @@ export class Nis2Component implements OnInit {
   private complianceApi = inject(ComplianceApiService);
   private billing = inject(BillingService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private snack = inject(MatSnackBar);
 
   loading = signal(true);
@@ -93,6 +94,14 @@ export class Nis2Component implements OnInit {
   // Vrai uniquement une fois l'abonnement chargé et l'export non autorisé : évite
   // d'afficher le CTA d'upgrade à un payant pendant le chargement.
   readonly showUpgrade = computed(() => this.subLoaded() && !this.canExport());
+
+  // LE SUJET DE L'EVALUATION, lu dans l'URL.
+  //
+  // `null` → la mienne (`/nis2`). Un identifiant → le dossier que le consultant
+  // monte pour ce client (`/clients/:clientId/nis2`). Le même écran sert les
+  // deux : seul le préfixe des routes API change, côté service.
+  clientId = signal<number | null>(null);
+  readonly modeClient = computed(() => this.clientId() !== null);
 
   categories = signal<Nis2Category[]>([]);
   preuves = signal<Record<string, Nis2Preuve>>({});
@@ -111,6 +120,11 @@ export class Nis2Component implements OnInit {
   readonly STATUS_LIST: Nis2Status[] = ['compliant', 'partial', 'non_compliant', 'na'];
 
   ngOnInit() {
+    // Lu de façon synchrone : le paramètre doit être posé avant le premier
+    // appel, sinon le dossier d'un client serait demandé sur la route « moi ».
+    const brut = this.route.snapshot.paramMap.get('clientId');
+    this.clientId.set(brut ? Number(brut) : null);
+
     this.billing.getMySubscription().subscribe({
       next: sub => {
         this.canExport.set(!!sub?.plan?.allow_conformity_export);
@@ -119,7 +133,7 @@ export class Nis2Component implements OnInit {
       error: () => this.subLoaded.set(true),
     });
 
-    this.complianceApi.getNis2Assessment().subscribe({
+    this.complianceApi.getNis2Assessment(this.clientId()).subscribe({
       next: data => {
         // Narrowing au bord de l'API : le backend renvoie des chaînes/objets
         // generiques dont les valeurs sont garanties valides pour ces types.
@@ -192,7 +206,7 @@ export class Nis2Component implements OnInit {
     input.value = '';
 
     this.depotEnCours.set(itemId);
-    this.complianceApi.deposerPiece(itemId, fichier).subscribe({
+    this.complianceApi.deposerPiece(itemId, fichier, this.clientId()).subscribe({
       next: piece => {
         this.pieces.update(m => ({ ...m, [itemId]: [...(m[itemId] ?? []), piece] }));
         this.depotEnCours.set(null);
@@ -211,7 +225,7 @@ export class Nis2Component implements OnInit {
   }
 
   retirerPiece(itemId: string, piece: PieceJustificative) {
-    this.complianceApi.retirerPiece(piece.id).subscribe({
+    this.complianceApi.retirerPiece(piece.id, this.clientId()).subscribe({
       next: () => {
         this.pieces.update(m => ({
           ...m,
@@ -227,7 +241,7 @@ export class Nis2Component implements OnInit {
   }
 
   ouvrirPiece(piece: PieceJustificative) {
-    this.complianceApi.lienPiece(piece.id).subscribe({
+    this.complianceApi.lienPiece(piece.id, this.clientId()).subscribe({
       next: r => window.open(r.url, '_blank'),
       error: err =>
         this.snack.open(err?.error?.detail ?? 'Ouverture impossible.', 'Fermer', {
@@ -289,7 +303,7 @@ export class Nis2Component implements OnInit {
 
   save() {
     this.saving.set(true);
-    this.complianceApi.saveNis2Assessment(this._fullItems).subscribe({
+    this.complianceApi.saveNis2Assessment(this._fullItems, this.clientId()).subscribe({
       next: data => {
         this.score.set(data.score);
         this.updatedAt.set(data.updated_at);
@@ -323,7 +337,7 @@ export class Nis2Component implements OnInit {
   exportPdf() {
     this.exporting.set(true);
     // Sauvegarde automatique avant export pour garantir la cohérence PDF/app
-    this.complianceApi.saveNis2Assessment(this._fullItems).subscribe({
+    this.complianceApi.saveNis2Assessment(this._fullItems, this.clientId()).subscribe({
       next: data => {
         this.score.set(data.score);
         this.updatedAt.set(data.updated_at);
@@ -360,11 +374,11 @@ export class Nis2Component implements OnInit {
 
   exportAuditorPdf() {
     this.exportingAuditor.set(true);
-    this.complianceApi.saveNis2Assessment(this._fullItems).subscribe({
+    this.complianceApi.saveNis2Assessment(this._fullItems, this.clientId()).subscribe({
       next: data => {
         this.score.set(data.score);
         this.updatedAt.set(data.updated_at);
-        this.complianceApi.downloadNis2AuditorPdfBlob().subscribe({
+        this.complianceApi.downloadNis2AuditorPdfBlob(this.clientId()).subscribe({
           next: blob => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');

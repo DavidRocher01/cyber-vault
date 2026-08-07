@@ -344,6 +344,39 @@ de détail a déplacé la colonne du statut de l'index 1 à l'index 2, alors que
 couleur du statut visait toujours l'index 1. Vu au rendu, pas à la relecture —
 d'où l'intérêt de regarder le PDF produit et pas seulement le texte extrait.
 
+### Ce que l'étape 5d a tranché
+
+**Un seul écran sert les deux sujets.** `/nis2` et
+`/consultant/clients/:clientId/nis2` chargent le **même composant** : il lit
+`clientId` dans l'URL et le service en déduit le préfixe des routes API.
+Dupliquer l'écran aurait fait diverger les deux au premier changement.
+
+Ça n'a été possible que parce que les routes serveur ont été dessinées en
+miroir : `…/criteres/{id}/pieces`, `…/pieces/{id}`, `…/pdf/auditor` ont
+exactement les mêmes suffixes des deux côtés. Un seul préfixe variable suffit.
+
+**Pas de garde d'abonnement côté consultant**, contrairement à l'abonné direct.
+`get_rssi_consultant` vérifie `is_rssi_consultant`, un drapeau posé
+délibérément et bien plus restrictif qu'un plan : bloquer un consultant sur son
+propre abonnement l'empêcherait de rendre le service qu'il vend. Le coût reste
+borné par le quota **du client**, qui s'applique inchangé — l'imputer au
+consultant ferait que ses dix clients se disputeraient un seul plafond.
+
+**L'écran suit le serveur, pas l'inverse.** Le document auditeur reste proposé
+en mode client même si le consultant est au Gratuit, puisque le serveur
+l'accepte ; et l'export simple y est masqué, faute de route serveur. Cacher un
+bouton que le serveur accepte, ou en proposer un qu'il refuse, sont deux
+symptômes du même défaut.
+
+**L'isolation est ce qui est le plus testé.** Un consultant détient maintenant
+plusieurs dossiers dans la même table. Une requête qui oublierait le sujet
+ferait fuiter le dossier d'un client vers un autre, ou vers l'auto-évaluation
+personnelle du consultant. Cinq gardes vérifiées en les cassant.
+
+**Un trou de couverture trouvé en cassant :** neutraliser le calcul de préfixe
+dans le service ne faisait tomber aucun test. Huit tests ont été ajoutés sur
+`compliance-api.service` ; la même cassure en fait tomber cinq désormais.
+
 ---
 
 ## Séquencement proposé
@@ -361,7 +394,7 @@ d'où l'intérêt de regarder le PDF produit et pas seulement le texte extrait.
 | ~~5a~~ | ~~Catalogue NIS2 sorti de la couche de routage~~ | **fait le 2026-08-07** |
 | ~~5b~~ | ~~`client_id` + unicité `NULLS NOT DISTINCT`~~ | **fait le 2026-08-07** |
 | ~~5c~~ | ~~Table de preuves, purge générique, quota, rétention~~ | **fait le 2026-08-07** |
-| 5d | Interface RSSI — rattacher une pièce au dossier client | après 5c |
+| ~~5d~~ | ~~Interface RSSI — dossier NIS2 du client~~ | **fait le 2026-08-07** |
 | ~~5e~~ | ~~Abonné direct — dépôt sur l'auto-évaluation~~ | **fait le 2026-08-07** |
 | ~~5f~~ | ~~Export PDF auditeur listant les preuves~~ | **fait le 2026-08-07** |
 

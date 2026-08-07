@@ -48,6 +48,10 @@ function make(): Nis2Component {
   // ci-dessus, qui sont les mesures de la plateforme.
   (c as any).pieces = signal<Record<string, PieceJustificative[]>>({});
   (c as any).depotEnCours = signal<string | null>(null);
+  // Sujet de l'évaluation : null = la mienne, un id = le dossier d'un client.
+  (c as any).clientId = signal<number | null>(null);
+  (c as any).modeClient = computed(() => (c as any).clientId() !== null);
+  (c as any).route = { snapshot: { paramMap: { get: () => null } } };
 
   // Constantes
   (c as any).CYCLE = ['non_compliant', 'partial', 'compliant', 'na'];
@@ -682,11 +686,12 @@ describe('save()', () => {
     const snack = { open: vi.fn() };
     (c as any).snack = snack;
     c.save();
-    // _fullItems : 2 items non renseignés → non_compliant
-    expect(saveMock).toHaveBeenCalledWith({
-      cat0_item0: 'non_compliant',
-      cat0_item1: 'non_compliant',
-    });
+    // _fullItems : 2 items non renseignés → non_compliant.
+    // Le second argument est le SUJET : `null` = mon auto-évaluation.
+    expect(saveMock).toHaveBeenCalledWith(
+      { cat0_item0: 'non_compliant', cat0_item1: 'non_compliant' },
+      null
+    );
     expect((c as any).score()).toBe(88);
     expect((c as any).updatedAt()).toBe('2024-07-01T12:00:00Z');
     expect((c as any).saving()).toBe(false);
@@ -1155,7 +1160,10 @@ describe('gabarit — pièces justificatives', () => {
     // on l'ancre sur son libellé plutôt que sur la condition, qui n'est pas
     // discriminante.
     const iDepot = tpl.indexOf('Joindre une pièce');
-    const gardeDuDepot = tpl.lastIndexOf('@if (canExport())', iDepot);
+    // La garde du dépôt accepte le mode client depuis l'étape 5d
+    // (`get_rssi_consultant` remplace l'abonnement côté serveur) : on ancre sur
+    // le dernier `@if (` qui précède le libellé, sans présumer de sa condition.
+    const gardeDuDepot = tpl.lastIndexOf('@if (', iDepot);
     const iRetrait = tpl.indexOf('retirerPiece(');
 
     expect(iDepot).toBeGreaterThan(-1);
@@ -1165,5 +1173,99 @@ describe('gabarit — pièces justificatives', () => {
 
   it("une pièce non vérifiée n'est pas présentée comme cliquable", () => {
     expect(tpl).toContain('@if (pieceOuvrable(piece))');
+  });
+});
+
+// ── Le sujet de l'évaluation (étape 5d) ──────────────────────────────────────
+
+describe('sujet de l’évaluation', () => {
+  function avecRoute(clientId: string | null): Nis2Component {
+    const c = make();
+    (c as any).route = { snapshot: { paramMap: { get: () => clientId } } };
+    (c as any).billing = { getMySubscription: vi.fn().mockReturnValue(of(null)) };
+    (c as any).snack = { open: vi.fn() };
+    return c;
+  }
+
+  it('sans paramètre de route, le sujet est mon auto-évaluation', () => {
+    const c = avecRoute(null);
+    const api = { getNis2Assessment: vi.fn().mockReturnValue(of({})) };
+    (c as any).complianceApi = api;
+
+    c.ngOnInit();
+
+    expect((c as any).clientId()).toBe(null);
+    expect((c as any).modeClient()).toBe(false);
+    expect(api.getNis2Assessment).toHaveBeenCalledWith(null);
+  });
+
+  it('avec un clientId, le sujet est le dossier de ce client', () => {
+    const c = avecRoute('42');
+    const api = { getNis2Assessment: vi.fn().mockReturnValue(of({})) };
+    (c as any).complianceApi = api;
+
+    c.ngOnInit();
+
+    expect((c as any).clientId()).toBe(42);
+    expect((c as any).modeClient()).toBe(true);
+    expect(api.getNis2Assessment).toHaveBeenCalledWith(42);
+  });
+
+  it('le sujet est lu AVANT le premier appel', () => {
+    // Sinon le dossier d'un client serait demandé sur la route « moi », et le
+    // consultant verrait sa propre évaluation à la place de celle du client.
+    const c = avecRoute('7');
+    let sujetAuMomentDeLAppel: unknown = 'jamais appelé';
+    (c as any).complianceApi = {
+      getNis2Assessment: vi.fn().mockImplementation((id: unknown) => {
+        sujetAuMomentDeLAppel = id;
+        return of({});
+      }),
+    };
+
+    c.ngOnInit();
+
+    expect(sujetAuMomentDeLAppel).toBe(7);
+  });
+
+  it('le dépôt et le retrait transmettent le sujet', () => {
+    const c = avecRoute('42');
+    (c as any).clientId.set(42);
+    const piece = {
+      id: 9,
+      nom: 'p.pdf',
+      taille_octets: 10,
+      statut_analyse: 'sain',
+      rattache_le: '2026-08-07T10:00:00Z',
+    };
+    const api = {
+      deposerPiece: vi.fn().mockReturnValue(of(piece)),
+      retirerPiece: vi.fn().mockReturnValue(of(void 0)),
+      lienPiece: vi.fn().mockReturnValue(of({ url: 'https://x' })),
+    };
+    (c as any).complianceApi = api;
+
+    const input = { files: [new File(['x'], 'p.pdf')], value: '' };
+    c.deposerPiece('rssi', { target: input } as unknown as Event);
+    c.retirerPiece('rssi', piece);
+    c.ouvrirPiece(piece);
+
+    expect(api.deposerPiece).toHaveBeenCalledWith('rssi', expect.anything(), 42);
+    expect(api.retirerPiece).toHaveBeenCalledWith(9, 42);
+    expect(api.lienPiece).toHaveBeenCalledWith(9, 42);
+  });
+});
+
+describe('gabarit — mode client', () => {
+  const tpl = readFileSync(resolve(__dirname, './nis2.component.html'), 'utf-8');
+
+  it("l'export simple est masqué en mode client, faute de route serveur", () => {
+    expect(tpl).toContain('@if (canExport() && !modeClient())');
+  });
+
+  it("le document auditeur reste proposé au consultant sans condition d'abonnement", () => {
+    // Le serveur ne le garde pas derrière un plan pour un dossier client :
+    // le cacher ici masquerait un bouton que le serveur accepte.
+    expect(tpl).toContain('@if (canExport() || modeClient())');
   });
 });
