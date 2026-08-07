@@ -1,4 +1,6 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal, computed } from '@angular/core';
+import { EMPTY, interval, Subscription } from 'rxjs';
+import { catchError, switchMap, take, takeWhile } from 'rxjs/operators';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -75,11 +77,26 @@ export interface Nis2Category {
   templateUrl: './nis2.component.html',
   styleUrl: './nis2.component.css',
 })
-export class Nis2Component implements OnInit {
+export class Nis2Component implements OnInit, OnDestroy {
   private complianceApi = inject(ComplianceApiService);
   private billing = inject(BillingService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+
+  // SONDAGE DU VERDICT ANTIVIRUS.
+  //
+  // Toutes les 10 s, et SEULEMENT tant qu'une piece est en analyse : `takeWhile`
+  // arrete le flux de lui-meme des que plus rien n'attend. Dans l'etat normal —
+  // aucune analyse en cours — rien n'est emis du tout.
+  //
+  // La borne dure existe parce que `takeWhile` ne suffit pas : si un verdict
+  // n'arrivait JAMAIS, le flux tournerait indefiniment. Au-dela de 10 minutes on
+  // s'arrete ; le serveur finit de toute facon par marquer la piece
+  // « indeterminee », et un onglet oublie ne doit pas interroger l'API la
+  // journee entiere.
+  private static readonly SONDAGE_MS = 10_000;
+  private static readonly SONDAGES_MAX = 60; // 10 minutes
+  private sondage: Subscription | null = null;
   private snack = inject(MatSnackBar);
 
   loading = signal(true);
@@ -141,6 +158,8 @@ export class Nis2Component implements OnInit {
         this.items.set((data.items ?? {}) as Record<string, Nis2Status>);
         this.preuves.set((data.preuves ?? {}) as Record<string, Nis2Preuve>);
         this.pieces.set(data.pieces ?? {});
+        // Une piece peut deja etre en analyse au chargement : reprise du suivi.
+        this.demarrerSondage();
         this.score.set(data.score ?? 0);
         this.updatedAt.set(data.updated_at ?? null);
         this.loading.set(false);
@@ -166,6 +185,52 @@ export class Nis2Component implements OnInit {
   /** Documents que l'utilisateur a déposés pour ce critère. */
   piecesDe(itemId: string): PieceJustificative[] {
     return this.pieces()[itemId] ?? [];
+  }
+
+  ngOnDestroy() {
+    this.arreterSondage();
+  }
+
+  /** Une analyse est-elle en cours quelque part ? */
+  private uneAnalyseEnCours(pieces: Record<string, PieceJustificative[]>): boolean {
+    return Object.values(pieces)
+      .flat()
+      .some(p => p.statut_analyse === 'en_analyse');
+  }
+
+  /** Suit le verdict antivirus jusqu'a ce qu'il n'y ait plus rien a attendre.
+   *
+   * Sans ce sondage, l'utilisateur devait recharger la page a la main pour voir
+   * sa piece passer de « en analyse » a « verifie » — un F5 a l'aveugle, sans
+   * savoir quand.
+   *
+   * Ne demarre que s'il y a quelque chose a attendre, et jamais deux fois.
+   */
+  private demarrerSondage() {
+    if (this.sondage || !this.uneAnalyseEnCours(this.pieces())) return;
+
+    this.sondage = interval(Nis2Component.SONDAGE_MS)
+      .pipe(
+        take(Nis2Component.SONDAGES_MAX),
+        // Une erreur reseau passagere ne doit pas tuer le suivi : on saute ce
+        // tour et on reessaiera au suivant.
+        switchMap(() =>
+          this.complianceApi.listerPieces(this.clientId()).pipe(catchError(() => EMPTY))
+        ),
+        // `true` : la derniere valeur — celle ou plus rien n'attend — est bien
+        // emise avant l'arret. Sans elle, l'ecran resterait sur « en analyse ».
+        takeWhile(pieces => this.uneAnalyseEnCours(pieces), true)
+      )
+      .subscribe({
+        next: pieces => this.pieces.set(pieces),
+        complete: () => this.arreterSondage(),
+        error: () => this.arreterSondage(),
+      });
+  }
+
+  private arreterSondage() {
+    this.sondage?.unsubscribe();
+    this.sondage = null;
   }
 
   /** Vrai seulement si l'analyse antivirus a conclu que le fichier est sain.
@@ -211,6 +276,7 @@ export class Nis2Component implements OnInit {
         this.pieces.update(m => ({ ...m, [itemId]: [...(m[itemId] ?? []), piece] }));
         this.depotEnCours.set(null);
         this.snack.open('Pièce ajoutée', 'Fermer', { duration: 3000 });
+        this.demarrerSondage();
       },
       error: err => {
         this.depotEnCours.set(null);

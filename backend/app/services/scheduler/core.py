@@ -90,11 +90,18 @@ def start_scheduler() -> None:
         replace_existing=True,
     )
     # Verdict antivirus des fichiers deposes — relecture de la balise GuardDuty.
-    # 2 minutes : les scans prennent 20 a 45 s (mesure du 2026-08-05). Le cout
-    # est nul quand rien n attend, la requete ne rendant que les `en_analyse`.
+    #
+    # 30 SECONDES DEPUIS LE 2026-08-07, contre 2 minutes auparavant. Les scans
+    # prennent 20 a 45 s (mesure du 2026-08-05) : a 2 minutes, un fichier depose
+    # juste apres un passage attendait jusqu'a 2 min 30 avant d'etre delivrable,
+    # ce qui est long pour quelqu'un qui vient de televerser et regarde l'ecran.
+    #
+    # LE COUT RESTE BORNE PAR CE QUI ATTEND, PAS PAR LA CADENCE. La requete ne
+    # remonte que les fichiers `en_analyse` : quand rien n'attend — l'etat normal
+    # — le passage se resume a un SELECT vide, sans le moindre appel a S3.
     scheduler.add_job(
         _run_rafraichir_analyses,
-        trigger=IntervalTrigger(minutes=2),
+        trigger=IntervalTrigger(seconds=30),
         id="depot_rafraichir_analyses",
         replace_existing=True,
     )
