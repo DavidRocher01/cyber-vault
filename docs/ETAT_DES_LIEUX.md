@@ -75,6 +75,24 @@ L'historique des livraisons n'est pas ici — il est dans
   clés ni la MFA. L'ordre correct est : les clés statiques d'abord, cet
   utilisateur ensuite.
 
+- **Le back-office affiche le plan brut, pas le plan effectif** (trouvé le
+  2026-08-07). La liste `/admin/users` joint les abonnements sur
+  `Subscription.status == "active"` **et rien d'autre**, alors que
+  `get_active_plan` — qui commande tous les accès — exige **en plus** que la
+  période ne soit pas échue depuis plus de 3 jours (`SUBSCRIPTION_GRACE_DAYS`).
+  Un abonnement expiré s'affiche donc **« Actif »** au back-office pendant que la
+  plateforme traite le compte en **Gratuit**.
+  Ça n'est pas théorique : le compte `rocherdavid@ymail.com` s'affichait Business
+  et actif tandis que son tableau de bord annonçait « Plan Gratuit », ce qui a
+  d'abord fait conclure à un bug d'affichage côté client.
+  La date montrée n'aide pas : c'est `subscription_since`, la date de **création**
+  de l'abonnement, jamais sa fin.
+  Correctif : faire calculer à la liste admin le plan **effectif**, celui que
+  `get_active_plan` rendrait. Afficher `current_period_end` au lieu de la date de
+  création est un pansement, pas la correction.
+  Contournement immédiat : re-sélectionner le plan dans `/admin/users` réécrit la
+  période à +10 ans (`admin_set_user_plan`).
+
 - **Plafond de taille de corps de requête sur l'ALB ou CloudFront.** La lecture
   bornée livrée le 2026-08-03 protège la mémoire, pas la réception : Starlette
   analyse le corps multipart avant que le code applicatif ne s'exécute. Vaut
