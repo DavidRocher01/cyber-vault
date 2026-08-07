@@ -250,7 +250,7 @@ ce chantier.
 | 4a | ~~Purge des dépôts orphelins + suppression S3~~ | **fait le 2026-08-04** |
 | ~~4b~~ | ~~Rétention des documents rattachés~~ | **fait le 2026-08-05** |
 | ~~5a~~ | ~~Catalogue NIS2 sorti de la couche de routage~~ | **fait le 2026-08-07** |
-| 5b | `client_id` sur les évaluations + unicité `NULLS NOT DISTINCT` | cadré le 2026-08-07 |
+| ~~5b~~ | ~~`client_id` + unicité `NULLS NOT DISTINCT`~~ | **fait le 2026-08-07** |
 | 5c | Table de preuves, purge générique, quota par compte, rétention | cadré le 2026-08-07 |
 | 5d | Interface RSSI — rattacher une pièce au dossier client | après 5c |
 | 5e | Interface abonné direct — dépôt sur l'auto-évaluation | après 5c |
@@ -288,6 +288,29 @@ consultant, ni client d'un RSSI fractionné. Conséquence : la surface de dépô
 est construite **générique dès 5c**, indexée sur le sujet de l'évaluation, le
 portail RSSI devenant un appelant parmi deux. La construire d'abord côté RSSI
 puis la porter referait le chemin deux fois.
+
+### Ce que l'étape 5b a fait apparaître (2026-08-07)
+
+**Quatre requêtes reposaient sur « une seule évaluation par compte »**, toutes
+avec un `scalar_one_or_none()`. Dès qu'un consultant en détient plusieurs, celles
+qui ignorent le sujet lèvent. La plus grave : `export_account_data`, **l'export
+de portabilité RGPD (art. 20)** — il aurait cassé précisément pour les comptes
+qui se servent le plus du produit.
+
+Elles filtrent désormais `client_id IS NULL`. Ce n'est pas qu'une parade
+technique : un dossier de conformité décrit l'entité du **client**. Le verser
+dans l'export d'un autre compte publierait les données d'un tiers dans un
+fichier de portabilité.
+
+**`client_id` est en CASCADE, pas en SET NULL.** Repasser la colonne à NULL
+confondrait le dossier avec l'auto-évaluation personnelle du consultant — en y
+versant les réponses d'un tiers — et violerait l'unicité s'il en avait déjà une.
+
+**Le `downgrade` généré par autogenerate était faux deux fois** : il supprimait
+la clé étrangère par le nom `None`, et recréait l'unicité par compte **avant**
+que les dossiers clients ne disparaissent, donc en échec dès qu'un consultant en
+détenait plus d'un. Vérifié en semant le cas puis en tentant la contrainte :
+violation d'unicité. Le fichier a été repris à la main.
 
 ### Ce que ce cas casse, et qui doit être réglé dans 5c
 

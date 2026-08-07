@@ -137,8 +137,23 @@ async def export_account_data(db: AsyncSession, user: User) -> dict:
         for scan in scans
     ]
 
+    # `client_id.is_(None)` : SON auto-evaluation, pas les dossiers qu'il a
+    # montes pour ses clients.
+    #
+    # DEUX RAISONS, ET LA SECONDE EST LA PLUS IMPORTANTE. Sans ce filtre, un
+    # consultant suivant plusieurs clients ferait remonter plusieurs lignes et
+    # `scalar_one_or_none()` leverait : l'export de portabilite casserait
+    # precisement pour les comptes qui se servent le plus du produit.
+    # Et sur le fond, un dossier de conformite decrit l'entite du CLIENT. Le
+    # verser dans l'export d'un autre compte publierait les donnees d'un tiers
+    # dans un fichier de portabilite.
     nis2 = (
-        await db.execute(select(Nis2Assessment).where(Nis2Assessment.user_id == user_id))
+        await db.execute(
+            select(Nis2Assessment).where(
+                Nis2Assessment.user_id == user_id,
+                Nis2Assessment.client_id.is_(None),
+            )
+        )
     ).scalar_one_or_none()
     iso = (
         await db.execute(select(Iso27001Assessment).where(Iso27001Assessment.user_id == user_id))
@@ -379,8 +394,19 @@ async def list_done_scans_for_user(db: AsyncSession, user_id: int) -> list[Scan]
 
 
 async def get_nis2_for_user(db: AsyncSession, user_id: int) -> Nis2Assessment | None:
-    """Evaluation NIS2 de l'utilisateur, sinon None."""
-    result = await db.execute(select(Nis2Assessment).where(Nis2Assessment.user_id == user_id))
+    """SON auto-evaluation NIS2, sinon None.
+
+    Meme filtre que l'export de portabilite, et pour les memes raisons : sans
+    lui, un consultant suivant plusieurs clients ferait lever
+    `scalar_one_or_none()`, et le score affiche sur son tableau de bord serait
+    celui d'un client au lieu du sien.
+    """
+    result = await db.execute(
+        select(Nis2Assessment).where(
+            Nis2Assessment.user_id == user_id,
+            Nis2Assessment.client_id.is_(None),
+        )
+    )
     return result.scalar_one_or_none()
 
 
