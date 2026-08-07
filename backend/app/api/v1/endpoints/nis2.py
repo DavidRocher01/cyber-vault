@@ -5,348 +5,31 @@ NIS2 Compliance endpoints — save/load user assessment and export PDF.
 import asyncio
 import json
 from datetime import UTC, datetime
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, require_conformity_export
+from app.core.deps import get_current_user, require_conformity_export, require_conformity_pieces
 from app.models.user import User
-from app.services import awareness_nis2_report, brand_service, nis2_service
+from app.services import (
+    awareness_nis2_report,
+    brand_service,
+    depot_service,
+    nis2_service,
+    preuve_service,
+)
 from app.services.assessment_service import compute_assessment_score
+from app.services.nis2_catalogue import ALL_ITEM_IDS, NIS2_CATEGORIES, VALID_STATUSES
 
 router = APIRouter(prefix="/nis2", tags=["nis2"])
 
-# ---------------------------------------------------------------------------
-# Valid statuses
-# ---------------------------------------------------------------------------
-VALID_STATUSES = {"compliant", "partial", "non_compliant", "na"}
-
-
-# ---------------------------------------------------------------------------
-# NIS2 items definition (single source of truth)
-#
-# Chaque item porte un champ `article` le rattachant a la directive (UE)
-# 2022/2555 :
-#   Art. 20      gouvernance, responsabilite et formation des organes de direction
-#   Art. 21(2)   mesures de gestion des risques, alineas (a) a (j)
-#   Art. 23      obligations de notification des incidents
-#   Art. 3 / 27  identification et enregistrement des entites
-#
-# Ce rattachement est ce qui distingue un diagnostic d'un questionnaire maison :
-# face a un auditeur ou un donneur d'ordre, chaque reponse renvoie a une
-# exigence precise du texte.
-#
-# ATTENTION : rattachement INDICATIF, destine a orienter la lecture du rapport.
-# Il ne constitue pas une analyse juridique et n'engage pas la conformite reelle
-# de l'entite, qui depend de sa qualification (entite essentielle ou importante)
-# et de sa transposition nationale.
-# ---------------------------------------------------------------------------
-NIS2_CATEGORIES = [
-    {
-        "id": "governance",
-        "label": "Gouvernance",
-        "icon": "policy",
-        "items": [
-            {
-                "id": "rssi",
-                "label": "Désignation d'un RSSI ou responsable cyber",
-                "desc": "Une personne identifiée est responsable de la sécurité des systèmes d'information.",
-                "article": "Art. 20(1)",
-                "remediation": {
-                    "produit": "RSSI externalisé",
-                    "route": "/rssi-externalise",
-                },
-            },
-            {
-                "id": "policy",
-                "label": "Politique de sécurité SI documentée et approuvée",
-                "desc": "Une politique formelle existe, est à jour et a été validée par la direction.",
-                "article": "Art. 21(2)(a)",
-            },
-            {
-                "id": "mgmt_training",
-                "label": "Implication et formation de la direction",
-                "desc": "Les dirigeants ont été sensibilisés aux risques cyber et à leurs responsabilités NIS2.",
-                "article": "Art. 20(2)",
-                "remediation": {
-                    "produit": "Sensibilisation NIS2 — parcours Direction",
-                    "route": "/sensibilisation",
-                },
-            },
-            {
-                "id": "policy_review",
-                "label": "Revue annuelle de la politique de sécurité",
-                "desc": "La politique est révisée au moins une fois par an et après chaque incident majeur.",
-                "article": "Art. 21(2)(f)",
-            },
-        ],
-    },
-    {
-        "id": "risk",
-        "label": "Gestion des risques",
-        "icon": "security",
-        "items": [
-            {
-                "id": "risk_analysis",
-                "label": "Analyse de risques formelle (EBIOS RM / ISO 27005)",
-                "desc": "Une analyse de risques structurée a été réalisée et documentée.",
-                "article": "Art. 21(2)(a)",
-            },
-            {
-                "id": "risk_treatment",
-                "label": "Plan de traitement des risques avec suivi",
-                "desc": "Chaque risque identifié dispose d'un plan d'action suivi régulièrement.",
-                "article": "Art. 21(2)(a)",
-            },
-            {
-                "id": "asset_inventory",
-                "label": "Inventaire des actifs critiques",
-                "desc": "Tous les systèmes, données et services critiques sont répertoriés.",
-                "article": "Art. 21(2)(i)",
-            },
-            {
-                "id": "data_classif",
-                "label": "Classification des données",
-                "desc": "Les données sont classifiées selon leur sensibilité (public, interne, confidentiel, secret).",
-                "article": "Art. 21(2)(i)",
-            },
-        ],
-    },
-    {
-        "id": "access",
-        "label": "Sécurité des accès",
-        "icon": "lock",
-        "items": [
-            {
-                "id": "mfa",
-                "label": "MFA sur tous les accès critiques",
-                "desc": "L'authentification multi-facteurs est déployée sur les systèmes et comptes critiques.",
-                "article": "Art. 21(2)(j)",
-            },
-            {
-                "id": "password_policy",
-                "label": "Politique de mots de passe robuste",
-                "desc": "Longueur minimale 12 caractères, complexité, renouvellement, pas de réutilisation.",
-                "article": "Art. 21(2)(i)",
-            },
-            {
-                "id": "pam",
-                "label": "Gestion des comptes à privilèges (PAM)",
-                "desc": "Les accès administrateurs sont tracés, justifiés et revus régulièrement.",
-                "article": "Art. 21(2)(i)",
-            },
-            {
-                "id": "access_review",
-                "label": "Revue périodique des droits d'accès",
-                "desc": "Les droits sont revus au minimum trimestriellement et lors de changements RH.",
-                "article": "Art. 21(2)(i)",
-            },
-        ],
-    },
-    {
-        "id": "systems",
-        "label": "Sécurité des systèmes",
-        "icon": "computer",
-        "items": [
-            {
-                "id": "patch_mgmt",
-                "label": "Gestion des correctifs (patch critique < 72h)",
-                "desc": "Un processus formel garantit l'application rapide des correctifs de sécurité critiques.",
-                "article": "Art. 21(2)(e)",
-            },
-            {
-                "id": "encryption",
-                "label": "Chiffrement des données sensibles (transit + repos)",
-                "desc": "TLS 1.2+ en transit, chiffrement au repos pour les données sensibles.",
-                "article": "Art. 21(2)(h)",
-            },
-            {
-                "id": "hardening",
-                "label": "Configuration sécurisée des systèmes",
-                "desc": "Les systèmes sont configurés selon des référentiels de durcissement (CIS Benchmarks, ANSSI).",
-                "article": "Art. 21(2)(e)",
-            },
-            {
-                "id": "edr",
-                "label": "Antivirus / EDR sur tous les postes",
-                "desc": "Une solution de détection d'endpoint est déployée et maintenue à jour.",
-                "article": "Art. 21(2)(e)",
-            },
-        ],
-    },
-    {
-        "id": "incidents",
-        "label": "Gestion des incidents",
-        "icon": "warning",
-        "items": [
-            {
-                "id": "incident_proc",
-                "label": "Procédure de détection et réponse documentée",
-                "desc": "Une procédure formelle de réponse aux incidents est documentée et connue des équipes.",
-                "article": "Art. 21(2)(b)",
-            },
-            {
-                "id": "soc",
-                "label": "CERT/SOC ou capacité de surveillance",
-                "desc": "Une capacité de détection et de réponse aux incidents est opérationnelle.",
-                "article": "Art. 21(2)(b)",
-            },
-            {
-                "id": "anssi_notif",
-                "label": "Notification ANSSI sous 24h (incidents significatifs)",
-                "desc": "Le processus de notification à l'ANSSI est connu et testé.",
-                "article": "Art. 23",
-            },
-            {
-                "id": "post_mortem",
-                "label": "Post-mortem et retour d'expérience",
-                "desc": "Chaque incident donne lieu à un rapport d'analyse et des actions correctives.",
-                "article": "Art. 21(2)(b)",
-            },
-        ],
-    },
-    {
-        "id": "continuity",
-        "label": "Continuité d'activité",
-        "icon": "restore",
-        "items": [
-            {
-                "id": "pca",
-                "label": "Plan de continuité (PCA) documenté et testé",
-                "desc": "Un PCA existe, est tenu à jour et a été testé lors d'un exercice.",
-                "article": "Art. 21(2)(c)",
-            },
-            {
-                "id": "pra",
-                "label": "Plan de reprise (PRA) avec RTO/RPO définis",
-                "desc": "Les objectifs de reprise (délai et point de reprise) sont formalisés et atteignables.",
-                "article": "Art. 21(2)(c)",
-            },
-            {
-                "id": "backups",
-                "label": "Sauvegardes testées et déconnectées du réseau",
-                "desc": "Les sauvegardes sont régulières, chiffrées, testées, et au moins une copie est hors ligne.",
-                "article": "Art. 21(2)(c)",
-            },
-        ],
-    },
-    {
-        "id": "supply_chain",
-        "label": "Chaîne d'approvisionnement",
-        "icon": "account_tree",
-        "items": [
-            {
-                "id": "vendor_audit",
-                "label": "Évaluation sécurité des fournisseurs critiques",
-                "desc": "Les fournisseurs ayant accès aux SI critiques font l'objet d'une évaluation de sécurité.",
-                "article": "Art. 21(2)(d)",
-            },
-            {
-                "id": "vendor_contracts",
-                "label": "Clauses de sécurité dans les contrats fournisseurs",
-                "desc": "Les contrats incluent des exigences de sécurité, de notification d'incidents et d'audit.",
-                "article": "Art. 21(2)(d)",
-            },
-            {
-                "id": "sca",
-                "label": "Inventaire des dépendances logicielles (SCA)",
-                "desc": "Les composants open source et tiers sont inventoriés et surveillés pour les vulnérabilités.",
-                "article": "Art. 21(2)(e)",
-                "remediation": {
-                    "produit": "Analyse de code (SAST/SCA)",
-                    "route": "/code-scan",
-                },
-            },
-        ],
-    },
-    {
-        "id": "network",
-        "label": "Sécurité réseau",
-        "icon": "hub",
-        "items": [
-            {
-                "id": "segmentation",
-                "label": "Segmentation réseau (isolation des systèmes critiques)",
-                "desc": "Les systèmes critiques sont isolés dans des zones réseau distinctes avec contrôle des flux.",
-                "article": "Art. 21(2)(e)",
-            },
-            {
-                "id": "ids",
-                "label": "Surveillance des flux réseau (IDS/IPS)",
-                "desc": "Une solution de détection d'intrusion surveille les flux réseau en continu.",
-                "article": "Art. 21(2)(b)",
-            },
-            {
-                "id": "vpn",
-                "label": "VPN sécurisé pour les accès distants",
-                "desc": "Tous les accès distants passent par un VPN avec authentification forte.",
-                "article": "Art. 21(2)(j)",
-            },
-        ],
-    },
-    {
-        "id": "training",
-        "label": "Formation & sensibilisation",
-        "icon": "school",
-        "items": [
-            {
-                "id": "awareness",
-                "label": "Programme de formation cyber pour les employés",
-                "desc": "Tous les employés suivent une formation annuelle de sensibilisation à la cybersécurité.",
-                "article": "Art. 21(2)(g)",
-                "remediation": {
-                    "produit": "Sensibilisation NIS2",
-                    "route": "/sensibilisation",
-                },
-            },
-            {
-                "id": "phishing_sim",
-                "label": "Exercices de phishing simulé",
-                "desc": "Des campagnes de phishing simulé sont menées régulièrement pour évaluer la vigilance.",
-                "article": "Art. 21(2)(g)",
-                "remediation": {
-                    "produit": "Simulation de phishing",
-                    "route": "/simulation-phishing",
-                },
-            },
-            {
-                "id": "it_training",
-                "label": "Formation spécifique pour l'équipe IT/sécurité",
-                "desc": "L'équipe technique reçoit des formations adaptées aux menaces actuelles.",
-                "article": "Art. 21(2)(g)",
-                "remediation": {
-                    "produit": "Sensibilisation NIS2 — parcours Équipes techniques",
-                    "route": "/sensibilisation",
-                },
-            },
-        ],
-    },
-    {
-        "id": "compliance",
-        "label": "Enregistrement & conformité",
-        "icon": "verified",
-        "items": [
-            {
-                "id": "anssi_registration",
-                "label": "Enregistrement sur le portail ANSSI",
-                "desc": "L'entité est enregistrée sur monespacenis2.anssi.fr (obligatoire pour les entités concernées).",
-                "article": "Art. 3 et 27",
-            },
-            {
-                "id": "annual_audit",
-                "label": "Audit de conformité annuel",
-                "desc": "Un audit interne ou externe de conformité NIS2 est réalisé chaque année.",
-                "article": "Art. 21(2)(f)",
-            },
-        ],
-    },
-]
-
-# Pre-compute flat item list for validation
-ALL_ITEM_IDS = {item["id"] for cat in NIS2_CATEGORIES for item in cat["items"]}
+# Le catalogue des criteres vit dans `app/services/nis2_catalogue.py`. Ce
+# routeur n'en est qu'un consommateur parmi d'autres : les deux generateurs de
+# PDF le lisent aussi, et le rattachement de preuves aux criteres le lira.
 
 
 # ---------------------------------------------------------------------------
@@ -356,6 +39,20 @@ ALL_ITEM_IDS = {item["id"] for cat in NIS2_CATEGORIES for item in cat["items"]}
 
 class Nis2SaveIn(BaseModel):
     items: dict[str, str]  # { item_id: status }
+
+
+class PieceOut(BaseModel):
+    """Une piece justificative rattachee a un critere."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    nom: str
+    taille_octets: int
+    # L'interface doit pouvoir montrer « en cours d'analyse » plutot que de
+    # proposer un lien de telechargement qui repondra 409.
+    statut_analyse: str
+    rattache_le: datetime
 
 
 class Nis2Out(BaseModel):
@@ -370,11 +67,38 @@ class Nis2Out(BaseModel):
     # automatiquement n'est plus une declaration et perd sa valeur devant un
     # auditeur. On fournit la mesure, il declare.
     preuves: dict = {}
+    # DEUX CHOSES DIFFERENTES, ET LE NOM LES SEPARE. `preuves` ci-dessus, ce sont
+    # les mesures que la plateforme detient deja. `pieces` ci-dessous, ce sont
+    # les documents que l'utilisateur a lui-meme deposes, par critere. Les
+    # confondre sous un seul nom reviendrait a laisser croire que la plateforme
+    # a produit ce que l'utilisateur a fourni.
+    pieces: dict[str, list[PieceOut]] = {}
 
 
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
+
+async def _mesures_de_la_plateforme(db: AsyncSession, user_id: int) -> dict:
+    """Les mesures objectives que la plateforme detient deja.
+
+    Extrait ici parce que le GET et le PUT doivent rendre exactement la meme
+    chose : sans cela, les mesures disparaitraient de l'ecran juste apres un
+    enregistrement.
+    """
+    mesures: dict = {}
+    formation = await awareness_nis2_report.preuve_formation(db, user_id)
+    if formation:
+        mesures["awareness"] = formation
+    return mesures
+
+
+async def _pieces_deposees(db: AsyncSession, assessment) -> dict:
+    """Les documents deposes par l'utilisateur, regroupes par critere."""
+    if assessment is None:
+        return {}
+    return await preuve_service.preuves_par_critere(db, assessment.id)
 
 
 @router.get("/me", response_model=Nis2Out)
@@ -383,20 +107,14 @@ async def get_assessment(
     db: AsyncSession = Depends(get_db),
 ):
     assessment = await nis2_service.get_user_assessment(db, current_user.id)
-    items = json.loads(assessment.items_json) if assessment else {}
-    score = assessment.score if assessment else 0
-    updated_at = assessment.updated_at if assessment else None
-    preuves: dict = {}
-    formation = await awareness_nis2_report.preuve_formation(db, current_user.id)
-    if formation:
-        preuves["awareness"] = formation
 
     return {
-        "items": items,
-        "score": score,
-        "updated_at": updated_at,
+        "items": json.loads(assessment.items_json) if assessment else {},
+        "score": assessment.score if assessment else 0,
+        "updated_at": assessment.updated_at if assessment else None,
         "categories": NIS2_CATEGORIES,
-        "preuves": preuves,
+        "preuves": await _mesures_de_la_plateforme(db, current_user.id),
+        "pieces": await _pieces_deposees(db, assessment),
     }
 
 
@@ -420,20 +138,177 @@ async def save_assessment(
         db, current_user.id, items=payload.items, score=score, now=now
     )
 
-    # Meme calcul que sur le GET : sans cela, les mesures disparaitraient de
-    # l'ecran juste apres un enregistrement.
-    preuves: dict = {}
-    formation = await awareness_nis2_report.preuve_formation(db, current_user.id)
-    if formation:
-        preuves["awareness"] = formation
-
     return {
         "items": payload.items,
         "score": score,
         "updated_at": assessment.updated_at,
         "categories": NIS2_CATEGORIES,
-        "preuves": preuves,
+        "preuves": await _mesures_de_la_plateforme(db, current_user.id),
+        "pieces": await _pieces_deposees(db, assessment),
     }
+
+
+# ---------------------------------------------------------------------------
+# Pieces justificatives
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/me/criteres/{item_id}/pieces",
+    response_model=PieceOut,
+    status_code=201,
+    dependencies=[Depends(require_conformity_pieces)],
+)
+async def deposer_une_piece(
+    item_id: str,
+    fichier: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Depose un document et le rattache a un critere, en un seul appel.
+
+    UN SEUL APPEL, COMME COTE PORTAIL. Deposer puis rattacher en deux temps
+    fabrique une fenetre pendant laquelle le fichier n'est reference par rien.
+    Ici l'objet, la ligne de registre et le rattachement naissent ensemble.
+
+    L'ORDRE DES CONTROLES EST CELUI DU COUT CROISSANT : critere connu, lecture
+    bornee, signature, quota — tout cela AVANT d'ecrire sur S3. Refuser apres
+    stockage laisserait un objet en place tout en annoncant un refus.
+
+    LE CRITERE EST VALIDE EN PREMIER parce que c'est le controle le moins cher,
+    et parce qu'un identifiant errone produirait une piece invisible et
+    imperissable : invisible faute d'apparaitre sous un critere connu,
+    imperissable parce qu'elle servirait formellement de preuve et echapperait a
+    la purge des orphelins.
+
+    L'EVALUATION EST CREEE SI ELLE N'EXISTE PAS. Exiger d'avoir enregistre son
+    auto-evaluation avant de joindre une piece imposerait un ordre que rien ne
+    justifie. Une evaluation vide rend exactement ce que rendait son absence —
+    items vides, score a zero — donc rien ne change a l'ecran.
+    """
+    from app.services.storage import (
+        MAX_UPLOAD_BYTES,
+        FichierTropVolumineuxError,
+        lire_borne,
+        upload_file,
+        validate_upload,
+    )
+
+    try:
+        critere = preuve_service.valider_critere(item_id)
+    except preuve_service.CritereInconnuError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+    try:
+        contenu = await lire_borne(fichier, MAX_UPLOAD_BYTES)
+    except FichierTropVolumineuxError as exc:
+        raise HTTPException(status_code=413, detail=str(exc))
+
+    nom = Path(fichier.filename or "document").name
+    try:
+        validate_upload(
+            filename=nom,
+            content_type=fichier.content_type or "",
+            content=contenu,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+    try:
+        await depot_service.verifier_quota(db, len(contenu), user_id=current_user.id)
+    except depot_service.QuotaDepassementError as exc:
+        raise HTTPException(status_code=413, detail=str(exc))
+
+    now = datetime.now(UTC)
+    assessment = await nis2_service.get_user_assessment(db, current_user.id)
+    if assessment is None:
+        assessment = await nis2_service.upsert_assessment(
+            db, current_user.id, items={}, score=0, now=now
+        )
+
+    # `client_id` reste nul : ce depot n'appartient a aucun suivi RSSI. C'est ce
+    # qui le fait compter sur le quota du compte, et non sur celui d'un client.
+    cle = upload_file(contenu, nom, current_user.id, None)
+    enregistre = await depot_service.enregistrer_depot(
+        db,
+        cle_stockage=cle,
+        nom_original=nom,
+        taille_octets=len(contenu),
+        type_mime=fichier.content_type or "",
+        depose_par_id=current_user.id,
+        client_id=None,
+    )
+    preuve = await preuve_service.rattacher(
+        db,
+        assessment_id=assessment.id,
+        item_id=critere,
+        fichier_id=enregistre.id,
+        now=now,
+    )
+
+    return {
+        "id": preuve.id,
+        "nom": enregistre.nom_original,
+        "taille_octets": enregistre.taille_octets,
+        "statut_analyse": enregistre.statut_analyse,
+        "rattache_le": preuve.rattache_le,
+    }
+
+
+@router.delete("/me/pieces/{piece_id}", status_code=204)
+async def retirer_une_piece(
+    piece_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Detache une piece de son critere.
+
+    PAS DE GARDE D'ABONNEMENT ICI, ET C'EST DELIBERE. Un abonne qui repasse au
+    Gratuit doit pouvoir retirer ce qu'il a depose. Mettre le menage derriere un
+    peage retiendrait ses documents en otage.
+
+    Le fichier n'est pas efface : il redevient non reference, et la purge des
+    orphelins s'en chargera avec son delai de grace habituel.
+    """
+    assessment = await nis2_service.get_user_assessment(db, current_user.id)
+    if assessment is None:
+        raise HTTPException(status_code=404, detail="Pièce non trouvée")
+
+    if not await preuve_service.detacher(db, assessment_id=assessment.id, preuve_id=piece_id):
+        raise HTTPException(status_code=404, detail="Pièce non trouvée")
+
+
+@router.get("/me/pieces/{piece_id}/download")
+async def telecharger_une_piece(
+    piece_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Lien de telechargement d'une piece, sous reserve de l'analyse antivirus.
+
+    PAS DE GARDE D'ABONNEMENT NON PLUS : recuperer ses propres documents ne se
+    monnaye pas.
+
+    LA REGLE DE DELIVRANCE S'APPLIQUE SANS RIEN DE SPECIFIQUE. La piece est au
+    registre commun, donc `est_telechargeable` la couvre deja : un fichier dont
+    l'analyse n'est pas concluante n'est pas servi, meme a celui qui l'a depose.
+    """
+    from app.services.storage import get_download_url
+
+    assessment = await nis2_service.get_user_assessment(db, current_user.id)
+    if assessment is None:
+        raise HTTPException(status_code=404, detail="Pièce non trouvée")
+
+    cle = await preuve_service.cle_de_la_piece(db, assessment_id=assessment.id, preuve_id=piece_id)
+    if cle is None:
+        raise HTTPException(status_code=404, detail="Pièce non trouvée")
+
+    if not await depot_service.est_telechargeable(db, cle):
+        raise HTTPException(
+            status_code=409,
+            detail="Ce document est en cours de vérification. Il sera disponible sous peu.",
+        )
+    return {"url": get_download_url(cle)}
 
 
 @router.get("/me/pdf", dependencies=[Depends(require_conformity_export)])
@@ -474,11 +349,18 @@ async def export_auditor_pdf(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Generate a formal NIS2 'prêt-à-déposer' document for certified auditor review."""
+    """Generate a formal NIS2 'prêt-à-déposer' document for certified auditor review.
+
+    DEPUIS L'ETAPE 5f, IL EMBARQUE LES PIECES JUSTIFICATIVES. C'est ce qui fait
+    la difference entre un questionnaire rempli et un dossier opposable :
+    l'auditeur voit quel document appuie quel controle, et non seulement la
+    reponse declaree.
+    """
     assessment = await nis2_service.get_user_assessment(db, current_user.id)
     items = json.loads(assessment.items_json) if assessment else {}
     score = compute_assessment_score(items, ALL_ITEM_IDS)
     updated_at = assessment.updated_at if assessment else None
+    pieces = await _pieces_deposees(db, assessment)
 
     # Try to get company name from brand profile
     brand = await brand_service.get_brand_profile(db, current_user.id)
@@ -494,6 +376,7 @@ async def export_auditor_pdf(
         user_email=current_user.email,
         updated_at=updated_at,
         company_name=company_name,
+        pieces=pieces,
     )
 
     return StreamingResponse(

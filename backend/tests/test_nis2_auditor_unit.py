@@ -176,9 +176,12 @@ async def test_export_auditor_pdf_with_assessment():
     assessment.updated_at = datetime(2026, 5, 1, tzinfo=UTC)
 
     db = AsyncMock()
-    results = [MagicMock(), MagicMock()]
+    # Trois requetes depuis l'etape 5f : l'evaluation, SES PIECES, puis la marque.
+    # La requete des pieces rend des lignes (`.all()`), pas un scalaire.
+    results = [MagicMock(), MagicMock(), MagicMock()]
     results[0].scalar_one_or_none.return_value = assessment
-    results[1].scalar_one_or_none.return_value = None  # no brand
+    results[1].all.return_value = []  # aucune piece rattachee
+    results[2].scalar_one_or_none.return_value = None  # no brand
     db.execute = AsyncMock(side_effect=iter(results))
 
     response = await export_auditor_pdf(current_user=_make_user(), db=db)
@@ -201,9 +204,11 @@ async def test_export_auditor_pdf_with_brand():
     brand.company_name = "Acme Corp"
 
     db = AsyncMock()
-    results = [MagicMock(), MagicMock()]
+    # Trois requetes depuis l'etape 5f : l'evaluation, ses pieces, puis la marque.
+    results = [MagicMock(), MagicMock(), MagicMock()]
     results[0].scalar_one_or_none.return_value = assessment
-    results[1].scalar_one_or_none.return_value = brand
+    results[1].all.return_value = []
+    results[2].scalar_one_or_none.return_value = brand
     db.execute = AsyncMock(side_effect=iter(results))
 
     response = await export_auditor_pdf(current_user=_make_user(), db=db)

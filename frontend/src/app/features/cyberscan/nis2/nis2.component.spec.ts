@@ -16,6 +16,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { signal, computed } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { Nis2Component, Nis2Category, Nis2Status } from './nis2.component';
+import { PieceJustificative } from '../services/cyberscan.service';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -43,6 +44,14 @@ function make(): Nis2Component {
   // Données
   (c as any).categories = signal<Nis2Category[]>([]);
   (c as any).items = signal<Record<string, Nis2Status>>({});
+  // Pièces justificatives déposées par l'utilisateur — distinctes de `preuves`
+  // ci-dessus, qui sont les mesures de la plateforme.
+  (c as any).pieces = signal<Record<string, PieceJustificative[]>>({});
+  (c as any).depotEnCours = signal<string | null>(null);
+  // Sujet de l'évaluation : null = la mienne, un id = le dossier d'un client.
+  (c as any).clientId = signal<number | null>(null);
+  (c as any).modeClient = computed(() => (c as any).clientId() !== null);
+  (c as any).route = { snapshot: { paramMap: { get: () => null } } };
 
   // Constantes
   (c as any).CYCLE = ['non_compliant', 'partial', 'compliant', 'na'];
@@ -677,11 +686,12 @@ describe('save()', () => {
     const snack = { open: vi.fn() };
     (c as any).snack = snack;
     c.save();
-    // _fullItems : 2 items non renseignés → non_compliant
-    expect(saveMock).toHaveBeenCalledWith({
-      cat0_item0: 'non_compliant',
-      cat0_item1: 'non_compliant',
-    });
+    // _fullItems : 2 items non renseignés → non_compliant.
+    // Le second argument est le SUJET : `null` = mon auto-évaluation.
+    expect(saveMock).toHaveBeenCalledWith(
+      { cat0_item0: 'non_compliant', cat0_item1: 'non_compliant' },
+      null
+    );
     expect((c as any).score()).toBe(88);
     expect((c as any).updatedAt()).toBe('2024-07-01T12:00:00Z');
     expect((c as any).saving()).toBe(false);
@@ -1036,5 +1046,233 @@ describe('Template — blocs de remédiation et de preuve', () => {
   it('la preuve est présentée comme une mesure, pas comme une réponse', () => {
     // Le libellé ne doit pas suggérer que l'item est rempli.
     expect(tpl).toContain('Mesuré sur votre plateforme');
+  });
+});
+
+// ── Pièces justificatives (étape 5e) ─────────────────────────────────────────
+
+describe('pièces justificatives', () => {
+  const sain: PieceJustificative = {
+    id: 1,
+    nom: 'politique.pdf',
+    taille_octets: 2048,
+    statut_analyse: 'sain',
+    rattache_le: '2026-08-07T10:00:00Z',
+  };
+
+  it('regroupe les pièces par critère', () => {
+    const c = make();
+    (c as any).pieces.set({ rssi: [sain] });
+    expect(c.piecesDe('rssi')).toEqual([sain]);
+    expect(c.piecesDe('policy')).toEqual([]);
+  });
+
+  it("n'ouvre QUE ce que l'antivirus a déclaré sain", () => {
+    // Un statut inconnu ne vaut jamais « sain » — même règle que côté serveur.
+    const c = make();
+    expect(c.pieceOuvrable(sain)).toBe(true);
+    for (const statut of ['en_analyse', 'rejete', 'indetermine', 'PAS_VU']) {
+      expect(c.pieceOuvrable({ ...sain, statut_analyse: statut })).toBe(false);
+    }
+  });
+
+  it('le dépôt ajoute la pièce sous son critère', () => {
+    const c = make();
+    (c as any).complianceApi = { deposerPiece: vi.fn().mockReturnValue(of(sain)) };
+    (c as any).snack = { open: vi.fn() };
+
+    const input = { files: [new File(['x'], 'politique.pdf')], value: 'x' };
+    c.deposerPiece('rssi', { target: input } as unknown as Event);
+
+    expect(c.piecesDe('rssi')).toEqual([sain]);
+    expect((c as any).depotEnCours()).toBe(null);
+  });
+
+  it('le champ fichier est vidé, sinon redéposer le même fichier ne déclenche rien', () => {
+    const c = make();
+    (c as any).complianceApi = { deposerPiece: vi.fn().mockReturnValue(of(sain)) };
+    (c as any).snack = { open: vi.fn() };
+
+    const input = { files: [new File(['x'], 'politique.pdf')], value: 'politique.pdf' };
+    c.deposerPiece('rssi', { target: input } as unknown as Event);
+
+    expect(input.value).toBe('');
+  });
+
+  it("affiche le message du serveur, seul indice utile à l'utilisateur", () => {
+    // Quota atteint, contenu incohérent, abonnement requis : un texte générique
+    // priverait l'utilisateur de la seule information exploitable.
+    const c = make();
+    const snack = { open: vi.fn() };
+    (c as any).snack = snack;
+    (c as any).complianceApi = {
+      deposerPiece: vi
+        .fn()
+        .mockReturnValue(throwError(() => ({ error: { detail: 'Quota de dépôt atteint' } }))),
+    };
+
+    const input = { files: [new File(['x'], 'p.pdf')], value: '' };
+    c.deposerPiece('rssi', { target: input } as unknown as Event);
+
+    expect(snack.open).toHaveBeenCalledWith('Quota de dépôt atteint', 'Fermer', expect.anything());
+    expect((c as any).depotEnCours()).toBe(null);
+  });
+
+  it('le retrait enlève la pièce de son critère', () => {
+    const c = make();
+    (c as any).pieces.set({ rssi: [sain] });
+    (c as any).complianceApi = { retirerPiece: vi.fn().mockReturnValue(of(void 0)) };
+    (c as any).snack = { open: vi.fn() };
+
+    c.retirerPiece('rssi', sain);
+
+    expect(c.piecesDe('rssi')).toEqual([]);
+  });
+
+  it('un dépôt sans fichier sélectionné ne déclenche aucun appel', () => {
+    const c = make();
+    const api = { deposerPiece: vi.fn() };
+    (c as any).complianceApi = api;
+
+    c.deposerPiece('rssi', { target: { files: [] } } as unknown as Event);
+
+    expect(api.deposerPiece).not.toHaveBeenCalled();
+  });
+});
+
+describe('gabarit — pièces justificatives', () => {
+  // Le gabarit est relu depuis le disque : `Component.toString()` ne rend
+  // que le corps de classe, jamais le template.
+  const tpl = readFileSync(resolve(__dirname, './nis2.component.html'), 'utf-8');
+  it("le dépôt n'est proposé qu'aux plans payants", () => {
+    // Décision produit : déposer coûte du stockage. Le serveur garde la route,
+    // l'écran ne doit pas proposer un bouton qui répondra 403.
+    expect(tpl).toContain('@if (canExport())');
+    expect(tpl).toContain('Joindre une pièce');
+  });
+
+  it("retirer une pièce reste possible sans condition d'abonnement", () => {
+    // Un compte revenu au Gratuit doit pouvoir faire le ménage dans ses propres
+    // documents. Le bouton de retrait doit donc vivre HORS du bloc gardé.
+    //
+    // Le gabarit contient DEUX `@if (canExport())` : celui des boutons d'export
+    // en haut de page, et celui du dépôt. C'est le second qui nous intéresse —
+    // on l'ancre sur son libellé plutôt que sur la condition, qui n'est pas
+    // discriminante.
+    const iDepot = tpl.indexOf('Joindre une pièce');
+    // La garde du dépôt accepte le mode client depuis l'étape 5d
+    // (`get_rssi_consultant` remplace l'abonnement côté serveur) : on ancre sur
+    // le dernier `@if (` qui précède le libellé, sans présumer de sa condition.
+    const gardeDuDepot = tpl.lastIndexOf('@if (', iDepot);
+    const iRetrait = tpl.indexOf('retirerPiece(');
+
+    expect(iDepot).toBeGreaterThan(-1);
+    expect(iRetrait).toBeGreaterThan(-1);
+    expect(iRetrait).toBeLessThan(gardeDuDepot);
+  });
+
+  it("une pièce non vérifiée n'est pas présentée comme cliquable", () => {
+    expect(tpl).toContain('@if (pieceOuvrable(piece))');
+  });
+});
+
+// ── Le sujet de l'évaluation (étape 5d) ──────────────────────────────────────
+
+describe('sujet de l’évaluation', () => {
+  function avecRoute(clientId: string | null): Nis2Component {
+    const c = make();
+    (c as any).route = { snapshot: { paramMap: { get: () => clientId } } };
+    (c as any).billing = { getMySubscription: vi.fn().mockReturnValue(of(null)) };
+    (c as any).snack = { open: vi.fn() };
+    return c;
+  }
+
+  it('sans paramètre de route, le sujet est mon auto-évaluation', () => {
+    const c = avecRoute(null);
+    const api = { getNis2Assessment: vi.fn().mockReturnValue(of({})) };
+    (c as any).complianceApi = api;
+
+    c.ngOnInit();
+
+    expect((c as any).clientId()).toBe(null);
+    expect((c as any).modeClient()).toBe(false);
+    expect(api.getNis2Assessment).toHaveBeenCalledWith(null);
+  });
+
+  it('avec un clientId, le sujet est le dossier de ce client', () => {
+    const c = avecRoute('42');
+    const api = { getNis2Assessment: vi.fn().mockReturnValue(of({})) };
+    (c as any).complianceApi = api;
+
+    c.ngOnInit();
+
+    expect((c as any).clientId()).toBe(42);
+    expect((c as any).modeClient()).toBe(true);
+    expect(api.getNis2Assessment).toHaveBeenCalledWith(42);
+  });
+
+  it('le sujet est lu AVANT le premier appel', () => {
+    // Sinon le dossier d'un client serait demandé sur la route « moi », et le
+    // consultant verrait sa propre évaluation à la place de celle du client.
+    const c = avecRoute('7');
+    let sujetAuMomentDeLAppel: unknown = 'jamais appelé';
+    (c as any).complianceApi = {
+      getNis2Assessment: vi.fn().mockImplementation((id: unknown) => {
+        sujetAuMomentDeLAppel = id;
+        return of({});
+      }),
+    };
+
+    c.ngOnInit();
+
+    expect(sujetAuMomentDeLAppel).toBe(7);
+  });
+
+  it('le dépôt et le retrait transmettent le sujet', () => {
+    const c = avecRoute('42');
+    (c as any).clientId.set(42);
+    const piece = {
+      id: 9,
+      nom: 'p.pdf',
+      taille_octets: 10,
+      statut_analyse: 'sain',
+      rattache_le: '2026-08-07T10:00:00Z',
+    };
+    const api = {
+      deposerPiece: vi.fn().mockReturnValue(of(piece)),
+      retirerPiece: vi.fn().mockReturnValue(of(void 0)),
+      lienPiece: vi.fn().mockReturnValue(of({ url: 'https://x' })),
+    };
+    (c as any).complianceApi = api;
+
+    const input = { files: [new File(['x'], 'p.pdf')], value: '' };
+    c.deposerPiece('rssi', { target: input } as unknown as Event);
+    c.retirerPiece('rssi', piece);
+    c.ouvrirPiece(piece);
+
+    expect(api.deposerPiece).toHaveBeenCalledWith('rssi', expect.anything(), 42);
+    expect(api.retirerPiece).toHaveBeenCalledWith(9, 42);
+    expect(api.lienPiece).toHaveBeenCalledWith(9, 42);
+  });
+});
+
+describe('gabarit — mode client', () => {
+  const tpl = readFileSync(resolve(__dirname, './nis2.component.html'), 'utf-8');
+
+  it("l'export simple est masqué en mode client, faute de route serveur", () => {
+    expect(tpl).toContain('@if (canExport() && !modeClient())');
+  });
+
+  it("le document auditeur reste proposé au consultant sans condition d'abonnement", () => {
+    // Le serveur ne le garde pas derrière un plan pour un dossier client :
+    // le cacher ici masquerait un bouton que le serveur accepte.
+    expect(tpl).toContain('@if (canExport() || modeClient())');
+  });
+
+  it('le dépôt reste gardé par l’abonnement, y compris en mode client', () => {
+    // Être consultant n'implique aucun plan : le serveur garde la route des
+    // deux côtés depuis le 2026-08-07, l'écran doit poser la même condition.
+    const iDepot = tpl.indexOf('Joindre une pièce');
+    expect(tpl.lastIndexOf('@if (canExport()) {', iDepot)).toBeGreaterThan(-1);
   });
 });

@@ -80,6 +80,15 @@ export const CYBERSCAN_ROUTES: Routes = [
     title: 'Détail client — Rocher Cybersécurité',
   },
   {
+    // Le MEME composant que `/nis2`, avec un sujet différent : il lit
+    // `clientId` dans l'URL et le service en déduit le préfixe des routes API.
+    // Dupliquer l'écran aurait fait diverger les deux au premier changement.
+    path: 'consultant/clients/:clientId/nis2',
+    loadComponent: () => import('./nis2/nis2.component').then(m => m.Nis2Component),
+    canActivate: [rssiGuard],
+    title: 'Dossier NIS2 du client — Rocher Cybersécurité',
+  },
+  {
     path: 'espace-client',
     loadComponent: () =>
       import('./client-portal/client-portal.component').then(m => m.ClientPortalComponent),

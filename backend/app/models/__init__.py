@@ -52,6 +52,7 @@ from app.models.phishing import (
 
 # noqa: F401
 from app.models.plan import Plan  # noqa: F401
+from app.models.preuve_critere import PreuveCritere  # noqa: F401
 from app.models.processed_stripe_event import ProcessedStripeEvent  # noqa: F401
 from app.models.public_scan import PublicScan  # noqa: F401
 from app.models.quote import Quote  # noqa: F401

@@ -100,6 +100,18 @@
           <mat-icon style="font-size: 18px; height: 18px; width: 18px">picture_as_pdf</mat-icon>
           {{ generatingReport() ? 'Génération…' : 'Générer le rapport PDF' }}
         </button>
+        <!-- Dossier de conformité du client : même écran que l'auto-évaluation,
+             avec le client pour sujet. C'est là que se rattachent les pièces
+             qui rendent le dossier opposable. -->
+        <a
+          [routerLink]="['/consultant/clients', clientId, 'nis2']"
+          mat-stroked-button
+          matTooltip="Évaluer la conformité NIS2 de ce client et y rattacher les pièces justificatives"
+          class="!border-blue-600/50 !text-blue-300 hover:!bg-blue-500/10"
+        >
+          <mat-icon style="font-size: 18px; height: 18px; width: 18px">verified</mat-icon>
+          Dossier NIS2
+        </a>
         @if (client()?.awareness_organization_id; as orgId) {
           <a
             [routerLink]="['/awareness/org', orgId]"

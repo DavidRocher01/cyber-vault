@@ -281,7 +281,7 @@ async def deposer_un_document(
         raise HTTPException(status_code=422, detail=str(exc))
 
     try:
-        await depot_service.verifier_quota(db, client.id, len(contenu))
+        await depot_service.verifier_quota(db, len(contenu), client_id=client.id)
     except depot_service.QuotaDepassementError as exc:
         raise HTTPException(status_code=413, detail=str(exc))
 

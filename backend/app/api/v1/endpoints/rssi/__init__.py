@@ -16,6 +16,7 @@ from .clients import (
 )
 from .dashboard import router as dashboard_router
 from .deliverables import router as deliverables_router
+from .nis2 import router as nis2_router
 from .profile import router as profile_router
 from .report import router as report_router
 from .visits import router as visits_router
@@ -29,4 +30,5 @@ router.include_router(dashboard_router)
 router.include_router(activity_router)
 router.include_router(report_router)
 router.include_router(deliverables_router)
+router.include_router(nis2_router)
 router.include_router(profile_router)

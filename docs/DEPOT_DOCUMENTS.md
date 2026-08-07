@@ -237,6 +237,163 @@ ce chantier.
 
 ---
 
+### Ce que l'étape 5c a tranché
+
+**« Référencé » ne veut plus dire « désigné par un `RssiDeliverable` ».** Un
+fichier rattaché à un critère est référencé, quel que soit le parcours. Sans ce
+changement, la pièce d'un abonné direct était orpheline dès le dépôt et la purge
+nocturne l'effaçait au bout de sept jours.
+
+**Les deux purges utilisent un `exists()` corrélé, pas un `not_in`.** Ce n'est
+pas une préférence de style : avec un `file_url` à NULL, un `not_in` rend NULL —
+ni vrai ni faux — et le livrable sans fichier aurait été épargné par accident.
+Un test fixe ce cas.
+
+**Le périmètre du quota est explicite à l'appel, jamais deviné.** La signature
+n'acceptait qu'un `client_id` : un abonné hors RSSI ne pouvait pas être compté du
+tout, donc disposait d'un stockage illimité. `verifier_quota` exige désormais
+exactement un périmètre — `client_id` **ou** `user_id` — et lève si on lui en
+donne deux ou aucun. Le stockage des clients ne pèse pas sur le quota personnel
+du consultant, sinon leur activité bloquerait son propre dépôt.
+
+**La suppression de compte efface les objets S3 explicitement.** La cascade de la
+base ne sait rien de S3, et les deux clés étrangères sont en `SET NULL` : la
+ligne survivait avec ses deux clés nulles et l'objet n'était ramassé que sept
+jours plus tard, par effet de bord. L'appel se fait **avant** `db.delete(user)`,
+sans quoi les fiches clients — en CASCADE — auraient déjà disparu et plus rien ne
+relierait leurs fichiers au compte.
+
+**L'exemption a une limite, et c'est le point le plus important.** Elle protège
+les preuves des purges liées au **temps**, pas du droit à l'effacement. Si elle
+valait aussi contre une demande de suppression de compte, rattacher une pièce
+deviendrait un moyen de retenir des données malgré l'exercice d'un droit. Un test
+le vérifie.
+
+**`item_id` n'a pas de clé étrangère** — le catalogue est du code, pas une table.
+C'est la couche service qui le valide contre `ALL_ITEM_IDS`. Sans ce contrôle,
+une pièce rattachée à un identifiant erroné serait acceptée, stockée, comptée au
+quota, n'apparaîtrait nulle part, et échapperait à la purge puisqu'elle sert
+formellement de preuve : un fichier invisible et impérissable.
+
+**La politique de confidentialité couvre maintenant les deux cas** que 5c fait
+apparaître : l'abonné sans mission, dont les documents vivent avec son compte, et
+la pièce rattachée qui échappe aux 90 jours. Cette exemption est annoncée, pas
+tacite — avec la mention explicite qu'elle ne retire aucun droit.
+
+### Ce que l'étape 5e a tranché
+
+**Trois routes, et deux d'entre elles ne sont volontairement pas gardées.**
+Déposer coûte du stockage : plans payants, décision du 2026-08-07. **Retirer et
+télécharger ne le sont pas.** Un abonné qui repasse au Gratuit doit pouvoir
+récupérer et effacer ses propres documents ; les mettre derrière un péage les
+retiendrait en otage, ce qui n'est pas défendable sur un produit qui vend de la
+conformité. Un test parcourt exactement ce scénario : dépôt en payant,
+rétrogradation, puis dépôt refusé mais téléchargement et retrait toujours
+possibles.
+
+**`preuves` et `pieces` sont deux champs distincts**, et le nom les sépare
+exprès. `preuves` porte les mesures que la plateforme détient déjà (la formation
+suivie) ; `pieces` porte les documents que l'utilisateur a lui-même déposés. Les
+réunir sous un seul nom laisserait croire que la plateforme a produit ce que
+l'utilisateur a fourni.
+
+**Le dépôt et le rattachement se font en un seul appel**, comme côté portail. En
+deux temps, le fichier existerait un instant sans être référencé par rien — et
+la purge des orphelins finirait par l'effacer.
+
+**L'évaluation est créée si elle n'existe pas.** Exiger d'avoir enregistré son
+auto-évaluation avant de joindre une pièce imposerait un ordre que rien ne
+justifie. Une évaluation vide rend exactement ce que rendait son absence : items
+vides, score à zéro.
+
+**La clé de stockage ne dit plus « None ».** `upload_file` exigeait un
+`client_id` entier ; un dépôt hors suivi RSSI aurait écrit le littéral `None`
+dans le chemin, sous un préfixe `rssi-deliverables` qui mentait sur la nature du
+fichier. Le segment est désormais explicite.
+
+**Le gate est en fail-open, et ça n'a pas la même portée qu'ailleurs.** Sur
+l'export, un plan inconnu laissait passer un PDF ; ici il laisserait passer une
+écriture sur S3, donc de la facture. Deux choses le bornent : en production le
+plan Gratuit est toujours semé, donc un compte sans abonnement retombe dessus et
+reçoit un 403 ; et le quota s'applique de toute façon.
+
+### Ce que l'étape 5f a tranché
+
+**Le document auditeur gagne une section 4 qui rattache chaque pièce au contrôle
+qu'elle appuie**, et le tableau de détail gagne une colonne comptant les pièces.
+C'est cette section qui sépare un questionnaire rempli d'un dossier opposable :
+sans elle, l'auditeur lisait des réponses déclarées sans savoir ce qui les
+étayait.
+
+**Une pièce dont l'analyse antivirus n'est pas concluante n'y figure pas.** La
+présenter à un auditeur reviendrait à la dire vérifiée alors que la plateforme
+refuse elle-même de la servir. Mais elle n'est **pas passée sous silence** : le
+rapport annonce combien de documents ont été écartés et pourquoi. Une omission
+muette se lirait comme « rien n'a été déposé pour ce contrôle ».
+
+**Le rapport ne prête aucune valeur probante aux pièces.** Il écrit que la
+plateforme a contrôlé leur innocuité, pas leur contenu, et que l'appréciation
+revient à l'auditeur. Laisser l'ambiguïté serait vendre une garantie qu'on ne
+tient pas.
+
+**Sans aucune pièce, le document le dit** plutôt que d'afficher une section
+vide : les réponses constituent alors une déclaration de l'entité, non étayée.
+
+**Un décalage introduit et rattrapé :** ajouter la colonne « Pièces » au tableau
+de détail a déplacé la colonne du statut de l'index 1 à l'index 2, alors que la
+couleur du statut visait toujours l'index 1. Vu au rendu, pas à la relecture —
+d'où l'intérêt de regarder le PDF produit et pas seulement le texte extrait.
+
+### Ce que l'étape 5d a tranché
+
+**Un seul écran sert les deux sujets.** `/nis2` et
+`/consultant/clients/:clientId/nis2` chargent le **même composant** : il lit
+`clientId` dans l'URL et le service en déduit le préfixe des routes API.
+Dupliquer l'écran aurait fait diverger les deux au premier changement.
+
+Ça n'a été possible que parce que les routes serveur ont été dessinées en
+miroir : `…/criteres/{id}/pieces`, `…/pieces/{id}`, `…/pdf/auditor` ont
+exactement les mêmes suffixes des deux côtés. Un seul préfixe variable suffit.
+
+**Le dépôt est gardé par l'abonnement des deux côtés** (aligné le 2026-08-07,
+après vérification). **Être consultant n'implique aucun plan** :
+`is_rssi_consultant` est un booléen à `false` par défaut, posé par un admin
+(`toggle_rssi_consultant`), sans le moindre lien avec un abonnement — et aucune
+route RSSI n'a de `require_min_tier`. Un compte peut donc être consultant *et*
+au Gratuit.
+
+**Ce qui reste ouvert, et c'est la même règle qu'ailleurs :** retirer, télécharger
+et exporter le document auditeur ne sont pas gardés. Un consultant dont
+l'abonnement a lapsé doit pouvoir récupérer, nettoyer, et rendre le travail déjà
+fait — bloquer cela retiendrait en otage des documents qui ne lui appartiennent
+même pas.
+
+**Le quota reste celui du client**, pas celui du consultant : l'imputer au
+consultant ferait que ses dix clients se disputeraient un seul plafond.
+
+**Ce que cette garde NE borne PAS, et c'est le vrai levier de coût.** La création
+de clients RSSI n'est plafonnée par rien, et chaque client ouvre 500 Mo. La
+facture suit donc le nombre de clients, pas le plan. Constat assumé, pas oubli :
+à l'ordre du centime par mois et par client rempli à ras bord, un plafond mal
+placé gênerait un consultant légitime pour rien.
+
+**L'écran suit le serveur, pas l'inverse.** Le document auditeur reste proposé
+en mode client même si le consultant est au Gratuit, puisque le serveur
+l'accepte ; et l'export simple y est masqué, faute de route serveur. Cacher un
+bouton que le serveur accepte, ou en proposer un qu'il refuse, sont deux
+symptômes du même défaut.
+
+**L'isolation est ce qui est le plus testé.** Un consultant détient maintenant
+plusieurs dossiers dans la même table. Une requête qui oublierait le sujet
+ferait fuiter le dossier d'un client vers un autre, ou vers l'auto-évaluation
+personnelle du consultant. Cinq gardes vérifiées en les cassant.
+
+**Un trou de couverture trouvé en cassant :** neutraliser le calcul de préfixe
+dans le service ne faisait tomber aucun test. Huit tests ont été ajoutés sur
+`compliance-api.service` ; la même cassure en fait tomber cinq désormais.
+
+---
+
 ## Séquencement proposé
 
 | Étape | Contenu | Condition |
@@ -249,7 +406,12 @@ ce chantier.
 | ~~3~~ | ~~Dépôt côté portail RSSI~~ | **backend fait le 2026-08-05 — interface à faire** |
 | 4a | ~~Purge des dépôts orphelins + suppression S3~~ | **fait le 2026-08-04** |
 | ~~4b~~ | ~~Rétention des documents rattachés~~ | **fait le 2026-08-05** |
-| 5 | Preuves rattachées aux critères NIS2 / ISO | chantier distinct, à cadrer |
+| ~~5a~~ | ~~Catalogue NIS2 sorti de la couche de routage~~ | **fait le 2026-08-07** |
+| ~~5b~~ | ~~`client_id` + unicité `NULLS NOT DISTINCT`~~ | **fait le 2026-08-07** |
+| ~~5c~~ | ~~Table de preuves, purge générique, quota, rétention~~ | **fait le 2026-08-07** |
+| ~~5d~~ | ~~Interface RSSI — dossier NIS2 du client~~ | **fait le 2026-08-07** |
+| ~~5e~~ | ~~Abonné direct — dépôt sur l'auto-évaluation~~ | **fait le 2026-08-07** |
+| ~~5f~~ | ~~Export PDF auditeur listant les preuves~~ | **fait le 2026-08-07** |
 
 **L'étape 2 n'est pas négociable avant l'étape 3.** Ouvrir le dépôt aux clients
 sans analyse antivirus, c'est accepter de distribuer ce qu'on reçoit.
@@ -257,6 +419,84 @@ sans analyse antivirus, c'est accepter de distribuer ce qu'on reçoit.
 ---
 
 ## Décidé
+
+**Trois sujets, un seul modèle** (2026-08-07). Les évaluations NIS2 et ISO sont
+aujourd'hui uniques par `user_id` — un consultant ne peut donc pas détenir un
+dossier par client. La colonne `client_id` nullable règle les trois cas d'un
+coup : `NULL` = mon auto-évaluation (abonné direct, comportement actuel),
+renseignée = le dossier monté pour ce client.
+
+L'unicité devient `UNIQUE (user_id, client_id) NULLS NOT DISTINCT`. **Ce dernier
+point n'est pas un raffinement.** PostgreSQL considère par défaut deux NULL
+comme distincts : sans lui, un même compte pourrait créer une infinité
+d'auto-évaluations, et `upsert_assessment` — qui fait un `scalar_one_or_none()`
+— se mettrait à lever une exception dès la deuxième. Disponible à partir de
+PostgreSQL 15, et la plateforme est en 17. Vérifié aussi côté SQLAlchemy 2.0.49
+(`postgresql_nulls_not_distinct`).
+
+**Le dépôt de pièces est réservé aux plans payants** (2026-08-07). Par
+cohérence avec l'export de conformité, déjà gardé par
+`require_conformity_export` : le plan Gratuit fait l'auto-évaluation mais
+n'exporte pas. Ce choix borne aussi la facture S3, que le quota par client ne
+couvre pas pour un abonné hors RSSI.
+
+**L'abonné qui veut NIS2 seul est un cas de premier rang** (2026-08-07) — ni
+consultant, ni client d'un RSSI fractionné. Conséquence : la surface de dépôt
+est construite **générique dès 5c**, indexée sur le sujet de l'évaluation, le
+portail RSSI devenant un appelant parmi deux. La construire d'abord côté RSSI
+puis la porter referait le chemin deux fois.
+
+### Ce que l'étape 5b a fait apparaître (2026-08-07)
+
+**Quatre requêtes reposaient sur « une seule évaluation par compte »**, toutes
+avec un `scalar_one_or_none()`. Dès qu'un consultant en détient plusieurs, celles
+qui ignorent le sujet lèvent. La plus grave : `export_account_data`, **l'export
+de portabilité RGPD (art. 20)** — il aurait cassé précisément pour les comptes
+qui se servent le plus du produit.
+
+Elles filtrent désormais `client_id IS NULL`. Ce n'est pas qu'une parade
+technique : un dossier de conformité décrit l'entité du **client**. Le verser
+dans l'export d'un autre compte publierait les données d'un tiers dans un
+fichier de portabilité.
+
+**`client_id` est en CASCADE, pas en SET NULL.** Repasser la colonne à NULL
+confondrait le dossier avec l'auto-évaluation personnelle du consultant — en y
+versant les réponses d'un tiers — et violerait l'unicité s'il en avait déjà une.
+
+**Le `downgrade` généré par autogenerate était faux deux fois** : il supprimait
+la clé étrangère par le nom `None`, et recréait l'unicité par compte **avant**
+que les dossiers clients ne disparaissent, donc en échec dès qu'un consultant en
+détenait plus d'un. Vérifié en semant le cas puis en tentant la contrainte :
+violation d'unicité. Le fichier a été repris à la main.
+
+### Ce que ce cas cassait — réglé le 2026-08-07 (étape 5c)
+
+**La purge des orphelins effacerait la preuve au bout de 7 jours.** Elle
+considère comme référencé tout fichier présent dans `RssiDeliverable.file_url`.
+Un abonné hors RSSI n'a par construction aucun `RssiDeliverable` : sa pièce est
+orpheline dès le dépôt. La notion de « fichier référencé » est de forme RSSI et
+doit devenir générique — c'est ce qui rend ce cas possible, pas un détail.
+
+**Le quota ne peut pas être appelé.** `verifier_quota(db, client_id, ...)` exige
+un client RSSI. Sans lui, un abonné direct dispose d'un stockage illimité —
+exactement le risque que ce quota a été écrit pour éviter.
+
+**La rétention n'a plus de repère.** Les 90 jours partent de `cloture_le`, et un
+abonné direct n'a pas de mission qui se clôt. Sa durée devient la vie de son
+compte. Or `delete_account` fait `db.delete(user)` + cascade, et
+`depose_par_id` est en `SET NULL` : la ligne de registre survit avec ses deux
+clés à `NULL`, et l'objet S3 n'est supprimé par aucun chemin explicite —
+seulement ramassé sept jours plus tard par la purge des orphelins, par effet de
+bord. Sur une demande d'effacement RGPD, ce délai doit être un choix assumé.
+
+**Une pièce rattachée ne peut plus être purgée à 90 jours.** Rattacher un
+document en change la finalité : il devient une pièce du dossier, au même titre
+qu'un livrable consultant. Mais la politique de confidentialité annonce
+« effacés 90 jours après la fin de votre mission », et ne couvre pas non plus
+l'abonné sans mission. **Les deux régimes doivent y être écrits dans le même lot
+que le code** — sinon on publie un engagement que le code ne tient pas, ce qu'on
+s'est déjà interdit pour les livrables consultant.
+
 
 **Antivirus : GuardDuty Malware Protection for S3** (2026-08-03). Managé, la
 donnée reste dans AWS, et le palier gratuit couvre largement le volume attendu.
