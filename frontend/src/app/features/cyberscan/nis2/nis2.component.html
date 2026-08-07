@@ -385,9 +385,10 @@
                       </ul>
                     }
 
-                    <!-- En mode client, `get_rssi_consultant` remplace la garde
-                         d'abonnement côté serveur : l'écran suit. -->
-                    @if (canExport() || modeClient()) {
+                    <!-- Le dépôt est gardé par l'abonnement des DEUX côtés :
+                         être consultant n'implique aucun plan. Même condition
+                         que le serveur, donc pas de bouton qui répondrait 403. -->
+                    @if (canExport()) {
                       <label
                         class="mt-2 inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
                       >

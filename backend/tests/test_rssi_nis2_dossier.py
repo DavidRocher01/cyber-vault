@@ -12,6 +12,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
+from tests.conftest import create_plan_and_subscription
 
 BASE = "/api/v1"
 PDF = b"%PDF-1.4 piece du dossier"
@@ -269,3 +270,120 @@ async def test_l_export_nomme_le_client_et_non_le_cabinet():
     kwargs = gen.call_args.kwargs
     assert kwargs["company_name"] == "Entreprise Cliente SA"
     assert "rssi" in kwargs["pieces"], "les pièces du client n'ont pas été transmises"
+
+
+# ── La garde d abonnement (alignee le 2026-08-07) ────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_un_consultant_au_gratuit_ne_depose_pas():
+    """ETRE CONSULTANT N IMPLIQUE AUCUN ABONNEMENT.
+
+    `is_rssi_consultant` est un booleen a false par defaut, pose par un admin,
+    sans le moindre lien avec un plan. Un compte peut donc etre consultant ET au
+    Gratuit — la garde doit s'appliquer des deux cotes.
+    """
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        h = await _consultant(c, "cons_gratuit@test.com")
+        await create_plan_and_subscription(c, h, tier=1)
+        client_id = await _un_client(c, h, "Client")
+
+        r = await c.post(
+            f"{BASE}/rssi/clients/{client_id}/nis2/criteres/rssi/pieces",
+            headers=h,
+            files=_piece(),
+        )
+
+    assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_un_consultant_payant_depose():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        h = await _consultant(c, "cons_payant@test.com")
+        await create_plan_and_subscription(c, h, tier=2)
+        client_id = await _un_client(c, h, "Client")
+
+        r = await c.post(
+            f"{BASE}/rssi/clients/{client_id}/nis2/criteres/rssi/pieces",
+            headers=h,
+            files=_piece(),
+        )
+
+    assert r.status_code == 201, r.text
+
+
+@pytest.mark.asyncio
+async def test_un_consultant_au_gratuit_recupere_et_nettoie_toujours():
+    """CE QUI RESTE OUVERT, ET C EST DELIBERE.
+
+    Un consultant dont l'abonnement a lapse doit pouvoir recuperer et nettoyer
+    les dossiers de ses clients, et rendre le travail deja fait. Bloquer cela
+    retiendrait en otage des documents qui ne lui appartiennent meme pas.
+    """
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        h = await _consultant(c, "cons_lapse@test.com")
+        await create_plan_and_subscription(c, h, tier=2)
+        client_id = await _un_client(c, h, "Client")
+        depot = await c.post(
+            f"{BASE}/rssi/clients/{client_id}/nis2/criteres/rssi/pieces",
+            headers=h,
+            files=_piece(),
+        )
+        pid = depot.json()["id"]
+
+        await _retrograder_au_gratuit(h)
+
+        refuse = await c.post(
+            f"{BASE}/rssi/clients/{client_id}/nis2/criteres/rssi/pieces",
+            headers=h,
+            files=_piece("autre.pdf"),
+        )
+        lien = await c.get(f"{BASE}/rssi/clients/{client_id}/nis2/pieces/{pid}/download", headers=h)
+        export = await c.get(f"{BASE}/rssi/clients/{client_id}/nis2/pdf/auditor", headers=h)
+        retrait = await c.delete(f"{BASE}/rssi/clients/{client_id}/nis2/pieces/{pid}", headers=h)
+
+    assert refuse.status_code == 403, "la retrogradation n'a pas pris"
+    assert lien.status_code == 200, "ses documents lui sont refuses"
+    assert export.status_code == 200, "il ne peut plus rendre le travail deja fait"
+    assert retrait.status_code == 204, "il ne peut plus faire le menage"
+
+
+async def _retrograder_au_gratuit(headers: dict) -> None:
+    """Bascule l'abonnement EXISTANT vers le Gratuit.
+
+    On modifie la ligne en place : deux abonnements actifs feraient lever
+    `get_active_plan`, qui fait un `scalar_one_or_none()`.
+    """
+    from sqlalchemy import select
+
+    import app.core.database as _db
+    from app.core.security import decode_access_token
+    from app.models.plan import Plan
+    from app.models.subscription import Subscription
+    from app.services.subscription_service import FREE_PLAN_NAME
+
+    uid = int(decode_access_token(headers["Authorization"].removeprefix("Bearer ").strip()))
+    async with _db.AsyncSessionLocal() as db:
+        gratuit = (
+            await db.execute(select(Plan).where(Plan.name == FREE_PLAN_NAME))
+        ).scalar_one_or_none()
+        if gratuit is None:
+            gratuit = Plan(
+                name=FREE_PLAN_NAME,
+                display_name="Gratuit",
+                price_eur=0,
+                max_sites=-1,
+                scan_interval_days=1,
+                tier_level=1,
+                allow_conformity_export=False,
+            )
+            db.add(gratuit)
+            await db.flush()
+        for sub in (
+            (await db.execute(select(Subscription).where(Subscription.user_id == uid)))
+            .scalars()
+            .all()
+        ):
+            sub.plan_id = gratuit.id
+        await db.commit()

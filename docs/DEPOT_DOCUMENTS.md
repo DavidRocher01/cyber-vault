@@ -355,12 +355,27 @@ Dupliquer l'écran aurait fait diverger les deux au premier changement.
 miroir : `…/criteres/{id}/pieces`, `…/pieces/{id}`, `…/pdf/auditor` ont
 exactement les mêmes suffixes des deux côtés. Un seul préfixe variable suffit.
 
-**Pas de garde d'abonnement côté consultant**, contrairement à l'abonné direct.
-`get_rssi_consultant` vérifie `is_rssi_consultant`, un drapeau posé
-délibérément et bien plus restrictif qu'un plan : bloquer un consultant sur son
-propre abonnement l'empêcherait de rendre le service qu'il vend. Le coût reste
-borné par le quota **du client**, qui s'applique inchangé — l'imputer au
+**Le dépôt est gardé par l'abonnement des deux côtés** (aligné le 2026-08-07,
+après vérification). **Être consultant n'implique aucun plan** :
+`is_rssi_consultant` est un booléen à `false` par défaut, posé par un admin
+(`toggle_rssi_consultant`), sans le moindre lien avec un abonnement — et aucune
+route RSSI n'a de `require_min_tier`. Un compte peut donc être consultant *et*
+au Gratuit.
+
+**Ce qui reste ouvert, et c'est la même règle qu'ailleurs :** retirer, télécharger
+et exporter le document auditeur ne sont pas gardés. Un consultant dont
+l'abonnement a lapsé doit pouvoir récupérer, nettoyer, et rendre le travail déjà
+fait — bloquer cela retiendrait en otage des documents qui ne lui appartiennent
+même pas.
+
+**Le quota reste celui du client**, pas celui du consultant : l'imputer au
 consultant ferait que ses dix clients se disputeraient un seul plafond.
+
+**Ce que cette garde NE borne PAS, et c'est le vrai levier de coût.** La création
+de clients RSSI n'est plafonnée par rien, et chaque client ouvre 500 Mo. La
+facture suit donc le nombre de clients, pas le plan. Constat assumé, pas oubli :
+à l'ordre du centime par mois et par client rempli à ras bord, un plafond mal
+placé gênerait un consultant légitime pour rien.
 
 **L'écran suit le serveur, pas l'inverse.** Le document auditeur reste proposé
 en mode client même si le consultant est au Gratuit, puisque le serveur

@@ -9,11 +9,23 @@ LE SUJET EST LE CLIENT, LE PROPRIETAIRE RESTE LE CONSULTANT. `user_id` designe
 qui detient le dossier, `client_id` de qui il parle. Un consultant qui suit dix
 clients detient dix dossiers en plus du sien.
 
-POURQUOI PAS DE GARDE D'ABONNEMENT ICI, contrairement a la route de l'abonne
-direct. `get_rssi_consultant` verifie `is_rssi_consultant`, un drapeau pose
-deliberement et bien plus restrictif qu'un plan : bloquer un consultant sur son
-propre abonnement l'empecherait de rendre le service qu'il vend. Le cout reste
-borne par le quota du client, qui s'applique inchange.
+LE DEPOT EST RESERVE AUX PLANS PAYANTS, ICI COMME COTE ABONNE DIRECT. Le role
+consultant n'implique AUCUN abonnement : `is_rssi_consultant` est un booleen a
+false par defaut, pose par un admin, sans le moindre lien avec un plan. Un compte
+peut donc etre consultant et au Gratuit. La garde s'applique donc des deux cotes,
+sans exception.
+
+CE QUI RESTE OUVERT, ET C'EST LA MEME REGLE QU'AILLEURS : retirer une piece et la
+telecharger ne sont pas gardes. Un consultant dont l'abonnement a lapse doit
+pouvoir recuperer et nettoyer les dossiers de ses clients. L'export du document
+auditeur non plus : c'est son livrable, et le bloquer sur son abonnement
+personnel le priverait de rendre le travail deja fait.
+
+CE QUE CETTE GARDE NE BORNE PAS. La creation de clients RSSI n'est plafonnee par
+rien, et chaque client ouvre un quota de 500 Mo. Le cout reste donc fonction du
+nombre de clients, pas du plan. C'est un constat, pas un oubli : aux montants en
+jeu — de l'ordre du centime par mois et par client rempli — un plafond mal place
+generait un consultant legitime pour rien.
 """
 
 import json
@@ -26,7 +38,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_rssi_consultant
+from app.core.deps import get_rssi_consultant, require_conformity_pieces
 from app.models.user import User
 from app.services import depot_service, nis2_service, preuve_service
 from app.services.assessment_service import compute_assessment_score
@@ -119,6 +131,7 @@ async def enregistrer_le_dossier(
     "/clients/{client_id}/nis2/criteres/{item_id}/pieces",
     response_model=PieceClientOut,
     status_code=201,
+    dependencies=[Depends(require_conformity_pieces)],
 )
 async def joindre_une_piece(
     client_id: int,
@@ -131,6 +144,8 @@ async def joindre_une_piece(
 
     MEME ORDRE DE CONTROLES QUE PARTOUT : critere connu, lecture bornee,
     signature, quota — avant d'ecrire quoi que ce soit sur S3.
+
+    LA GARDE D'ABONNEMENT S'APPLIQUE : etre consultant n'implique aucun plan.
 
     LE QUOTA EST CELUI DU CLIENT, pas celui du consultant. Ce document appartient
     au suivi de ce client ; l'imputer au consultant ferait que ses dix clients se

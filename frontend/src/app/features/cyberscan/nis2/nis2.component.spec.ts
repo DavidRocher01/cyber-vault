@@ -1268,4 +1268,11 @@ describe('gabarit — mode client', () => {
     // le cacher ici masquerait un bouton que le serveur accepte.
     expect(tpl).toContain('@if (canExport() || modeClient())');
   });
+
+  it('le dépôt reste gardé par l’abonnement, y compris en mode client', () => {
+    // Être consultant n'implique aucun plan : le serveur garde la route des
+    // deux côtés depuis le 2026-08-07, l'écran doit poser la même condition.
+    const iDepot = tpl.indexOf('Joindre une pièce');
+    expect(tpl.lastIndexOf('@if (canExport()) {', iDepot)).toBeGreaterThan(-1);
+  });
 });
