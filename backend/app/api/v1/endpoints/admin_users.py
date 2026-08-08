@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import require_admin
+from app.models.plan import Plan
 from app.services import plan_service, subscription_service, user_admin_service
 
 router = APIRouter(prefix="/admin/users", tags=["admin"])
@@ -19,6 +20,12 @@ class SetPlanIn(BaseModel):
     plan_name: str = Field(min_length=1, description="Nom technique du plan (ex. 'starter')")
 
 
+def _gratuit_libelle(gratuit: Plan | None) -> str:
+    """Libelle du plan de repli. « Gratuit » en dur si le plan n'est pas seme —
+    on prefere un libelle juste a une case vide."""
+    return gratuit.display_name if gratuit else "Gratuit"
+
+
 @router.get(
     "",
     dependencies=[Depends(require_admin)],
@@ -30,6 +37,9 @@ async def list_users(
     db: AsyncSession = Depends(get_db),
 ):
     rows = await user_admin_service.list_users_with_plan(db, skip=skip, limit=limit)
+    # Repli sur le Gratuit quand aucun abonnement n'est VALIDE — exactement ce que
+    # fait `get_active_plan`. Une seule requete pour toute la page.
+    gratuit = await plan_service.get_plan_by_name(db, subscription_service.FREE_PLAN_NAME)
     return [
         {
             "id": u.id,
@@ -43,12 +53,24 @@ async def list_users(
             # est le seul cas ou ce droit reste faiblement protege.
             "is_admin": u.is_admin,
             "totp_enabled": u.totp_enabled,
-            "plan": p.display_name if p else "Gratuit",
-            "plan_name": p.name if p else None,
+            # LE PLAN EFFECTIF, celui que la plateforme applique reellement.
+            # Avant le 2026-08-07 on rendait ici le plan BRUT de la ligne
+            # d'abonnement : un abonnement expire s'affichait payant alors que
+            # tous les acces etaient deja retombes au Gratuit.
+            "plan": p.display_name if (p and valide) else _gratuit_libelle(gratuit),
+            "plan_name": p.name if (p and valide) else (gratuit.name if gratuit else None),
             "subscription_status": s.status if s else None,
             "subscription_since": s.created_at.isoformat() if s else None,
+            # LE « POURQUOI » DE L'ECART. Sans ces deux champs, un administrateur
+            # verrait « Gratuit » sur un compte qu'il a lui-meme passe en Business,
+            # sans aucun moyen de comprendre. La date affichee jusqu'ici etait la
+            # date de CREATION de l'abonnement, qui ne dit rien de son echeance.
+            "subscription_period_end": (
+                s.current_period_end.isoformat() if s and s.current_period_end else None
+            ),
+            "subscription_perimee": bool(s) and not valide,
         }
-        for u, s, p in rows
+        for u, s, p, valide in rows
     ]
 
 

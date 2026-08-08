@@ -54,6 +54,17 @@ export class ComplianceApiService {
     );
   }
 
+  /** Les pièces et leur état d'analyse, SANS le catalogue des critères.
+   *
+   *  L'écran interroge cette route toutes les dix secondes tant qu'une analyse
+   *  antivirus est en cours. `getNis2Assessment` embarque les 34 critères — une
+   *  quinzaine de kilo-octets qui ne changent jamais : les retélécharger à
+   *  chaque sondage serait du gaspillage pur.
+   */
+  listerPieces(clientId?: number | null): Observable<Record<string, PieceJustificative[]>> {
+    return this.http.get<Record<string, PieceJustificative[]>>(`${this.baseNis2(clientId)}/pieces`);
+  }
+
   retirerPiece(pieceId: number, clientId?: number | null): Observable<void> {
     return this.http.delete<void>(`${this.baseNis2(clientId)}/pieces/${pieceId}`);
   }

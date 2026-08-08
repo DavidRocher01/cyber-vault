@@ -13,6 +13,13 @@ interface AdminUser {
   plan_name: string | null;
   subscription_status: string | null;
   subscription_since: string | null;
+  /** Échéance de l'abonnement. `null` = pas d'expiration (plan manuel, override
+   *  admin). C'est le « pourquoi » d'un plan effectif qui diffère du plan
+   *  attendu — la date affichée jusqu'ici était celle de la CRÉATION. */
+  subscription_period_end: string | null;
+  /** Une ligne d'abonnement au statut `active` existe, mais sa période est échue
+   *  au-delà de la marge : la plateforme traite déjà ce compte au Gratuit. */
+  subscription_perimee: boolean;
 }
 
 @Component({
@@ -96,7 +103,16 @@ export class AdminUsersComponent implements OnInit {
           this.users.update(list =>
             list.map(u =>
               u.id === res.id
-                ? { ...u, plan: res.plan, plan_name: res.plan_name, subscription_status: 'active' }
+                ? {
+                    ...u,
+                    plan: res.plan,
+                    plan_name: res.plan_name,
+                    subscription_status: 'active',
+                    // `admin_set_user_plan` repousse l'échéance à +10 ans :
+                    // la ligne cesse d'être périmée par construction.
+                    subscription_perimee: false,
+                    subscription_period_end: null,
+                  }
                 : u
             )
           );

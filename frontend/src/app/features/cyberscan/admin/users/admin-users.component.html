@@ -71,6 +71,23 @@
               </td>
               <td class="px-4 py-3 text-gray-400 text-xs">
                 {{ formatDate(u.subscription_since) }}
+                <!-- L'ÉCART DOIT SE VOIR. Le sélecteur ci-contre montre le plan
+                     EFFECTIF ; sans cette mention, un administrateur verrait
+                     « Gratuit » sur un compte qu'il a lui-même passé en Business
+                     sans aucun moyen de comprendre. -->
+                @if (u.subscription_perimee) {
+                  <div
+                    class="mt-1 inline-flex items-center gap-1 text-amber-400"
+                    [title]="
+                      'Abonnement échu le ' +
+                      formatDate(u.subscription_period_end) +
+                      ' — le compte est traité au plan Gratuit'
+                    "
+                  >
+                    <mat-icon class="!text-[0.8rem] !w-[0.8rem] !h-[0.8rem]">warning</mat-icon>
+                    Échu le {{ formatDate(u.subscription_period_end) }}
+                  </div>
+                }
               </td>
               <td class="px-4 py-3">
                 <span

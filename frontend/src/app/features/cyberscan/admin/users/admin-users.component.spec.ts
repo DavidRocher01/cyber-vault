@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { signal, computed } from '@angular/core';
 import { AdminUsersComponent } from './admin-users.component';
@@ -247,5 +249,45 @@ describe('AdminUsersComponent — formatDate()', () => {
   it("contient l'année pour une date ISO valide", () => {
     const comp = make();
     expect(comp.formatDate('2024-06-01T00:00:00Z')).toContain('2024');
+  });
+});
+
+// ── Plan effectif et écart d'abonnement (corrigé le 2026-08-07) ──────────────
+//
+// LE DÉFAUT : la liste annonçait le plan BRUT de la ligne d'abonnement, alors
+// que les accès dépendent du plan EFFECTIF. Un abonnement échu s'affichait
+// « Business / Actif » pendant que la plateforme traitait le compte en Gratuit.
+// Les deux disaient vrai selon leur propre règle — et ça faisait conclure à tort
+// sur les droits d'un client.
+
+describe('AdminUsersComponent — écart d’abonnement', () => {
+  const tpl = readFileSync(resolve(__dirname, './admin-users.component.html'), 'utf-8');
+
+  it('le sélecteur montre le plan effectif renvoyé par le serveur', () => {
+    // Le serveur envoie désormais `plan_name` = plan EFFECTIF. L'écran s'y fie.
+    expect(tpl).toContain('[value]="u.plan_name ?? \'free\'"');
+  });
+
+  it('un abonnement échu est signalé, pas seulement corrigé en silence', () => {
+    // Sans cette mention, un administrateur verrait « Gratuit » sur un compte
+    // qu'il a lui-même passé en Business, sans aucun moyen de comprendre.
+    expect(tpl).toContain('@if (u.subscription_perimee)');
+    expect(tpl).toContain('u.subscription_period_end');
+  });
+
+  it("l'échéance est affichée, pas la date de création", () => {
+    // La date montrée jusqu'ici était `subscription_since` — la CRÉATION de
+    // l'abonnement, qui ne dit rien de son expiration.
+    const iPerime = tpl.indexOf('u.subscription_perimee');
+    expect(tpl.indexOf('u.subscription_period_end')).toBeGreaterThan(iPerime);
+  });
+
+  it('changer le plan efface la mention « échu »', () => {
+    // `admin_set_user_plan` repousse l'échéance à +10 ans : la ligne cesse
+    // d'être périmée. Laisser l'avertissement afficherait une contre-vérité.
+    const src = readFileSync(resolve(__dirname, './admin-users.component.ts'), 'utf-8');
+    const iSetPlan = src.indexOf('setPlan(');
+    const bloc = src.slice(iSetPlan, src.indexOf('private clearSaving'));
+    expect(bloc).toContain('subscription_perimee: false');
   });
 });

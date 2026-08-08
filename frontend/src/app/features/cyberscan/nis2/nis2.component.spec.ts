@@ -1276,3 +1276,142 @@ describe('gabarit — mode client', () => {
     expect(tpl.lastIndexOf('@if (canExport()) {', iDepot)).toBeGreaterThan(-1);
   });
 });
+
+// ── Sondage du verdict antivirus (2026-08-07) ────────────────────────────────
+//
+// Sans lui, l'utilisateur devait recharger la page a la main pour voir sa piece
+// passer de « en analyse » a « verifie » — un F5 a l'aveugle, sans savoir quand.
+//
+// L'ARRET COMPTE AUTANT QUE LE SONDAGE. Un flux qui ne s'arrete jamais
+// interrogerait l'API toute la journee depuis un onglet oublie.
+
+describe('sondage du verdict antivirus', () => {
+  const enAnalyse = (id: number) => ({
+    id,
+    nom: `p${id}.pdf`,
+    taille_octets: 10,
+    statut_analyse: 'en_analyse',
+    rattache_le: '2026-08-07T10:00:00Z',
+  });
+  const sain = (id: number) => ({ ...enAnalyse(id), statut_analyse: 'sain' });
+
+  function prepare(pieces: Record<string, any[]>) {
+    const c = make();
+    (c as any).pieces.set(pieces);
+    (c as any).snack = { open: vi.fn() };
+    return c;
+  }
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('ne démarre pas quand rien n’attend', () => {
+    const c = prepare({ rssi: [sain(1)] });
+    const api = { listerPieces: vi.fn().mockReturnValue(of({})) };
+    (c as any).complianceApi = api;
+
+    (c as any).demarrerSondage();
+    vi.advanceTimersByTime(60_000);
+
+    expect(api.listerPieces).not.toHaveBeenCalled();
+  });
+
+  it('sonde tant qu’une pièce est en analyse', () => {
+    const c = prepare({ rssi: [enAnalyse(1)] });
+    (c as any).complianceApi = {
+      listerPieces: vi.fn().mockReturnValue(of({ rssi: [enAnalyse(1)] })),
+    };
+
+    (c as any).demarrerSondage();
+    vi.advanceTimersByTime(30_000);
+
+    expect((c as any).complianceApi.listerPieces).toHaveBeenCalledTimes(3);
+  });
+
+  it('S’ARRÊTE dès que plus rien n’attend, et affiche le dernier état', () => {
+    // `takeWhile(..., true)` : la valeur finale doit être émise AVANT l'arrêt,
+    // sinon l'écran resterait bloqué sur « en analyse ».
+    const c = prepare({ rssi: [enAnalyse(1)] });
+    const api = { listerPieces: vi.fn().mockReturnValue(of({ rssi: [sain(1)] })) };
+    (c as any).complianceApi = api;
+
+    (c as any).demarrerSondage();
+    vi.advanceTimersByTime(60_000);
+
+    expect(api.listerPieces).toHaveBeenCalledTimes(1);
+    expect((c as any).pieces()['rssi'][0].statut_analyse).toBe('sain');
+    expect((c as any).sondage).toBe(null);
+  });
+
+  it('ne démarre jamais deux flux en parallèle', () => {
+    const c = prepare({ rssi: [enAnalyse(1)] });
+    (c as any).complianceApi = {
+      listerPieces: vi.fn().mockReturnValue(of({ rssi: [enAnalyse(1)] })),
+    };
+
+    (c as any).demarrerSondage();
+    (c as any).demarrerSondage();
+    vi.advanceTimersByTime(10_000);
+
+    expect((c as any).complianceApi.listerPieces).toHaveBeenCalledTimes(1);
+  });
+
+  it('EST BORNÉ : s’arrête au bout de 10 minutes même si le verdict n’arrive jamais', () => {
+    // `takeWhile` seul ne suffit pas : un verdict qui ne tombe jamais ferait
+    // tourner le flux indéfiniment.
+    const c = prepare({ rssi: [enAnalyse(1)] });
+    const api = { listerPieces: vi.fn().mockReturnValue(of({ rssi: [enAnalyse(1)] })) };
+    (c as any).complianceApi = api;
+
+    (c as any).demarrerSondage();
+    vi.advanceTimersByTime(60 * 60_000); // une heure
+
+    expect(api.listerPieces).toHaveBeenCalledTimes(60);
+    expect((c as any).sondage).toBe(null);
+  });
+
+  it('survit à une erreur réseau passagère', () => {
+    // Un tour raté ne doit pas tuer le suivi.
+    const c = prepare({ rssi: [enAnalyse(1)] });
+    let appels = 0;
+    (c as any).complianceApi = {
+      listerPieces: vi.fn().mockImplementation(() => {
+        appels += 1;
+        return appels === 1 ? throwError(() => new Error('réseau')) : of({ rssi: [enAnalyse(1)] });
+      }),
+    };
+
+    (c as any).demarrerSondage();
+    vi.advanceTimersByTime(30_000);
+
+    expect(appels).toBe(3);
+    expect((c as any).sondage).not.toBe(null);
+  });
+
+  it('s’arrête quand on quitte la page', () => {
+    // Sinon le flux survivrait à la navigation.
+    const c = prepare({ rssi: [enAnalyse(1)] });
+    (c as any).complianceApi = {
+      listerPieces: vi.fn().mockReturnValue(of({ rssi: [enAnalyse(1)] })),
+    };
+
+    (c as any).demarrerSondage();
+    c.ngOnDestroy();
+    vi.advanceTimersByTime(60_000);
+
+    expect((c as any).complianceApi.listerPieces).toHaveBeenCalledTimes(0);
+    expect((c as any).sondage).toBe(null);
+  });
+
+  it('transmet le sujet — le dossier d’un client se sonde sur sa propre route', () => {
+    const c = prepare({ rssi: [enAnalyse(1)] });
+    (c as any).clientId.set(42);
+    const api = { listerPieces: vi.fn().mockReturnValue(of({ rssi: [enAnalyse(1)] })) };
+    (c as any).complianceApi = api;
+
+    (c as any).demarrerSondage();
+    vi.advanceTimersByTime(10_000);
+
+    expect(api.listerPieces).toHaveBeenCalledWith(42);
+  });
+});

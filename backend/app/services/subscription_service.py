@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import ColumnElement, or_, select
+from sqlalchemy import ColumnElement, and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -14,24 +14,38 @@ from app.models.subscription import Subscription
 SUBSCRIPTION_GRACE_DAYS = 3
 
 
-def _active_conditions(user_id: int) -> list[ColumnElement[bool]]:
-    """Conditions d'un abonnement EFFECTIVEMENT actif pour `user_id`.
+def abonnement_encore_valide() -> ColumnElement[bool]:
+    """Cet abonnement ouvre-t-il ENCORE des droits ? Prédicat SQL réutilisable.
 
     Statut 'active' ET période non expirée au-delà de la marge de grâce. Un
     current_period_end NULL est traité comme « pas d'expiration » (plans manuels /
     Gratuit / override admin) → l'abonnement reste actif. Sans le filtre de date, un
     abonnement annulé mais laissé au statut 'active' (webhook manqué) continuerait
     d'ouvrir l'accès payant indéfiniment (finding #11).
+
+    SOURCE UNIQUE, ET C'EST TOUTE LA RAISON DE CETTE FONCTION. Le 2026-08-07, la
+    liste du back-office appliquait sa PROPRE règle — le statut seul, sans la
+    date. Un abonnement expiré s'y affichait « Actif » avec son plan payant,
+    pendant que la plateforme traitait déjà le compte en Gratuit. Les deux
+    disaient vrai selon leur propre règle, et c'est ce qui rendait le défaut
+    coûteux : il faisait conclure à tort sur les droits d'un client.
+
+    Toute lecture qui doit s'accorder avec `get_active_plan` passe désormais par
+    ici. Deux implémentations de la même règle, c'est une divergence en attente.
     """
     cutoff = datetime.now(UTC) - timedelta(days=SUBSCRIPTION_GRACE_DAYS)
-    return [
-        Subscription.user_id == user_id,
+    return and_(
         Subscription.status == "active",
         or_(
             Subscription.current_period_end.is_(None),
             Subscription.current_period_end >= cutoff,
         ),
-    ]
+    )
+
+
+def _active_conditions(user_id: int) -> list[ColumnElement[bool]]:
+    """Conditions d'un abonnement effectivement actif POUR `user_id`."""
+    return [Subscription.user_id == user_id, abonnement_encore_valide()]
 
 
 # Sentinelle "sites illimités" : un plan dont max_sites est < 0 (ex. Gratuit) n'impose

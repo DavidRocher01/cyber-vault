@@ -216,6 +216,29 @@ async def joindre_une_piece(
     }
 
 
+@router.get("/clients/{client_id}/nis2/pieces", response_model=dict[str, list[PieceClientOut]])
+async def lister_les_pieces(
+    client_id: int,
+    current_user: User = Depends(get_rssi_consultant),
+    db: AsyncSession = Depends(get_db),
+):
+    """Les pieces et leur etat d'analyse, SANS le catalogue.
+
+    POURQUOI UNE ROUTE A PART. `GET {base}` embarque les 34 criteres — une
+    quinzaine de kilo-octets qui ne changent jamais. L'ecran interroge cette
+    route toutes les dix secondes tant qu'une analyse antivirus est en cours :
+    lui renvoyer le catalogue a chaque fois serait le retelecharger pour rien.
+
+    Elle ne fait pas de travail supplementaire : elle rend exactement ce que
+    `{base}` place deja dans son champ `pieces`.
+    """
+    client = await _get_client_or_404(client_id, current_user.id, db)
+    evaluation = await nis2_service.get_user_assessment(db, current_user.id, client.id)
+    if evaluation is None:
+        return {}
+    return await preuve_service.preuves_par_critere(db, evaluation.id)
+
+
 @router.delete("/clients/{client_id}/nis2/pieces/{piece_id}", status_code=204)
 async def retirer_une_piece(
     client_id: int,
