@@ -93,7 +93,21 @@ frontend/src/app/
 - Guard `cryptoGuard` uniquement sur `/vault`
 
 **SSR / Prerendering :**
-- `@angular/ssr` est configuré avec prerendering statique (pas de serveur Node en runtime)
+- `@angular/ssr` est configuré avec prerendering statique (pas de serveur Node en runtime).
+  **Effectif seulement depuis le 2026-08-08** : l'échafaudage existait
+  (`main.server.ts`, `app.config.server.ts`, entrée dans `tsconfig.app.json`)
+  mais `angular.json` ne déclarait ni `server` ni `outputMode`, et
+  `@angular/platform-server` n'était pas installé. Toutes les pages servaient la
+  même coquille de 78 Ko. La consigne ci-dessous était donc suivie pour une
+  capacité qui n'existait pas — et trois `ngOnDestroy` la violaient sans que rien
+  ne le signale.
+- Les modes de rendu par route vivent dans `app.routes.server.ts` : tout est
+  prérendu **sauf** les routes à paramètre, dont la liste des valeurs n'existe
+  qu'en base et pas à la construction.
+- Le CDN aiguille `/x` vers `/x/index.html` grâce à une CloudFront Function
+  **générée** depuis `prerendered-routes.json` (`frontend/src/routage-cloudfront.ts`).
+  Une URL inconnue retombe sur `/index.html` : c'est ce qui rend le changement
+  sans risque pour les routes rendues côté navigateur
 - Tout accès à `localStorage`, `sessionStorage`, `window`, `document` doit être derrière `isPlatformBrowser()`
 - `AuthService` utilise des getters `session`/`local` SSR-safe — ne pas utiliser `localStorage` directement
 
