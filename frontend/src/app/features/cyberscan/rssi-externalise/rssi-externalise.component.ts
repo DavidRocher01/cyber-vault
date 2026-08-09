@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { Title, Meta } from '@angular/platform-browser';
 
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { DonneesStructureesService } from '../../../core/donnees-structurees.service';
 
 @Component({
   standalone: true,
@@ -14,6 +15,7 @@ import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.com
 export class RssiExternaliseComponent {
   private title = inject(Title);
   private meta = inject(Meta);
+  private donneesStructurees = inject(DonneesStructureesService);
 
   constructor() {
     this.title.setTitle('RSSI externalisé — votre RSSI à temps partagé | Rocher Cybersécurité');
@@ -23,6 +25,9 @@ export class RssiExternaliseComponent {
         'RSSI externalisé pour PME : un expert cybersécurité qui pilote votre conformité NIS2 et ' +
         'votre sécurité au quotidien, sans le coût d’un temps plein. Diagnostic gratuit.',
     });
+    // Derive du MEME tableau que la page affiche : les deux ne peuvent pas
+    // diverger, contrairement a un bloc JSON-LD recopie a la main.
+    this.donneesStructurees.poserFaq(this.faqs.map(f => ({ question: f.q, answer: f.a })));
   }
 
   readonly pains = [

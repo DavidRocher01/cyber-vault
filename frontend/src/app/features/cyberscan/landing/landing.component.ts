@@ -48,6 +48,7 @@ import {
 } from './landing.data';
 import { NB_MODULES, PARCOURS } from '../../../shared/awareness-catalog.generated';
 import { PLAN_ENTREE } from '../../../shared/awareness-plans';
+import { DonneesStructureesService } from '../../../core/donnees-structurees.service';
 
 @Component({
   standalone: true,
@@ -110,6 +111,7 @@ export class LandingComponent implements OnInit, AfterViewInit {
   readonly features = FEATURES;
   readonly testimonials = TESTIMONIALS;
   readonly faqs = FAQS;
+  private donneesStructurees = inject(DonneesStructureesService);
   readonly auditOffers = AUDIT_OFFERS;
   readonly newsletterAvatars = NEWSLETTER_AVATARS;
   readonly newsletterItems = NEWSLETTER_ITEMS;
@@ -282,6 +284,9 @@ export class LandingComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
+    // Derive du MEME tableau que la page affiche : les deux ne peuvent pas
+    // diverger, contrairement a un bloc JSON-LD recopie a la main.
+    this.donneesStructurees.poserFaq(this.faqs.map(f => ({ question: f.q, answer: f.a })));
     this.titleService.setTitle('Rocher Cybersécurité — Audit de sécurité web automatisé');
     this.meta.updateTag({
       name: 'description',
