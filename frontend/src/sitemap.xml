@@ -73,4 +73,82 @@
     <priority>0.3</priority>
   </url>
 
+  <!-- Ajoutées le 2026-08-08. Le sitemap n'annonçait que 11 URL et taisait
+       l'essentiel des pages commerciales : elles existaient, étaient publiques,
+       et n'étaient signalées nulle part. -->
+
+  <!-- auto-évaluation NIS2, 34 critères — page publique la plus susceptible de se positionner -->
+  <url>
+    <loc>https://rochercybersecurite.com/nis2</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- équivalent ISO 27001:2022 -->
+  <url>
+    <loc>https://rochercybersecurite.com/iso27001</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://rochercybersecurite.com/rssi-externalise</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://rochercybersecurite.com/cout-cyberattaque</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://rochercybersecurite.com/darkweb-offre</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://rochercybersecurite.com/simulation-phishing</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://rochercybersecurite.com/quiz-maturite</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://rochercybersecurite.com/awareness-pricing</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://rochercybersecurite.com/api</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://rochercybersecurite.com/reserver</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://rochercybersecurite.com/cgv</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <url>
+    <loc>https://rochercybersecurite.com/dpa</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
 </urlset>
