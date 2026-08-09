@@ -93,7 +93,20 @@ frontend/src/app/
 - Guard `cryptoGuard` uniquement sur `/vault`
 
 **SSR / Prerendering :**
-- `@angular/ssr` est configuré avec prerendering statique (pas de serveur Node en runtime)
+- **Le prérendu est ÉTEINT en production.** L'échafaudage `@angular/ssr` existe
+  (`main.server.ts`, `app.config.server.ts`, entrée `tsconfig.app.json`) mais
+  `angular.json` ne déclare ni `server` ni `outputMode` : toutes les pages
+  servent la même coquille. Ne pas croire une documentation qui affirmerait le
+  contraire — c'est exactement l'erreur qu'a corrigée le 2026-08-08.
+- **Il a été allumé le 2026-08-09, puis retiré le jour même** (revert de
+  `380846e`) : une page prérendue s'affiche avant d'être hydratée, donc avant
+  d'être interactive. Une saisie faite pendant ces ~3 secondes est écrite dans
+  le DOM sans qu'Angular la voie — le formulaire reste invalide et son bouton
+  grisé. La connexion était cassée pour qui tapait vite.
+- **Le lot est intact sur `develop`.** Le rallumer suppose d'abord de traiter
+  cette fenêtre (exclure les pages à formulaire du prérendu, ou ne les rendre
+  interactives qu'après hydratation), et de défaire le revert plutôt que de
+  refusionner.
 - Tout accès à `localStorage`, `sessionStorage`, `window`, `document` doit être derrière `isPlatformBrowser()`
 - `AuthService` utilise des getters `session`/`local` SSR-safe — ne pas utiliser `localStorage` directement
 
