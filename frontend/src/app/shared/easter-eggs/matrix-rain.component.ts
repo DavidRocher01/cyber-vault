@@ -125,11 +125,6 @@ export class MatrixRainComponent implements OnChanges, AfterViewInit, OnDestroy 
   }
 
   private stop(): void {
-    // GARDE SYMETRIQUE DE `ngOnInit`. Au prerendu, l'initialisation sort tot :
-    // aucune animation n'a demarre, et `cancelAnimationFrame` n'existe pas cote
-    // serveur. Sans ce retour, la construction du site echoue — ce qui est reste
-    // invisible tant que le prerendu n'etait pas branche.
-    if (!isPlatformBrowser(this.platformId)) return;
     cancelAnimationFrame(this.rafId);
     clearTimeout(this.autoClose);
   }

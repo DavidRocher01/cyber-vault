@@ -20,10 +20,6 @@ permissions:
 env:
   AWS_REGION: eu-west-3
   ECR_REPOSITORY: cybervault-backend
-  # Nom de la CloudFront Function qui aiguille les URL. En clair comme
-  # ECR_REPOSITORY : ce n'est pas un secret, et en faire un ajouterait une
-  # manipulation a oublier — donc un deploiement qui echoue sans raison.
-  CLOUDFRONT_FUNCTION: redirect-cyberscanapp-to-rocher
 
 jobs:
   # ── Backend : ECR → ECS ─────────────────────────────────────────────────────
@@ -212,40 +208,20 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region:     ${{ env.AWS_REGION }}
-      # Le prerendu produit un index.html PAR PAGE (61 routes depuis le
-      # 2026-08-08). L'exclusion ne peut donc plus viser le seul fichier racine :
-      # `--exclude "index.html"` ne correspond qu'a la racine, et les 60 autres
-      # auraient herite d'un cache immuable d'un an. Un visiteur aurait garde la
-      # version d'avant pendant douze mois.
+
       - name: Sync assets (cache long terme — hash dans le nom de fichier)
         run: |
-          aws s3 sync frontend/dist/cyber-vault-frontend/browser/             s3://${{ secrets.S3_BUCKET_NAME }}/             --delete             --exclude "*.html"             --cache-control "public, max-age=31536000, immutable"
+          aws s3 sync frontend/dist/cyber-vault-frontend/browser/ \
+            s3://${{ secrets.S3_BUCKET_NAME }}/ \
+            --delete \
+            --exclude "index.html" \
+            --cache-control "public, max-age=31536000, immutable"
 
-      - name: Upload des pages HTML (pas de cache)
+      - name: Upload index.html (pas de cache)
         run: |
-          aws s3 sync frontend/dist/cyber-vault-frontend/browser/             s3://${{ secrets.S3_BUCKET_NAME }}/             --exclude "*"             --include "*.html"             --cache-control "no-cache, no-store, must-revalidate"
-
-      # ROUTAGE CDN — APRES la synchro, jamais avant.
-      #
-      # La fonction aiguille `/nis2` vers `/nis2/index.html`. La publier avant que
-      # le fichier ne soit en place ferait servir du vide. L'ordre est la seule
-      # garantie ici : le rollback automatique ne couvre pas le frontend.
-      #
-      # La liste des routes est DERIVEE de `prerendered-routes.json`, l'inventaire
-      # emis par la construction. Le script refuse de generer une fonction a
-      # partir d'un inventaire quasi vide : ce serait le signe que le prerendu
-      # s'est eteint, et publier ferait taire le symptome.
-      - name: Générer la fonction de routage depuis l'inventaire du build
-        working-directory: frontend
-        run: node --experimental-strip-types scripts/generer-routage-cloudfront.ts
-
-      - name: Publier la fonction de routage CloudFront
-        run: |
-          ETAG=$(aws cloudfront describe-function             --name ${{ env.CLOUDFRONT_FUNCTION }} --query 'ETag' --output text)
-
-          ETAG=$(aws cloudfront update-function             --name ${{ env.CLOUDFRONT_FUNCTION }}             --if-match "$ETAG"             --function-config '{"Comment":"Routage SPA + pages prerendues","Runtime":"cloudfront-js-2.0"}'             --function-code fileb://frontend/dist/routage-cloudfront.js             --query 'ETag' --output text)
-
-          aws cloudfront publish-function             --name ${{ env.CLOUDFRONT_FUNCTION }} --if-match "$ETAG"
+          aws s3 cp frontend/dist/cyber-vault-frontend/browser/index.html \
+            s3://${{ secrets.S3_BUCKET_NAME }}/index.html \
+            --cache-control "no-cache, no-store, must-revalidate"
 
       # NOTE — le routage SPA ne passe PLUS par les CustomErrorResponses.
       #
