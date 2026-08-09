@@ -114,6 +114,10 @@ export const CYBERSCAN_ROUTES: Routes = [
         m => m.AwarenessPricingComponent
       ),
     title: 'Tarifs Sensibilisation NIS2 — Rocher Cybersécurité',
+    data: {
+      description:
+        'Tarifs de la sensibilisation cybersécurité de vos collaborateurs : modules de formation, simulations de phishing et suivi de progression.',
+    },
   },
   {
     // NB: pas 'awareness' — ce chemin est capté par le portail apprenant (app.routes.ts).
@@ -187,6 +191,10 @@ export const CYBERSCAN_ROUTES: Routes = [
     path: 'nis2',
     loadComponent: () => import('./nis2/nis2.component').then(m => m.Nis2Component),
     title: 'Conformité NIS2 — Rocher Cybersécurité',
+    data: {
+      description:
+        'Auto-évaluez votre conformité à la directive NIS2 : 34 critères répartis en 10 catégories, score en temps réel et export PDF pour votre auditeur.',
+    },
   },
   {
     path: 'iso27001',
@@ -209,16 +217,28 @@ export const CYBERSCAN_ROUTES: Routes = [
     path: 'cgu',
     loadComponent: () => import('./cgu/cgu.component').then(m => m.CguComponent),
     title: 'CGU — Rocher Cybersécurité',
+    data: {
+      description:
+        "Conditions générales d'utilisation de la plateforme Rocher Cybersécurité : accès aux services, obligations des parties et responsabilités.",
+    },
   },
   {
     path: 'cgv',
     loadComponent: () => import('./cgv/cgv.component').then(m => m.CgvComponent),
     title: 'CGV — Rocher Cybersécurité',
+    data: {
+      description:
+        "Conditions générales de vente de Rocher Cybersécurité : abonnements, prestations d'audit, facturation, durée d'engagement et rétractation.",
+    },
   },
   {
     path: 'dpa',
     loadComponent: () => import('./dpa/dpa.component').then(m => m.DpaComponent),
     title: 'Accord de sous-traitance RGPD (DPA) — Rocher Cybersécurité',
+    data: {
+      description:
+        'Accord de sous-traitance RGPD (DPA) de Rocher Cybersécurité : traitements réalisés, mesures de sécurité, sous-traitants ultérieurs et engagements.',
+    },
   },
   {
     path: 'politique-confidentialite',
@@ -227,12 +247,20 @@ export const CYBERSCAN_ROUTES: Routes = [
         m => m.PolitiqueConfidentialiteComponent
       ),
     title: 'Politique de confidentialité — Rocher Cybersécurité',
+    data: {
+      description:
+        'Comment Rocher Cybersécurité collecte, utilise et protège vos données personnelles : finalités, durées de conservation et exercice de vos droits RGPD.',
+    },
   },
   {
     path: 'mentions-legales',
     loadComponent: () =>
       import('./mentions-legales/mentions-legales.component').then(m => m.MentionsLegalesComponent),
     title: 'Mentions légales — Rocher Cybersécurité',
+    data: {
+      description:
+        'Mentions légales de Rocher Cybersécurité : éditeur du site, hébergement, propriété intellectuelle et coordonnées de contact.',
+    },
   },
   {
     path: 'demo-result/:token',
@@ -361,11 +389,19 @@ export const CYBERSCAN_ROUTES: Routes = [
     loadComponent: () =>
       import('./cost-calculator/cost-calculator.component').then(m => m.CostCalculatorComponent),
     title: 'Calculateur coût cyberattaque PME — Rocher Cybersécurité',
+    data: {
+      description:
+        "Estimez le coût d'une cyberattaque pour votre PME : rançon, arrêt d'activité, remise en état et sanctions RGPD, chiffrés sur votre situation.",
+    },
   },
   {
     path: 'quiz-maturite',
     loadComponent: () => import('./quiz/quiz.component').then(m => m.QuizComponent),
     title: 'Quiz maturité cybersécurité NIS2 / ISO 27001 — Rocher Cybersécurité',
+    data: {
+      description:
+        "Situez en quelques minutes la maturité cybersécurité de votre entreprise face aux exigences NIS2 et ISO 27001, et repartez avec vos priorités d'action.",
+    },
   },
   {
     path: 'blog',
