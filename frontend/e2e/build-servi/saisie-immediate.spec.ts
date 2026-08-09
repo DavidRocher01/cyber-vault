@@ -34,8 +34,11 @@ test.describe('Le build de production accepte la saisie des son affichage', () =
     await page.locator('[formcontrolname="email"]').fill('essai@exemple.fr');
     await page.locator('[formcontrolname="password"]').fill(MDP);
 
-    // La saisie a-t-elle survecu ? C'est l'enonce le plus precis du defaut :
-    // le champ paraissait rempli, mais Angular ne l'avait jamais vu.
+    // Le champ garde bien sa valeur — verifie en rallumant le prerendu, ou
+    // cette ligne PASSE pendant que la suivante tombe. C'est ce qui rend le
+    // defaut si trompeur : rien ne disparait a l'ecran, Angular n'a
+    // simplement jamais vu la saisie. D'ou l'interet de garder les deux
+    // assertions : la premiere situe le defaut, la seconde le prouve.
     await expect(page.locator('[formcontrolname="email"]')).toHaveValue('essai@exemple.fr');
     await expect(page.getByRole('button', { name: /se connecter/i })).toBeEnabled();
   });
