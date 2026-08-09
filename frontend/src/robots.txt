@@ -7,6 +7,16 @@ Allow: /scan-gratuit
 Allow: /contact
 Allow: /blog
 
+# Outils de conformité — publics et sans authentification.
+#
+# Ils étaient interdits d'indexation jusqu'au 2026-08-08, ce qui écartait des
+# résultats de recherche les deux pages les plus susceptibles de s'y positionner :
+# une auto-évaluation NIS2 de 34 critères et son équivalent ISO 27001. Ni l'une ni
+# l'autre n'expose de donnée : sans compte, elles affichent le référentiel et
+# refusent d'enregistrer.
+Allow: /nis2
+Allow: /iso27001
+
 # Pages privées (non indexées)
 Disallow: /dashboard
 Disallow: /scan/
@@ -16,8 +26,6 @@ Disallow: /onboarding
 Disallow: /success
 Disallow: /url-scanner
 Disallow: /code-scan
-Disallow: /nis2
-Disallow: /iso27001
 Disallow: /subdomains/
 Disallow: /admin/
 Disallow: /vault
