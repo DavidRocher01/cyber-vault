@@ -10,6 +10,7 @@
     "test": "vitest run --reporter=verbose --reporter=junit --outputFile=test-results/results.xml",
     "test:coverage": "vitest run --coverage --reporter=verbose --reporter=junit --outputFile=test-results/results.xml",
     "test:e2e": "playwright test",
+    "test:e2e:build": "playwright test --config=playwright.build.config.ts",
     "lint": "ng lint",
     "format": "prettier --write \"src/**/*.{ts,html,scss}\"",
     "compodoc": "compodoc -p tsconfig.doc.json --theme material",
