@@ -327,27 +327,18 @@ jobs:
         working-directory: frontend
 
       - name: Recette UI (Playwright vs prod)
-        # Les parcours EPROUVES : leur echec fait revenir la version precedente.
-        run: npx playwright test --config=playwright.recette.config.ts --grep-invert "integrations reelles"
-        working-directory: frontend
-
-      # LES INTEGRATIONS REELLES SONT EN RODAGE, ET NE BLOQUENT PAS ENCORE.
-      #
-      # POURQUOI. Le 2026-08-10, ces tests ont fait revenir en arriere un
-      # deploiement SAIN : ils deposaient un `.txt`, refuse en 422 par la liste
-      # blanche de types. Le produit allait bien ; c'est la recette qui avait
-      # tort. Ils n'avaient jamais pu tourner avant — les identifiants du canari
-      # ne vivent que dans les secrets GitHub.
-      #
-      # LA REGLE QUI EN DECOULE : un garde-fou qui n'a jamais reussi ne peut pas
-      # etre cru quand il echoue. On l'execute, on lit son verdict, et on le
-      # rend bloquant une fois qu'il est passe pour de vrai.
-      #
-      # A RENDRE BLOQUANT en supprimant `continue-on-error` et le `--grep-invert`
-      # ci-dessus, des que ces parcours sont verts sur un deploiement.
-      - name: Recette des integrations reelles (en rodage, non bloquant)
-        continue-on-error: true
-        run: npx playwright test --config=playwright.recette.config.ts --grep "integrations reelles"
+        # LE DEPOT DE PIECE EST DE NOUVEAU BLOQUANT, apres rodage.
+        #
+        # Ce parcours a tourne en `continue-on-error` le temps de faire ses
+        # preuves, parce qu'un garde-fou qui n'a JAMAIS reussi ne peut pas etre
+        # cru quand il echoue : livre bloquant d'emblee, il avait fait revenir
+        # en arriere un deploiement sain — il deposait un `.txt`, refuse en 422
+        # par la liste blanche de types. Le produit allait bien ; la recette
+        # avait tort.
+        #
+        # Il est passe en production le 2026-08-10 (7,5 s : ecriture S3, verdict
+        # GuardDuty, retrait). Il a donc gagne le droit de bloquer.
+        run: npx playwright test --config=playwright.recette.config.ts
         working-directory: frontend
 
       - name: Rollback ECS si la recette echoue

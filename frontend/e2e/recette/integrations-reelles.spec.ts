@@ -15,14 +15,25 @@ import { test, expect, APIRequestContext } from '@playwright/test';
  * ne connait ni S3 ni IAM. Le defaut n'a ete trouve qu'en allant lire la
  * politique a la main.
  *
- * La recette existante se connecte et parcourt des ecrans. Elle ne DECLENCHE
- * rien : jamais un telechargement de rapport, jamais un depot de fichier,
- * jamais un verdict antivirus. Tout ce qui touche a S3, a GuardDuty et aux
- * droits reels lui est invisible.
+ * CE QUE CE FICHIER COUVRE, ET CE QU'IL NE COUVRE PAS.
  *
- * CE FICHIER EXERCE LES CHAINES ENTIERES, contre la production, avec le compte
- * canari. C'est le seul endroit du projet ou la configuration reelle est
- * confrontee au code.
+ * Le DEPOT d'une piece justificative — ecriture S3 sous le prefixe reellement
+ * autorise, etiquetage GuardDuty, relecture du verdict, retrait — n'etait
+ * exerce NULLE PART. Aucun des dix tests de recette API n'y touche.
+ *
+ * Le TELECHARGEMENT D'UN RAPPORT, lui, l'etait deja :
+ * `backend/recette/test_06_site_scan.py` enregistre un site, lance un scan et,
+ * s'il aboutit, telecharge le PDF. Un test de plus ici a d'abord ete ecrit, puis
+ * RETIRE : il faisait doublon et ne pouvait structurellement pas passer, `test_06`
+ * supprimant son site a la fin de chaque passage.
+ *
+ * CE QUI RESTE NON COUVERT PAR LA RECETTE, ET IL FAUT LE DIRE : le
+ * telechargement d'un VIEUX rapport, dont le fichier a disparu et qu'il faut
+ * refabriquer. C'est le cas qui a produit le 500 du 2026-08-09, et `test_06` ne
+ * le voit pas non plus — il telecharge un rapport qu'il vient de creer, encore
+ * present sur le disque de la tache courante. Ce chemin est garde par des tests
+ * unitaires ; l'exercer en recette supposerait un vieux scan persistant, que le
+ * compte canari n'a pas et ne doit pas avoir.
  *
  * ON NETTOIE CE QU'ON CREE. Le depot de test est retire dans tous les cas, y
  * compris en echec : une recette qui laisse des traces devient une source de
@@ -60,61 +71,6 @@ test.describe('Recette prod — integrations reelles', () => {
     const jeton = await connecter(request);
     expect(jeton, 'authentification du compte canari impossible').toBeTruthy();
     entetes = { Authorization: `Bearer ${jeton}` };
-  });
-
-  test('un rapport de scan se telecharge vraiment', async ({ request }) => {
-    // CE TEST AURAIT ATTRAPE LE 500 DU 2026-08-09 et le prefixe IAM du 10 : il
-    // traverse la lecture du stockage, et la refabrication quand le rapport a
-    // disparu.
-    const sites = await request.get(`${API}/sites`, { headers: entetes });
-    expect(sites.ok(), `GET /sites a repondu ${sites.status()}`).toBeTruthy();
-
-    const listeSites = await sites.json();
-
-    let scanTermine: number | null = null;
-    for (const site of listeSites) {
-      const r = await request.get(`${API}/scans/site/${site.id}?page=1&per_page=10`, {
-        headers: entetes,
-      });
-      if (!r.ok()) continue;
-      const page = await r.json();
-      const trouve = (page.items ?? []).find(
-        (s: { status: string; pdf_path: string | null }) => s.status === 'done' && s.pdf_path
-      );
-      if (trouve) {
-        scanTermine = trouve.id;
-        break;
-      }
-    }
-
-    // ON ECHOUE PLUTOT QUE DE S'ABSTENIR, ET C'EST DELIBERE.
-    //
-    // Aux deux deploiements du 2026-08-10, ce test s'est ABSTENU faute de scan
-    // termine sur le compte canari. Une abstention est honnete, mais elle est
-    // silencieuse : le controle le PLUS UTILE de ce fichier — celui qui aurait
-    // attrape le 500 du 9 aout — ne s'exerçait pas, et rien ne le rappelait.
-    //
-    // Ce fichier tourne EN RODAGE (`continue-on-error` dans deploy.yml), donc un
-    // echec ici ne bloque aucun deploiement. C'est exactement la marge qui
-    // permet d'etre strict : le manque se voit dans le journal a chaque passage,
-    // et disparaitra tout seul le jour ou le canari aura un rapport.
-    expect(
-      scanTermine,
-      "PREREQUIS MANQUANT : le compte canari n'a aucun scan termine avec rapport. " +
-        'Ce controle reste decoratif tant que ce sera le cas. Pour le rendre reel : ' +
-        'se connecter avec le compte canari, ajouter un site et lancer un scan UNE FOIS.'
-    ).not.toBeNull();
-
-    const pdf = await request.get(`${API}/scans/${scanTermine}/pdf`, { headers: entetes });
-
-    expect(
-      pdf.status(),
-      `telechargement du rapport ${scanTermine} : ${pdf.status()} — 500 = exception non rattrapee, 404 = rapport ni trouve ni refabricable`
-    ).toBe(200);
-
-    // Un PDF, pas une page d'erreur deguisee en 200.
-    const debut = (await pdf.body()).subarray(0, 5).toString('latin1');
-    expect(debut, 'le corps servi n’est pas un PDF').toContain('%PDF');
   });
 
   test('un fichier depose est ecrit, analyse, puis retire', async ({ request }) => {
