@@ -110,9 +110,14 @@ test.describe('Recette prod — integrations reelles', () => {
       headers: entetes,
       multipart: {
         fichier: {
-          name: 'recette-post-prod.txt',
-          mimeType: 'text/plain',
-          buffer: Buffer.from('Fichier de recette — supprime aussitot.'),
+          // UN PDF MINIMAL, ET C'EST OBLIGATOIRE. Le depot n'accepte que PDF,
+          // Word, Excel, OpenDocument et images, ET verifie que les premiers
+          // octets correspondent a l'extension annoncee. Un `.txt` est refuse
+          // en 422 — c'est l'erreur qui a fait echouer cette recette au
+          // 2026-08-10 et provoque le retour arriere d'un deploiement sain.
+          name: 'recette-post-prod.pdf',
+          mimeType: 'application/pdf',
+          buffer: Buffer.from('%PDF-1.4\n% recette post-prod, supprime aussitot\n'),
         },
       },
     });
@@ -126,7 +131,7 @@ test.describe('Recette prod — integrations reelles', () => {
 
     expect(
       depot.status(),
-      `depot : ${depot.status()} — 500 ici signifie tres probablement un droit S3 mal cadre`
+      `depot : ${depot.status()} — 422 = fichier refuse (type/signature/quota), 500 = droit S3 probablement mal cadre`
     ).toBe(201);
 
     const piece = await depot.json();
