@@ -93,20 +93,26 @@ frontend/src/app/
 - Guard `cryptoGuard` uniquement sur `/vault`
 
 **SSR / Prerendering :**
-- **Le prérendu est ÉTEINT en production.** L'échafaudage `@angular/ssr` existe
-  (`main.server.ts`, `app.config.server.ts`, entrée `tsconfig.app.json`) mais
-  `angular.json` ne déclare ni `server` ni `outputMode` : toutes les pages
-  servent la même coquille. Ne pas croire une documentation qui affirmerait le
-  contraire — c'est exactement l'erreur qu'a corrigée le 2026-08-08.
-- **Il a été allumé le 2026-08-09, puis retiré le jour même** (revert de
-  `380846e`) : une page prérendue s'affiche avant d'être hydratée, donc avant
-  d'être interactive. Une saisie faite pendant ces ~3 secondes est écrite dans
-  le DOM sans qu'Angular la voie — le formulaire reste invalide et son bouton
-  grisé. La connexion était cassée pour qui tapait vite.
-- **Le lot est intact sur `develop`.** Le rallumer suppose d'abord de traiter
-  cette fenêtre (exclure les pages à formulaire du prérendu, ou ne les rendre
-  interactives qu'après hydratation), et de défaire le revert plutôt que de
-  refusionner.
+- **Le prérendu est ALLUMÉ** (`angular.json` → `server` + `outputMode: 'static'`,
+  configuration `production` UNIQUEMENT). 61 routes prérendues ; les modes par
+  route vivent dans `app.routes.server.ts`, où les routes à paramètre restent en
+  `RenderMode.Client`.
+- **Ne jamais déclarer le prérendu dans les options communes** d'`angular.json` :
+  `ng serve` se met alors à imiter un hébergement statique et redirige tout lien
+  profond vers `/` — neuf tests e2e étaient tombés d'un coup le 2026-08-08.
+- **La fenêtre d'hydratation est traitée par `core/reprise-saisie.ts`, pas par
+  chance.** Une page prérendue s'affiche avant d'être interactive ; Angular
+  hydrate ensuite le champ et y écrit la valeur vide du `FormControl`, ce qui
+  **efface** la frappe (mesuré : valeur perdue à 1700 ms, l'élément lui-même
+  n'étant pas remplacé). La reprise note la saisie et la remet. `withEventReplay()`
+  d'Angular a été essayé et ne couvre pas ce cas.
+- **Le loader d'`AppComponent` (1,8 s) élargit cette fenêtre** : le contenu ne se
+  lie qu'à sa fin. Il est conservé, mais c'est lui qui fait passer le risque de
+  ~0,4 s à ~1,7 s.
+- `e2e/build-servi/` teste le **build de production servi en statique** — la seule
+  suite capable de voir ces défauts, `ng serve` utilisant `development`.
+- Le CDN aiguille `/x` vers `/x/index.html` via une CloudFront Function **générée**
+  depuis `prerendered-routes.json`. Une URL inconnue retombe sur `/index.html`.
 - Tout accès à `localStorage`, `sessionStorage`, `window`, `document` doit être derrière `isPlatformBrowser()`
 - `AuthService` utilise des getters `session`/`local` SSR-safe — ne pas utiliser `localStorage` directement
 
