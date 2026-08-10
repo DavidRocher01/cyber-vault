@@ -118,5 +118,65 @@ async def test_rapport_disparu_repond_404_et_non_500():
             r = await c.get(f"{BASE}/scans/{scan_id}/pdf", headers=h)
 
     assert r.status_code == 404, f"attendu 404, obtenu {r.status_code}"
-    # La phrase doit dire quoi faire, pas seulement que ca a rate.
-    assert "plus disponible" in r.json()["detail"]
+    # Sans `results_json`, il n'y a rien a reconstituer : la phrase le dit.
+    assert "reconstitue" in r.json()["detail"].replace("é", "e")
+
+
+@pytest.mark.asyncio
+async def test_rapport_disparu_est_refabrique_puis_range():
+    """ON NE RENVOIE PAS L'UTILISATEUR CHEZ LUI.
+
+    Une premiere version repondait « relancez un scan ». Mauvais conseil : le
+    plan Gratuit n'autorise QU'UN SCAN PAR 30 JOURS, donc on demandait
+    l'impossible pour recuperer un rapport deja paye du quota. Tout est en base
+    pour le reconstruire.
+    """
+    with (
+        patch("app.api.v1.endpoints.scans.run_scan", new_callable=AsyncMock),
+        patch(
+            "app.api.v1.endpoints.scans.get_active_plan",
+            new=AsyncMock(
+                return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990)
+            ),
+        ),
+        patch(
+            "app.api.v1.endpoints.scans._refabriquer_rapport",
+            return_value=b"%PDF-refabrique",
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await _headers(c, "rapport-refabrique@test.com")
+            site_id = await _site(c, h)
+            trig = await c.post(f"{BASE}/scans/trigger/{site_id}", headers=h)
+            scan_id = trig.json()["scan_id"]
+
+            from sqlalchemy import select, update
+
+            from app.core.database import AsyncSessionLocal
+            from app.models.scan import Scan
+
+            async with AsyncSessionLocal() as db:
+                await db.execute(
+                    update(Scan)
+                    .where(Scan.id == scan_id)
+                    .values(
+                        status="done",
+                        pdf_path="/cyber-scanner/reports/clients/disparu.pdf",
+                        results_json='{"_meta": {"url": "https://exemple.fr", "tier": 2}}',
+                    )
+                )
+                await db.commit()
+
+            r = await c.get(f"{BASE}/scans/{scan_id}/pdf", headers=h)
+
+            assert r.status_code == 200, f"attendu 200, obtenu {r.status_code}"
+            assert r.content == b"%PDF-refabrique"
+
+            # LE RAPPORT EST RANGE AU PASSAGE : la prochaine demande n'aura plus
+            # rien a refaire, et la reference remplace le chemin mort.
+            async with AsyncSessionLocal() as db:
+                rows = await db.execute(select(Scan.pdf_path).where(Scan.id == scan_id))
+                reference = rows.scalar_one()
+
+    assert reference != "/cyber-scanner/reports/clients/disparu.pdf"
+    assert str(scan_id) in reference

@@ -27,7 +27,7 @@ from app.models.user import User
 from app.schemas.cyberscan import PaginatedScans, ScanOut, ScanTriggerOut
 from app.services import scan_query_service
 from app.services.scan_service import run_scan
-from app.services.storage import lire_rapport
+from app.services.storage import lire_rapport, ranger_rapport
 from app.services.subscription_service import get_active_plan
 
 router = APIRouter(prefix="/scans", tags=["scans"])
@@ -157,6 +157,40 @@ async def get_scan(
     return scan
 
 
+def _refabriquer_rapport(scan_id: int, results_json: str) -> bytes | None:
+    """Reconstruit le PDF depuis les resultats conserves en base, ou `None`.
+
+    APPELE HORS DE LA BOUCLE D'EVENEMENTS : la generation est synchrone et
+    prend plusieurs centaines de millisecondes. La laisser dans la boucle
+    bloquerait toutes les autres requetes pendant ce temps.
+
+    UN ECHEC N'EST PAS UNE ERREUR SERVEUR. Le module `scanner` n'est pas
+    toujours la — il est absent du poste de developpement, par exemple — et un
+    vieux `results_json` peut ne plus porter tous les modules attendus. Dans les
+    deux cas l'appelant repondra 404, ce qui est la verite : pas de rapport.
+    """
+    import tempfile
+
+    from app.services.scan_service import _write_report
+
+    resultats = safe_json_load(results_json, {})
+    meta = resultats.get("_meta", {})
+    try:
+        with tempfile.TemporaryDirectory() as dossier:
+            chemin = os.path.join(dossier, f"scan_{scan_id}.pdf")
+            _write_report(
+                meta.get("url", "unknown"),
+                resultats,
+                int(meta.get("tier", 1)),
+                bool(resultats.get("ports")),
+                chemin,
+            )
+            with open(chemin, "rb") as f:  # nosec B open
+                return f.read()
+    except Exception:
+        return None
+
+
 @router.get("/{scan_id}/pdf")
 async def download_pdf(
     scan_id: int,
@@ -177,13 +211,29 @@ async def download_pdf(
     # CloudWatch reveillee, et un utilisateur qui n'apprend rien.
     #
     # Les rapports sont desormais ranges hors du conteneur. Restent les lignes
-    # d'avant, dont le chemin ne pointe plus nulle part : elles meritent une
-    # phrase utile, pas une erreur serveur.
+    # d'avant, dont le chemin ne pointe plus nulle part.
     contenu = lire_rapport(scan.pdf_path)
+
+    # ON LE REFABRIQUE PLUTOT QUE DE RENVOYER L'UTILISATEUR CHEZ LUI.
+    #
+    # Une premiere version repondait 404 « relancez un scan ». C'etait un
+    # mauvais conseil : le plan Gratuit n'autorise QU'UN SCAN PAR 30 JOURS, donc
+    # on demandait a l'utilisateur quelque chose qu'il ne pouvait pas faire pour
+    # recuperer un rapport qu'il avait deja paye de son quota.
+    #
+    # Tout est en base pour le reconstruire — c'est exactement ce que fait deja
+    # `download_remediation_script` quand ses fichiers manquent. On range le
+    # resultat au passage : la prochaine demande n'aura plus rien a refaire.
+    if contenu is None and scan.results_json:
+        contenu = await asyncio.to_thread(_refabriquer_rapport, scan_id, scan.results_json)
+        if contenu is not None:
+            scan.pdf_path = ranger_rapport(contenu, f"scan_{scan_id}.pdf")
+            await db.commit()
+
     if contenu is None:
         raise HTTPException(
             status_code=404,
-            detail="Ce rapport n'est plus disponible. Relancez un scan pour en obtenir un à jour.",
+            detail="Ce rapport n'a pas pu être reconstitué. Contactez-nous si vous en avez besoin.",
         )
 
     return Response(
