@@ -6,6 +6,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import UploadFile
+from loguru import logger
 
 from app.core.config import settings
 
@@ -367,3 +368,51 @@ def lire_rapport(reference: str) -> bytes | None:
         # Objet absent, seau inaccessible : dans tous les cas, pas de rapport a
         # servir. On ne distingue pas — l'appelant n'en ferait rien.
         return None
+
+
+def verifier_ecriture_stockage() -> None:
+    """Verifie AU DEMARRAGE que le stockage configure est reellement ecrivable.
+
+    POURQUOI, ET CE QUE CA A COUTE. Le 2026-08-10, un rangement de rapports a
+    failli partir avec un prefixe hors du droit accorde au role de tache ECS :
+
+        Autorise : cybervault-rssi-deliverables-prod/rssi-deliverables/*
+        Ecrit    : rapports/*
+
+    Chaque scan aurait echoue sur un AccessDenied — a la PREMIERE REQUETE D'UN
+    UTILISATEUR, plusieurs heures apres la mise en production, et sous forme
+    d'erreur 500. Aucun test ne pouvait le voir : ils passent tous par le repli
+    disque, qui ne connait ni S3 ni IAM.
+
+    UN REFUS DE DROIT N'EST JAMAIS PASSAGER : c'est toujours une erreur de
+    configuration. On refuse donc de demarrer, ce qui fait echouer la bascule
+    ECS et ramene la version precedente — exactement ce qu'on veut.
+
+    UNE INDISPONIBILITE PASSAGERE, ELLE, NE DOIT PAS FAIRE TOMBER LE SERVICE.
+    Reseau coupe, S3 lent, jeton en cours de renouvellement : on journalise et
+    on demarre. Confondre les deux transformerait ce garde-fou en panne.
+    """
+    if not settings.S3_BUCKET_NAME:
+        # Repli disque : rien a verifier, et surtout rien a exiger.
+        return
+
+    import boto3
+    from botocore.exceptions import ClientError
+
+    cle = f"{_PREFIXE_RAPPORTS}/.verification-demarrage"
+    s3 = boto3.client("s3", region_name=settings.AWS_REGION)
+    try:
+        s3.put_object(Bucket=settings.S3_BUCKET_NAME, Key=cle, Body=b"ok")
+        s3.delete_object(Bucket=settings.S3_BUCKET_NAME, Key=cle)
+    except ClientError as exc:
+        code = exc.response.get("Error", {}).get("Code", "")
+        if code in {"AccessDenied", "AllAccessDisabled", "InvalidAccessKeyId", "NoSuchBucket"}:
+            raise RuntimeError(
+                f"Stockage inutilisable : {code} sur "
+                f"s3://{settings.S3_BUCKET_NAME}/{cle}. "
+                "Le role de tache n'a pas le droit d'ecrire sous ce prefixe — "
+                "verifier la politique IAM et _PREFIXE_RAPPORTS."
+            ) from exc
+
+        # Tout le reste est traite comme passager.
+        logger.warning(f"Verification du stockage impossible ({code}) — demarrage poursuivi.")
