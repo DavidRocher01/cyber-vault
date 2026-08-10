@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { describe, it, expect } from 'vitest';
@@ -126,5 +126,103 @@ describe('robots.txt et sitemap.xml suivent l’application', () => {
     for (const prive of ['/dashboard', '/vault', '/profile', '/admin/', '/auth/']) {
       expect(interdites(), `${prive} n'est plus interdit`).toContain(prive);
     }
+  });
+});
+
+/**
+ * Blocs de routes de PREMIER NIVEAU, avec leur chemin.
+ *
+ * Le découpage sur une accolade indentée de deux espaces écarte les routes
+ * imbriquées, et ce n'est pas un détail : la console d'administration porte les
+ * mêmes segments que le site public (`blog`, `users`). Une première mesure les
+ * confondait et attribuait à `/blog` le titre « Admin — Blog ».
+ */
+function blocsPublics(): { chemin: string; bloc: string }[] {
+  const blocs: { chemin: string; bloc: string }[] = [];
+  for (const bloc of ROUTES.split(/\n {2}\{/)) {
+    const chemin = bloc.match(/path: '([^']*)'/);
+    if (!chemin || !bloc.includes('loadComponent')) continue;
+    if (chemin[1].includes(':') || bloc.includes('canActivate')) continue;
+    blocs.push({ chemin: `/${chemin[1]}`, bloc });
+  }
+  return blocs;
+}
+
+/**
+ * Description déclarée sur la route, si elle y est.
+ *
+ * LES DEUX GUILLEMETS SONT ACCEPTÉS, ET C'EST NÉCESSAIRE. Prettier écrit une
+ * chaîne en guillemets simples, sauf si elle contient une apostrophe — auquel
+ * cas il passe aux doubles pour éviter l'échappement. Il replie aussi les
+ * longues sur la ligne suivante. Une première version ne lisait que les
+ * doubles guillemets : cinq descriptions sur neuf devenaient invisibles après
+ * un simple formatage. Un extracteur lié à un choix de mise en forme ne
+ * mesure pas ce qu'il croit mesurer.
+ */
+function descriptionDeclaree(bloc: string): string | null {
+  return bloc.match(/description:\s*(['"])((?:(?!\1).)*)\1/)?.[2] ?? null;
+}
+
+/** Le composant de cette route pose-t-il lui-même une description ?
+ *  Quinze pages le font encore ainsi — c'est valable, seulement moins visible. */
+function composantPoseUneDescription(bloc: string): boolean {
+  const imp = bloc.match(/import\('([^']+)'\)/)?.[1];
+  if (!imp) return false;
+  const fichier = resolve(RACINE, 'src/app/features/cyberscan', `${imp.replace(/^\.\//, '')}.ts`);
+  if (!existsSync(fichier)) return false;
+  return readFileSync(fichier, 'utf-8').includes("name: 'description'");
+}
+
+describe('Chaque page annoncée aux moteurs porte son titre et sa description', () => {
+  /**
+   * POURQUOI CES TESTS. Mesuré le 2026-08-09 : NEUF des 23 pages du sitemap
+   * n'avaient aucune meta description, dont `/nis2` — celle que le lot 1 venait
+   * d'ouvrir à l'indexation. Sans description, Google fabrique lui-même
+   * l'extrait affiché sous le lien : on laisse un moteur rédiger
+   * l'argumentaire commercial à notre place.
+   */
+  const PAGES = () => blocsPublics().filter(b => urlsDuSitemap().includes(b.chemin));
+
+  it('lit bien les routes — sinon tout le reste est vide de sens', () => {
+    expect(PAGES().length, 'aucune page du sitemap retrouvée dans les routes').toBeGreaterThan(15);
+  });
+
+  it('toute page annoncée porte un titre', () => {
+    const sans = PAGES()
+      .filter(b => !/title: '[^']+'/.test(b.bloc))
+      .map(b => b.chemin);
+    expect(sans, `pages du sitemap sans titre : ${sans.join(', ')}`).toHaveLength(0);
+  });
+
+  it('toute page annoncée porte une description', () => {
+    const sans = PAGES()
+      .filter(b => !descriptionDeclaree(b.bloc) && !composantPoseUneDescription(b.bloc))
+      .map(b => b.chemin);
+    expect(sans, `pages du sitemap sans description : ${sans.join(', ')}`).toHaveLength(0);
+  });
+
+  it('les titres annoncés sont distincts', () => {
+    // Deux pages au même titre se cannibalisent dans les résultats de recherche.
+    const titres = PAGES().map(b => b.bloc.match(/title: '([^']+)'/)?.[1] ?? b.chemin);
+    expect(new Set(titres).size, `titres en double parmi ${titres.length}`).toBe(titres.length);
+  });
+
+  it('les descriptions déclarées sont distinctes et de longueur utile', () => {
+    // Au-delà d'environ 160 caractères, Google tronque ; en deçà de 70, il
+    // considère souvent la description trop maigre et la remplace.
+    const declarees = PAGES()
+      .map(b => ({ chemin: b.chemin, texte: descriptionDeclaree(b.bloc) }))
+      .filter((d): d is { chemin: string; texte: string } => d.texte !== null);
+
+    expect(declarees.length, 'aucune description déclarée sur une route').toBeGreaterThan(0);
+
+    const mauvaises = declarees.filter(d => d.texte.length < 70 || d.texte.length > 165);
+    expect(
+      mauvaises.map(d => `${d.chemin} (${d.texte.length})`),
+      'descriptions hors des bornes utiles'
+    ).toHaveLength(0);
+
+    const textes = declarees.map(d => d.texte);
+    expect(new Set(textes).size, 'descriptions en double').toBe(textes.length);
   });
 });

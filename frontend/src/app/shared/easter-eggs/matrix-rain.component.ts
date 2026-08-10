@@ -125,6 +125,16 @@ export class MatrixRainComponent implements OnChanges, AfterViewInit, OnDestroy 
   }
 
   private stop(): void {
+    // GARDE SYMETRIQUE DE `ngOnInit`. Le prerendu est ETEINT aujourd'hui, mais
+    // quand il tourne l'initialisation sort tot : aucune animation n'a demarre,
+    // et `cancelAnimationFrame` n'existe pas cote serveur. Sans ce retour, la
+    // construction du site echoue.
+    //
+    // Ce defaut a survecu des mois parce que CLAUDE.md affirmait un prerendu
+    // qui n'existait pas : la consigne « tout acces au DOM derriere
+    // isPlatformBrowser » etait suivie pour une capacite eteinte, donc rien
+    // n'exercait les sorties.
+    if (!isPlatformBrowser(this.platformId)) return;
     cancelAnimationFrame(this.rafId);
     clearTimeout(this.autoClose);
   }

@@ -2,9 +2,11 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  // La recette post-prod (e2e/recette/) tape une instance deployee et a sa
-  // propre config (playwright.recette.config.ts) — l'exclure de la suite locale.
-  testIgnore: '**/recette/**',
+  // Deux suites ont leur propre config et ne doivent pas tourner ici :
+  //  - e2e/recette/     tape une instance DEPLOYEE (playwright.recette.config.ts) ;
+  //  - e2e/build-servi/ tape le BUILD DE PRODUCTION (playwright.build.config.ts),
+  //    alors que ce fichier lance `ng serve`, donc la configuration `development`.
+  testIgnore: ['**/recette/**', '**/build-servi/**'],
   // E2E tests share a single DB — serial execution avoids concurrent beforeAll race conditions
   fullyParallel: false,
   workers: 1,

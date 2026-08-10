@@ -530,6 +530,22 @@ jobs:
         run: npx playwright test
         working-directory: frontend
 
+      # L'etape ci-dessus tape `ng serve`, donc la configuration `development`.
+      # Celle-ci construit en PRODUCTION et sert le resultat en statique.
+      #
+      # POURQUOI LES DEUX. Le prerendu du lot 2 n'etait declare que dans
+      # `production` : la suite ci-dessus ne pouvait PAS voir la regression de
+      # connexion qu'il introduisait, et c'est la recette post-prod qui l'a
+      # attrapee — une fois en production. Verifie en rallumant le prerendu :
+      # les deux tests de saisie tombent sur `unexpected value "disabled"`.
+      #
+      # Elle est courte (7 tests) et ne redouble pas la couverture
+      # fonctionnelle : elle ne garde que ce qui depend de la configuration
+      # livree. Elle coute un build de production, pas davantage.
+      - name: Playwright — build de production servi en statique
+        run: npm run test:e2e:build
+        working-directory: frontend
+
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { Title, Meta } from '@angular/platform-browser';
 import { NavButtonsComponent } from '../../../shared/nav-buttons/nav-buttons.component';
+import { DonneesStructureesService } from '../../../core/donnees-structurees.service';
 import { PHISHING_SCENARIOS } from '../services/phishing-scenarios';
 
 export interface PricingTier {
@@ -234,6 +235,7 @@ export const USE_CASES = [
 export class PhishingComponent implements OnInit {
   private title = inject(Title);
   private meta = inject(Meta);
+  private donneesStructurees = inject(DonneesStructureesService);
 
   readonly scenarios = PHISHING_SCENARIOS;
   readonly pricingTiers = PRICING_TIERS;
@@ -245,6 +247,9 @@ export class PhishingComponent implements OnInit {
   openFaqIndex = signal<number | null>(null);
 
   ngOnInit() {
+    // Derive du MEME tableau que la page affiche : les deux ne peuvent pas
+    // diverger, contrairement a un bloc JSON-LD recopie a la main.
+    this.donneesStructurees.poserFaq(this.faqItems);
     this.title.setTitle(
       'Simulation de Phishing pour PME — Test et Sensibilisation | Rocher Cybersécurité'
     );
