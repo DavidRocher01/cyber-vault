@@ -66,8 +66,60 @@ const A_PARAMETRE = [
   'blog/:slug',
 ] as const;
 
+/**
+ * ROUTES GARDÉES : elles ne PEUVENT PAS être prérendues.
+ *
+ * CE QUE ÇA A COÛTÉ, LE 2026-08-10. Prérendre une route derrière `canActivate`
+ * exécute la garde À LA CONSTRUCTION, sans session. Elle refuse, et Angular fige
+ * son refus dans un fichier de 324 octets :
+ *
+ *     <title>Redirecting</title>
+ *     <meta http-equiv="refresh" content="0; url=/auth/login?returnUrl=%2Fdashboard">
+ *
+ * Servi tel quel, ce fichier éjecte vers la connexion TOUT visiteur ouvrant
+ * `/dashboard` par URL directe ou par rafraîchissement — connecté ou non, et
+ * avant même qu'Angular ne démarre. Douze écrans étaient dans ce cas en
+ * production. La recette post-prod l'a vu ; c'est la deuxième fois en deux
+ * jours qu'elle rattrape ce lot.
+ *
+ * Ces routes n'ont de toute façon aucune valeur d'indexation : `robots.txt` les
+ * interdit déjà.
+ *
+ * LA LISTE EST CONFRONTÉE À SA SOURCE par `app.routes.server.spec.ts` : toute
+ * route portant un `canActivate` doit s'y trouver. Une liste recopiée se périme
+ * au premier écran ajouté — la leçon de la semaine, apprise quatre fois.
+ */
+const AUTHENTIFIEES = [
+  'dashboard',
+  'url-scanner',
+  'code-scan',
+  'profile',
+  'factures',
+  'consultant',
+  'consultant/profile',
+  'espace-client',
+  'sensibilisation',
+  'awareness-admin',
+  'pca',
+  'darkweb',
+  'darkweb-dossier',
+  'darkweb-dossier/new',
+  'onboarding',
+  'success',
+  'phishing/campaigns',
+  'phishing/new',
+
+  // Redirections pures et espaces protégés par une garde posée ailleurs que
+  // dans `cyberscan.routes.ts` : même conséquence, même traitement.
+  'auth',
+  'auth/master-password',
+  'awareness',
+  'vault',
+] as const;
+
 export const serverRoutes: ServerRoute[] = [
   ...A_PARAMETRE.map(path => ({ path, renderMode: RenderMode.Client }) as ServerRoute),
+  ...AUTHENTIFIEES.map(path => ({ path, renderMode: RenderMode.Client }) as ServerRoute),
   // Tout le reste est produit en HTML complet à la construction.
   { path: '**', renderMode: RenderMode.Prerender },
 ];

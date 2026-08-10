@@ -12,17 +12,52 @@
  * part. C'était la condition pour que ce script n'ajoute aucune dépendance.
  */
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { genererFonction } from '../src/routage-cloudfront.ts';
 
 const RACINE = resolve(import.meta.dirname, '..');
 const INVENTAIRE = resolve(RACINE, 'dist/cyber-vault-frontend/prerendered-routes.json');
+const NAVIGATEUR = resolve(RACINE, 'dist/cyber-vault-frontend/browser');
 const SORTIE = resolve(RACINE, 'dist/routage-cloudfront.js');
 
 const brut = JSON.parse(readFileSync(INVENTAIRE, 'utf-8')) as { routes?: Record<string, unknown> };
-const routes = Object.keys(brut.routes ?? {});
+const annoncees = Object.keys(brut.routes ?? {});
+
+/**
+ * UNE PAGE QUI REDIRIGE N'EST PAS UNE PAGE.
+ *
+ * Prérendre une route derrière `canActivate` exécute la garde à la
+ * construction, sans session : elle refuse, et Angular fige son refus dans un
+ * fichier de 324 octets porteur d'un `<meta http-equiv="refresh">`. Servi tel
+ * quel, il éjecte vers la connexion tout visiteur ouvrant `/dashboard` par URL
+ * directe — connecté ou non, avant même qu'Angular ne démarre. C'est ce qui est
+ * arrivé en production le 2026-08-10, sur douze écrans.
+ *
+ * `app.routes.server.ts` empêche désormais ces fichiers d'être produits. CE
+ * FILTRE EST LA SECONDE COUCHE, et la seule qui ne puisse pas se périmer : il
+ * lit ce que la construction a RÉELLEMENT écrit, pas une liste tenue à la main.
+ */
+function estUneRedirection(route: string): boolean {
+  const fichier =
+    route === '/' ? resolve(NAVIGATEUR, 'index.html') : resolve(NAVIGATEUR, `.${route}/index.html`);
+  if (!existsSync(fichier)) return true;
+  return readFileSync(fichier, 'utf-8').includes('http-equiv="refresh"');
+}
+
+const routes = annoncees.filter(r => !estUneRedirection(r));
+const ecartees = annoncees.filter(r => estUneRedirection(r));
+
+// On le DIT plutôt que de l'écarter en silence : une redirection prérendue
+// signale une route gardée oubliée dans `app.routes.server.ts`.
+if (ecartees.length) {
+  console.warn(
+    `${ecartees.length} route(s) écartée(s) — page de redirection, pas de contenu :\n  ` +
+      ecartees.join('\n  ') +
+      '\n  → à déclarer en RenderMode.Client dans app.routes.server.ts.'
+  );
+}
 
 // UN INVENTAIRE VIDE EST UNE ANOMALIE, PAS UN CAS LIMITE. Il signifierait que le
 // prérendu s'est éteint sans que personne ne s'en aperçoive — exactement l'état
