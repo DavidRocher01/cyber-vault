@@ -291,7 +291,16 @@ async def test_site_domain_status_unverified_by_default():
         site_id = await _create_site(c, h)
         r = await c.get(f"{BASE}/sites/{site_id}/domain", headers=h)
     assert r.status_code == 200
-    assert r.json() == {"domain": "mysite.com", "verified": False}
+    # ON VERIFIE CE QUE LE TEST VEUT DIRE, pas la forme exacte du dictionnaire.
+    #
+    # L'egalite stricte cassait des que la reponse gagnait un champ — ici
+    # `verified_at`, apparu le 2026-08-10 quand cet endpoint a recu un
+    # `response_model` commun avec `/domain/verify/check`. Uniformiser les deux
+    # reponses est une amelioration ; un test qui l'interdit protege la forme
+    # plutot que le sens.
+    corps = r.json()
+    assert corps["domain"] == "mysite.com"
+    assert corps["verified"] is False
 
 
 @pytest.mark.asyncio

@@ -24,7 +24,7 @@ from app.core.ssrf import assert_no_ssrf
 from app.core.utils import safe_json_load
 from app.models.site import Site
 from app.models.user import User
-from app.schemas.cyberscan import PaginatedScans, ScanOut, ScanTriggerOut
+from app.schemas.cyberscan import FindingStatusOut, PaginatedScans, ScanOut, ScanTriggerOut
 from app.services import scan_query_service
 from app.services.scan_service import obtenir_rapport, run_scan
 from app.services.subscription_service import get_active_plan
@@ -362,7 +362,7 @@ async def _get_owned_site(site_id: int, user: User, db: AsyncSession) -> Site:
     return site
 
 
-@router.get("/site/{site_id}/finding-status")
+@router.get("/site/{site_id}/finding-status", response_model=list[FindingStatusOut])
 async def list_finding_statuses(
     site_id: int,
     current_user: User = Depends(get_current_user),
@@ -381,7 +381,7 @@ async def list_finding_statuses(
     ]
 
 
-@router.put("/site/{site_id}/finding-status/{module_key}")
+@router.put("/site/{site_id}/finding-status/{module_key}", response_model=FindingStatusOut)
 async def upsert_finding_status(
     site_id: int,
     module_key: str,
