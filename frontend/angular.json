@@ -68,7 +68,9 @@
                   "maximumError": "7kb"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "server": "src/main.server.ts",
+              "outputMode": "static"
             },
             "development": {
               "optimization": false,

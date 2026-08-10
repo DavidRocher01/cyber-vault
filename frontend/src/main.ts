@@ -4,6 +4,21 @@ import * as Sentry from '@sentry/angular';
 import { appConfig } from './app/app.config';
 import { AppComponent } from './app/app.component';
 import { environment } from './environments/environment';
+import { installerRepriseSaisie } from './app/core/reprise-saisie';
+
+// AVANT TOUT LE RESTE, ET C'EST LE POINT. Une page prerendue s'affiche avant
+// d'etre hydratee : le formulaire est visible mais mort, et ce qui y est tape
+// sera efface quand Angular ecrira la valeur vide du `FormControl`. On note
+// donc la frappe des maintenant, pour la remettre apres.
+//
+// Ici plutot que dans un composant : le moindre retard est de la saisie perdue,
+// et `bootstrapApplication` ci-dessous ne demarre Angular qu'ensuite.
+//
+// Ici plutot qu'en ligne dans `index.html` : la CSP servie est
+// `script-src 'self'`, un script en ligne exigerait d'autoriser son empreinte.
+if (typeof window !== 'undefined') {
+  installerRepriseSaisie(document, window);
+}
 
 // These browser-only initializations are skipped during SSR prerendering
 if (typeof window !== 'undefined') {
