@@ -10,6 +10,7 @@ from pathlib import Path
 import resend
 
 from app.core.config import settings
+from app.services.storage import lire_rapport
 
 from .base import _send, gabarit_html
 
@@ -73,17 +74,20 @@ Rocher Cybersécurité — Cybersécurité as a Service
             # seul, sans structure ni marque.
             "html": html,
         }
-        pdf_file = Path(pdf_path).resolve()
-        if pdf_file.exists():
-            with open(pdf_file, "rb") as f:
-                import base64
+        # LE RAPPORT N'EST PLUS FORCEMENT UN FICHIER LOCAL. Depuis le
+        # 2026-08-10 il est range hors du conteneur, et `pdf_path` porte une
+        # REFERENCE. Continuer a l'ouvrir comme un chemin ferait perdre la piece
+        # jointe en silence — l'alerte partirait sans son rapport.
+        contenu = lire_rapport(pdf_path)
+        if contenu is not None:
+            import base64
 
-                params["attachments"] = [
-                    {
-                        "filename": pdf_file.name,
-                        "content": base64.b64encode(f.read()).decode(),
-                    }
-                ]
+            params["attachments"] = [
+                {
+                    "filename": Path(pdf_path).name,
+                    "content": base64.b64encode(contenu).decode(),
+                }
+            ]
         resend.Emails.send(params)
         return
 
@@ -93,12 +97,13 @@ Rocher Cybersécurité — Cybersécurité as a Service
     msg["Subject"] = subject
     msg.attach(MIMEText(plain, "plain", "utf-8"))
     msg.attach(MIMEText(html, "html", "utf-8"))
-    pdf_file = Path(pdf_path).resolve()
-    if pdf_file.exists() and pdf_file.is_file():
-        with open(pdf_file, "rb") as f:  # nosec B open
-            part = MIMEApplication(f.read(), Name=pdf_file.name)
-            part["Content-Disposition"] = f'attachment; filename="{pdf_file.name}"'
-            msg.attach(part)
+    # Meme raison que plus haut : `pdf_path` porte une reference, pas un chemin.
+    contenu = lire_rapport(pdf_path)
+    if contenu is not None:
+        nom = Path(pdf_path).name
+        part = MIMEApplication(contenu, Name=nom)
+        part["Content-Disposition"] = f'attachment; filename="{nom}"'
+        msg.attach(part)
     context = ssl.create_default_context()
     with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, context=context) as server:
         server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)

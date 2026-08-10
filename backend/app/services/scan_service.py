@@ -273,8 +273,25 @@ def _run_scan_sync(
 
     pdf_dir = SCANNER_DIR / "reports" / "clients"
     pdf_dir.mkdir(parents=True, exist_ok=True)
-    pdf_path = str(pdf_dir / f"scan_{scan_id}.pdf")
-    _write_report(url, module_results, tier, allow_active, pdf_path)
+    pdf_local = pdf_dir / f"scan_{scan_id}.pdf"
+    _write_report(url, module_results, tier, allow_active, str(pdf_local))
+
+    # LE RAPPORT EST RANGE AILLEURS QUE SUR LE DISQUE DU CONTENEUR, et c'est ce
+    # qui lui permet de survivre. L'outil de scan ecrit sur disque — on ne le
+    # change pas — mais ce qu'on retient en base est une REFERENCE, pas un
+    # chemin : un chemin ne survit pas a la tache Fargate qui l'a ecrit.
+    #
+    # Le 2026-08-09, sept minutes apres un deploiement, `GET /scans/163/pdf`
+    # repondait 500 : la base affirmait un fichier que le disque n'avait plus.
+    #
+    # SI LE RAPPORT N'A PAS ETE PRODUIT, ON NE RETIENT RIEN. Auparavant le chemin
+    # etait stocke quoi qu'il arrive : la base promettait un fichier qui n'avait
+    # jamais existe, et l'endpoint repondait 500 en allant le chercher.
+    from app.services.storage import ranger_rapport
+
+    reference = (
+        ranger_rapport(pdf_local.read_bytes(), pdf_local.name) if pdf_local.is_file() else None
+    )
 
     overall = _compute_overall(module_results)
 
@@ -291,7 +308,7 @@ def _run_scan_sync(
         },
     }
 
-    return {"results": results, "overall": overall, "pdf_path": pdf_path}
+    return {"results": results, "overall": overall, "pdf_path": reference}
 
 
 async def _active_scan_allowed(user_id: int, url: str, db: AsyncSession) -> bool:

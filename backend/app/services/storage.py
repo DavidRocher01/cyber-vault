@@ -269,3 +269,101 @@ def _upload_local(content: bytes, original_name: str, user_id: int, client_id: i
     return str(
         Path("uploads") / "rssi" / str(user_id) / _segment_client(client_id) / filename
     ).replace("\\", "/")
+
+
+# ── Rapports de scan ───────────────────────────────────────────────────────────
+#
+# POURQUOI CETTE SECTION EXISTE. Les rapports PDF etaient ecrits sur le disque du
+# conteneur et leur CHEMIN ABSOLU stocke en base. Or le stockage d'une tache
+# Fargate est EPHEMERE : chaque deploiement remplace la tache et emporte tous les
+# rapports. La base continuait d'affirmer qu'ils existaient.
+#
+# Mesure du 2026-08-09, sept minutes apres un deploiement :
+#
+#     GET /api/v1/scans/163/pdf -> 500
+#     RuntimeError: File at path /cyber-scanner/reports/clients/scan_163.pdf
+#                   does not exist.
+#
+# On deploie plusieurs fois par jour. Sans clients, ca ne coute rien ; avec, tout
+# client rouvrant son rapport de la veille recevrait une erreur serveur.
+#
+# LE MEME SEAU QUE LES DEPOTS, SOUS UN SOUS-PREFIXE DEDIE. Aucune infrastructure
+# a creer, et la purge des depots ne peut pas les atteindre : elle travaille
+# depuis les enregistrements de `fichiers_deposes`, jamais en enumerant le seau.
+#
+# LE PREFIXE COMMENCE PAR `rssi-deliverables/`, ET CE N'EST PAS COSMETIQUE. La
+# politique IAM du role de tache n'autorise QUE :
+#
+#     arn:aws:s3:::cybervault-rssi-deliverables-prod/rssi-deliverables/*
+#
+# Un premier essai rangeait sous `rapports/` : chaque scan aurait echoue en
+# production sur un AccessDenied, sans qu'aucun test ne puisse le voir — ils
+# passent tous par le repli local. On se range dans le droit accorde plutot que
+# de l'elargir.
+
+_PREFIXE_RAPPORTS = "rssi-deliverables/rapports"
+_LOCAL_RAPPORTS_DIR = Path("uploads") / "rapports"
+
+
+def _est_un_chemin_local(reference: str) -> bool:
+    """Une reference d'AVANT cette section : un chemin absolu de conteneur.
+
+    Ces lignes existent encore en base. Elles pointent vers des fichiers presque
+    surement disparus — on les lit quand meme, plutot que de les declarer
+    perdues sans essayer.
+    """
+    return reference.startswith("/") or (len(reference) > 1 and reference[1] == ":")
+
+
+def ranger_rapport(contenu: bytes, nom: str) -> str:
+    """Range un rapport et retourne SA REFERENCE — jamais un chemin de disque.
+
+    C'est la distinction qui compte : un chemin ne survit pas au conteneur qui
+    l'a ecrit, une reference si.
+    """
+    if settings.S3_BUCKET_NAME:
+        import boto3  # lazy import — seulement quand S3 est configure
+
+        cle = f"{_PREFIXE_RAPPORTS}/{Path(nom).name}"
+        boto3.client("s3", region_name=settings.AWS_REGION).put_object(
+            Bucket=settings.S3_BUCKET_NAME,
+            Key=cle,
+            Body=contenu,
+            ContentType="application/pdf",
+            ContentDisposition=f'attachment; filename="{Path(nom).name}"',
+        )
+        return cle
+
+    _LOCAL_RAPPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    chemin = _LOCAL_RAPPORTS_DIR / Path(nom).name
+    chemin.write_bytes(contenu)
+    return str(chemin).replace("\\", "/")
+
+
+def lire_rapport(reference: str) -> bytes | None:
+    """Contenu du rapport, ou `None` s'il a disparu.
+
+    RENVOYER `None` PLUTOT QUE DE LAISSER JAILLIR L'EXCEPTION est tout l'objet de
+    cette fonction : l'appelant peut alors repondre 404 avec une phrase utile,
+    au lieu d'une erreur serveur qui reveille l'alarme et n'apprend rien a
+    personne.
+    """
+    if _est_un_chemin_local(reference) or reference.startswith("uploads/"):
+        chemin = Path(reference)
+        return chemin.read_bytes() if chemin.is_file() else None
+
+    if not settings.S3_BUCKET_NAME:
+        return None
+
+    import boto3
+    from botocore.exceptions import ClientError
+
+    try:
+        objet = boto3.client("s3", region_name=settings.AWS_REGION).get_object(
+            Bucket=settings.S3_BUCKET_NAME, Key=reference
+        )
+        return bytes(objet["Body"].read())
+    except ClientError:
+        # Objet absent, seau inaccessible : dans tous les cas, pas de rapport a
+        # servir. On ne distingue pas — l'appelant n'en ferait rien.
+        return None

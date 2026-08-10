@@ -4,7 +4,16 @@ import io
 import os
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query, Request
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Body,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+)
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,6 +27,7 @@ from app.models.user import User
 from app.schemas.cyberscan import PaginatedScans, ScanOut, ScanTriggerOut
 from app.services import scan_query_service
 from app.services.scan_service import run_scan
+from app.services.storage import lire_rapport
 from app.services.subscription_service import get_active_plan
 
 router = APIRouter(prefix="/scans", tags=["scans"])
@@ -159,10 +169,31 @@ async def download_pdf(
     if scan.status != "done" or not scan.pdf_path:
         raise HTTPException(status_code=404, detail="Rapport PDF non disponible")
 
-    return FileResponse(
-        path=scan.pdf_path,
+    # ON VERIFIE QUE LE RAPPORT EST LA, pas seulement que la base l'affirme.
+    #
+    # Le 2026-08-09, sept minutes apres un deploiement, cet endpoint a repondu
+    # 500 : `FileResponse` recevait un chemin dont le fichier avait disparu avec
+    # la tache Fargate remplacee. Une exception non rattrapee, une alarme
+    # CloudWatch reveillee, et un utilisateur qui n'apprend rien.
+    #
+    # Les rapports sont desormais ranges hors du conteneur. Restent les lignes
+    # d'avant, dont le chemin ne pointe plus nulle part : elles meritent une
+    # phrase utile, pas une erreur serveur.
+    contenu = lire_rapport(scan.pdf_path)
+    if contenu is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Ce rapport n'est plus disponible. Relancez un scan pour en obtenir un à jour.",
+        )
+
+    return Response(
+        content=contenu,
         media_type="application/pdf",
-        filename=f"rochercybersecurite_rapport_{scan_id}.pdf",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="rochercybersecurite_rapport_{scan_id}.pdf"'
+            )
+        },
     )
 
 
