@@ -139,8 +139,10 @@ async def test_rapport_disparu_est_refabrique_puis_range():
                 return_value=MagicMock(scan_interval_days=30, max_sites=5, price_eur=990)
             ),
         ),
+        # Le helper vit dans le SERVICE : patcher l ancien emplacement
+        # aurait laisse ce test passer a vide.
         patch(
-            "app.api.v1.endpoints.scans._refabriquer_rapport",
+            "app.services.scan_service._refabriquer_rapport",
             return_value=b"%PDF-refabrique",
         ),
     ):

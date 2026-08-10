@@ -422,3 +422,70 @@ async def run_scan(scan_id: int, db: AsyncSession) -> None:
         scan.error_message = str(exc)[:500]
         scan.finished_at = datetime.now(UTC)
         await db.commit()
+
+
+def _refabriquer_rapport(scan_id: int, results_json: str) -> bytes | None:
+    """Reconstruit le PDF depuis les resultats conserves en base, ou `None`.
+
+    UN ECHEC N'EST PAS UNE ERREUR SERVEUR. Le module `scanner` n'est pas
+    toujours la — il est absent du poste de developpement, par exemple — et un
+    vieux `results_json` peut ne plus porter tous les modules attendus. Dans les
+    deux cas l'appelant repondra 404, ce qui est la verite : pas de rapport.
+    """
+    import tempfile
+
+    from app.core.utils import safe_json_load
+
+    resultats = safe_json_load(results_json, {})
+    meta = resultats.get("_meta", {})
+    try:
+        with tempfile.TemporaryDirectory() as dossier:
+            chemin = str(Path(dossier) / f"scan_{scan_id}.pdf")
+            _write_report(
+                meta.get("url", "unknown"),
+                resultats,
+                int(meta.get("tier", 1)),
+                bool(resultats.get("ports")),
+                chemin,
+            )
+            return Path(chemin).read_bytes()
+    except Exception:
+        return None
+
+
+async def obtenir_rapport(db: AsyncSession, scan: Scan) -> bytes | None:
+    """Contenu du rapport d'un scan, refabrique et range s'il a disparu.
+
+    POURQUOI CETTE FONCTION VIT DANS LE SERVICE ET NON DANS L'ENDPOINT. Elle
+    ECRIT en base — elle remplace la reference morte par la nouvelle. Un
+    endpoint ne fait jamais d'acces DB direct ; c'est la regle du projet, et le
+    ratchet `test_endpoints_db_access_ratchet` l'a rattrapee quand je l'ai
+    enfreinte.
+
+    ON REFABRIQUE PLUTOT QUE DE RENVOYER L'UTILISATEUR CHEZ LUI : le plan
+    Gratuit n'autorise qu'un scan par 30 jours, donc lui repondre « relancez un
+    scan » serait lui demander l'impossible pour recuperer un rapport qu'il a
+    deja paye de son quota.
+    """
+    if not scan.pdf_path:
+        return None
+
+    from app.services.storage import lire_rapport, ranger_rapport
+
+    contenu = lire_rapport(scan.pdf_path)
+    if contenu is not None:
+        return contenu
+    if not scan.results_json:
+        return None
+
+    # HORS DE LA BOUCLE D'EVENEMENTS : la generation est synchrone et prend
+    # plusieurs centaines de millisecondes ; la laisser dans la boucle
+    # bloquerait toutes les autres requetes pendant ce temps.
+    contenu = await asyncio.to_thread(_refabriquer_rapport, scan.id, scan.results_json)
+    if contenu is None:
+        return None
+
+    # Range au passage : la demande suivante n'aura plus rien a refaire.
+    scan.pdf_path = ranger_rapport(contenu, f"scan_{scan.id}.pdf")
+    await db.commit()
+    return contenu
