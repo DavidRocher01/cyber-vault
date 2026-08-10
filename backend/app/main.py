@@ -21,6 +21,7 @@ from app.core.database import AsyncSessionLocal, get_db
 from app.core.limiter import limiter
 from app.core.logging import setup_logging
 from app.services.scheduler import start_scheduler, stop_scheduler
+from app.services.storage import verifier_ecriture_stockage
 from app.services.stripe_service import PrixStripeIncoherentError
 
 setup_logging(settings.APP_ENV)
@@ -128,6 +129,11 @@ async def _import_awareness_content() -> None:
 
 @asynccontextmanager
 async def lifespan(fastapi_app: FastAPI):
+    # AVANT TOUT LE RESTE : un stockage inutilisable doit se voir MAINTENANT, pas
+    # a la premiere requete d'un utilisateur, plusieurs heures apres la bascule.
+    # Un refus de droit fait echouer le demarrage, donc revenir la version
+    # precedente ; une indisponibilite passagere est seulement journalisee.
+    verifier_ecriture_stockage()
     await _seed_plans()
     await _seed_awareness_badges()
     start_scheduler()

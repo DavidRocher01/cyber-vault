@@ -424,7 +424,7 @@ async def test_download_pdf_no_path_raises_404():
 
 
 @pytest.mark.asyncio
-async def test_download_pdf_success_returns_file_response():
+async def test_download_pdf_sert_le_contenu_du_rapport():
     import os
     import tempfile
 
@@ -441,11 +441,14 @@ async def test_download_pdf_success_returns_file_response():
     user = _mock_user()
 
     try:
-        from fastapi.responses import FileResponse
+        from fastapi import Response
 
+        # Le rapport n'est plus servi depuis le disque du conteneur : l'endpoint
+        # en sert le CONTENU, ce qui lui permet de le lire ou qu'il soit range.
         response = await download_pdf(scan_id=1, current_user=user, db=db)
-        assert isinstance(response, FileResponse)
+        assert isinstance(response, Response)
         assert response.media_type == "application/pdf"
+        assert response.body == b"%PDF-test"
     finally:
         os.unlink(tmp_path)
 

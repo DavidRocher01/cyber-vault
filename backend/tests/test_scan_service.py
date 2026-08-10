@@ -591,10 +591,40 @@ def test_run_scan_sync_meta_contains_url_and_tier():
     assert result["results"]["_meta"]["tier"] == 2
 
 
-def test_run_scan_sync_pdf_path_contains_scan_id():
+def test_run_scan_sync_ne_retient_rien_si_le_rapport_n_a_pas_ete_produit():
+    """Les scanners sont simules : aucun PDF n'est ecrit sur le disque.
+
+    AVANT LE 2026-08-10, le chemin etait stocke QUOI QU'IL ARRIVE — la base
+    promettait alors un fichier qui n'avait jamais existe, et l'endpoint
+    repondait 500 en allant le chercher. Ne rien retenir est la bonne reponse.
+    """
     with _patch_all_scanners("OK"):
         result = _run_scan_sync("https://example.com", tier=2, scan_id=99, hibp_key="")
+    assert result["pdf_path"] is None
+
+
+def test_run_scan_sync_range_le_rapport_et_en_retient_la_reference(tmp_path, monkeypatch):
+    """Quand le rapport EST produit, on retient sa reference — pas son chemin."""
+    from pathlib import Path
+
+    import app.services.scan_service as module
+
+    monkeypatch.setattr(module, "SCANNER_DIR", tmp_path)
+    monkeypatch.setattr(
+        module, "_write_report", lambda *a, **k: Path(a[4]).write_bytes(b"%PDF-1.4")
+    )
+    monkeypatch.setattr("app.services.storage.settings.S3_BUCKET_NAME", "")
+    monkeypatch.setattr("app.services.storage._LOCAL_RAPPORTS_DIR", tmp_path / "rapports")
+
+    with _patch_all_scanners("OK"):
+        result = _run_scan_sync("https://example.com", tier=2, scan_id=99, hibp_key="")
+
+    assert result["pdf_path"] is not None
     assert "99" in result["pdf_path"]
+
+    from app.services.storage import lire_rapport
+
+    assert lire_rapport(result["pdf_path"]) == b"%PDF-1.4"
 
 
 def test_run_scan_sync_remediation_failure_does_not_raise():
