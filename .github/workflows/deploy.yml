@@ -212,14 +212,53 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region:     ${{ env.AWS_REGION }}
-      # Le prerendu produit un index.html PAR PAGE (61 routes depuis le
-      # 2026-08-08). L'exclusion ne peut donc plus viser le seul fichier racine :
-      # `--exclude "index.html"` ne correspond qu'a la racine, et les 60 autres
-      # auraient herite d'un cache immuable d'un an. Un visiteur aurait garde la
-      # version d'avant pendant douze mois.
+      # Le prerendu produit un index.html PAR PAGE. Lexclusion ne peut donc pas
+      # viser le seul fichier racine : `--exclude "index.html"` ne correspond
+      # qua la racine, et les autres auraient herite dun cache immuable dun an.
+      #
+      # PLUS DE `--delete`, ET CEST DELIBERE. Deux raisons :
+      #
+      #   1. Le retour arriere en depend. Remettre les HTML precedents ne sert a
+      #      rien si les assets quils referencent ont ete effaces.
+      #   2. Cetait la CAUSE des onglets perimes. Un onglet ouvert pendant un
+      #      deploiement demandait des morceaux que `--delete` venait de
+      #      supprimer : la navigation echouait en silence et le clic paraissait
+      #      mort. Un garde-fou avait ete pose cote navigateur le 2026-08-07 ;
+      #      ceci supprime la cause plutot que le symptome.
+      #
+      # Les assets portent leur empreinte dans leur nom : ils ne peuvent pas se
+      # marcher dessus. Le contre-coup est une accumulation lente dans le seau —
+      # negligeable a cette echelle, a revoir si elle devient visible.
+      #
+      # Une page HTML devenue obsolete ne peut pas etre servie par accident : la
+      # Function CloudFront decide seule des chemins prerendus, et elle est
+      # regeneree a chaque deploiement depuis linventaire du build.
+      # RELEVE DE LA VERSION EN PLACE, AVANT DE LA REMPLACER.
+      #
+      # Jusquau 2026-08-10 le frontend netait PAS repris en cas dechec de la
+      # recette : le sync avait deja remplace les fichiers. Deux fois dans la
+      # meme journee jai du reparer la production a la main — republier une
+      # Function CloudFront neutre, puis revenir sur le lot. Ce releve rend
+      # cette reparation automatique.
+      #
+      # On ne releve que le HTML et la Function : les assets, eux, portent leur
+      # empreinte dans leur nom et SURVIVENT (voir letape suivante).
+      - name: Relever la version en place (pour un retour arriere possible)
+        run: |
+          mkdir -p sauvegarde-frontend
+          aws s3 sync s3://${{ secrets.S3_BUCKET_NAME }}/ sauvegarde-frontend/ --exclude "*" --include "*.html"
+          aws cloudfront get-function --name ${{ env.CLOUDFRONT_FUNCTION }} --stage LIVE sauvegarde-frontend/routage-precedent.js
+
+      - name: Conserver la version precedente
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: frontend-precedent
+          path: sauvegarde-frontend/
+          retention-days: 5
+
       - name: Sync assets (cache long terme — hash dans le nom de fichier)
         run: |
-          aws s3 sync frontend/dist/cyber-vault-frontend/browser/             s3://${{ secrets.S3_BUCKET_NAME }}/             --delete             --exclude "*.html"             --cache-control "public, max-age=31536000, immutable"
+          aws s3 sync frontend/dist/cyber-vault-frontend/browser/             s3://${{ secrets.S3_BUCKET_NAME }}/             --exclude "*.html"             --cache-control "public, max-age=31536000, immutable"
 
       - name: Upload des pages HTML (pas de cache)
         run: |
@@ -281,8 +320,10 @@ jobs:
   #     l'image precedente doit tourner contre le schema deja migre (expand puis
   #     contract sur un deploiement ULTERIEUR). Une migration destructive-immediate
   #     casserait le rollback.
-  #   * Il ne rollback PAS le frontend (S3/CloudFront) : le sync a deja remplace
-  #     les assets. En cas d'echec purement front, corriger et redeployer.
+  #   * Il rollback AUSSI le frontend depuis le 2026-08-10 : les pages HTML et
+  #     la Function CloudFront sont relevees avant la synchro, et remises en cas
+  #     d'echec. C'est possible parce que la synchro des assets ne fait plus de
+  #     `--delete` : les fichiers haches de la version precedente survivent.
   recette:
     name: Recette post-prod (gate + rollback)
     needs: [deploy-backend, deploy-frontend]
@@ -340,6 +381,34 @@ jobs:
         # GuardDuty, retrait). Il a donc gagne le droit de bloquer.
         run: npx playwright test --config=playwright.recette.config.ts
         working-directory: frontend
+
+      # RETOUR ARRIERE DU FRONTEND — nouveau depuis le 2026-08-10.
+      #
+      # Il precede volontairement le rollback ECS : cest le frontend que le
+      # visiteur voit, et cest lui qui restait casse jusquici. Deux fois dans la
+      # meme journee jai du le reparer a la main.
+      #
+      # On remet les HTML releves avant la synchro, PUIS on republie la Function
+      # qui allait avec. Jamais linverse : publier une Function qui pointe vers
+      # des pages pas encore restaurees ferait servir du vide, exactement comme
+      # publier avant la synchro a laller.
+      - name: Retour arriere du frontend si la recette echoue
+        if: failure()
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: frontend-precedent
+          path: sauvegarde-frontend/
+
+      - name: Remettre les pages et le routage precedents
+        if: failure()
+        run: |
+          aws s3 sync sauvegarde-frontend/ s3://${{ secrets.S3_BUCKET_NAME }}/ --exclude "*" --include "*.html" --cache-control "no-cache, no-store, must-revalidate"
+
+          ETAG=$(aws cloudfront describe-function --name ${{ env.CLOUDFRONT_FUNCTION }} --query 'ETag' --output text)
+          ETAG=$(aws cloudfront update-function --name ${{ env.CLOUDFRONT_FUNCTION }} --if-match "$ETAG" --function-config '{"Comment":"Routage SPA (retour arriere recette)","Runtime":"cloudfront-js-2.0"}' --function-code fileb://sauvegarde-frontend/routage-precedent.js --query 'ETag' --output text)
+          aws cloudfront publish-function --name ${{ env.CLOUDFRONT_FUNCTION }} --if-match "$ETAG"
+
+          echo "Frontend revenu a la version precedente."
 
       - name: Rollback ECS si la recette echoue
         if: failure()
