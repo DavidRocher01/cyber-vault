@@ -69,6 +69,22 @@ test.describe('Le build de production est servi sur les bons chemins', () => {
     });
   }
 
+  // LE DEFAUT DU 2026-08-10, ET IL A ATTEINT LA PRODUCTION. Prerendre une route
+  // gardee execute son `canActivate` A LA CONSTRUCTION, sans session : elle
+  // refuse, et Angular fige le refus dans un fichier de 324 octets porteur d'un
+  // `<meta http-equiv="refresh">`. Servi tel quel, il ejecte vers la connexion
+  // TOUT visiteur ouvrant `/dashboard` par URL directe — connecte ou non, avant
+  // meme qu'Angular ne demarre. Douze ecrans etaient dans ce cas.
+  for (const chemin of ['/dashboard', '/profile', '/factures']) {
+    test(`${chemin} sert l'application, jamais une page de redirection`, async ({ page }) => {
+      const reponse = await page.goto(chemin, { waitUntil: 'domcontentloaded' });
+      const html = (await reponse?.text()) ?? '';
+
+      expect(html, 'page de redirection prerendue').not.toContain('http-equiv="refresh"');
+      expect(html.length, 'trop court pour etre l’application').toBeGreaterThan(10_000);
+    });
+  }
+
   test('une URL inconnue retombe sur l\'application, pas sur un 404 brut', async ({ page }) => {
     const reponse = await page.goto('/cette-page-n-existe-pas', { waitUntil: 'domcontentloaded' });
 
