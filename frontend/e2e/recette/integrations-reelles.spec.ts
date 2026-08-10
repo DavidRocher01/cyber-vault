@@ -70,7 +70,6 @@ test.describe('Recette prod — integrations reelles', () => {
     expect(sites.ok(), `GET /sites a repondu ${sites.status()}`).toBeTruthy();
 
     const listeSites = await sites.json();
-    test.skip(!listeSites.length, 'le compte canari n’a aucun site');
 
     let scanTermine: number | null = null;
     for (const site of listeSites) {
@@ -88,7 +87,23 @@ test.describe('Recette prod — integrations reelles', () => {
       }
     }
 
-    test.skip(scanTermine === null, 'aucun scan termine avec rapport sur le compte canari');
+    // ON ECHOUE PLUTOT QUE DE S'ABSTENIR, ET C'EST DELIBERE.
+    //
+    // Aux deux deploiements du 2026-08-10, ce test s'est ABSTENU faute de scan
+    // termine sur le compte canari. Une abstention est honnete, mais elle est
+    // silencieuse : le controle le PLUS UTILE de ce fichier — celui qui aurait
+    // attrape le 500 du 9 aout — ne s'exerçait pas, et rien ne le rappelait.
+    //
+    // Ce fichier tourne EN RODAGE (`continue-on-error` dans deploy.yml), donc un
+    // echec ici ne bloque aucun deploiement. C'est exactement la marge qui
+    // permet d'etre strict : le manque se voit dans le journal a chaque passage,
+    // et disparaitra tout seul le jour ou le canari aura un rapport.
+    expect(
+      scanTermine,
+      "PREREQUIS MANQUANT : le compte canari n'a aucun scan termine avec rapport. " +
+        'Ce controle reste decoratif tant que ce sera le cas. Pour le rendre reel : ' +
+        'se connecter avec le compte canari, ajouter un site et lancer un scan UNE FOIS.'
+    ).not.toBeNull();
 
     const pdf = await request.get(`${API}/scans/${scanTermine}/pdf`, { headers: entetes });
 
