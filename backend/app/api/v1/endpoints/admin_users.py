@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import require_admin
 from app.models.plan import Plan
+from app.schemas.administration import AdminConsultantFlagOut, AdminUserOut, AdminUserPlanOut
 from app.services import plan_service, subscription_service, user_admin_service
 
 router = APIRouter(prefix="/admin/users", tags=["admin"])
@@ -30,6 +31,7 @@ def _gratuit_libelle(gratuit: Plan | None) -> str:
     "",
     dependencies=[Depends(require_admin)],
     summary="[Admin] Lister les utilisateurs (paginé)",
+    response_model=list[AdminUserOut],
 )
 async def list_users(
     skip: int = Query(default=0, ge=0),
@@ -78,6 +80,7 @@ async def list_users(
     "/{user_id}/rssi",
     dependencies=[Depends(require_admin)],
     summary="[Admin] Activer/désactiver le rôle consultant RSSI",
+    response_model=AdminConsultantFlagOut,
 )
 async def toggle_rssi_consultant(user_id: int, db: AsyncSession = Depends(get_db)):
     user = await user_admin_service.get_user(db, user_id)
@@ -91,6 +94,7 @@ async def toggle_rssi_consultant(user_id: int, db: AsyncSession = Depends(get_db
     "/{user_id}/plan",
     dependencies=[Depends(require_admin)],
     summary="[Admin] Attribuer/rétrograder le plan d'un utilisateur (sans Stripe)",
+    response_model=AdminUserPlanOut,
 )
 async def set_user_plan(user_id: int, payload: SetPlanIn, db: AsyncSession = Depends(get_db)):
     """Attribue un plan à un utilisateur SANS passer par Stripe (piste A).

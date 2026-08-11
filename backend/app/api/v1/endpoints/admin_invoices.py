@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import require_admin
 from app.models.invoice import Invoice
+from app.schemas.administration import AdminInvoiceOut
 from app.services import invoice_service, user_admin_service
 from app.services.invoice_pdf import generate_invoice_pdf
 from app.services.invoice_service import create_invoice
@@ -35,7 +36,11 @@ class InvoiceCreateRequest(BaseModel):
 
 
 @router.post(
-    "", dependencies=[Depends(require_admin)], status_code=201, summary="[Admin] Créer une facture"
+    "",
+    dependencies=[Depends(require_admin)],
+    status_code=201,
+    summary="[Admin] Créer une facture",
+    response_model=AdminInvoiceOut,
 )
 async def admin_create_invoice(
     body: InvoiceCreateRequest,
@@ -63,7 +68,12 @@ async def admin_create_invoice(
     return _serialize(invoice)
 
 
-@router.get("", dependencies=[Depends(require_admin)], summary="[Admin] Lister les factures")
+@router.get(
+    "",
+    dependencies=[Depends(require_admin)],
+    summary="[Admin] Lister les factures",
+    response_model=list[AdminInvoiceOut],
+)
 async def admin_list_invoices(
     limit: int = 100,
     offset: int = 0,
@@ -74,7 +84,10 @@ async def admin_list_invoices(
 
 
 @router.get(
-    "/{invoice_id}", dependencies=[Depends(require_admin)], summary="[Admin] Détail d'une facture"
+    "/{invoice_id}",
+    dependencies=[Depends(require_admin)],
+    summary="[Admin] Détail d'une facture",
+    response_model=AdminInvoiceOut,
 )
 async def admin_get_invoice(
     invoice_id: int,

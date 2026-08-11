@@ -40,10 +40,19 @@ _ROUTE = re.compile(
 # fichiers (`FileResponse`), flux (`StreamingResponse`), redirections, et
 # reponses 204 ou 202 SANS CORPS. Les trois de `auth.py` avaient echappe au
 # premier tri : leur code est ecrit `status.HTTP_204_NO_CONTENT`, pas `204`.
+# Le tri a ete REFAIT sur toute la dette avec ce motif ET l'absence de `return`
+# productif, plutot que de les rattraper un par un au fil des lots.
 #
 # Ils etaient 42 sur les 118 recensees au depart. La dette REELLE est donc de
 # 75, pas de 118 — une dette surestimee se paie en decouragement.
 _HORS_SUJET: set[str] = {
+    "blog.py::delete_article",
+    "bookings.py::delete_slot",
+    "darkweb_dossier.py::delete_dossier",
+    "phishing.py::delete_campaign",
+    "phishing.py::delete_single_target",
+    "users.py::update_password",
+    "vault.py::delete_item",
     "auth.py::forgot_password",
     "auth.py::logout",
     "auth.py::reset_password",
@@ -96,38 +105,23 @@ _HORS_SUJET: set[str] = {
 # seuil laisserait remplacer un endpoint type par un autre qui ne l'est pas.
 _BASELINE: set[str] = {
     "admin_acquisition.py::vue_acquisition",
-    "admin_invoices.py::admin_create_invoice",
-    "admin_invoices.py::admin_get_invoice",
-    "admin_invoices.py::admin_list_invoices",
     "admin_quotes.py::admin_create_quote",
     "admin_quotes.py::admin_list_quotes",
     "admin_scans.py::list_public_scans",
     "admin_stats.py::get_stats",
     "admin_stats.py::sync_awareness_content",
-    "admin_users.py::list_users",
-    "admin_users.py::set_user_plan",
-    "admin_users.py::toggle_rssi_consultant",
     "awareness/certificates.py::get_nis2_report",
     "awareness/learners.py::request_magic_link",
     "awareness/organizations.py::enroll_all_learners",
-    "blog.py::delete_article",
-    "bookings.py::admin_cancel_booking",
-    "bookings.py::cancel_booking",
-    "bookings.py::delete_slot",
     "contact.py::admin_update_status",
     "contact.py::submit_contact",
     "cost_calc.py::get_questions",
-    "darkweb_dossier.py::delete_dossier",
-    "darkweb_dossier.py::sync_catalog",
-    "darkweb_dossier.py::toggle_monitor",
     "dev_testing.py::become_consultant",
     "health.py::health",
     "invoices.py::get_invoice",
     "invoices.py::list_invoices",
     "newsletter.py::fetch_og_image",
     "nis2.py::telecharger_une_piece",
-    "phishing.py::delete_campaign",
-    "phishing.py::delete_single_target",
     "portal.py::download_my_deliverable",
     "quiz.py::get_questions",
     "quotes.py::accept_quote",
@@ -140,8 +134,6 @@ _BASELINE: set[str] = {
     "subscriptions.py::get_extra_sites_info",
     "training.py::complete_module",
     "url_scans.py::get_quota",
-    "users.py::update_password",
-    "vault.py::delete_item",
     "webhooks.py::stripe_webhook",
 }
 

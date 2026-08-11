@@ -8,6 +8,7 @@ from app.core.database import get_db
 from app.core.deps import require_admin
 from app.core.limiter import limiter
 from app.models.booking_slot import BookingSlot
+from app.schemas.administration import MessageOut
 from app.schemas.booking import (
     BookingConfirmOut,
     BookingIn,
@@ -145,7 +146,7 @@ async def create_booking(
     )
 
 
-@router.get("/cancel")
+@router.get("/cancel", response_model=MessageOut)
 async def cancel_booking(token: str, db: AsyncSession = Depends(get_db)):
     """Public — cancel a booking via the token from the confirmation email."""
     booking = await booking_service.get_booking_by_cancel_token(db, token)
@@ -233,7 +234,11 @@ async def admin_list_bookings(db: AsyncSession = Depends(get_db)):
     ]
 
 
-@router.patch("/admin/bookings/{booking_id}/cancel", dependencies=[Depends(require_admin)])
+@router.patch(
+    "/admin/bookings/{booking_id}/cancel",
+    dependencies=[Depends(require_admin)],
+    response_model=MessageOut,
+)
 async def admin_cancel_booking(booking_id: int, db: AsyncSession = Depends(get_db)):
     booking = await booking_service.get_booking(db, booking_id)
     if not booking:
