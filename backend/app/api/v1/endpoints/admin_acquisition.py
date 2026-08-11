@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import require_admin
 from app.models.user import User
+from app.schemas.divers import AcquisitionOut
 from app.services import acquisition_service
 
 router = APIRouter(prefix="/admin/acquisition", tags=["admin"])
@@ -24,7 +25,11 @@ router = APIRouter(prefix="/admin/acquisition", tags=["admin"])
 FENETRES: dict[str, int] = {"30j": 30, "90j": 90, "12m": 365}
 
 
-@router.get("", summary="[Admin] Sources d'acquisition, tunnel et pages d'entrée")
+@router.get(
+    "",
+    summary="[Admin] Sources d'acquisition, tunnel et pages d'entrée",
+    response_model=AcquisitionOut,
+)
 async def vue_acquisition(
     fenetre: Literal["30j", "90j", "12m"] = "90j",
     db: AsyncSession = Depends(get_db),

@@ -15,13 +15,14 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.invoice import Invoice
 from app.models.user import User
+from app.schemas.administration import InvoiceOut, PaginatedInvoicesOut
 from app.services import invoice_service
 from app.services.invoice_pdf import generate_invoice_pdf
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
 
 
-@router.get("")
+@router.get("", response_model=PaginatedInvoicesOut)
 async def list_invoices(
     page: int = 1,
     per_page: int = 20,
@@ -44,7 +45,7 @@ async def list_invoices(
     }
 
 
-@router.get("/{invoice_id}")
+@router.get("/{invoice_id}", response_model=InvoiceOut)
 async def get_invoice(
     invoice_id: int,
     current_user: User = Depends(get_current_user),

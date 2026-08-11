@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
+from app.schemas.divers import ConsultantFlagOut
 
 
 def _require_dev() -> None:
@@ -27,7 +28,7 @@ def _require_dev() -> None:
 router = APIRouter(prefix="/dev", tags=["dev"], dependencies=[Depends(_require_dev)])
 
 
-@router.post("/become-consultant")
+@router.post("/become-consultant", response_model=ConsultantFlagOut)
 async def become_consultant(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

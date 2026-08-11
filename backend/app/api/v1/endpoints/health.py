@@ -11,11 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.__version__ import __version__
 from app.core.config import settings
 from app.core.database import get_db
+from app.schemas.divers import HealthOut
 
 router = APIRouter(prefix="/health", tags=["health"])
 
 
-@router.get("")
+@router.get("", response_model=HealthOut)
 async def health(db: AsyncSession = Depends(get_db)) -> dict:
     db_status = "ok"
     db_revision: str | None = None

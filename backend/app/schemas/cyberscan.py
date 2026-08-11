@@ -135,3 +135,65 @@ class PaginatedCodeScans(BaseModel):
     page: int
     per_page: int
     pages: int
+
+
+# ── Verification de domaine et sous-domaines ──────────────────────────────────
+#
+# Ces reponses etaient renvoyees sous forme de dictionnaires, donc invisibles au
+# schema OpenAPI et jamais validees. Les typer a revele un ecart REEL : selon la
+# branche empruntee, `SubdomainResultOut.total_found` etait present ou absent,
+# alors que le frontend le declare obligatoire. La valeur par defaut ci-dessous
+# force les deux chemins a s'accorder.
+
+
+class DomainStatusOut(BaseModel):
+    """Etat de verification d'un domaine.
+
+    PARTAGE ENTRE `sites.py` ET `phishing.py`, qui renvoyaient la meme forme
+    chacun de son cote. Le nom est volontairement neutre : la verification de
+    domaine n'appartient a aucun des deux.
+    """
+
+    domain: str
+    verified: bool
+    verified_at: str | None = None
+
+
+class DomainVerifyOut(BaseModel):
+    domain: str
+    verified: bool
+    verification_token: str
+    dns_record_name: str
+    dns_record_type: str
+    dns_record_value: str
+    instructions: str
+
+
+class ZoneTransferOut(BaseModel):
+    vulnerable: bool
+    nameservers: list[str] = []
+    records_found: list[str] = []
+
+
+class SubdomainEntryOut(BaseModel):
+    subdomain: str
+    ip: str = ""
+
+
+class SubdomainResultOut(BaseModel):
+    site_url: str
+    subdomains: list[SubdomainEntryOut] = []
+    zone_transfer: ZoneTransferOut | None = None
+    # DEFAUT DELIBERE : la branche « aucun scan termine » ne renvoyait pas ce
+    # champ, que le frontend attend pourtant toujours.
+    total_found: int = 0
+    scan_date: datetime | None = None
+
+
+class FindingStatusOut(BaseModel):
+    """Etat de traitement d'un constat, tel que l'ecran le lit."""
+
+    module_key: str
+    status: str
+    note: str | None = None
+    updated_at: str

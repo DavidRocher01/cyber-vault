@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import require_admin
 from app.core.limiter import limiter
+from app.schemas.administration import MessageOut
 from app.schemas.contact import ContactIn
 from app.services import contact_service
 from app.services.email_service import send_contact_email
@@ -32,6 +33,7 @@ class ContactMessageOut(BaseModel):
     status_code=status.HTTP_200_OK,
     summary="Envoyer un message de contact / demande de devis",
     responses={429: {"description": "Rate-limit (3/heure par IP)"}},
+    response_model=MessageOut,
 )
 @limiter.limit("3/hour")
 async def submit_contact(
@@ -91,6 +93,7 @@ async def admin_list_messages(db: AsyncSession = Depends(get_db)):
     dependencies=[Depends(require_admin)],
     summary="[Admin] Changer le statut d'un message",
     responses={404: {"description": "Message introuvable"}},
+    response_model=MessageOut,
 )
 async def admin_update_status(
     msg_id: int,

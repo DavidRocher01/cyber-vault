@@ -40,6 +40,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import get_rssi_consultant, require_conformity_pieces
 from app.models.user import User
+from app.schemas.divers import SignedUrlOut
 from app.services import depot_service, nis2_service, preuve_service
 from app.services.assessment_service import compute_assessment_score
 from app.services.nis2_catalogue import ALL_ITEM_IDS, NIS2_CATEGORIES, VALID_STATUSES
@@ -260,7 +261,7 @@ async def retirer_une_piece(
         raise HTTPException(status_code=404, detail="Pièce non trouvée")
 
 
-@router.get("/clients/{client_id}/nis2/pieces/{piece_id}/download")
+@router.get("/clients/{client_id}/nis2/pieces/{piece_id}/download", response_model=SignedUrlOut)
 async def telecharger_une_piece(
     client_id: int,
     piece_id: int,

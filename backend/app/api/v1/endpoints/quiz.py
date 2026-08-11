@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, EmailStr, Field
 
 from app.core.http_cache import cache_public
+from app.schemas.divers import QuizQuestionOut
 
 router = APIRouter(prefix="/quiz", tags=["quiz"])
 
@@ -235,7 +236,9 @@ class QuizResult(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-@router.get("/questions", dependencies=[Depends(cache_public(3600))])
+@router.get(
+    "/questions", dependencies=[Depends(cache_public(3600))], response_model=list[QuizQuestionOut]
+)
 async def get_questions():
     """Return the list of quiz questions (without correct-answer metadata)."""
     return [

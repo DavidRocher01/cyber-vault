@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.quote import Quote
+from app.schemas.administration import QuoteDecisionOut
 from app.services import quote_service
 
 router = APIRouter(prefix="/quotes", tags=["quotes"])
@@ -21,7 +22,7 @@ async def _get_quote_or_404(token: str, db: AsyncSession) -> Quote:
     return quote
 
 
-@router.post("/{token}/accept")
+@router.post("/{token}/accept", response_model=QuoteDecisionOut)
 async def accept_quote(token: str, db: AsyncSession = Depends(get_db)):
     quote = await _get_quote_or_404(token, db)
 
@@ -38,7 +39,7 @@ async def accept_quote(token: str, db: AsyncSession = Depends(get_db)):
     return {"status": "accepted", "quote_number": quote.quote_number, "already": False}
 
 
-@router.post("/{token}/reject")
+@router.post("/{token}/reject", response_model=QuoteDecisionOut)
 async def reject_quote(token: str, db: AsyncSession = Depends(get_db)):
     quote = await _get_quote_or_404(token, db)
 

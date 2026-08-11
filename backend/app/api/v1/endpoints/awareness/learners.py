@@ -11,6 +11,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.utils import mask_email
 from app.models.user import User
+from app.schemas.administration import MessageOut
 from app.schemas.awareness import (
     AwarenessLearnerCreate,
     AwarenessLearnerOut,
@@ -127,7 +128,7 @@ async def update_learner(
 # ── Magic-link auth ────────────────────────────────────────────────────────────
 
 
-@router.post("/auth/magic-link", status_code=202)
+@router.post("/auth/magic-link", status_code=202, response_model=MessageOut)
 async def request_magic_link(
     payload: MagicLinkRequest,
     db: AsyncSession = Depends(get_db),

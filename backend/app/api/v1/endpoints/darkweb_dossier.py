@@ -35,6 +35,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user, require_admin, require_min_tier
 from app.models.darkweb_dossier import DarkwebDossier
 from app.models.user import User
+from app.schemas.administration import CatalogSyncOut, MonitorToggleOut
 from app.services import darkweb_dossier_service as dossier_service
 from app.services.darkweb_dossier_service import (
     export_dossier_csv,
@@ -310,7 +311,7 @@ async def download_dossier_pdf(
     )
 
 
-@router.post("/catalog/sync", dependencies=[Depends(require_admin)])
+@router.post("/catalog/sync", dependencies=[Depends(require_admin)], response_model=CatalogSyncOut)
 async def sync_catalog(
     db: AsyncSession = Depends(get_db),
 ):
@@ -365,7 +366,7 @@ async def export_csv(
     )
 
 
-@router.patch("/{dossier_id}/monitor")
+@router.patch("/{dossier_id}/monitor", response_model=MonitorToggleOut)
 async def toggle_monitor(
     dossier_id: int,
     current_user: User = Depends(get_current_user),

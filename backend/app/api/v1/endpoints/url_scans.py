@@ -17,6 +17,7 @@ from app.core.limiter import limiter
 from app.core.ssrf import assert_no_ssrf
 from app.models.url_scan import UrlScan
 from app.models.user import User
+from app.schemas.divers import UrlScanQuotaOut
 from app.schemas.url_scan import PaginatedUrlScans, UrlScanCreate, UrlScanOut
 from app.services import url_scan_service
 from app.services.subscription_service import get_active_tier
@@ -67,7 +68,7 @@ async def trigger_url_scan(
     return url_scan
 
 
-@router.get("/quota")
+@router.get("/quota", response_model=UrlScanQuotaOut)
 async def get_quota(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

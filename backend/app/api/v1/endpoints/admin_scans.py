@@ -3,12 +3,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import require_admin
+from app.schemas.divers import PublicScanRowOut
 from app.services.public_scan_service import list_recent_public_scans
 
 router = APIRouter(prefix="/admin/scans", tags=["admin"])
 
 
-@router.get("", dependencies=[Depends(require_admin)], summary="[Admin] Lister tous les scans")
+@router.get(
+    "",
+    dependencies=[Depends(require_admin)],
+    summary="[Admin] Lister tous les scans",
+    response_model=list[PublicScanRowOut],
+)
 async def list_public_scans(limit: int = 50, db: AsyncSession = Depends(get_db)):
     scans = await list_recent_public_scans(db, limit)
     return [

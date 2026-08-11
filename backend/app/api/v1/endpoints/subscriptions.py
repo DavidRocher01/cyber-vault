@@ -10,6 +10,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.schemas.cyberscan import CheckoutSessionOut, SubscriptionOut
+from app.schemas.divers import ExtraSitesInfoOut
 from app.services import plan_service, stripe_service, subscription_service
 
 ADDON_EXTRA_SITES_COUNT = settings.ADDON_EXTRA_SITES_COUNT
@@ -139,7 +140,7 @@ async def billing_portal(
     return {"checkout_url": portal_url}
 
 
-@router.get("/addons/extra-sites")
+@router.get("/addons/extra-sites", response_model=ExtraSitesInfoOut)
 async def get_extra_sites_info(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

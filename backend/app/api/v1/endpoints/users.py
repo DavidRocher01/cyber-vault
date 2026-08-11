@@ -18,6 +18,7 @@ from app.core.security import hash_password, verify_password
 from app.core.totp_crypto import decrypt_totp_secret, encrypt_totp_secret
 from app.models.user import User
 from app.schemas.user import (
+    BadgeGamificationOut,
     NotificationPreferencesIn,
     NotificationPreferencesOut,
     TwoFactorDisableIn,
@@ -169,7 +170,7 @@ async def update_notification_preferences(
     )
 
 
-@router.get("/me/badges")
+@router.get("/me/badges", response_model=list[BadgeGamificationOut])
 async def get_my_badges(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

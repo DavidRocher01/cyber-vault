@@ -84,6 +84,24 @@ class ResetPasswordIn(StrictModel):
     password: str = Field(min_length=8, max_length=128)
 
 
+class BadgeGamificationOut(BaseModel):
+    """Un badge de gamification, CALCULE a la volee depuis l'activite.
+
+    A NE PAS CONFONDRE AVEC `BadgeOut` (schemas/awareness.py), qui decrit les
+    badges de sensibilisation, persistes en base et portant `earned_at` sans
+    `earned`. Deux concepts distincts sous un nom voisin : c'est exactement ce
+    qui a fait rapprocher a tort ces deux types le 2026-08-10, faute de
+    `response_model` ici pour lever l'ambiguite.
+    """
+
+    id: str
+    label: str
+    description: str
+    icon: str
+    earned: bool
+    earned_at: str | None = None
+
+
 class TwoFactorSetupOut(BaseModel):
     qr_code_b64: str  # base64 PNG
     secret: str  # manual entry fallback

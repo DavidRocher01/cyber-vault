@@ -11,6 +11,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.awareness_module import AwarenessModule
 from app.models.user import User
+from app.schemas.divers import ModuleCompletionOut
 from app.services import training_service
 
 router = APIRouter(prefix="/training", tags=["training"])
@@ -299,7 +300,7 @@ async def get_modules(
     ]
 
 
-@router.post("/modules/{module_id}/complete")
+@router.post("/modules/{module_id}/complete", response_model=ModuleCompletionOut)
 async def complete_module(
     module_id: str,
     payload: CompleteModuleIn,

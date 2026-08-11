@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_conformity_export, require_conformity_pieces
 from app.models.user import User
+from app.schemas.divers import SignedUrlOut
 from app.services import (
     awareness_nis2_report,
     brand_service,
@@ -297,7 +298,7 @@ async def retirer_une_piece(
         raise HTTPException(status_code=404, detail="Pièce non trouvée")
 
 
-@router.get("/me/pieces/{piece_id}/download")
+@router.get("/me/pieces/{piece_id}/download", response_model=SignedUrlOut)
 async def telecharger_une_piece(
     piece_id: int,
     current_user: User = Depends(get_current_user),

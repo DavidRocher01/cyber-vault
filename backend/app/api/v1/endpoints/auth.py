@@ -30,6 +30,7 @@ from app.core.security import (
 from app.schemas.user import (
     AccessTokenOut,
     ForgotPasswordIn,
+    LoginOut,
     ResetPasswordIn,
     UserCreate,
     UserLogin,
@@ -108,6 +109,15 @@ async def register(request: Request, payload: UserCreate, db: AsyncSession = Dep
     "/login",
     summary="Connexion (email + mot de passe, 2FA optionnelle)",
     response_description="Access token + crypto_salt ; ou {requires_2fa: true} si la 2FA est active",
+    # DEUX FORMES DE RETOUR LEGITIMES, d'ou l'union : le jeton quand la
+    # connexion aboutit, la demande de second facteur sinon. `AccessTokenOut`
+    # d'abord, car il est le plus strict — `LoginOut` n'a que des champs a
+    # valeur par defaut et absorberait tout.
+    #
+    # DECLARER CE MODELE FILTRE LA REPONSE : sur l'endpoint de connexion, c'est
+    # ce qui garantit qu'un champ ajoute par megarde a un dictionnaire de retour
+    # ne parte pas chez le client.
+    response_model=AccessTokenOut | LoginOut,
     responses={
         401: {"description": "Identifiants ou code 2FA invalides"},
         429: {"description": "Compte verrouillé ou rate-limit (10/min)"},
