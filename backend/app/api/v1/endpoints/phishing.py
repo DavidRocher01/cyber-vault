@@ -43,6 +43,15 @@ from app.models.phishing import (
     PhishingTarget,
 )
 from app.models.user import User
+from app.schemas.cyberscan import DomainStatusOut, DomainVerifyOut
+from app.schemas.phishing import (
+    CampaignLaunchOut,
+    LookalikeDomainsOut,
+    PhishingCampaignDetailOut,
+    PhishingCampaignOut,
+    PhishingTargetOut,
+    TargetsUploadOut,
+)
 from app.services import phishing_service
 from app.services.domain_lookalike import generate_lookalikes
 from app.services.phishing_report_pdf import generate_phishing_report
@@ -281,7 +290,7 @@ async def _resolve_client_attribution(
     return rssi_client_id
 
 
-@router.get("/campaigns")
+@router.get("/campaigns", response_model=list[PhishingCampaignOut])
 async def list_campaigns(
     rssi_client_id: int | None = Query(None),
     current_user: User = Depends(get_current_user),
@@ -304,7 +313,7 @@ async def list_campaigns(
     return [_serialize_campaign(c) for c in campaigns]
 
 
-@router.post("/campaigns", status_code=status.HTTP_201_CREATED)
+@router.post("/campaigns", status_code=status.HTTP_201_CREATED, response_model=PhishingCampaignOut)
 async def create_campaign(
     payload: CampaignCreate,
     current_user: User = Depends(get_current_user),
@@ -318,7 +327,7 @@ async def create_campaign(
     return _serialize_campaign(campaign)
 
 
-@router.get("/campaigns/{campaign_id}")
+@router.get("/campaigns/{campaign_id}", response_model=PhishingCampaignDetailOut)
 async def get_campaign(
     campaign_id: int,
     current_user: User = Depends(get_current_user),
@@ -332,7 +341,7 @@ async def get_campaign(
     }
 
 
-@router.patch("/campaigns/{campaign_id}")
+@router.patch("/campaigns/{campaign_id}", response_model=PhishingCampaignOut)
 async def update_campaign(
     campaign_id: int,
     payload: CampaignUpdate,
@@ -372,7 +381,7 @@ async def update_campaign(
     return _serialize_campaign(updated)
 
 
-@router.post("/campaigns/{campaign_id}/targets")
+@router.post("/campaigns/{campaign_id}/targets", response_model=TargetsUploadOut)
 async def upload_targets(
     campaign_id: int,
     file: UploadFile = File(...),
@@ -432,7 +441,7 @@ async def upload_targets(
     }
 
 
-@router.get("/campaigns/{campaign_id}/targets")
+@router.get("/campaigns/{campaign_id}/targets", response_model=list[PhishingTargetOut])
 async def list_targets(
     campaign_id: int,
     current_user: User = Depends(get_current_user),
@@ -443,7 +452,11 @@ async def list_targets(
     return [_serialize_target(t) for t in targets]
 
 
-@router.post("/campaigns/{campaign_id}/targets/single", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/campaigns/{campaign_id}/targets/single",
+    status_code=status.HTTP_201_CREATED,
+    response_model=PhishingTargetOut,
+)
 async def add_single_target(
     campaign_id: int,
     payload: TargetAdd,
@@ -492,7 +505,11 @@ async def delete_single_target(
     await phishing_service.commit(db)
 
 
-@router.post("/campaigns/{campaign_id}/launch", status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/campaigns/{campaign_id}/launch",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=CampaignLaunchOut,
+)
 async def launch_campaign(
     campaign_id: int,
     current_user: User = Depends(get_current_user),
@@ -560,7 +577,7 @@ async def launch_campaign(
     return {"status": "sending", "campaign_id": campaign_id}
 
 
-@router.post("/campaigns/{campaign_id}/cancel")
+@router.post("/campaigns/{campaign_id}/cancel", response_model=PhishingCampaignOut)
 async def cancel_campaign(
     campaign_id: int,
     current_user: User = Depends(get_current_user),
@@ -623,7 +640,7 @@ async def download_report_pdf(
 # ---------------------------------------------------------------------------
 
 
-@router.post("/domain-verify", status_code=status.HTTP_201_CREATED)
+@router.post("/domain-verify", status_code=status.HTTP_201_CREATED, response_model=DomainVerifyOut)
 async def request_domain_verification(
     payload: DomainVerifyRequest,
     current_user: User = Depends(get_current_user),
@@ -650,7 +667,7 @@ async def request_domain_verification(
     }
 
 
-@router.post("/domain-verify/check")
+@router.post("/domain-verify/check", response_model=DomainStatusOut)
 async def check_domain_verification(
     payload: DomainCheckRequest,
     current_user: User = Depends(get_current_user),
@@ -680,7 +697,7 @@ async def check_domain_verification(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/lookalike-domains")
+@router.get("/lookalike-domains", response_model=LookalikeDomainsOut)
 async def get_lookalike_domains(
     domain: str = Query(
         ...,

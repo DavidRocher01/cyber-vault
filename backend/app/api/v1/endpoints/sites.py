@@ -10,9 +10,9 @@ from app.core.utils import safe_json_load
 from app.models.site import Site
 from app.models.user import User
 from app.schemas.cyberscan import (
+    DomainStatusOut,
+    DomainVerifyOut,
     SiteCreate,
-    SiteDomainStatusOut,
-    SiteDomainVerifyOut,
     SiteOut,
     SubdomainResultOut,
 )
@@ -105,7 +105,7 @@ async def delete_site(
 # intrusif réservé aux domaines dont l'utilisateur a prouvé la propriété.
 
 
-@router.get("/{site_id}/domain", response_model=SiteDomainStatusOut)
+@router.get("/{site_id}/domain", response_model=DomainStatusOut)
 async def get_site_domain_status(
     site_id: int,
     current_user: User = Depends(get_current_user),
@@ -119,7 +119,7 @@ async def get_site_domain_status(
     return {"domain": domain, "verified": verified}
 
 
-@router.post("/{site_id}/domain/verify", status_code=201, response_model=SiteDomainVerifyOut)
+@router.post("/{site_id}/domain/verify", status_code=201, response_model=DomainVerifyOut)
 async def request_site_domain_verify(
     site_id: int,
     current_user: User = Depends(get_current_user),
@@ -148,7 +148,7 @@ async def request_site_domain_verify(
     }
 
 
-@router.post("/{site_id}/domain/verify/check", response_model=SiteDomainStatusOut)
+@router.post("/{site_id}/domain/verify/check", response_model=DomainStatusOut)
 async def check_site_domain_verify(
     site_id: int,
     current_user: User = Depends(get_current_user),

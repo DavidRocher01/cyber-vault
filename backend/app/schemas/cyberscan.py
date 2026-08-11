@@ -146,13 +146,20 @@ class PaginatedCodeScans(BaseModel):
 # force les deux chemins a s'accorder.
 
 
-class SiteDomainStatusOut(BaseModel):
+class DomainStatusOut(BaseModel):
+    """Etat de verification d'un domaine.
+
+    PARTAGE ENTRE `sites.py` ET `phishing.py`, qui renvoyaient la meme forme
+    chacun de son cote. Le nom est volontairement neutre : la verification de
+    domaine n'appartient a aucun des deux.
+    """
+
     domain: str
     verified: bool
     verified_at: str | None = None
 
 
-class SiteDomainVerifyOut(BaseModel):
+class DomainVerifyOut(BaseModel):
     domain: str
     verified: bool
     verification_token: str
