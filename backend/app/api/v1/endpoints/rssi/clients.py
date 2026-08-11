@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.core.deps import get_rssi_consultant
 from app.models.rssi_client import RssiClient
 from app.models.user import User
+from app.schemas.administration import ClientAwarenessOut, PortalInviteOut
 
 # Schemas deplaces dans schemas/rssi_client.py ; re-exportes ici pour ne pas
 # casser les imports existants (rssi/__init__.py, tests).
@@ -224,7 +225,7 @@ async def unlink_site_from_client(
     await rssi_client_service.unlink_site(db, site)
 
 
-@router.post("/clients/{client_id}/invite")
+@router.post("/clients/{client_id}/invite", response_model=PortalInviteOut)
 async def invite_client_to_portal(
     client_id: int,
     background_tasks: BackgroundTasks,
@@ -294,7 +295,7 @@ async def invite_client_to_portal(
     return resp
 
 
-@router.post("/clients/{client_id}/awareness")
+@router.post("/clients/{client_id}/awareness", response_model=ClientAwarenessOut)
 async def enable_client_awareness(
     client_id: int,
     current_user: User = Depends(get_rssi_consultant),

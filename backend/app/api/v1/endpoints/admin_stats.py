@@ -6,13 +6,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import require_admin
+from app.schemas.administration import AdminStatsOut, ContentSyncOut
 from app.services import admin_stats_service
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 @router.get(
-    "/stats", dependencies=[Depends(require_admin)], summary="[Admin] Statistiques globales"
+    "/stats",
+    dependencies=[Depends(require_admin)],
+    summary="[Admin] Statistiques globales",
+    response_model=AdminStatsOut,
 )
 async def get_stats(db: AsyncSession = Depends(get_db)):
     return await admin_stats_service.compute_dashboard_stats(db)
@@ -22,6 +26,7 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
     "/awareness/sync-content",
     dependencies=[Depends(require_admin)],
     summary="[Admin] Réimporter le contenu de sensibilisation",
+    response_model=ContentSyncOut,
 )
 async def sync_awareness_content():
     """Reimporte le contenu NIS2 depuis les fichiers YAML/Markdown (idempotent)."""

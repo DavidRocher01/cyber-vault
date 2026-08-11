@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import require_admin
 from app.models.quote import Quote
+from app.schemas.administration import AdminQuoteOut
 from app.services import quote_service, user_admin_service
 from app.services.quote_pdf import generate_quote_pdf
 from app.services.quote_service import create_quote, send_quote_by_email
@@ -98,7 +99,11 @@ def _serialize(q: Quote) -> dict:
 
 
 @router.post(
-    "", dependencies=[Depends(require_admin)], status_code=201, summary="[Admin] Créer un devis"
+    "",
+    dependencies=[Depends(require_admin)],
+    status_code=201,
+    summary="[Admin] Créer un devis",
+    response_model=AdminQuoteOut,
 )
 async def admin_create_quote(
     body: QuoteCreateRequest,
@@ -129,7 +134,12 @@ async def admin_create_quote(
     return _serialize(quote)
 
 
-@router.get("", dependencies=[Depends(require_admin)], summary="[Admin] Lister les devis")
+@router.get(
+    "",
+    dependencies=[Depends(require_admin)],
+    summary="[Admin] Lister les devis",
+    response_model=list[AdminQuoteOut],
+)
 async def admin_list_quotes(db: AsyncSession = Depends(get_db)):
     quotes = await quote_service.list_all_quotes(db)
     return [_serialize(q) for q in quotes]

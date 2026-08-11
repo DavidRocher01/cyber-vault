@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import get_rssi_consultant
 from app.models.user import User
+from app.schemas.administration import DeliverableUploadOut, DeliverableUrlOut
 from app.services import depot_service, rssi_deliverable_service
 
 from ._shared import _get_client_or_404
@@ -153,7 +154,7 @@ async def delete_deliverable(
     await rssi_deliverable_service.delete_deliverable(db, deliverable)
 
 
-@router.post("/clients/{client_id}/deliverables/upload")
+@router.post("/clients/{client_id}/deliverables/upload", response_model=DeliverableUploadOut)
 async def upload_deliverable_file(
     client_id: int,
     file: UploadFile = File(...),
@@ -200,7 +201,9 @@ async def upload_deliverable_file(
     return {"key": key, "filename": file.filename, "statut_analyse": fichier.statut_analyse}
 
 
-@router.get("/clients/{client_id}/deliverables/{deliverable_id}/download")
+@router.get(
+    "/clients/{client_id}/deliverables/{deliverable_id}/download", response_model=DeliverableUrlOut
+)
 async def download_deliverable_file(
     client_id: int,
     deliverable_id: int,

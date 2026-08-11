@@ -83,3 +83,111 @@ class MonitorToggleOut(BaseModel):
 class CatalogSyncOut(BaseModel):
     synced: int
     message: str
+
+
+class AdminQuoteOut(BaseModel):
+    id: int
+    quote_number: str
+    client_name: str
+    client_email: str
+    client_address: str | None = None
+    subject: str
+    items: list[dict] = []
+    total_cents: int
+    total_eur: float
+    validity_days: int
+    status: str
+    issue_date: str
+    created_at: str
+
+
+class InvoiceOut(BaseModel):
+    id: int
+    invoice_number: str
+    type: str
+    client_name: str
+    client_email: str
+    client_address: str | None = None
+    description: str
+    amount_cents: int
+    amount_eur: float
+    status: str
+    issue_date: str
+    created_at: str
+
+
+class PaginatedInvoicesOut(BaseModel):
+    total: int
+    page: int
+    per_page: int
+    pages: int
+    items: list[InvoiceOut] = []
+
+
+class AdminStatsOut(BaseModel):
+    """Chiffres du tableau de bord d'administration.
+
+    LES STRUCTURES IMBRIQUEES RESTENT EN `list[dict]`, DELIBEREMENT. Un
+    `response_model` FILTRE : decrire a moitie `recent_contacts` ou
+    `weekly_activity` en supprimerait les champs oublies, en silence. C'est
+    l'erreur commise le 2026-08-11 sur `AdminUserOut`, qui a fait disparaitre
+    deux champs de la reponse. On type ce qu'on a lu, on laisse passer le reste.
+    """
+
+    users_total: int
+    active_subscriptions: int
+    newsletter_subscribers: int
+    bookings_this_month: int
+    new_contacts: int
+    recent_contacts: list[dict] = []
+    recent_bookings: list[dict] = []
+    weekly_activity: list[dict] = []
+    revenue_per_month: list[dict] = []
+
+
+class ContentSyncOut(BaseModel):
+    """Synchronisation du catalogue de sensibilisation.
+
+    DEUX ISSUES POSSIBLES : le compte rendu, ou un message d'erreur. Tous les
+    champs sont donc optionnels plutot que d'imposer une union — l'appelant lit
+    `error` en premier.
+    """
+
+    status: str | None = None
+    programs: int | None = None
+    modules: int | None = None
+    errors: list[str] = []
+    error: str | None = None
+
+
+class QuoteDecisionOut(BaseModel):
+    status: str
+    quote_number: str
+    already: bool = False
+
+
+class ClientAwarenessOut(BaseModel):
+    id: int
+    name: str
+    max_learners: int | None = None
+    learner_count: int = 0
+    already: bool = False
+
+
+class PortalInviteOut(BaseModel):
+    status: str
+    email: str
+    account_created: bool = False
+    # Renseignee seulement hors production, pour permettre la recette sans boite
+    # aux lettres.
+    invite_url: str | None = None
+
+
+class DeliverableUploadOut(BaseModel):
+    key: str
+    filename: str | None = None
+    statut_analyse: str
+
+
+class DeliverableUrlOut(BaseModel):
+    url: str
