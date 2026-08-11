@@ -51,14 +51,17 @@ class QuestionOptionOut(BaseModel):
 
 
 class QuizQuestionOut(BaseModel):
-    id: str
+    # UN ENTIER, pas une chaine. Declare `str`, cet endpoint a repondu 500 en
+    # PRODUCTION le 2026-08-11 : aucun test ne l exercait, et la recette ne le
+    # touche pas.
+    id: int
     text: str
     category: str
     options: list[dict] = []
 
 
 class CostCalcQuestionOut(BaseModel):
-    id: str
+    id: int  # meme cause, meme effet que pour le quiz
     text: str
     key: str
     options: list[QuestionOptionOut] = []
