@@ -50,6 +50,7 @@ _DEFAULT_CONTENT = NewsletterContentOut(
         "Vérifiez votre périmètre sur le site de l'ANSSI et anticipez l'audit obligatoire."
     ),
 )
+from app.schemas.divers import OgImageOut
 from app.services.newsletter_email import (
     send_confirmation_email,
     send_newsletter_articles,
@@ -267,7 +268,7 @@ async def admin_send_from_schedule(
 # ── OG image scraper ──────────────────────────────────────────────────────────
 
 
-@router.get("/admin/og-image", dependencies=[Depends(require_admin)])
+@router.get("/admin/og-image", dependencies=[Depends(require_admin)], response_model=OgImageOut)
 async def fetch_og_image(url: str):
     """Fetch the og:image meta tag from a given URL."""
     try:

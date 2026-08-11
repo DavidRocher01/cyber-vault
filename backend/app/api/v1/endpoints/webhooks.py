@@ -12,6 +12,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.schemas.divers import StatusOut
 from app.services import (
     acquisition_service,
     stripe_webhook_service,
@@ -24,7 +25,7 @@ from app.services.stripe_service import construct_webhook_event
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
 
-@router.post("/stripe")
+@router.post("/stripe", response_model=StatusOut)
 async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature", "")

@@ -103,25 +103,10 @@ _HORS_SUJET: set[str] = {
 # DETTE HERITEE. CETTE LISTE NE DOIT QUE RETRECIR : typer un endpoint -> le
 # retirer d'ici. Elle est deliberement EXPLICITE plutot que comptee : un simple
 # seuil laisserait remplacer un endpoint type par un autre qui ne l'est pas.
-_BASELINE: set[str] = {
-    "admin_acquisition.py::vue_acquisition",
-    "admin_scans.py::list_public_scans",
-    "awareness/certificates.py::get_nis2_report",
-    "awareness/learners.py::request_magic_link",
-    "awareness/organizations.py::enroll_all_learners",
-    "cost_calc.py::get_questions",
-    "dev_testing.py::become_consultant",
-    "health.py::health",
-    "newsletter.py::fetch_og_image",
-    "nis2.py::telecharger_une_piece",
-    "portal.py::download_my_deliverable",
-    "quiz.py::get_questions",
-    "rssi/nis2.py::telecharger_une_piece",
-    "subscriptions.py::get_extra_sites_info",
-    "training.py::complete_module",
-    "url_scans.py::get_quota",
-    "webhooks.py::stripe_webhook",
-}
+# DETTE SOLDEE le 2026-08-11 : les 75 endpoints recenses ont tous ete types ou
+# reconnus sans corps. Ce test ne garde plus une dette qui retrecit, il garde un
+# INVARIANT : tout nouvel endpoint declare ce qu il renvoie.
+_BASELINE: set[str] = set()
 
 
 def _sans_response_model() -> set[str]:

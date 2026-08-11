@@ -17,6 +17,7 @@ from app.schemas.awareness import (
     ConsultantDashboardOut,
     OrgAdminDashboardOut,
 )
+from app.schemas.divers import Nis2ReportOut
 
 from .helpers import _get_org_or_404
 
@@ -109,7 +110,7 @@ async def org_admin_dashboard_endpoint(
 # ── Rapport NIS2 compliance (Sprint 8) ────────────────────────────────────────
 
 
-@router.get("/organizations/{org_id}/nis2-report")
+@router.get("/organizations/{org_id}/nis2-report", response_model=Nis2ReportOut)
 async def get_nis2_report(
     org_id: int,
     current_user: User = Depends(get_current_user),

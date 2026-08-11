@@ -15,6 +15,7 @@ from app.schemas.awareness import (
     AwarenessOrganizationUpdate,
     CsvImportResult,
 )
+from app.schemas.divers import EnrollmentBatchOut
 from app.services import awareness_organization_service
 from app.services.awareness_csv_import import import_learners_from_csv
 from app.services.storage import FichierTropVolumineuxError, lire_borne
@@ -95,7 +96,9 @@ async def update_organization(
 # ── Bulk enrollment ────────────────────────────────────────────────────────────
 
 
-@router.post("/organizations/{org_id}/enroll-all", status_code=200)
+@router.post(
+    "/organizations/{org_id}/enroll-all", status_code=200, response_model=EnrollmentBatchOut
+)
 async def enroll_all_learners(
     org_id: int,
     program_id: int,

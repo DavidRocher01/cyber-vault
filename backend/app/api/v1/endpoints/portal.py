@@ -23,6 +23,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_rssi_client
 from app.models.rssi_action import RssiAction
 from app.models.rssi_client import RssiClient
+from app.schemas.divers import SignedUrlOut
 from app.services import portal_service
 
 router = APIRouter(prefix="/portal", tags=["portal-client"])
@@ -315,7 +316,7 @@ async def deposer_un_document(
     )
 
 
-@router.get("/deliverables/{deliverable_id}/download")
+@router.get("/deliverables/{deliverable_id}/download", response_model=SignedUrlOut)
 async def download_my_deliverable(
     deliverable_id: int,
     client: RssiClient = Depends(get_current_rssi_client),
