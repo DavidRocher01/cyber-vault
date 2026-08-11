@@ -4,12 +4,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import get_rssi_consultant
 from app.models.user import User
+from app.schemas.rssi_dashboard import (
+    CalendarEventOut,
+    ClientSummaryOut,
+    DashboardAlertOut,
+    DashboardOverviewOut,
+    DashboardSuggestionOut,
+)
 from app.services import rssi_aggregation_service as _agg
 
 router = APIRouter()
 
 
-@router.get("/dashboard/overview")
+@router.get("/dashboard/overview", response_model=DashboardOverviewOut)
 async def get_dashboard_overview(
     current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
@@ -19,7 +26,7 @@ async def get_dashboard_overview(
     return overview.dict()
 
 
-@router.get("/dashboard/clients-summary")
+@router.get("/dashboard/clients-summary", response_model=list[ClientSummaryOut])
 async def get_clients_summary(
     current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
@@ -28,7 +35,7 @@ async def get_clients_summary(
     return await _agg.get_clients_summary(current_user.id, db)
 
 
-@router.get("/dashboard/alerts")
+@router.get("/dashboard/alerts", response_model=list[DashboardAlertOut])
 async def get_pending_alerts(
     current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
@@ -37,7 +44,7 @@ async def get_pending_alerts(
     return await _agg.get_pending_alerts(current_user.id, db)
 
 
-@router.get("/dashboard/upcoming-events")
+@router.get("/dashboard/upcoming-events", response_model=list[CalendarEventOut])
 async def get_upcoming_events(
     days_ahead: int = 14,
     current_user: User = Depends(get_rssi_consultant),
@@ -47,7 +54,7 @@ async def get_upcoming_events(
     return await _agg.get_upcoming_events(current_user.id, days_ahead, db)
 
 
-@router.get("/dashboard/suggestions")
+@router.get("/dashboard/suggestions", response_model=list[DashboardSuggestionOut])
 async def get_suggestions(
     current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),

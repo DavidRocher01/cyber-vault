@@ -38,11 +38,15 @@ _ROUTE = re.compile(
 # ENDPOINTS QUI NE RENVOIENT PAS DE JSON. Un `response_model` n'aurait aucun
 # sens ici, et les compter comme dette la rendrait fausse : telechargements de
 # fichiers (`FileResponse`), flux (`StreamingResponse`), redirections, et
-# reponses 204 sans corps.
+# reponses 204 ou 202 SANS CORPS. Les trois de `auth.py` avaient echappe au
+# premier tri : leur code est ecrit `status.HTTP_204_NO_CONTENT`, pas `204`.
 #
 # Ils etaient 42 sur les 118 recensees au depart. La dette REELLE est donc de
 # 75, pas de 118 — une dette surestimee se paie en decouragement.
 _HORS_SUJET: set[str] = {
+    "auth.py::forgot_password",
+    "auth.py::logout",
+    "auth.py::reset_password",
     "admin_invoices.py::admin_download_pdf",
     "admin_quotes.py::admin_download_quote_pdf",
     "awareness/certificates.py::download_certificate_pdf",
@@ -103,10 +107,6 @@ _BASELINE: set[str] = {
     "admin_users.py::list_users",
     "admin_users.py::set_user_plan",
     "admin_users.py::toggle_rssi_consultant",
-    "auth.py::forgot_password",
-    "auth.py::login",
-    "auth.py::logout",
-    "auth.py::reset_password",
     "awareness/certificates.py::get_nis2_report",
     "awareness/learners.py::request_magic_link",
     "awareness/organizations.py::enroll_all_learners",
@@ -134,11 +134,6 @@ _BASELINE: set[str] = {
     "quotes.py::reject_quote",
     "rssi/clients.py::enable_client_awareness",
     "rssi/clients.py::invite_client_to_portal",
-    "rssi/dashboard.py::get_clients_summary",
-    "rssi/dashboard.py::get_dashboard_overview",
-    "rssi/dashboard.py::get_pending_alerts",
-    "rssi/dashboard.py::get_suggestions",
-    "rssi/dashboard.py::get_upcoming_events",
     "rssi/deliverables.py::download_deliverable_file",
     "rssi/deliverables.py::upload_deliverable_file",
     "rssi/nis2.py::telecharger_une_piece",
