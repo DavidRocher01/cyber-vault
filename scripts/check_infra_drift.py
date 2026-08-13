@@ -115,6 +115,11 @@ def verifier_la_base() -> None:
         ecarts.append("base : devenue accessible publiquement")
     if not inst["StorageEncrypted"]:
         ecarts.append("base : chiffrement du stockage desactive")
+    if not inst["DeletionProtection"]:
+        ecarts.append(
+            "base : protection contre la suppression desactivee. Une seule commande "
+            "`delete-db-instance`, accidentelle ou non, detruit la production."
+        )
 
     groupes = [g["VpcSecurityGroupId"] for g in inst["VpcSecurityGroups"]]
     noms = []

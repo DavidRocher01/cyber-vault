@@ -18,6 +18,11 @@ tâches ECS.
 
 Vérifié après bascule : `database: ok` et lecture réelle des plans.
 
+**`DeletionProtection` est activée** depuis le 2026-08-13. Elle ne l'était pas :
+une seule commande `delete-db-instance` — accidentelle, ou lancée avec des
+identifiants compromis — détruisait la production. Sept jours de sauvegardes
+permettent de restaurer, mais mieux vaut ne pas avoir à le faire.
+
 ## Seau du frontend
 
 `cyberscanapp-frontend` était **lisible publiquement** (`Allow * s3:GetObject`)
