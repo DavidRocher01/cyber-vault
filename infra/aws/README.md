@@ -18,6 +18,11 @@ tâches ECS.
 
 Vérifié après bascule : `database: ok` et lecture réelle des plans.
 
+**`DeletionProtection` est activée** depuis le 2026-08-13. Elle ne l'était pas :
+une seule commande `delete-db-instance` — accidentelle, ou lancée avec des
+identifiants compromis — détruisait la production. Sept jours de sauvegardes
+permettent de restaurer, mais mieux vaut ne pas avoir à le faire.
+
 ## Seau du frontend
 
 `cyberscanapp-frontend` était **lisible publiquement** (`Allow * s3:GetObject`)
@@ -46,3 +51,20 @@ aws rds describe-db-instances --db-instance-identifier cybervault-prod \
   --query 'DBInstances[0].VpcSecurityGroups[]'
 curl -s -o /dev/null -w "%{http_code}\n" https://cyberscanapp-frontend.s3.eu-west-3.amazonaws.com/index.html  # doit repondre 403
 ```
+
+## Surveillance
+
+**L alarme `cybervault-backend-5xx` se declenche des la PREMIERE erreur
+applicative** en 5 minutes, depuis le 2026-08-13. Son seuil etait a 10 — calibre
+pour un site qui a du trafic. Sur 2961 requetes en 7 jours, un defaut touchant
+une poignee d utilisateurs ne le franchissait jamais : le 500 des rapports PDF
+du 9 aout n a ete vu que parce qu il a produit 14 erreurs d un coup.
+
+Abaisser ne cree pas de bruit de deploiement : sur la meme periode,
+`HTTPCode_ELB_5XX_Count` — les erreurs de l equilibreur, celles qu une rotation
+de tache produirait — est a **zero**. L alarme porte sur les erreurs
+APPLICATIVES, pas sur les ratures de bascule.
+
+La liveness est couverte separement par `cybervault-backend-DOWN`
+(`HealthyHostCount`, `breaching` sur donnee manquante) : l absence de trafic ne
+masque donc pas une indisponibilite.

@@ -372,6 +372,24 @@ jobs:
         run: npm ci --legacy-peer-deps && npx playwright install --with-deps chromium
         working-directory: frontend
 
+      # DERIVE DE L INFRASTRUCTURE — en rodage, ne bloque pas encore.
+      #
+      # La revue de securite du 2026-08-11 a trouve ses trois constats dans
+      # l infrastructure, pas dans le code. Ils sont corriges, mais RIEN NE
+      # DIRAIT QU ILS REVIENNENT : une politique geree reattachee un soir de
+      # fatigue, un seau redevenu public, la base rejointe au groupe `default`.
+      #
+      # Les fichiers de `infra/` DECRIVENT le reel. Une description qu on ne
+      # confronte pas a sa source finit par mentir — la lecon de tout ce projet.
+      #
+      # EN RODAGE PAR PRINCIPE : un garde-fou qui n a jamais reussi ne peut pas
+      # etre cru quand il echoue. Il a fait revenir en arriere un deploiement
+      # sain le 2026-08-10, pour cette exacte raison. A rendre bloquant quand il
+      # sera passe plusieurs fois.
+      - name: Derive de l infrastructure (en rodage, non bloquant)
+        continue-on-error: true
+        run: python scripts/check_infra_drift.py
+
       - name: Recette UI (Playwright vs prod)
         # LE DEPOT DE PIECE EST DE NOUVEAU BLOQUANT, apres rodage.
         #
