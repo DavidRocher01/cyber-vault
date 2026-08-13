@@ -1,0 +1,35 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "LireSaPropreConfiguration",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRolePolicy",
+        "iam:ListAttachedRolePolicies"
+      ],
+      "Resource": "arn:aws:iam::328646895533:role/github-actions-cybervault-deploy"
+    },
+    {
+      "Sid": "LireLaConfigurationReseauEtBase",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeSecurityGroups",
+        "rds:DescribeDBInstances"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "LireLaConfigurationDesSeaux",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketPolicy",
+        "s3:GetBucketPublicAccessBlock"
+      ],
+      "Resource": [
+        "arn:aws:s3:::cyberscanapp-frontend",
+        "arn:aws:s3:::cybervault-rssi-deliverables-prod"
+      ]
+    }
+  ]
+}
