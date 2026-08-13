@@ -47,7 +47,10 @@
     "serialize-javascript": "^7.0.5",
     "webpack-dev-server": "^5.2.4",
     "postcss": "$postcss",
-    "@hono/node-server": "^2.0.5"
+    "@hono/node-server": "^2.0.5",
+    "@angular/build": {
+      "undici": "^7.29.0"
+    }
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^21.2.19",
