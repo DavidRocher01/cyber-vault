@@ -27,10 +27,7 @@ import { serverRoutes } from './app.routes.server';
  * quatre fois la meme semaine, ce qui suffit a en faire une regle.
  */
 
-const ROUTES = readFileSync(
-  resolve(__dirname, 'features/cyberscan/cyberscan.routes.ts'),
-  'utf-8'
-);
+const ROUTES = readFileSync(resolve(__dirname, 'features/cyberscan/cyberscan.routes.ts'), 'utf-8');
 
 /** Chemins de premier niveau portant une garde. Les routes a parametre sont
  *  deja rendues cote navigateur pour une autre raison. */

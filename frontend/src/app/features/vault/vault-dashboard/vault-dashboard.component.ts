@@ -9,7 +9,7 @@ import { Router } from '@angular/router';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { combineLatest, filter, map, take } from 'rxjs';
 
-import { HotToastService } from '@ngneat/hot-toast';
+import { NotificationsService } from '../../../core/notifications.service';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { CryptoService } from '../../../core/services/crypto.service';
@@ -133,7 +133,7 @@ export class VaultDashboardComponent implements OnInit {
   private cryptoService = inject(CryptoService);
   private clipboardService = inject(ClipboardService);
   private passwordGenerator = inject(PasswordGeneratorService);
-  private toast = inject(HotToastService);
+  private toast = inject(NotificationsService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
   private destroyRef = inject(DestroyRef);

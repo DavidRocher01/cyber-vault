@@ -18,7 +18,7 @@ import {
   throwError,
   timer,
 } from 'rxjs';
-import { HotToastService } from '@ngneat/hot-toast';
+import { NotificationsService } from '../notifications.service';
 
 import { AuthService } from '../services/auth.service';
 import { CryptoService } from '../services/crypto.service';
@@ -51,7 +51,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const cryptoService = inject(CryptoService);
   const router = inject(Router);
-  const toast = inject(HotToastService);
+  const toast = inject(NotificationsService);
   const token = authService.getToken();
 
   const authReq = token ? addToken(req, token) : req;

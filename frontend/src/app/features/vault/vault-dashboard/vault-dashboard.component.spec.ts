@@ -9,7 +9,7 @@ import { Injector, runInInjectionContext, DestroyRef, signal } from '@angular/co
 import { FormBuilder } from '@angular/forms';
 import { Router } from '@angular/router';
 import { BehaviorSubject, of } from 'rxjs';
-import { HotToastService } from '@ngneat/hot-toast';
+import { NotificationsService } from '../../../core/notifications.service';
 
 import { VaultDashboardComponent } from './vault-dashboard.component';
 import { VaultStore } from '../vault.store';
@@ -53,7 +53,7 @@ function make() {
       { provide: ClipboardService, useValue: { copy: vi.fn() } },
       { provide: PasswordGeneratorService, useValue: { generate: vi.fn(() => 'GEN') } },
       {
-        provide: HotToastService,
+        provide: NotificationsService,
         useValue: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
       },
       { provide: Router, useValue: {} },
