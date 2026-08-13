@@ -30,6 +30,12 @@
         "arn:aws:s3:::cyberscanapp-frontend",
         "arn:aws:s3:::cybervault-rssi-deliverables-prod"
       ]
+    },
+    {
+      "Sid": "LireLesAlarmes",
+      "Effect": "Allow",
+      "Action": "cloudwatch:DescribeAlarms",
+      "Resource": "*"
     }
   ]
 }

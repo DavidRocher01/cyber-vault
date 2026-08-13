@@ -48,11 +48,16 @@ def aws(*args: str) -> object | None:
     ou d'un droit de lecture manquant. On le signale a part, pour ne pas crier
     a la derive quand on n'a simplement pas pu regarder.
     """
+    # `errors="replace"` : l'AWS CLI ecrit dans la page de code de la console, pas
+    # forcement en UTF-8. Un tiret cadratin dans une description d'alarme suffisait
+    # a faire echouer la lecture — le controle tombait alors pour la mauvaise
+    # raison, en accusant une derive inexistante.
     r = subprocess.run(
         ["aws", *args, "--output", "json"],
         capture_output=True,
         text=True,
         encoding="utf-8",
+        errors="replace",
     )
     if r.returncode != 0:
         print(
@@ -162,10 +167,32 @@ def verifier_les_seaux() -> None:
             )
 
 
+def verifier_l_alarme_5xx() -> None:
+    """Le seuil de l'alarme applicative ne doit pas remonter en silence.
+
+    Il etait a 10 erreurs en 5 minutes — calibre pour un site qui a du trafic.
+    Sur 2961 requetes en 7 jours, un defaut touchant une poignee d'utilisateurs
+    ne le franchissait jamais. C'est ainsi que le 500 des rapports PDF du
+    2026-08-09 n'a ete vu que parce qu'il a produit 14 erreurs d'un coup.
+    """
+    d = aws("cloudwatch", "describe-alarms", "--alarm-names", "cybervault-backend-5xx")
+    if d is None or not d["MetricAlarms"]:
+        ecarts.append("alarme `cybervault-backend-5xx` introuvable")
+        return
+    a = d["MetricAlarms"][0]
+    if a["Threshold"] > 0:
+        ecarts.append(
+            f"alarme 5xx : seuil remonte a {a['Threshold']:.0f} erreurs. A ce niveau, "
+            "un defaut touchant quelques utilisateurs passe inapercu sur un site a "
+            "faible trafic."
+        )
+
+
 def main() -> int:
     verifier_role_de_deploiement()
     verifier_la_base()
     verifier_les_seaux()
+    verifier_l_alarme_5xx()
 
     if ecarts:
         print(f"\n{len(ecarts)} ecart(s) entre AWS et ce que `infra/` decrit :\n")
