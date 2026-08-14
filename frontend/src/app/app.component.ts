@@ -8,6 +8,7 @@ import { MaintenanceBannerComponent } from './shared/maintenance-banner/maintena
 import { CyberLoaderComponent } from './shared/cyber-loader/cyber-loader.component';
 import { MatrixRainComponent } from './shared/easter-eggs/matrix-rain.component';
 import { EasterEggService } from './shared/easter-eggs/easter-egg.service';
+import { NotificationsComponent } from './shared/notifications/notifications.component';
 
 const MIN_LOADER_MS = 1800;
 
@@ -20,9 +21,11 @@ const MIN_LOADER_MS = 1800;
     MaintenanceBannerComponent,
     CyberLoaderComponent,
     MatrixRainComponent,
+    NotificationsComponent,
   ],
   template: `
     <app-cyber-loader [visible]="loading" product="CYBERSCAN" />
+    <app-notifications />
     @if (!loading) {
       <app-maintenance-banner />
       <router-outlet />

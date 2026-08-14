@@ -9,7 +9,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideZonelessChangeDetection } from '@angular/core';
 import { Router } from '@angular/router';
 import { of, throwError, Subject } from 'rxjs';
-import { HotToastService } from '@ngneat/hot-toast';
+import { NotificationsService } from '../notifications.service';
 
 // Aucun spec du dépôt n'utilise TestBed (tous font Injector.create / instanciation
 // directe), donc l'environnement de test Angular n'est jamais initialisé par
@@ -79,7 +79,7 @@ function setup(
       { provide: AuthService, useValue: authMock },
       { provide: CryptoService, useValue: cryptoMock },
       { provide: Router, useValue: routerMock },
-      { provide: HotToastService, useValue: toastMock },
+      { provide: NotificationsService, useValue: toastMock },
     ],
   });
 
