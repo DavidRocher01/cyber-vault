@@ -106,12 +106,18 @@ async def test_sitemap_is_valid_xml():
 
 @pytest.mark.asyncio
 async def test_sitemap_contains_homepage():
+    """La page d'accueil est annoncee SOUS UNE SEULE FORME.
+
+    L'ancienne liste declarait `("", ...)` et `("/", ...)`, donc a la fois
+    `https://rochercybersecurite.com` et la meme adresse suivie d'une barre
+    oblique — deux URL pour une page, ce qui divise le signal envoye au moteur.
+    Ce test acceptait les deux ; il exige desormais la forme canonique et refuse
+    le retour du doublon.
+    """
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         r = await c.get("/sitemap.xml")
-    assert (
-        "rochercybersecurite.com</loc>" in r.text
-        or "<loc>https://rochercybersecurite.com</loc>" in r.text
-    )
+    assert "<loc>https://rochercybersecurite.com/</loc>" in r.text
+    assert "<loc>https://rochercybersecurite.com</loc>" not in r.text
 
 
 @pytest.mark.asyncio

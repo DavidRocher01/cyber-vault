@@ -43,9 +43,27 @@ opération.
 Ordre suivi, et il compte : accorder à CloudFront **avant** de retirer le
 public. L'inverse coupe le site.
 
+## Routage du sitemap
+
+**`/sitemap.xml` est servi par le backend, pas par S3**, depuis le 2026-08-14.
+
+Il l'était par S3 — un fichier statique écrit à la main — alors qu'un endpoint
+dynamique existait déjà côté backend et interrogeait la base. Personne ne l'avait
+jamais atteint : CloudFront envoie vers S3 tout ce qui n'est pas `/api/*`.
+Conséquence mesurée ce jour-là : 23 URL servies, **zéro `lastmod`**, et les
+articles de blog présents uniquement parce qu'ils avaient été recopiés à la main.
+Publier un article ne suffisait donc pas à l'annoncer aux moteurs.
+
+Un comportement de cache `/sitemap.xml` pointe désormais vers l'origine ALB.
+
+**L'ordre compte** : le backend doit d'abord servir la liste complète des pages,
+*ensuite* seulement on bascule le routage. L'inverse retire du sitemap les sept
+pages que la liste backend ne contenait pas encore, sans que rien ne le signale.
+
 ## Vérifier
 
 ```bash
+curl -s https://rochercybersecurite.com/sitemap.xml | grep -c lastmod   # doit etre > 0
 aws s3api get-bucket-policy --bucket cyberscanapp-frontend --query Policy --output text
 aws rds describe-db-instances --db-instance-identifier cybervault-prod \
   --query 'DBInstances[0].VpcSecurityGroups[]'
