@@ -223,50 +223,22 @@ if not settings.S3_BUCKET_NAME:
 
 @app.get("/sitemap.xml", include_in_schema=False)
 async def sitemap(db: AsyncSession = Depends(get_db)):
-    from sqlalchemy import select
+    """Sitemap complet, articles de blog compris.
 
-    from app.models.blog_post import BlogPost  # noqa: F401
-
-    base = "https://rochercybersecurite.com"
-    static_urls = [
-        ("", "weekly", "1.0"),
-        ("/", "weekly", "0.9"),
-        ("/scan-gratuit", "weekly", "0.9"),
-        ("/contact", "monthly", "0.8"),
-        ("/reserver", "monthly", "0.8"),
-        ("/ressources", "weekly", "0.7"),
-        ("/bonnes-pratiques", "monthly", "0.6"),
-        ("/blog", "daily", "0.8"),
-        ("/nis2", "monthly", "0.6"),
-        ("/iso27001", "monthly", "0.6"),
-        ("/cgu", "yearly", "0.3"),
-        ("/cgv", "yearly", "0.3"),
-        ("/dpa", "yearly", "0.3"),
-        ("/politique-confidentialite", "yearly", "0.3"),
-        ("/mentions-legales", "yearly", "0.3"),
-    ]
-
-    result = await db.execute(
-        select(BlogPost.slug, BlogPost.updated_at).where(BlogPost.is_published == True)  # noqa: E712
-    )
-    blog_slugs = result.all()
-
-    urls = "\n".join(
-        f"  <url><loc>{base}{path}</loc><changefreq>{freq}</changefreq><priority>{prio}</priority></url>"
-        for path, freq, prio in static_urls
-    )
-    for slug, updated_at in blog_slugs:
-        lastmod = f"<lastmod>{updated_at.date().isoformat()}</lastmod>" if updated_at else ""
-        urls += f"\n  <url><loc>{base}/blog/{slug}</loc>{lastmod}<changefreq>monthly</changefreq><priority>0.7</priority></url>"
-
-    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-{urls}
-</urlset>"""
-
+    Cette route N'ETAIT PAS ATTEINTE avant le 2026-08-14 : CloudFront envoyait
+    `/sitemap.xml` vers S3, donc vers un fichier statique ecrit a la main. Elle
+    ne devient la seule source qu'une fois le comportement CloudFront en place
+    — voir `infra/aws/README.md`.
+    """
     from fastapi.responses import Response as FastAPIResponse
 
-    return FastAPIResponse(content=xml, media_type="application/xml")
+    from app.services import blog_service, sitemap_service
+
+    articles = await blog_service.list_published(db)
+    return FastAPIResponse(
+        content=sitemap_service.construire(articles),
+        media_type="application/xml",
+    )
 
 
 @app.get("/robots.txt", include_in_schema=False)

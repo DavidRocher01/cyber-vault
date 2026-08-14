@@ -29,7 +29,20 @@ const ROUTES = readFileSync(
   'utf-8'
 );
 const ROBOTS = readFileSync(resolve(RACINE, 'src/robots.txt'), 'utf-8');
-const SITEMAP = readFileSync(resolve(RACINE, 'src/sitemap.xml'), 'utf-8');
+
+/**
+ * Le sitemap n'est PLUS un fichier statique : il est construit par le backend,
+ * qui seul connaît les articles de blog — ils vivent en base, et publier depuis
+ * l'administration ne pouvait donc pas mettre à jour un fichier du dépôt.
+ *
+ * Ce test lit désormais la liste des pages publiques là où elle est écrite, en
+ * Python. Lire un fichier de l'autre côté est le motif déjà employé en sens
+ * inverse par `backend/tests/test_coherence_front_back.py`.
+ */
+const SITEMAP = readFileSync(
+  resolve(RACINE, '..', 'backend/app/services/sitemap_service.py'),
+  'utf-8'
+);
 
 /** Pages publiques : chargées à la demande, sans garde, sans paramètre. */
 function pagesPubliques(): string[] {
@@ -44,9 +57,10 @@ function pagesPubliques(): string[] {
 }
 
 function urlsDuSitemap(): string[] {
-  return [...SITEMAP.matchAll(/<loc>https:\/\/rochercybersecurite\.com([^<]*)<\/loc>/g)].map(
-    m => m[1] || '/'
-  );
+  // Les tuples `("/chemin", "monthly", "0.8")` de PAGES_PUBLIQUES. Les articles
+  // de blog n'y sont pas : ils viennent de la base, et aucun test du dépôt ne
+  // peut donc les voir.
+  return [...SITEMAP.matchAll(/^\s{4}\("(\/[^"]*)",/gm)].map(m => m[1]);
 }
 
 function interdites(): string[] {
