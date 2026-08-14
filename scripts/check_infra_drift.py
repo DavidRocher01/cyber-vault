@@ -37,6 +37,7 @@ SEAU_FRONTEND = "cyberscanapp-frontend"
 SEAU_LIVRABLES = "cybervault-rssi-deliverables-prod"
 BASE = "cybervault-prod"
 GROUPE_BASE_ATTENDU = "cybervault-rds"
+DISTRIBUTION = "E3DFNMKIHVBDO1"
 
 ecarts: list[str] = []
 
@@ -167,6 +168,35 @@ def verifier_les_seaux() -> None:
             )
 
 
+def verifier_le_routage_du_sitemap() -> None:
+    """`/sitemap.xml` doit continuer d'etre servi par le backend, pas par S3.
+
+    CE QUE SON ABSENCE COUTERAIT, ET POURQUOI PERSONNE NE LE VERRAIT. Le fichier
+    statique a ete retire du depot le 2026-08-14, mais IL EST TOUJOURS DANS LE
+    SEAU : la synchronisation ne porte plus `--delete` depuis qu'elle sert au
+    retour arriere du frontend. Retirer ce comportement ne produirait donc pas
+    une erreur 404 — ce qui se verrait — mais le retour silencieux d'un sitemap
+    fige au 14 aout, sans aucun article publie depuis. Le referencement se
+    degraderait sans le moindre signal.
+    """
+    d = aws("cloudfront", "get-distribution-config", "--id", DISTRIBUTION)
+    if d is None:
+        return
+    comportements = d["DistributionConfig"]["CacheBehaviors"].get("Items", [])
+    vise = next((c for c in comportements if c["PathPattern"] == "/sitemap.xml"), None)
+
+    if vise is None:
+        ecarts.append(
+            "sitemap : le comportement CloudFront `/sitemap.xml` a disparu. Le seau "
+            "sert de nouveau sa copie figee — aucune erreur, aucun article recent."
+        )
+    elif "alb" not in vise["TargetOriginId"]:
+        ecarts.append(
+            f"sitemap : `/sitemap.xml` pointe vers `{vise['TargetOriginId']}` et non "
+            "vers l'ALB. Seul le backend connait les articles de blog."
+        )
+
+
 def verifier_l_alarme_5xx() -> None:
     """Le seuil de l'alarme applicative ne doit pas remonter en silence.
 
@@ -192,6 +222,7 @@ def main() -> int:
     verifier_role_de_deploiement()
     verifier_la_base()
     verifier_les_seaux()
+    verifier_le_routage_du_sitemap()
     verifier_l_alarme_5xx()
 
     if ecarts:

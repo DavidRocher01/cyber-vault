@@ -36,6 +36,12 @@
       "Effect": "Allow",
       "Action": "cloudwatch:DescribeAlarms",
       "Resource": "*"
+    },
+    {
+      "Sid": "LireLeRoutageDuSitemap",
+      "Effect": "Allow",
+      "Action": "cloudfront:GetDistributionConfig",
+      "Resource": "arn:aws:cloudfront::328646895533:distribution/E3DFNMKIHVBDO1"
     }
   ]
 }
