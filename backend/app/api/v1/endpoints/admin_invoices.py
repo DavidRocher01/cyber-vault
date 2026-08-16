@@ -18,7 +18,7 @@ from app.core.database import get_db
 from app.core.deps import require_admin
 from app.models.invoice import Invoice
 from app.schemas.administration import AdminInvoiceOut
-from app.services import invoice_service, user_admin_service
+from app.services import identite_fiscale, invoice_service, user_admin_service
 from app.services.invoice_pdf import generate_invoice_pdf
 from app.services.invoice_service import create_invoice
 
@@ -29,6 +29,11 @@ class InvoiceCreateRequest(BaseModel):
     client_name: str
     client_email: EmailStr
     client_address: str | None = None
+    # SIREN de l'acheteur — obligatoire entre professionnels au 1er septembre
+    # 2027. Facultatif ici parce que ce meme formulaire sert aussi a facturer
+    # des particuliers, qui n'en ont pas. La cle est verifiee quand il est
+    # fourni : un numero mal saisi ne se decouvrirait qu'au controle.
+    client_siren: str | None = None
     description: str
     amount_cents: int
     user_email: str | None = None  # link to existing user account (optional)
@@ -46,6 +51,13 @@ async def admin_create_invoice(
     body: InvoiceCreateRequest,
     db: AsyncSession = Depends(get_db),
 ):
+    siren = identite_fiscale.normaliser(body.client_siren) or None
+    if siren and not identite_fiscale.siren_valide(siren):
+        raise HTTPException(
+            status_code=422,
+            detail="SIREN invalide : neuf chiffres et une cle de Luhn correcte sont attendus.",
+        )
+
     user_id: int | None = None
     if body.user_email:
         user = await user_admin_service.get_user_by_email(db, body.user_email)
@@ -59,6 +71,7 @@ async def admin_create_invoice(
         client_name=body.client_name,
         client_email=body.client_email,
         client_address=body.client_address,
+        client_siren=siren,
         description=body.description,
         amount_cents=body.amount_cents,
         status="paid",
@@ -114,6 +127,7 @@ async def admin_download_pdf(
         client_name=inv.client_name,
         client_email=inv.client_email,
         client_address=inv.client_address,
+        client_siren=inv.client_siren,
         description=inv.description,
         amount_cents=inv.amount_cents,
     )
@@ -141,6 +155,7 @@ def _serialize(inv: Invoice) -> dict:
         "client_name": inv.client_name,
         "client_email": inv.client_email,
         "client_address": inv.client_address,
+        "client_siren": inv.client_siren,
         "description": inv.description,
         "amount_cents": inv.amount_cents,
         "amount_eur": inv.amount_cents / 100,

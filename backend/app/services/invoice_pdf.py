@@ -42,6 +42,7 @@ def generate_invoice_pdf(
     client_address: str | None,
     description: str,
     amount_cents: int,
+    client_siren: str | None = None,
 ) -> bytes:
     buf = io.BytesIO()
     doc, cw, half, gap = new_billing_doc(buf)
@@ -66,7 +67,7 @@ def generate_invoice_pdf(
     s.append(HRFlowable(width=cw, thickness=0.6, color=BORDER, spaceAfter=5 * mm))
 
     # 3. Bloc client
-    s.append(build_client_row(client_name, client_email, client_address, half, gap))
+    s.append(build_client_row(client_name, client_email, client_address, half, gap, client_siren))
     s.append(Spacer(1, 7 * mm))
 
     # ══════════════════════════════════════════════════════════════════════════

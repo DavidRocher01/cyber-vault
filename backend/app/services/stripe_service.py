@@ -114,7 +114,23 @@ def create_checkout_session(
         cancel_url=cancel_url,
         automatic_tax={"enabled": True},
         billing_address_collection="auto",
-        customer_update={"address": "auto"},
+        # `name: auto` enregistre la DENOMINATION LEGALE saisie a la caisse, et
+        # pas seulement le nom du payeur : c'est elle qui doit figurer sur une
+        # facture entre professionnels.
+        customer_update={"address": "auto", "name": "auto"},
+        # SIREN DE L'ACHETEUR — obligatoire au 1er septembre 2027 sur les
+        # factures entre professionnels. Stripe collecte un numero de TVA ; pour
+        # la France, le SIREN en est les neuf derniers chiffres (voir
+        # `identite_fiscale.py`).
+        #
+        # `if_supported` rend la saisie OBLIGATOIRE dans les pays ou le format
+        # existe, et n'affiche rien ailleurs : un client hors zone n'est pas
+        # bloque par une obligation qui ne le concerne pas.
+        #
+        # A savoir : Stripe ne redemande pas l'identifiant a un client qui en a
+        # deja un d'enregistre. Les clients professionnels anterieurs a ce jour
+        # ne seront donc pas sollicites automatiquement — il faudra les relancer.
+        tax_id_collection={"enabled": True, "required": "if_supported"},
     )
     if metadata:
         kwargs["metadata"] = metadata

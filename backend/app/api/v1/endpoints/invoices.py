@@ -69,6 +69,7 @@ async def download_invoice_pdf(
         client_name=inv.client_name,
         client_email=inv.client_email,
         client_address=inv.client_address,
+        client_siren=inv.client_siren,
         description=inv.description,
         amount_cents=inv.amount_cents,
     )

@@ -15,6 +15,7 @@ from app.core.database import get_db
 from app.schemas.divers import StatusOut
 from app.services import (
     acquisition_service,
+    identite_fiscale,
     stripe_webhook_service,
     subscription_service,
     user_service,
@@ -170,6 +171,25 @@ async def _handle_subscription_updated(stripe_sub: dict, db: AsyncSession) -> No
     stripe_webhook_service.apply_subscription_status(sub, status=new_status, period_end=period_end)
 
 
+def _adresse_postale(adresse: dict | None) -> str | None:
+    """Met l'adresse Stripe en une chaine imprimable, ou `None` si elle est vide.
+
+    Stripe renvoie un dictionnaire dont chaque champ peut valoir `None`. Une
+    concatenation naive produirait des lignes vides et des virgules orphelines
+    sur la facture.
+    """
+    if not adresse:
+        return None
+    lignes = [
+        adresse.get("line1"),
+        adresse.get("line2"),
+        " ".join(filter(None, [adresse.get("postal_code"), adresse.get("city")])).strip(),
+        adresse.get("country"),
+    ]
+    retenues = [ligne for ligne in lignes if ligne and ligne.strip()]
+    return "\n".join(retenues) or None
+
+
 async def _handle_invoice_payment_succeeded(stripe_inv: dict, db: AsyncSession) -> None:
     """Auto-create a subscription invoice when Stripe confirms payment."""
     stripe_invoice_id = stripe_inv.get("id")
@@ -201,13 +221,30 @@ async def _handle_invoice_payment_succeeded(stripe_inv: dict, db: AsyncSession) 
         tz=UTC,
     ).date()
 
+    # SIREN DE L'ACHETEUR, quand Stripe a collecte un numero de TVA francais.
+    # Obligatoire sur les factures entre professionnels au 1er septembre 2027 ;
+    # collecte des maintenant parce qu'une donnee non demandee au moment de la
+    # vente ne se retrouve plus.
+    client_siren = None
+    for identifiant in stripe_inv.get("customer_tax_ids") or []:
+        client_siren = identite_fiscale.siren_depuis_identifiant(
+            identifiant.get("type"), identifiant.get("value")
+        )
+        if client_siren:
+            break
+
     await create_invoice(
         db,
         user_id=user.id if user else None,
         type="subscription",
         client_name=stripe_inv.get("customer_name") or (user.email if user else customer_email),
         client_email=customer_email,
-        client_address=None,
+        # L'ADRESSE ETAIT JETEE. Stripe la collecte a la caisse
+        # (`billing_address_collection`), et cette ligne passait `None` : aucune
+        # facture emise jusqu'ici ne porte l'adresse du client, alors qu'elle
+        # est une mention obligatoire.
+        client_address=_adresse_postale(stripe_inv.get("customer_address")),
+        client_siren=client_siren,
         description=description,
         amount_cents=amount_paid,
         status="paid",
