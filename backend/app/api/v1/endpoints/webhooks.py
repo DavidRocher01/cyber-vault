@@ -4,6 +4,7 @@ Listens for subscription lifecycle events and updates DB accordingly.
 """
 
 import asyncio
+import json
 from datetime import UTC, datetime
 
 import stripe
@@ -11,11 +12,14 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.schemas.divers import StatusOut
 from app.services import (
     acquisition_service,
+    email_suppression,
     identite_fiscale,
+    signature_svix,
     stripe_webhook_service,
     subscription_service,
     user_service,
@@ -24,6 +28,55 @@ from app.services.invoice_service import create_invoice
 from app.services.stripe_service import construct_webhook_event
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
+
+
+@router.post("/resend", response_model=StatusOut, include_in_schema=False)
+async def resend_webhook(request: Request, db: AsyncSession = Depends(get_db)):
+    """Rebonds et plaintes signales par Resend.
+
+    POURQUOI CET ENDPOINT. Rien n'ecoutait ce que Resend renvoyait : un e-mail
+    qui rebondit ne laissait aucune trace. Or les fournisseurs de messagerie
+    notent les expediteurs sur ce taux, et la sanction ne se voit pas — elle se
+    manifeste le jour ou les e-mails LEGITIMES partent en indesirables.
+
+    REPONDRE 200 MEME QUAND ON N'A RIEN FAIT est deliberé : Svix rejoue les
+    livraisons non acquittees. Un evenement qu'on ignore volontairement — un
+    rebond souple, un `email.delivered` — ne doit pas etre rejoue en boucle.
+    Seule une signature invalide merite un refus.
+    """
+    corps = await request.body()
+
+    if not signature_svix.verifier(
+        settings.RESEND_WEBHOOK_SECRET,
+        request.headers.get("svix-id"),
+        request.headers.get("svix-timestamp"),
+        request.headers.get("svix-signature"),
+        corps,
+    ):
+        # Sans cette garde, n'importe qui pourrait faire cesser tout envoi vers
+        # l'adresse de son choix, reinitialisation de mot de passe comprise.
+        logger.warning("Webhook Resend refuse : signature invalide")
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    try:
+        evenement = json.loads(corps)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+
+    donnees = evenement.get("data") or {}
+    destinataires = donnees.get("to") or []
+    if isinstance(destinataires, str):
+        destinataires = [destinataires]
+
+    for adresse in destinataires:
+        await email_suppression.enregistrer(
+            db,
+            email=adresse,
+            evenement=evenement.get("type", ""),
+            detail=donnees.get("reason") or donnees.get("bounce_type"),
+        )
+    await db.commit()
+    return {"status": "ok"}
 
 
 @router.post("/stripe", response_model=StatusOut)

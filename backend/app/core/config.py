@@ -47,6 +47,10 @@ class Settings(BaseSettings):
 
     # Email transactionnel Resend
     RESEND_API_KEY: str = ""
+    # Secret de signature du webhook de rebonds (format `whsec_…`, fourni par
+    # Resend). VIDE = webhook refuse : sans signature verifiable, n'importe qui
+    # pourrait faire cesser les envois vers l'adresse de son choix.
+    RESEND_WEBHOOK_SECRET: str = ""
     RESEND_FROM: str = "Rocher Cybersécurité <no-reply@rochercybersecurite.com>"
 
     # S3 file storage (livrables RSSI)
