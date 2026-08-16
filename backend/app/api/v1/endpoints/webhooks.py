@@ -63,19 +63,7 @@ async def resend_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid payload")
 
-    donnees = evenement.get("data") or {}
-    destinataires = donnees.get("to") or []
-    if isinstance(destinataires, str):
-        destinataires = [destinataires]
-
-    for adresse in destinataires:
-        await email_suppression.enregistrer(
-            db,
-            email=adresse,
-            evenement=evenement.get("type", ""),
-            detail=donnees.get("reason") or donnees.get("bounce_type"),
-        )
-    await db.commit()
+    await email_suppression.traiter_evenement(db, evenement)
     return {"status": "ok"}
 
 

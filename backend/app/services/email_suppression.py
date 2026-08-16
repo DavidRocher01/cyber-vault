@@ -77,6 +77,32 @@ async def enregistrer(
     return suppression
 
 
+async def traiter_evenement(db: AsyncSession, evenement: dict) -> int:
+    """Enregistre les adresses concernees par un evenement Resend.
+
+    LA FORME DU MESSAGE EST CONNUE ICI, PAS DANS L'ENDPOINT. Celui-ci verifie la
+    signature et rien d'autre : c'est la regle de couches du projet, et un
+    ratchet du depot la fait respecter. Le champ `to` peut valoir une chaine ou
+    une liste selon le type d'evenement — Resend n'est pas regulier la-dessus.
+
+    Renvoie le nombre d'adresses effectivement mises en suppression.
+    """
+    donnees = evenement.get("data") or {}
+    destinataires = donnees.get("to") or []
+    if isinstance(destinataires, str):
+        destinataires = [destinataires]
+
+    type_evenement = evenement.get("type", "")
+    detail = donnees.get("reason") or donnees.get("bounce_type")
+
+    cree = 0
+    for adresse in destinataires:
+        if await enregistrer(db, email=adresse, evenement=type_evenement, detail=detail):
+            cree += 1
+    await db.commit()
+    return cree
+
+
 async def est_supprimee(db: AsyncSession, email: str) -> bool:
     adresse = _normaliser(email)
     if not adresse:
