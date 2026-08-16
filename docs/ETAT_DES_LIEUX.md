@@ -92,8 +92,36 @@ L'historique des livraisons n'est pas ici — il est dans
   factures électroniques via une **Plateforme Agréée** (PA). Le PPF a été
   abandonné comme plateforme d'échange en octobre 2024 : passer par une PA est
   donc obligatoire, il n'y a pas d'option « portail public gratuit ».
-  À faire : choisir une PA et s'y raccorder. Aucune ligne de code n'en dépend
-  aujourd'hui — c'est une démarche, pas un chantier technique.
+  À faire : choisir une PA et s'y raccorder.
+
+  **DÉCISION DU 2026-08-16 : la plateforme gérera l'émission ET la gestion des
+  factures. Le module de facturation du dépôt sera retiré.** Un PDF ordinaire
+  n'est pas une facture électronique — la loi impose des données structurées
+  (Factur-X, UBL ou CII). Garder le générateur imposerait donc d'écrire ce
+  format, et le garder *à côté* de la plateforme produirait deux factures pour
+  une vente.
+
+  **Le moment est le moins coûteux possible : aucun client, aucune facture
+  émise.** Il n'y a donc ni archive à couper en deux, ni continuité de
+  numérotation à préserver, ni conservation décennale à porter — les trois coûts
+  réels de cette bascule. Chaque facture émise à partir de maintenant les fait
+  réapparaître.
+
+  **Ordre à respecter — le retrait vient en dernier :**
+  1. S'inscrire à une PA (obligatoire avant le 1er septembre pour la réception).
+     Critère décisif si l'on veut garder une porte de sortie : qu'elle accepte le
+     dépôt d'un fichier Factur-X sans imposer son API.
+  2. Émettre une facture de test chez elle et vérifier le circuit.
+  3. Alors seulement retirer le code : `invoice_pdf.py`, `invoice_service.py`,
+     `admin_invoices.py`, la branche de création du webhook et la console
+     d'administration — environ 550 lignes applicatives et 700 de tests.
+
+  Retirer avant l'étape 2 rendrait toute facturation impossible entre-temps.
+
+  **Ce qui survit au retrait :** la collecte du SIREN et de la dénomination
+  légale à la caisse Stripe (`tax_id_collection`), puisqu'il faudra les saisir
+  chez la plateforme ; et `pdf_billing.py`, partagé avec les **devis**, qui ne
+  sont pas concernés par la réforme.
 
 - **Assurance RC Pro cyber** — à souscrire **avant les premiers contrats
   clients** ; vérifier explicitement que le **pentest / scan intrusif est
