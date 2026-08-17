@@ -41,6 +41,18 @@
 #      D'ou `sg-032a3ebe1d53d63a8`, cree le 2026-08-17 pour porter le seul 443.
 #      Il est TEMPORAIRE : quand la regle du port 80 sera retiree, sa place se
 #      libere, le 443 rejoint le groupe principal et ce groupe-ci disparait.
+#
+#   3. LE PIEGE QUI AURAIT COUPE LE SITE. En `https-only`, CloudFront valide le
+#      certificat de l'origine contre le NOM D'ORIGINE qu'il a en configuration.
+#      Le certificat de l'ecouteur 443 couvre `api.cyberscanapp.com` et rien
+#      d'autre ; l'origine etait declaree sous
+#      `cybervault-alb-1319154203.eu-west-3.elb.amazonaws.com`. Basculer sans
+#      renommer = 502 sur tout le site. Et aucune AC publique ne delivre de
+#      certificat pour un nom `amazonaws.com` : renommer l'origine est la SEULE
+#      voie. `api.cyberscanapp.com` est deja un alias Route53 vers ce meme ALB.
+#      L'etape 3 fait donc les deux d'un coup — renommer et chiffrer.
+#      Le renommage ne touche pas l'`Id` de l'origine, auquel se rattachent les
+#      comportements de cache : ils suivent sans modification.
 # ---------------------------------------------------------------------------
 
 set -euo pipefail
@@ -48,7 +60,18 @@ set -euo pipefail
 DISTRIBUTION="E3DFNMKIHVBDO1"
 GROUPE_ALB="sg-040da241f674d9b8c"        # porte le 80 depuis CloudFront
 GROUPE_HTTPS="sg-032a3ebe1d53d63a8"      # porte le 443 depuis CloudFront
+ORIGINE_HTTPS="api.cyberscanapp.com"     # cf. piege 3 : le certificat du 443
 TRAVAIL="$(mktemp -d)"
+# Sous Git Bash, `mktemp` renvoie un chemin POSIX (/tmp/...) que le python et
+# l'aws de Windows lisent comme C:\tmp\... — donc pas du tout. Les redirections
+# du shell utilisent $TRAVAIL ; tout ce qui est PASSE a un binaire Windows
+# utilise $TRAVAIL_NATIF. `cygpath -m` donne la forme C:/... , acceptee aussi
+# bien par python que par le prefixe file:// de l'AWS CLI.
+if command -v cygpath >/dev/null 2>&1; then
+  TRAVAIL_NATIF="$(cygpath -m "$TRAVAIL")"
+else
+  TRAVAIL_NATIF="$TRAVAIL"
+fi
 
 echo "== 0. Verifications prealables =="
 ARN=$(aws elbv2 describe-load-balancers --names cybervault-alb \
@@ -107,35 +130,56 @@ case "$ACTUELS" in
 esac
 
 echo "== 3. Basculer l'origine CloudFront en https-only =="
-POLITIQUE=$(aws cloudfront get-distribution-config --id "$DISTRIBUTION" \
-  --query "DistributionConfig.Origins.Items[?contains(Id,'alb')].CustomOriginConfig.OriginProtocolPolicy" \
-  --output text)
-if [ "$POLITIQUE" = "https-only" ]; then
-  echo "   deja en https-only — rien a faire"
-else
-  aws cloudfront get-distribution-config --id "$DISTRIBUTION" > "$TRAVAIL/dist.json"
-  ETAG=$(python -c "import json;print(json.load(open(r'$TRAVAIL/dist.json'))['ETag'])")
+# Le NOM de l'origine change aussi, et ce n'est pas cosmetique : cf. piege 3.
+aws cloudfront get-distribution-config --id "$DISTRIBUTION" > "$TRAVAIL/dist.json"
+ETAG=$(python -c "import json;print(json.load(open(r'$TRAVAIL_NATIF/dist.json'))['ETag'])")
 
-  python - "$TRAVAIL" <<'PY'
+set +e
+python - "$TRAVAIL_NATIF" "$ORIGINE_HTTPS" <<'PY'
 import json, sys, pathlib
-t = pathlib.Path(sys.argv[1])
+t, nom = pathlib.Path(sys.argv[1]), sys.argv[2]
 d = json.loads((t / "dist.json").read_text(encoding="utf-8"))
 cfg = d["DistributionConfig"]
-touchees = 0
-for o in cfg["Origins"]["Items"]:
-    custom = o.get("CustomOriginConfig")
-    if custom and "alb" in o["Id"]:
-        custom["OriginProtocolPolicy"] = "https-only"
-        touchees += 1
-if touchees != 1:
-    raise SystemExit(f"ARRET : {touchees} origine(s) ALB trouvee(s), 1 attendue")
-(t / "config.json").write_text(json.dumps(cfg), encoding="utf-8")
-print("   origine ALB basculee en https-only")
-PY
 
+# On vise l'unique origine personnalisee : le seau S3 n'en a pas. Viser par
+# `"alb" in Id` marchait tant que l'Id contenait le nom d'hote de l'ALB — ce
+# qui n'est vrai que par accident, et l'Id ne change pas quand le nom change.
+personnalisees = [o for o in cfg["Origins"]["Items"] if o.get("CustomOriginConfig")]
+if len(personnalisees) != 1:
+    raise SystemExit(f"ARRET : {len(personnalisees)} origine(s) personnalisee(s), 1 attendue")
+
+o = personnalisees[0]
+custom = o["CustomOriginConfig"]
+avant = (o["DomainName"], custom["OriginProtocolPolicy"],
+         tuple(custom.get("OriginSslProtocols", {}).get("Items", [])))
+
+o["DomainName"] = nom
+custom["OriginProtocolPolicy"] = "https-only"
+# L'ecouteur applique ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09 : offrir SSLv3
+# ou TLSv1 ne sert qu'a se les faire refuser. On n'offre que ce qui aboutit.
+custom["OriginSslProtocols"] = {"Quantity": 1, "Items": ["TLSv1.2"]}
+
+apres = (o["DomainName"], custom["OriginProtocolPolicy"],
+         tuple(custom["OriginSslProtocols"]["Items"]))
+if avant == apres:
+    print("   deja conforme — rien a faire")
+    sys.exit(3)
+
+print(f"   nom       : {avant[0]}")
+print(f"           -> {apres[0]}")
+print(f"   protocole : {avant[1]} -> {apres[1]}")
+print(f"   TLS       : {list(avant[2])} -> {list(apres[2])}")
+(t / "config.json").write_text(json.dumps(cfg), encoding="utf-8")
+PY
+CODE=$?
+set -e
+
+if [ "$CODE" -eq 0 ]; then
   aws cloudfront update-distribution --id "$DISTRIBUTION" \
-    --distribution-config "file://$TRAVAIL/config.json" --if-match "$ETAG" \
+    --distribution-config "file://$TRAVAIL_NATIF/config.json" --if-match "$ETAG" \
     --query 'Distribution.Status' --output text
+elif [ "$CODE" -ne 3 ]; then
+  exit "$CODE"
 fi
 
 echo
