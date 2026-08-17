@@ -382,12 +382,23 @@ jobs:
       # Les fichiers de `infra/` DECRIVENT le reel. Une description qu on ne
       # confronte pas a sa source finit par mentir — la lecon de tout ce projet.
       #
-      # EN RODAGE PAR PRINCIPE : un garde-fou qui n a jamais reussi ne peut pas
-      # etre cru quand il echoue. Il a fait revenir en arriere un deploiement
-      # sain le 2026-08-10, pour cette exacte raison. A rendre bloquant quand il
-      # sera passe plusieurs fois.
-      - name: Derive de l infrastructure (en rodage, non bloquant)
-        continue-on-error: true
+      # BLOQUANT DEPUIS LE 2026-08-16, APRES RODAGE. Il a tourne en
+      # `continue-on-error` le temps de faire ses preuves : un garde-fou qui n a
+      # jamais reussi ne peut pas etre cru quand il echoue, et celui-ci avait
+      # fait revenir en arriere un deploiement sain le 2026-08-10 pour cette
+      # exacte raison.
+      #
+      # Quatre passages « conforme » depuis, dont trois a froid — sans que je
+      # vienne de toucher a l infrastructure. C est ce silence tenu dans la duree
+      # qui autorise a lui donner le pouvoir d arreter un deploiement, pas le
+      # nombre de passages.
+      #
+      # SI CE PAS ECHOUE : lire l ecart annonce avant toute chose. Le script ne
+      # signale QUE les trois corrections de la revue de securite et le routage
+      # du sitemap. Un echec ici veut dire que le reel a diverge de `infra/` —
+      # soit quelqu un a change la production a la main, soit un fichier de
+      # `infra/` a ete modifie sans appliquer le changement.
+      - name: Derive de l infrastructure
         run: python scripts/check_infra_drift.py
 
       - name: Recette UI (Playwright vs prod)

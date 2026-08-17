@@ -213,6 +213,7 @@ def build_client_row(
     client_address: str | None,
     half: float,
     gap: float,
+    client_siren: str | None = None,
 ) -> Table:
     """Ligne client : libellé « Destinataire » (gauche) + encadré coordonnées client (droite).
 
@@ -246,7 +247,12 @@ def build_client_row(
 
     addr_lines = f"<b>{client_name}</b><br/>{client_email}"
     if client_address:
-        addr_lines += f"<br/>{client_address}"
+        # L'adresse est stockee avec de vrais sauts de ligne — donnee propre, sans
+        # balisage. ReportLab, lui, les ignore : la conversion appartient au rendu.
+        addr_lines += "<br/>" + client_address.replace("\n", "<br/>")
+    if client_siren:
+        # Mention obligatoire entre professionnels a partir du 1er septembre 2027.
+        addr_lines += f"<br/>SIREN {client_siren}"
 
     client_box = Table(
         [

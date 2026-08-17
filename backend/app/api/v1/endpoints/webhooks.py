@@ -4,6 +4,7 @@ Listens for subscription lifecycle events and updates DB accordingly.
 """
 
 import asyncio
+import json
 from datetime import UTC, datetime
 
 import stripe
@@ -11,10 +12,14 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.schemas.divers import StatusOut
 from app.services import (
     acquisition_service,
+    email_suppression,
+    identite_fiscale,
+    signature_svix,
     stripe_webhook_service,
     subscription_service,
     user_service,
@@ -23,6 +28,43 @@ from app.services.invoice_service import create_invoice
 from app.services.stripe_service import construct_webhook_event
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
+
+
+@router.post("/resend", response_model=StatusOut, include_in_schema=False)
+async def resend_webhook(request: Request, db: AsyncSession = Depends(get_db)):
+    """Rebonds et plaintes signales par Resend.
+
+    POURQUOI CET ENDPOINT. Rien n'ecoutait ce que Resend renvoyait : un e-mail
+    qui rebondit ne laissait aucune trace. Or les fournisseurs de messagerie
+    notent les expediteurs sur ce taux, et la sanction ne se voit pas — elle se
+    manifeste le jour ou les e-mails LEGITIMES partent en indesirables.
+
+    REPONDRE 200 MEME QUAND ON N'A RIEN FAIT est deliberé : Svix rejoue les
+    livraisons non acquittees. Un evenement qu'on ignore volontairement — un
+    rebond souple, un `email.delivered` — ne doit pas etre rejoue en boucle.
+    Seule une signature invalide merite un refus.
+    """
+    corps = await request.body()
+
+    if not signature_svix.verifier(
+        settings.RESEND_WEBHOOK_SECRET,
+        request.headers.get("svix-id"),
+        request.headers.get("svix-timestamp"),
+        request.headers.get("svix-signature"),
+        corps,
+    ):
+        # Sans cette garde, n'importe qui pourrait faire cesser tout envoi vers
+        # l'adresse de son choix, reinitialisation de mot de passe comprise.
+        logger.warning("Webhook Resend refuse : signature invalide")
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    try:
+        evenement = json.loads(corps)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+
+    await email_suppression.traiter_evenement(db, evenement)
+    return {"status": "ok"}
 
 
 @router.post("/stripe", response_model=StatusOut)
@@ -170,6 +212,25 @@ async def _handle_subscription_updated(stripe_sub: dict, db: AsyncSession) -> No
     stripe_webhook_service.apply_subscription_status(sub, status=new_status, period_end=period_end)
 
 
+def _adresse_postale(adresse: dict | None) -> str | None:
+    """Met l'adresse Stripe en une chaine imprimable, ou `None` si elle est vide.
+
+    Stripe renvoie un dictionnaire dont chaque champ peut valoir `None`. Une
+    concatenation naive produirait des lignes vides et des virgules orphelines
+    sur la facture.
+    """
+    if not adresse:
+        return None
+    lignes = [
+        adresse.get("line1"),
+        adresse.get("line2"),
+        " ".join(filter(None, [adresse.get("postal_code"), adresse.get("city")])).strip(),
+        adresse.get("country"),
+    ]
+    retenues = [ligne for ligne in lignes if ligne and ligne.strip()]
+    return "\n".join(retenues) or None
+
+
 async def _handle_invoice_payment_succeeded(stripe_inv: dict, db: AsyncSession) -> None:
     """Auto-create a subscription invoice when Stripe confirms payment."""
     stripe_invoice_id = stripe_inv.get("id")
@@ -201,13 +262,30 @@ async def _handle_invoice_payment_succeeded(stripe_inv: dict, db: AsyncSession) 
         tz=UTC,
     ).date()
 
+    # SIREN DE L'ACHETEUR, quand Stripe a collecte un numero de TVA francais.
+    # Obligatoire sur les factures entre professionnels au 1er septembre 2027 ;
+    # collecte des maintenant parce qu'une donnee non demandee au moment de la
+    # vente ne se retrouve plus.
+    client_siren = None
+    for identifiant in stripe_inv.get("customer_tax_ids") or []:
+        client_siren = identite_fiscale.siren_depuis_identifiant(
+            identifiant.get("type"), identifiant.get("value")
+        )
+        if client_siren:
+            break
+
     await create_invoice(
         db,
         user_id=user.id if user else None,
         type="subscription",
         client_name=stripe_inv.get("customer_name") or (user.email if user else customer_email),
         client_email=customer_email,
-        client_address=None,
+        # L'ADRESSE ETAIT JETEE. Stripe la collecte a la caisse
+        # (`billing_address_collection`), et cette ligne passait `None` : aucune
+        # facture emise jusqu'ici ne porte l'adresse du client, alors qu'elle
+        # est une mention obligatoire.
+        client_address=_adresse_postale(stripe_inv.get("customer_address")),
+        client_siren=client_siren,
         description=description,
         amount_cents=amount_paid,
         status="paid",

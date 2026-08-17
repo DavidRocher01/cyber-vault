@@ -51,4 +51,12 @@ backend/previsualisation_pdf/
 
 # Depots ecrits par le repli disque local de storage.py (S3 absent en dev).
 # Les tests d'upload en creent a chaque execution.
+#
+# LES DEUX CHEMINS SONT NECESSAIRES. `main.py` monte `Path("uploads")`, un chemin
+# RELATIF : le dossier nait donc la ou le processus a ete lance — dans `backend/`
+# avec uvicorn, mais A LA RACINE des qu'on lance pytest depuis la racine. Seul
+# `backend/uploads/` etait ignore, si bien qu'un `git add -A` mettait en index 79
+# documents de test — livrables RSSI et rapports de scan — le 2026-08-16. Aucun
+# n'a jamais ete commite ; c'est un echec de hook qui l'a evite, pas une garde.
 backend/uploads/
+uploads/

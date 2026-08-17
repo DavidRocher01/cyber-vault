@@ -25,6 +25,10 @@ class AdminInvoiceOut(BaseModel):
     client_name: str
     client_email: str
     client_address: str | None = None
+    # Sans ce champ, `response_model` le FILTRERAIT en silence : la console
+    # d'administration afficherait des factures sans SIREN alors que la base le
+    # porte. Le meme oubli s'est deja produit deux fois sur ce projet.
+    client_siren: str | None = None
     description: str
     amount_cents: int
     amount_eur: float

@@ -29,6 +29,16 @@ class Invoice(Base):
     client_email: Mapped[str] = mapped_column(String(255), nullable=False)
     client_address: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # SIREN de l'ACHETEUR — obligatoire sur les factures entre professionnels a
+    # partir du 1er septembre 2027, c'est la cle de rapprochement de
+    # l'administration. Nullable a dessein : les clients particuliers n'en ont
+    # pas, et les factures anterieures a la collecte non plus.
+    #
+    # Collecte des 2026 alors que l'echeance est a un an, parce que c'est une
+    # DONNEE : le format Factur-X s'ecrira en 2027, mais un SIREN qu'on n'a pas
+    # demande au moment de la vente ne se retrouve plus.
+    client_siren: Mapped[str | None] = mapped_column(String(9), nullable=True)
+
     description: Mapped[str] = mapped_column(String(500), nullable=False)
     amount_cents: Mapped[int] = mapped_column(Integer, nullable=False)
 

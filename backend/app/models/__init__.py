@@ -21,6 +21,7 @@ from app.models.collab import SiteCollaborator  # noqa: F401
 from app.models.contact_message import ContactMessage  # noqa: F401
 from app.models.darkweb_dossier import DarkwebDossier, DarkwebDossierTarget  # noqa: F401
 from app.models.darkweb_scan import DarkwebScan  # noqa: F401
+from app.models.email_suppression import EmailSuppression  # noqa: F401
 from app.models.enums import (  # noqa: F401
     CampaignStatus,
     CollabStatus,

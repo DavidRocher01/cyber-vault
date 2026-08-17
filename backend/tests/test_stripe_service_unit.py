@@ -117,10 +117,32 @@ class TestCreateCheckoutSession:
         kwargs = mock_create.call_args[1]
         assert kwargs.get("billing_address_collection") == "auto"
 
-    def test_customer_update_address_auto(self):
+    def test_customer_update_address_et_nom_auto(self):
+        """`name: auto` enregistre la DENOMINATION LEGALE saisie a la caisse.
+
+        Sans lui, seul le nom du payeur remonte — or c'est la raison sociale qui
+        doit figurer sur une facture entre professionnels.
+        """
         _, mock_create = self._call()
         kwargs = mock_create.call_args[1]
-        assert kwargs.get("customer_update") == {"address": "auto"}
+        assert kwargs.get("customer_update") == {"address": "auto", "name": "auto"}
+
+    def test_l_identifiant_fiscal_est_exige_la_ou_le_format_existe(self):
+        """Le SIREN de l'acheteur devient obligatoire au 1er septembre 2027.
+
+        C'est une DONNEE, pas du code : non demandee au moment de la vente, elle
+        ne se retrouve plus. D'ou la collecte des maintenant.
+
+        `if_supported` et non `true` : la saisie est imposee dans les pays ou le
+        format existe, et le formulaire n'apparait pas ailleurs — un client hors
+        zone n'est pas bloque par une obligation qui ne le concerne pas.
+        """
+        _, mock_create = self._call()
+        kwargs = mock_create.call_args[1]
+        assert kwargs.get("tax_id_collection") == {
+            "enabled": True,
+            "required": "if_supported",
+        }
 
     def test_success_and_cancel_urls_passed(self):
         _, mock_create = self._call(
