@@ -17,13 +17,13 @@ from app.core.deps import get_current_user, require_conformity_export, require_c
 from app.models.user import User
 from app.schemas.divers import SignedUrlOut
 from app.services import (
-    awareness_nis2_report,
     brand_service,
     depot_service,
     nis2_service,
     preuve_service,
 )
 from app.services.assessment_service import compute_assessment_score
+from app.services.awareness import nis2_report
 from app.services.nis2_catalogue import ALL_ITEM_IDS, NIS2_CATEGORIES, VALID_STATUSES
 
 router = APIRouter(prefix="/nis2", tags=["nis2"])
@@ -89,7 +89,7 @@ async def _mesures_de_la_plateforme(db: AsyncSession, user_id: int) -> dict:
     enregistrement.
     """
     mesures: dict = {}
-    formation = await awareness_nis2_report.preuve_formation(db, user_id)
+    formation = await nis2_report.preuve_formation(db, user_id)
     if formation:
         mesures["awareness"] = formation
     return mesures

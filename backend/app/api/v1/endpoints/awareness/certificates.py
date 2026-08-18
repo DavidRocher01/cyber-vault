@@ -34,7 +34,7 @@ async def get_certificate(
     db: AsyncSession = Depends(get_db),
 ) -> AwarenessCertificateOut:
     """Retourne les métadonnées du certificat d'une inscription complétée."""
-    from app.services.awareness_certificate_service import get_certificate_for_learner
+    from app.services.awareness.certificate_service import get_certificate_for_learner
 
     cert = await get_certificate_for_learner(db, enrollment_id, learner.id)
     if cert is None:
@@ -53,7 +53,7 @@ async def download_certificate_pdf(
     """Télécharge le PDF du certificat."""
     from fastapi.responses import Response
 
-    from app.services.awareness_certificate_service import (
+    from app.services.awareness.certificate_service import (
         generate_certificate_pdf,
         get_certificate_for_learner,
     )
@@ -84,7 +84,7 @@ async def consultant_dashboard_endpoint(
     Vue agrégée RSSI consultant : toutes ses organisations clientes,
     KPIs globaux, alertes.
     """
-    from app.services.awareness_dashboard import consultant_dashboard
+    from app.services.awareness.dashboard import consultant_dashboard
 
     data = await consultant_dashboard(db, current_user.id)
     return ConsultantDashboardOut(**data)
@@ -101,7 +101,7 @@ async def org_admin_dashboard_endpoint(
     learners à risque (initiales seulement — RGPD).
     """
     await _get_org_or_404(org_id, current_user, db)
-    from app.services.awareness_dashboard import org_admin_dashboard
+    from app.services.awareness.dashboard import org_admin_dashboard
 
     data = await org_admin_dashboard(db, org_id)
     return OrgAdminDashboardOut(**data)
@@ -118,7 +118,7 @@ async def get_nis2_report(
 ) -> dict:
     """Retourne les métriques NIS2 Article 21 en JSON."""
     await _get_org_or_404(org_id, current_user, db)
-    from app.services.awareness_nis2_report import build_nis2_report
+    from app.services.awareness.nis2_report import build_nis2_report
 
     return await build_nis2_report(db, org_id)
 
@@ -132,7 +132,7 @@ async def download_nis2_report_pdf(
     """Génère et télécharge le rapport PDF NIS2."""
     from fastapi.responses import Response
 
-    from app.services.awareness_nis2_report import (
+    from app.services.awareness.nis2_report import (
         build_nis2_report,
         generate_nis2_report_pdf,
     )

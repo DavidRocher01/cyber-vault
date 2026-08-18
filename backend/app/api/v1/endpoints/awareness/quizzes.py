@@ -10,7 +10,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_learner
 from app.models.awareness_learner import AwarenessLearner
 from app.schemas.awareness import QuizResultOut, QuizStartOut, QuizSubmitIn
-from app.services.awareness_quiz_engine import start_quiz, submit_quiz
+from app.services.awareness.quiz_engine import start_quiz, submit_quiz
 
 router = APIRouter()
 

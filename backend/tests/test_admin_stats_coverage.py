@@ -269,7 +269,7 @@ async def test_sync_content_sans_authentification_401():
 async def test_sync_content_success(entetes_admin):
     fake_summary = {"programs": 3, "modules": 12, "errors": []}
     with patch(
-        "app.services.awareness_content_importer.import_from_directory",
+        "app.services.awareness.content_importer.import_from_directory",
         new=AsyncMock(return_value=fake_summary),
     ):
         with patch("app.api.v1.endpoints.admin_stats.Path") as mock_path:
@@ -299,7 +299,7 @@ async def test_sync_content_missing_directory(entetes_admin):
 
 async def test_sync_content_importer_raises_returns_error(entetes_admin):
     with patch(
-        "app.services.awareness_content_importer.import_from_directory",
+        "app.services.awareness.content_importer.import_from_directory",
         new=AsyncMock(side_effect=RuntimeError("boom")),
     ):
         with patch("app.api.v1.endpoints.admin_stats.Path") as mock_path:

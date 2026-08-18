@@ -19,8 +19,8 @@ from app.schemas.awareness import (
     LearnerSession,
     MagicLinkRequest,
 )
-from app.services import awareness_access_service, awareness_learner_service
-from app.services.awareness_magic_link import (
+from app.services.awareness import access_service, learner_service
+from app.services.awareness.magic_link import (
     create_learner_jwt,
     issue_magic_link,
     verify_magic_link,
@@ -49,7 +49,7 @@ async def create_learner(
     org = await _get_org_or_404(org_id, current_user, db)
 
     # Check quota
-    count = await awareness_learner_service.count_active_learners(db, org.id)
+    count = await learner_service.count_active_learners(db, org.id)
     if count >= org.max_learners:
         raise HTTPException(
             status_code=422,
@@ -57,13 +57,13 @@ async def create_learner(
         )
 
     # Check duplicate
-    existing = await awareness_learner_service.get_learner_by_email(db, org_id, str(payload.email))
+    existing = await learner_service.get_learner_by_email(db, org_id, str(payload.email))
     if existing:
         raise HTTPException(
             status_code=409, detail="Email déjà enregistré dans cette organisation."
         )
 
-    learner = await awareness_learner_service.create_learner(
+    learner = await learner_service.create_learner(
         db,
         org_id=org_id,
         email=str(payload.email),
@@ -100,9 +100,7 @@ async def list_learners(
     db: AsyncSession = Depends(get_db),
 ) -> list[AwarenessLearnerOut]:
     await _get_org_or_404(org_id, current_user, db)
-    learners = await awareness_learner_service.list_org_learners(
-        db, org_id, active_only=active_only
-    )
+    learners = await learner_service.list_org_learners(db, org_id, active_only=active_only)
     return [AwarenessLearnerOut.model_validate(row) for row in learners]
 
 
@@ -121,7 +119,7 @@ async def update_learner(
     learner = await _get_learner_or_404(learner_id, org_id, db)
     for field, value in payload.model_dump(exclude_none=True).items():
         setattr(learner, field, value)
-    await awareness_learner_service.save_learner(db, learner)
+    await learner_service.save_learner(db, learner)
     return AwarenessLearnerOut.model_validate(learner)
 
 
@@ -143,7 +141,7 @@ async def request_magic_link(
 
     learner, raw_token = result
 
-    org = await awareness_access_service.get_organization_by_id(db, learner.organization_id)
+    org = await access_service.get_organization_by_id(db, learner.organization_id)
     org_name = org.name if org else "votre organisation"
 
     login_url = f"{settings.FRONTEND_URL}/awareness/login?token={raw_token}"

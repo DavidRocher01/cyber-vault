@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.awareness_learner import AwarenessLearner
 from app.models.awareness_organization import AwarenessOrganization
 from app.schemas.awareness import CsvImportResult
-from app.services.awareness_learner_service import count_active_learners
+from app.services.awareness.learner_service import count_active_learners
 
 _REQUIRED = {"email"}
 _OPTIONAL = {"first_name", "last_name", "department", "job_title", "preferred_language"}

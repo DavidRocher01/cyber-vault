@@ -16,8 +16,8 @@ from app.schemas.awareness import (
     CsvImportResult,
 )
 from app.schemas.divers import EnrollmentBatchOut
-from app.services import awareness_organization_service
-from app.services.awareness_csv_import import import_learners_from_csv
+from app.services.awareness import organization_service
+from app.services.awareness.csv_import import import_learners_from_csv
 from app.services.storage import FichierTropVolumineuxError, lire_borne
 
 from .helpers import _get_org_or_404
@@ -37,7 +37,7 @@ async def create_organization(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> AwarenessOrganizationOut:
-    org = await awareness_organization_service.create_organization(
+    org = await organization_service.create_organization(
         db,
         owner_user_id=current_user.id,
         name=payload.name,
@@ -53,7 +53,7 @@ async def list_organizations(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[AwarenessOrganizationStats]:
-    rows = await awareness_organization_service.list_organizations_with_counts(db, current_user.id)
+    rows = await organization_service.list_organizations_with_counts(db, current_user.id)
     out = []
     for org, learner_count in rows:
         stats = AwarenessOrganizationStats.model_validate(org)
@@ -68,9 +68,7 @@ async def get_organization(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> AwarenessOrganizationStats:
-    row = await awareness_organization_service.get_organization_with_count(
-        db, org_id, current_user.id
-    )
+    row = await organization_service.get_organization_with_count(db, org_id, current_user.id)
     if row is None:
         raise HTTPException(status_code=404, detail="Organisation introuvable.")
     org, learner_count = row
@@ -89,7 +87,7 @@ async def update_organization(
     org = await _get_org_or_404(org_id, current_user, db)
     for field, value in payload.model_dump(exclude_none=True).items():
         setattr(org, field, value)
-    org = await awareness_organization_service.save_organization(db, org)
+    org = await organization_service.save_organization(db, org)
     return AwarenessOrganizationOut.model_validate(org)
 
 
@@ -110,7 +108,7 @@ async def enroll_all_learners(
     Ignore les learners déjà inscrits. Envoie un email magic-link à chaque nouveau inscrit.
     """
     org = await _get_org_or_404(org_id, current_user, db)
-    return await awareness_organization_service.enroll_all_learners(db, org, program_id)
+    return await organization_service.enroll_all_learners(db, org, program_id)
 
 
 # ── CSV Import ─────────────────────────────────────────────────────────────────

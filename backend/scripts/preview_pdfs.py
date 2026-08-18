@@ -356,7 +356,7 @@ def ech_phishing() -> bytes:
 def ech_certificat() -> bytes:
     import json
 
-    from app.services.awareness_certificate_service import generate_certificate_pdf
+    from app.services.awareness.certificate_service import generate_certificate_pdf
 
     cert = SimpleNamespace(
         public_id="CERT-2026-0042",

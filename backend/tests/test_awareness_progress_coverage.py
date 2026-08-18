@@ -30,7 +30,7 @@ from app.models.awareness_program import AwarenessProgram
 from app.models.awareness_progress import AwarenessProgress
 from app.models.awareness_quiz_attempt import AwarenessQuizAttempt
 from app.models.user import User
-from app.services.awareness_magic_link import create_learner_jwt
+from app.services.awareness.magic_link import create_learner_jwt
 
 BASE = "/api/v1"
 

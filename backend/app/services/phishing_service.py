@@ -758,7 +758,7 @@ async def _enroll_target_in_remediation(
         from app.models.awareness_learner import AwarenessLearner
         from app.models.awareness_program import AwarenessProgram
         from app.models.rssi_client import RssiClient
-        from app.services.awareness_progression import enroll_learner
+        from app.services.awareness.progression import enroll_learner
 
         client = (
             await db.execute(select(RssiClient).where(RssiClient.id == campaign.rssi_client_id))

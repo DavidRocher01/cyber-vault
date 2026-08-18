@@ -17,7 +17,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.services.awareness_certificate_service import (
+from app.services.awareness.certificate_service import (
     _compute_signature,
     _generate_public_id,
     generate_certificate_pdf,

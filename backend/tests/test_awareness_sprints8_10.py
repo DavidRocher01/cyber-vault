@@ -16,7 +16,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
-from app.services.awareness_nis2_report import (
+from app.services.awareness.nis2_report import (
     compute_global_score,
     generate_nis2_report_pdf,
     map_requirements,

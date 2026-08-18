@@ -230,7 +230,7 @@ async def complete_module(
     await _recompute_enrollment(db, enrollment)
 
     # Award XP
-    from app.services.awareness_gamification import award_xp, check_and_award_badges
+    from app.services.awareness.gamification import award_xp, check_and_award_badges
 
     xp = module.xp_points
     if quiz_score is not None:
@@ -256,7 +256,7 @@ async def complete_module(
 
     # Auto-issue certificate + send completion email when enrollment completes
     if enrollment.status == "completed":
-        from app.services.awareness_certificate_service import issue_certificate
+        from app.services.awareness.certificate_service import issue_certificate
 
         cert = await issue_certificate(db, enrollment)
 
