@@ -51,7 +51,7 @@ def _items_mixed():
 
 
 def test_domain_scores_all_compliant():
-    from app.services.nis2_auditor_pdf import _domain_scores
+    from app.services.nis2.auditor_pdf import _domain_scores
 
     result = _domain_scores(_CATEGORIES, _items_all_compliant())
     for _, pct in result:
@@ -59,7 +59,7 @@ def test_domain_scores_all_compliant():
 
 
 def test_domain_scores_mixed():
-    from app.services.nis2_auditor_pdf import _domain_scores
+    from app.services.nis2.auditor_pdf import _domain_scores
 
     result = _domain_scores(_CATEGORIES, _items_mixed())
     scores = dict(result)
@@ -68,7 +68,7 @@ def test_domain_scores_mixed():
 
 
 def test_domain_scores_empty_items():
-    from app.services.nis2_auditor_pdf import _domain_scores
+    from app.services.nis2.auditor_pdf import _domain_scores
 
     result = _domain_scores(_CATEGORIES, {})
     for _, pct in result:
@@ -81,7 +81,7 @@ def test_domain_scores_empty_items():
 
 
 def test_generate_auditor_pdf_returns_pdf_bytes():
-    from app.services.nis2_auditor_pdf import generate_nis2_auditor_pdf
+    from app.services.nis2.auditor_pdf import generate_nis2_auditor_pdf
 
     pdf = generate_nis2_auditor_pdf(
         categories=_CATEGORIES,
@@ -96,7 +96,7 @@ def test_generate_auditor_pdf_returns_pdf_bytes():
 
 
 def test_generate_auditor_pdf_with_nc_items():
-    from app.services.nis2_auditor_pdf import generate_nis2_auditor_pdf
+    from app.services.nis2.auditor_pdf import generate_nis2_auditor_pdf
 
     pdf = generate_nis2_auditor_pdf(
         categories=_CATEGORIES,
@@ -110,7 +110,7 @@ def test_generate_auditor_pdf_with_nc_items():
 
 
 def test_generate_auditor_pdf_no_company():
-    from app.services.nis2_auditor_pdf import generate_nis2_auditor_pdf
+    from app.services.nis2.auditor_pdf import generate_nis2_auditor_pdf
 
     pdf = generate_nis2_auditor_pdf(
         categories=_CATEGORIES,
@@ -124,7 +124,7 @@ def test_generate_auditor_pdf_no_company():
 
 
 def test_generate_auditor_pdf_all_na():
-    from app.services.nis2_auditor_pdf import generate_nis2_auditor_pdf
+    from app.services.nis2.auditor_pdf import generate_nis2_auditor_pdf
 
     items = {item["id"]: "na" for cat in _CATEGORIES for item in cat["items"]}
     pdf = generate_nis2_auditor_pdf(

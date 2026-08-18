@@ -6,7 +6,7 @@ mesurable : les interfaces `DashboardOverview`, `ClientSummary`,
 figuraient parmi celles SANS SCHEMA BACKEND CORRESPONDANT, donc hors de portee
 de toute verification de contrat. Les typer les y ramene.
 
-Les formes sont derivees de `rssi_aggregation_service.py`, seule source qui dise
+Les formes sont derivees de `aggregation_service.py`, seule source qui dise
 ce qui est reellement renvoye.
 """
 

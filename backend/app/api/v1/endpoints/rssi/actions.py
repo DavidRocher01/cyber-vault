@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import get_rssi_consultant
 from app.models.user import User
-from app.services import rssi_action_service
+from app.services.rssi import action_service
 
 from ._shared import _get_client_or_404
 
@@ -69,7 +69,7 @@ async def list_actions(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
-    return await rssi_action_service.list_actions(db, client_id, status_filter)
+    return await action_service.list_actions(db, client_id, status_filter)
 
 
 @router.post("/clients/{client_id}/actions", response_model=RssiActionOut, status_code=201)
@@ -87,13 +87,11 @@ async def create_action(
     # Isolation : une visite source référencée doit appartenir à CE client (sinon un
     # consultant pourrait lier l'action à la visite d'un autre client).
     if payload.source_visit_id is not None:
-        visit = await rssi_action_service.get_visit_for_client(
-            db, payload.source_visit_id, client_id
-        )
+        visit = await action_service.get_visit_for_client(db, payload.source_visit_id, client_id)
         if visit is None:
             raise HTTPException(status_code=422, detail="Visite source introuvable pour ce client")
 
-    return await rssi_action_service.create_action(
+    return await action_service.create_action(
         db,
         client_id=client_id,
         values={
@@ -117,7 +115,7 @@ async def update_action(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
-    action = await rssi_action_service.get_action(db, action_id, client_id)
+    action = await action_service.get_action(db, action_id, client_id)
     if not action:
         raise HTTPException(status_code=404, detail="Action non trouvée")
 
@@ -143,7 +141,7 @@ async def update_action(
     if payload.completed_at is not None:
         values["completed_at"] = payload.completed_at
 
-    return await rssi_action_service.update_action(db, action, values)
+    return await action_service.update_action(db, action, values)
 
 
 @router.delete("/clients/{client_id}/actions/{action_id}", status_code=204)
@@ -154,10 +152,10 @@ async def delete_action(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
-    action = await rssi_action_service.get_action(db, action_id, client_id)
+    action = await action_service.get_action(db, action_id, client_id)
     if not action:
         raise HTTPException(status_code=404, detail="Action non trouvée")
-    await rssi_action_service.delete_action(db, action)
+    await action_service.delete_action(db, action)
 
 
 @router.get("/clients/{client_id}/actions/export")
@@ -169,7 +167,7 @@ async def export_actions_csv(
     """Export all actions for a client as a CSV file."""
     await _get_client_or_404(client_id, current_user.id, db)
 
-    actions = await rssi_action_service.list_actions(db, client_id)
+    actions = await action_service.list_actions(db, client_id)
 
     buf = io.StringIO()
     writer = csv.writer(buf, delimiter=";", quoting=csv.QUOTE_ALL)

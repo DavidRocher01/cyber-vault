@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import get_rssi_consultant
 from app.models.user import User
-from app.services import rssi_report_service
+from app.services.rssi import report_service
 
 from ._shared import _get_client_or_404
 
@@ -19,13 +19,13 @@ async def get_client_report(
     db: AsyncSession = Depends(get_db),
 ):
     """Generate and stream a PDF report for a client."""
-    from app.services.rssi_report_pdf import generate_rssi_report
+    from app.services.rssi.report_pdf import generate_rssi_report
 
     client = await _get_client_or_404(client_id, current_user.id, db)
 
-    visits = await rssi_report_service.list_client_visits(db, client_id)
-    actions = await rssi_report_service.list_client_actions(db, client_id)
-    deliverables = await rssi_report_service.list_client_deliverables(db, client_id)
+    visits = await report_service.list_client_visits(db, client_id)
+    actions = await report_service.list_client_actions(db, client_id)
+    deliverables = await report_service.list_client_deliverables(db, client_id)
 
     client_dict = {
         "name": client.name,

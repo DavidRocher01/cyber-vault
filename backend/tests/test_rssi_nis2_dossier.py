@@ -250,7 +250,7 @@ async def test_l_export_nomme_le_client_et_non_le_cabinet():
     """
     from unittest.mock import patch
 
-    import app.services.nis2_auditor_pdf as auditeur
+    import app.services.nis2.auditor_pdf as auditeur
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         h = await _consultant(c, "cons_export@test.com")

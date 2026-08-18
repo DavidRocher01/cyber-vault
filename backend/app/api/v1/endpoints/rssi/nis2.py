@@ -41,9 +41,10 @@ from app.core.database import get_db
 from app.core.deps import get_rssi_consultant, require_conformity_pieces
 from app.models.user import User
 from app.schemas.divers import SignedUrlOut
-from app.services import depot_service, nis2_service, preuve_service
+from app.services import depot_service, preuve_service
 from app.services.assessment_service import compute_assessment_score
-from app.services.nis2_catalogue import ALL_ITEM_IDS, NIS2_CATEGORIES, VALID_STATUSES
+from app.services.nis2 import evaluation_service
+from app.services.nis2.catalogue import ALL_ITEM_IDS, NIS2_CATEGORIES, VALID_STATUSES
 
 from ._shared import _get_client_or_404
 
@@ -78,7 +79,7 @@ async def _dossier(db: AsyncSession, user_id: int, client_id: int) -> dict:
     Les deux doivent rendre exactement la meme chose : sans cela, les pieces
     disparaitraient de l'ecran juste apres un enregistrement.
     """
-    evaluation = await nis2_service.get_user_assessment(db, user_id, client_id)
+    evaluation = await evaluation_service.get_user_assessment(db, user_id, client_id)
     return {
         "items": json.loads(evaluation.items_json) if evaluation else {},
         "score": evaluation.score if evaluation else 0,
@@ -117,7 +118,7 @@ async def enregistrer_le_dossier(
         if statut not in VALID_STATUSES:
             raise HTTPException(status_code=422, detail=f"Statut invalide : {statut}")
 
-    await nis2_service.upsert_assessment(
+    await evaluation_service.upsert_assessment(
         db,
         current_user.id,
         items=payload.items,
@@ -184,9 +185,9 @@ async def joindre_une_piece(
         raise HTTPException(status_code=413, detail=str(exc))
 
     now = datetime.now(UTC)
-    evaluation = await nis2_service.get_user_assessment(db, current_user.id, client.id)
+    evaluation = await evaluation_service.get_user_assessment(db, current_user.id, client.id)
     if evaluation is None:
-        evaluation = await nis2_service.upsert_assessment(
+        evaluation = await evaluation_service.upsert_assessment(
             db, current_user.id, items={}, score=0, now=now, client_id=client.id
         )
 
@@ -234,7 +235,7 @@ async def lister_les_pieces(
     `{base}` place deja dans son champ `pieces`.
     """
     client = await _get_client_or_404(client_id, current_user.id, db)
-    evaluation = await nis2_service.get_user_assessment(db, current_user.id, client.id)
+    evaluation = await evaluation_service.get_user_assessment(db, current_user.id, client.id)
     if evaluation is None:
         return {}
     return await preuve_service.preuves_par_critere(db, evaluation.id)
@@ -253,7 +254,7 @@ async def retirer_une_piece(
     orphelins s'en chargera avec son delai de grace.
     """
     client = await _get_client_or_404(client_id, current_user.id, db)
-    evaluation = await nis2_service.get_user_assessment(db, current_user.id, client.id)
+    evaluation = await evaluation_service.get_user_assessment(db, current_user.id, client.id)
     if evaluation is None:
         raise HTTPException(status_code=404, detail="Pièce non trouvée")
 
@@ -276,7 +277,7 @@ async def telecharger_une_piece(
     from app.services.storage import get_download_url
 
     client = await _get_client_or_404(client_id, current_user.id, db)
-    evaluation = await nis2_service.get_user_assessment(db, current_user.id, client.id)
+    evaluation = await evaluation_service.get_user_assessment(db, current_user.id, client.id)
     if evaluation is None:
         raise HTTPException(status_code=404, detail="Pièce non trouvée")
 
@@ -309,7 +310,7 @@ async def exporter_le_dossier(
     """
     import asyncio
 
-    from app.services.nis2_auditor_pdf import generate_nis2_auditor_pdf
+    from app.services.nis2.auditor_pdf import generate_nis2_auditor_pdf
 
     client = await _get_client_or_404(client_id, current_user.id, db)
     etat = await _dossier(db, current_user.id, client.id)

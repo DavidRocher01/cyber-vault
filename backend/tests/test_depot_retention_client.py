@@ -226,13 +226,13 @@ async def test_un_echec_n_interrompt_pas_les_autres(db_session):
 
 @pytest.mark.asyncio
 async def test_la_cloture_se_pose_au_passage_en_churned(db_session):
-    from app.services import rssi_client_service
+    from app.services.rssi import client_service
 
     uid = await _un_utilisateur(db_session)
     c = await _mission(db_session, uid, close_depuis_jours=None)
     assert c.cloture_le is None
 
-    await rssi_client_service.update_client(db_session, c, {"status": "churned"})
+    await client_service.update_client(db_session, c, {"status": "churned"})
     assert c.cloture_le is not None
 
 
@@ -240,13 +240,13 @@ async def test_la_cloture_se_pose_au_passage_en_churned(db_session):
 async def test_la_cloture_s_efface_si_la_mission_reprend(db_session):
     """Un client repris ne doit pas voir ses documents purges sur la foi d'une
     interruption passee."""
-    from app.services import rssi_client_service
+    from app.services.rssi import client_service
 
     uid = await _un_utilisateur(db_session)
     c = await _mission(db_session, uid, close_depuis_jours=120)
     assert c.cloture_le is not None
 
-    await rssi_client_service.update_client(db_session, c, {"status": "active"})
+    await client_service.update_client(db_session, c, {"status": "active"})
     assert c.cloture_le is None
 
 
@@ -257,13 +257,13 @@ async def test_la_cloture_ne_se_repousse_pas_a_chaque_modification(db_session):
     Avec `updated_at`, une simple correction d'adresse aurait repousse
     l'echeance de 90 jours a chaque fois — et rien n'aurait jamais ete purge.
     """
-    from app.services import rssi_client_service
+    from app.services.rssi import client_service
 
     uid = await _un_utilisateur(db_session)
     c = await _mission(db_session, uid, close_depuis_jours=60)
     initiale = c.cloture_le
 
-    await rssi_client_service.update_client(db_session, c, {"name": "Nouveau nom"})
+    await client_service.update_client(db_session, c, {"name": "Nouveau nom"})
     assert c.cloture_le == initiale
 
 

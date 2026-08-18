@@ -6,7 +6,7 @@ Les deux rapports partageaient ~300 lignes de mise en page identique
 désormais ici, paramétrée par un ComplianceStyle qui capture les seules
 divergences visuelles réelles (accent cyan NIS2 vs violet ISO, hauteur de
 barre, badge encadré ou non, marges, libellés, texte de disclaimer, page de
-garde). nis2_pdf.py et iso27001_pdf.py ne sont plus que de fines
+garde). report_pdf.py et iso27001_pdf.py ne sont plus que de fines
 configurations.
 """
 

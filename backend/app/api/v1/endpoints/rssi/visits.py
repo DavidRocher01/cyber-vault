@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import get_rssi_consultant
 from app.models.user import User
-from app.services import rssi_visit_service
+from app.services.rssi import visit_service
 
 from ._shared import _get_client_or_404
 
@@ -59,7 +59,7 @@ async def list_visits(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
-    return await rssi_visit_service.list_client_visits(db, client_id)
+    return await visit_service.list_client_visits(db, client_id)
 
 
 @router.post("/clients/{client_id}/visits", response_model=RssiVisitOut, status_code=201)
@@ -70,7 +70,7 @@ async def create_visit(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
-    return await rssi_visit_service.create_visit(
+    return await visit_service.create_visit(
         db,
         client_id=client_id,
         scheduled_date=payload.scheduled_date,
@@ -89,7 +89,7 @@ async def update_visit(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
-    visit = await rssi_visit_service.get_client_visit(db, client_id, visit_id)
+    visit = await visit_service.get_client_visit(db, client_id, visit_id)
     if not visit:
         raise HTTPException(status_code=404, detail="Visite non trouvée")
 
@@ -108,7 +108,7 @@ async def update_visit(
     if payload.duration_hours is not None:
         visit.duration_hours = payload.duration_hours
 
-    return await rssi_visit_service.save_visit(db, visit)
+    return await visit_service.save_visit(db, visit)
 
 
 @router.delete("/clients/{client_id}/visits/{visit_id}", status_code=204)
@@ -119,7 +119,7 @@ async def delete_visit(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
-    visit = await rssi_visit_service.get_client_visit(db, client_id, visit_id)
+    visit = await visit_service.get_client_visit(db, client_id, visit_id)
     if not visit:
         raise HTTPException(status_code=404, detail="Visite non trouvée")
-    await rssi_visit_service.delete_visit(db, visit)
+    await visit_service.delete_visit(db, visit)

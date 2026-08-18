@@ -52,7 +52,7 @@ class PreuveCritere(Base):
         ForeignKey("nis2_assessments.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-    # L'identifiant du critere dans `app/services/nis2_catalogue.py` (ex. "rssi").
+    # L'identifiant du critere dans `app/services/catalogue.py` (ex. "rssi").
     # Pas de cle etrangere possible : le catalogue est du code, pas une table.
     # C'est donc la couche service qui le valide contre `ALL_ITEM_IDS` — un
     # identifiant inconnu rendrait la preuve invisible sans jamais lever.

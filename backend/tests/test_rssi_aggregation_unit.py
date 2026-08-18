@@ -1,11 +1,11 @@
-"""Unit tests — rssi_aggregation_service.py."""
+"""Unit tests — aggregation_service.py."""
 
 from datetime import date, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.services.rssi_aggregation_service import (
+from app.services.rssi.aggregation_service import (
     DashboardOverview,
     compute_overview,
     compute_suggestions,

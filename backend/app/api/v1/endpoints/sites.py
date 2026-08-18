@@ -16,7 +16,8 @@ from app.schemas.cyberscan import (
     SiteOut,
     SubdomainResultOut,
 )
-from app.services import phishing_service, rssi_client_service, site_service
+from app.services import phishing_service, site_service
+from app.services.rssi import client_service
 from app.services.subscription_service import get_effective_max_sites
 
 router = APIRouter(prefix="/sites", tags=["sites"])
@@ -75,9 +76,7 @@ async def add_site(
 
     rssi_client_id = payload.rssi_client_id
     if rssi_client_id is not None:
-        client = await rssi_client_service.get_client_for_consultant(
-            db, rssi_client_id, current_user.id
-        )
+        client = await client_service.get_client_for_consultant(db, rssi_client_id, current_user.id)
         if not client:
             raise HTTPException(status_code=404, detail="Client RSSI non trouvé")
 

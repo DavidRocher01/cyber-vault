@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.fichier_depose import FichierDepose
 from app.models.preuve_critere import PreuveCritere
-from app.services.nis2_catalogue import ALL_ITEM_IDS
+from app.services.nis2.catalogue import ALL_ITEM_IDS
 
 
 class CritereInconnuError(ValueError):

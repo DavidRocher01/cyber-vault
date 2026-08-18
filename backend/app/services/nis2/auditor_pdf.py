@@ -1,5 +1,5 @@
 """
-nis2_auditor_pdf.py — "Prêt-à-déposer" NIS2 document for certified auditor review.
+auditor_pdf.py — "Prêt-à-déposer" NIS2 document for certified auditor review.
 
 Produces a formal PDF structured for regulatory submission:
   1. Attestation — entity info, score

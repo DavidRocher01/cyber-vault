@@ -19,16 +19,16 @@ from app.schemas.divers import SignedUrlOut
 from app.services import (
     brand_service,
     depot_service,
-    nis2_service,
     preuve_service,
 )
 from app.services.assessment_service import compute_assessment_score
 from app.services.awareness import nis2_report
-from app.services.nis2_catalogue import ALL_ITEM_IDS, NIS2_CATEGORIES, VALID_STATUSES
+from app.services.nis2 import evaluation_service
+from app.services.nis2.catalogue import ALL_ITEM_IDS, NIS2_CATEGORIES, VALID_STATUSES
 
 router = APIRouter(prefix="/nis2", tags=["nis2"])
 
-# Le catalogue des criteres vit dans `app/services/nis2_catalogue.py`. Ce
+# Le catalogue des criteres vit dans `app/services/catalogue.py`. Ce
 # routeur n'en est qu'un consommateur parmi d'autres : les deux generateurs de
 # PDF le lisent aussi, et le rattachement de preuves aux criteres le lira.
 
@@ -107,7 +107,7 @@ async def get_assessment(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    assessment = await nis2_service.get_user_assessment(db, current_user.id)
+    assessment = await evaluation_service.get_user_assessment(db, current_user.id)
 
     return {
         "items": json.loads(assessment.items_json) if assessment else {},
@@ -135,7 +135,7 @@ async def save_assessment(
     score = compute_assessment_score(payload.items, ALL_ITEM_IDS)
     now = datetime.now(UTC)
 
-    assessment = await nis2_service.upsert_assessment(
+    assessment = await evaluation_service.upsert_assessment(
         db, current_user.id, items=payload.items, score=score, now=now
     )
 
@@ -221,9 +221,9 @@ async def deposer_une_piece(
         raise HTTPException(status_code=413, detail=str(exc))
 
     now = datetime.now(UTC)
-    assessment = await nis2_service.get_user_assessment(db, current_user.id)
+    assessment = await evaluation_service.get_user_assessment(db, current_user.id)
     if assessment is None:
-        assessment = await nis2_service.upsert_assessment(
+        assessment = await evaluation_service.upsert_assessment(
             db, current_user.id, items={}, score=0, now=now
         )
 
@@ -271,7 +271,7 @@ async def lister_les_pieces(
     Elle ne fait pas de travail supplementaire : elle rend exactement ce que
     `{base}` place deja dans son champ `pieces`.
     """
-    assessment = await nis2_service.get_user_assessment(db, current_user.id)
+    assessment = await evaluation_service.get_user_assessment(db, current_user.id)
     return await _pieces_deposees(db, assessment)
 
 
@@ -290,7 +290,7 @@ async def retirer_une_piece(
     Le fichier n'est pas efface : il redevient non reference, et la purge des
     orphelins s'en chargera avec son delai de grace habituel.
     """
-    assessment = await nis2_service.get_user_assessment(db, current_user.id)
+    assessment = await evaluation_service.get_user_assessment(db, current_user.id)
     if assessment is None:
         raise HTTPException(status_code=404, detail="Pièce non trouvée")
 
@@ -315,7 +315,7 @@ async def telecharger_une_piece(
     """
     from app.services.storage import get_download_url
 
-    assessment = await nis2_service.get_user_assessment(db, current_user.id)
+    assessment = await evaluation_service.get_user_assessment(db, current_user.id)
     if assessment is None:
         raise HTTPException(status_code=404, detail="Pièce non trouvée")
 
@@ -337,14 +337,14 @@ async def export_assessment_pdf(
     db: AsyncSession = Depends(get_db),
 ):
     """Generate a NIS2 compliance report PDF."""
-    assessment = await nis2_service.get_user_assessment(db, current_user.id)
+    assessment = await evaluation_service.get_user_assessment(db, current_user.id)
     items = json.loads(assessment.items_json) if assessment else {}
     score = compute_assessment_score(
         items, ALL_ITEM_IDS
     )  # recalcul avec la formule corrigée (34 items)
     updated_at = assessment.updated_at if assessment else None
 
-    from app.services.nis2_pdf import generate_nis2_pdf
+    from app.services.nis2.report_pdf import generate_nis2_pdf
 
     pdf_bytes = await asyncio.to_thread(
         generate_nis2_pdf,
@@ -376,7 +376,7 @@ async def export_auditor_pdf(
     l'auditeur voit quel document appuie quel controle, et non seulement la
     reponse declaree.
     """
-    assessment = await nis2_service.get_user_assessment(db, current_user.id)
+    assessment = await evaluation_service.get_user_assessment(db, current_user.id)
     items = json.loads(assessment.items_json) if assessment else {}
     score = compute_assessment_score(items, ALL_ITEM_IDS)
     updated_at = assessment.updated_at if assessment else None
@@ -386,7 +386,7 @@ async def export_auditor_pdf(
     brand = await brand_service.get_brand_profile(db, current_user.id)
     company_name = brand.company_name if brand else ""
 
-    from app.services.nis2_auditor_pdf import generate_nis2_auditor_pdf
+    from app.services.nis2.auditor_pdf import generate_nis2_auditor_pdf
 
     pdf_bytes = await asyncio.to_thread(
         generate_nis2_auditor_pdf,

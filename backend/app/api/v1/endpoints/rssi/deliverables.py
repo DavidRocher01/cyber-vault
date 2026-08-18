@@ -10,7 +10,8 @@ from app.core.database import get_db
 from app.core.deps import get_rssi_consultant
 from app.models.user import User
 from app.schemas.administration import DeliverableUploadOut, DeliverableUrlOut
-from app.services import depot_service, rssi_deliverable_service
+from app.services import depot_service
+from app.services.rssi import deliverable_service
 
 from ._shared import _get_client_or_404
 
@@ -63,7 +64,7 @@ async def list_deliverables(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
-    livrables = await rssi_deliverable_service.list_client_deliverables(db, client_id)
+    livrables = await deliverable_service.list_client_deliverables(db, client_id)
 
     # L'etat d'analyse vit dans le registre, pas sur le livrable : c'est une
     # propriete du FICHIER, et un livrable peut n'en avoir aucun.
@@ -95,7 +96,7 @@ async def create_deliverable(
     if not payload.title.strip():
         raise HTTPException(status_code=422, detail="Le titre du livrable est requis")
 
-    return await rssi_deliverable_service.create_deliverable(
+    return await deliverable_service.create_deliverable(
         db,
         client_id=client_id,
         title=payload.title.strip(),
@@ -118,9 +119,7 @@ async def update_deliverable(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
-    deliverable = await rssi_deliverable_service.get_client_deliverable(
-        db, client_id, deliverable_id
-    )
+    deliverable = await deliverable_service.get_client_deliverable(db, client_id, deliverable_id)
     if not deliverable:
         raise HTTPException(status_code=404, detail="Livrable non trouvé")
 
@@ -135,7 +134,7 @@ async def update_deliverable(
     if payload.delivered_at is not None:
         deliverable.delivered_at = payload.delivered_at
 
-    return await rssi_deliverable_service.save_deliverable(db, deliverable)
+    return await deliverable_service.save_deliverable(db, deliverable)
 
 
 @router.delete("/clients/{client_id}/deliverables/{deliverable_id}", status_code=204)
@@ -146,12 +145,10 @@ async def delete_deliverable(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_client_or_404(client_id, current_user.id, db)
-    deliverable = await rssi_deliverable_service.get_client_deliverable(
-        db, client_id, deliverable_id
-    )
+    deliverable = await deliverable_service.get_client_deliverable(db, client_id, deliverable_id)
     if not deliverable:
         raise HTTPException(status_code=404, detail="Livrable non trouvé")
-    await rssi_deliverable_service.delete_deliverable(db, deliverable)
+    await deliverable_service.delete_deliverable(db, deliverable)
 
 
 @router.post("/clients/{client_id}/deliverables/upload", response_model=DeliverableUploadOut)
@@ -215,9 +212,7 @@ async def download_deliverable_file(
 
     await _get_client_or_404(client_id, current_user.id, db)
 
-    deliverable = await rssi_deliverable_service.get_client_deliverable(
-        db, client_id, deliverable_id
-    )
+    deliverable = await deliverable_service.get_client_deliverable(db, client_id, deliverable_id)
     if not deliverable:
         raise HTTPException(status_code=404, detail="Livrable non trouvé")
     if not deliverable.file_url:

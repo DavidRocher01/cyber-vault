@@ -23,9 +23,9 @@ from unittest.mock import patch
 
 import pytest
 
-import app.services.nis2_auditor_pdf as auditeur
-from app.services.nis2_auditor_pdf import _pieces_retenues, generate_nis2_auditor_pdf
-from app.services.nis2_catalogue import NIS2_CATEGORIES
+import app.services.nis2.auditor_pdf as auditeur
+from app.services.nis2.auditor_pdf import _pieces_retenues, generate_nis2_auditor_pdf
+from app.services.nis2.catalogue import NIS2_CATEGORIES
 
 MAINTENANT = datetime(2026, 8, 7, 12, 0, tzinfo=UTC)
 

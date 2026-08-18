@@ -25,7 +25,8 @@ from sqlalchemy.exc import IntegrityError
 
 from app.models.nis2_assessment import Nis2Assessment
 from app.models.rssi_client import RssiClient
-from app.services import nis2_service, user_service
+from app.services import user_service
+from app.services.nis2 import evaluation_service
 
 MAINTENANT = datetime(2026, 8, 7, 12, 0, tzinfo=UTC)
 
@@ -106,7 +107,7 @@ async def test_un_consultant_detient_un_dossier_par_client(db_session):
     b = await _un_client(db_session, uid, "Client B")
 
     for client in (a, b):
-        await nis2_service.upsert_assessment(
+        await evaluation_service.upsert_assessment(
             db_session,
             uid,
             items={"rssi": "compliant"},
@@ -115,8 +116,8 @@ async def test_un_consultant_detient_un_dossier_par_client(db_session):
             client_id=client.id,
         )
 
-    dossier_a = await nis2_service.get_user_assessment(db_session, uid, a.id)
-    dossier_b = await nis2_service.get_user_assessment(db_session, uid, b.id)
+    dossier_a = await evaluation_service.get_user_assessment(db_session, uid, a.id)
+    dossier_b = await evaluation_service.get_user_assessment(db_session, uid, b.id)
     assert dossier_a is not None and dossier_b is not None
     assert dossier_a.id != dossier_b.id
 
@@ -127,14 +128,14 @@ async def test_l_auto_evaluation_coexiste_avec_les_dossiers_clients(db_session):
     uid = await _un_utilisateur(db_session)
     client = await _un_client(db_session, uid, "Client")
 
-    await nis2_service.upsert_assessment(
+    await evaluation_service.upsert_assessment(
         db_session, uid, items={"rssi": "compliant"}, score=10, now=MAINTENANT
     )
-    await nis2_service.upsert_assessment(
+    await evaluation_service.upsert_assessment(
         db_session, uid, items={"rssi": "na"}, score=90, now=MAINTENANT, client_id=client.id
     )
 
-    mienne = await nis2_service.get_user_assessment(db_session, uid)
+    mienne = await evaluation_service.get_user_assessment(db_session, uid)
     assert mienne is not None and mienne.score == 10
     assert mienne.client_id is None
 
@@ -145,10 +146,10 @@ async def test_l_upsert_ne_confond_pas_les_sujets(db_session):
     uid = await _un_utilisateur(db_session)
     client = await _un_client(db_session, uid, "Client")
 
-    await nis2_service.upsert_assessment(
+    await evaluation_service.upsert_assessment(
         db_session, uid, items={"rssi": "compliant"}, score=10, now=MAINTENANT
     )
-    await nis2_service.upsert_assessment(
+    await evaluation_service.upsert_assessment(
         db_session,
         uid,
         items={"rssi": "non_compliant"},
@@ -157,7 +158,7 @@ async def test_l_upsert_ne_confond_pas_les_sujets(db_session):
         client_id=client.id,
     )
 
-    mienne = await nis2_service.get_user_assessment(db_session, uid)
+    mienne = await evaluation_service.get_user_assessment(db_session, uid)
     assert mienne is not None
     assert mienne.score == 10, "le dossier client a ecrase l'auto-evaluation"
     assert json.loads(mienne.items_json) == {"rssi": "compliant"}
@@ -171,10 +172,10 @@ async def test_sans_client_id_on_retrouve_bien_l_auto_evaluation(db_session):
     seconde auto-evaluation a chaque enregistrement.
     """
     uid = await _un_utilisateur(db_session)
-    premier = await nis2_service.upsert_assessment(
+    premier = await evaluation_service.upsert_assessment(
         db_session, uid, items={"rssi": "compliant"}, score=10, now=MAINTENANT
     )
-    second = await nis2_service.upsert_assessment(
+    second = await evaluation_service.upsert_assessment(
         db_session, uid, items={"rssi": "partial"}, score=20, now=MAINTENANT
     )
     assert premier.id == second.id, "une seconde auto-evaluation a ete creee"
@@ -197,11 +198,11 @@ async def test_l_export_rgpd_ne_casse_pas_pour_un_consultant(db_session):
     a = await _un_client(db_session, uid, "Client A")
     b = await _un_client(db_session, uid, "Client B")
 
-    await nis2_service.upsert_assessment(
+    await evaluation_service.upsert_assessment(
         db_session, uid, items={"rssi": "compliant"}, score=11, now=MAINTENANT
     )
     for client in (a, b):
-        await nis2_service.upsert_assessment(
+        await evaluation_service.upsert_assessment(
             db_session, uid, items={"rssi": "na"}, score=88, now=MAINTENANT, client_id=client.id
         )
 
@@ -224,10 +225,10 @@ async def test_l_export_rgpd_ne_publie_pas_les_donnees_d_un_tiers(db_session):
     user = await db_session.get(User, uid)
     client = await _un_client(db_session, uid, "Client")
 
-    await nis2_service.upsert_assessment(
+    await evaluation_service.upsert_assessment(
         db_session, uid, items={"rssi": "compliant"}, score=11, now=MAINTENANT
     )
-    await nis2_service.upsert_assessment(
+    await evaluation_service.upsert_assessment(
         db_session,
         uid,
         items={"secret_du_client": "non_compliant"},
@@ -246,10 +247,10 @@ async def test_le_tableau_de_bord_montre_le_score_du_consultant(db_session):
     uid = await _un_utilisateur(db_session)
     client = await _un_client(db_session, uid, "Client")
 
-    await nis2_service.upsert_assessment(
+    await evaluation_service.upsert_assessment(
         db_session, uid, items={"rssi": "compliant"}, score=11, now=MAINTENANT
     )
-    await nis2_service.upsert_assessment(
+    await evaluation_service.upsert_assessment(
         db_session, uid, items={"rssi": "na"}, score=88, now=MAINTENANT, client_id=client.id
     )
 
@@ -270,7 +271,7 @@ async def test_supprimer_la_fiche_client_emporte_son_dossier(db_session):
     """
     uid = await _un_utilisateur(db_session)
     client = await _un_client(db_session, uid, "Client")
-    await nis2_service.upsert_assessment(
+    await evaluation_service.upsert_assessment(
         db_session, uid, items={"rssi": "na"}, score=88, now=MAINTENANT, client_id=client.id
     )
 
