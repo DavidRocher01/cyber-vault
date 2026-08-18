@@ -2,7 +2,7 @@
 pdf_brand.py — Shared visual identity for all Rocher Cybersécurité PDF reports.
 
 Constants and helpers live here; the two large cover-page renderers have been
-moved to pdf_covers.py and are re-exported below for backward compatibility.
+moved to pdf_covers.py, et s'importent DEPUIS pdf_covers.
 
 Public API
 ----------
@@ -12,8 +12,6 @@ Constants  : DARK_BG, CARD_BG, BORDER, CYAN, GREEN, YELLOW, RED, ORANGE, GRAY, T
 Functions  : score_color(pct)
              cat_score(cat_items, items)
              draw_page(canvas, doc, doc_type, title, subtitle)
-             draw_compliance_cover(...)  — re-exported from pdf_covers
-             draw_url_scan_cover(...)    — re-exported from pdf_covers
              section_rule(width, doc_type)
              get_styles(doc_type)
 """
@@ -429,14 +427,14 @@ def draw_page(canvas, doc, doc_type: str, title: str, subtitle: str = "") -> Non
 
 
 # ---------------------------------------------------------------------------
-# Cover-page renderers — moved to pdf_covers.py, re-exported for compat
+# Les couvertures vivent dans `pdf_covers` et s'importent DEPUIS LA-BAS.
 # ---------------------------------------------------------------------------
-# These imports must come AFTER all constants above are defined (pdf_covers
-# imports from this module).
-from app.services.pdf_covers import (  # noqa: E402, F401
-    draw_compliance_cover,
-    draw_url_scan_cover,
-)
+# Ce module les re-exportait par compatibilite, ce qui refermait un cycle :
+# pdf_covers importe les constantes d'ici, et on reimportait ses fonctions en
+# bas de fichier. Ca ne tenait que par l'ordre d'entree — `import pdf_covers`
+# en premier levait `ImportError: partially initialized module`, mesure le
+# 2026-08-18. La dependance ne va plus que dans un sens.
+# `tests/test_cycles_imports.py` empeche la reapparition.
 
 # ---------------------------------------------------------------------------
 # Section rule helper

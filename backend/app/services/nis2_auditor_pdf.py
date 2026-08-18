@@ -52,9 +52,11 @@ from app.services.pdf_brand import (
     TEXTE,
     TEXTE_BANDEAU,
     YELLOW,
-    draw_compliance_cover,
     get_styles,
     section_rule,
+)
+from app.services.pdf_covers import (
+    draw_compliance_cover,
 )
 
 _PRIORITY = {

@@ -48,9 +48,11 @@ from app.services.pdf_brand import (
     TEXTE,
     YELLOW,
     cat_score,
-    draw_compliance_cover,
     draw_page,
     score_color,
+)
+from app.services.pdf_covers import (
+    draw_compliance_cover,
 )
 
 # Alias vers la palette. Etaient `ROW_A = CARD_BG` (evalue a l'import, donc
