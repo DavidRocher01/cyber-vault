@@ -1388,17 +1388,17 @@ class TestNormalizeDomain:
     """_normalize_domain valide le format sans résolution réseau (Lot 0 refonte)."""
 
     def test_accepts_bare_domain(self):
-        from app.api.v1.endpoints.phishing import _normalize_domain
+        from app.api.v1.endpoints.phishing._shared import _normalize_domain
 
         assert _normalize_domain("connexion-entreprise.com") == "connexion-entreprise.com"
 
     def test_strips_https_prefix(self):
-        from app.api.v1.endpoints.phishing import _normalize_domain
+        from app.api.v1.endpoints.phishing._shared import _normalize_domain
 
         assert _normalize_domain("https://acme.fr") == "acme.fr"
 
     def test_none_and_empty_pass_through(self):
-        from app.api.v1.endpoints.phishing import _normalize_domain
+        from app.api.v1.endpoints.phishing._shared import _normalize_domain
 
         assert _normalize_domain(None) is None
         assert _normalize_domain("   ") is None
@@ -1418,7 +1418,7 @@ class TestNormalizeDomain:
         ],
     )
     def test_rejects_dangerous_values(self, bad):
-        from app.api.v1.endpoints.phishing import _normalize_domain
+        from app.api.v1.endpoints.phishing._shared import _normalize_domain
 
         with pytest.raises(ValueError):
             _normalize_domain(bad)

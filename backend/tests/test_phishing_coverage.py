@@ -449,7 +449,7 @@ class TestDownloadPdf:
 
         # Mock PDF generation so the report library isn't exercised here.
         with mock.patch(
-            "app.api.v1.endpoints.phishing.generate_phishing_report",
+            "app.api.v1.endpoints.phishing.report.generate_phishing_report",
             return_value=b"%PDF-fake",
         ) as m:
             r = await auth_client.get(f"{BASE}/campaigns/{cid}/pdf")
@@ -468,7 +468,7 @@ class TestDownloadPdf:
         await db_session.commit()
 
         with mock.patch(
-            "app.api.v1.endpoints.phishing.generate_phishing_report",
+            "app.api.v1.endpoints.phishing.report.generate_phishing_report",
             return_value=b"%PDF-fake",
         ):
             r = await auth_client.get(f"{BASE}/campaigns/{cid}/pdf")
