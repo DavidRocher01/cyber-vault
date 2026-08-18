@@ -94,8 +94,13 @@ test.describe('Recette prod — parcours critiques UI', () => {
         await page.goto(chemin, { waitUntil: 'domcontentloaded' });
         // On ne doit PAS avoir ete renvoye vers /auth : le composant s'est
         // charge et la garde a laisse passer.
+        //
+        // Sauf pour les ecrans d'authentification eux-memes, entres dans la
+        // liste le 2026-08-17 : y atterrir est leur comportement normal. La
+        // regle telle qu'ecrite les aurait tous declares en defaut — la recette
+        // aurait rougi sur du code sain, et bloque les mises en production.
         const url = new URL(page.url());
-        if (url.pathname.startsWith('/auth')) {
+        if (!chemin.startsWith('/auth') && url.pathname.startsWith('/auth')) {
           defauts.push(`${chemin} → renvoye vers ${url.pathname}`);
         }
         // Un titre vide trahit un composant qui n'a jamais fini de charger.

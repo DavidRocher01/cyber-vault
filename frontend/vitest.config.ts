@@ -26,15 +26,28 @@ export default defineConfig({
         // ~490 lignes de logique three.js/animation). Testé visuellement, pas en unit.
         'src/app/shared/globe/**',
       ],
-      // Ratchet : ces planchers ne doivent que MONTER. Relevés le 2026-07-22
-      // après la vague de tests features/ (18 composants) + passe ciblée
-      // auth/vault. Mesuré local Win : 64.5/75.0/68.4/64.0 ; planchers posés
-      // ~1 pt en dessous pour absorber l'écart CI-Linux (~-0.15%).
+      // Ratchet : ces planchers ne doivent que MONTER.
+      //
+      // Relevés le 2026-08-17. Les précédents (63/63/67/74) dataient du
+      // 2026-07-22 et la couverture réelle avait pris ~4,5 points depuis : le
+      // cliquet ne cliquetait plus, on pouvait supprimer quatre points de tests
+      // sans que rien ne bronche. Mesuré local Win après les specs
+      // cookie-banner / nav-buttons / maintenance-banner / verify-certificate.
+      //
+      // MESURÉ DEUX FOIS, À CODE IDENTIQUE, ET LES DEUX RELEVÉS DIFFÈRENT :
+      //   67.99 / 67.77 / 71.46 / 78.71   (statements / lines / functions / branches)
+      //   68.84 / 68.63 / 72.49 / 79.75
+      // Presque un point d'écart, dénominateurs identiques — le fournisseur v8
+      // ne recompte pas tout à l'identique d'une exécution à l'autre.
+      //
+      // Les planchers sont donc calés ~1 pt SOUS LE RELEVÉ LE PLUS BAS, pas sous
+      // la meilleure mesure : un seuil qui passe une fois sur deux n'apprend
+      // qu'une chose, ignorer les échecs. S'y ajoute l'écart CI-Linux (~-0.15%).
       thresholds: {
-        statements: 63,
-        lines: 63,
-        functions: 67,
-        branches: 74,
+        statements: 67,
+        lines: 67,
+        functions: 70,
+        branches: 78,
       },
     },
   },

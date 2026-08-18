@@ -94,10 +94,12 @@ async def _run_data_retention_purge() -> None:
 
 
 async def _run_rafraichir_analyses() -> None:
-    """Relit la balise GuardDuty des fichiers encore en analyse (toutes les 2 min).
+    """Relit la balise GuardDuty des fichiers encore en analyse (toutes les 30 s).
 
-    Les scans prennent 20 a 45 secondes (mesure du 2026-08-05). Deux minutes
-    laissent donc la marge sans faire attendre.
+    Les scans prennent 20 a 45 secondes (mesure du 2026-08-05). La cadence est
+    passee de 2 minutes a 30 secondes le 2026-08-07 : a 2 minutes, un fichier
+    depose juste apres un passage attendait jusqu'a 2 min 30. Le raisonnement
+    complet est sur l'enregistrement du job, dans `core.py`.
 
     Le cout est borne par construction : la requete ne rend que les fichiers
     `en_analyse`, donc aucun fichier en attente = aucun appel S3. Cf.
