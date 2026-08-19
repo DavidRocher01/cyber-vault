@@ -24,10 +24,6 @@ import { describe, it, expect } from 'vitest';
  */
 
 const RACINE = resolve(__dirname, '..');
-const ROUTES = readFileSync(
-  resolve(RACINE, 'src/app/features/cyberscan/cyberscan.routes.ts'),
-  'utf-8'
-);
 const ROBOTS = readFileSync(resolve(RACINE, 'src/robots.txt'), 'utf-8');
 
 /**
@@ -44,14 +40,39 @@ const SITEMAP = readFileSync(
   'utf-8'
 );
 
+/**
+ * LES ROUTES VIVENT DANS PLUSIEURS FICHIERS, PAS UN SEUL. Cette liste ne lisait
+ * que `cyberscan.routes.ts`, en le prenant pour l'application : il l'est
+ * presque — 107 des 123 fichiers de `features/` — mais les pages
+ * d'authentification et l'entrée du portail apprenant sont montées ailleurs.
+ * Elles échappaient donc à la vérification, et rien n'obligeait à décider de
+ * leur sort. Même angle mort que la couverture de recette et que les modes de
+ * rendu, corrigé le même jour (2026-08-18).
+ *
+ * `vault.routes.ts` n'est délibérément PAS lu : sa route est gardée au point de
+ * montage, dans `app.routes.ts`, et non dans son propre fichier — la lire ici la
+ * ferait passer pour publique.
+ */
+const SOURCES: ReadonlyArray<{ fichier: string; prefixe: string }> = [
+  { fichier: 'src/app/app.routes.ts', prefixe: '' },
+  { fichier: 'src/app/features/auth/auth.routes.ts', prefixe: '/auth' },
+  { fichier: 'src/app/features/cyberscan/cyberscan.routes.ts', prefixe: '' },
+];
+
 /** Pages publiques : chargées à la demande, sans garde, sans paramètre. */
 function pagesPubliques(): string[] {
   const pages: string[] = [];
-  for (const bloc of ROUTES.split(/\n {2}\{/)) {
-    const chemin = bloc.match(/path: '([^']*)'/);
-    if (!chemin || !bloc.includes('loadComponent')) continue;
-    if (chemin[1].includes(':') || bloc.includes('canActivate')) continue;
-    pages.push(`/${chemin[1]}`);
+  for (const { fichier, prefixe } of SOURCES) {
+    const source = readFileSync(resolve(RACINE, fichier), 'utf-8');
+    for (const bloc of source.split(/\n {2}\{/)) {
+      const chemin = bloc.match(/path: '([^']*)'/);
+      if (!chemin || !bloc.includes('loadComponent')) continue;
+      const brut = chemin[1];
+      if (brut.includes(':') || bloc.includes('canActivate')) continue;
+      // `**` n'est pas une page : c'est le repli « introuvable ».
+      if (brut === '**') continue;
+      pages.push(brut === '' ? prefixe || '/' : `${prefixe}/${brut}`);
+    }
   }
   return pages;
 }
@@ -85,6 +106,18 @@ const HORS_SITEMAP: Record<string, string> = {
   '/newsletter/confirm': "page technique, atteinte par un lien d'e-mail avec jeton",
   '/newsletter/unsubscribe': "page technique, atteinte par un lien d'e-mail avec jeton",
   '/reserver/annuler': 'page technique, atteinte depuis une confirmation de réservation',
+
+  // Pages publiques montées hors de `cyberscan.routes.ts`. Elles étaient
+  // simplement invisibles à ce test jusqu'au 2026-08-18 : leur absence du
+  // sitemap n'était pas une décision, c'était un angle mort.
+  '/auth/login':
+    'formulaire de connexion : aucune valeur de référencement, et déjà interdit par `Disallow: /auth/` dans robots.txt',
+  '/auth/register':
+    "formulaire d'inscription : même raison ; l'entrée commerciale est la vitrine, pas ce formulaire",
+  '/auth/forgot-password': 'page technique de récupération de compte',
+  '/auth/reset-password': "page technique, atteinte par un lien d'e-mail avec jeton",
+  '/awareness/login':
+    "entrée du portail apprenant, atteinte par un lien magique envoyé par e-mail : rien à y indexer, et l'annoncer exposerait le point d'entrée",
 };
 
 describe('robots.txt et sitemap.xml suivent l’application', () => {
@@ -151,13 +184,21 @@ describe('robots.txt et sitemap.xml suivent l’application', () => {
  * mêmes segments que le site public (`blog`, `users`). Une première mesure les
  * confondait et attribuait à `/blog` le titre « Admin — Blog ».
  */
-function blocsPublics(): { chemin: string; bloc: string }[] {
-  const blocs: { chemin: string; bloc: string }[] = [];
-  for (const bloc of ROUTES.split(/\n {2}\{/)) {
-    const chemin = bloc.match(/path: '([^']*)'/);
-    if (!chemin || !bloc.includes('loadComponent')) continue;
-    if (chemin[1].includes(':') || bloc.includes('canActivate')) continue;
-    blocs.push({ chemin: `/${chemin[1]}`, bloc });
+function blocsPublics(): { chemin: string; bloc: string; dossier: string }[] {
+  const blocs: { chemin: string; bloc: string; dossier: string }[] = [];
+  for (const { fichier, prefixe } of SOURCES) {
+    const source = readFileSync(resolve(RACINE, fichier), 'utf-8');
+    // Les imports paresseux d'un fichier de routes sont relatifs A CE FICHIER :
+    // on garde donc son dossier pour les resoudre plus bas.
+    const dossier = resolve(RACINE, fichier, '..');
+
+    for (const bloc of source.split(/\n {2}\{/)) {
+      const chemin = bloc.match(/path: '([^']*)'/);
+      if (!chemin || !bloc.includes('loadComponent')) continue;
+      const brut = chemin[1];
+      if (brut.includes(':') || bloc.includes('canActivate') || brut === '**') continue;
+      blocs.push({ chemin: brut === '' ? prefixe || '/' : `${prefixe}/${brut}`, bloc, dossier });
+    }
   }
   return blocs;
 }
@@ -179,10 +220,12 @@ function descriptionDeclaree(bloc: string): string | null {
 
 /** Le composant de cette route pose-t-il lui-même une description ?
  *  Quinze pages le font encore ainsi — c'est valable, seulement moins visible. */
-function composantPoseUneDescription(bloc: string): boolean {
+function composantPoseUneDescription(bloc: string, dossier: string): boolean {
   const imp = bloc.match(/import\('([^']+)'\)/)?.[1];
   if (!imp) return false;
-  const fichier = resolve(RACINE, 'src/app/features/cyberscan', `${imp.replace(/^\.\//, '')}.ts`);
+  // Le dossier vient du fichier de routes qui porte ce bloc : un chemin en dur
+  // vers `features/cyberscan` ne resoudrait rien pour les autres arbres.
+  const fichier = resolve(dossier, `${imp.replace(/^\.\//, '')}.ts`);
   if (!existsSync(fichier)) return false;
   return readFileSync(fichier, 'utf-8').includes("name: 'description'");
 }
@@ -210,7 +253,7 @@ describe('Chaque page annoncée aux moteurs porte son titre et sa description', 
 
   it('toute page annoncée porte une description', () => {
     const sans = PAGES()
-      .filter(b => !descriptionDeclaree(b.bloc) && !composantPoseUneDescription(b.bloc))
+      .filter(b => !descriptionDeclaree(b.bloc) && !composantPoseUneDescription(b.bloc, b.dossier))
       .map(b => b.chemin);
     expect(sans, `pages du sitemap sans description : ${sans.join(', ')}`).toHaveLength(0);
   });
