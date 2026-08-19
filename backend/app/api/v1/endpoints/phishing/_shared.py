@@ -13,7 +13,7 @@ from app.models.phishing import (
     PhishingCampaign,
     PhishingTarget,
 )
-from app.services import phishing_service
+from app.services.phishing import campaigns, sending
 
 # Plafond de lecture, aligne sur le dossier Dark Web (remediation S4).
 _MAX_CSV_BYTES = 2 * 1024 * 1024
@@ -161,8 +161,8 @@ def _require_status(
 def _sending_domain(c: PhishingCampaign) -> str:
     """Host depuis lequel partent les liens de la campagne (transparence UI).
     Sous-domaine maîtrisé par défaut ; look-alike si un jour renseigné."""
-    base = phishing_service._tracking_base(c)  # ex: https://rochercybersecurite.com/api/v1
-    return base.split("://", 1)[-1].split("/", 1)[0]
+    racine = sending._tracking_base(c)  # ex: https://rochercybersecurite.com/api/v1
+    return racine.split("://", 1)[-1].split("/", 1)[0]
 
 
 def _serialize_campaign(c: PhishingCampaign) -> dict:
@@ -214,7 +214,7 @@ def _serialize_target(t: PhishingTarget) -> dict:
 
 
 async def _get_owned(campaign_id: int, user_id: int, db: AsyncSession) -> PhishingCampaign:
-    campaign = await phishing_service.get_campaign(campaign_id, user_id, db)
+    campaign = await campaigns.get_campaign(campaign_id, user_id, db)
     if not campaign:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Campagne introuvable")
     return campaign

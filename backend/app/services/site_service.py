@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.scan import Scan
 from app.models.site import Site
-from app.services import phishing_service
+from app.services.phishing import domains
 
 
 async def get_owned_site(db: AsyncSession, site_id: int, user_id: int) -> Site | None:
@@ -86,14 +86,14 @@ async def get_latest_completed_scan(db: AsyncSession, site_id: int) -> Scan | No
 
 async def request_domain_verification(db: AsyncSession, user_id: int, domain: str):
     """Emet/renouvelle le token de verification DNS pour un domaine, puis commit."""
-    record = await phishing_service.request_domain_verification(user_id, domain, db)
+    record = await domains.request_domain_verification(user_id, domain, db)
     await db.commit()
     return record
 
 
 async def confirm_domain_verification(db: AsyncSession, record) -> bool:
     """Verifie le TXT DNS ; commit si le domaine devient verifie."""
-    verified = await phishing_service.check_domain_verification(record, db)
+    verified = await domains.check_domain_verification(record, db)
     if verified:
         await db.commit()
     return verified

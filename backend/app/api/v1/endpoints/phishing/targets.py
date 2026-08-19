@@ -10,7 +10,7 @@ from app.schemas.phishing import (
     PhishingTargetOut,
     TargetsUploadOut,
 )
-from app.services import phishing_service
+from app.services.phishing import base, campaigns
 from app.services.storage import FichierTropVolumineuxError, lire_borne
 
 from ._shared import (
@@ -65,7 +65,7 @@ async def upload_targets(
             detail=f"Le plan {campaign.plan_tier} est limité à {max_targets} cibles.",
         )
 
-    result = await phishing_service.upload_targets_csv(campaign, csv_content, db, replace=replace)
+    result = await campaigns.upload_targets_csv(campaign, csv_content, db, replace=replace)
 
     if result["total"] > max_targets:
         raise HTTPException(  # non commité -> le flush est annulé par get_db
@@ -79,7 +79,7 @@ async def upload_targets(
             detail="Aucune adresse email valide trouvée dans le fichier.",
         )
 
-    await phishing_service.commit(db)
+    await base.commit(db)
     return {
         "targets_added": result["added"],
         "targets_skipped": result["skipped"],
@@ -94,7 +94,7 @@ async def list_targets(
     db: AsyncSession = Depends(get_db),
 ):
     await _get_owned(campaign_id, current_user.id, db)
-    targets = await phishing_service.get_targets(campaign_id, db)
+    targets = await campaigns.get_targets(campaign_id, db)
     return [_serialize_target(t) for t in targets]
 
 
@@ -117,7 +117,7 @@ async def add_single_target(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Le plan {campaign.plan_tier} est limité à {max_targets} cibles.",
         )
-    target = await phishing_service.add_target(
+    target = await campaigns.add_target(
         campaign,
         email=str(payload.email),
         first_name=payload.first_name or "",
@@ -130,7 +130,7 @@ async def add_single_target(
             status_code=status.HTTP_409_CONFLICT,
             detail="Cette adresse email est déjà une cible de la campagne.",
         )
-    await phishing_service.commit(db)
+    await base.commit(db)
     return _serialize_target(target)
 
 
@@ -145,7 +145,7 @@ async def delete_single_target(
 ):
     campaign = await _get_owned(campaign_id, current_user.id, db)
     _require_status(campaign, _EDITABLE_TARGET_STATUSES, _TARGETS_LOCKED_DETAIL)
-    ok = await phishing_service.delete_target(campaign, target_id, db)
+    ok = await campaigns.delete_target(campaign, target_id, db)
     if not ok:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cible introuvable.")
-    await phishing_service.commit(db)
+    await base.commit(db)

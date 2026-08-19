@@ -18,7 +18,7 @@ from app.models.phishing import (
     PhishingCampaign,
     PhishingDomainVerification,
 )
-from app.services import phishing_service
+from app.services.phishing import launch, sending
 from tests.conftest import create_plan_and_subscription, register_and_login
 
 
@@ -357,7 +357,7 @@ class TestLaunchValidations:
         async def _noop_batch():
             return None
 
-        with mock.patch.object(phishing_service, "send_pending_batch", side_effect=_noop_batch):
+        with mock.patch.object(sending, "send_pending_batch", side_effect=_noop_batch):
             r = await auth_client.post(f"{BASE}/campaigns/{cid}/launch")
 
         assert r.status_code == 202
@@ -384,7 +384,7 @@ class TestLaunchValidations:
         async def _raise_value_error(campaign, db):
             raise ValueError("boom-validation")
 
-        with mock.patch.object(phishing_service, "launch_campaign", side_effect=_raise_value_error):
+        with mock.patch.object(launch, "launch_campaign", side_effect=_raise_value_error):
             r = await auth_client.post(f"{BASE}/campaigns/{cid}/launch")
         assert r.status_code == 400
         assert "boom-validation" in r.json()["detail"]
@@ -404,7 +404,7 @@ class TestLaunchValidations:
         async def _raise_unexpected(campaign, db):
             raise KeyError("unexpected internal")
 
-        with mock.patch.object(phishing_service, "launch_campaign", side_effect=_raise_unexpected):
+        with mock.patch.object(launch, "launch_campaign", side_effect=_raise_unexpected):
             r = await auth_client.post(f"{BASE}/campaigns/{cid}/launch")
         assert r.status_code == 502
         # Raw exception detail must not leak

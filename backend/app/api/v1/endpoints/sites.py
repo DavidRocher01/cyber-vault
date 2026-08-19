@@ -16,7 +16,8 @@ from app.schemas.cyberscan import (
     SiteOut,
     SubdomainResultOut,
 )
-from app.services import phishing_service, site_service
+from app.services import site_service
+from app.services.phishing import domains
 from app.services.rssi import client_service
 from app.services.subscription_service import get_effective_max_sites
 
@@ -112,9 +113,7 @@ async def get_site_domain_status(
 ):
     site = await _get_owned_site(site_id, current_user.id, db)
     domain = _site_domain(site)
-    verified = (
-        await phishing_service.is_domain_verified(current_user.id, domain, db) if domain else False
-    )
+    verified = await domains.is_domain_verified(current_user.id, domain, db) if domain else False
     return {"domain": domain, "verified": verified}
 
 
@@ -156,7 +155,7 @@ async def check_site_domain_verify(
     """Vérifie le TXT DNS ; si présent, le domaine est marqué vérifié (débloque l'intrusif)."""
     site = await _get_owned_site(site_id, current_user.id, db)
     domain = _site_domain(site)
-    record = await phishing_service.get_domain_verification(current_user.id, domain, db)
+    record = await domains.get_domain_verification(current_user.id, domain, db)
     if not record:
         raise HTTPException(
             status_code=404,

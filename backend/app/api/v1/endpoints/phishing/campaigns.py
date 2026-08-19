@@ -11,7 +11,8 @@ from app.schemas.phishing import (
     PhishingCampaignDetailOut,
     PhishingCampaignOut,
 )
-from app.services import phishing_service
+from app.services.phishing import base, domains
+from app.services.phishing import campaigns as campaign_service
 
 from ._shared import (
     _CANCELLABLE_STATUSES,
@@ -66,12 +67,12 @@ async def list_campaigns(
                 detail="Accès réservé aux consultants RSSI.",
             )
         await _get_client_or_404(rssi_client_id, current_user.id, db)
-        campaigns = await phishing_service.get_campaigns(
+        campaigns = await campaign_service.get_campaigns(
             current_user.id, db, rssi_client_id=rssi_client_id
         )
     else:
         # Mode entreprise directe : campagnes sans client rattaché.
-        campaigns = await phishing_service.get_campaigns(current_user.id, db, company_only=True)
+        campaigns = await campaign_service.get_campaigns(current_user.id, db, company_only=True)
     return [_serialize_campaign(c) for c in campaigns]
 
 
@@ -82,10 +83,10 @@ async def create_campaign(
     db: AsyncSession = Depends(get_db),
 ):
     rssi_client_id = await _resolve_client_attribution(payload.rssi_client_id, current_user, db)
-    campaign = await phishing_service.create_campaign(
+    campaign = await campaign_service.create_campaign(
         current_user.id, payload.name, payload.plan_tier, db, rssi_client_id=rssi_client_id
     )
-    await phishing_service.commit(db)
+    await base.commit(db)
     return _serialize_campaign(campaign)
 
 
@@ -96,7 +97,7 @@ async def get_campaign(
     db: AsyncSession = Depends(get_db),
 ):
     campaign = await _get_owned(campaign_id, current_user.id, db)
-    targets = await phishing_service.get_targets(campaign_id, db)
+    targets = await campaign_service.get_targets(campaign_id, db)
     return {
         **_serialize_campaign(campaign),
         "targets": [_serialize_target(t) for t in targets],
@@ -121,11 +122,11 @@ async def update_campaign(
     # Check domain verification if domain changed
     domain_verified: bool | None = None
     if payload.domain and payload.domain != campaign.domain:
-        domain_verified = await phishing_service.is_domain_verified(
+        domain_verified = await domains.is_domain_verified(
             current_user.id, payload.domain.lower().strip(), db
         )
 
-    updated = await phishing_service.update_campaign(
+    updated = await campaign_service.update_campaign(
         campaign,
         name=payload.name,
         domain=payload.domain,
@@ -139,7 +140,7 @@ async def update_campaign(
         batch_size=payload.batch_size,
         db=db,
     )
-    await phishing_service.commit(db)
+    await base.commit(db)
     return _serialize_campaign(updated)
 
 
@@ -155,8 +156,8 @@ async def cancel_campaign(
         _CANCELLABLE_STATUSES,
         "Seule une campagne en préparation ou en cours d'envoi peut être annulée.",
     )
-    updated = await phishing_service.cancel_campaign(campaign, db)
-    await phishing_service.commit(db)
+    updated = await campaign_service.cancel_campaign(campaign, db)
+    await base.commit(db)
     return _serialize_campaign(updated)
 
 
@@ -168,5 +169,5 @@ async def delete_campaign(
 ):
     """Supprime définitivement une campagne du propriétaire (cibles en cascade)."""
     campaign = await _get_owned(campaign_id, current_user.id, db)
-    await phishing_service.delete_campaign(campaign, db)
-    await phishing_service.commit(db)
+    await campaign_service.delete_campaign(campaign, db)
+    await base.commit(db)

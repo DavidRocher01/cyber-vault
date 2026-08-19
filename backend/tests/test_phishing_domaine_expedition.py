@@ -19,8 +19,8 @@ aussi. Cf. `docs/PHISHING_REDESIGN.md` 5c.
 
 import pytest
 
-from app.services import phishing_service
-from app.services.phishing_service import DomaineExpeditionInvalideError
+from app.services.phishing import sending
+from app.services.phishing.sending import DomaineExpeditionInvalideError
 
 TRANSACTIONNEL = "Marque <no-reply@exemple-transactionnel.com>"
 SIMULATION = "no-reply@exemple-simulation.com"
@@ -29,8 +29,8 @@ SIMULATION = "no-reply@exemple-simulation.com"
 @pytest.fixture
 def reglages(monkeypatch):
     """Pose un couple coherent, que chaque test degrade a sa facon."""
-    monkeypatch.setattr(phishing_service.settings, "RESEND_FROM", TRANSACTIONNEL)
-    monkeypatch.setattr(phishing_service.settings, "PHISHING_FROM_EMAIL", SIMULATION)
+    monkeypatch.setattr(sending.settings, "RESEND_FROM", TRANSACTIONNEL)
+    monkeypatch.setattr(sending.settings, "PHISHING_FROM_EMAIL", SIMULATION)
     return monkeypatch
 
 
@@ -38,32 +38,30 @@ def reglages(monkeypatch):
 
 
 def test_domaines_distincts_acceptes(reglages):
-    phishing_service.verifier_domaine_expedition()  # ne leve pas
+    sending.verifier_domaine_expedition()  # ne leve pas
 
 
 def test_meme_domaine_refuse(reglages):
     """Le cas frontal : quelqu'un pointe les simulations sur le domaine principal."""
-    reglages.setattr(
-        phishing_service.settings, "PHISHING_FROM_EMAIL", "no-reply@exemple-transactionnel.com"
-    )
+    reglages.setattr(sending.settings, "PHISHING_FROM_EMAIL", "no-reply@exemple-transactionnel.com")
     with pytest.raises(DomaineExpeditionInvalideError, match="transactionnel"):
-        phishing_service.verifier_domaine_expedition()
+        sending.verifier_domaine_expedition()
 
 
 def test_valeur_absente_refuse(reglages):
     """LE cas qui compte : vide => repli silencieux sur le transactionnel."""
-    reglages.setattr(phishing_service.settings, "PHISHING_FROM_EMAIL", "")
+    reglages.setattr(sending.settings, "PHISHING_FROM_EMAIL", "")
     with pytest.raises(DomaineExpeditionInvalideError):
-        phishing_service.verifier_domaine_expedition()
+        sending.verifier_domaine_expedition()
 
 
 def test_casse_et_espaces_ne_contournent_pas(reglages):
     """Une comparaison naive laisserait passer une majuscule ou un espace."""
     reglages.setattr(
-        phishing_service.settings, "PHISHING_FROM_EMAIL", " no-reply@EXEMPLE-Transactionnel.COM "
+        sending.settings, "PHISHING_FROM_EMAIL", " no-reply@EXEMPLE-Transactionnel.COM "
     )
     with pytest.raises(DomaineExpeditionInvalideError):
-        phishing_service.verifier_domaine_expedition()
+        sending.verifier_domaine_expedition()
 
 
 def test_sous_domaine_accepte(reglages):
@@ -73,9 +71,9 @@ def test_sous_domaine_accepte(reglages):
     un choix d'isolation plus faible — c'est une decision, pas une erreur.
     """
     reglages.setattr(
-        phishing_service.settings, "PHISHING_FROM_EMAIL", "no-reply@sim.exemple-transactionnel.com"
+        sending.settings, "PHISHING_FROM_EMAIL", "no-reply@sim.exemple-transactionnel.com"
     )
-    phishing_service.verifier_domaine_expedition()  # ne leve pas
+    sending.verifier_domaine_expedition()  # ne leve pas
 
 
 def test_aucun_nom_de_domaine_en_dur_dans_la_garde():
@@ -86,7 +84,7 @@ def test_aucun_nom_de_domaine_en_dur_dans_la_garde():
     """
     import inspect
 
-    source = inspect.getsource(phishing_service.verifier_domaine_expedition)
+    source = inspect.getsource(sending.verifier_domaine_expedition)
     assert "rochercybersecurite" not in source
     assert "cyberscanapp" not in source
 
@@ -100,11 +98,9 @@ def test_envoi_refuse_si_domaines_confondus(reglages):
     Une campagne lancee AVANT l'existence de la garde, ou une configuration
     changee depuis, doit tout de meme etre arretee.
     """
-    reglages.setattr(
-        phishing_service.settings, "PHISHING_FROM_EMAIL", "no-reply@exemple-transactionnel.com"
-    )
+    reglages.setattr(sending.settings, "PHISHING_FROM_EMAIL", "no-reply@exemple-transactionnel.com")
     with pytest.raises(DomaineExpeditionInvalideError):
-        phishing_service._send_phishing_email(
+        sending._send_phishing_email(
             "cible@exemple.com", "Nom <no-reply@x.com>", "Sujet", "<p>x</p>", "x"
         )
 
@@ -118,7 +114,7 @@ def test_l_adresse_reste_bien_formee(reglages):
     """
     from email.utils import parseaddr
 
-    adresse = phishing_service._adresse_expediteur()
+    adresse = sending._adresse_expediteur()
     assert "<" not in adresse and ">" not in adresse
     nom, extraite = parseaddr(f"Support Microsoft 365 <{adresse}>")
     assert nom == "Support Microsoft 365"

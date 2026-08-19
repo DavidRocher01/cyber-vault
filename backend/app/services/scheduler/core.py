@@ -41,7 +41,7 @@ def start_scheduler() -> None:
     """Start the APScheduler with a nightly job at 02:00 UTC and bi-weekly newsletter."""
     from apscheduler.triggers.interval import IntervalTrigger
 
-    from app.services.phishing_service import send_pending_batch
+    from app.services.phishing.sending import send_pending_batch
     from app.services.scheduler.awareness import _run_awareness_at_risk_detection
     from app.services.scheduler.darkweb import _run_darkweb_monitoring
     from app.services.scheduler.monthly_digest import _send_monthly_digest_job

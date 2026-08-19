@@ -12,7 +12,7 @@ from app.models.user import User
 from app.schemas.phishing import (
     CampaignLaunchOut,
 )
-from app.services import phishing_service
+from app.services.phishing import base, launch, sending
 
 from ._shared import (
     _EDITABLE_CAMPAIGN_STATUSES,
@@ -61,8 +61,8 @@ async def launch_campaign(
     # Le domaine d'expédition est vérifié ICI, avant le premier envoi : une fois
     # la campagne lancée, le batch part sans repasser par un contrôle humain.
     try:
-        phishing_service.verifier_domaine_expedition()
-    except phishing_service.DomaineExpeditionInvalideError as exc:
+        sending.verifier_domaine_expedition()
+    except sending.DomaineExpeditionInvalideError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
 
     # Gating par plan AU LANCEMENT (l'envoi réel) et seulement en mode entreprise
@@ -77,7 +77,7 @@ async def launch_campaign(
             )
 
     try:
-        await phishing_service.launch_campaign(campaign, db)
+        await launch.launch_campaign(campaign, db)
     except (ValueError, RuntimeError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
     except Exception:
@@ -88,10 +88,10 @@ async def launch_campaign(
             detail="Erreur lors du lancement de la campagne.",
         )
 
-    await phishing_service.commit(db)
+    await base.commit(db)
     # Trigger first batch immediately — APScheduler fires every 15 min but users expect prompt starts.
     # On garde une référence forte à la tâche (sinon GC possible avant la fin).
-    task = asyncio.create_task(phishing_service.send_pending_batch())
+    task = asyncio.create_task(sending.send_pending_batch())
     _background_tasks.add(task)
     task.add_done_callback(_background_tasks.discard)
     return {"status": "sending", "campaign_id": campaign_id}

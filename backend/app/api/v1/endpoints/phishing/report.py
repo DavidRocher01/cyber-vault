@@ -11,7 +11,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.limiter import limiter
 from app.models.user import User
-from app.services import phishing_service
+from app.services.phishing import campaigns
 from app.services.phishing_report_pdf import generate_phishing_report
 
 from ._shared import (
@@ -39,7 +39,7 @@ async def download_report_pdf(
         "Le rapport PDF n'est disponible que pour les campagnes actives ou terminées.",
     )
 
-    targets = await phishing_service.get_targets(campaign_id, db)
+    targets = await campaigns.get_targets(campaign_id, db)
 
     # Rendu ReportLab déporté en thread : ne bloque plus l'event loop (une
     # campagne de 500 cibles gelait le worker pendant tout le rendu).

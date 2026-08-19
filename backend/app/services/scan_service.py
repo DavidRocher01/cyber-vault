@@ -316,7 +316,7 @@ async def _active_scan_allowed(user_id: int, url: str, db: AsyncSession) -> bool
     Couvre l'hôte exact et l'apex sans préfixe 'www.' (vérifier l'apex vaut pour www)."""
     from urllib.parse import urlparse
 
-    from app.services import phishing_service
+    from app.services.phishing import domains
 
     host = (urlparse(url).hostname or "").lower()
     if not host:
@@ -325,7 +325,7 @@ async def _active_scan_allowed(user_id: int, url: str, db: AsyncSession) -> bool
     if host.startswith("www."):
         candidates.add(host[4:])
     for domain in candidates:
-        if await phishing_service.is_domain_verified(user_id, domain, db):
+        if await domains.is_domain_verified(user_id, domain, db):
             return True
     return False
 

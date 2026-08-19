@@ -10,8 +10,8 @@ from app.schemas.cyberscan import DomainStatusOut, DomainVerifyOut
 from app.schemas.phishing import (
     LookalikeDomainsOut,
 )
-from app.services import phishing_service
 from app.services.domain_lookalike import generate_lookalikes
+from app.services.phishing import base, domains
 
 from ._shared import (
     DomainCheckRequest,
@@ -31,10 +31,10 @@ async def request_domain_verification(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    record = await phishing_service.request_domain_verification(
+    record = await domains.request_domain_verification(
         current_user.id, payload.domain.lower().strip(), db
     )
-    await phishing_service.commit(db)
+    await base.commit(db)
     return {
         "domain": record.domain,
         "verified": record.verified,
@@ -59,7 +59,7 @@ async def check_domain_verification(
     db: AsyncSession = Depends(get_db),
 ):
     domain = payload.domain.lower().strip()
-    record = await phishing_service.get_domain_verification(current_user.id, domain, db)
+    record = await domains.get_domain_verification(current_user.id, domain, db)
     if not record:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -67,9 +67,9 @@ async def check_domain_verification(
             "Lancez d'abord une demande via POST /phishing/domain-verify.",
         )
 
-    verified = await phishing_service.check_domain_verification(record, db)
+    verified = await domains.check_domain_verification(record, db)
     if verified:
-        await phishing_service.commit(db)
+        await base.commit(db)
     return {
         "domain": domain,
         "verified": verified,
