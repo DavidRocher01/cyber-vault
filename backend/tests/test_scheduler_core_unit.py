@@ -37,7 +37,7 @@ PAQUET = pathlib.Path(core.__file__).parent
 # entrée qui ne correspondrait plus à rien est signalée par un test.
 JOBS_HORS_PAQUET = {
     "phishing_batch": (
-        "app.services.phishing_service.send_pending_batch — l'envoi par lots "
+        "app.services.phishing.sending.send_pending_batch — l'envoi par lots "
         "vit avec le reste du phishing, pas dans scheduler/"
     ),
 }

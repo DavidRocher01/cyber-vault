@@ -11,7 +11,7 @@ from app.core.utils import mask_email
 from app.models.awareness_enrollment import AwarenessEnrollment
 from app.models.awareness_learner import AwarenessLearner
 from app.models.awareness_organization import AwarenessOrganization
-from app.services.awareness_magic_link import issue_magic_link
+from app.services.awareness.magic_link import issue_magic_link
 from app.services.email_service import send_awareness_magic_link
 
 

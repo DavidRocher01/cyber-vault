@@ -19,7 +19,7 @@ from sqlalchemy import select
 
 from app.models.awareness_module import AwarenessModule
 from app.models.awareness_program import AwarenessProgram
-from app.services.awareness_content_importer import import_from_directory
+from app.services.awareness.content_importer import import_from_directory
 
 # ── helpers ────────────────────────────────────────────────────────────────────
 
@@ -339,7 +339,7 @@ is_active: true
 async def test_import_csv_respecte_le_quota(db_session):
     from app.models.awareness_organization import AwarenessOrganization
     from app.models.user import User
-    from app.services.awareness_csv_import import import_learners_from_csv
+    from app.services.awareness.csv_import import import_learners_from_csv
 
     u = User(email="quota@acme.fr", hashed_password="x")
     db_session.add(u)
@@ -364,7 +364,7 @@ async def test_import_csv_tient_compte_des_apprenants_deja_presents(db_session):
     from app.models.awareness_learner import AwarenessLearner
     from app.models.awareness_organization import AwarenessOrganization
     from app.models.user import User
-    from app.services.awareness_csv_import import import_learners_from_csv
+    from app.services.awareness.csv_import import import_learners_from_csv
 
     u = User(email="deja@acme.fr", hashed_password="x")
     db_session.add(u)
@@ -388,7 +388,7 @@ async def test_import_csv_tient_compte_des_apprenants_deja_presents(db_session):
 async def test_import_csv_sous_le_quota_passe_entierement(db_session):
     from app.models.awareness_organization import AwarenessOrganization
     from app.models.user import User
-    from app.services.awareness_csv_import import import_learners_from_csv
+    from app.services.awareness.csv_import import import_learners_from_csv
 
     u = User(email="large@acme.fr", hashed_password="x")
     db_session.add(u)

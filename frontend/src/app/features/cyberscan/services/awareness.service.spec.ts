@@ -5,7 +5,6 @@ import { HttpHeaders } from '@angular/common/http';
 import { AwarenessService, LearnerSession } from './awareness.service';
 
 const API = '/api/v1/awareness';
-const LEARNER_TOKEN_KEY = 'awareness_learner_token';
 
 function makeSession(overrides: Partial<LearnerSession> = {}): LearnerSession {
   return {
@@ -31,9 +30,18 @@ function makeService(
     ...httpOverrides,
   };
   const service = Object.create(AwarenessService.prototype) as AwarenessService;
+  const signalSession = signal<LearnerSession | null>(session);
+  // La persistance vit desormais dans `AwarenessSessionService` (core) : ce
+  // service ne fait plus que lui deleguer, et c'est cela qu'on verifie ici.
+  const sessions = {
+    session: signalSession,
+    enregistrer: vi.fn((s: LearnerSession) => signalSession.set(s)),
+    effacer: vi.fn(() => signalSession.set(null)),
+  };
   (service as any).http = http;
-  (service as any).learnerSession = signal<LearnerSession | null>(session);
-  return { service, http };
+  (service as any).sessions = sessions;
+  (service as any).learnerSession = signalSession;
+  return { service, http, sessions };
 }
 
 // Helper: extract the headers option passed to a mocked http call.
@@ -176,21 +184,20 @@ describe('AwarenessService — verifyMagicLink()', () => {
     expect(http.get).toHaveBeenCalledWith(`${API}/auth/verify`, { params: { token: 'magic-tok' } });
   });
 
-  it('persiste la session dans localStorage et le signal', () => {
+  it('confie la session au magasin, et le signal la reflete', () => {
     const session = makeSession({ access_token: 'saved-tok' });
-    const { service } = makeService({ get: vi.fn().mockReturnValue(of(session)) });
+    const { service, sessions } = makeService({ get: vi.fn().mockReturnValue(of(session)) });
     service.verifyMagicLink('magic-tok').subscribe();
-    expect(JSON.parse(localStorage.getItem(LEARNER_TOKEN_KEY)!)).toEqual(session);
+    expect(sessions.enregistrer).toHaveBeenCalledWith(session);
     expect(service.learnerSession()).toEqual(session);
   });
 });
 
 describe('AwarenessService — logout()', () => {
-  it('supprime le token et réinitialise le signal', () => {
-    localStorage.setItem(LEARNER_TOKEN_KEY, JSON.stringify(makeSession()));
-    const { service } = makeService({}, makeSession());
+  it('demande l’effacement au magasin, et le signal retombe a null', () => {
+    const { service, sessions } = makeService({}, makeSession());
     service.logout();
-    expect(localStorage.getItem(LEARNER_TOKEN_KEY)).toBeNull();
+    expect(sessions.effacer).toHaveBeenCalled();
     expect(service.learnerSession()).toBeNull();
   });
 });
@@ -438,26 +445,3 @@ describe('AwarenessService — gestion d’erreur HTTP', () => {
 });
 
 // ── _loadSession (au chargement) ──────────────────────────────────────────────
-
-describe('AwarenessService — chargement de session initiale', () => {
-  beforeEach(() => localStorage.clear());
-  afterEach(() => localStorage.clear());
-
-  it('retourne null si localStorage est vide', () => {
-    const service = Object.create(AwarenessService.prototype) as AwarenessService;
-    expect((service as any)._loadSession()).toBeNull();
-  });
-
-  it('parse une session valide depuis localStorage', () => {
-    const session = makeSession();
-    localStorage.setItem(LEARNER_TOKEN_KEY, JSON.stringify(session));
-    const service = Object.create(AwarenessService.prototype) as AwarenessService;
-    expect((service as any)._loadSession()).toEqual(session);
-  });
-
-  it('retourne null pour un JSON corrompu', () => {
-    localStorage.setItem(LEARNER_TOKEN_KEY, '{not-json');
-    const service = Object.create(AwarenessService.prototype) as AwarenessService;
-    expect((service as any)._loadSession()).toBeNull();
-  });
-});

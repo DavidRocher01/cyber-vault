@@ -2,15 +2,17 @@ import { describe, it, expect, vi } from 'vitest';
 import { Injector, runInInjectionContext, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { awarenessLearnerGuard } from './awareness-learner.guard';
-import { AwarenessService } from '../../features/cyberscan/services/awareness.service';
+import { AwarenessSessionService } from '../services/awareness-session.service';
 
 function run(hasSession: boolean) {
   const createUrlTree = vi.fn((cmds: unknown[]) => ({ cmds }));
-  const svcMock = { learnerSession: signal(hasSession ? { email: 'a@b.com' } : null) };
+  // Le garde ne dépend plus du service métier de `features/`, mais du seul état
+  // de session, qui vit dans `core/`.
+  const sessionsMock = { session: signal(hasSession ? { email: 'a@b.com' } : null) };
 
   const injector = Injector.create({
     providers: [
-      { provide: AwarenessService, useValue: svcMock },
+      { provide: AwarenessSessionService, useValue: sessionsMock },
       { provide: Router, useValue: { createUrlTree } },
     ],
   });

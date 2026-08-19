@@ -22,7 +22,7 @@ async def get_my_level(
     db: AsyncSession = Depends(get_db),
 ) -> LearnerLevelOut:
     """Retourne le niveau et les XP totaux du learner authentifié."""
-    from app.services.awareness_gamification import compute_level, compute_total_xp
+    from app.services.awareness.gamification import compute_level, compute_total_xp
 
     total_xp = await compute_total_xp(db, learner.id)
     level = compute_level(total_xp)
@@ -35,7 +35,7 @@ async def get_my_badges(
     db: AsyncSession = Depends(get_db),
 ) -> list[BadgeOut]:
     """Retourne les badges gagnés par le learner authentifié."""
-    from app.services.awareness_gamification import list_learner_badges
+    from app.services.awareness.gamification import list_learner_badges
 
     rows = await list_learner_badges(db, learner.id)
     out = []
@@ -55,7 +55,7 @@ async def get_leaderboard_endpoint(
 ) -> list[LeaderboardEntry]:
     """Classement des learners par XP total (noms anonymisés). Accès admin de l'org."""
     await _get_org_or_404(org_id, current_user, db)
-    from app.services.awareness_gamification import get_leaderboard
+    from app.services.awareness.gamification import get_leaderboard
 
     rows = await get_leaderboard(db, org_id, limit)
     return [LeaderboardEntry(**r) for r in rows]
@@ -68,7 +68,7 @@ async def get_learner_leaderboard(
     db: AsyncSession = Depends(get_db),
 ) -> list[LeaderboardEntry]:
     """Classement de l'organisation du learner authentifié."""
-    from app.services.awareness_gamification import get_leaderboard
+    from app.services.awareness.gamification import get_leaderboard
 
     rows = await get_leaderboard(db, learner.organization_id, limit)
     return [LeaderboardEntry(**r) for r in rows]

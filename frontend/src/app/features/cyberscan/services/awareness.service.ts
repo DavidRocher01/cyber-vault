@@ -2,8 +2,17 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 
+import {
+  AwarenessSessionService,
+  type LearnerSession,
+} from '../../../core/services/awareness-session.service';
+
+// Le type est re-exporte parce qu'il fait partie du contrat public de ce
+// service : ses appelants le manipulent. Un type ne cree aucun cycle a
+// l'execution — il disparait a la compilation.
+export type { LearnerSession };
+
 const API = '/api/v1/awareness';
-const LEARNER_TOKEN_KEY = 'awareness_learner_token';
 
 // ── Interfaces ──────────────────────────────────────────────────────────────
 
@@ -141,15 +150,6 @@ export interface QuizResult {
   enrollment_completion_pct: number | null;
 }
 
-export interface LearnerSession {
-  learner_id: number;
-  organization_id: number;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  access_token: string;
-}
-
 export interface LearnerLevel {
   level: number;
   label: string;
@@ -250,8 +250,11 @@ export interface Nis2Report {
 @Injectable({ providedIn: 'root' })
 export class AwarenessService {
   private http = inject(HttpClient);
+  private sessions = inject(AwarenessSessionService);
 
-  readonly learnerSession = signal<LearnerSession | null>(this._loadSession());
+  /** Meme signal que `AwarenessSessionService.session` : les appelants
+   *  existants n'ont rien a changer. */
+  readonly learnerSession = this.sessions.session;
 
   // ── Admin : Organizations ────────────────────────────────────────────────
 
@@ -335,8 +338,7 @@ export class AwarenessService {
   }
 
   logout(): void {
-    localStorage.removeItem(LEARNER_TOKEN_KEY);
-    this.learnerSession.set(null);
+    this.sessions.effacer();
   }
 
   // ── Learner : Programs ────────────────────────────────────────────────────
@@ -483,16 +485,6 @@ export class AwarenessService {
   }
 
   private _saveSession(session: LearnerSession): void {
-    localStorage.setItem(LEARNER_TOKEN_KEY, JSON.stringify(session));
-    this.learnerSession.set(session);
-  }
-
-  private _loadSession(): LearnerSession | null {
-    try {
-      const raw = localStorage.getItem(LEARNER_TOKEN_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
+    this.sessions.enregistrer(session);
   }
 }

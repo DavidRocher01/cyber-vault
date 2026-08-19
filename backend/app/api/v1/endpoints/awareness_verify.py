@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.schemas.awareness import CertificateVerifyOut
-from app.services.awareness_certificate_service import verify_certificate
+from app.services.awareness.certificate_service import verify_certificate
 
 router = APIRouter(tags=["awareness-verify"])
 

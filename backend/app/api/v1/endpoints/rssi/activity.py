@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import get_rssi_consultant
 from app.models.user import User
-from app.services import rssi_activity_service
+from app.services.rssi import activity_service
 
 from ._shared import _get_client_or_404
 
@@ -56,7 +56,7 @@ async def log_activity(
     """Record a consultant action on a client account."""
     await _get_client_or_404(client_id, current_user.id, db)
 
-    return await rssi_activity_service.create_activity_log(
+    return await activity_service.create_activity_log(
         db,
         consultant_id=current_user.id,
         client_id=client_id,
@@ -82,6 +82,6 @@ async def get_activity_log(
             detail="limit doit être entre 1 et 200",
         )
 
-    return await rssi_activity_service.list_recent_activity(
+    return await activity_service.list_recent_activity(
         db, client_id=client_id, consultant_id=current_user.id, limit=limit
     )

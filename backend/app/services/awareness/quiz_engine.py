@@ -250,7 +250,7 @@ async def submit_quiz(
 
     # Auto-complete module if passed
     if result == "passed":
-        from app.services.awareness_progression import complete_module
+        from app.services.awareness.progression import complete_module
 
         enrollment = await complete_module(db, learner, enrollment_id, module_id, score)
     else:

@@ -787,7 +787,7 @@ async def test_active_scan_allowed_reflects_domain_verification():
 
     db = AsyncMock()
     with patch(
-        "app.services.phishing_service.is_domain_verified", new_callable=AsyncMock
+        "app.services.phishing.domains.is_domain_verified", new_callable=AsyncMock
     ) as mock_verif:
         mock_verif.return_value = False
         assert await scan_service._active_scan_allowed(1, "https://acme.com", db) is False
@@ -806,6 +806,6 @@ async def test_active_scan_allowed_www_falls_back_to_apex():
         return domain == "acme.com"
 
     db = MagicMock()
-    with patch("app.services.phishing_service.is_domain_verified", side_effect=fake):
+    with patch("app.services.phishing.domains.is_domain_verified", side_effect=fake):
         assert await scan_service._active_scan_allowed(1, "https://www.acme.com", db) is True
         assert await scan_service._active_scan_allowed(1, "https://other.com", db) is False

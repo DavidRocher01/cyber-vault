@@ -17,7 +17,7 @@ from app.models.awareness_learner import AwarenessLearner
 from app.models.awareness_organization import AwarenessOrganization
 from app.models.awareness_program import AwarenessProgram
 from app.models.user import User
-from app.services.awareness_nis2_report import preuve_formation
+from app.services.awareness.nis2_report import preuve_formation
 
 
 async def _user(db, email="patron@acme.fr"):

@@ -347,7 +347,7 @@ async def download_my_report(
     db: AsyncSession = Depends(get_db),
 ):
     """Rapport PDF de la mission (réutilise le générateur consultant)."""
-    from app.services.rssi_report_pdf import generate_rssi_report
+    from app.services.rssi.report_pdf import generate_rssi_report
 
     actions = await portal_service.list_client_actions(db, client.id)
     visits = await portal_service.list_client_visits(db, client.id)

@@ -62,7 +62,7 @@ async def _create_program_with_modules(admin_h: dict, n_modules: int = 2) -> tup
     import yaml
 
     # Import directly via service to avoid HTTP dependency on content endpoints
-    from app.services.awareness_content_importer import import_from_directory
+    from app.services.awareness.content_importer import import_from_directory
 
     tmp = Path(tempfile.mkdtemp())
     programs_dir = tmp / "programs"

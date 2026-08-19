@@ -16,7 +16,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
-from app.services.awareness_nis2_report import (
+from app.services.awareness.nis2_report import (
     compute_global_score,
     generate_nis2_report_pdf,
     map_requirements,
@@ -267,10 +267,11 @@ async def test_nis2_report_pdf_returns_pdf_bytes():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         await c.post(
             f"{BASE}/auth/register",
-            json={"email": "nis2_pdf@test.com", "password": "StrongPass123!"},
+            json={"email": "report_pdf@test.com", "password": "StrongPass123!"},
         )
         r = await c.post(
-            f"{BASE}/auth/login", json={"email": "nis2_pdf@test.com", "password": "StrongPass123!"}
+            f"{BASE}/auth/login",
+            json={"email": "report_pdf@test.com", "password": "StrongPass123!"},
         )
         h = {"Authorization": f"Bearer {r.json()['access_token']}"}
         org_id = (

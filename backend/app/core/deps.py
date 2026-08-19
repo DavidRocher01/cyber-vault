@@ -7,7 +7,7 @@ from app.core.database import get_db
 from app.core.security import decode_access_token
 from app.models.awareness_learner import AwarenessLearner
 from app.models.user import User
-from app.services.awareness_magic_link import decode_learner_jwt
+from app.services.awareness.magic_link import decode_learner_jwt
 
 bearer = HTTPBearer(auto_error=False)
 

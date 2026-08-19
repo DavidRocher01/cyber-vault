@@ -20,7 +20,7 @@ from app.schemas.rssi_client import (
     RssiSiteOut,
     UnlinkedSiteOut,  # noqa: F401
 )
-from app.services import rssi_client_service
+from app.services.rssi import client_service
 
 from ._shared import _get_client_or_404
 
@@ -63,8 +63,8 @@ async def list_clients(
     current_user: User = Depends(get_rssi_consultant),
     db: AsyncSession = Depends(get_db),
 ):
-    clients = await rssi_client_service.list_clients_for_consultant(db, current_user.id)
-    aggregates = await rssi_client_service.compute_client_aggregates(
+    clients = await client_service.list_clients_for_consultant(db, current_user.id)
+    aggregates = await client_service.compute_client_aggregates(
         db, [c.id for c in clients], current_user.id
     )
     return [_build_client_out(c, *aggregates.get(c.id, (0, None, None))) for c in clients]
@@ -77,9 +77,7 @@ async def get_client(
     db: AsyncSession = Depends(get_db),
 ):
     client = await _get_client_or_404(client_id, current_user.id, db)
-    aggregates = await rssi_client_service.compute_client_aggregates(
-        db, [client_id], current_user.id
-    )
+    aggregates = await client_service.compute_client_aggregates(db, [client_id], current_user.id)
     return _build_client_out(client, *aggregates.get(client_id, (0, None, None)))
 
 
@@ -92,7 +90,7 @@ async def create_client(
     if not payload.name.strip():
         raise HTTPException(status_code=422, detail="Le nom du client est requis")
 
-    client = await rssi_client_service.create_client(
+    client = await client_service.create_client(
         db,
         consultant_user_id=current_user.id,
         values={
@@ -126,7 +124,7 @@ async def update_client(
     if "name" in updates:
         updates["name"] = updates["name"].strip()
 
-    client = await rssi_client_service.update_client(db, client, updates)
+    client = await client_service.update_client(db, client, updates)
     return _build_client_out(client, 0, None, None)
 
 
@@ -137,7 +135,7 @@ async def delete_client(
     db: AsyncSession = Depends(get_db),
 ):
     client = await _get_client_or_404(client_id, current_user.id, db)
-    await rssi_client_service.delete_client(db, client)
+    await client_service.delete_client(db, client)
 
 
 # ── Sites for RSSI client ──────────────────────────────────────────────────────
@@ -152,8 +150,8 @@ async def list_client_sites(
     """Active sites linked to this RSSI client, with latest scan status."""
     await _get_client_or_404(client_id, current_user.id, db)
 
-    sites = await rssi_client_service.list_active_sites_for_client(db, current_user.id, client_id)
-    latest_scans = await rssi_client_service.latest_done_scans_by_site(db, [s.id for s in sites])
+    sites = await client_service.list_active_sites_for_client(db, current_user.id, client_id)
+    latest_scans = await client_service.latest_done_scans_by_site(db, [s.id for s in sites])
 
     return [
         RssiSiteOut(
@@ -175,7 +173,7 @@ async def list_unlinked_sites(
     db: AsyncSession = Depends(get_db),
 ):
     """Active sites of this consultant that are not linked to any RSSI client."""
-    return await rssi_client_service.list_unlinked_sites(db, current_user.id)
+    return await client_service.list_unlinked_sites(db, current_user.id)
 
 
 @router.put("/clients/{client_id}/sites/{site_id}", response_model=RssiSiteOut)
@@ -188,14 +186,14 @@ async def link_site_to_client(
     """Link an existing site to an RSSI client."""
     await _get_client_or_404(client_id, current_user.id, db)
 
-    site = await rssi_client_service.get_active_site(db, site_id, current_user.id)
+    site = await client_service.get_active_site(db, site_id, current_user.id)
     if not site:
         raise HTTPException(status_code=404, detail="Site non trouvé")
     if site.rssi_client_id is not None and site.rssi_client_id != client_id:
         raise HTTPException(status_code=409, detail="Ce site est déjà lié à un autre client RSSI")
 
-    site = await rssi_client_service.link_site(db, site, client_id)
-    latest_scan = await rssi_client_service.latest_done_scan_for_site(db, site_id)
+    site = await client_service.link_site(db, site, client_id)
+    latest_scan = await client_service.latest_done_scan_for_site(db, site_id)
 
     return RssiSiteOut(
         id=site.id,
@@ -218,11 +216,11 @@ async def unlink_site_from_client(
     """Remove the link between a site and an RSSI client (site is NOT deleted)."""
     await _get_client_or_404(client_id, current_user.id, db)
 
-    site = await rssi_client_service.get_linked_site(db, site_id, current_user.id, client_id)
+    site = await client_service.get_linked_site(db, site_id, current_user.id, client_id)
     if not site:
         raise HTTPException(status_code=404, detail="Site non trouvé ou non lié à ce client")
 
-    await rssi_client_service.unlink_site(db, site)
+    await client_service.unlink_site(db, site)
 
 
 @router.post("/clients/{client_id}/invite", response_model=PortalInviteOut)
@@ -250,10 +248,10 @@ async def invite_client_to_portal(
             status_code=422, detail="Renseignez l'email du client avant de l'inviter."
         )
 
-    user = await rssi_client_service.get_user_by_email(db, client.email)
+    user = await client_service.get_user_by_email(db, client.email)
     account_created = False
     if user is None:
-        user = await rssi_client_service.create_portal_user(
+        user = await client_service.create_portal_user(
             db,
             email=client.email,
             hashed_password=hash_password(secrets.token_urlsafe(32)),
@@ -261,7 +259,7 @@ async def invite_client_to_portal(
         account_created = True
 
     # Ce compte ne doit pas déjà être rattaché à un AUTRE client (unicité du portail).
-    other = await rssi_client_service.get_other_client_for_user(
+    other = await client_service.get_other_client_for_user(
         db, user_id=user.id, exclude_client_id=client.id
     )
     if other is not None:
@@ -270,7 +268,7 @@ async def invite_client_to_portal(
         )
 
     raw_token = secrets.token_urlsafe(32)
-    await rssi_client_service.link_client_and_add_reset_token(
+    await client_service.link_client_and_add_reset_token(
         db,
         client=client,
         user_id=user.id,
@@ -308,7 +306,7 @@ async def enable_client_awareness(
     client = await _get_client_or_404(client_id, current_user.id, db)
 
     async def _out(org: AwarenessOrganization, already: bool) -> dict:
-        count = await rssi_client_service.count_learners(db, org.id)
+        count = await client_service.count_learners(db, org.id)
         return {
             "id": org.id,
             "name": org.name,
@@ -319,13 +317,13 @@ async def enable_client_awareness(
 
     # Déjà liée -> renvoie l'organisation existante
     if client.awareness_organization_id is not None:
-        org = await rssi_client_service.get_awareness_org(db, client.awareness_organization_id)
+        org = await client_service.get_awareness_org(db, client.awareness_organization_id)
         if org is not None:
             return await _out(org, already=True)
 
     # Sinon création + liaison (même propriétaire que le consultant, isolation cohérente).
     seats = {"essentiel": 10, "premium": 25, "excellence": 50}.get(client.formula or "", 10)
-    org = await rssi_client_service.create_awareness_org_for_client(
+    org = await client_service.create_awareness_org_for_client(
         db,
         client=client,
         owner_user_id=current_user.id,

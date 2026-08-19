@@ -16,7 +16,9 @@ from app.schemas.cyberscan import (
     SiteOut,
     SubdomainResultOut,
 )
-from app.services import phishing_service, rssi_client_service, site_service
+from app.services import site_service
+from app.services.phishing import domains
+from app.services.rssi import client_service
 from app.services.subscription_service import get_effective_max_sites
 
 router = APIRouter(prefix="/sites", tags=["sites"])
@@ -75,9 +77,7 @@ async def add_site(
 
     rssi_client_id = payload.rssi_client_id
     if rssi_client_id is not None:
-        client = await rssi_client_service.get_client_for_consultant(
-            db, rssi_client_id, current_user.id
-        )
+        client = await client_service.get_client_for_consultant(db, rssi_client_id, current_user.id)
         if not client:
             raise HTTPException(status_code=404, detail="Client RSSI non trouvé")
 
@@ -113,9 +113,7 @@ async def get_site_domain_status(
 ):
     site = await _get_owned_site(site_id, current_user.id, db)
     domain = _site_domain(site)
-    verified = (
-        await phishing_service.is_domain_verified(current_user.id, domain, db) if domain else False
-    )
+    verified = await domains.is_domain_verified(current_user.id, domain, db) if domain else False
     return {"domain": domain, "verified": verified}
 
 
@@ -157,7 +155,7 @@ async def check_site_domain_verify(
     """Vérifie le TXT DNS ; si présent, le domaine est marqué vérifié (débloque l'intrusif)."""
     site = await _get_owned_site(site_id, current_user.id, db)
     domain = _site_domain(site)
-    record = await phishing_service.get_domain_verification(current_user.id, domain, db)
+    record = await domains.get_domain_verification(current_user.id, domain, db)
     if not record:
         raise HTTPException(
             status_code=404,

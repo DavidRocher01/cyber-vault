@@ -6,7 +6,7 @@ Ces tests sont rapides et ne nécessitent pas de client HTTP.
 """
 
 from app.services.assessment_service import compute_assessment_score
-from app.services.nis2_catalogue import ALL_ITEM_IDS, NIS2_CATEGORIES
+from app.services.nis2.catalogue import ALL_ITEM_IDS, NIS2_CATEGORIES
 
 
 def _compute_score(items):
@@ -190,7 +190,7 @@ class TestRemediationDansLePdf:
         from unittest.mock import patch
 
         import app.services.pdf_compliance as pc
-        from app.services.nis2_pdf import generate_nis2_pdf
+        from app.services.nis2.report_pdf import generate_nis2_pdf
 
         captures: list[str] = []
         vrai = pc.Paragraph
@@ -262,7 +262,7 @@ class TestArticles:
         from unittest.mock import patch
 
         import app.services.pdf_compliance as pc
-        from app.services.nis2_pdf import generate_nis2_pdf
+        from app.services.nis2.report_pdf import generate_nis2_pdf
 
         captures: list[str] = []
         vrai = pc.Paragraph

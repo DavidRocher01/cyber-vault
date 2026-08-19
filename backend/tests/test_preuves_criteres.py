@@ -24,7 +24,8 @@ from app.models.fichier_depose import FichierDepose
 from app.models.preuve_critere import PreuveCritere
 from app.models.rssi_client import RssiClient
 from app.models.rssi_deliverable import RssiDeliverable
-from app.services import depot_service, nis2_service, preuve_service
+from app.services import depot_service, preuve_service
+from app.services.nis2 import evaluation_service
 
 MAINTENANT = datetime(2026, 8, 7, 12, 0, tzinfo=UTC)
 
@@ -76,7 +77,7 @@ async def _un_fichier(db, uid: int, cle: str, *, client_id=None, taille=100, age
 
 
 async def _une_evaluation(db, uid: int, client_id=None):
-    return await nis2_service.upsert_assessment(
+    return await evaluation_service.upsert_assessment(
         db, uid, items={"rssi": "compliant"}, score=50, now=MAINTENANT, client_id=client_id
     )
 

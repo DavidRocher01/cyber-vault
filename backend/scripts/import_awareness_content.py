@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.core.database import AsyncSessionLocal
-from app.services.awareness_content_importer import import_from_directory
+from app.services.awareness.content_importer import import_from_directory
 
 CONTENT_DIR = Path(__file__).parent.parent.parent / "content" / "fr"
 

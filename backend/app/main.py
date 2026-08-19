@@ -93,7 +93,7 @@ async def _seed_plans() -> None:
 
 async def _seed_awareness_badges() -> None:
     """Seed / upsert the 20 awareness badge definitions (idempotent)."""
-    from app.services.awareness_gamification import seed_badges
+    from app.services.awareness.gamification import seed_badges
 
     async with AsyncSessionLocal() as db:
         count = await seed_badges(db)
@@ -106,7 +106,7 @@ async def _import_awareness_content() -> None:
     from pathlib import Path
 
     from app.core.database import AsyncSessionLocal
-    from app.services.awareness_content_importer import import_from_directory
+    from app.services.awareness.content_importer import import_from_directory
 
     content_dir = Path(__file__).parent.parent.parent / "content" / "fr"
     if not content_dir.exists():

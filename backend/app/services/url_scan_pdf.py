@@ -33,9 +33,11 @@ from app.services.pdf_brand import (
     TEXTE,
     YELLOW,
     draw_page,
-    draw_url_scan_cover,
     get_styles,
     section_rule,
+)
+from app.services.pdf_covers import (
+    draw_url_scan_cover,
 )
 
 DOC_TYPE = "url"

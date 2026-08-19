@@ -17,11 +17,30 @@ export default defineConfig({
         'src/app/app.component.ts',
         'src/app/**/*.routes.ts',
         'src/app/**/*.module.ts',
+        // RÈGLE : toute exclusion porte sa raison. Une exclusion muette ne dit
+        // pas si le code est testé ou à découvert — elle le rend seulement
+        // invisible, ce qui est pire, parce qu'on cesse de se poser la question.
+        //
+        // HISTORIQUE — 2026-08-18 : cinq fichiers de `core/` figuraient ici sans
+        // aucune justification. Mesure faite après les avoir retirés :
+        //   crypto.guard.ts      100 %  — testé depuis toujours, simplement
+        //                                 invisible. L'exclusion cachait une
+        //                                 réussite, et surtout laissait le garde
+        //                                 du coffre régresser sans alerte.
+        //   clipboard.service     18 %  \
+        //   theme.service         13 %   |  réellement à découvert : 207 lignes
+        //   i18n.service          21 %   |  de `core/`, dont deux services qui
+        //   animation.service      0 %  /   écrivent dans localStorage.
+        // Les quatre premiers ont désormais leurs tests. C'est la même leçon que
+        // `backend/.coveragerc`, tirée le 2026-07-30 pour les mêmes raisons.
+
+        // Non testable unitairement : quatre tweens GSAP posés sur des
+        // `HTMLElement` (révélation de mot de passe, fondu, secousse d'erreur).
+        // Un test ne pourrait qu'affirmer que GSAP a été appelé, ce qui ne dit
+        // rien de ce qui compte ici — l'effet visuel. Même famille que le globe
+        // ci-dessous, et même traitement : vérifié à l'œil, pas en unitaire.
         'src/app/core/services/animation.service.ts',
-        'src/app/core/services/theme.service.ts',
-        'src/app/core/services/clipboard.service.ts',
-        'src/app/core/services/i18n.service.ts',
-        'src/app/core/guards/crypto.guard.ts',
+
         // Non testable unitairement : rendu WebGL/canvas (globe 3D interactif,
         // ~490 lignes de logique three.js/animation). Testé visuellement, pas en unit.
         'src/app/shared/globe/**',

@@ -1,5 +1,5 @@
 """
-Unit tests — phishing_service.py : domain verification helpers.
+Unit tests — base.py : domain verification helpers.
 
 Covers:
   1. request_domain_verification — create new record, reuse verified, refresh token on re-request
@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import hash_password
 from app.models.phishing import PhishingDomainVerification
 from app.models.user import User
-from app.services import phishing_service
+from app.services.phishing import domains
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -65,9 +65,7 @@ class TestRequestDomainVerification:
         user = await _seed_user(db_session, "rdv1@test.com")
         await db_session.commit()
 
-        record = await phishing_service.request_domain_verification(
-            user.id, "newdomain.com", db_session
-        )
+        record = await domains.request_domain_verification(user.id, "newdomain.com", db_session)
 
         assert record.domain == "newdomain.com"
         assert record.user_id == user.id
@@ -79,9 +77,7 @@ class TestRequestDomainVerification:
         user = await _seed_user(db_session, "rdv2@test.com")
         await db_session.commit()
 
-        record = await phishing_service.request_domain_verification(
-            user.id, "formatted.com", db_session
-        )
+        record = await domains.request_domain_verification(user.id, "formatted.com", db_session)
 
         # Token must start with "rocher-verify-" and have a random suffix
         parts = record.verification_token.split("rocher-verify-")
@@ -96,9 +92,7 @@ class TestRequestDomainVerification:
         )
         await db_session.commit()
 
-        returned = await phishing_service.request_domain_verification(
-            user.id, "verified.com", db_session
-        )
+        returned = await domains.request_domain_verification(user.id, "verified.com", db_session)
 
         # Verified record must be returned as-is; token must not change
         assert returned.id == existing.id
@@ -114,9 +108,7 @@ class TestRequestDomainVerification:
         await db_session.commit()
         old_token = existing.verification_token
 
-        returned = await phishing_service.request_domain_verification(
-            user.id, "retry.com", db_session
-        )
+        returned = await domains.request_domain_verification(user.id, "retry.com", db_session)
 
         # Same record but with a new token
         assert returned.id == existing.id
@@ -130,8 +122,8 @@ class TestRequestDomainVerification:
         u2 = await _seed_user(db_session, "rdv5b@test.com")
         await db_session.commit()
 
-        r1 = await phishing_service.request_domain_verification(u1.id, "shared.com", db_session)
-        r2 = await phishing_service.request_domain_verification(u2.id, "shared.com", db_session)
+        r1 = await domains.request_domain_verification(u1.id, "shared.com", db_session)
+        r2 = await domains.request_domain_verification(u2.id, "shared.com", db_session)
 
         assert r1.id != r2.id
         assert r1.user_id == u1.id
@@ -150,7 +142,7 @@ class TestCheckDomainVerificationAlreadyVerified:
         record = await _seed_verification(db_session, user.id, "done.com", verified=True)
         await db_session.commit()
 
-        result = await phishing_service.check_domain_verification(record, db_session)
+        result = await domains.check_domain_verification(record, db_session)
 
         assert result is True
 
@@ -161,7 +153,7 @@ class TestCheckDomainVerificationAlreadyVerified:
         await db_session.commit()
 
         with patch("dns.resolver.resolve") as mock_dns:
-            await phishing_service.check_domain_verification(record, db_session)
+            await domains.check_domain_verification(record, db_session)
 
         mock_dns.assert_not_called()
 
@@ -178,9 +170,9 @@ class TestCheckDomainVerificationDevMode:
         record = await _seed_verification(db_session, user.id, "devdomain.com", verified=False)
         await db_session.commit()
 
-        with patch("app.services.phishing_service.settings") as mock_settings:
+        with patch("app.services.phishing.domains.settings") as mock_settings:
             mock_settings.APP_ENV = "development"
-            result = await phishing_service.check_domain_verification(record, db_session)
+            result = await domains.check_domain_verification(record, db_session)
 
         assert result is True
         assert record.verified is True
@@ -192,9 +184,9 @@ class TestCheckDomainVerificationDevMode:
         record = await _seed_verification(db_session, user.id, "ts.com", verified=False)
         await db_session.commit()
 
-        with patch("app.services.phishing_service.settings") as mock_settings:
+        with patch("app.services.phishing.domains.settings") as mock_settings:
             mock_settings.APP_ENV = "development"
-            await phishing_service.check_domain_verification(record, db_session)
+            await domains.check_domain_verification(record, db_session)
 
         assert isinstance(record.verified_at, datetime)
 
@@ -225,11 +217,11 @@ class TestCheckDomainVerificationDnsMatch:
         answers = self._make_dns_answer(token)
 
         with (
-            patch("app.services.phishing_service.settings") as mock_settings,
+            patch("app.services.phishing.domains.settings") as mock_settings,
             patch("dns.resolver.resolve", return_value=answers),
         ):
             mock_settings.APP_ENV = "production"
-            result = await phishing_service.check_domain_verification(record, db_session)
+            result = await domains.check_domain_verification(record, db_session)
 
         assert result is True
         assert record.verified is True
@@ -246,11 +238,11 @@ class TestCheckDomainVerificationDnsMatch:
         answers = self._make_dns_answer(token)
 
         with (
-            patch("app.services.phishing_service.settings") as mock_settings,
+            patch("app.services.phishing.domains.settings") as mock_settings,
             patch("dns.resolver.resolve", return_value=answers),
         ):
             mock_settings.APP_ENV = "production"
-            await phishing_service.check_domain_verification(record, db_session)
+            await domains.check_domain_verification(record, db_session)
 
         assert isinstance(record.verified_at, datetime)
 
@@ -267,11 +259,11 @@ class TestCheckDomainVerificationDnsMatch:
         answers = self._make_dns_answer(token)
 
         with (
-            patch("app.services.phishing_service.settings") as mock_settings,
+            patch("app.services.phishing.domains.settings") as mock_settings,
             patch("dns.resolver.resolve", return_value=answers) as mock_resolve,
         ):
             mock_settings.APP_ENV = "production"
-            await phishing_service.check_domain_verification(record, db_session)
+            await domains.check_domain_verification(record, db_session)
 
         call_args = mock_resolve.call_args[0]
         assert call_args[0] == "_rocher-verify.querydomain.com"
@@ -298,11 +290,11 @@ class TestCheckDomainVerificationDnsMismatch:
         answers.__iter__ = MagicMock(return_value=iter([rdata]))
 
         with (
-            patch("app.services.phishing_service.settings") as mock_settings,
+            patch("app.services.phishing.domains.settings") as mock_settings,
             patch("dns.resolver.resolve", return_value=answers),
         ):
             mock_settings.APP_ENV = "production"
-            result = await phishing_service.check_domain_verification(record, db_session)
+            result = await domains.check_domain_verification(record, db_session)
 
         assert result is False
         assert record.verified is False
@@ -321,11 +313,11 @@ class TestCheckDomainVerificationDnsMismatch:
         answers.__iter__ = MagicMock(return_value=iter([rdata]))
 
         with (
-            patch("app.services.phishing_service.settings") as mock_settings,
+            patch("app.services.phishing.domains.settings") as mock_settings,
             patch("dns.resolver.resolve", return_value=answers),
         ):
             mock_settings.APP_ENV = "production"
-            result = await phishing_service.check_domain_verification(record, db_session)
+            result = await domains.check_domain_verification(record, db_session)
 
         assert result is False
 
@@ -347,11 +339,11 @@ class TestCheckDomainVerificationDnsFailure:
         await db_session.commit()
 
         with (
-            patch("app.services.phishing_service.settings") as mock_settings,
+            patch("app.services.phishing.domains.settings") as mock_settings,
             patch("dns.resolver.resolve", side_effect=dns.resolver.NXDOMAIN()),
         ):
             mock_settings.APP_ENV = "production"
-            result = await phishing_service.check_domain_verification(record, db_session)
+            result = await domains.check_domain_verification(record, db_session)
 
         assert result is False
         assert record.verified is False
@@ -367,11 +359,11 @@ class TestCheckDomainVerificationDnsFailure:
         await db_session.commit()
 
         with (
-            patch("app.services.phishing_service.settings") as mock_settings,
+            patch("app.services.phishing.domains.settings") as mock_settings,
             patch("dns.resolver.resolve", side_effect=dns.exception.Timeout()),
         ):
             mock_settings.APP_ENV = "production"
-            result = await phishing_service.check_domain_verification(record, db_session)
+            result = await domains.check_domain_verification(record, db_session)
 
         assert result is False
 
@@ -384,11 +376,11 @@ class TestCheckDomainVerificationDnsFailure:
         await db_session.commit()
 
         with (
-            patch("app.services.phishing_service.settings") as mock_settings,
+            patch("app.services.phishing.domains.settings") as mock_settings,
             patch("dns.resolver.resolve", side_effect=Exception("network error")),
         ):
             mock_settings.APP_ENV = "production"
-            result = await phishing_service.check_domain_verification(record, db_session)
+            result = await domains.check_domain_verification(record, db_session)
 
         assert result is False
         assert record.verified is False

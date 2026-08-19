@@ -14,7 +14,7 @@ from app.schemas.awareness import (
     CompleteModuleIn,
     HeartbeatIn,
 )
-from app.services.awareness_progression import (
+from app.services.awareness.progression import (
     complete_module,
     heartbeat,
     start_module,

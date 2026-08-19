@@ -11,7 +11,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas as rl_canvas
 
 from app.services.iso27001_pdf import generate_iso27001_pdf
-from app.services.nis2_pdf import generate_nis2_pdf
+from app.services.nis2.report_pdf import generate_nis2_pdf
 from app.services.pdf_brand import (
     DOC_COLOR,
     GREEN,
@@ -19,12 +19,14 @@ from app.services.pdf_brand import (
     SITE_EMAIL,
     YELLOW,
     cat_score,
-    draw_compliance_cover,
     draw_page,
-    draw_url_scan_cover,
     get_styles,
     score_color,
     section_rule,
+)
+from app.services.pdf_covers import (
+    draw_compliance_cover,
+    draw_url_scan_cover,
 )
 from app.services.url_scan_pdf import generate_url_scan_pdf
 

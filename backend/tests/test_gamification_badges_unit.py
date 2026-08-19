@@ -2,7 +2,7 @@
 
 from datetime import date
 
-from app.services.awareness_gamification import (
+from app.services.awareness.gamification import (
     _BADGE_XP_BONUS,
     BADGE_CATALOG,
     _longest_consecutive_run,

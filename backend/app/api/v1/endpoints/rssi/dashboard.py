@@ -11,7 +11,7 @@ from app.schemas.rssi_dashboard import (
     DashboardOverviewOut,
     DashboardSuggestionOut,
 )
-from app.services import rssi_aggregation_service as _agg
+from app.services.rssi import aggregation_service as _agg
 
 router = APIRouter()
 

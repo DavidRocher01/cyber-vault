@@ -12,7 +12,7 @@ Couvre :
 
 import pytest
 
-from app.services.awareness_quiz_engine import (
+from app.services.awareness.quiz_engine import (
     QUESTIONS_PER_ATTEMPT,
     draw_questions,
     parse_quiz_yaml,
@@ -268,7 +268,7 @@ async def _setup_quiz_env(
     from app.main import app
     from app.models.awareness_module import AwarenessModule
     from app.models.awareness_program import AwarenessProgram
-    from app.services.awareness_content_importer import import_from_directory
+    from app.services.awareness.content_importer import import_from_directory
 
     prog_slug = f"quiz-prog-{admin_email.replace('@', '-').replace('.', '-')}"
 

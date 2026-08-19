@@ -16,8 +16,8 @@ from app.schemas.awareness import (
     LearnerDashboard,
     LearnerModuleProgress,
 )
-from app.services import awareness_enrollment_service, awareness_program_service
-from app.services.awareness_progression import enroll_learner
+from app.services.awareness import enrollment_service, program_service
+from app.services.awareness.progression import enroll_learner
 
 router = APIRouter()
 
@@ -38,7 +38,7 @@ async def list_enrollments(
     learner: AwarenessLearner = Depends(get_current_learner),
     db: AsyncSession = Depends(get_db),
 ) -> list[AwarenessEnrollmentOut]:
-    enrollments = await awareness_enrollment_service.list_learner_enrollments(db, learner.id)
+    enrollments = await enrollment_service.list_learner_enrollments(db, learner.id)
     return [AwarenessEnrollmentOut.model_validate(e) for e in enrollments]
 
 
@@ -49,21 +49,17 @@ async def learner_dashboard(
     db: AsyncSession = Depends(get_db),
 ) -> LearnerDashboard:
     """Retourne l'état complet d'une inscription : programme + progression par module."""
-    enrollment = await awareness_enrollment_service.get_learner_enrollment(
-        db, enrollment_id, learner.id
-    )
+    enrollment = await enrollment_service.get_learner_enrollment(db, enrollment_id, learner.id)
     if enrollment is None:
         raise HTTPException(status_code=404, detail="Inscription introuvable.")
 
-    prog = await awareness_program_service.get_program_by_id(db, enrollment.program_id)
+    prog = await program_service.get_program_by_id(db, enrollment.program_id)
     if prog is None:
         raise HTTPException(status_code=404, detail="Programme introuvable.")
-    mods = await awareness_program_service.list_active_modules(db, [prog.id])
+    mods = await program_service.list_active_modules(db, [prog.id])
 
     progress_map: dict[int, AwarenessProgress] = {}
-    prog_records = await awareness_enrollment_service.list_progress_for_enrollment(
-        db, enrollment_id
-    )
+    prog_records = await enrollment_service.list_progress_for_enrollment(db, enrollment_id)
     for p in prog_records:
         progress_map[p.module_id] = p
 

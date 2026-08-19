@@ -15,7 +15,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
-from app.services.awareness_gamification import (
+from app.services.awareness.gamification import (
     BADGE_CATALOG,
     _initials,
     compute_level,
@@ -107,7 +107,7 @@ def test_badge_catalog_xp_bonus_positive():
 
 @pytest.mark.asyncio
 async def test_seed_badges_creates_all(db_session):
-    from app.services.awareness_gamification import seed_badges
+    from app.services.awareness.gamification import seed_badges
 
     count = await seed_badges(db_session)
     assert count == 20
@@ -115,7 +115,7 @@ async def test_seed_badges_creates_all(db_session):
 
 @pytest.mark.asyncio
 async def test_seed_badges_idempotent(db_session):
-    from app.services.awareness_gamification import seed_badges
+    from app.services.awareness.gamification import seed_badges
 
     await seed_badges(db_session)
     count2 = await seed_badges(db_session)

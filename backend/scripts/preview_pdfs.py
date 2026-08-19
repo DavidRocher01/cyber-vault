@@ -54,15 +54,15 @@ def _statuts(categories: list[dict]) -> dict[str, str]:
 
 
 def ech_nis2() -> bytes:
-    from app.services.nis2_catalogue import NIS2_CATEGORIES
-    from app.services.nis2_pdf import generate_nis2_pdf
+    from app.services.nis2.catalogue import NIS2_CATEGORIES
+    from app.services.nis2.report_pdf import generate_nis2_pdf
 
     return generate_nis2_pdf(NIS2_CATEGORIES, _statuts(NIS2_CATEGORIES), 62, _DATE, _EMAIL)
 
 
 def ech_nis2_auditeur() -> bytes:
-    from app.services.nis2_auditor_pdf import generate_nis2_auditor_pdf
-    from app.services.nis2_catalogue import NIS2_CATEGORIES
+    from app.services.nis2.auditor_pdf import generate_nis2_auditor_pdf
+    from app.services.nis2.catalogue import NIS2_CATEGORIES
 
     return generate_nis2_auditor_pdf(
         categories=NIS2_CATEGORIES,
@@ -191,7 +191,7 @@ def ech_scan_marque() -> bytes:
 
 
 def ech_rssi() -> bytes:
-    from app.services.rssi_report_pdf import generate_rssi_report
+    from app.services.rssi.report_pdf import generate_rssi_report
 
     return generate_rssi_report(
         client={"name": _CLIENT, "domain": _DOMAINE, "sector": "Menuiserie industrielle"},
@@ -356,7 +356,7 @@ def ech_phishing() -> bytes:
 def ech_certificat() -> bytes:
     import json
 
-    from app.services.awareness_certificate_service import generate_certificate_pdf
+    from app.services.awareness.certificate_service import generate_certificate_pdf
 
     cert = SimpleNamespace(
         public_id="CERT-2026-0042",

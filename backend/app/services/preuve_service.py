@@ -5,7 +5,7 @@ opposable. Ce service tient le lien, la couche HTTP ne fait que l'appeler.
 
 CE QU'IL NE FAIT PAS. Il ne repond pas a la place de l'utilisateur. Une piece
 DOCUMENTE une declaration, elle ne la remplit pas : c'est la meme regle que
-`awareness_nis2_report.preuve_formation`, et pour la meme raison — une
+`nis2_report.preuve_formation`, et pour la meme raison — une
 auto-evaluation remplie automatiquement n'est plus une declaration et perd sa
 valeur devant un auditeur.
 """
@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.fichier_depose import FichierDepose
 from app.models.preuve_critere import PreuveCritere
-from app.services.nis2_catalogue import ALL_ITEM_IDS
+from app.services.nis2.catalogue import ALL_ITEM_IDS
 
 
 class CritereInconnuError(ValueError):

@@ -13,7 +13,7 @@ Structure attendue du repo de contenu :
                 └── quiz.yaml            ← questions du quiz
 
 Usage:
-    from app.services.awareness_content_importer import import_from_directory
+    from app.services.awareness.content_importer import import_from_directory
     await import_from_directory(db, Path("content/fr"))
 """
 
