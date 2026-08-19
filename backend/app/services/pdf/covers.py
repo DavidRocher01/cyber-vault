@@ -20,7 +20,7 @@ from __future__ import annotations
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 
-from app.services.pdf_brand import (
+from app.services.pdf.brand import (
     _BAND_COVER_LABEL,
     BORDER,
     CARTE_BG,

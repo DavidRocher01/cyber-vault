@@ -439,7 +439,7 @@ class TestAwarenessHtml:
             assert "simulé" in html, f"Expected 'simulé' in awareness page for {key}"
 
     def test_all_13_scenarios_produce_awareness_html(self):
-        from app.services.phishing_templates import _SCENARIO_AWARENESS
+        from app.services.phishing.templates import _SCENARIO_AWARENESS
 
         for key in _SCENARIO_AWARENESS:
             html = tracking.get_awareness_html(key)
@@ -447,7 +447,7 @@ class TestAwarenessHtml:
             assert "phishing" in html.lower(), f"No 'phishing' mention in {key}"
 
     def test_awareness_contains_no_raw_placeholder(self):
-        from app.services.phishing_templates import _SCENARIO_AWARENESS
+        from app.services.phishing.templates import _SCENARIO_AWARENESS
 
         for key in _SCENARIO_AWARENESS:
             html = tracking.get_awareness_html(key)
@@ -518,44 +518,44 @@ class TestDynamicCtx:
 
 class TestAttachmentBadge:
     def test_returns_html_string(self):
-        from app.services.phishing_templates import _attachment_badge
+        from app.services.phishing.templates import _attachment_badge
 
         result = _attachment_badge("Facture.pdf", "PDF")
         assert isinstance(result, str)
         assert len(result) > 0
 
     def test_contains_filename(self):
-        from app.services.phishing_templates import _attachment_badge
+        from app.services.phishing.templates import _attachment_badge
 
         result = _attachment_badge("Mandat_virement.pdf", "PDF")
         assert "Mandat_virement.pdf" in result
 
     def test_contains_filetype(self):
-        from app.services.phishing_templates import _attachment_badge
+        from app.services.phishing.templates import _attachment_badge
 
         result = _attachment_badge("Rapport.docx", "DOCX")
         assert "DOCX" in result
 
     def test_pdf_badge_present(self):
-        from app.services.phishing_templates import _attachment_badge
+        from app.services.phishing.templates import _attachment_badge
 
         result = _attachment_badge("doc.pdf", "PDF")
         assert "PDF" in result
 
     def test_exe_badge_present(self):
-        from app.services.phishing_templates import _attachment_badge
+        from app.services.phishing.templates import _attachment_badge
 
         result = _attachment_badge("patch.exe", "EXE")
         assert "EXE" in result
 
     def test_xlsx_badge_present(self):
-        from app.services.phishing_templates import _attachment_badge
+        from app.services.phishing.templates import _attachment_badge
 
         result = _attachment_badge("grille.xlsx", "XLSX")
         assert "XLSX" in result
 
     def test_is_html_table_or_div(self):
-        from app.services.phishing_templates import _attachment_badge
+        from app.services.phishing.templates import _attachment_badge
 
         result = _attachment_badge("file.pdf", "PDF")
         assert "<table" in result or "<div" in result
@@ -945,7 +945,7 @@ def _make_target(
 
 
 class TestPdfReport:
-    from app.services.phishing_report_pdf import (
+    from app.services.phishing.report_pdf import (
         _get_recommendations,
         _global_risk,
         _risk_label,
@@ -953,7 +953,7 @@ class TestPdfReport:
     )
 
     def test_returns_bytes(self):
-        from app.services.phishing_report_pdf import generate_phishing_report
+        from app.services.phishing.report_pdf import generate_phishing_report
 
         campaign = _make_campaign()
         pdf = generate_phishing_report(campaign, [])
@@ -961,77 +961,77 @@ class TestPdfReport:
         assert len(pdf) > 1000
 
     def test_starts_with_pdf_magic(self):
-        from app.services.phishing_report_pdf import generate_phishing_report
+        from app.services.phishing.report_pdf import generate_phishing_report
 
         campaign = _make_campaign()
         pdf = generate_phishing_report(campaign, [])
         assert pdf[:4] == b"%PDF"
 
     def test_risk_label_faible(self):
-        from app.services.phishing_report_pdf import _risk_label
+        from app.services.phishing.report_pdf import _risk_label
 
         assert _risk_label(0.05) == "FAIBLE"
 
     def test_risk_label_moyen(self):
-        from app.services.phishing_report_pdf import _risk_label
+        from app.services.phishing.report_pdf import _risk_label
 
         assert _risk_label(0.20) == "MOYEN"
 
     def test_risk_label_eleve(self):
-        from app.services.phishing_report_pdf import _risk_label
+        from app.services.phishing.report_pdf import _risk_label
 
         assert _risk_label(0.35) == "ÉLEVÉ"
 
     def test_global_risk_faible(self):
-        from app.services.phishing_report_pdf import _global_risk
+        from app.services.phishing.report_pdf import _global_risk
 
         label, _ = _global_risk(0.05, 0.02)
         assert label == "FAIBLE"
 
     def test_global_risk_moyen(self):
-        from app.services.phishing_report_pdf import _global_risk
+        from app.services.phishing.report_pdf import _global_risk
 
         label, _ = _global_risk(0.15, 0.05)
         assert label == "MOYEN"
 
     def test_global_risk_eleve_via_submit(self):
-        from app.services.phishing_report_pdf import _global_risk
+        from app.services.phishing.report_pdf import _global_risk
 
         label, _ = _global_risk(0.10, 0.25)
         assert label == "ÉLEVÉ"
 
     def test_global_risk_eleve_via_click(self):
-        from app.services.phishing_report_pdf import _global_risk
+        from app.services.phishing.report_pdf import _global_risk
 
         label, _ = _global_risk(0.40, 0.05)
         assert label == "ÉLEVÉ"
 
     def test_recommendations_always_include_mfa(self):
-        from app.services.phishing_report_pdf import _get_recommendations
+        from app.services.phishing.report_pdf import _get_recommendations
 
         recs = _get_recommendations(0.10, 0.02)
         assert any("MFA" in r or "multi-facteurs" in r for r in recs)
 
     def test_recommendations_urgent_warning_on_high_click(self):
-        from app.services.phishing_report_pdf import _get_recommendations
+        from app.services.phishing.report_pdf import _get_recommendations
 
         recs = _get_recommendations(0.40, 0.02)
         assert any("30 %" in r for r in recs)
 
     def test_recommendations_submit_warning_on_high_submit(self):
-        from app.services.phishing_report_pdf import _get_recommendations
+        from app.services.phishing.report_pdf import _get_recommendations
 
         recs = _get_recommendations(0.10, 0.15)
         assert any("identifiants" in r for r in recs)
 
     def test_recommendations_no_urgent_below_threshold(self):
-        from app.services.phishing_report_pdf import _get_recommendations
+        from app.services.phishing.report_pdf import _get_recommendations
 
         recs = _get_recommendations(0.05, 0.01)
         assert not any("30 %" in r for r in recs)
 
     def test_generates_with_compromised_targets(self):
-        from app.services.phishing_report_pdf import generate_phishing_report
+        from app.services.phishing.report_pdf import generate_phishing_report
 
         campaign = _make_campaign(submitted_count=2)
         targets = [
@@ -1043,7 +1043,7 @@ class TestPdfReport:
         assert isinstance(pdf, bytes) and len(pdf) > 1000
 
     def test_generates_with_dept_breakdown(self):
-        from app.services.phishing_report_pdf import generate_phishing_report
+        from app.services.phishing.report_pdf import generate_phishing_report
 
         campaign = _make_campaign()
         targets = [
@@ -1054,14 +1054,14 @@ class TestPdfReport:
         assert isinstance(pdf, bytes) and len(pdf) > 1000
 
     def test_generates_without_scenario_keys(self):
-        from app.services.phishing_report_pdf import generate_phishing_report
+        from app.services.phishing.report_pdf import generate_phishing_report
 
         campaign = _make_campaign(scenario_keys=None)
         pdf = generate_phishing_report(campaign, [])
         assert isinstance(pdf, bytes) and len(pdf) > 1000
 
     def test_generates_with_zero_targets(self):
-        from app.services.phishing_report_pdf import generate_phishing_report
+        from app.services.phishing.report_pdf import generate_phishing_report
 
         campaign = _make_campaign(
             targets_count=0,

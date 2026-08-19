@@ -11,7 +11,7 @@ venir après les constantes.
 Ça tenait — tant qu'on entrait par `pdf_brand`. Le geste naturel, importer la
 fonction depuis le module où elle vit, levait une erreur :
 
-    >>> import app.services.pdf_covers
+    >>> import app.services.pdf.covers
     ImportError: cannot import name 'draw_compliance_cover' from partially
     initialized module (most likely due to a circular import)
 

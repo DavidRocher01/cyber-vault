@@ -12,7 +12,7 @@ from app.core.deps import get_current_user
 from app.core.limiter import limiter
 from app.models.user import User
 from app.services.phishing import campaigns
-from app.services.phishing_report_pdf import generate_phishing_report
+from app.services.phishing.report_pdf import generate_phishing_report
 
 from ._shared import (
     _REPORTABLE_STATUSES,

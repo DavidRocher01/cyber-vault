@@ -191,7 +191,7 @@ def generate_certificate_pdf(cert: AwarenessCertificate, frozen: dict) -> bytes:
     from reportlab.lib.units import mm
     from reportlab.platypus import SimpleDocTemplate, Spacer, Table, TableStyle
 
-    from app.services.pdf_brand import (
+    from app.services.pdf.brand import (
         BORDER,
         CYAN,
         DARK_BG,

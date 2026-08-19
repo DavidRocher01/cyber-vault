@@ -189,7 +189,7 @@ class TestRemediationDansLePdf:
         from datetime import UTC, datetime
         from unittest.mock import patch
 
-        import app.services.pdf_compliance as pc
+        import app.services.pdf.compliance as pc
         from app.services.nis2.report_pdf import generate_nis2_pdf
 
         captures: list[str] = []
@@ -261,7 +261,7 @@ class TestArticles:
         from datetime import UTC, datetime
         from unittest.mock import patch
 
-        import app.services.pdf_compliance as pc
+        import app.services.pdf.compliance as pc
         from app.services.nis2.report_pdf import generate_nis2_pdf
 
         captures: list[str] = []

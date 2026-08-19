@@ -44,7 +44,7 @@ from app.models.awareness_learner import AwarenessLearner
 from app.models.awareness_module import AwarenessModule
 from app.models.awareness_organization import AwarenessOrganization
 from app.models.awareness_progress import AwarenessProgress
-from app.services.pdf_brand import (
+from app.services.pdf.brand import (
     BORDER,
     CARTE_BG,
     CYAN,

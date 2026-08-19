@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
 from app.models.phishing import PhishingCampaign, PhishingTarget
-from app.services.phishing_report_pdf import (
+from app.services.phishing.report_pdf import (
     _get_recommendations,
     _risk_color,
     _risk_label,
@@ -228,7 +228,7 @@ def test_scenario_labels_match_registry():
     Garde-fou anti-derive : toute cle ajoutee/retiree dans _SCENARIO_TEMPLATES
     sans mise a jour de SCENARIO_LABELS (ou l'inverse) casse ce test.
     """
-    from app.services.phishing_templates import (
+    from app.services.phishing.templates import (
         _SCENARIO_TEMPLATES,
         SCENARIO_LABELS,
     )
@@ -244,7 +244,7 @@ def test_compute_report_stats_aggregates():
     """La couche de calcul pure agrege taux, departements, scenarios, compromis."""
     from datetime import UTC, datetime
 
-    from app.services.phishing_report_pdf import _compute_report_stats
+    from app.services.phishing.report_pdf import _compute_report_stats
 
     campaign = _campaign(
         targets_count=4,
@@ -297,7 +297,7 @@ def test_target_sort_priority_only_real_statuses():
     TargetStatus). Une seule map partagee, purgee des statuts fantomes.
     """
     from app.models.enums import TargetStatus
-    from app.services.phishing_report_pdf import _TARGET_SORT_PRIORITY
+    from app.services.phishing.report_pdf import _TARGET_SORT_PRIORITY
 
     real = {s.value for s in TargetStatus}
     assert set(_TARGET_SORT_PRIORITY) <= real, (
@@ -331,7 +331,7 @@ def test_generate_report_scenario_perf_unknown_not_last():
 
 def test_compute_report_stats_handles_bad_scenario_keys_json():
     """Un scenario_keys JSON illisible ne casse pas le calcul (liste vide)."""
-    from app.services.phishing_report_pdf import _compute_report_stats
+    from app.services.phishing.report_pdf import _compute_report_stats
 
     campaign = _campaign(scenario_keys="not-json")
     stats = _compute_report_stats(campaign, [])
