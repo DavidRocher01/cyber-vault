@@ -20,18 +20,18 @@ pytest-cov==7.1.0
 # de preparation chacun. Une base PostgreSQL par worker (cf. conftest) evite que
 # les TRUNCATE ne se marchent dessus.
 pytest-xdist==3.8.0
-testcontainers[postgres]==4.14.2
+testcontainers[postgres]==4.15.0
 aiosqlite==0.22.1
 
 # Qualité & sécurité statique — versions alignées sur celles que la CI exécute
 # (ruff/mypy/bandit/pip-audit tournent dans le job Backend). Les hooks pre-commit
 # épinglent leurs propres versions dans .pre-commit-config.yaml.
-ruff==0.15.22
-mypy==2.3.0
+ruff==0.16.3
+mypy==2.3.1
 sqlalchemy[mypy]==2.0.49
 bandit==1.9.4
 pip-audit==2.10.1
-pre-commit==4.5.1
+pre-commit==4.6.2
 
 # Retires le 2026-07-17 : semgrep, detect-secrets et checkov etaient declares ici
 # mais n'etaient JAMAIS installes (absents du venv) ni JAMAIS executes (aucun step
