@@ -24,8 +24,8 @@ from reportlab.platypus import (
 )
 
 from app.models.phishing import PhishingCampaign, PhishingTarget
-from app.services.pdf_brand import CYAN, ENTETE_TABLEAU, GRAY, TEXTE, draw_page
-from app.services.phishing_templates import SCENARIO_LABELS
+from app.services.pdf.brand import CYAN, ENTETE_TABLEAU, GRAY, TEXTE, draw_page
+from app.services.phishing.templates import SCENARIO_LABELS
 
 # `_DARK` ne designait pas une couleur mais deux ROLES distincts : la
 # couleur du texte et le fond des en-tetes de tableau. Separes.

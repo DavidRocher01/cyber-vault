@@ -17,7 +17,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from app.services.pdf_billing import (
+from app.services.pdf.billing import (
     BLACK,
     BORDER,
     CYAN,

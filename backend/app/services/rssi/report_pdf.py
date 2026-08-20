@@ -18,7 +18,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from app.services.pdf_brand import (
+from app.services.pdf.brand import (
     BORDER,
     CARD_BG,
     CYAN,

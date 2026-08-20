@@ -33,7 +33,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from app.services.pdf_brand import (
+from app.services.pdf.brand import (
     BORDER,
     CARD_BG,
     CYAN,
@@ -51,7 +51,7 @@ from app.services.pdf_brand import (
     draw_page,
     score_color,
 )
-from app.services.pdf_covers import (
+from app.services.pdf.covers import (
     draw_compliance_cover,
 )
 

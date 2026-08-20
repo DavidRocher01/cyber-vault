@@ -9,7 +9,7 @@ from datetime import datetime
 
 from reportlab.lib.units import mm
 
-from app.services.pdf_brand import (
+from app.services.pdf.brand import (
     BORDER,
     CYAN,
     ENTETE_CATEGORIE,
@@ -17,7 +17,7 @@ from app.services.pdf_brand import (
     get_styles,
     section_rule,
 )
-from app.services.pdf_compliance import ComplianceStyle, generate_compliance_pdf
+from app.services.pdf.compliance import ComplianceStyle, generate_compliance_pdf
 
 DOC_TYPE = "nis2"
 

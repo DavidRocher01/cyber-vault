@@ -12,8 +12,8 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import HRFlowable
 
-from app.services.pdf_brand import ENTETE_TABLEAU
-from app.services.pdf_compliance import ComplianceStyle, generate_compliance_pdf
+from app.services.pdf.brand import ENTETE_TABLEAU
+from app.services.pdf.compliance import ComplianceStyle, generate_compliance_pdf
 
 DOC_TYPE = "iso27001"
 VIOLET = colors.HexColor("#8b5cf6")

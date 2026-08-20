@@ -20,7 +20,7 @@ from reportlab.platypus import (
 )
 
 from app.models.darkweb_dossier import DarkwebDossier, DarkwebDossierTarget
-from app.services.pdf_brand import (
+from app.services.pdf.brand import (
     CARTE_BG,
     CARTE_BORDURE,
     CYAN,
@@ -80,7 +80,7 @@ def _draw_dossier_cover(
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
 
-    from app.services.pdf_brand import BORDER, DOC_COLOR, FOOTER_H, MARGIN, _draw_band
+    from app.services.pdf.brand import BORDER, DOC_COLOR, FOOTER_H, MARGIN, _draw_band
 
     W, H = A4
     M = MARGIN * mm

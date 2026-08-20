@@ -15,19 +15,19 @@ from app.models.phishing import (
     PhishingTarget,
 )
 from app.services.phishing import sending
-from app.services.phishing_templates import (
+from app.services.phishing.templates import (
     _DEFAULT_SCENARIO_KEY,
 )
-from app.services.phishing_templates import (
+from app.services.phishing.templates import (
     get_awareness_html as get_awareness_html,  # re-export (facade service)
 )
-from app.services.phishing_templates import (
+from app.services.phishing.templates import (
     get_expired_html as get_expired_html,
 )
-from app.services.phishing_templates import (
+from app.services.phishing.templates import (
     get_landing_html as get_landing_html,
 )
-from app.services.phishing_templates import (
+from app.services.phishing.templates import (
     get_pixel_gif as get_pixel_gif,
 )
 

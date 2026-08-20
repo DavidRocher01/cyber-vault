@@ -317,7 +317,7 @@ def ech_pca() -> bytes:
 
 
 def ech_phishing() -> bytes:
-    from app.services.phishing_report_pdf import generate_phishing_report
+    from app.services.phishing.report_pdf import generate_phishing_report
 
     campagne = SimpleNamespace(
         name="Simulation trimestrielle — T3 2026",

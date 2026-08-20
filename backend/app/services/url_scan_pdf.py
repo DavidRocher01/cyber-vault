@@ -22,7 +22,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from app.services.pdf_brand import (
+from app.services.pdf.brand import (
     BORDER,
     CARD_BG,
     DARK_BG,
@@ -36,7 +36,7 @@ from app.services.pdf_brand import (
     get_styles,
     section_rule,
 )
-from app.services.pdf_covers import (
+from app.services.pdf.covers import (
     draw_url_scan_cover,
 )
 
