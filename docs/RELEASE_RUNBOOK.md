@@ -57,8 +57,14 @@
    ne les voit (modèle : `f7fb572e4e16_blog_tarifs_grille_juillet_2026.py`).
 6. Archiver les anciens prix chez Stripe. Si l'un est le prix par défaut de son
    produit, repointer d'abord ce défaut — Stripe refuse sinon.
-7. Lancer `pytest tests/test_stripe_price_coherence.py` avec `STRIPE_SECRET_KEY`
-   (ignoré en CI faute de secret) : il compare l'affiché au débité.
+7. Lancer `python scripts/verifier_prix_stripe.py` : il confronte les montants
+   réellement servis par `/api/v1/plans` en production aux prix Stripe désignés
+   par les `stripe_price_id`. Il lit la clé dans Secrets Manager lui-même.
+   Le même contrôle tourne à chaque déploiement (travail « Coherence des prix
+   Stripe »), mais le lancer ici évite de découvrir l'écart après coup.
+   Il a remplacé `tests/test_stripe_price_coherence.py`, qui était
+   `skipif(not STRIPE_SECRET_KEY)` — donc ignoré depuis toujours — et qui lisait
+   la base de TEST plutôt que la production.
 
 > Le filet en production : `stripe_service.verifier_prix` interroge Stripe avant
 > chaque ouverture de session et **refuse de facturer** si le montant,

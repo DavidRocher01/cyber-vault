@@ -158,13 +158,28 @@ limité._
 > l'argument de bascule vers Starter — ne jamais laisser croire que le PDF est
 > inclus dans le gratuit.
 
-> ⚠️ **À vérifier avant tout encaissement : ce que Stripe facture réellement.**
-> Les prix affichés viennent de `price_eur` ; le débit vient du
-> `stripe_price_id`. Les deux sont posés séparément — les identifiants Stripe
-> par un script manuel hors chaîne Alembic. Un test de cohérence existe
-> (`test_stripe_price_coherence.py`) mais il est **ignoré partout**, faute de
-> `STRIPE_SECRET_KEY` en CI. Personne n'a donc jamais confirmé que le montant
-> annoncé est celui qui sera prélevé.
+> ✅ **Vérifié le 2026-08-20 : chaque prix affiché est celui que Stripe
+> prélèvera.** Les six prix LIVE (3 mensuels, 3 annuels) correspondent au
+> montant, à la devise, à l'intervalle et au `tax_behavior` attendus, et aucun
+> n'est archivé.
+>
+> Ce n'était affirmé nulle part jusqu'ici : les prix affichés viennent de
+> `price_eur`, le débit du `stripe_price_id`, et les deux sont posés séparément.
+> Le test qui prétendait les confronter était `skipif(not STRIPE_SECRET_KEY)` —
+> donc ignoré à chaque exécution depuis sa création — et lisait en plus la base
+> de TEST. Il a été supprimé : un contrôle qui ne s'exécute jamais est pire
+> qu'une absence de contrôle, parce qu'il donne l'illusion d'être couvert.
+>
+> Le contrôle réel est `scripts/verifier_prix_stripe.py`, lancé **à chaque
+> déploiement** par le travail « Coherence des prix Stripe ». Il rougit le
+> déploiement sans rien défaire : un écart de prix est une incohérence de
+> données, qu'un rollback ne corrigerait pas.
+>
+> **Ce qu'un écart coûterait, pour ne pas le surestimer.** `verifier_prix`
+> interroge Stripe avant chaque ouverture de session et **refuse de facturer**
+> si ça diverge : personne ne peut être débité du mauvais montant. En revanche
+> le paiement échoue — c'est le prospect qui découvre le problème, pas nous.
+> D'où l'intérêt de le savoir à chaque déploiement.
 
 > ⚠️ Le **RSSI externalisé** est une **prestation de service** (forfait/abonnement dédié), pas un simple
 > palier du SaaS — à tarifer au cas par cas (à cadrer avec moi si un prospect avance).

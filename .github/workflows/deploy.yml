@@ -468,3 +468,47 @@ jobs:
             --query 'services[0].taskDefinition' --output text)
           echo "::error::Recette echouee. Backend rollback vers $RUNNING. Le frontend (S3/CloudFront) N'EST PAS rollback automatiquement — verifier et redeployer si besoin."
           exit 1
+
+  # ── Coherence tarifaire : ce qui est affiche == ce qui sera preleve ─────────
+  #
+  # TRAVAIL SEPARE, ET C'EST DELIBERE. Tout echec dans `recette` declenche le
+  # retour arriere du frontend et le rollback ECS. Un ecart de prix n'est pas un
+  # mauvais deploiement : c'est une incoherence entre la base et Stripe, que
+  # revenir a la version precedente ne corrige pas. Le rollback serait un faux
+  # remede, et il masquerait le vrai probleme.
+  #
+  # Ce travail rougit donc le deploiement sans rien defaire : on est prevenu,
+  # on corrige la donnee.
+  #
+  # POURQUOI ICI ET PAS EN CI. `tests/test_stripe_price_coherence.py` fait la
+  # meme comparaison et ne s'est JAMAIS executee : `skipif(not
+  # STRIPE_SECRET_KEY)`, et la CI n'a pas ce secret. Elle lit en plus la base de
+  # TEST, donc elle ne dirait rien de ce qu'un client verra. La verification a
+  # besoin de la production et de la cle LIVE : sa place est apres le
+  # deploiement, la ou le role AWS donne acces a Secrets Manager.
+  coherence-tarifaire:
+    name: Coherence des prix Stripe
+    needs: [recette]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region:     ${{ env.AWS_REGION }}
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: .python-version
+
+      - name: Install stripe
+        run: pip install stripe
+
+      - name: Ce qui est affiche est-il ce qui sera preleve ?
+        run: python scripts/verifier_prix_stripe.py
