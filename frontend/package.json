@@ -58,7 +58,7 @@
     "@angular/cli": "^21.2.19",
     "@angular/compiler-cli": "^21.2.19",
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.59.1",
+    "@playwright/test": "^1.62.1",
     "@storybook/addon-a11y": "^10.5.5",
     "@storybook/addon-essentials": "^8.0.0",
     "@storybook/addon-interactions": "^8.0.0",
