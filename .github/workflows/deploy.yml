@@ -469,46 +469,33 @@ jobs:
           echo "::error::Recette echouee. Backend rollback vers $RUNNING. Le frontend (S3/CloudFront) N'EST PAS rollback automatiquement — verifier et redeployer si besoin."
           exit 1
 
-  # ── Coherence tarifaire : ce qui est affiche == ce qui sera preleve ─────────
+  # ── Coherence tarifaire : RETIREE, et voici pourquoi ───────────────────────
   #
-  # TRAVAIL SEPARE, ET C'EST DELIBERE. Tout echec dans `recette` declenche le
-  # retour arriere du frontend et le rollback ECS. Un ecart de prix n'est pas un
-  # mauvais deploiement : c'est une incoherence entre la base et Stripe, que
-  # revenir a la version precedente ne corrige pas. Le rollback serait un faux
-  # remede, et il masquerait le vrai probleme.
+  # Un travail « Coherence des prix Stripe » a tourne ici une seule fois, le
+  # 2026-08-21, et a echoue : `aws secretsmanager get-secret-value` sort en 254.
   #
-  # Ce travail rougit donc le deploiement sans rien defaire : on est prevenu,
-  # on corrige la donnee.
+  # LA CAUSE EST UNE ERREUR DE CONCEPTION, pas un droit oublie. J'avais suppose
+  # qu'un travail assumant le role de deploiement pouvait lire Secrets Manager.
+  # Le role n'en a jamais eu besoin : il ECRIT l'ARN dans la definition de
+  # tache, et c'est le role d'EXECUTION ECS qui resout la valeur au demarrage
+  # du conteneur. `infra/iam/github-actions-deploy.json` ne contient donc
+  # aucune action `secretsmanager`, et c'est tres bien ainsi.
   #
-  # POURQUOI ICI ET PAS EN CI. `tests/test_stripe_price_coherence.py` fait la
-  # meme comparaison et ne s'est JAMAIS executee : `skipif(not
-  # STRIPE_SECRET_KEY)`, et la CI n'a pas ce secret. Elle lit en plus la base de
-  # TEST, donc elle ne dirait rien de ce qu'un client verra. La verification a
-  # besoin de la production et de la cle LIVE : sa place est apres le
-  # deploiement, la ou le role AWS donne acces a Secrets Manager.
-  coherence-tarifaire:
-    name: Coherence des prix Stripe
-    needs: [recette]
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6
-        with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region:     ${{ env.AWS_REGION }}
-
-      - name: Setup Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version-file: .python-version
-
-      - name: Install stripe
-        run: pip install stripe
-
-      - name: Ce qui est affiche est-il ce qui sera preleve ?
-        run: python scripts/verifier_prix_stripe.py
+  # POURQUOI ON NE CORRIGE PAS EN ELARGISSANT LE ROLE. `cybervault/prod` est un
+  # blob unique : y donner acces, c'est donner SECRET_KEY, DATABASE_URL et la
+  # cle Stripe LIVE. Il n'existe aucun moyen de restreindre la lecture a un
+  # seul champ. Offrir tous les secrets de production a la CI pour verifier un
+  # prix serait un echange perdant, et particulierement mal venu ici.
+  #
+  # LA BONNE VOIE, le jour ou on la prend : une cle Stripe RESTREINTE en lecture
+  # seule sur Products/Prices, deposee en secret GitHub Actions. Le travail
+  # n'aurait alors besoin d'aucun acces AWS, et la cle ne pourrait rien faire
+  # d'autre que lire des tarifs.
+  #
+  # EN ATTENDANT, le controle n'est pas perdu : `scripts/verifier_prix_stripe.py`
+  # se lance a la main et lit la cle lui-meme. Il est inscrit a l'etape 7 du
+  # RELEASE_RUNBOOK. Verifie conforme le 2026-08-20.
+  #
+  # On ne laisse PAS un travail rouge en permanence : un deploiement qui rougit
+  # a chaque fois pour une raison connue apprend a ignorer les rouges, ce qui
+  # coute plus cher que le controle ne rapporte.

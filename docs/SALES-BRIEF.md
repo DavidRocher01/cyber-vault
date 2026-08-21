@@ -170,10 +170,12 @@ limité._
 > de TEST. Il a été supprimé : un contrôle qui ne s'exécute jamais est pire
 > qu'une absence de contrôle, parce qu'il donne l'illusion d'être couvert.
 >
-> Le contrôle réel est `scripts/verifier_prix_stripe.py`, lancé **à chaque
-> déploiement** par le travail « Coherence des prix Stripe ». Il rougit le
-> déploiement sans rien défaire : un écart de prix est une incohérence de
-> données, qu'un rollback ne corrigerait pas.
+> Le contrôle réel est `scripts/verifier_prix_stripe.py`, à lancer **à la
+> main** — étape 7 du `RELEASE_RUNBOOK`. Il a été branché sur le déploiement le
+> 2026-08-21, et retiré le jour même : le rôle CI n'a pas le droit de lire
+> Secrets Manager, et le lui donner reviendrait à lui offrir tous les secrets
+> de production, `cybervault/prod` étant un blob unique. La voie propre est une
+> clé Stripe restreinte en lecture seule, déposée en secret GitHub.
 >
 > **Ce qu'un écart coûterait, pour ne pas le surestimer.** `verifier_prix`
 > interroge Stripe avant chaque ouverture de session et **refuse de facturer**
