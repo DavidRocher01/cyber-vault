@@ -9,6 +9,21 @@
 # Les groupes ci-dessous font arriver chaque famille en UNE PR cohérente,
 # testable et mergeable telle quelle.
 #
+# MAIS GROUPER A UN REVERS, constaté le 2026-08-21 : un groupe ne vaut que
+# par son membre le plus risqué. La PR « styles » mêlait `autoprefixer` et
+# `postcss` — deux mineures anodines — à **Tailwind 3 → 4**, une refonte
+# majeure. Résultat : le lot entier était bloqué par un seul paquet, et deux
+# corrections triviales attendaient derrière une décision d'architecture.
+# Même chose pour « test », qui groupait Playwright avec `jsdom` 29 → 30.
+#
+# D'où `update-types` sur CERTAINS groupes seulement : les majeures en
+# sortent et arrivent seules, jugeables une par une. La règle n'est PAS
+# uniforme, et c'est délibéré — voir la raison écrite sur chaque groupe.
+#
+# CE QUI RESTE GROUPÉ MAJEURES COMPRISES : les familles dont les versions
+# doivent bouger ENSEMBLE. Sortir une majeure d'Angular du lot recréerait
+# exactement l'incident de juillet 2026 décrit plus haut.
+#
 # `target-branch: develop` sur CHAQUE écosystème : sans lui, Dependabot vise la
 # branche par défaut, c'est-à-dire `master`. Or un push sur `master` déclenche
 # `deploy.yml`, donc la production. Constaté le 2026-07-31 avec 16 PR ouvertes
@@ -21,13 +36,19 @@ updates:
     target-branch: "develop"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+    # Releve de 5 le 2026-08-21 : sortir les majeures des groupes produit
+    # mecaniquement plus de PR.
+    open-pull-requests-limit: 8
     groups:
       # Outils de dev/test : jamais dans l'image de production, faible risque,
       # autant les traiter en un seul lot. Listés explicitement plutôt que via
       # `dependency-type: development`, que pip ne sait pas distinguer (il n'a
       # pas la séparation dependencies/devDependencies de npm).
       backend-dev:
+        # Outils independants les uns des autres : une majeure de `ruff`
+        # n'a rien a voir avec une majeure de `pytest`. Elles se jugent
+        # separement, et surtout elles ne doivent pas retenir les patchs
+        # des autres.
         patterns:
           - "pytest*"
           - "coverage"
@@ -38,8 +59,14 @@ updates:
           - "bandit"
           - "pip-audit"
           - "pre-commit"
+        # Les majeures sortent du groupe et arrivent seules.
+        update-types:
+          - "minor"
+          - "patch"
       # boto3 et botocore publient ensemble et doivent rester alignés.
       aws:
+        # Majeures GROUPEES a dessein : boto3 et botocore publient
+        # ensemble et doivent rester alignes.
         patterns:
           - "boto3"
           - "botocore"
@@ -50,11 +77,16 @@ updates:
     target-branch: "develop"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+    # Releve de 5 le 2026-08-21. npm etait EXACTEMENT a la limite (5 PR
+    # ouvertes pour 5 autorisees) : des montees etaient donc supprimees en
+    # silence, sans que rien ne le signale.
+    open-pull-requests-limit: 10
     groups:
       # LA raison d'être de ce fichier : Angular exige des versions identiques
       # entre tous ses paquets. Le CLI et le devkit suivent la même cadence.
       angular:
+        # Majeures GROUPEES a dessein, et c'est LE cas qui a motive ce
+        # fichier : Angular exige des versions identiques partout.
         patterns:
           - "@angular/*"
           - "@angular-devkit/*"
@@ -68,27 +100,45 @@ updates:
       # angular-eslint dépend d'eslint et de typescript-eslint : monter l'un
       # sans les autres casse la configuration de lint.
       lint:
+        # Majeures GROUPEES a dessein : `@angular-eslint` suit la majeure
+        # d'Angular en verrou, et sa v21+ seule accepte ESLint 10.
         patterns:
           - "eslint"
           - "@eslint/*"
           - "@typescript-eslint/*"
           - "@angular-eslint/*"
       storybook:
+        # Majeures GROUPEES a dessein : tout le paquet Storybook publie
+        # sous une meme version, `storybook` et `@storybook/*` compris.
         patterns:
           - "storybook"
           - "@storybook/*"
       test:
+        # `jsdom`, `vitest` et Playwright n'ont aucun lien de version.
+        # Le 2026-08-21, `jsdom` 29 -> 30 retenait une mineure Playwright
+        # dans le meme lot.
         patterns:
           - "vitest"
           - "@vitest/*"
           - "jsdom"
           - "@playwright/test"
+        # Les majeures sortent du groupe et arrivent seules.
+        update-types:
+          - "minor"
+          - "patch"
       styles:
+        # Tailwind 4 est une refonte, pas une montee. Elle ne doit pas
+        # voyager avec des patchs de `postcss` et d'`autoprefixer`, qui
+        # eux se fusionnent d'un clic.
         patterns:
           - "tailwindcss"
           - "postcss"
           - "autoprefixer"
 
+        # Les majeures sortent du groupe et arrivent seules.
+        update-types:
+          - "minor"
+          - "patch"
   - package-ecosystem: "github-actions"
     directory: "/"
     target-branch: "develop"
