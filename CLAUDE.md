@@ -194,7 +194,12 @@ pytest --cov=app --cov-report=term-missing
 | `SECRET_KEY` | Clé JWT (min 64 chars) |
 | `DATABASE_URL` | `postgresql+asyncpg://...` |
 | `ALLOWED_ORIGINS` | Liste JSON des origines CORS |
-| `ADMIN_API_KEY` | Clé admin API interne |
 | `REDIS_URL` | `redis://...` (optionnel — APScheduler fallback in-memory si absent) |
 
-Voir `.env.example` pour la liste complète. Voir `docs/GITHUB_SECRETS.md` pour les secrets CI/CD.
+Voir `backend/.env.example` pour la liste complète.
+
+> `ADMIN_API_KEY` a été **retirée** : le back-office s'ouvre par un compte
+> `users.is_admin` protégé par 2FA. Le secret a été supprimé de Secrets
+> Manager le 2026-08-03 — ne rien remettre. `backend/tests/test_provisionnement_production.py`
+> vérifie que chaque réglage sans valeur par défaut est provisionné, ou
+> porte la raison écrite de ne pas l'être. Voir `docs/GITHUB_SECRETS.md` pour les secrets CI/CD.
