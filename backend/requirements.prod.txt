@@ -18,7 +18,7 @@ python-multipart==0.0.31
 slowapi==0.1.9
 
 # Config & utilitaires
-pydantic-settings==2.2.1
+pydantic-settings==2.15.0
 email-validator==2.3.0
 python-dotenv==1.2.2
 
