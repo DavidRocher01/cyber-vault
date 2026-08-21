@@ -32,7 +32,7 @@ stripe==15.4.0
 apscheduler==3.11.2
 apscheduler[redis]==3.11.2
 redis==8.0.1
-reportlab==4.4.10
+reportlab==5.0.0
 
 # Email transactionnel
 resend==2.7.0
