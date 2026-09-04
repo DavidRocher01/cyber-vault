@@ -46,5 +46,5 @@ dnspython==2.8.0
 boto3==1.43.57
 
 # 2FA
-pyotp==2.9.0
+pyotp==2.10.0
 qrcode[pil]==8.2
