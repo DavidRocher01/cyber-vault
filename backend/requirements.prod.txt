@@ -9,7 +9,7 @@ asyncpg==0.31.0
 alembic==1.13.1
 
 # Sécurité
-PyJWT==2.13.0
+PyJWT==2.15.0
 cryptography==50.0.0
 bcrypt==5.0.0
 python-multipart==0.0.31
