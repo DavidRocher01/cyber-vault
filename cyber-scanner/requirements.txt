@@ -16,7 +16,7 @@
 # Partagées avec le backend — garder identiques à backend/requirements.prod.txt
 requests==2.34.2
 reportlab==4.4.10
-dnspython==2.7.0
+dnspython==2.9.2
 
 # Spécifiques au scanner
 python-nmap==0.7.1
